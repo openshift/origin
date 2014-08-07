@@ -148,11 +148,15 @@ func main() {
 		dockerClient,
 		cadvisorClient,
 		etcdClient,
-		*rootDirectory,
-		*syncFrequency)
+		*rootDirectory)
 
 	// start the kubelet
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
+
+	// resynchronize periodically
+	// TODO: make this part of PodConfig so that it is only delivered after syncFrequency has elapsed without
+	// an update
+	go util.Forever(cfg.Sync, *syncFrequency)
 
 	// start the kubelet server
 	if *enableServer {
