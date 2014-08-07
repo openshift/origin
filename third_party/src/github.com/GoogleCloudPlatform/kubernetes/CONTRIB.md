@@ -1,0 +1,1 @@
+[Moved to CONTRIBUTING.md](CONTRIBUTING.md)

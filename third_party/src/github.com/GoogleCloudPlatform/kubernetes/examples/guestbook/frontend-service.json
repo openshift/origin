@@ -1,0 +1,9 @@
+{
+  "id": "frontend",
+  "kind": "Service",
+  "apiVersion": "v1beta1",
+  "port": 9998,
+  "selector": {
+    "name": "frontend"
+  }
+}
