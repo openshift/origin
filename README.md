@@ -13,7 +13,7 @@ Getting Started
 You'll need Docker and the Go language compilation tools installed.
 
 1.  [Install Docker](https://docs.docker.com/installation/#installation)
-2.  [Install the Go language toolkit](http://golang.org/doc/install) and set your GOPATH
+2.  [Install the Go language toolkit](http://golang.org/doc/install) and set your [GOPATH](http://golang.org/doc/code.html#GOPATH)
 3.  Clone this git repository through the Go tools:
 
         $ go get github.com/openshift/origin
@@ -49,7 +49,7 @@ The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 * `http://localhost:8080/api/v1beta1/replicationControllers`
 * `http://localhost:8080/api/v1beta1/operations`
 
-An draft of the proposed API is available [in this repository](https://rawgit.com/csrwng/oo-api-v3/master/oov3.html).  Expect significant changes.
+A draft of the proposed API is available [in this repository](https://rawgit.com/csrwng/oo-api-v3/master/oov3.html).  Expect significant changes.
 
 
 Contributing
