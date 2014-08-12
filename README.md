@@ -13,6 +13,15 @@ Getting Started
 You'll need Docker and the Go language compilation tools installed.
 
 1.  [Install Docker](https://docs.docker.com/installation/#installation)
+    and add your user to the 'docker' group
+
+        $ sudo usermod -G docker -a `whoami`
+
+    After doing this, you will need to login to a new session as that
+user and confirm you can list docker processes as your user:
+
+        $ docker ps
+
 2.  [Install the Go language toolkit](http://golang.org/doc/install) and set your [GOPATH](http://golang.org/doc/code.html#GOPATH)
 3.  Clone this git repository through the Go tools:
 
