@@ -1,0 +1,26 @@
+{
+  "data":
+  {
+    "name": "service-name",
+    "desiredState": 
+    {
+      "replicas": 3,
+      "replicaPolicy": {
+        "atLeast": 2
+      },
+      "podTemplate": 
+      {
+         "desiredState":
+         {
+           "image": "server/domain/name",
+           "network-ports": [
+             {
+               "hostPort": 8080,
+               "containerPort": 80
+             }
+           ]
+         }
+      }
+    }
+  }
+}

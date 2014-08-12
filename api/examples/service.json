@@ -1,0 +1,34 @@
+{
+  "data":
+  {
+    "id": "53c4249f076573c0f4000001",
+    "name": "service-name",
+    "domain": "domain-id",
+    "desiredState": 
+    {
+      "replicas": 3,
+      "replicaSelector": { "name": "service-name" },
+      "replicaPolicy": {
+        "atLeast": 2
+      },
+      "activeDeployment": "a_deployment_id",
+      "podTemplate": 
+      {
+         "desiredState":
+         {
+           "image": "server/domain/name",
+           "network-ports": [
+             {
+               "hostPort": 8080,
+               "containerPort": 80
+             }
+           ],
+           "owner": true
+         },
+         "labels": {
+           "name": "service-name"
+         }
+      }
+    }
+  }
+}

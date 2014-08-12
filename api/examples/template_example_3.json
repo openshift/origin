@@ -1,0 +1,26 @@
+{
+  "description": "Example of PHP application project linked to a Redis cluster project",
+  "id": "example3",
+  "kind": "Project",
+  "name": "php-app-with-redis",
+  "projectLinks": [
+    {
+      "from": {
+        "project": "example2",
+        "services": [
+          {
+            "name": "redis-master",
+            "export": [{
+              "name": "REDIS_PASSWORD",
+              "value": "${REDIS_PASSWORD}"
+            }
+            ]
+          }
+        ]
+      },
+      "to": {
+        "project": "example1"
+      }
+    }
+  ]
+}

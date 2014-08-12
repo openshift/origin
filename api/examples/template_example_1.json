@@ -1,0 +1,138 @@
+{
+  "id": "example1",
+  "name": "my-awesome-php-app",
+  "description": "Example PHP application with PostgreSQL database",
+  "buildConfig": [
+    {
+      "name": "mfojtik/nginx-php-app",
+      "type": "docker",
+      "sourceUri": "https://raw.githubusercontent.com/mfojtik/phpapp/master/Dockerfile",
+      "imageRepository": "int.registry.com:5000/mfojtik/phpapp"
+    },
+    {
+      "name": "postgres",
+      "type": "docker",
+      "imageRepository": "registry.hub.docker.com/postgres",
+      "sourceUri": "https://raw.githubusercontent.com/docker-library/postgres/docker/9.2/Dockerfile"
+    }
+  ],
+  "imageRepository": [
+    {
+      "name": "mfojtik/nginx-php-app",
+      "url": "internal.registry.com:5000/mfojtik/phpapp"
+    },
+    {
+      "name": "postgres",
+      "url": "registry.hub.docker.com/postgres"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "DB_PASSWORD",
+      "description": "PostgreSQL admin user password",
+      "type": "string",
+      "generate": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "DB_USER",
+      "description": "PostgreSQL username",
+      "type": "string",
+      "generate": "admin[a-zA-Z0-9]{4}"
+    },
+    {
+      "name": "DB_NAME",
+      "description": "PostgreSQL database name",
+      "type": "string",
+      "generate": "db[a-zA-Z0-9]{4}"
+    }
+  ],
+  "serviceLinks": [
+    {
+      "export": [
+        {
+          "name": "POSTGRES_ADMIN_USERNAME",
+          "value": "${DB_USER}"
+        },
+        {
+          "name": "POSTGRES_ADMIN_PASSWORD",
+          "value": "${DB_PASSWORD}"
+        },
+        {
+          "name": "POSTGRES_DATABASE_NAME",
+          "value": "${DB_NAME}"
+        }
+      ],
+      "from": "database",
+      "to": "frontend"
+    }
+  ],
+  "services": [
+    {
+      "name": "database",
+      "description": "Standalone PostgreSQL 9.2 database service",
+      "labels": {
+        "name": "database-service"
+      },
+      "deploymentConfig": {
+        "deployment": {
+          "podTemplate": {
+            "containers": [
+              {
+                "name": "postgresql-1",
+                "image": {
+                  "name": "postgres",
+                  "tag": "9.2"
+                },
+                "env": {
+                  "PGPASSWORD": "${DB_PASSWORD}",
+                  "PGUSER": "${DB_USER}",
+                  "PGDATABASE": "${DB_NAME}"
+                },
+                "ports": [
+                  {
+                    "containerPort": 5432,
+                    "hostPort": 5432
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "frontend",
+      "description": "Sample PHP 5.2 application served by NGINX",
+      "labels": {
+        "name": "frontend-service"
+      },
+      "deploymentConfig": {
+        "deployment": {
+          "podTemplate": {
+            "containers": [
+              {
+                "name": "nginx-php-app",
+                "hooks": {
+                  "prestart": {
+                    "cmd": "import_database.sh"
+                  },
+                  "url": "git://github.com/user/myapp-hooks.git"
+                },
+                "image": {
+                  "name": "mfojtik/nginx-php-app",
+                  "tag": "latest"
+                },
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "hostPort": 8080
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

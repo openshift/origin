@@ -1,0 +1,9 @@
+{
+  "data":
+  {
+    "id": "53c4249f076573c0f4000001",
+    "imageStream": "server/name",
+    "type": "docker-build",
+    "repository": "openshift/dockerrepo"
+  }
+}

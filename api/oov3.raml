@@ -1,0 +1,475 @@
+#%RAML 0.8
+# vim: set ft=yaml:
+baseUri: http://server/broker/rest
+title: OpenShiftV3 -- Draft
+version: alpha
+mediaType: application/json
+documentation:
+ - title: Overview
+   content: !include doc/overview.md
+/projects:
+  get:
+    description: |
+      List all projects for your account.
+
+      Projects are a similar concept to v2 domains. A project is a grouping of services 
+      with shared access control and resource limits. Applications can be assembled 
+      from services in a project by linking them together via service endpoints.
+    responses:
+      200:
+        body:
+          example: !include examples/project-list.json
+  post:
+    description: Create a new project
+    body:
+      example: !include examples/project.json
+
+/project/{projectID}:
+    get:
+      description: Get a specific project
+      responses:
+        200:
+          body:
+            example: !include examples/project.json
+    put:
+      description: Update a project
+      body:
+        example: !include examples/project-put.json
+    delete:
+      description: Delete a project
+      responses:
+        200:
+          body:
+            example: |
+              {
+                "success": true
+              }
+    post:
+      description: Instantiate a template in the given project
+      body:
+        example: !include examples/project-post.json
+/image-repositories:
+  get:
+    queryParameters:
+      projectId:
+        description: Filter list by project
+        type: string
+      visibility:
+        description: Filter by visibility (public, private)
+        type: string
+    description: |
+      Lists all image repositories that you have access to.
+      
+      An image repository is a collection of images that share the same metadata. It contains 
+      multiple versions of an image as it evolves over time with new builds of the codebase. 
+      An image repository may be associated with a build which can be triggered by an event such
+      as a commit to a source repository. The build will then push a new image on to the repository.
+    responses:
+      200:
+        body:
+          example: !include examples/image-repositories.json
+  post:
+    description: Create a new image repository
+    body:
+      example: !include examples/image-repository.json
+/image-repository/{repositoryID}:
+    get:
+      description: Get information about an image repository
+      body:
+        example: !include examples/image-repository.json
+    put:
+      description: Update an image repository
+      body:
+        example: !include examples/image-repository.json
+    delete:
+      description: Delete an image repository
+      responses:
+        200:
+          body:
+            example: |
+              {
+                "success": true
+              }
+/images:
+  get:
+    queryParameters:
+      repositoryId:
+        description: Filter list by repository
+        type: string
+    description: |
+      Lists images visible to you
+
+      Images can be stored in Openshift servers or can be references to images from
+      an external repository. The metadata that Openshift stores for an image will augment
+      the metadata that has already been specified in the image through its Dockerfile.
+    responses:
+      200:
+        body:
+          example: !include examples/images.json
+  post:
+    description: Create a new image definition
+    body:
+      example: !include examples/create-image.json
+/image/{imageID}:
+    get:
+      description: Get image definition
+      body:
+        example: !include examples/image.json
+
+/services:
+  get:
+    description: |
+      Lists all services that your account has access to
+      
+      Services can be public or owned by a project. They contain a template of a pod and
+      reference image repositories that supply the images for those templates. A service may 
+      be configured to react to an image being pushed to an image repository by initiating a 
+      deployment. Deployments are associated with a service and make use of 
+      Kubernetes replication controllers to manage pods in a cluster.
+      For deployments, a service contains a policy that constrains how deployments can occur.
+      For example, it may require that there exist at least 2 operational pods at all times.
+      A deployment needs to operate under those constraints when making changes.
+    queryParameters:
+      projectId:
+        description: filter the services owned by a particular project
+    responses:
+      200:
+        body:
+          example: !include examples/services.json
+  post:
+    description: Create a new service
+    body:
+      example: !include examples/create-service.json
+/service/{serviceID}:
+    get:
+      description: Get a specific service definition
+      body:
+        example: !include examples/service.json
+    put:
+      description: Update a service
+      body:
+        example: !include examples/service.json
+    delete:
+      description: Delete a service
+      responses:
+        200:
+          body:
+            example: |
+              {
+                "success": true
+              }
+    /environment-variables:
+      get:
+        description: Environment variables associated with this service
+        responses:
+          200:
+            body:
+              example: !include examples/envvars.json
+      post:
+        description: Create/update environment variables
+        body:
+          example: !include examples/envvars.json
+      /{variableName}:
+        get:
+          description: Get environment variable
+          body:
+            example: !include examples/envvar.json
+        put:
+          description: Update an environment variable's value
+          body:
+            example: !include examples/envvar.json
+        delete:
+          description: Delete an environment variable
+          responses:
+            200:
+              body:
+                example: |
+                  {
+                    "success": true
+                  }
+/deployments:
+  get:
+    description: |
+      Lists active deployments in the current project
+
+      Deployments effect change in a service such as scaling up, down, updating the 
+      current image, etc. Deployments may use different policies for carrying out
+      the change. For example, a rolling update with a single pod change at a time, or
+      a batch update, etc. Deployments make use of Kubernetes replicationControllers
+      to bring about the changes.
+    responses:
+      200:
+        body:
+          example: !include examples/deployments.json
+  post:
+    description: Create a new deployment
+    body:
+      example: !include examples/create-deployment.json
+/deployment/{deploymentID}:
+  get:
+    description: Get deployment details
+    body:
+      example: !include examples/deployment.json
+/links:
+  get:
+    description: |
+      List of links between services in your account
+
+      Unlike a Docker link, a Link in OpenShift defines a relationship between services
+      which may be composed by multiple Docker images. A link may include additional metadata
+      about the relationship such as the algorithm to use to distribute requests.
+    queryParameters:
+      projectId:
+        description: filter the links owned by a particular project
+      serviceId:
+        description: filter the links attached to a particular service
+    responses:
+      200:
+        body:
+          example: !include examples/links.json
+  post:
+    description: Create a new link between this service and a different service
+    body:
+      example: !include examples/link.json
+/link/{linkID}:
+  get:
+    description: Get link details
+    body:
+      example: !include examples/link.json
+  put:
+    description: Update a link
+    body:
+      example: !include examples/link.json
+  delete:
+    description: Delete a link
+    responses:
+      200:
+        body:
+          example: |
+            {
+              "success": true
+            }
+/aliases:
+  get:
+    description: |
+      List all aliases visible to you
+
+      Aliases in v3 perform the same function as aliases in v2. The main difference
+      is that in v3 an alias is associated with a service, not an application.
+    queryParameters:
+      serviceId:
+        description: filter aliases by associated service
+    responses:
+      200:
+        body:
+          example: !include examples/aliases.json
+  post:
+    description: Create an alias for this service
+    body:
+      example: !include examples/alias.json
+/alias/{aliasID}:
+  get:
+    description: Get alias
+    body:
+      example: !include examples/alias.json
+  put:
+    description: Update an alias
+    body:
+      example: !include examples/alias.json
+  delete:
+    description: Delete an alias
+    responses:
+      200:
+        body:
+          example: |
+            {
+              "success": true
+            }
+/builds:
+  get:
+    description: |
+      Retrieves a list of builds visible to you
+
+      A build is associated with an image repository and can be triggered by a webhook
+      on Github. It can either be a Docker build or a source build based on a 
+      specified image. When a build completes, it posts a new image to the image
+      repository that it's associated with.
+    responses:
+      200:
+        body:
+          example: !include examples/builds.json
+  post:
+    description: Create a new build
+    body:
+      example: !include examples/build.json
+/build/{buildId}:
+  get:
+    description: Retrieve a single build definition
+    responses:
+      200:
+        body:
+          example: !include examples/build.json
+  put:
+    description: Update a build definition
+    body:
+      example: !include examples/build.json
+  delete:
+    description: Delete a build definition
+    responses:
+      200:
+        body:
+          example: |
+            {
+              "success": true
+            }
+  post:
+    description: Launch a build
+    body:
+      example: !include examples/launch-build.json
+  /results:
+    get:
+      description: Retrieves list of build results
+      responses:
+        200:
+          body:
+            example: !include examples/build-results.json
+
+/templates:
+  get:
+    description: |
+      Lists all templates that your account has access to
+
+      A template defines 0..n services and 0..m links. When it is applied
+      to an existing project, those services and links are instantiated for
+      that project.
+    responses:
+      200:
+        body:
+          example: !include examples/templates.json
+  post:
+    description: Create a new template
+    body:
+      example: !include examples/template.json
+/template/{templateID}:
+  get:
+    description: Get a specific template
+    body:
+      example: !include examples/template.json
+  put:
+    description: Update a template
+    body:
+      example: !include examples/template.json
+  delete:
+    description: Delete a template
+    responses:
+      200:
+        body:
+          example: |
+            {
+              "success": true
+            }
+/pods:
+  get:
+    description: List all pods on this cluster
+    responses:
+      200:
+        body:
+          example: !include examples/pod-list.json
+  post:
+    description: Create a new pod. currentState is ignored if present.
+    body:
+      schema: !include doc/pod-schema.json
+      example: !include examples/pod.json
+  
+  /{podId}:
+    get:
+      description: Get a specific pod
+      responses:
+        200:
+          body:
+            example: !include examples/pod.json
+    put:
+      description: Update a pod
+      body:
+        schema: !include doc/pod-schema.json
+        example: !include examples/pod.json
+    delete:
+      description: Delete a specific pod
+      responses:
+        200:
+          body:
+            example: |
+              { 
+                "success": true
+              }
+
+/replicationControllers:
+  get:
+    description: List all replicationControllers on this cluster
+    responses:
+      200:
+        body:
+          example: !include examples/controller-list.json
+  post:
+    description: Create a new controller. currentState is ignored if present.
+    body:
+      schema: !include doc/controller-schema.json
+      example: !include examples/controller.json
+  
+  /{controllerId}:
+    get:
+      description: Get a specific controller
+      responses:
+        200:
+          body:
+            example: !include examples/controller.json
+    put:
+      description: Update a controller
+      body:
+        schema: !include doc/controller-schema.json
+        example: !include examples/controller.json
+    delete:
+      description: Delete a specific controller
+      responses:
+        200:
+          body:
+            example: |
+              { 
+                "success": true
+              }
+
+/lbservices:
+  get:
+    description: List all services on this cluster
+    responses:
+      200:
+        body:
+          example: !include examples/service-list.json
+  post:
+    description: Create a new service
+    body:
+      schema: !include doc/service-schema.json
+      example: !include examples/lbservice.json
+  
+  /{serviceId}:
+    get:
+      description: Get a specific service
+      responses:
+        200:
+          body:
+            example: !include examples/service.json
+    put:
+      description: Update a service
+      body:
+        schema: !include doc/service-schema.json
+        example: !include examples/service.json
+    delete:
+      description: Delete a specific service
+      responses:
+        200:
+          body:
+            example: |
+              { 
+                "success": true
+              }
+

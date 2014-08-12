@@ -1,0 +1,120 @@
+{
+  "id": "example2",
+  "name": "redis-cluster",
+  "description": "Example Redis cluster",
+  "buildConfig": [
+    {
+      "type": "docker",
+      "name": "kubernetes/redis-slave",
+      "imageRepository": "int.registry.com:5000/brendanburns/redis-slave",
+      "sourceUri": "https://raw.githubusercontent.com/GoogleCloudPlatform/kubernetes/master/examples/guestbook/redis-slave/Dockerfile"
+    },
+    {
+      "name": "dockerfile/redis",
+      "type": "docker",
+      "imageRepository": "registry.hub.docker.com/dockerfile/redis",
+      "sourceUri": "https://raw.githubusercontent.com/dockerfile/redis/master/Dockerfile"
+    }
+  ],
+  "imageRepository": [
+    {
+      "name": "brendanburns/redis-slave",
+      "url": "registry.hub.docker.com/brendanburns/redis-slave"
+    },
+    {
+      "name": "dockerfile/redis",
+      "url": "registry.hub.docker.com/dockerfile/redis"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "REDIS_PASSWORD",
+      "description": "Password to connect to the Redis server",
+      "type": "string",
+      "generate": "[a-zA-Z0-9]{8}"
+    }
+  ],
+  "serviceLinks": [
+    {
+      "export": [
+        {
+          "name": "REDIS_PASSWORD",
+          "value": "${REDIS_PASSWORD}"
+        }
+      ],
+      "from": "redismaster",
+      "to": "redisslaves"
+    }
+  ],
+  "services": [
+    {
+      "name": "redis-master",
+      "description": "Redis master service",
+      "labels": {
+        "name": "redis-master"
+      },
+      "deploymentConfig": {
+        "deployment": {
+          "podTemplate": {
+            "containers": [
+              {
+                "name": "redismaster",
+                "image": {
+                  "name": "dockerfile/redis",
+                  "tag": "latest"
+                },
+                "env": {
+                  "REDIS_PASSWORD": "${REDIS_PASSWORD}"
+                },
+                "ports": [
+                  {
+                    "containerPort": 6379,
+                    "hostPort": 6379
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "redisslaves",
+      "description": "A service with set of Redis slaves",
+      "labels": {
+        "name": "redis-slaves"
+      },
+      "deploymentConfig": {
+        "deployment": {
+          "podTemplate": {
+            "containers": [
+              {
+                "name": "redis-slave",
+                "image": {
+                  "name": "brendanburns/redis-slave",
+                  "tag": "latest"
+                },
+                "ports": [
+                  {
+                    "containerPort": 6379,
+                    "hostPort": 6379
+                  }
+                ]
+              }
+            ],
+            "replicas": 3,
+            "replicaSelector": {
+              "name": "redis-slave"
+            },
+            "replicaPolicy": {
+              "atLeast": 2
+            },
+            "labels": {
+              "name": "redis-slave"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

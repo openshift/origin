@@ -1,0 +1,17 @@
+{
+  "list":
+  [
+    {
+      "id": "53c4249f076573c0f4000001",
+      "projectId": "myproject-1234123132",
+      "source": {
+        "serviceId": "nginx-1893747912737"
+      },
+      "destination": {
+        "serviceId": "ruby1.9-1237471273",
+        "port": 8080
+      }
+      "policy": "round-robin"
+    }
+  ]
+}
