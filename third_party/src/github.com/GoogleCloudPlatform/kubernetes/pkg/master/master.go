@@ -23,8 +23,11 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/build"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/buildconfig"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/image"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/scheduler"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -46,22 +49,30 @@ type Config struct {
 
 // Master contains state for a Kubernetes cluster master/api server.
 type Master struct {
-	podRegistry        registry.PodRegistry
-	controllerRegistry registry.ControllerRegistry
-	serviceRegistry    registry.ServiceRegistry
-	minionRegistry     registry.MinionRegistry
-	storage            map[string]apiserver.RESTStorage
-	client             *client.Client
+	podRegistry             registry.PodRegistry
+	controllerRegistry      registry.ControllerRegistry
+	serviceRegistry         registry.ServiceRegistry
+	minionRegistry          registry.MinionRegistry
+	buildRegistry           build.BuildRegistry
+	buildConfigRegistry     buildconfig.BuildConfigRegistry
+	imageRegistry           image.ImageRegistry
+	imageRepositoryRegistry image.ImageRepositoryRegistry
+	storage                 map[string]apiserver.RESTStorage
+	client                  *client.Client
 }
 
 // NewMemoryServer returns a new instance of Master backed with memory (not etcd).
 func NewMemoryServer(c *Config) *Master {
 	m := &Master{
-		podRegistry:        registry.MakeMemoryRegistry(),
-		controllerRegistry: registry.MakeMemoryRegistry(),
-		serviceRegistry:    registry.MakeMemoryRegistry(),
-		minionRegistry:     registry.MakeMinionRegistry(c.Minions),
-		client:             c.Client,
+		podRegistry:             registry.MakeMemoryRegistry(),
+		controllerRegistry:      registry.MakeMemoryRegistry(),
+		serviceRegistry:         registry.MakeMemoryRegistry(),
+		minionRegistry:          registry.MakeMinionRegistry(c.Minions),
+		imageRegistry:           image.MakeMemoryRegistry(),
+		imageRepositoryRegistry: image.MakeMemoryRegistry(),
+		buildRegistry:           build.MakeMemoryRegistry(),
+		buildConfigRegistry:     buildconfig.MakeMemoryRegistry(),
+		client:                  c.Client,
 	}
 	m.init(c.Cloud, c.PodInfoGetter)
 	return m
@@ -72,11 +83,15 @@ func New(c *Config) *Master {
 	etcdClient := etcd.NewClient(c.EtcdServers)
 	minionRegistry := minionRegistryMaker(c)
 	m := &Master{
-		podRegistry:        registry.MakeEtcdRegistry(etcdClient, minionRegistry),
-		controllerRegistry: registry.MakeEtcdRegistry(etcdClient, minionRegistry),
-		serviceRegistry:    registry.MakeEtcdRegistry(etcdClient, minionRegistry),
-		minionRegistry:     minionRegistry,
-		client:             c.Client,
+		podRegistry:             registry.MakeEtcdRegistry(etcdClient, minionRegistry),
+		controllerRegistry:      registry.MakeEtcdRegistry(etcdClient, minionRegistry),
+		serviceRegistry:         registry.MakeEtcdRegistry(etcdClient, minionRegistry),
+		minionRegistry:          minionRegistry,
+		buildRegistry:           build.MakeEtcdRegistry(etcdClient),
+		buildConfigRegistry:     buildconfig.MakeEtcdRegistry(etcdClient),
+		imageRegistry:           image.MakeMemoryRegistry(),
+		imageRepositoryRegistry: image.MakeMemoryRegistry(),
+		client:                  c.Client,
 	}
 	m.init(c.Cloud, c.PodInfoGetter)
 	return m
@@ -122,6 +137,12 @@ func (m *Master) init(cloud cloudprovider.Interface, podInfoGetter client.PodInf
 		"replicationControllers": registry.NewControllerRegistryStorage(m.controllerRegistry, m.podRegistry),
 		"services":               registry.MakeServiceRegistryStorage(m.serviceRegistry, cloud, m.minionRegistry),
 		"minions":                registry.MakeMinionRegistryStorage(m.minionRegistry),
+		"bindings":               registry.MakeBindingStorage(m.podRegistry),
+		"images":                 image.NewImageRegistryStorage(m.imageRegistry),
+		"imageRepositories":      image.NewImageRepositoryRegistryStorage(m.imageRepositoryRegistry, m.imageRegistry),
+		"imagesByRepository":     image.NewImagesByRepositoryRegistryStorage(m.imageRepositoryRegistry, m.imageRegistry),
+		"builds":                 build.NewBuildRegistryStorage(m.buildRegistry),
+		"buildConfigs":           buildconfig.NewBuildConfigRegistryStorage(m.buildConfigRegistry),
 	}
 }
 

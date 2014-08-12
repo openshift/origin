@@ -19,44 +19,55 @@ package apiserver
 import (
 	"encoding/json"
 	"net/http"
-	"path"
-	"strings"
+	"net/url"
+	"strconv"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
-func (s *APIServer) watchPrefix() string {
-	return path.Join(s.prefix, "watch")
+type WatchHandler struct {
+	storage map[string]RESTStorage
+	codec   Codec
+}
+
+func getWatchParams(query url.Values) (label, field labels.Selector, resourceVersion uint64) {
+	if s, err := labels.ParseSelector(query.Get("labels")); err != nil {
+		label = labels.Everything()
+	} else {
+		label = s
+	}
+	if s, err := labels.ParseSelector(query.Get("fields")); err != nil {
+		field = labels.Everything()
+	} else {
+		field = s
+	}
+	if rv, err := strconv.ParseUint(query.Get("resourceVersion"), 10, 64); err == nil {
+		resourceVersion = rv
+	}
+	return label, field, resourceVersion
 }
 
 // handleWatch processes a watch request
-func (s *APIServer) handleWatch(w http.ResponseWriter, req *http.Request) {
-	prefix := s.watchPrefix()
-	if !strings.HasPrefix(req.URL.Path, prefix) {
+func (h *WatchHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	parts := splitPath(req.URL.Path)
+	if len(parts) < 1 || req.Method != "GET" {
 		notFound(w, req)
 		return
 	}
-	parts := strings.Split(req.URL.Path[len(prefix):], "/")[1:]
-	if req.Method != "GET" || len(parts) < 1 {
-		notFound(w, req)
-	}
-	storage := s.storage[parts[0]]
+	storage := h.storage[parts[0]]
 	if storage == nil {
 		notFound(w, req)
+		return
 	}
 	if watcher, ok := storage.(ResourceWatcher); ok {
-		var watching watch.Interface
-		var err error
-		if id := req.URL.Query().Get("id"); id != "" {
-			watching, err = watcher.WatchSingle(id)
-		} else {
-			watching, err = watcher.WatchAll()
-		}
+		label, field, resourceVersion := getWatchParams(req.URL.Query())
+		watching, err := watcher.Watch(label, field, resourceVersion)
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, h.codec, w)
 			return
 		}
 
