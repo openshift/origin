@@ -25,6 +25,8 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/client"
+	"github.com/spf13/cobra"
+
 	"github.com/openshift/origin/pkg/build"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -32,8 +34,12 @@ import (
 	"github.com/openshift/origin/pkg/build/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/image"
+	"github.com/openshift/origin/pkg/template"
+
+	// Register versioned api types
+	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
-	"github.com/spf13/cobra"
+	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
 )
 
 func NewCommandStartAllInOne(name string) *cobra.Command {
@@ -140,6 +146,7 @@ func (c *Config) startAllInOne() {
 		"images":                  image.NewImageStorage(imageRegistry),
 		"imageRepositories":       image.NewImageRepositoryStorage(imageRegistry),
 		"imageRepositoryMappings": image.NewImageRepositoryMappingStorage(imageRegistry, imageRegistry),
+		"templateConfigs":         template.NewStorage(),
 	}
 
 	osMux := http.NewServeMux()
