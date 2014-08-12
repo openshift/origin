@@ -59,8 +59,10 @@ func startAllInOne() {
 	etcdConfig := etcdconfig.New()
 	etcdConfig.BindAddr = etcdAddr
 	etcdServer := etcd.New(etcdConfig)
-	go util.Forever(func() { etcdServer.Run() }, 0)
-	glog.Infof("Started etcd at http://%s", etcdAddr)
+	go util.Forever(func() {
+		glog.Infof("Started etcd at http://%s", etcdAddr)
+		etcdServer.Run()
+	}, 0)
 
 	etcdClient := etcdclient.NewClient(etcdServers)
 	for i := 0; ; i += 1 {
@@ -105,8 +107,10 @@ func startAllInOne() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	go util.Forever(func() { glog.Fatal(osApi.ListenAndServe()) }, 0)
-	glog.Infof("Started OpenShift API at http://%s%s", osAddr, osPrefix)
+	go util.Forever(func() {
+		glog.Infof("Started OpenShift API at http://%s%s", osAddr, osPrefix)
+		glog.Fatal(osApi.ListenAndServe())
+	}, 0)
 
 	// initialize Kubernetes API
 	kubeAddr := "127.0.0.1:8080"
@@ -124,8 +128,10 @@ func startAllInOne() {
 		PodInfoGetter:      podInfoGetter,
 	}
 	m := master.New(masterConfig)
-	go util.Forever(func() { m.Run(kubeAddr, kubePrefix) }, 0)
-	glog.Infof("Started Kubernetes API at http://%s%s", kubeAddr, kubePrefix)
+	go util.Forever(func() {
+		glog.Infof("Started Kubernetes API at http://%s%s", kubeAddr, kubePrefix)
+		m.Run(kubeAddr, kubePrefix)
+	}, 0)
 
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
