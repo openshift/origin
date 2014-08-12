@@ -1,0 +1,31 @@
+{
+  "id": "mongodb-1",
+  "kind": "Pod",
+  "desiredState": {
+    "manifest": {
+      "version": "v1beta1",
+      "id": "mongodb-1",
+      "containers": [
+        {
+          "name": "rockmongo",
+          "image": "openshift/centos-rockmongo",
+          "ports": [{
+            "containerPort": 80,
+            "hostPort": 6060
+          }]
+        },
+        {
+          "name": "mongodb",
+          "image": "openshift/centos-mongodb",
+          "ports": [{
+            "containerPort": 27017,
+            "hostPort": 27017
+          }]
+        }
+      ]
+    }
+  },
+  "labels": {
+    "name": "mongodb_with_admin"
+  }
+}

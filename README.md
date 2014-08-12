@@ -40,8 +40,10 @@ You'll need Docker and the Go language compilation tools installed.
 6.  In another terminal window, switch to the directory:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ output/go/bin/openshift kube create services -c examples/test-service.json
-    
+        $ output/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
+
+    You can also try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json) example that includes a database and an admin front-end.
+   
 Coming soon: Vagrant environments supporting OpenShift - see [Kubernetes README.md](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md) for now.
 
 API
