@@ -1,0 +1,34 @@
+{
+  "list": [
+    {
+      "id": "1234235172374",
+      "serviceId": "the-service-id",
+      "replicationControllers": [
+        "replication-controller-id1",
+        "replication-controller-id2",
+        "replication-controller-id3"
+      ],
+      "currentState": {
+        "replicas": 1,
+        "replicaSelector": {
+          "name": "nginx"
+        },
+        "containers": [{
+          "image": "dockerfile/nginx",
+          "ports": [{"containerPort": 80, "hostPort": 8080}]
+        }],
+      },
+      "desiredState": {
+        "replicas": 2,
+        "replicaSelector": {
+          "name": "nginx"
+        },
+        "containers": [{
+          "image": "dockerfile/nginx/v2tag",
+          "ports": [{"containerPort": 80, "hostPort": 8080}]
+        }],
+      },
+      "status": "active"
+    }
+  ]
+}

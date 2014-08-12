@@ -1,0 +1,19 @@
+{
+  "list":
+  [
+    {
+      "id": "53c4249f076573c0f4000001",
+      "startTime": "2014-07-15T03:58:40Z",
+      "endTime": "2014-07-15T03:59:40Z",
+      "result": "SUCCESS",
+      "logs": "http://url/to/build/logs"
+    },
+    {
+      "id": "53c4249f076573c0f4000002",
+      "startTime": "2014-07-15T04:58:40Z",
+      "endTime": "2014-07-15T04:59:40Z",
+      "result": "FAILURE",
+      "logs": "http://url/to/build/logs"
+    }
+  ]
+}

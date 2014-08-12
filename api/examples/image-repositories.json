@@ -1,0 +1,22 @@
+{
+  "list":
+  [
+    {
+      "visibility": "public",
+      "domain": "domain",
+      "name": "server/domain/nginx",
+      "environment": 
+      {
+        "VAR1": "value1",
+        "VAR2": "value2"
+      },
+      "networkPorts": [
+        {
+          "hostPort": 8080,
+          "containerPort": 80
+        }
+      ],
+      "latest":"v5"
+    }
+  ]
+}

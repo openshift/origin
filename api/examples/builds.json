@@ -1,0 +1,13 @@
+{
+  "list":
+  [
+    {
+      "id": "53c4249f076573c0f4000002",
+      "imageStream": "server/name",
+      "type": "source-build",
+      "repository": "openshift/myapp"
+      "builderImageStream": "myserver/builderimage"
+    }
+  ]
+}
+

@@ -1,0 +1,24 @@
+{
+  "data":
+  {
+    "id": "53c4249f076573c0f4000001",
+    "name": "nginx-19273412433342",
+    "image-stream": "server/domain/nginx",
+    "environment":
+    {
+      "name1": "value1",
+      "name2": "value2"
+    },
+    "networkPorts": [
+      {
+        "hostPort": 8080,
+        "containerPort": 80
+      }
+    ],
+    "commands": [
+      {
+        "memory-dump": "/bin/dump"
+      }
+    ]
+  }
+}
