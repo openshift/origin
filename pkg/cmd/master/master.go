@@ -88,7 +88,8 @@ func startAllInOne() {
 		dockerClient,
 		cadvisorClient,
 		etcdClient,
-		rootDirectory)
+		rootDirectory,
+		30*time.Second)
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 	go util.Forever(func() {
 		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), http.DefaultServeMux, minionHost, uint(minionPort))
