@@ -16,9 +16,9 @@ You'll need Docker and the Go language compilation tools installed.
     and add your user to the 'docker' group
 
         $ sudo usermod -G docker -a `whoami`
+        $ newgrp docker
 
-    After doing this, you will need to login to a new session as that
-user and confirm you can list docker processes as your user:
+    After doing this, confirm you can list docker processes as your user:
 
         $ docker ps
 
