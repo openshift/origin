@@ -74,9 +74,15 @@ A draft of the proposed API is available [in this repository](https://rawgit.com
 FAQ
 ---
 
-1. What about [geard](https://github.com/openshift/geard)?
+1. How does OpenShift relate to Kubernetes?
 
-    Geard started as a prototype vehicle for the next generation of the OpenShift node - as an orchestration endpoint, to offer integration with systemd, and to prototype network abstraction, routing, SSH access to containers, and Git hosting.  It's intended goal is to provide a simple way of reliably managing containers at scale, and to offer administrators tools for easily composing those applications (gear deploy).  
+    OpenShift embeds Kubernetes and adds additional functionality to offer a simple, powerful, and easy-to-approach developer and operator experience for building applications in containers.  Kubernetes today is focused around composing containerized applications - OpenShift adds building images, managing them, and integrating them into deployment flows.  Our goal is to do most of that work upstream, with integration and final packaging occuring in OpenShift.  As we iterate through the next few months, you'll see this repository focus more on integration and plugins, with more and more features becoming part of Kubernetes.
+    
+    OpenShift tracks the Kubernetes upstream at [github.com/openshift/kubernetes](https://github.com/openshift/kubernetes).  See the wiki in that project for more on how we manage the process of integrating prototyped features.
+
+2. What about [geard](https://github.com/openshift/geard)?
+
+    Geard started as a prototype vehicle for the next generation of the OpenShift node - as an orchestration endpoint, to offer integration with systemd, and to prototype network abstraction, routing, SSH access to containers, and Git hosting.  Its intended goal is to provide a simple way of reliably managing containers at scale, and to offer administrators tools for easily composing those applications (gear deploy).  
     
     With the introduction of Kubernetes, the Kubelet, and the pull model it leverages from etcd, we believe we can implement the pull-orchestration model described in [orchestrating geard](https://github.com/openshift/geard/blob/master/docs/orchestrating_geard.md), especially now that we have a path to properly [limit host compromises from affecting the cluster](https://github.com/GoogleCloudPlatform/kubernetes/pull/860).  The pull-model has many advantages for end clients, not least of which that they are guaranteed to eventually converge to the correct state of the server.  We expect that the use cases the geard endpoint offered will be merged into the Kubelet for consumption by admins.
     
