@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/build"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
@@ -151,7 +152,24 @@ func startAllInOne() {
 	controllerManager.Run(10 * time.Second)
 	glog.Infof("Started Kubernetes Replication Manager")
 
+	// initialize build controller
+	if env("BUILD_POD_CLEANUP_ENABLED", "true") == "true" {
+		os.Setenv("BUILD_POD_CLEANUP_ENABLED", "true")
+	}
+	buildController := build.MakeBuildController(kubeClient, "openshift/docker-builder",
+		env("DOCKER_REGISTRY_URL", ""), "openshift/sti-builder", 120)
+	buildController.Run(10 * time.Second)
+
 	select {}
+}
+
+func env(key string, defaultValue string) string {
+	val := os.Getenv(key)
+	if len(val) == 0 {
+		return defaultValue
+	} else {
+		return val
+	}
 }
 
 func getDockerEndpoint(dockerEndpoint string) string {
