@@ -102,4 +102,4 @@ Contributions are welcome - a more formal process is coming soon.  In the meanti
 License
 -------
 
-OpenShift is licensed under the Apache Software License 2.0.
+OpenShift is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/).
