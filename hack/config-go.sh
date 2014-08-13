@@ -38,7 +38,8 @@ OS_GO_PACKAGE_DIR="${GOPATH}/src/${OS_GO_PACKAGE}"
 
 ETCD_GO_PACKAGE="github.com/coreos/etcd"
 ETCD_GO_PACKAGE_DIR="${GOPATH}/src/${ETCD_GO_PACKAGE}"
-if [ ! -d "${OLD_GOPATH}/src/${ETCD_GO_PACKAGE}" ]; then
+ETCD_EXISTING=$(GOPATH=${OLD_GOPATH} go list -f '{{.Dir}}' github.com/coreos/etcd)
+if [ $? -ne 0 ]; then
   echo "You must go get ${ETCD_GO_PACKAGE}"
 fi
 
@@ -55,7 +56,7 @@ fi
     mkdir -p "${PACKAGE_BASE}"
   fi
   rm "${ETCD_GO_PACKAGE_DIR}" >/dev/null 2>&1 || true
-  ln -s "${OLD_GOPATH}/src/${ETCD_GO_PACKAGE}" "${ETCD_GO_PACKAGE_DIR}"
+  ln -s "${ETCD_EXISTING}" "${ETCD_GO_PACKAGE_DIR}"
 
 
   if [[ "$OS_KUBE_PATH" != "" ]]; then
