@@ -64,6 +64,7 @@ func init() {
 		ServerOp{},
 		ContainerManifestList{},
 		Endpoints{},
+		Binding{},
 	)
 	AddKnownTypes("v1beta1",
 		v1beta1.PodList{},
@@ -79,6 +80,7 @@ func init() {
 		v1beta1.ServerOp{},
 		v1beta1.ContainerManifestList{},
 		v1beta1.Endpoints{},
+		v1beta1.Binding{},
 	)
 
 	// TODO: when we get more of this stuff, move to its own file. This is not a
@@ -87,7 +89,7 @@ func init() {
 	// registering all of these functions. Then, if you want to be able to understand
 	// v1beta1 objects, you just import that package for its side effects.
 	AddConversionFuncs(
-		// EnvVar's Name is depricated in favor of Key.
+		// EnvVar's Key is deprecated in favor of Name.
 		func(in *EnvVar, out *v1beta1.EnvVar) error {
 			out.Value = in.Value
 			out.Key = in.Name

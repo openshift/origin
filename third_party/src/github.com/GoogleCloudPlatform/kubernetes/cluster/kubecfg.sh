@@ -27,15 +27,4 @@ fi
 
 detect-master > /dev/null
 
-# detect-master returns this if there is no master found.
-if [ "$KUBE_MASTER_IP" == "external-ip" ]; then
-  KUBE_MASTER_IP=""
-fi
-
-if [ "$KUBERNETES_MASTER" == "" ]; then
-  if [ "${KUBE_MASTER_IP}" != "" ]; then
-    $CLOUDCFG -h https://${KUBE_MASTER_IP} $@
-    exit $?
-  fi
-fi
 $CLOUDCFG $@

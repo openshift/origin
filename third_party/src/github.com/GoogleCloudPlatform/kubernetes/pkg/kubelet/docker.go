@@ -19,11 +19,15 @@ package kubelet
 import (
 	"errors"
 	"fmt"
+	"hash/adler32"
 	"math/rand"
+	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 )
 
 // DockerContainerData is the structured representation of the JSON object returned by Docker inspect
@@ -41,6 +45,7 @@ type DockerInterface interface {
 	StartContainer(id string, hostConfig *docker.HostConfig) error
 	StopContainer(id string, timeout uint) error
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
+	RemoveContainer(opts docker.RemoveContainerOptions) error
 }
 
 // DockerID is an ID of docker container. It is a type to make it clear when we're working with docker container Ids
@@ -63,6 +68,30 @@ func NewDockerPuller(client DockerInterface) DockerPuller {
 	}
 }
 
+type dockerContainerCommandRunner struct{}
+
+func (d *dockerContainerCommandRunner) getRunInContainerCommand(containerID string, cmd []string) (*exec.Cmd, error) {
+	args := append([]string{"exec"}, cmd...)
+	command := exec.Command("/usr/sbin/nsinit", args...)
+	command.Dir = fmt.Sprintf("/var/lib/docker/execdriver/native/%s", containerID)
+	return command, nil
+}
+
+// RunInContainer uses nsinit to run the command inside the container identified by containerID
+func (d *dockerContainerCommandRunner) RunInContainer(containerID string, cmd []string) ([]byte, error) {
+	c, err := d.getRunInContainerCommand(containerID, cmd)
+	if err != nil {
+		return nil, err
+	}
+	return c.CombinedOutput()
+}
+
+// NewDockerContainerCommandRunner creates a ContainerCommandRunner which uses nsinit to run a command
+// inside a container.
+func NewDockerContainerCommandRunner() ContainerCommandRunner {
+	return &dockerContainerCommandRunner{}
+}
+
 func (p dockerPuller) Pull(image string) error {
 	image, tag := parseImageName(image)
 
@@ -81,21 +110,21 @@ func (p dockerPuller) Pull(image string) error {
 // DockerContainers is a map of containers
 type DockerContainers map[DockerID]*docker.APIContainers
 
-func (c DockerContainers) FindPodContainer(podFullName, containerName string) (*docker.APIContainers, bool) {
+func (c DockerContainers) FindPodContainer(podFullName, containerName string) (*docker.APIContainers, bool, uint64) {
 	for _, dockerContainer := range c {
-		dockerManifestID, dockerContainerName := parseDockerName(dockerContainer.Names[0])
+		dockerManifestID, dockerContainerName, hash := parseDockerName(dockerContainer.Names[0])
 		if dockerManifestID == podFullName && dockerContainerName == containerName {
-			return dockerContainer, true
+			return dockerContainer, true, hash
 		}
 	}
-	return nil, false
+	return nil, false, 0
 }
 
 func (c DockerContainers) FindContainersByPodFullName(podFullName string) map[string]*docker.APIContainers {
 	containers := make(map[string]*docker.APIContainers)
 
 	for _, dockerContainer := range c {
-		dockerManifestID, dockerContainerName := parseDockerName(dockerContainer.Names[0])
+		dockerManifestID, dockerContainerName, _ := parseDockerName(dockerContainer.Names[0])
 		if dockerManifestID == podFullName {
 			containers[dockerContainerName] = dockerContainer
 		}
@@ -106,7 +135,7 @@ func (c DockerContainers) FindContainersByPodFullName(podFullName string) map[st
 // GetKubeletDockerContainers returns a map of docker containers that we manage. The map key is the docker container ID
 func getKubeletDockerContainers(client DockerInterface) (DockerContainers, error) {
 	result := make(DockerContainers)
-	containers, err := client.ListContainers(docker.ListContainersOptions{})
+	containers, err := client.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		return nil, err
 	}
@@ -129,13 +158,13 @@ var ErrNoContainersInPod = errors.New("no containers exist for this pod")
 func getDockerPodInfo(client DockerInterface, podFullName string) (api.PodInfo, error) {
 	info := api.PodInfo{}
 
-	containers, err := client.ListContainers(docker.ListContainersOptions{})
+	containers, err := client.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, value := range containers {
-		dockerManifestID, dockerContainerName := parseDockerName(value.Names[0])
+		dockerManifestID, dockerContainerName, _ := parseDockerName(value.Names[0])
 		if dockerManifestID != podFullName {
 			continue
 		}
@@ -173,15 +202,22 @@ func unescapeDash(in string) (out string) {
 
 const containerNamePrefix = "k8s"
 
+func hashContainer(container *api.Container) uint64 {
+	hash := adler32.New()
+	fmt.Fprintf(hash, "%#v", *container)
+	return uint64(hash.Sum32())
+}
+
 // Creates a name which can be reversed to identify both full pod name and container name.
 func buildDockerName(pod *Pod, container *api.Container) string {
+	containerName := escapeDash(container.Name) + "." + strconv.FormatUint(hashContainer(container), 16)
 	// Note, manifest.ID could be blank.
-	return fmt.Sprintf("%s--%s--%s--%08x", containerNamePrefix, escapeDash(container.Name), escapeDash(GetPodFullName(pod)), rand.Uint32())
+	return fmt.Sprintf("%s--%s--%s--%08x", containerNamePrefix, containerName, escapeDash(GetPodFullName(pod)), rand.Uint32())
 }
 
 // Upacks a container name, returning the pod full name and container name we would have used to
 // construct the docker name. If the docker name isn't one we created, we may return empty strings.
-func parseDockerName(name string) (podFullName, containerName string) {
+func parseDockerName(name string) (podFullName, containerName string, hash uint64) {
 	// For some reason docker appears to be appending '/' to names.
 	// If it's there, strip it.
 	if name[0] == '/' {
@@ -192,7 +228,15 @@ func parseDockerName(name string) (podFullName, containerName string) {
 		return
 	}
 	if len(parts) > 1 {
-		containerName = unescapeDash(parts[1])
+		pieces := strings.Split(parts[1], ".")
+		containerName = unescapeDash(pieces[0])
+		if len(pieces) > 1 {
+			var err error
+			hash, err = strconv.ParseUint(pieces[1], 16, 32)
+			if err != nil {
+				glog.Infof("invalid container hash: %s", pieces[1])
+			}
+		}
 	}
 	if len(parts) > 2 {
 		podFullName = unescapeDash(parts[2])

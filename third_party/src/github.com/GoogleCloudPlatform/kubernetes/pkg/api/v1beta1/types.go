@@ -139,18 +139,18 @@ type EnvVar struct {
 
 // HTTPGetProbe describes a liveness probe based on HTTP Get requests.
 type HTTPGetProbe struct {
-	// Path to access on the http server
+	// Optional: Path to access on the HTTP server.
 	Path string `yaml:"path,omitempty" json:"path,omitempty"`
-	// Name or number of the port to access on the container
-	Port string `yaml:"port,omitempty" json:"port,omitempty"`
-	// Host name to connect to.  Optional, default: "localhost"
+	// Required: Name or number of the port to access on the container.
+	Port util.IntOrString `yaml:"port,omitempty" json:"port,omitempty"`
+	// Optional: Host name to connect to, defaults to the pod IP.
 	Host string `yaml:"host,omitempty" json:"host,omitempty"`
 }
 
 // TCPSocketProbe describes a liveness probe based on opening a socket
 type TCPSocketProbe struct {
-	// Port is the port to connect to. Required.
-	Port int `yaml:"port,omitempty" json:"port,omitempty"`
+	// Required: Port to connect to.
+	Port util.IntOrString `yaml:"port,omitempty" json:"port,omitempty"`
 }
 
 // LivenessProbe describes a liveness probe to be examined to the container.
@@ -184,6 +184,9 @@ type Container struct {
 	CPU           int            `yaml:"cpu,omitempty" json:"cpu,omitempty"`
 	VolumeMounts  []VolumeMount  `yaml:"volumeMounts,omitempty" json:"volumeMounts,omitempty"`
 	LivenessProbe *LivenessProbe `yaml:"livenessProbe,omitempty" json:"livenessProbe,omitempty"`
+	// Optional: Default to false.
+	Privileged    bool   `json:"privileged,omitempty" yaml:"privileged,omitempty"`
+	RestartPolicy string `yaml:"restartPolicy,omitempty" json:"restartPolicy,omitempty"`
 }
 
 // Event is the representation of an event logged to etcd backends
@@ -211,9 +214,12 @@ type PodStatus string
 
 // These are the valid statuses of pods.
 const (
+	// PodWaiting means that we're waiting for the pod to begin running.
+	PodWaiting PodStatus = "Waiting"
+	// PodRunning means that the pod is up and running.
 	PodRunning PodStatus = "Running"
-	PodPending PodStatus = "Pending"
-	PodStopped PodStatus = "Stopped"
+	// PodTerminated means that the pod has stopped.
+	PodTerminated PodStatus = "Terminated"
 )
 
 // PodInfo contains one entry for every container with available info.
@@ -336,6 +342,13 @@ type Minion struct {
 type MinionList struct {
 	JSONBase `json:",inline" yaml:",inline"`
 	Items    []Minion `json:"minions,omitempty" yaml:"minions,omitempty"`
+}
+
+// Binding is written by a scheduler to cause a pod to be bound to a host.
+type Binding struct {
+	JSONBase `json:",inline" yaml:",inline"`
+	PodID    string `json:"podID" yaml:"podID"`
+	Host     string `json:"host" yaml:"host"`
 }
 
 // Status is a return value for calls that don't return other objects.

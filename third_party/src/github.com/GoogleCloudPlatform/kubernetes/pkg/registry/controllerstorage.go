@@ -17,7 +17,6 @@ limitations under the License.
 package registry
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -70,7 +69,7 @@ func (storage *ControllerRegistryStorage) Get(id string) (interface{}, error) {
 // Delete asynchronously deletes the ReplicationController specified by its id.
 func (storage *ControllerRegistryStorage) Delete(id string) (<-chan interface{}, error) {
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		return api.Status{Status: api.StatusSuccess}, storage.registry.DeleteController(id)
+		return &api.Status{Status: api.StatusSuccess}, storage.registry.DeleteController(id)
 	}), nil
 }
 
@@ -138,12 +137,6 @@ func (storage *ControllerRegistryStorage) waitForController(ctrl api.Replication
 
 // WatchAll returns ReplicationController events via a watch.Interface, implementing
 // apiserver.ResourceWatcher.
-func (storage *ControllerRegistryStorage) WatchAll() (watch.Interface, error) {
-	return storage.registry.WatchControllers()
-}
-
-// WatchSingle returns events for a single ReplicationController via a watch.Interface,
-// implementing apiserver.ResourceWatcher.
-func (storage *ControllerRegistryStorage) WatchSingle(id string) (watch.Interface, error) {
-	return nil, errors.New("unimplemented")
+func (storage *ControllerRegistryStorage) Watch(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return storage.registry.WatchControllers(label, field, resourceVersion)
 }

@@ -26,13 +26,17 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/build/buildapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 )
 
 // Interface holds the methods for clients of Kubenetes,
 // an interface to allow mock testing.
+// TODO: split this up by resource?
+// TODO: these should return/take pointers.
 type Interface interface {
 	ListPods(selector labels.Selector) (api.PodList, error)
 	GetPod(name string) (api.Pod, error)
@@ -45,11 +49,15 @@ type Interface interface {
 	CreateReplicationController(api.ReplicationController) (api.ReplicationController, error)
 	UpdateReplicationController(api.ReplicationController) (api.ReplicationController, error)
 	DeleteReplicationController(string) error
+	WatchReplicationControllers(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error)
 
 	GetService(name string) (api.Service, error)
 	CreateService(api.Service) (api.Service, error)
 	UpdateService(api.Service) (api.Service, error)
 	DeleteService(string) error
+
+	ListBuilds() (buildapi.BuildList, error)
+	UpdateBuild(buildapi.Build) (buildapi.Build, error)
 }
 
 // StatusErr might get returned from an api call if your request is still being processed
@@ -169,7 +177,7 @@ func (c *Client) makeURL(path string) string {
 
 // ListPods takes a selector, and returns the list of pods that match that selector
 func (c *Client) ListPods(selector labels.Selector) (result api.PodList, err error) {
-	err = c.Get().Path("pods").Selector(selector).Do().Into(&result)
+	err = c.Get().Path("pods").SelectorParam("labels", selector).Do().Into(&result)
 	return
 }
 
@@ -202,7 +210,7 @@ func (c *Client) UpdatePod(pod api.Pod) (result api.Pod, err error) {
 
 // ListReplicationControllers takes a selector, and returns the list of replication controllers that match that selector
 func (c *Client) ListReplicationControllers(selector labels.Selector) (result api.ReplicationControllerList, err error) {
-	err = c.Get().Path("replicationControllers").Selector(selector).Do().Into(&result)
+	err = c.Get().Path("replicationControllers").SelectorParam("labels", selector).Do().Into(&result)
 	return
 }
 
@@ -231,6 +239,17 @@ func (c *Client) UpdateReplicationController(controller api.ReplicationControlle
 // DeleteReplicationController deletes an existing replication controller.
 func (c *Client) DeleteReplicationController(name string) error {
 	return c.Delete().Path("replicationControllers").Path(name).Do().Error()
+}
+
+// WatchReplicationControllers returns a watch.Interface that watches the requested controllers.
+func (c *Client) WatchReplicationControllers(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return c.Get().
+		Path("watch").
+		Path("replicationControllers").
+		UintParam("resourceVersion", resourceVersion).
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Watch()
 }
 
 // GetService returns information about a particular service.
@@ -272,4 +291,16 @@ func (c *Client) ServerVersion() (*version.Info, error) {
 		return nil, fmt.Errorf("Got '%s': %v", string(body), err)
 	}
 	return &info, nil
+}
+
+// ListBuilds returns a list of builds.
+func (c *Client) ListBuilds() (result buildapi.BuildList, err error) {
+	err = c.Get().Path("builds").Do().Into(&result)
+	return
+}
+
+// UpdateBuild updates an existing build.
+func (c *Client) UpdateBuild(build buildapi.Build) (result buildapi.Build, err error) {
+	err = c.Put().Path("builds").Path(build.ID).Body(build).Do().Into(&result)
+	return
 }

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -48,12 +49,11 @@ type Codec interface {
 //
 // TODO: consider migrating this to go-restful which is a more full-featured version of the same thing.
 type APIServer struct {
-	prefix      string
 	storage     map[string]RESTStorage
 	codec       Codec
 	ops         *Operations
-	mux         *http.ServeMux
 	asyncOpWait time.Duration
+	handler     http.Handler
 }
 
 // New creates a new APIServer object. 'storage' contains a map of handlers. 'codec'
@@ -65,31 +65,43 @@ type APIServer struct {
 // TODO: add multitype codec serialization
 func New(storage map[string]RESTStorage, codec Codec, prefix string) *APIServer {
 	s := &APIServer{
-		prefix:  strings.TrimRight(prefix, "/"),
 		storage: storage,
 		codec:   codec,
 		ops:     NewOperations(),
-		mux:     http.NewServeMux(),
 		// Delay just long enough to handle most simple write operations
 		asyncOpWait: time.Millisecond * 25,
 	}
 
-	// Primary API methods
-	s.mux.HandleFunc(s.prefix+"/", s.handleREST)
-	s.mux.HandleFunc(s.watchPrefix()+"/", s.handleWatch)
+	mux := http.NewServeMux()
+
+	prefix = strings.TrimRight(prefix, "/")
+
+	// Primary API handlers
+	restPrefix := prefix + "/"
+	mux.Handle(restPrefix, http.StripPrefix(restPrefix, http.HandlerFunc(s.handleREST)))
+
+	// Watch API handlers
+	watchPrefix := path.Join(prefix, "watch") + "/"
+	mux.Handle(watchPrefix, http.StripPrefix(watchPrefix, &WatchHandler{storage, codec}))
 
 	// Support services for the apiserver
-	s.mux.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log/"))))
-	healthz.InstallHandler(s.mux)
-	s.mux.HandleFunc("/version", handleVersion)
-	s.mux.HandleFunc("/", handleIndex)
+	logsPrefix := "/logs/"
+	mux.Handle(logsPrefix, http.StripPrefix(logsPrefix, http.FileServer(http.Dir("/var/log/"))))
+	healthz.InstallHandler(mux)
+	mux.HandleFunc("/version", handleVersion)
+	mux.HandleFunc("/", handleIndex)
 
 	// Handle both operations and operations/* with the same handler
-	s.mux.HandleFunc(s.operationPrefix(), s.handleOperation)
-	s.mux.HandleFunc(s.operationPrefix()+"/", s.handleOperation)
+	handler := &OperationHandler{s.ops, s.codec}
+	operationPrefix := path.Join(prefix, "operations")
+	mux.Handle(operationPrefix, http.StripPrefix(operationPrefix, handler))
+	operationsPrefix := operationPrefix + "/"
+	mux.Handle(operationsPrefix, http.StripPrefix(operationsPrefix, handler))
 
 	// Proxy minion requests
-	s.mux.Handle("/proxy/minion/", http.StripPrefix("/proxy/minion", http.HandlerFunc(handleProxyMinion)))
+	mux.Handle("/proxy/minion/", http.StripPrefix("/proxy/minion", http.HandlerFunc(handleProxyMinion)))
+
+	s.handler = mux
 
 	return s
 }
@@ -112,29 +124,25 @@ func (s *APIServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		),
 	).Log()
 
-	// Dispatch via our mux.
-	s.mux.ServeHTTP(w, req)
+	// Dispatch to the internal handler
+	s.handler.ServeHTTP(w, req)
 }
 
 // handleREST handles requests to all our RESTStorage objects.
 func (s *APIServer) handleREST(w http.ResponseWriter, req *http.Request) {
-	if !strings.HasPrefix(req.URL.Path, s.prefix) {
+	parts := splitPath(req.URL.Path)
+	if len(parts) < 1 {
 		notFound(w, req)
 		return
 	}
-	requestParts := strings.Split(req.URL.Path[len(s.prefix):], "/")[1:]
-	if len(requestParts) < 1 {
-		notFound(w, req)
-		return
-	}
-	storage := s.storage[requestParts[0]]
+	storage := s.storage[parts[0]]
 	if storage == nil {
-		httplog.LogOf(w).Addf("'%v' has no storage object", requestParts[0])
+		httplog.LogOf(w).Addf("'%v' has no storage object", parts[0])
 		notFound(w, req)
 		return
 	}
 
-	s.handleRESTStorage(requestParts, req, w, storage)
+	s.handleRESTStorage(parts, req, w, storage)
 }
 
 // handleRESTStorage is the main dispatcher for a storage object.  It switches on the HTTP method, and then
@@ -159,23 +167,19 @@ func (s *APIServer) handleRESTStorage(parts []string, req *http.Request, w http.
 		case 1:
 			selector, err := labels.ParseSelector(req.URL.Query().Get("labels"))
 			if err != nil {
-				internalError(err, w)
+				errorJSON(err, s.codec, w)
 				return
 			}
 			list, err := storage.List(selector)
 			if err != nil {
-				internalError(err, w)
+				errorJSON(err, s.codec, w)
 				return
 			}
 			writeJSON(http.StatusOK, s.codec, list, w)
 		case 2:
 			item, err := storage.Get(parts[1])
-			if IsNotFound(err) {
-				notFound(w, req)
-				return
-			}
 			if err != nil {
-				internalError(err, w)
+				errorJSON(err, s.codec, w)
 				return
 			}
 			writeJSON(http.StatusOK, s.codec, item, w)
@@ -190,26 +194,18 @@ func (s *APIServer) handleRESTStorage(parts []string, req *http.Request, w http.
 		}
 		body, err := readBody(req)
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, s.codec, w)
 			return
 		}
 		obj := storage.New()
 		err = s.codec.DecodeInto(body, obj)
-		if IsNotFound(err) {
-			notFound(w, req)
-			return
-		}
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, s.codec, w)
 			return
 		}
 		out, err := storage.Create(obj)
-		if IsNotFound(err) {
-			notFound(w, req)
-			return
-		}
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, s.codec, w)
 			return
 		}
 		op := s.createOperation(out, sync, timeout)
@@ -221,12 +217,8 @@ func (s *APIServer) handleRESTStorage(parts []string, req *http.Request, w http.
 			return
 		}
 		out, err := storage.Delete(parts[1])
-		if IsNotFound(err) {
-			notFound(w, req)
-			return
-		}
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, s.codec, w)
 			return
 		}
 		op := s.createOperation(out, sync, timeout)
@@ -239,26 +231,18 @@ func (s *APIServer) handleRESTStorage(parts []string, req *http.Request, w http.
 		}
 		body, err := readBody(req)
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, s.codec, w)
 			return
 		}
 		obj := storage.New()
 		err = s.codec.DecodeInto(body, obj)
-		if IsNotFound(err) {
-			notFound(w, req)
-			return
-		}
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, s.codec, w)
 			return
 		}
 		out, err := storage.Update(obj)
-		if IsNotFound(err) {
-			notFound(w, req)
-			return
-		}
 		if err != nil {
-			internalError(err, w)
+			errorJSON(err, s.codec, w)
 			return
 		}
 		op := s.createOperation(out, sync, timeout)
@@ -312,7 +296,7 @@ func (s *APIServer) finishReq(op *Operation, w http.ResponseWriter) {
 func writeJSON(statusCode int, codec Codec, object interface{}, w http.ResponseWriter) {
 	output, err := codec.Encode(object)
 	if err != nil {
-		internalError(err, w)
+		errorJSON(err, codec, w)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -320,11 +304,17 @@ func writeJSON(statusCode int, codec Codec, object interface{}, w http.ResponseW
 	w.Write(output)
 }
 
+// errorJSON renders an error to the response
+func errorJSON(err error, codec Codec, w http.ResponseWriter) {
+	status := errToAPIStatus(err)
+	writeJSON(status.Code, codec, status, w)
+}
+
 // writeRawJSON writes a non-API object in JSON.
 func writeRawJSON(statusCode int, object interface{}, w http.ResponseWriter) {
 	output, err := json.Marshal(object)
 	if err != nil {
-		internalError(err, w)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -346,4 +336,13 @@ func parseTimeout(str string) time.Duration {
 func readBody(req *http.Request) ([]byte, error) {
 	defer req.Body.Close()
 	return ioutil.ReadAll(req.Body)
+}
+
+// splitPath returns the segments for a URL path
+func splitPath(path string) []string {
+	path = strings.Trim(path, "/")
+	if path == "" {
+		return []string{}
+	}
+	return strings.Split(path, "/")
 }

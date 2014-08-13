@@ -1,0 +1,9 @@
+{
+  "kind": "Build",
+  "apiVersion": "v1beta1",
+  "config": {
+    "type": "docker",
+    "sourceUri": "https://raw.githubusercontent.com/orchardup/fig/master/tests/fixtures/simple-dockerfile/Dockerfile",
+    "imageTag": "myrepo/docker-built-image"
+  }
+}
