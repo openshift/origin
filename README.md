@@ -51,7 +51,7 @@ API
 
 The OpenShift APIs are exposed at `http://localhost:8081/osapi/v1beta1/*`.  
 
-* `http://localhost:8081/osapi/v1beta1/services` (stub)
+* `http://localhost:8081/osapi/v1beta1/services` (placeholder)
 
 The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 
@@ -60,7 +60,31 @@ The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 * `http://localhost:8080/api/v1beta1/replicationControllers`
 * `http://localhost:8080/api/v1beta1/operations`
 
+Several experimental API objects are being prototyped upstream, and are included here for integration testing:
+
+* `http://localhost:8080/api/v1beta1/images`
+* `http://localhost:8080/api/v1beta1/imagesByRepository`
+* `http://localhost:8080/api/v1beta1/imageRepositories`
+* `http://localhost:8080/api/v1beta1/builds`
+* `http://localhost:8080/api/v1beta1/buildConfigs`
+
 A draft of the proposed API is available [in this repository](https://rawgit.com/csrwng/oo-api-v3/master/oov3.html).  Expect significant changes.
+
+
+FAQ
+---
+
+1. What about [geard](https://github.com/openshift/geard)?
+
+    Geard started as a prototype vehicle for the next generation of the OpenShift node - as an orchestration endpoint, to offer integration with systemd, and to prototype network abstraction, routing, SSH access to containers, and Git hosting.  It's intended goal is to provide a simple way of reliably managing containers at scale, and to offer administrators tools for easily composing those applications (gear deploy).  
+    
+    With the introduction of Kubernetes, the Kubelet, and the pull model it leverages from etcd, we believe we can implement the pull-orchestration model described in [orchestrating geard](https://github.com/openshift/geard/blob/master/docs/orchestrating_geard.md), especially now that we have a path to properly [limit host compromises from affecting the cluster](https://github.com/GoogleCloudPlatform/kubernetes/pull/860).  The pull-model has many advantages for end clients, not least of which that they are guaranteed to eventually converge to the correct state of the server.  We expect that the use cases the geard endpoint offered will be merged into the Kubelet for consumption by admins.
+    
+    systemd and Docker integration offers efficient and clean process management and secure logging aggregation with the system.  We plan on introducing those capabilities into Kubernetes over time, especially as we work with the Docker upstream to limit the impact of the Docker daemon's parent child process relationship with containers, where death of the Docker daemon terminates the containers under it
+    
+    Network links and their ability to simplify how software connects to other containers is planned for Docker links v2 and is a capability we believe will be important in Kubernetes as well ([see issue 494 for more details](https://github.com/GoogleCloudPlatform/kubernetes/issues/494)).  
+    
+    The geard deployment descriptor describes containers and their relationships and will be mapped to deployment on top of Kubernetes.  The geard commandline itself will likely be merged directly into the `openshift` command for all-in-one management of a cluster.
 
 
 Contributing
