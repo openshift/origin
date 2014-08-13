@@ -2,11 +2,16 @@
   "data":
   {
     "url":"https://registry.hub.docker.com/u/library/nginx",
-    "environment":
-    {
-      "name1": "value1",
-      "name2": "value2"
-    },
+    "env": [
+      {
+        "name": "name1",
+        "value": "value1"
+      },
+      {
+        "name": "name2",
+        "value": "value2"
+      }
+    ],
     "networkPorts": [
       {
         "hostPort": 8080,

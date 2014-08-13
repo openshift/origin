@@ -63,9 +63,12 @@
                   "name": "dockerfile/redis",
                   "tag": "latest"
                 },
-                "env": {
-                  "REDIS_PASSWORD": "${REDIS_PASSWORD}"
-                },
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
                 "ports": [
                   {
                     "containerPort": 6379,
