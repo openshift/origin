@@ -132,7 +132,7 @@ func startAllInOne() {
 	m := master.New(masterConfig)
 	go util.Forever(func() {
 		glog.Infof("Started Kubernetes API at http://%s%s", kubeAddr, kubePrefix)
-		m.Run(kubeAddr, kubePrefix)
+		glog.Fatal(m.Run(kubeAddr, kubePrefix))
 	}, 0)
 
 	// initialize kube proxy
