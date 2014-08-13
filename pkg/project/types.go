@@ -43,7 +43,7 @@ type Env []struct {
 
 type ServiceLink struct {
 	From   string `json:"from" yaml:"from"`
-	To     string `json:"from" yaml:"from"`
+	To     string `json:"to" yaml:"to"`
 	Export Env    `json:"export" yaml:"export"`
 }
 

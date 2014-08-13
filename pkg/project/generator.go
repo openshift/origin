@@ -87,10 +87,8 @@ func (p *Project) ProcessParameters() {
 //
 func (p *Project) Containers() []*Container {
 	var result []*Container
-	for sid, _ := range p.Services {
-		for _, c := range p.Services[sid].DeploymentConfig.Deployment.PodTemplate.Containers {
-			result = append(result, &c)
-		}
+	for _, s := range p.Services {
+		result = append(result, s.Containers()...)
 	}
 	return result
 }

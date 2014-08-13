@@ -54,6 +54,7 @@
   ],
   "serviceLinks": [
     {
+      "from": "database",
       "export": [
         {
           "name": "POSTGRES_ADMIN_USERNAME",
@@ -68,7 +69,6 @@
           "value": "${DB_NAME}"
         }
       ],
-      "from": "database",
       "to": "frontend"
     }
   ],
