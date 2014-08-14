@@ -1,4 +1,4 @@
-package project
+package template
 
 import "fmt"
 
@@ -40,7 +40,7 @@ func (s *Service) AddEnv(env Env) {
 	}
 }
 
-func (p *Project) ServiceByName(name string) *Service {
+func (p *Template) ServiceByName(name string) *Service {
 	for i, _ := range p.Services {
 		if p.Services[i].Name == name {
 			return &p.Services[i]
@@ -49,7 +49,7 @@ func (p *Project) ServiceByName(name string) *Service {
 	return nil
 }
 
-func (p *Project) ProcessServiceLinks() {
+func (p *Template) ProcessServiceLinks() {
 	var (
 		fromService, toService *Service
 	)

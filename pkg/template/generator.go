@@ -1,4 +1,4 @@
-package project
+package template
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/project/generator"
+	"github.com/openshift/origin/pkg/template/generator"
 )
 
 const valueExp = `(\$\{([a-zA-Z0-9\_]+)\})`
@@ -70,7 +70,7 @@ func (s *PValue) Substitute(params ParamHash) {
 //	// s: <body from the GET request>
 //
 //
-func (p *Project) ProcessParameters() {
+func (p *Template) ProcessParameters() {
 	// Initialize random seed
 	rand.Seed(time.Now().UnixNano())
 
@@ -82,10 +82,10 @@ func (p *Project) ProcessParameters() {
 	}
 }
 
-// A shorthand method to get list of *all* container defined in the Project
+// A shorthand method to get list of *all* container defined in the Template
 // template
 //
-func (p *Project) Containers() []*Container {
+func (p *Template) Containers() []*Container {
 	var result []*Container
 	for _, s := range p.Services {
 		result = append(result, s.Containers()...)
@@ -95,7 +95,7 @@ func (p *Project) Containers() []*Container {
 
 // Convert Parameter slice to more effective data structure
 //
-func (p *Project) ParameterHash() ParamHash {
+func (p *Template) ParameterHash() ParamHash {
 	paramHash := make(ParamHash)
 	for _, p := range p.Parameters {
 		paramHash[p.Name] = p
@@ -108,7 +108,7 @@ func (p *Project) ParameterHash() ParamHash {
 //
 // The replacement is done in Containers and ServiceLinks.
 //
-func (p *Project) SubstituteEnvValues() {
+func (p *Template) SubstituteEnvValues() {
 
 	params := p.ParameterHash()
 

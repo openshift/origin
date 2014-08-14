@@ -1,4 +1,4 @@
-package project
+package template
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 
 const projectExampleJSON = "./example/project.json"
 
-var projectTempl Project
+var projectTempl Template
 
 func TestTemplateUnmarshal(t *testing.T) {
 	jsonFile, _ := ioutil.ReadFile(projectExampleJSON)

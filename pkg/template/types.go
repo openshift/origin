@@ -1,4 +1,4 @@
-package project
+package template
 
 import "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
@@ -7,7 +7,7 @@ type (
 	PValue string
 )
 
-type Project struct {
+type Template struct {
 	api.JSONBase    `json:",inline" yaml:",inline"`
 	BuildConfig     []BuildConfig     `json:"buildConfig" yaml:"buildConfig"`
 	ImageRepository []ImageRepository `json:"imageRepository" yaml:"imageRepository"`
