@@ -83,11 +83,20 @@
                   "name": "postgres",
                   "tag": "9.2"
                 },
-                "env": {
-                  "PGPASSWORD": "${DB_PASSWORD}",
-                  "PGUSER": "${DB_USER}",
-                  "PGDATABASE": "${DB_NAME}"
-                },
+                "env": [
+                  {
+                    "name": "PGPASSWORD",
+                    "value": "${DB_PASSWORD}"
+                  },
+                  {
+                    "name": "PGUSER",
+                    "value": "${DB_USER}"
+                  },
+                  {
+                    "name": "PGDATABASE",
+                    "value": "${DB_NAME}"
+                  }
+                ],
                 "ports": [
                   {
                     "containerPort": 5432,

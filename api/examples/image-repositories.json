@@ -5,11 +5,16 @@
       "visibility": "public",
       "domain": "domain",
       "name": "server/domain/nginx",
-      "environment": 
-      {
-        "VAR1": "value1",
-        "VAR2": "value2"
-      },
+      "env": [
+        {
+          "name": "VAR1",
+          "value": "value1"
+        },
+        {
+          "name": "VAR2",
+          "value": "value2"
+        }
+      ],
       "networkPorts": [
         {
           "hostPort": 8080,
