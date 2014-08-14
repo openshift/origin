@@ -1,45 +1,34 @@
 package generator
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
-func Template(s string) (string, error) {
-	switch s {
+type GeneratorType interface {
+	Value() (string, error)
+}
+
+type ExpresionGenerator struct {
+	expr string
+}
+
+func (g ExpresionGenerator) Value() (string, error) {
+	return FromTemplate(g.expr)
+}
+
+type PasswordGenerator struct {
+	length int
+}
+
+func (g PasswordGenerator) Value() (string, error) {
+	return FromTemplate(fmt.Sprintf("[\\a]{%d}", g.length))
+}
+
+type Generator struct{}
+
+func (g Generator) Generate(t string) GeneratorType {
+	switch t {
 	case "password":
-		return SimplePassword(8)
-	case "uuid":
-		return RandomUUID(), nil
+		return PasswordGenerator{length: 8}
 	default:
-		return FromTemplate(s)
+		return ExpresionGenerator{expr: t}
 	}
-}
-
-func StrongPassword(length int) (string, error) {
-	return FromTemplate(fmt.Sprintf("[\\w]{%d}", length))
-}
-
-func SimplePassword(length int) (string, error) {
-	return FromTemplate(fmt.Sprintf("[\\a]{%d}", length))
-}
-
-func RandomUUID() string {
-	uuid, _ := FromTemplate("[\\a]{8}-[\\a]{4}-4[\\a]{3}-8[\\a]{3}-[\\a]{12}")
-	return strings.ToLower(uuid)
-}
-
-func RandomCleanUUID() string {
-	uuid := RandomUUID()
-	return strings.Replace(uuid, "-", "", -1)
-}
-
-func RandomNumericUUID() string {
-	uuid, _ := FromTemplate("[\\d]{8}-[\\d]{4}-4[\\d]{3}-8[\\d]{3}-[\\d]{12}")
-	return uuid
-}
-
-func RandomCleanNumbericUUID() string {
-	uuid := RandomNumericUUID()
-	return strings.Replace(uuid, "-", "", -1)
 }

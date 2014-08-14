@@ -14,9 +14,15 @@ const (
 	Ascii    = Alphabet + Numerals + "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
 )
 
+var (
+	rangeExp      = regexp.MustCompile(`([\\]?[a-zA-Z0-9]\-?[a-zA-Z0-9]?)`)
+	generatorsExp = regexp.MustCompile(`\[([a-zA-Z0-9\-\\]+)\](\{([0-9]+)\})`)
+	remoteExp     = regexp.MustCompile(`\[GET\:(http(s)?:\/\/(.+))\]`)
+)
+
 type GeneratorExprRanges [][]byte
 
-func seedAndReturnRandom(n int) int {
+func randomInt(n int) int {
 	return rand.Intn(n)
 }
 
@@ -52,14 +58,13 @@ func replaceWithGenerated(s *string, expresion string, ranges [][]byte, length i
 	}
 	result := make([]byte, length, length)
 	for i := 0; i <= length-1; i++ {
-		result[i] = alphabet[seedAndReturnRandom(len(alphabet))]
+		result[i] = alphabet[randomInt(len(alphabet))]
 	}
 	*s = strings.Replace(*s, expresion, string(result), 1)
 	return nil
 }
 
 func findExpresionPos(s string) GeneratorExprRanges {
-	rangeExp, _ := regexp.Compile(`([\\]?[a-zA-Z0-9]\-?[a-zA-Z0-9]?)`)
 	matches := rangeExp.FindAllStringIndex(s, -1)
 	result := make(GeneratorExprRanges, len(matches), len(matches))
 	for i, r := range matches {
@@ -93,8 +98,6 @@ func parseLength(s string) (int, error) {
 
 func FromTemplate(template string) (string, error) {
 	result := template
-	generatorsExp, _ := regexp.Compile(`\[([a-zA-Z0-9\-\\]+)\](\{([0-9]+)\})`)
-	remoteExp, _ := regexp.Compile(`\[GET\:(http(s)?:\/\/(.+))\]`)
 	genMatches := generatorsExp.FindAllStringIndex(template, -1)
 	remMatches := remoteExp.FindAllStringIndex(template, -1)
 	// Parse [a-z]{} types
@@ -109,6 +112,7 @@ func FromTemplate(template string) (string, error) {
 		}
 	}
 	// Parse [GET:<url>] type
+	//
 	for _, r := range remMatches {
 		if err := replaceUrlWithData(&result, template[r[0]:r[1]]); err != nil {
 			return "", err

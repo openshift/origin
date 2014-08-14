@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/template/generator"
 )
 
-const valueExp = `(\$\{([a-zA-Z0-9\_]+)\})`
+var valueExp = regexp.MustCompile(`(\$\{([a-zA-Z0-9\_]+)\})`)
 
 type ParamHash map[string]Parameter
 
@@ -20,7 +20,9 @@ func (p *Parameter) GenerateValue() error {
 		return nil
 	}
 
-	generatedValue, err := generator.Template(p.Generate)
+	g := generator.Generator{}
+	generatedValue, err := g.Generate(p.Generate).Value()
+
 	if err != nil {
 		return err
 	}
@@ -42,8 +44,7 @@ func (s PValue) String() string {
 func (s *PValue) Substitute(params ParamHash) {
 	newValue := *s
 
-	templExp, _ := regexp.Compile(valueExp)
-	for _, match := range templExp.FindAllStringSubmatch(string(newValue), -1) {
+	for _, match := range valueExp.FindAllStringSubmatch(string(newValue), -1) {
 		// If the Parameter is not defined, then leave the value as it is
 		if params[match[2]].Value == "" {
 			continue
