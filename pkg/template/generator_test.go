@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 )
 
 const projectExampleJSON = "./example/project.json"
@@ -18,6 +19,7 @@ func TestTemplateUnmarshal(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to parse the sample project.json: %v", err)
 	}
+	projectTempl.RandomSeed = time.Now().UnixNano()
 }
 
 func TestProcessParameters(t *testing.T) {

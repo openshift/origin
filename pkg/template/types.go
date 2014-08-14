@@ -14,6 +14,8 @@ type Template struct {
 	Parameters      []Parameter       `json:"parameters" yaml:"parameters"`
 	ServiceLinks    []ServiceLink     `json:"serviceLinks" yaml:"serviceLinks"`
 	Services        []Service         `json:"services" yaml:"services"`
+
+	RandomSeed int64
 }
 
 type ImageRepository struct {
