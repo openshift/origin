@@ -1,5 +1,5 @@
-OpenShift 3
-===========
+OpenShift 3 Alpha
+=================
 
 This is the source repository for the next version of OpenShift - the third architectural revision.  It is based around [Docker](https://www.docker.io) containers and images and the [Kubernetes](https://github.com/GoogleCloudPlatform/kubernetes) container management solution.  OpenShift adds developer  centric and organization centric workflows on top of Kubernetes, and much of the core functionality of OpenShift is designed as plugins to the core Kubernetes concepts.
 
