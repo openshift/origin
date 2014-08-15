@@ -17,7 +17,7 @@ OpenShift for Admins
 OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
 
     $ openshift start &
-    $ openshift kube create service -c examples/test-service.json
+    $ openshift kube create services -c examples/test-service.json
 
 OpenShift is built around Docker and the Kubernetes container orchestration service.  You must have
 Docker installed on this machine to start your server.
