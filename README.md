@@ -68,7 +68,7 @@ Several experimental API objects are being prototyped upstream, and are included
 * `http://localhost:8080/api/v1beta1/builds`
 * `http://localhost:8080/api/v1beta1/buildConfigs`
 
-A draft of the proposed API is available [in this repository](https://rawgit.com/csrwng/oo-api-v3/master/oov3.html).  Expect significant changes.
+A draft of the proposed API is available at https://rawgit.com/openshift/origin/master/api/oov3.html and is developed under the [api](./api) directory.  Expect significant changes.
 
 
 FAQ
