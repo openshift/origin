@@ -42,6 +42,8 @@ You'll need Docker and the Go language compilation tools installed.
         $ cd $GOPATH/src/github.com/openshift/origin
         $ output/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
 
+7.  You should then be able to open a browser on your machine and point to [http://localhost:6061](http://localhost:6061) and see a 'Welcome to OpenShift message'.  This example is simply [running the 'openshift/hello-openshift' Docker image](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L11) which is [built on Docker Hub](https://registry.hub.docker.com/u/openshift/hello-openshift/).  That [image binds to port 8080](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L16) and [prints out a simple 'Hello OpenShift' message on access](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L9).  In the Kubernetes definition, we map [that bound port in the container](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L13) [to port 6061 on the host](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L14) so that we can access it via the host browser.  
+
     You can also try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json) example that includes a database and an admin front-end.
    
 Coming soon: Vagrant environments supporting OpenShift - see [Kubernetes README.md](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md) for now.
