@@ -7,6 +7,9 @@ Please see the [OpenShift 3 Project Enhancement Proposal (PEP)](https://github.c
 
 NOTE: This is a very early prototype, and as such is designed for rapid iteration around core concepts.
 
+[![GoDoc](https://godoc.org/github.com/openshift/origin?status.png)](https://godoc.org/github.com/openshift/origin)
+[![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
+
 Getting Started
 ---------------
 
