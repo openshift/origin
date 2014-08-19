@@ -1,0 +1,269 @@
+{
+  "$schema": "http://json-schema.org/draft-03/schema",
+  "type": "object",
+  "required": true,
+  "description": "Project Template resource.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string",
+      "required": false
+    },
+    "buildConfigs": {
+      "type": "array",
+      "required": false,
+      "items": {
+        "type": "object",
+        "required": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "required": true
+          },
+          "type": {
+            "type": "string",
+            "required": true
+          },
+          "imageRepository": {
+            "type": "string",
+            "required": true
+          },
+          "sourceUri": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    },
+    "deploymentConfigs": {
+      "type": "array",
+      "required": true,
+      "items": {
+        "type": "object",
+        "required": true,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "required": true
+          },
+          "apiVersion": {
+            "type": "string",
+            "required": true
+          },
+          "desiredState": {
+            "type": "object",
+            "required": true,
+            "properties": {
+              "podTemplate": {
+                "type": "object",
+                "required": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "required": false
+                  },
+                  "kind": {
+                    "type": "string",
+                    "required": false
+                  },
+                  "apiVersion": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "desiredState": {
+                    "type": "object",
+                    "required": true,
+                    "properties": {
+                      "manifest": {
+                        "type": "object",
+                        "required": true,
+                        "properties": {
+                          "version": {
+                            "type": "string",
+                            "required": true
+                          },
+                          "id": {
+                            "type": "string",
+                            "required": true
+                          },
+                          "containers": {
+                            "type": "array",
+                            "required": true,
+                            "items": {
+                              "type": "object",
+                              "required": true,
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "required": true
+                                },
+                                "image": {
+                                  "type": "string",
+                                  "required": true
+                                },
+                                "ports": {
+                                  "type": "array",
+                                  "required": false,
+                                  "items": {
+                                    "type": "object",
+                                    "required": true,
+                                    "properties": {
+                                      "containerPort": {
+                                        "type": "number",
+                                        "required": true
+                                      },
+                                      "hostPort": {
+                                        "type": "number",
+                                        "required": true
+                                      }
+                                    }
+                                  }
+                                },
+                                "env": {
+                                  "type": "array",
+                                  "required": false,
+                                  "items": {
+                                    "type": "object",
+                                    "required": false,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "required": false
+                                      },
+                                      "value": {
+                                        "type": "string",
+                                        "required": false
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "labels": {
+                    "type": "object",
+                    "required": false
+                  }
+                }
+              },
+              "replicaSelector": {
+                "type": "object",
+                "required": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              },
+              "replicas": {
+                "type": "number",
+                "required": false
+              }
+            }
+          },
+          "labels": {
+            "type": "object",
+            "required": false
+          }
+        }
+      }
+    },
+    "imageRepositories": {
+      "type": "array",
+      "required": true,
+      "items": {
+        "type": "object",
+        "required": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "required": true
+          },
+          "url": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "required": false,
+      "items": {
+        "type": "object",
+        "required": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "required": true
+          },
+          "type": {
+            "type": "string",
+            "required": true,
+            "enum": ["string"]
+          },
+          "value": {
+            "type": "string",
+            "required": false
+          },
+          "generate": {
+            "type": "string",
+            "required": false
+          },
+          "description": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "required": false,
+      "items": {
+        "type": "object",
+        "required": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "required": true
+          },
+          "kind": {
+            "type": "string",
+            "required": true
+          },
+          "apiVersion": {
+            "type": "string",
+            "required": true
+          },
+          "port": {
+            "type": "number",
+            "required": false
+          },
+          "selector": {
+            "type": "object",
+            "required": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "required": true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
