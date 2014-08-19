@@ -74,7 +74,8 @@ func (s *PValue) Substitute(params ParamMap) {
 //
 //	s := generate.Template("[GET:http://example.com/new]")
 //	// s: <body from the GET request>
-func (p *Template) ProcessParameters() {
+func (p *Template) ProcessParameters(customParams []Parameter) {
+	p.Parameters = append(p.Parameters, customParams...)
 	for i, _ := range p.Parameters {
 		p.Parameters[i].Seed = p.Seed
 		if err := p.Parameters[i].GenerateValue(); err != nil {
@@ -137,8 +138,8 @@ func (e *Env) Process(params ParamMap) {
 	}
 }
 
-func (t *Template) Transform() ([]byte, error) {
-	t.ProcessParameters()
+func (t *Template) Transform(customParams []Parameter) ([]byte, error) {
+	t.ProcessParameters(customParams)
 	t.Process()
 	return json.Marshal(*t)
 }

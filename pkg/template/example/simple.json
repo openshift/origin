@@ -70,7 +70,7 @@
                   },
                   {
                     "name": "FOO",
-                    "value": "${BAR}"
+                    "value": "${CUSTOM_PARAM1}"
                   }
                 ],
                 "ports": [
