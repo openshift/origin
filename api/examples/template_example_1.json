@@ -2,21 +2,21 @@
   "id": "example1",
   "name": "my-awesome-php-app",
   "description": "Example PHP application with PostgreSQL database",
-  "buildConfig": [
+  "buildConfigs": [
     {
       "name": "mfojtik/nginx-php-app",
       "type": "docker",
       "sourceUri": "https://raw.githubusercontent.com/mfojtik/phpapp/master/Dockerfile",
-      "imageRepository": "int.registry.com:5000/mfojtik/phpapp"
+      "imageRepository": "mfojtik/nginx-php-app"
     },
     {
       "name": "postgres",
       "type": "docker",
-      "imageRepository": "registry.hub.docker.com/postgres",
-      "sourceUri": "https://raw.githubusercontent.com/docker-library/postgres/docker/9.2/Dockerfile"
+      "sourceUri": "https://raw.githubusercontent.com/docker-library/postgres/docker/9.2/Dockerfile",
+      "imageRepository": "postgres"
     }
   ],
-  "imageRepository": [
+  "imageRepositories": [
     {
       "name": "mfojtik/nginx-php-app",
       "url": "internal.registry.com:5000/mfojtik/phpapp"
@@ -43,46 +43,52 @@
       "name": "DB_NAME",
       "description": "PostgreSQL database name",
       "type": "string",
-      "generate": "db[a-zA-Z0-9]{4}"
-    }
-  ],
-  "serviceLinks": [
-    {
-      "export": [
-        {
-          "name": "POSTGRES_ADMIN_USERNAME",
-          "value": "${DB_USER}"
-        },
-        {
-          "name": "POSTGRES_ADMIN_PASSWORD",
-          "value": "${DB_PASSWORD}"
-        },
-        {
-          "name": "POSTGRES_DATABASE_NAME",
-          "value": "${DB_NAME}"
-        }
-      ],
-      "from": "database",
-      "to": "frontend"
+      "value": "mydb"
     }
   ],
   "services": [
     {
-      "name": "database",
-      "description": "Standalone PostgreSQL 9.2 database service",
+      "id": "database",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 5432,
+      "selector": {
+        "name": "database"
+      }
+    },
+    {
+      "id": "frontend",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 8080,
+      "selector": {
+        "name": "frontend"
+      }
+    }
+  ],
+  "deploymentConfigs": [
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
       "labels": {
-        "name": "database-service"
+        "name": "database"
       },
-      "deploymentConfig": {
-        "deployment": {
-          "podTemplate": {
-            "containers": [
-              {
-                "name": "postgresql-1",
-                "image": {
-                  "name": "postgres",
-                  "tag": "9.2"
-                },
+      "desiredState": {
+        "replicas": 2,
+        "replicaSelector": {
+          "name": "database"
+        },
+        "podTemplate": {
+          "kind": "Pod",
+          "apiVersion": "v1beta1",
+          "id": "database",
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "database",
+              "containers": [{
+                "name": "postgresql",
+                "image": "postgres",
                 "env": [
                   {
                     "name": "PGPASSWORD",
@@ -100,45 +106,66 @@
                 "ports": [
                   {
                     "containerPort": 5432,
-                    "hostPort": 5432
                   }
                 ]
               }
-            ]
+              ]
+            }
+          },
+          "labels": {
+            "name": "database"
           }
         }
       }
     },
     {
-      "name": "frontend",
-      "description": "Sample PHP 5.2 application served by NGINX",
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
       "labels": {
-        "name": "frontend-service"
+        "name": "frontend"
       },
-      "deploymentConfig": {
-        "deployment": {
-          "podTemplate": {
-            "containers": [
-              {
-                "name": "nginx-php-app",
-                "hooks": {
-                  "prestart": {
-                    "cmd": "import_database.sh"
+      "desiredState": {
+        "replicas": 2,
+        "replicaSelector": {
+          "name": "frontend"
+        },
+        "podTemplate": {
+          "kind": "Pod",
+          "apiVersion": "v1beta1",
+          "id": "frontend",
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "frontend",
+              "containers": [{
+                "name": "frontend",
+                "image": "mfojtik/nginx-php-app",
+                "env": [
+                  {
+                    "name": "PGPASSWORD",
+                    "value": "${DB_PASSWORD}"
                   },
-                  "url": "git://github.com/user/myapp-hooks.git"
-                },
-                "image": {
-                  "name": "mfojtik/nginx-php-app",
-                  "tag": "latest"
-                },
+                  {
+                    "name": "PGUSER",
+                    "value": "${DB_USER}"
+                  },
+                  {
+                    "name": "PGDATABASE",
+                    "value": "${DB_NAME}"
+                  }
+                ],
                 "ports": [
                   {
-                    "containerPort": 8080,
+                    "containerPort": 9292,
                     "hostPort": 8080
                   }
                 ]
               }
-            ]
+              ]
+            }
+          },
+          "labels": {
+            "name": "frontend"
           }
         }
       }
