@@ -1,16 +1,20 @@
 package template
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/template/generator"
 )
 
 var valueExp = regexp.MustCompile(`(\$\{([a-zA-Z0-9\_]+)\})`)
 
-type ParamHash map[string]Parameter
+type ParamMap map[string]Parameter
 
 // Generate the value for the Parameter if the default Value is not set and the
 // Generator field is specified. Otherwise, just return the default Value
@@ -45,7 +49,7 @@ func (s PValue) String() string {
 // The format is specified in the `valueExp` constant ${PARAM_NAME}.
 //
 // If the referenced parameter is not defined, then the substitution is ignored.
-func (s *PValue) Substitute(params ParamHash) {
+func (s *PValue) Substitute(params ParamMap) {
 	newValue := *s
 
 	for _, match := range valueExp.FindAllStringSubmatch(string(newValue), -1) {
@@ -80,6 +84,17 @@ func (p *Template) ProcessParameters() {
 	}
 }
 
+// Return the list of containers associated with the service
+func (s *Service) Containers() []*Container {
+	result := make([]*Container, len((*s).DeploymentConfig.Deployment.PodTemplate.Containers))
+
+	for i, _ := range s.DeploymentConfig.Deployment.PodTemplate.Containers {
+		result[i] = &s.DeploymentConfig.Deployment.PodTemplate.Containers[i]
+	}
+
+	return result
+}
+
 // A shorthand method to get list of *all* container defined in the Template
 // template
 func (p *Template) Containers() []*Container {
@@ -91,21 +106,20 @@ func (p *Template) Containers() []*Container {
 }
 
 // Convert Parameter slice to more effective data structure
-func (p *Template) ParameterHash() ParamHash {
-	paramHash := make(ParamHash)
+func (p *Template) CreateParameterMap() ParamMap {
+	ParamMap := make(ParamMap)
 	for _, p := range p.Parameters {
-		paramHash[p.Name] = p
+		ParamMap[p.Name] = p
 	}
-	return paramHash
+	return ParamMap
 }
 
 // Process all Env variables in the Project template and replace parameters
 // referenced in their values with the Parameter values.
 //
 // The replacement is done in Containers and ServiceLinks.
-func (p *Template) SubstituteEnvValues() {
-
-	params := p.ParameterHash()
+func (p *Template) Process() {
+	params := p.CreateParameterMap()
 
 	for _, container := range p.Containers() {
 		(*container).Env.Process(params)
@@ -117,8 +131,31 @@ func (p *Template) SubstituteEnvValues() {
 }
 
 // Substitute referenced parameters in Env values with parameter values.
-func (e *Env) Process(params ParamHash) {
+func (e *Env) Process(params ParamMap) {
 	for i, _ := range *e {
 		(*e)[i].Value.Substitute(params)
 	}
+}
+
+func (t *Template) Transform() ([]byte, error) {
+	t.ProcessParameters()
+	t.Process()
+	return json.Marshal(*t)
+}
+
+func NewTemplate(jsonData []byte) (*Template, error) {
+	var template Template
+	if err := json.Unmarshal(jsonData, &template); err != nil {
+		return nil, err
+	}
+	template.Seed = rand.New(rand.NewSource(time.Now().UnixNano()))
+	return &template, nil
+}
+
+func NewTemplateFromFile(filename string) (*Template, error) {
+	jsonData, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return NewTemplate(jsonData)
 }
