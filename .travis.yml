@@ -11,6 +11,7 @@ install:
   - go get code.google.com/p/go.tools/cmd/cover
   - go get github.com/coreos/etcd
   - ./hack/build-go.sh
+  - ./hack/test-go.sh
 
 script:
   - echo "Done"
