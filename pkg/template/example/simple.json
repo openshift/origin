@@ -1,0 +1,89 @@
+{
+  "id": "example2",
+  "name": "my-awesome-php-app",
+  "description": "Example PHP application with PostgreSQL database",
+  "parameters": [
+    {
+      "name": "DB_PASSWORD",
+      "description": "PostgreSQL admin user password",
+      "type": "string",
+      "generate": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "DB_USER",
+      "description": "PostgreSQL username",
+      "type": "string",
+      "generate": "admin[a-zA-Z0-9]{4}"
+    },
+    {
+      "name": "SAMPLE_VAR",
+      "description": "Sample",
+      "type": "string",
+      "value": "foo"
+    }
+  ],
+  "serviceLinks": [
+    {
+      "from": "database",
+      "export": [
+        {
+          "name": "POSTGRES_ADMIN_USERNAME",
+          "value": "${DB_USER}"
+        },
+        {
+          "name": "POSTGRES_ADMIN_PASSWORD",
+          "value": "${DB_PASSWORD}"
+        },
+        {
+          "name": "POSTGRES_DATABASE_NAME",
+          "value": "${DB_NAME}"
+        }
+      ],
+      "to": "frontend"
+    }
+  ],
+  "services": [
+    {
+      "name": "database",
+      "description": "Standalone PostgreSQL 9.2 database service",
+      "labels": {
+        "name": "database-service"
+      },
+      "deploymentConfig": {
+        "deployment": {
+          "podTemplate": {
+            "containers": [
+              {
+                "name": "postgresql-1",
+                "image": {
+                  "name": "postgres",
+                  "tag": "9.2"
+                },
+                "env": [
+                  {
+                    "name": "POSTGRES_ADMIN_USERNAME",
+                    "value": "${DB_USER}"
+                  },
+                  {
+                    "name": "POSTGRES_ADMIN_PASSWORD",
+                    "value": "${DB_PASSWORD}"
+                  },
+                  {
+                    "name": "FOO",
+                    "value": "${CUSTOM_PARAM1}"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 5432,
+                    "hostPort": 5432
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+   ]
+}
