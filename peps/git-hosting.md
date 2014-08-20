@@ -32,12 +32,12 @@ __Out of the box__
 - Supports users, teams and per repository permissions (data stored locally to users.conf file)
 - Six per user/team repository access permissions
 
-    V (view in web ui, RSS feeds, download zip)
-    R (clone)
-    RW (clone and push)
-    RWC (clone and push with ref creation)
-    RWD (clone and push with ref creation, deletion)
-    RW+ (clone and push with ref creation, deletion, rewind
+      - V (view in web ui, RSS feeds, download zip)
+      - R (clone)
+      - RW (clone and push)
+      - RWC (clone and push with ref creation)
+      - RWD (clone and push with ref creation, deletion)
+      - RW+ (clone and push with ref creation, deletion, rewind
 
 - Groovy pre and post push hook scripts, per-repository or globally for all repositories (Still need to figure out where these are stored)
 - Web UI
@@ -55,10 +55,11 @@ __Make it work__
   - Option 1:
     - Distribute user repositories across serveral distinct instances of Gitblit
     - Need to define and implement algorithm for density management
+    - Need to keep track of which server hosts user's repository
   - Option 2:
     - Use DFS for repository storage. 
-    - Loadbalance SSH and HTTP(s) connections.
-
+    - Load balance SSH and HTTP(s) connections.
+    
 
 GitLab (Community addition)
 ---------------------------
