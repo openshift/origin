@@ -12,19 +12,29 @@ type (
 )
 
 type Template struct {
-	api.JSONBase    `json:",inline" yaml:",inline"`
-	BuildConfig     []BuildConfig     `json:"buildConfig" yaml:"buildConfig"`
-	ImageRepository []ImageRepository `json:"imageRepository" yaml:"imageRepository"`
-	Parameters      []Parameter       `json:"parameters" yaml:"parameters"`
-	ServiceLinks    []ServiceLink     `json:"serviceLinks" yaml:"serviceLinks"`
-	Services        []Service         `json:"services" yaml:"services"`
+	api.JSONBase      `json:",inline" yaml:",inline"`
+	BuildConfig       []BuildConfig      `json:"buildConfigs" yaml:"buildConfigs"`
+	ImageRepositories []ImageRepository  `json:"imageRepositories" yaml:"imageRepositories"`
+	Parameters        []Parameter        `json:"parameters" yaml:"parameters"`
+	Services          []api.Service      `json:"services" yaml:"services"`
+	DeploymentConfigs []DeploymentConfig `json:"deploymentConfigs" yaml:"deploymentConfigs"`
+	Seed              *rand.Rand
+}
 
-	Seed *rand.Rand
+type ImageRepositoryList struct {
+	api.JSONBase `json:",inline" yaml:",inline"`
+	Items        []ImageRepository `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type ImageRepository struct {
-	Name string `json:"name" yaml:"name"`
-	Url  Uri    `json:"url" yaml:"url"`
+	api.JSONBase `json:",inline" yaml:",inline"`
+	Name         string `json:"name" yaml:"name"`
+	Url          Uri    `json:"url" yaml:"url"`
+}
+
+type BuildConfigList struct {
+	api.JSONBase `json:",inline" yaml:",inline"`
+	Items        []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type BuildConfig struct {
@@ -32,6 +42,11 @@ type BuildConfig struct {
 	Type            string `json:"type" yaml:"type"`
 	SourceUri       Uri    `json:"sourceUri" yaml:"sourceUri"`
 	ImageRepository string `json:"imageRepository" yaml:"imageRepository"`
+}
+
+type ParameterList struct {
+	api.JSONBase `json:",inline" yaml:",inline"`
+	Items        []Parameter `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type Parameter struct {
@@ -49,45 +64,13 @@ type Env []struct {
 	Value PValue `json:"value" yaml:"value"`
 }
 
-type ServiceLink struct {
-	From   string `json:"from" yaml:"from"`
-	To     string `json:"to" yaml:"to"`
-	Export Env    `json:"export" yaml:"export"`
+type DeploymentConfigList struct {
+	api.JSONBase `json:",inline" yaml:",inline"`
+	Items        []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type DeploymentConfig struct {
-	Deployment Deployment `json:"deployment" yaml:"deployment"`
-}
-
-type Deployment struct {
-	PodTemplate PodTemplate `json:"podTemplate" yaml:"podTemplate"`
-}
-
-type PodTemplate struct {
-	Containers []Container `json:"containers" yaml:"containers"`
-	Replicas   int         `json:"replicas" yaml:"replicas"`
-}
-
-type Image struct {
-	Name string `json:"name" yaml:"name"`
-	Tag  string `json:"tag" yaml:"tag"`
-}
-
-type ContainerPort struct {
-	ContainerPort int `json:"containerPort" yaml:"containerPort"`
-	HostPort      int `json:"hostPort" yaml:"hostPort"`
-}
-
-type Container struct {
-	Name  string          `json:"name" yaml:"name"`
-	Image Image           `json:"image" yaml:"image"`
-	Env   Env             `json:"env" yaml:"env"`
-	Ports []ContainerPort `json:"ports" yaml:"ports"`
-}
-
-type Service struct {
-	Name             string            `json:"name" yaml:"name"`
-	Description      string            `json:"description" yaml:"description"`
-	Labels           map[string]PValue `json:"labels" yaml:"labels"`
-	DeploymentConfig DeploymentConfig  `json:"deploymentConfig" yaml:"deploymentConfig"`
+	api.JSONBase `json:",inline" yaml:",inline"`
+	Labels       map[string]string              `json:"labels,omitempty" yaml:"labels,omitempty"`
+	DesiredState api.ReplicationControllerState `json:"desiredState" yaml:"desiredState"`
 }

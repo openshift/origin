@@ -2,148 +2,53 @@ package template
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/openshift/origin/pkg/template/generator"
 )
 
 var valueExp = regexp.MustCompile(`(\$\{([a-zA-Z0-9\_]+)\})`)
 
-type ParamMap map[string]Parameter
+func ProcessContainerEnvs(source, target *DeploymentConfig, params ParamMap) {
+	*target = *source
+	for _, c := range target.DesiredState.PodTemplate.DesiredState.Manifest.Containers {
+		for v, e := range c.Env {
+			newValue := e.Value
+			for _, match := range valueExp.FindAllStringSubmatch(string(newValue), -1) {
+				if params[match[2]].Value == "" {
+					continue
+				}
+				newValue = strings.Replace(string(newValue), match[1], params[match[2]].Value, 1)
+			}
 
-// Generate the value for the Parameter if the default Value is not set and the
-// Generator field is specified. Otherwise, just return the default Value
-func (p *Parameter) GenerateValue() error {
-	if p.Value != "" || p.Generate == "" {
-		return nil
-	}
-
-	if p.Seed == nil {
-		return fmt.Errorf("The random seed is not initialized.")
-	}
-
-	g := new(generator.Generator)
-	g.SetSeed(p.Seed)
-	generatedValue, err := g.Generate(p.Generate).Value()
-
-	if err != nil {
-		return err
-	}
-	p.Value = generatedValue
-
-	return nil
-}
-
-// The string representation of PValue
-//
-func (s PValue) String() string {
-	return string(s)
-}
-
-// Replace references to parameters in PValue with their values.
-// The format is specified in the `valueExp` constant ${PARAM_NAME}.
-//
-// If the referenced parameter is not defined, then the substitution is ignored.
-func (s *PValue) Substitute(params ParamMap) {
-	newValue := *s
-
-	for _, match := range valueExp.FindAllStringSubmatch(string(newValue), -1) {
-		// If the Parameter is not defined, then leave the value as it is
-		if params[match[2]].Value == "" {
-			continue
-		}
-		newValue = PValue(strings.Replace(string(newValue), match[1], params[match[2]].Value, 1))
-	}
-
-	*s = newValue
-}
-
-// Generate Value field for defined Parameters.
-// If the Parameter define Generate, then the Value is generated based
-// on that template. The template is a pseudo-regexp formatted string.
-//
-// Example:
-//
-//	s := generate.Template("[a-zA-Z0-9]{4}")
-//	// s: "Ga0b"
-//
-//	s := generate.Template("[GET:http://example.com/new]")
-//	// s: <body from the GET request>
-func (p *Template) ProcessParameters(customParams []Parameter) {
-	p.Parameters = append(p.Parameters, customParams...)
-	for i, _ := range p.Parameters {
-		p.Parameters[i].Seed = p.Seed
-		if err := p.Parameters[i].GenerateValue(); err != nil {
-			fmt.Printf("ERROR: Unable to process parameter %s: %v\n", p.Parameters[i].Name, err)
-			p.Parameters[i].Value = p.Parameters[i].Generate
+			c.Env[v].Value = newValue
 		}
 	}
 }
 
-// Return the list of containers associated with the service
-func (s *Service) Containers() []*Container {
-	result := make([]*Container, len((*s).DeploymentConfig.Deployment.PodTemplate.Containers))
-
-	for i, _ := range s.DeploymentConfig.Deployment.PodTemplate.Containers {
-		result[i] = &s.DeploymentConfig.Deployment.PodTemplate.Containers[i]
-	}
-
-	return result
+func TemplateToJSON(t Template) ([]byte, error) {
+	return json.Marshal(t)
 }
 
-// A shorthand method to get list of *all* container defined in the Template
-// template
-func (p *Template) Containers() []*Container {
-	var result []*Container
-	for _, s := range p.Services {
-		result = append(result, s.Containers()...)
-	}
-	return result
-}
+// Transform the source Template to target template, substituting the parameters
+// referenced in podTemplate->containers using the parameter values.
+// You might add more parameters using the third argument.
+func TransformTemplate(source, target *Template, params []Parameter) {
+	*target = *source
 
-// Convert Parameter slice to more effective data structure
-func (p *Template) CreateParameterMap() ParamMap {
-	ParamMap := make(ParamMap)
-	for _, p := range p.Parameters {
-		ParamMap[p.Name] = p
-	}
-	return ParamMap
-}
+	target.ProcessParameters(params)
+	paramMap := target.CreateParameterMap()
 
-// Process all Env variables in the Project template and replace parameters
-// referenced in their values with the Parameter values.
-//
-// The replacement is done in Containers and ServiceLinks.
-func (p *Template) Process() {
-	params := p.CreateParameterMap()
-
-	for _, container := range p.Containers() {
-		(*container).Env.Process(params)
-	}
-
-	for s, _ := range p.ServiceLinks {
-		p.ServiceLinks[s].Export.Process(params)
+	for i, d := range target.DeploymentConfigs {
+		newDeploymentConfig := new(DeploymentConfig)
+		ProcessContainerEnvs(&d, newDeploymentConfig, paramMap)
+		target.DeploymentConfigs[i] = *newDeploymentConfig
 	}
 }
 
-// Substitute referenced parameters in Env values with parameter values.
-func (e *Env) Process(params ParamMap) {
-	for i, _ := range *e {
-		(*e)[i].Value.Substitute(params)
-	}
-}
-
-func (t *Template) Transform(customParams []Parameter) ([]byte, error) {
-	t.ProcessParameters(customParams)
-	t.Process()
-	return json.Marshal(*t)
-}
-
+// Make a new Template from the JSON data and assign a random seed for it
 func NewTemplate(jsonData []byte) (*Template, error) {
 	var template Template
 	if err := json.Unmarshal(jsonData, &template); err != nil {
@@ -153,6 +58,8 @@ func NewTemplate(jsonData []byte) (*Template, error) {
 	return &template, nil
 }
 
+// A helper function that reads the JSON file and return new Template with
+// random seed assigned
 func NewTemplateFromFile(filename string) (*Template, error) {
 	jsonData, err := ioutil.ReadFile(filename)
 	if err != nil {
