@@ -1,7 +1,7 @@
 Hosting on Openshift V3
 =======================
 
-'Requirements'  
+__Requirements__  
 
 - Scalablilty  
   - support number of users in orders of Openshift online.
@@ -26,7 +26,7 @@ Gitblit
 Gitblit is an open-source, pure Java stack for managing, viewing, and serving Git repositories.
 It's designed primarily as a tool for small workgroups who want to host centralized repositories.
 
-'Out of the box'
+__Out of the box__
 
 - Supports HTTP(S) and SSH
 - Supports users, teams and per repository permissions (data stored locally to users.conf file)
@@ -46,7 +46,7 @@ It's designed primarily as a tool for small workgroups who want to host centrali
 - Easy to setup
 - It has admin account and UI console (It does not look like it would scale)
 
-'Make it work'
+__Make it work__
 
 - Write our own authentication plugin to authenticate with external authentication server
 - Write our own plugin to store user, team and permissions to a central location (most likely a DB)
