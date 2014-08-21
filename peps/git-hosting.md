@@ -55,18 +55,30 @@ __Make it work__
   - Option 1:
     - Distribute user repositories across serveral distinct instances of Gitblit
     - Need to define and implement algorithm for density management
-    - Need to keep track of which server hosts user's repository
+    - Need to keep track of which server hosts user's repositories.  foo@gitblit.rhcloud.com, bar@gitblit1.rhcloud.com
   - Option 2:
-    - Use DFS for repository storage. 
+    - Use DFS/NFS for repository storage. 
     - Load balance SSH and HTTP(s) connections.
     
-
 GitLab (Community addition)
 ---------------------------
+GitLab Community Edition (CE) is open source software to collaborate on code. Create projects and repositories, manage access and do code reviews. GitLab CE is on-premises software that you can install and use on your server(s). [Architecture](http://doc.gitlab.com/ce/development/architecture.html)
+
+__Out of the box__
+
+- Supports HTTP and SSH
+- Supports users, groups and permissions (data stored postgres or mysql)
+- Supports webhooks
+- Web UI
+- Scalability and failover see https://about.gitlab.com/high-availability/
+- Easy to setup
+- REST API for users and admins
+
+__Make it work__
+
+- HTTPS support
 
 
-SCM Manager
------------
 
 
 
