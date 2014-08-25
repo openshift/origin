@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
+	"strings"
 
 	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/openshift/origin/pkg/cmd/client"
@@ -51,6 +53,7 @@ func main() {
 			major, minor, git := version.Get()
 			fmt.Printf("openshift version %s.%s, build %s\n", major, minor, git)
 			fmt.Printf("kubernetes %v\n", kubeversion.Get())
+			fmt.Printf("golang version %v\n", strings.TrimLeft(runtime.Version(), "go"))
 		},
 	}
 	openshiftCmd.AddCommand(versionCmd)

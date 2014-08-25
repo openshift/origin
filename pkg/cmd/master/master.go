@@ -30,13 +30,14 @@ import (
 )
 
 func NewCommandStartAllInOne(name string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Launch in all-in-one mode",
 		Run: func(c *cobra.Command, args []string) {
 			startAllInOne()
 		},
 	}
+	return cmd
 }
 
 func startAllInOne() {
