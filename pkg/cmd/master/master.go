@@ -26,6 +26,7 @@ import (
 	"github.com/google/cadvisor/client"
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/service"
+	"github.com/openshift/origin/pkg/cmd/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +42,8 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 }
 
 func startAllInOne() {
-	dockerAddr := getDockerEndpoint("")
+	dockerAddr := helpers.GetDockerEndpoint("")
+  glog.Infof("Connecting to docker on %s", dockerAddr)
 	dockerClient, err := docker.NewClient(dockerAddr)
 	if err != nil {
 		glog.Fatal("Couldn't connect to docker.")
@@ -154,35 +156,13 @@ func startAllInOne() {
 	glog.Infof("Started Kubernetes Replication Manager")
 
 	// initialize build controller
-	if env("BUILD_POD_CLEANUP_ENABLED", "true") == "true" {
+	if helpers.Env("BUILD_POD_CLEANUP_ENABLED", "true") == "true" {
 		os.Setenv("BUILD_POD_CLEANUP_ENABLED", "true")
 	}
 	buildController := build.MakeBuildController(kubeClient, "openshift/docker-builder",
-		env("DOCKER_REGISTRY_URL", ""), "openshift/sti-builder", 120)
+		helpers.Env("DOCKER_REGISTRY_URL", ""), "openshift/sti-builder", 120)
 	buildController.Run(10 * time.Second)
 
 	select {}
 }
 
-func env(key string, defaultValue string) string {
-	val := os.Getenv(key)
-	if len(val) == 0 {
-		return defaultValue
-	} else {
-		return val
-	}
-}
-
-func getDockerEndpoint(dockerEndpoint string) string {
-	var endpoint string
-	if len(dockerEndpoint) > 0 {
-		endpoint = dockerEndpoint
-	} else if len(os.Getenv("DOCKER_HOST")) > 0 {
-		endpoint = os.Getenv("DOCKER_HOST")
-	} else {
-		endpoint = "unix:///var/run/docker.sock"
-	}
-	glog.Infof("Connecting to docker on %s", endpoint)
-
-	return endpoint
-}
