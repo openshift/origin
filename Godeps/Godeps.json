@@ -1,0 +1,328 @@
+{
+	"ImportPath": "github.com/openshift/origin",
+	"GoVersion": "go1.2.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go-uuid/uuid",
+			"Comment": "null-12",
+			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.net/html",
+			"Comment": "null-144",
+			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.net/websocket",
+			"Comment": "null-144",
+			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
+		},
+		{
+			"ImportPath": "code.google.com/p/goauth2/compute/serviceaccount",
+			"Comment": "weekly-50",
+			"Rev": "7fc9d958c83464bd7650240569bf93a102266e6a"
+		},
+		{
+			"ImportPath": "code.google.com/p/goauth2/oauth",
+			"Comment": "weekly-50",
+			"Rev": "7fc9d958c83464bd7650240569bf93a102266e6a"
+		},
+		{
+			"ImportPath": "code.google.com/p/google-api-go-client/compute/v1",
+			"Comment": "release-96",
+			"Rev": "0923cdda5b82a7dd0dd5c689f824ca5e7d9b60de"
+		},
+		{
+			"ImportPath": "code.google.com/p/google-api-go-client/googleapi",
+			"Comment": "release-96",
+			"Rev": "0923cdda5b82a7dd0dd5c689f824ca5e7d9b60de"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/api",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/client",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/constraint",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/controller",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/conversion",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/health",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/healthz",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/httplog",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/labels",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/master",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/binding",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/controller",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/tools",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/util",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/version",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/volume",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/watch",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/third_party/docker-api-structs",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/config",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/discovery",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/error",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/etcd",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/http",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/log",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/metrics",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/mod",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/btrfs",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/http",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/strings",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/server",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/store",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/bitbucket.org/kardianos/osext",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/code.google.com/p/gogoprotobuf/proto",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/BurntSushi/toml",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/coreos/go-etcd/etcd",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/coreos/go-log/log",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/coreos/go-systemd/journal",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/goraft/raft",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/gorilla/context",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/gorilla/mux",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/mreiferson/go-httpclient",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/third_party/github.com/rcrowley/go-metrics",
+			"Comment": "v0.4.3-7-gfc2afe1",
+			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
+		},
+		{
+			"ImportPath": "github.com/coreos/go-etcd/etcd",
+			"Comment": "v0.2.0-rc1-120-g23142f6",
+			"Rev": "23142f6773a676cc2cae8dd0cb90b2ea761c853f"
+		},
+		{
+			"ImportPath": "github.com/fsouza/go-dockerclient",
+			"Comment": "0.2.1-216-g9061c85",
+			"Rev": "9061c8580ba4374f24de44bcf9e8b77ce0553933"
+		},
+		{
+			"ImportPath": "github.com/golang/glog",
+			"Rev": "d1c4472bf2efd3826f2b5bdcc02d8416798d678c"
+		},
+		{
+			"ImportPath": "github.com/google/cadvisor/client",
+			"Comment": "0.2.0-27-g17b0ec5",
+			"Rev": "17b0ec576bcbeb321c133e4378dee1e500c9850d"
+		},
+		{
+			"ImportPath": "github.com/google/cadvisor/info",
+			"Comment": "0.2.0-27-g17b0ec5",
+			"Rev": "17b0ec576bcbeb321c133e4378dee1e500c9850d"
+		},
+		{
+			"ImportPath": "github.com/google/gofuzz",
+			"Rev": "aef70dacbc78771e35beb261bb3a72986adf7906"
+		},
+		{
+			"ImportPath": "github.com/spf13/cobra",
+			"Rev": "8d72c1e167c7ed194f28b625cbe835495aaa55fa"
+		},
+		{
+			"ImportPath": "github.com/spf13/pflag",
+			"Rev": "463bdc838f2b35e9307e91d480878bda5fff7232"
+		},
+		{
+			"ImportPath": "github.com/stretchr/objx",
+			"Rev": "d40df0cc104c06eae2dfe03d7dddb83802d52f9a"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "37614ac27794505bf7867ca93aac883cadb6a5f7"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/mock",
+			"Rev": "37614ac27794505bf7867ca93aac883cadb6a5f7"
+		},
+		{
+			"ImportPath": "gopkg.in/v1/yaml",
+			"Rev": "1b9791953ba4027efaeb728c7355e542a203be5e"
+		}
+	]
+}
