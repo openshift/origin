@@ -2,19 +2,30 @@
 
 # This script sets up a go workspace locally and builds all go components.
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# Update the version.
-$(dirname $0)/version-gen.sh
+hackdir=$(CDPATH="" cd $(dirname $0); pwd)
 
-source $(dirname $0)/config-go.sh
+# Set the environment variables required by the build.
+. "${hackdir}/config-go.sh"
 
-cd "${OS_TARGET}"
+# Go to the top of the tree.
+cd "${OS_REPO_ROOT}"
 
-BINARIES="cmd/openshift"
+# Fetch the version.
+version=$(gitcommit)
+kube_version=$(go run ${hackdir}/version.go ${hackdir}/../Godeps/Godeps.json github.com/GoogleCloudPlatform/kubernetes/pkg/api)
 
-if [ $# -gt 0 ]; then
-  BINARIES="$@"
+if [[ $# == 0 ]]; then
+  # Update $@ with the default list of targets to build.
+  set -- cmd/openshift
 fi
 
-go install $(for b in $BINARIES; do echo "${OS_GO_PACKAGE}"/${b}; done)
+binaries=()
+for arg; do
+  binaries+=("${OS_GO_PACKAGE}/${arg}")
+done
+
+go install -ldflags "-X github.com/openshift/origin/pkg/version.commitFromGit '${version}' -X github.com/GoogleComputePlatform/kubernetes/pkg/version.commitFromGit '${kube_version}'" "${binaries[@]}"
