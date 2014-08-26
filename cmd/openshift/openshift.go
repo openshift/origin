@@ -33,6 +33,8 @@ for the latest information on OpenShift.
 `
 
 func main() {
+	var Verbose bool
+	
 	openshiftCmd := &cobra.Command{
 		Use:   "openshift",
 		Short: "OpenShift helps you build, deploy, and manage your applications",
@@ -41,6 +43,7 @@ func main() {
 			c.Help()
 		},
 	}
+	openshiftCmd.PersistentFlags().BoolVar(&Verbose, "verbose", false, "If true, print extra information")
 
 	openshiftCmd.AddCommand(master.NewCommandStartAllInOne("start"))
 	openshiftCmd.AddCommand(client.NewCommandKubecfg("kube"))
