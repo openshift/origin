@@ -76,8 +76,15 @@ func usage(name string) string {
 `, name, prettyWireStorage())
 }
 
+var parser = kubecfg.NewParser(map[string]interface{}{
+	"pods":                   api.Pod{},
+	"services":               api.Service{},
+	"replicationControllers": api.ReplicationController{},
+	"minions":                api.Minion{},
+})
+
 func prettyWireStorage() string {
-	types := kubecfg.SupportedWireStorage()
+	types := parser.SupportedWireStorage()
 	sort.Strings(types)
 	return strings.Join(types, "|")
 }
@@ -92,7 +99,7 @@ func (c *KubeConfig) readConfig(storage string) []byte {
 	if err != nil {
 		glog.Fatalf("Unable to read %v: %v\n", c.Config, err)
 	}
-	data, err = kubecfg.ToWireFormat(data, storage)
+	data, err = parser.ToWireFormat(data, storage)
 	if err != nil {
 		glog.Fatalf("Error parsing %v as an object for %v: %v\n", c.Config, storage, err)
 	}
@@ -182,7 +189,7 @@ func storagePathFromArg(arg string) (storage, path string, hasSuffix bool) {
 
 //checkStorage returns true if the provided storage is valid
 func checkStorage(storage string) bool {
-	for _, allowed := range kubecfg.SupportedWireStorage() {
+	for _, allowed := range parser.SupportedWireStorage() {
 		if allowed == storage {
 			return true
 		}
@@ -295,7 +302,7 @@ func (c *KubeConfig) executeAPIRequest(method string, client *kubeclient.Client)
 			Template: tmpl,
 		}
 	default:
-		printer = &kubecfg.HumanReadablePrinter{}
+		printer = humanReadablePrinter()
 	}
 
 	if err = printer.PrintObj(obj, os.Stdout); err != nil {
@@ -352,4 +359,10 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 		glog.Fatalf("Error: %v", err)
 	}
 	return true
+}
+
+func humanReadablePrinter() *kubecfg.HumanReadablePrinter {
+	printer := kubecfg.NewHumanReadablePrinter()
+	// Add Handler calls here to support additional types
+	return printer
 }
