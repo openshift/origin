@@ -103,7 +103,7 @@ Contributing
 
 Contributions are welcome - a more formal process is coming soon.  In the meantime, open issues as necessary, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes).
 
-See [HACKING.md](https://github.com/openshift/origin/blob/master/README.md) for more details on developing on OpenShift.
+See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on developing on OpenShift.
 
 If you want to run the test suite, make sure you have your environment from above set up, and from the origin directory run:
 
