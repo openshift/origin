@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	// "github.com/GoogleCloudPlatform/kubernetes/pkg/build"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
@@ -17,6 +16,8 @@ import (
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 	etcdconfig "github.com/coreos/etcd/config"
 	"github.com/coreos/etcd/etcd"
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -155,13 +156,12 @@ func startAllInOne() {
 	controllerManager.Run(10 * time.Second)
 	glog.Infof("Started Kubernetes Replication Manager")
 
-	// initialize build controller
-	// if env("BUILD_POD_CLEANUP_ENABLED", "true") == "true" {
-	// 	os.Setenv("BUILD_POD_CLEANUP_ENABLED", "true")
-	// }
-	// buildController := build.MakeBuildController(kubeClient, "openshift/docker-builder",
-	// 	env("DOCKER_REGISTRY_URL", ""), "openshift/sti-builder", 120)
-	// buildController.Run(10 * time.Second)
+	// initialize scheduler
+	configFactory := &factory.ConfigFactory{Client: kubeClient}
+	config := configFactory.Create()
+	s := scheduler.New(config)
+	s.Run()
+	glog.Infof("Started Kubernetes Scheduler")
 
 	select {}
 }
