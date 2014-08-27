@@ -62,5 +62,5 @@ function start_etcd {
   etcd -name test -data-dir ${ETCD_DIR} -bind-addr ${host}:${port} >/dev/null 2>/dev/null &
   export ETCD_PID=$!
 
-  wait_for_url "http://localhost:4001/v2/keys/" "etcd: "
+  wait_for_url "http://127.0.0.1:4001/v2/keys/" "etcd: "
 }
