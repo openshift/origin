@@ -48,9 +48,7 @@ func main() {
 		Use:   "version",
 		Short: "Display version",
 		Run: func(c *cobra.Command, args []string) {
-			info := version.Get()
-			major, minor, git := info.Major, info.Minor, info.GitCommit
-			fmt.Printf("openshift version %s.%s, build %s\n", major, minor, git)
+			fmt.Printf("openshift %v\n", version.Get())
 			fmt.Printf("kubernetes %v\n", kubeversion.Get())
 		},
 	}
