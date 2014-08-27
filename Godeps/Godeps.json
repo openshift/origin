@@ -2,7 +2,7 @@
 	"ImportPath": "github.com/openshift/origin",
 	"GoVersion": "go1.2.2",
 	"Packages": [
-		"./..."
+		"./cmd/openshift/"
 	],
 	"Deps": [
 		{
@@ -129,6 +129,10 @@
 			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/scheduler",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/tools",
 			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
 		},
@@ -146,6 +150,10 @@
 		},
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/watch",
+			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler",
 			"Rev": "7487f9a9516f74973fb4f5ba350e491ac72ead75"
 		},
 		{

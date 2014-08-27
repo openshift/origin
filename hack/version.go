@@ -40,6 +40,9 @@ func main() {
 		if dep.ImportPath != pkg {
 			continue
 		}
+		if len(dep.Rev) > 7 {
+			dep.Rev = dep.Rev[0:7]
+		}
 		fmt.Fprintf(os.Stdout, dep.Rev)
 		return
 	}
