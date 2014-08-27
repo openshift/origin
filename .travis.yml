@@ -6,15 +6,16 @@ go:
   - tip
 
 install:
-  - ./third_party/src/github.com/GoogleCloudPlatform/kubernetes/hack/verify-gofmt.sh
-  - ./third_party/src/github.com/GoogleCloudPlatform/kubernetes/hack/install-std-race.sh
+  - ./hack/verify-gofmt.sh
+  - ./hack/install-std-race.sh
   - go get code.google.com/p/go.tools/cmd/cover
   - go get github.com/coreos/etcd
   - ./hack/build-go.sh
-  - ./hack/test-go.sh
 
 script:
-  - echo "Done"
+  - ./hack/test-go.sh
+  - ./hack/test-cmd.sh
+  - PATH=$HOME/gopath/bin:$PATH ./hack/test-integration.sh
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"

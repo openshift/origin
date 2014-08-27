@@ -1,4 +1,0 @@
-base:
-  '*':
-    - mine
-    - common

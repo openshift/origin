@@ -51,6 +51,7 @@ You'll need Docker and the Go language compilation tools installed.
    
 Coming soon: Vagrant environments supporting OpenShift - see [Kubernetes README.md](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md) for now.
 
+
 API
 ---
 
@@ -102,6 +103,8 @@ Contributing
 ------------
 
 Contributions are welcome - a more formal process is coming soon.  In the meantime, open issues as necessary, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes).
+
+See [HACKING.md](https://github.com/openshift/origin/blob/master/README.md) for more details on developing on OpenShift.
 
 
 License
