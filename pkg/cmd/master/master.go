@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
@@ -25,6 +25,12 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/client"
+	"github.com/openshift/origin/pkg/build"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
+	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	"github.com/openshift/origin/pkg/build/strategy"
+	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +51,11 @@ func startAllInOne() {
 	osAddr := "127.0.0.1:8080"
 	osPrefix := "/osapi/v1beta1"
 	kubePrefix := "/api/v1beta1"
-	kubeClient, err := client.New("http://"+osAddr, nil)
+	kubeClient, err := kubeclient.New("http://"+osAddr, nil)
+	if err != nil {
+		glog.Fatalf("Unable to configure client - bad URL: %v", err)
+	}
+	osClient, err := osclient.New("http://"+osAddr, nil)
 	if err != nil {
 		glog.Fatalf("Unable to configure client - bad URL: %v", err)
 	}
@@ -108,12 +118,15 @@ func startAllInOne() {
 	}, 0)
 
 	// initialize OpenShift API
-	storage := map[string]apiserver.RESTStorage{}
+	storage := map[string]apiserver.RESTStorage{
+		"builds":       buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"buildConfigs": buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+	}
 
 	osMux := http.NewServeMux()
 
 	// initialize Kubernetes API
-	podInfoGetter := &client.HTTPPodInfoGetter{
+	podInfoGetter := &kubeclient.HTTPPodInfoGetter{
 		Client: http.DefaultClient,
 		Port:   uint(minionPort),
 	}
@@ -167,6 +180,20 @@ func startAllInOne() {
 	s := scheduler.New(config)
 	s.Run()
 	glog.Infof("Started Kubernetes Scheduler")
+
+	// initialize build controller
+	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/docker-builder")
+	useHostDockerSocket := len(env("USE_HOST_DOCKER_SOCKET", "")) > 0
+	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/sti-builder")
+	dockerRegistry := env("DOCKER_REGISTRY", "")
+
+	buildStrategies := map[buildapi.BuildType]build.BuildJobStrategy{
+		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage, useHostDockerSocket),
+		buildapi.STIBuildType:    strategy.NewSTIBuildStrategy(stiBuilderImage, useHostDockerSocket),
+	}
+
+	buildController := build.NewBuildController(kubeClient, osClient, buildStrategies, dockerRegistry, 1200)
+	buildController.Run(10 * time.Second)
 
 	select {}
 }
