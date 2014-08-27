@@ -28,6 +28,9 @@ GO_OUT=$(dirname $0)/../output/go/bin
 out=$(${GO_OUT}/openshift version)
 echo openshift: $out
 
+# Remove any local data
+rm -rf $(dirname $0)/../openshift.local.etcd/
+
 # Start openshift
 ${GO_OUT}/openshift start 1>&2 &
 OS_PID=$!
@@ -38,13 +41,15 @@ wait_for_url "http://127.0.0.1:${API_PORT}/healthz" "apiserver: "
 KUBE_CMD="${GO_OUT}/openshift kube -h http://127.0.0.1:${API_PORT} --expect_version_match"
 
 ${KUBE_CMD} list pods
-echo "kubecfg(pods): ok"
+${KUBE_CMD} -c examples/hello-openshift/hello-pod.json create pods
+${KUBE_CMD} delete pods/hello-openshift
+echo "kube(pods): ok"
 
 ${KUBE_CMD} list services
 ${KUBE_CMD} -c examples/test-service.json create services
 ${KUBE_CMD} delete services/frontend
-echo "kubecfg(services): ok"
+echo "kube(services): ok"
 
 ${KUBE_CMD} list minions
 ${KUBE_CMD} get minions/127.0.0.1
-echo "kubecfg(minions): ok"
+echo "kube(minions): ok"

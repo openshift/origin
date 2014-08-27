@@ -59,6 +59,8 @@ func startAllInOne() {
 	etcdServers := []string{} // default
 	etcdConfig := etcdconfig.New()
 	etcdConfig.BindAddr = etcdAddr
+	etcdConfig.DataDir = "openshift.local.etcd"
+	etcdConfig.NameFromHostname()
 	etcdServer := etcd.New(etcdConfig)
 	go util.Forever(func() {
 		glog.Infof("Started etcd at http://%s", etcdAddr)
