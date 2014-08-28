@@ -51,6 +51,16 @@ You'll need Docker and the Go language compilation tools installed.
 Coming soon: Vagrant environments supporting OpenShift - see [Kubernetes README.md](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md) for now.
 
 
+Design Documents
+----------------
+
+OpenShift designs:
+
+* [OpenShift 3 PEP](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md)
+* [Orchestration Overview](https://github.com/openshift/origin/blob/master/docs/orchestration.md)
+
+Kubernetes designs are in [the Kubernetes docs dir](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/)
+
 API
 ---
 
