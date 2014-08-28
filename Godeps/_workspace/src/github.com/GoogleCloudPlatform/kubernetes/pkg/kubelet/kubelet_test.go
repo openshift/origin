@@ -129,7 +129,7 @@ func TestGetContainerID(t *testing.T) {
 		ID: "foobar",
 	}
 
-	dockerContainers, err := getKubeletDockerContainers(fakeDocker)
+	dockerContainers, err := getKubeletDockerContainers(fakeDocker, false)
 	if err != nil {
 		t.Errorf("Expected no error, Got %#v", err)
 	}
@@ -449,6 +449,11 @@ func TestSyncPodDeletesDuplicate(t *testing.T) {
 			ID:    "2304",
 		},
 	}
+	fakeDocker.container = &docker.Container{
+		State: docker.State{
+			Running: true,
+		},
+	}
 	err := kubelet.syncPod(&Pod{
 		Name:      "bar",
 		Namespace: "test",
@@ -463,7 +468,7 @@ func TestSyncPodDeletesDuplicate(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	verifyCalls(t, fakeDocker, []string{"list", "stop"})
+	verifyCalls(t, fakeDocker, []string{"list", "inspect", "stop"})
 
 	// Expect one of the duplicates to be killed.
 	if len(fakeDocker.stopped) != 1 || (len(fakeDocker.stopped) != 0 && fakeDocker.stopped[0] != "1234" && fakeDocker.stopped[0] != "4567") {
@@ -534,6 +539,11 @@ func TestSyncPodUnhealthy(t *testing.T) {
 			ID:    "9876",
 		},
 	}
+	fakeDocker.container = &docker.Container{
+		State: docker.State{
+			Running: true,
+		},
+	}
 	err := kubelet.syncPod(&Pod{
 		Name:      "foo",
 		Namespace: "test",
@@ -553,7 +563,7 @@ func TestSyncPodUnhealthy(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	verifyCalls(t, fakeDocker, []string{"list", "stop", "create", "start"})
+	verifyCalls(t, fakeDocker, []string{"list", "inspect", "stop", "create", "start"})
 
 	// A map interation is used to delete containers, so must not depend on
 	// order here.
