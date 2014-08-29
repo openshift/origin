@@ -1,4 +1,4 @@
-Hosting on Openshift V3
+Git Hosting on Openshift V3
 =======================
 
 __Requirements__  
@@ -45,11 +45,13 @@ __Out of the box__
 - Back-up strategy - clone repositories and keep them in sync from one Gitblit instance to another using their federation mechanism. Gitblit federation is like a master-slave system.  Where updates are expected to always go to the master, except that in Gitblit federation instead of master pushing the updates to the slave, the slave pulls the update rom master at a configurable interval (minimum 5 minutes).
 - Easy to setup
 - It has admin account and UI console (It does not look like it would scale)
+- RPC API (mostly of admin user)
 
 __Make it work__
 
 - Write our own authentication plugin to authenticate with external authentication server
 - Write our own plugin to store user, team and permissions to a central location (most likely a DB)
+- Write our own webhook API
 - The Gitblit federation mechanism does not meet our needs. Rather than the back-up server pulling updates at regular intervals, it is preferable to send updates to the back-up server with each push.  One possibility is to write a custom hook that run for all repos and push updates to back-up server.  Still looking at other alternatives...
 - Scaling strategy
   - Option 1:
