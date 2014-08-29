@@ -1,10 +1,6 @@
 package template
 
-import (
-	"math/rand"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-)
+import "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 type Template struct {
 	api.JSONBase      `json:",inline" yaml:",inline"`
@@ -13,7 +9,6 @@ type Template struct {
 	Parameters        []Parameter        `json:"parameters" yaml:"parameters"`
 	Services          []api.Service      `json:"services" yaml:"services"`
 	DeploymentConfigs []DeploymentConfig `json:"deploymentConfigs" yaml:"deploymentConfigs"`
-	Seed              *rand.Rand
 }
 
 type ImageRepositoryList struct {
@@ -38,8 +33,6 @@ type Parameter struct {
 	Type        string `json:"type" yaml:"type"`
 	Generate    string `json:"generate" yaml:"generate"`
 	Value       string `json:"value" yaml:"value"`
-
-	Seed *rand.Rand
 }
 
 // FIXME: Replace this with EnvVar struct from kubernetes.
