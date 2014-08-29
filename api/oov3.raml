@@ -12,8 +12,8 @@ documentation:
     description: |
       List all projects for your account.
 
-      Projects are a similar concept to v2 domains. A project is a grouping of services 
-      with shared access control and resource limits. Applications can be assembled 
+      Projects are a similar concept to v2 domains. A project is a grouping of services
+      with shared access control and resource limits. Applications can be assembled
       from services in a project by linking them together via service endpoints.
     responses:
       200:
@@ -59,9 +59,9 @@ documentation:
         type: string
     description: |
       Lists all image repositories that you have access to.
-      
-      An image repository is a collection of images that share the same metadata. It contains 
-      multiple versions of an image as it evolves over time with new builds of the codebase. 
+
+      An image repository is a collection of images that share the same metadata. It contains
+      multiple versions of an image as it evolves over time with new builds of the codebase.
       An image repository may be associated with a build which can be triggered by an event such
       as a commit to a source repository. The build will then push a new image on to the repository.
     responses:
@@ -120,11 +120,11 @@ documentation:
   get:
     description: |
       Lists all services that your account has access to
-      
+
       Services can be public or owned by a project. They contain a template of a pod and
-      reference image repositories that supply the images for those templates. A service may 
-      be configured to react to an image being pushed to an image repository by initiating a 
-      deployment. Deployments are associated with a service and make use of 
+      reference image repositories that supply the images for those templates. A service may
+      be configured to react to an image being pushed to an image repository by initiating a
+      deployment. Deployments are associated with a service and make use of
       Kubernetes replication controllers to manage pods in a cluster.
       For deployments, a service contains a policy that constrains how deployments can occur.
       For example, it may require that there exist at least 2 operational pods at all times.
@@ -192,7 +192,7 @@ documentation:
     description: |
       Lists active deployments in the current project
 
-      Deployments effect change in a service such as scaling up, down, updating the 
+      Deployments effect change in a service such as scaling up, down, updating the
       current image, etc. Deployments may use different policies for carrying out
       the change. For example, a rolling update with a single pod change at a time, or
       a batch update, etc. Deployments make use of Kubernetes replicationControllers
@@ -291,7 +291,7 @@ documentation:
       Retrieves a list of builds visible to you
 
       A build is associated with an image repository and can be triggered by a webhook
-      on Github. It can either be a Docker build or a source build based on a 
+      on Github. It can either be a Docker build or a source build based on a
       specified image. When a build completes, it posts a new image to the image
       repository that it's associated with.
     responses:
@@ -333,6 +333,15 @@ documentation:
         200:
           body:
             example: !include examples/build-results.json
+/buildConfigHooks/{buildId}/{secret}/{plugin}:
+  post:
+    description: Webhook on push event from external repository
+
+    buildId specifies which build to trigger, whereas plugin defines source of
+    the request, this might be github, bitbucket or others.
+    responses:
+      204:
+        description: No content
 
 /templates:
   get:
@@ -380,7 +389,7 @@ documentation:
     body:
       schema: !include doc/pod-schema.json
       example: !include examples/pod.json
-  
+
   /{podId}:
     get:
       description: Get a specific pod
@@ -399,7 +408,7 @@ documentation:
         200:
           body:
             example: |
-              { 
+              {
                 "success": true
               }
 
@@ -415,7 +424,7 @@ documentation:
     body:
       schema: !include doc/controller-schema.json
       example: !include examples/controller.json
-  
+
   /{controllerId}:
     get:
       description: Get a specific controller
@@ -434,7 +443,7 @@ documentation:
         200:
           body:
             example: |
-              { 
+              {
                 "success": true
               }
 
@@ -450,7 +459,7 @@ documentation:
     body:
       schema: !include doc/service-schema.json
       example: !include examples/lbservice.json
-  
+
   /{serviceId}:
     get:
       description: Get a specific service
@@ -469,7 +478,7 @@ documentation:
         200:
           body:
             example: |
-              { 
+              {
                 "success": true
               }
 
