@@ -17,6 +17,25 @@ func TestNewTemplate(t *testing.T) {
 	}
 }
 
+func TestCustomParameter(t *testing.T) {
+	var template Template
+
+	jsonData, _ := ioutil.ReadFile("example/project.json")
+	json.Unmarshal(jsonData, &template)
+
+	AddCustomTemplateParameter(Parameter{Name: "CUSTOM_PARAM", Value: "1"}, &template)
+	AddCustomTemplateParameter(Parameter{Name: "CUSTOM_PARAM", Value: "2"}, &template)
+
+	if p := GetTemplateParameterByName("CUSTOM_PARAM", &template); p == nil {
+		t.Errorf("Unable to add a custom parameter to the template")
+	} else {
+		if p.Value != "2" {
+			t.Errorf("Unable to replace the custom parameter value in template")
+		}
+	}
+
+}
+
 func ExampleProcessTemplateParameters() {
 	var template Template
 
@@ -25,7 +44,7 @@ func ExampleProcessTemplateParameters() {
 
 	// Define custom parameter for transformation:
 	customParam := Parameter{Name: "CUSTOM_PARAM1", Value: "1"}
-	template.Parameters = append(template.Parameters, customParam)
+	AddCustomTemplateParameter(customParam, &template)
 
 	// Generate parameter values
 	GenerateParameterValues(&template, rand.New(rand.NewSource(1337)))

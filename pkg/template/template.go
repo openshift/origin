@@ -10,6 +10,28 @@ import (
 
 var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
 
+// AddCustomTemplateParameter allow to pass the custom parameter to the
+// template. It will replace the existing parameter, when it is already
+// defined in the template.
+func AddCustomTemplateParameter(p Parameter, t *Template) {
+	if param := GetTemplateParameterByName(p.Name, t); param != nil {
+		*param = p
+	} else {
+		t.Parameters = append(t.Parameters, p)
+	}
+}
+
+// GetTemplateParameterByName will return the pointer to the Template
+// parameter based on the Parameter name.
+func GetTemplateParameterByName(name string, t *Template) *Parameter {
+	for i, param := range t.Parameters {
+		if param.Name == name {
+			return &(t.Parameters[i])
+		}
+	}
+	return nil
+}
+
 // ProcessParameters searches for every parameter expression
 // in the env of each deploymentConfigs->podTemplate->containers and
 // substitutes it with it's corresponding parameter value.
