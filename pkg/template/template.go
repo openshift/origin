@@ -53,12 +53,11 @@ func ProcessEnvParameters(t *Template) error {
 				envValue := &manifest.Containers[j].Env[k].Value
 				// Match all parameter expressions found in the given env var
 				for _, match := range parameterExp.FindAllStringSubmatch(*envValue, -1) {
-					if len(match) < 2 {
-						continue
-					}
 					// Substitute expression with its value, if corresponding parameter found
-					if paramValue, found := paramMap[match[1]]; found {
-						*envValue = strings.Replace(*envValue, match[0], paramValue, 1)
+					if len(match) > 1 {
+						if paramValue, found := paramMap[match[1]]; found {
+							*envValue = strings.Replace(*envValue, match[0], paramValue, 1)
+						}
 					}
 				}
 			}
