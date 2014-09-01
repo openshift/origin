@@ -1,0 +1,184 @@
+{
+  "id": "example1",
+  "name": "my-awesome-php-app",
+  "description": "Example PHP application with PostgreSQL database",
+  "buildConfigs": [
+    {
+      "name": "mfojtik/nginx-php-app",
+      "type": "docker",
+      "sourceUri": "https://raw.githubusercontent.com/mfojtik/phpapp/master/Dockerfile",
+      "imageRepository": "mfojtik/nginx-php-app"
+    },
+    {
+      "name": "postgres",
+      "type": "docker",
+      "sourceUri": "https://raw.githubusercontent.com/docker-library/postgres/docker/9.2/Dockerfile",
+      "imageRepository": "postgres"
+    }
+  ],
+  "imageRepositories": [
+    {
+      "name": "mfojtik/nginx-php-app",
+      "url": "internal.registry.com:5000/mfojtik/phpapp"
+    },
+    {
+      "name": "postgres",
+      "url": "registry.hub.docker.com/postgres"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "DB_PASSWORD",
+      "description": "PostgreSQL admin user password",
+      "type": "string",
+      "generate": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "DB_USER",
+      "description": "PostgreSQL username",
+      "type": "string",
+      "generate": "admin[a-zA-Z0-9]{4}"
+    },
+    {
+      "name": "DB_NAME",
+      "description": "PostgreSQL database name",
+      "type": "string",
+      "value": "mydb"
+    },
+    {
+      "name": "REMOTE_KEY",
+      "description": "Example of remote key",
+      "type": "string",
+      "value": "[GET:http://custom.url.int]"
+    }
+  ],
+  "services": [
+    {
+      "id": "database",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 5432,
+      "selector": {
+        "name": "database"
+      }
+    },
+    {
+      "id": "frontend",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 8080,
+      "selector": {
+        "name": "frontend"
+      }
+    }
+  ],
+  "deploymentConfigs": [
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
+      "labels": {
+        "name": "database"
+      },
+      "desiredState": {
+        "replicas": 2,
+        "replicaSelector": {
+          "name": "database"
+        },
+        "podTemplate": {
+          "kind": "Pod",
+          "apiVersion": "v1beta1",
+          "id": "database",
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "database",
+              "containers": [{
+                "name": "postgresql",
+                "image": "postgres",
+                "env": [
+                  {
+                    "name": "PGPASSWORD",
+                    "value": "${DB_PASSWORD}"
+                  },
+                  {
+                    "name": "PGUSER",
+                    "value": "${DB_USER}"
+                  },
+                  {
+                    "name": "PGDATABASE",
+                    "value": "${DB_NAME}"
+                  },
+                  {
+                    "name": "FOO",
+                    "value": "${BAR}"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 5432
+                  }
+                ]
+              }
+              ]
+            }
+          },
+          "labels": {
+            "name": "database"
+          }
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
+      "labels": {
+        "name": "frontend"
+      },
+      "desiredState": {
+        "replicas": 2,
+        "replicaSelector": {
+          "name": "frontend"
+        },
+        "podTemplate": {
+          "kind": "Pod",
+          "apiVersion": "v1beta1",
+          "id": "frontend",
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "frontend",
+              "containers": [{
+                "name": "frontend",
+                "image": "mfojtik/nginx-php-app",
+                "env": [
+                  {
+                    "name": "PGPASSWORD",
+                    "value": "${DB_PASSWORD}"
+                  },
+                  {
+                    "name": "PGUSER",
+                    "value": "${DB_USER}"
+                  },
+                  {
+                    "name": "PGDATABASE",
+                    "value": "${DB_NAME}"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 9292,
+                    "hostPort": 8080
+                  }
+                ]
+              }
+              ]
+            }
+          },
+          "labels": {
+            "name": "frontend"
+          }
+        }
+      }
+    }
+  ]
+}
