@@ -1,7 +1,10 @@
 package generator
 
 import (
+	"fmt"
 	"math/rand"
+	"net"
+	"net/http"
 	"testing"
 
 	generator "."
@@ -44,11 +47,30 @@ func TestPasswordGenerator(t *testing.T) {
 	}
 }
 
-func TestRemoteValueGenerator(t *testing.T) {
+func TestErrRemoteValueGenerator(t *testing.T) {
 	sampleGenerator, _ := generator.New(rand.New(rand.NewSource(1337)))
 
 	_, err := sampleGenerator.GenerateValue("[GET:http://api.example.com/new]")
 	if err == nil {
 		t.Errorf("Expected error while fetching non-existent remote.")
+	}
+}
+
+func TestFakeRemoteValueGenerator(t *testing.T) {
+	// Run fake remote server
+	http.HandleFunc("/v1/value/generate", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "NewRandomString")
+	})
+	listener, _ := net.Listen("tcp", ":12345")
+	go http.Serve(listener, nil)
+
+	sampleGenerator, _ := generator.New(rand.New(rand.NewSource(1337)))
+
+	value, err := sampleGenerator.GenerateValue("[GET:http://127.0.0.1:12345/v1/value/generate]")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if value != "NewRandomString" {
+		t.Errorf("Failed to fetch remote value using GET.")
 	}
 }
