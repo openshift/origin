@@ -34,7 +34,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
+	osclient "github.com/openshift/origin/pkg/client"
 )
+
+type RESTClient interface {
+	Verb(verb string) *kubeclient.Request
+}
 
 type KubeConfig struct {
 	ServerVersion bool
@@ -138,7 +143,7 @@ func (c *KubeConfig) Run() {
 		}
 	}
 
-	client := kubeclient.New(masterServer, auth)
+	client := osclient.New(masterServer, auth)
 
 	if c.ServerVersion {
 		got, err := client.ServerVersion()
@@ -169,8 +174,14 @@ func (c *KubeConfig) Run() {
 	}
 
 	method := c.Arg(0)
+	clients := map[string]RESTClient{
+		"minions":                client.Client.RESTClient,
+		"pods":                   client.Client.RESTClient,
+		"services":               client.Client.RESTClient,
+		"replicationControllers": client.Client.RESTClient,
+	}
 
-	matchFound := c.executeAPIRequest(method, client) || c.executeControllerRequest(method, client)
+	matchFound := c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, client)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -197,9 +208,14 @@ func checkStorage(storage string) bool {
 	return false
 }
 
-func (c *KubeConfig) executeAPIRequest(method string, client *kubeclient.Client) bool {
+func (c *KubeConfig) executeAPIRequest(method string, clients map[string]RESTClient) bool {
 	storage, path, hasSuffix := storagePathFromArg(c.Arg(1))
 	validStorage := checkStorage(storage)
+	client, ok := clients[storage]
+	if !ok {
+		glog.Fatalf("Unsupported storage type %s", storage)
+	}
+
 	verb := ""
 	setBody := false
 	var version uint64
@@ -314,7 +330,7 @@ func (c *KubeConfig) executeAPIRequest(method string, client *kubeclient.Client)
 	return true
 }
 
-func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.Client) bool {
+func (c *KubeConfig) executeControllerRequest(method string, client *osclient.Client) bool {
 	parseController := func() string {
 		if len(c.Args) != 2 {
 			glog.Fatal("usage: kubecfg [OPTIONS] stop|rm|rollingupdate <controller>")

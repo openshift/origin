@@ -84,3 +84,9 @@ func (metaInsertion) Interpret(in interface{}) (version, kind string) {
 	m := in.(*metaInsertion)
 	return m.JSONBase.APIVersion, m.JSONBase.Kind
 }
+
+// AddKnownTypes registers the types of the arguments to the marshaller of the package api.
+// Encode() refuses the object unless its type is registered with AddKnownTypes.
+func AddKnownTypes(version string, types ...interface{}) {
+	scheme.AddKnownTypes(version, types...)
+}
