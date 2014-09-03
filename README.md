@@ -64,9 +64,9 @@ Kubernetes designs are in [the Kubernetes docs dir](https://github.com/GoogleClo
 API
 ---
 
-The OpenShift APIs are exposed at `http://localhost:8081/osapi/v1beta1/*`.
+The OpenShift APIs are exposed at `http://localhost:8080/osapi/v1beta1/*`.
 
-* `http://localhost:8081/osapi/v1beta1/services` (placeholder)
+* `http://localhost:8080/osapi/v1beta1/services` (placeholder)
 
 The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 
