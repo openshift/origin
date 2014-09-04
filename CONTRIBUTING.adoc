@@ -1,6 +1,5 @@
 = Contributing to OpenShift v3
-{product-author}
-{product-version}
+OpenShift Developers <dev@lists.openshift.redhat.com>
 :data-uri:
 :icons:
 :toc2:
@@ -52,9 +51,10 @@ The OpenShift team is developing tools that will optimize and extend Kubernetes 
 To get started, https://help.github.com/articles/fork-a-repo[fork] the https://help.github.com/articles/fork-a-repo[origin repo] and then set up a local copy:
 
 ----
-$ go get github.com/<YOUR_GITHUB_USERNAME>/origin
-$ cd $GOPATH/src/github.com/<YOUR_GITHUB_USERNAME>/origin
-$ git remote add upstream https://github.com/openshift/origin
+$ go get github.com/openshift/origin
+$ cd $GOPATH/src/github.com/openshift/origin
+$ git remote rename origin upstream
+$ git remote add origin git@github.com:<YOUR_GITHUB_USERNAME>/origin
 ----
 
 From here, you can follow the https://github.com/openshift/origin/#getting-started[Getting Started section] of the README for a brief tour of Origin v3 functionality, which includes single- and multi-container pod examples.
@@ -74,9 +74,10 @@ https://github.com/GoogleCloudPlatform/kubernetes#community-discussion-and-suppo
 First, https://help.github.com/articles/fork-a-repo[fork our fork] of Kubernetes and make a local copy for yourself:
 
 ----
-$ go get github.com/<YOUR_GITHUB_USERNAME>/kubernetes
-$ cd $GOPATH/src/github.com/<YOUR_GITHUB_USERNAME>/kubernetes
-$ git remote add upstream https://github.com/openshift/kubernetes
+$ go get github.com/openshift/kubernetes
+$ cd $GOPATH/src/github.com/openshift/kubernetes
+$ git remote rename origin upstream
+$ git remote add origin git@github.com:<YOUR_GITHUB_USERNAME>/kubernetes
 ----
 
 From there, head to the https://github.com/openshift/kubernetes#development[Development section] of the README for general information on tinkering with Kubernetes.
