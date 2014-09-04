@@ -1,5 +1,6 @@
 /output
 /third_party/pkg
+/third_party/etcd
 /*.etcd
 .project
 .vagrant
