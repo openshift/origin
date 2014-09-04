@@ -25,7 +25,9 @@ import (
 	"testing"
 	"time"
 
+	// TODO: remove dependency on api, apiserver should be generic
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 )
 
 func TestOperation(t *testing.T) {
@@ -70,8 +72,9 @@ func TestOperation(t *testing.T) {
 	}
 
 	time.Sleep(100 * time.Millisecond)
-	if waited != waiters {
-		t.Errorf("Multiple waiters doesn't work, only %v finished", waited)
+	finished := atomic.LoadInt32(&waited)
+	if finished != waiters {
+		t.Errorf("Multiple waiters doesn't work, only %v finished", finished)
 	}
 
 	if op.expired(time.Now().Add(-time.Second)) {
@@ -92,7 +95,15 @@ func TestOperation(t *testing.T) {
 }
 
 func TestOperationsList(t *testing.T) {
-	simpleStorage := &SimpleRESTStorage{}
+	testOver := make(chan struct{})
+	defer close(testOver)
+	simpleStorage := &SimpleRESTStorage{
+		injectedFunction: func(obj interface{}) (interface{}, error) {
+			// Eliminate flakes by ensuring the create operation takes longer than this test.
+			<-testOver
+			return obj, nil
+		},
+	}
 	handler := Handle(map[string]RESTStorage{
 		"foo": simpleStorage,
 	}, codec, "/prefix/version")

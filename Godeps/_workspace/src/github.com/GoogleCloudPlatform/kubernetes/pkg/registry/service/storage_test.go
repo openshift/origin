@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	cloud "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/fake"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
@@ -78,8 +80,8 @@ func TestServiceStorageValidatesCreate(t *testing.T) {
 		if c != nil {
 			t.Errorf("Expected nil channel")
 		}
-		if err == nil {
-			t.Errorf("Expected to get an error")
+		if !errors.IsInvalid(err) {
+			t.Errorf("Expected to get an invalid resource error, got %v", err)
 		}
 
 	}
@@ -139,8 +141,8 @@ func TestServiceStorageValidatesUpdate(t *testing.T) {
 		if c != nil {
 			t.Errorf("Expected nil channel")
 		}
-		if err == nil {
-			t.Errorf("Expected to get an error")
+		if !errors.IsInvalid(err) {
+			t.Errorf("Expected to get an invalid resource error, got %v", err)
 		}
 	}
 }
@@ -274,6 +276,35 @@ func TestServiceRegistryGet(t *testing.T) {
 	}
 }
 
+func TestServiceRegistryResourceLocation(t *testing.T) {
+	registry := registrytest.NewServiceRegistry()
+	registry.Endpoints = api.Endpoints{Endpoints: []string{"foo:80"}}
+	fakeCloud := &cloud.FakeCloud{}
+	machines := []string{"foo", "bar", "baz"}
+	storage := NewRegistryStorage(registry, fakeCloud, minion.NewRegistry(machines))
+	registry.CreateService(api.Service{
+		JSONBase: api.JSONBase{ID: "foo"},
+		Selector: map[string]string{"bar": "baz"},
+	})
+	redirector := storage.(apiserver.Redirector)
+	location, err := redirector.ResourceLocation("foo")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if e, a := "foo:80", location; e != a {
+		t.Errorf("Expected %v, but got %v", e, a)
+	}
+	if e, a := "foo", registry.GottenID; e != a {
+		t.Errorf("Expected %v, but got %v", e, a)
+	}
+
+	// Test error path
+	registry.Err = fmt.Errorf("fake error")
+	if _, err = redirector.ResourceLocation("foo"); err == nil {
+		t.Errorf("unexpected nil error")
+	}
+}
+
 func TestServiceRegistryList(t *testing.T) {
 	registry := registrytest.NewServiceRegistry()
 	fakeCloud := &cloud.FakeCloud{}
@@ -287,8 +318,9 @@ func TestServiceRegistryList(t *testing.T) {
 		JSONBase: api.JSONBase{ID: "foo2"},
 		Selector: map[string]string{"bar2": "baz2"},
 	})
+	registry.List.ResourceVersion = 1
 	s, _ := storage.List(labels.Everything())
-	sl := s.(api.ServiceList)
+	sl := s.(*api.ServiceList)
 	if len(fakeCloud.Calls) != 0 {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)
 	}
@@ -300,5 +332,8 @@ func TestServiceRegistryList(t *testing.T) {
 	}
 	if e, a := "foo2", sl.Items[1].ID; e != a {
 		t.Errorf("Expected %v, but got %v", e, a)
+	}
+	if sl.ResourceVersion != 1 {
+		t.Errorf("Unexpected resource version: %#v", sl)
 	}
 }

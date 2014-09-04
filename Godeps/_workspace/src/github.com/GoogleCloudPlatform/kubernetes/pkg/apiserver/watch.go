@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
@@ -51,7 +52,7 @@ func getWatchParams(query url.Values) (label, field labels.Selector, resourceVer
 	return label, field, resourceVersion
 }
 
-// handleWatch processes a watch request
+// ServeHTTP processes watch requests.
 func (h *WatchHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	parts := splitPath(req.URL.Path)
 	if len(parts) < 1 || req.Method != "GET" {
@@ -112,7 +113,7 @@ func (w *WatchServer) HandleWS(ws *websocket.Conn) {
 			}
 			err := websocket.JSON.Send(ws, &api.WatchEvent{
 				Type:   event.Type,
-				Object: api.APIObject{event.Object},
+				Object: runtime.Object{event.Object},
 			})
 			if err != nil {
 				// Client disconnect.
@@ -159,7 +160,7 @@ func (self *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 			err := encoder.Encode(&api.WatchEvent{
 				Type:   event.Type,
-				Object: api.APIObject{event.Object},
+				Object: runtime.Object{event.Object},
 			})
 			if err != nil {
 				// Client disconnect.

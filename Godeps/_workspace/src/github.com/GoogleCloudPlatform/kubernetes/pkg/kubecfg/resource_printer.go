@@ -27,18 +27,19 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
 	"gopkg.in/v1/yaml"
 )
 
-// ResourcePrinter is an interface that knows how to print API resources
+// ResourcePrinter is an interface that knows how to print API resources.
 type ResourcePrinter interface {
-	// Print receives an arbitrary JSON body, formats it and prints it to a writer
+	// Print receives an arbitrary JSON body, formats it and prints it to a writer.
 	Print([]byte, io.Writer) error
 	PrintObj(interface{}, io.Writer) error
 }
 
-// IdentityPrinter is an implementation of ResourcePrinter which simply copies the body out to the output stream
+// IdentityPrinter is an implementation of ResourcePrinter which simply copies the body out to the output stream.
 type IdentityPrinter struct{}
 
 // Print is an implementation of ResourcePrinter.Print which simply writes the data to the Writer.
@@ -49,14 +50,14 @@ func (i *IdentityPrinter) Print(data []byte, w io.Writer) error {
 
 // PrintObj is an implementation of ResourcePrinter.PrintObj which simply writes the object to the Writer.
 func (i *IdentityPrinter) PrintObj(obj interface{}, output io.Writer) error {
-	data, err := api.Encode(obj)
+	data, err := runtime.Encode(obj)
 	if err != nil {
 		return err
 	}
 	return i.Print(data, output)
 }
 
-// YAMLPrinter is an implementation of ResourcePrinter which parsess JSON, and re-formats as YAML
+// YAMLPrinter is an implementation of ResourcePrinter which parsess JSON, and re-formats as YAML.
 type YAMLPrinter struct{}
 
 // Print parses the data as JSON, re-formats as YAML and prints the YAML.
@@ -93,15 +94,15 @@ type HumanReadablePrinter struct {
 	handlerMap map[reflect.Type]*handlerEntry
 }
 
-// NewHumanReadablePrinter creates a HumanReadablePrinter
+// NewHumanReadablePrinter creates a HumanReadablePrinter.
 func NewHumanReadablePrinter() *HumanReadablePrinter {
 	printer := &HumanReadablePrinter{make(map[reflect.Type]*handlerEntry)}
 	printer.addDefaultHandlers()
 	return printer
 }
 
-// Handler adds a print handler with a given set of columns to HumanReadablePrinter instance
-// printFunc is the function that will be called to print an object
+// Handler adds a print handler with a given set of columns to HumanReadablePrinter instance.
+// printFunc is the function that will be called to print an object.
 // It must be of the following type:
 //  func printFunc(object ObjectType, w io.Writer) error
 // where ObjectType is the type of the object that will be printed.
@@ -136,13 +137,13 @@ func (h *HumanReadablePrinter) validatePrintHandlerFunc(printFunc reflect.Value)
 	return nil
 }
 
-var podColumns = []string{"Name", "Image(s)", "Host", "Labels"}
-var replicationControllerColumns = []string{"Name", "Image(s)", "Selector", "Replicas"}
-var serviceColumns = []string{"Name", "Labels", "Selector", "Port"}
+var podColumns = []string{"ID", "Image(s)", "Host", "Labels", "Status"}
+var replicationControllerColumns = []string{"ID", "Image(s)", "Selector", "Replicas"}
+var serviceColumns = []string{"ID", "Labels", "Selector", "Port"}
 var minionColumns = []string{"Minion identifier"}
 var statusColumns = []string{"Status"}
 
-// handleDefaultTypes adds print handlers for default Kubernetes types
+// addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(podColumns, printPod)
 	h.Handler(podColumns, printPodList)
@@ -181,9 +182,10 @@ func makeImageList(manifest api.ContainerManifest) string {
 }
 
 func printPod(pod *api.Pod, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
 		pod.ID, makeImageList(pod.DesiredState.Manifest),
-		pod.CurrentState.Host+"/"+pod.CurrentState.HostIP, labels.Set(pod.Labels))
+		pod.CurrentState.Host+"/"+pod.CurrentState.HostIP,
+		labels.Set(pod.Labels), pod.CurrentState.Status)
 	return err
 }
 
@@ -258,7 +260,7 @@ func (h *HumanReadablePrinter) Print(data []byte, output io.Writer) error {
 		return fmt.Errorf("unexpected object with no 'kind' field: %s", data)
 	}
 
-	obj, err := api.Decode(data)
+	obj, err := runtime.Decode(data)
 	if err != nil {
 		return err
 	}
@@ -290,7 +292,7 @@ type TemplatePrinter struct {
 
 // Print parses the data as JSON, and re-formats it with the Go Template.
 func (t *TemplatePrinter) Print(data []byte, w io.Writer) error {
-	obj, err := api.Decode(data)
+	obj, err := runtime.Decode(data)
 	if err != nil {
 		return err
 	}

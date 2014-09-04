@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoint
+package service
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ import (
 	"github.com/golang/glog"
 )
 
-// A EndpointController manages service endpoints.
+// EndpointController manages service endpoints.
 type EndpointController struct {
 	client          *client.Client
 	serviceRegistry service.Registry
@@ -46,9 +46,9 @@ func NewEndpointController(serviceRegistry service.Registry, client *client.Clie
 
 // SyncServiceEndpoints syncs service endpoints.
 func (e *EndpointController) SyncServiceEndpoints() error {
-	services, err := e.serviceRegistry.ListServices()
+	services, err := e.client.ListServices(labels.Everything())
 	if err != nil {
-		glog.Errorf("Failed to list services!")
+		glog.Errorf("Failed to list services: %v", err)
 		return err
 	}
 	var resultErr error
@@ -72,6 +72,7 @@ func (e *EndpointController) SyncServiceEndpoints() error {
 			}
 			endpoints[ix] = net.JoinHostPort(pod.CurrentState.PodIP, strconv.Itoa(port))
 		}
+		// TODO: this is totally broken, we need to compute this and store inside an AtomicUpdate loop.
 		err = e.serviceRegistry.UpdateEndpoints(api.Endpoints{
 			JSONBase:  api.JSONBase{ID: service.ID},
 			Endpoints: endpoints,

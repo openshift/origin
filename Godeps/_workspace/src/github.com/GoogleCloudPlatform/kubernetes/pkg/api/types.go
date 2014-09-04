@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/fsouza/go-dockerclient"
@@ -87,14 +88,14 @@ type VolumeSource struct {
 	EmptyDirectory *EmptyDirectory `yaml:"emptyDir" json:"emptyDir"`
 }
 
-// Bare host directory volume.
+// HostDirectory represents bare host directory volume.
 type HostDirectory struct {
 	Path string `yaml:"path" json:"path"`
 }
 
 type EmptyDirectory struct{}
 
-// Port represents a network port in a single container
+// Port represents a network port in a single container.
 type Port struct {
 	// Optional: If specified, this must be a DNS_LABEL.  Each named port
 	// in a pod must have a unique name.
@@ -109,23 +110,17 @@ type Port struct {
 	HostIP string `yaml:"hostIP,omitempty" json:"hostIP,omitempty"`
 }
 
-// VolumeMount describes a mounting of a Volume within a container
+// VolumeMount describes a mounting of a Volume within a container.
 type VolumeMount struct {
 	// Required: This must match the Name of a Volume [above].
 	Name string `yaml:"name" json:"name"`
 	// Optional: Defaults to false (read-write).
 	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly,omitempty"`
 	// Required.
-	// Exactly one of the following must be set.  If both are set, prefer MountPath.
-	// DEPRECATED: Path will be removed in a future version of the API.
 	MountPath string `yaml:"mountPath,omitempty" json:"mountPath,omitempty"`
-	Path      string `yaml:"path,omitempty" json:"path,omitempty"`
-	// One of: "LOCAL" (local volume) or "HOST" (external mount from the host). Default: LOCAL.
-	// DEPRECATED: MountType will be removed in a future version of the API.
-	MountType string `yaml:"mountType,omitempty" json:"mountType,omitempty"`
 }
 
-// EnvVar represents an environment variable present in a Container
+// EnvVar represents an environment variable present in a Container.
 type EnvVar struct {
 	// Required: This must be a C_IDENTIFIER.
 	Name string `yaml:"name" json:"name"`
@@ -133,8 +128,8 @@ type EnvVar struct {
 	Value string `yaml:"value,omitempty" json:"value,omitempty"`
 }
 
-// HTTPGetProbe describes a liveness probe based on HTTP Get requests.
-type HTTPGetProbe struct {
+// HTTPGetAction describes an action based on HTTP Get requests.
+type HTTPGetAction struct {
 	// Optional: Path to access on the HTTP server.
 	Path string `yaml:"path,omitempty" json:"path,omitempty"`
 	// Required: Name or number of the port to access on the container.
@@ -143,31 +138,32 @@ type HTTPGetProbe struct {
 	Host string `yaml:"host,omitempty" json:"host,omitempty"`
 }
 
-// TCPSocketProbe describes a liveness probe based on opening a socket
-type TCPSocketProbe struct {
+// TCPSocketAction describes an action based on opening a socket
+type TCPSocketAction struct {
 	// Required: Port to connect to.
 	Port util.IntOrString `yaml:"port,omitempty" json:"port,omitempty"`
 }
 
-// ExecProbe describes a "run in container" health probe.
-type ExecProbe struct {
+// ExecAction describes a "run in container" action.
+type ExecAction struct {
 	// Command is the command line to execute inside the container, the working directory for the
 	// command  is root ('/') in the container's filesystem.  The command is simply exec'd, it is
 	// not run inside a shell, so traditional shell instructions ('|', etc) won't work.  To use
-	// a shell, you need to explicitly call out to that shell
+	// a shell, you need to explicitly call out to that shell.
 	Command []string `yaml:"command,omitempty" json:"command,omitempty"`
 }
 
 // LivenessProbe describes a liveness probe to be examined to the container.
+// TODO: pass structured data to the actions, and document that data here.
 type LivenessProbe struct {
 	// Type of liveness probe.  Current legal values "http", "tcp"
 	Type string `yaml:"type,omitempty" json:"type,omitempty"`
 	// HTTPGetProbe parameters, required if Type == 'http'
-	HTTPGet *HTTPGetProbe `yaml:"httpGet,omitempty" json:"httpGet,omitempty"`
+	HTTPGet *HTTPGetAction `yaml:"httpGet,omitempty" json:"httpGet,omitempty"`
 	// TCPSocketProbe parameter, required if Type == 'tcp'
-	TCPSocket *TCPSocketProbe `yaml:"tcpSocket,omitempty" json:"tcpSocket,omitempty"`
+	TCPSocket *TCPSocketAction `yaml:"tcpSocket,omitempty" json:"tcpSocket,omitempty"`
 	// ExecProbe parameter, required if Type == 'exec'
-	Exec *ExecProbe `yaml:"exec,omitempty" json:"exec,omitempty"`
+	Exec *ExecAction `yaml:"exec,omitempty" json:"exec,omitempty"`
 	// Length of time before health checking is activated.  In seconds.
 	InitialDelaySeconds int64 `yaml:"initialDelaySeconds,omitempty" json:"initialDelaySeconds,omitempty"`
 }
@@ -191,12 +187,37 @@ type Container struct {
 	CPU           int            `yaml:"cpu,omitempty" json:"cpu,omitempty"`
 	VolumeMounts  []VolumeMount  `yaml:"volumeMounts,omitempty" json:"volumeMounts,omitempty"`
 	LivenessProbe *LivenessProbe `yaml:"livenessProbe,omitempty" json:"livenessProbe,omitempty"`
+	Lifecycle     *Lifecycle     `yaml:"lifecycle,omitempty" json:"lifecycle,omitempty"`
+
 	// Optional: Default to false.
-	Privileged    bool   `json:"privileged,omitempty" yaml:"privileged,omitempty"`
+	Privileged bool `json:"privileged,omitempty" yaml:"privileged,omitempty"`
+
 	RestartPolicy string `yaml:"restartPolicy,omitempty" json:"restartPolicy,omitempty"`
 }
 
-// Event is the representation of an event logged to etcd backends
+// Handler defines a specific action that should be taken
+// TODO: pass structured data to these actions, and document that data here.
+type Handler struct {
+	// One and only one of the following should be specified.
+	// Exec specifies the action to take.
+	Exec *ExecAction `yaml:"exec,omitempty" json:"exec,omitempty"`
+	// HTTPGet specifies the http request to perform.
+	HTTPGet *HTTPGetAction `yaml:"httpGet,omitempty" json:"httpGet,omitempty"`
+}
+
+// Lifecycle describes actions that the management system should take in response to container lifecycle
+// events.  For the PostStart and PreStop lifecycle handlers, management of the container blocks
+// until the action is complete, unless the container process fails, in which case the handler is aborted.
+type Lifecycle struct {
+	// PostStart is called immediately after a container is created.  If the handler fails, the container
+	// is terminated and restarted.
+	PostStart *Handler `yaml:"postStart,omitempty" json:"postStart,omitempty"`
+	// PreStop is called immediately before a container is terminated.  The reason for termination is
+	// passed to the handler.  Regardless of the outcome of the handler, the container is eventually terminated.
+	PreStop *Handler `yaml:"preStop,omitempty" json:"preStop,omitempty"`
+}
+
+// Event is the representation of an event logged to etcd backends.
 type Event struct {
 	Event     string             `json:"event,omitempty"`
 	Manifest  *ContainerManifest `json:"manifest,omitempty"`
@@ -206,7 +227,7 @@ type Event struct {
 
 // The below types are used by kube_client and api_server.
 
-// JSONBase is shared by all objects sent to, or returned from the client
+// JSONBase is shared by all objects sent to, or returned from the client.
 type JSONBase struct {
 	Kind              string    `json:"kind,omitempty" yaml:"kind,omitempty"`
 	ID                string    `json:"id,omitempty" yaml:"id,omitempty"`
@@ -247,7 +268,7 @@ type RestartPolicy struct {
 	Type RestartPolicyType `yaml:"type,omitempty" json:"type,omitempty"`
 }
 
-// PodState is the state of a pod, used as either input (desired state) or output (current state)
+// PodState is the state of a pod, used as either input (desired state) or output (current state).
 type PodState struct {
 	Manifest ContainerManifest `json:"manifest,omitempty" yaml:"manifest,omitempty"`
 	Status   PodStatus         `json:"status,omitempty" yaml:"status,omitempty"`
@@ -271,7 +292,7 @@ type PodList struct {
 	Items    []Pod `json:"items" yaml:"items,omitempty"`
 }
 
-// Pod is a collection of containers, used as either input (create, update) or as output (list, get)
+// Pod is a collection of containers, used as either input (create, update) or as output (list, get).
 type Pod struct {
 	JSONBase     `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
@@ -279,7 +300,7 @@ type Pod struct {
 	CurrentState PodState          `json:"currentState,omitempty" yaml:"currentState,omitempty"`
 }
 
-// ReplicationControllerState is the state of a replication controller, either input (create, update) or as output (list, get)
+// ReplicationControllerState is the state of a replication controller, either input (create, update) or as output (list, get).
 type ReplicationControllerState struct {
 	Replicas        int               `json:"replicas" yaml:"replicas"`
 	ReplicaSelector map[string]string `json:"replicaSelector,omitempty" yaml:"replicaSelector,omitempty"`
@@ -292,20 +313,20 @@ type ReplicationControllerList struct {
 	Items    []ReplicationController `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
-// ReplicationController represents the configuration of a replication controller
+// ReplicationController represents the configuration of a replication controller.
 type ReplicationController struct {
 	JSONBase     `json:",inline" yaml:",inline"`
 	DesiredState ReplicationControllerState `json:"desiredState,omitempty" yaml:"desiredState,omitempty"`
 	Labels       map[string]string          `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
-// PodTemplate holds the information used for creating pods
+// PodTemplate holds the information used for creating pods.
 type PodTemplate struct {
 	DesiredState PodState          `json:"desiredState,omitempty" yaml:"desiredState,omitempty"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
-// ServiceList holds a list of services
+// ServiceList holds a list of services.
 type ServiceList struct {
 	JSONBase `json:",inline" yaml:",inline"`
 	Items    []Service `json:"items" yaml:"items"`
@@ -337,6 +358,12 @@ type Endpoints struct {
 	Endpoints []string `json:"endpoints,omitempty" yaml:"endpoints,omitempty"`
 }
 
+// EndpointsList is a list of endpoints.
+type EndpointsList struct {
+	JSONBase `json:",inline" yaml:",inline"`
+	Items    []Endpoints `json:"items,omitempty" yaml:"items,omitempty"`
+}
+
 // Minion is a worker node in Kubernetenes.
 // The name of the minion according to etcd is in JSONBase.ID.
 type Minion struct {
@@ -348,7 +375,7 @@ type Minion struct {
 // MinionList is a list of minions.
 type MinionList struct {
 	JSONBase `json:",inline" yaml:",inline"`
-	Items    []Minion `json:"minions,omitempty" yaml:"minions,omitempty"`
+	Items    []Minion `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // Binding is written by a scheduler to cause a pod to be bound to a host.
@@ -365,13 +392,13 @@ type Status struct {
 	JSONBase `json:",inline" yaml:",inline"`
 	// One of: "success", "failure", "working" (for operations not yet completed)
 	Status string `json:"status,omitempty" yaml:"status,omitempty"`
-	// A human readable description of the status of this operation.
+	// A human-readable description of the status of this operation.
 	Message string `json:"message,omitempty" yaml:"message,omitempty"`
-	// A machine readable description of why this operation is in the
+	// A machine-readable description of why this operation is in the
 	// "failure" or "working" status. If this value is empty there
 	// is no information available. A Reason clarifies an HTTP status
 	// code but does not override it.
-	Reason ReasonType `json:"reason,omitempty" yaml:"reason,omitempty"`
+	Reason StatusReason `json:"reason,omitempty" yaml:"reason,omitempty"`
 	// Extended data associated with the reason.  Each reason may define its
 	// own extended details. This field is optional and the data returned
 	// is not guaranteed to conform to any schema except that defined by
@@ -388,12 +415,15 @@ type Status struct {
 // and should assume that any attribute may be empty, invalid, or under
 // defined.
 type StatusDetails struct {
-	// The ID attribute of the resource associated with the status ReasonType
+	// The ID attribute of the resource associated with the status StatusReason
 	// (when there is a single ID which can be described).
 	ID string `json:"id,omitempty" yaml:"id,omitempty"`
-	// The kind attribute of the resource associated with the status ReasonType.
+	// The kind attribute of the resource associated with the status StatusReason.
 	// On some operations may differ from the requested resource Kind.
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
+	// The Causes array includes more details associated with the StatusReason
+	// failure. Not all StatusReasons may provide detailed causes.
+	Causes []StatusCause `json:"causes,omitempty" yaml:"causes,omitempty"`
 }
 
 // Values of Status.Status
@@ -403,19 +433,19 @@ const (
 	StatusWorking = "working"
 )
 
-// ReasonType is an enumeration of possible failure causes.  Each ReasonType
+// StatusReason is an enumeration of possible failure causes.  Each StatusReason
 // must map to a single HTTP status code, but multiple reasons may map
 // to the same HTTP status code.
 // TODO: move to apiserver
-type ReasonType string
+type StatusReason string
 
 const (
-	// ReasonTypeUnknown means the server has declined to indicate a specific reason.
+	// StatusReasonUnknown means the server has declined to indicate a specific reason.
 	// The details field may contain other information about this error.
 	// Status code 500.
-	ReasonTypeUnknown ReasonType = ""
+	StatusReasonUnknown StatusReason = ""
 
-	// ReasonTypeWorking means the server is processing this request and will complete
+	// StatusReasonWorking means the server is processing this request and will complete
 	// at a future time.
 	// Details (optional):
 	//   "kind" string - the name of the resource being referenced ("operation" today)
@@ -425,9 +455,9 @@ const (
 	//   "Location" - HTTP header populated with a URL that can retrieved the final
 	//                status of this operation.
 	// Status code 202
-	ReasonTypeWorking ReasonType = "working"
+	StatusReasonWorking StatusReason = "working"
 
-	// ResourceTypeNotFound means one or more resources required for this operation
+	// StatusReasonNotFound means one or more resources required for this operation
 	// could not be found.
 	// Details (optional):
 	//   "kind" string - the kind attribute of the missing resource
@@ -435,21 +465,78 @@ const (
 	//                   resource.
 	//   "id"   string - the identifier of the missing resource
 	// Status code 404
-	ReasonTypeNotFound ReasonType = "not_found"
+	StatusReasonNotFound StatusReason = "not_found"
 
-	// ReasonTypeAlreadyExists means the resource you are creating already exists.
+	// StatusReasonAlreadyExists means the resource you are creating already exists.
 	// Details (optional):
 	//   "kind" string - the kind attribute of the conflicting resource
 	//   "id"   string - the identifier of the conflicting resource
 	// Status code 409
-	ReasonTypeAlreadyExists ReasonType = "already_exists"
+	StatusReasonAlreadyExists StatusReason = "already_exists"
 
-	// ResourceTypeConflict means the requested update operation cannot be completed
+	// StatusReasonConflict means the requested update operation cannot be completed
 	// due to a conflict in the operation. The client may need to alter the request.
 	// Each resource may define custom details that indicate the nature of the
 	// conflict.
 	// Status code 409
-	ReasonTypeConflict ReasonType = "conflict"
+	StatusReasonConflict StatusReason = "conflict"
+
+	// StatusReasonInvalid means the requested create or update operation cannot be
+	// completed due to invalid data provided as part of the request. The client may
+	// need to alter the request. When set, the client may use the StatusDetails
+	// message field as a summary of the issues encountered.
+	// Details (optional):
+	//   "kind" string - the kind attribute of the invalid resource
+	//   "id"   string - the identifier of the invalid resource
+	//   "causes"      - one or more StatusCause entries indicating the data in the
+	//                   provided resource that was invalid.  The code, message, and
+	//                   field attributes will be set.
+	// Status code 422
+	StatusReasonInvalid StatusReason = "invalid"
+)
+
+// StatusCause provides more information about an api.Status failure, including
+// cases when multiple errors are encountered.
+type StatusCause struct {
+	// A machine-readable description of the cause of the error. If this value is
+	// empty there is no information available.
+	Type CauseType `json:"reason,omitempty" yaml:"reason,omitempty"`
+	// A human-readable description of the cause of the error.  This field may be
+	// presented as-is to a reader.
+	Message string `json:"message,omitempty" yaml:"message,omitempty"`
+	// The field of the resource that has caused this error, as named by its JSON
+	// serialization. May include dot and postfix notation for nested attributes.
+	// Arrays are zero-indexed.  Fields may appear more than once in an array of
+	// causes due to fields having multiple errors.
+	// Optional.
+	//
+	// Examples:
+	//   "name" - the field "name" on the current resource
+	//   "items[0].name" - the field "name" on the first array entry in "items"
+	Field string `json:"field,omitempty" yaml:"field,omitempty"`
+}
+
+// CauseType is a machine readable value providing more detail about what
+// occured in a status response. An operation may have multiple causes for a
+// status (whether failure, success, or working).
+type CauseType string
+
+const (
+	// CauseTypeFieldValueNotFound is used to report failure to find a requested value
+	// (e.g. looking up an ID).
+	CauseTypeFieldValueNotFound CauseType = "fieldValueNotFound"
+	// CauseTypeFieldValueInvalid is used to report required values that are not
+	// provided (e.g. empty strings, null values, or empty arrays).
+	CauseTypeFieldValueRequired CauseType = "fieldValueRequired"
+	// CauseTypeFieldValueDuplicate is used to report collisions of values that must be
+	// unique (e.g. unique IDs).
+	CauseTypeFieldValueDuplicate CauseType = "fieldValueDuplicate"
+	// CauseTypeFieldValueInvalid is used to report malformed values (e.g. failed regex
+	// match).
+	CauseTypeFieldValueInvalid CauseType = "fieldValueInvalid"
+	// CauseTypeFieldValueNotSupported is used to report valid (as per formatting rules)
+	// values that can not be handled (e.g. an enumerated string).
+	CauseTypeFieldValueNotSupported CauseType = "fieldValueNotSupported"
 )
 
 // ServerOp is an operation delivered to API clients.
@@ -470,14 +557,5 @@ type WatchEvent struct {
 
 	// For added or modified objects, this is the new object; for deleted objects,
 	// it's the state of the object immediately prior to its deletion.
-	Object APIObject
-}
-
-// APIObject has appropriate encoder and decoder functions, such that on the wire, it's
-// stored as a []byte, but in memory, the contained object is accessable as an interface{}
-// via the Get() function. Only objects having a JSONBase may be stored via APIObject.
-// The purpose of this is to allow an API object of type known only at runtime to be
-// embedded within other API objects.
-type APIObject struct {
-	Object interface{}
+	Object runtime.Object
 }

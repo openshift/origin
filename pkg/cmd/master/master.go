@@ -14,6 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
@@ -24,8 +25,6 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/client"
-	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/service"
 	"github.com/spf13/cobra"
 )
 
@@ -40,6 +39,25 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 }
 
 func startAllInOne() {
+	minionHost := "127.0.0.1"
+	minionPort := 10250
+	rootDirectory := path.Clean("/var/lib/openshift")
+	osAddr := "127.0.0.1:8080"
+	osPrefix := "/osapi/v1beta1"
+	kubePrefix := "/api/v1beta1"
+	kubeClient, err := client.New("http://"+osAddr, nil)
+	if err != nil {
+		glog.Fatalf("Unable to configure client - bad URL: %v", err)
+	}
+
+	etcdAddr := "127.0.0.1:4001"
+	etcdServers := []string{} // default
+	etcdConfig := etcdconfig.New()
+	etcdConfig.BindAddr = etcdAddr
+	etcdConfig.DataDir = "openshift.local.etcd"
+	etcdConfig.NameFromHostname()
+
+	// check docker connection
 	dockerAddr := getDockerEndpoint("")
 	dockerClient, err := docker.NewClient(dockerAddr)
 	if err != nil {
@@ -55,12 +73,6 @@ func startAllInOne() {
 	}
 
 	// initialize etcd
-	etcdAddr := "127.0.0.1:4001"
-	etcdServers := []string{} // default
-	etcdConfig := etcdconfig.New()
-	etcdConfig.BindAddr = etcdAddr
-	etcdConfig.DataDir = "openshift.local.etcd"
-	etcdConfig.NameFromHostname()
 	etcdServer := etcd.New(etcdConfig)
 	go util.Forever(func() {
 		glog.Infof("Started etcd at http://%s", etcdAddr)
@@ -80,9 +92,6 @@ func startAllInOne() {
 	}
 
 	// initialize Kubelet
-	minionHost := "127.0.0.1"
-	minionPort := 10250
-	rootDirectory := path.Clean("/var/lib/openshift")
 	os.MkdirAll(rootDirectory, 0750)
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
 	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(minionHost), etcdClient, cfg.Channel("etcd"))
@@ -99,17 +108,11 @@ func startAllInOne() {
 	}, 0)
 
 	// initialize OpenShift API
-	storage := map[string]apiserver.RESTStorage{
-		"services": service.NewRESTStorage(service.MakeMemoryRegistry()),
-	}
-	osAddr := "127.0.0.1:8080"
-	osPrefix := "/osapi/v1beta1"
+	storage := map[string]apiserver.RESTStorage{}
 
 	osMux := http.NewServeMux()
 
 	// initialize Kubernetes API
-	kubePrefix := "/api/v1beta1"
-	kubeClient := client.New("http://"+osAddr, nil)
 	podInfoGetter := &client.HTTPPodInfoGetter{
 		Client: http.DefaultClient,
 		Port:   uint(minionPort),
@@ -124,7 +127,7 @@ func startAllInOne() {
 	m := master.New(masterConfig)
 
 	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(osMux, kubePrefix)
-	apiserver.NewAPIGroup(storage, api.Codec).InstallREST(osMux, osPrefix)
+	apiserver.NewAPIGroup(storage, runtime.Codec).InstallREST(osMux, osPrefix)
 	apiserver.InstallSupport(osMux)
 
 	osApi := &http.Server{

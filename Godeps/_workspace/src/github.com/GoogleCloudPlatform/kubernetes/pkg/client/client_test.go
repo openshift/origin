@@ -21,20 +21,53 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 )
 
 // TODO: Move this to a common place, it's needed in multiple tests.
-var apiPath = "/api/v1beta1"
+const apiPath = "/api/v1beta1"
 
-func makeURL(suffix string) string {
-	return apiPath + suffix
+func TestValidatesHostParameter(t *testing.T) {
+	testCases := map[string]struct {
+		Host   string
+		Prefix string
+		Err    bool
+	}{
+		"127.0.0.1":          {"http://127.0.0.1", "/api/v1beta1/", false},
+		"127.0.0.1:8080":     {"http://127.0.0.1:8080", "/api/v1beta1/", false},
+		"foo.bar.com":        {"http://foo.bar.com", "/api/v1beta1/", false},
+		"http://host/server": {"http://host", "/server/api/v1beta1/", false},
+		"host/server":        {"", "", true},
+	}
+	for k, expected := range testCases {
+		c, err := NewRESTClient(k, nil, "/api/v1beta1/")
+		switch {
+		case err == nil && expected.Err:
+			t.Errorf("expected error but was nil")
+			continue
+		case err != nil && !expected.Err:
+			t.Errorf("unexpected error %v", err)
+			continue
+		case err != nil:
+			continue
+		}
+		if e, a := expected.Host, c.host; e != a {
+			t.Errorf("%s: expected host %s, got %s", k, e, a)
+			continue
+		}
+		if e, a := expected.Prefix, c.prefix; e != a {
+			t.Errorf("%s: expected prefix %s, got %s", k, e, a)
+			continue
+		}
+	}
 }
 
 func TestListEmptyPods(t *testing.T) {
@@ -276,7 +309,7 @@ func TestCreateController(t *testing.T) {
 
 func body(obj interface{}, raw *string) *string {
 	if obj != nil {
-		bs, _ := api.Encode(obj)
+		bs, _ := runtime.Encode(obj)
 		body := string(bs)
 		return &body
 	}
@@ -322,9 +355,10 @@ func (c *testClient) Setup() *testClient {
 	}
 	c.server = httptest.NewServer(c.handler)
 	if c.Client == nil {
-		c.Client = New("", nil)
+		c.Client = NewOrDie("localhost", nil)
 	}
 	c.Client.host = c.server.URL
+	c.Client.prefix = "/api/v1beta1/"
 	c.QueryValidator = map[string]func(string, string) bool{}
 	return c
 }
@@ -347,7 +381,7 @@ func (c *testClient) Validate(t *testing.T, received interface{}, err error) {
 	// We check the query manually, so blank it out so that FakeHandler.ValidateRequest
 	// won't check it.
 	c.handler.RequestReceived.URL.RawQuery = ""
-	c.handler.ValidateRequest(t, makeURL(c.Request.Path), c.Request.Method, requestBody)
+	c.handler.ValidateRequest(t, path.Join(apiPath, c.Request.Path), c.Request.Method, requestBody)
 	for key, values := range c.Request.Query {
 		validator, ok := c.QueryValidator[key]
 		if !ok {
@@ -371,6 +405,57 @@ func (c *testClient) Validate(t *testing.T, received interface{}, err error) {
 	if c.Response.Body != nil && !reflect.DeepEqual(c.Response.Body, received) {
 		t.Errorf("bad response for request %#v: expected %s, got %s", c.Request, c.Response.Body, received)
 	}
+}
+
+func TestListServices(t *testing.T) {
+	c := &testClient{
+		Request: testRequest{Method: "GET", Path: "/services"},
+		Response: Response{StatusCode: 200,
+			Body: api.ServiceList{
+				Items: []api.Service{
+					{
+						JSONBase: api.JSONBase{ID: "name"},
+						Labels: map[string]string{
+							"foo":  "bar",
+							"name": "baz",
+						},
+						Selector: map[string]string{
+							"one": "two",
+						},
+					},
+				},
+			},
+		},
+	}
+	receivedServiceList, err := c.Setup().ListServices(labels.Everything())
+	c.Validate(t, receivedServiceList, err)
+}
+
+func TestListServicesLabels(t *testing.T) {
+	c := &testClient{
+		Request: testRequest{Method: "GET", Path: "/services", Query: url.Values{"labels": []string{"foo=bar,name=baz"}}},
+		Response: Response{StatusCode: 200,
+			Body: api.ServiceList{
+				Items: []api.Service{
+					{
+						JSONBase: api.JSONBase{ID: "name"},
+						Labels: map[string]string{
+							"foo":  "bar",
+							"name": "baz",
+						},
+						Selector: map[string]string{
+							"one": "two",
+						},
+					},
+				},
+			},
+		},
+	}
+	c.Setup()
+	c.QueryValidator["labels"] = validateLabels
+	selector := labels.Set{"foo": "bar", "name": "baz"}.AsSelector()
+	receivedServiceList, err := c.ListServices(selector)
+	c.Validate(t, receivedServiceList, err)
 }
 
 func TestGetService(t *testing.T) {
@@ -410,25 +495,34 @@ func TestDeleteService(t *testing.T) {
 	c.Validate(t, nil, err)
 }
 
-func TestMakeRequest(t *testing.T) {
+func TestDoRequest(t *testing.T) {
+	invalid := "aaaaa"
 	testClients := []testClient{
-		{Request: testRequest{Method: "GET", Path: "/good"}, Response: Response{StatusCode: 200}},
-		{Request: testRequest{Method: "GET", Path: "/bad%ZZ"}, Error: true},
-		{Client: New("", &AuthInfo{"foo", "bar"}), Request: testRequest{Method: "GET", Path: "/auth", Header: "Authorization"}, Response: Response{StatusCode: 200}},
-		{Client: &Client{&RESTClient{httpClient: http.DefaultClient}}, Request: testRequest{Method: "GET", Path: "/nocertificate"}, Error: true},
-		{Request: testRequest{Method: "GET", Path: "/error"}, Response: Response{StatusCode: 500}, Error: true},
-		{Request: testRequest{Method: "POST", Path: "/faildecode"}, Response: Response{StatusCode: 200, Body: "aaaaa"}, Target: &struct{}{}, Error: true},
-		{Request: testRequest{Method: "GET", Path: "/failread"}, Response: Response{StatusCode: 200, Body: "aaaaa"}, Target: &struct{}{}, Error: true},
+		{Request: testRequest{Method: "GET", Path: "good"}, Response: Response{StatusCode: 200}},
+		{Request: testRequest{Method: "GET", Path: "bad%ZZ"}, Error: true},
+		{Client: NewOrDie("localhost", &AuthInfo{"foo", "bar"}), Request: testRequest{Method: "GET", Path: "auth", Header: "Authorization"}, Response: Response{StatusCode: 200}},
+		{Client: &Client{&RESTClient{httpClient: http.DefaultClient}}, Request: testRequest{Method: "GET", Path: "nocertificate"}, Error: true},
+		{Request: testRequest{Method: "GET", Path: "error"}, Response: Response{StatusCode: 500}, Error: true},
+		{Request: testRequest{Method: "POST", Path: "faildecode"}, Response: Response{StatusCode: 200, RawBody: &invalid}, Target: &struct{}{}},
+		{Request: testRequest{Method: "GET", Path: "failread"}, Response: Response{StatusCode: 200, RawBody: &invalid}, Target: &struct{}{}},
 	}
 	for _, c := range testClients {
-		response, err := c.Setup().rawRequest(c.Request.Method, c.Request.Path[1:], nil, c.Target)
+		client := c.Setup()
+		prefix, _ := url.Parse(client.host)
+		prefix.Path = client.prefix + c.Request.Path
+		request := &http.Request{
+			Method: c.Request.Method,
+			Header: make(http.Header),
+			URL:    prefix,
+		}
+		response, err := client.doRequest(request)
 		c.Validate(t, response, err)
 	}
 }
 
 func TestDoRequestAccepted(t *testing.T) {
 	status := api.Status{Status: api.StatusWorking}
-	expectedBody, _ := api.Encode(status)
+	expectedBody, _ := runtime.Encode(status)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   202,
 		ResponseBody: string(expectedBody),
@@ -437,7 +531,10 @@ func TestDoRequestAccepted(t *testing.T) {
 	testServer := httptest.NewServer(&fakeHandler)
 	request, _ := http.NewRequest("GET", testServer.URL+"/foo/bar", nil)
 	auth := AuthInfo{User: "user", Password: "pass"}
-	c := New(testServer.URL, &auth)
+	c, err := New(testServer.URL, &auth)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	body, err := c.doRequest(request)
 	if request.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *request)
@@ -462,7 +559,7 @@ func TestDoRequestAccepted(t *testing.T) {
 
 func TestDoRequestAcceptedSuccess(t *testing.T) {
 	status := api.Status{Status: api.StatusSuccess}
-	expectedBody, _ := api.Encode(status)
+	expectedBody, _ := runtime.Encode(status)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   202,
 		ResponseBody: string(expectedBody),
@@ -471,7 +568,10 @@ func TestDoRequestAcceptedSuccess(t *testing.T) {
 	testServer := httptest.NewServer(&fakeHandler)
 	request, _ := http.NewRequest("GET", testServer.URL+"/foo/bar", nil)
 	auth := AuthInfo{User: "user", Password: "pass"}
-	c := New(testServer.URL, &auth)
+	c, err := New(testServer.URL, &auth)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	body, err := c.doRequest(request)
 	if request.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *request)
@@ -479,7 +579,7 @@ func TestDoRequestAcceptedSuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %#v", err)
 	}
-	statusOut, err := api.Decode(body)
+	statusOut, err := runtime.Decode(body)
 	if err != nil {
 		t.Errorf("Unexpected error %#v", err)
 	}
@@ -505,7 +605,7 @@ func TestGetServerVersion(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(output)
 	}))
-	client := New(server.URL, nil)
+	client := NewOrDie(server.URL, nil)
 
 	got, err := client.ServerVersion()
 	if err != nil {
@@ -514,4 +614,13 @@ func TestGetServerVersion(t *testing.T) {
 	if e, a := expect, *got; !reflect.DeepEqual(e, a) {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+}
+
+func TestListMinions(t *testing.T) {
+	c := &testClient{
+		Request:  testRequest{Method: "GET", Path: "/minions"},
+		Response: Response{StatusCode: 200, Body: &api.MinionList{JSONBase: api.JSONBase{ID: "minion-1"}}},
+	}
+	response, err := c.Setup().ListMinions()
+	c.Validate(t, &response, err)
 }

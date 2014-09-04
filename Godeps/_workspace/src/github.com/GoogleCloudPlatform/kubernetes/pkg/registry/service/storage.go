@@ -18,15 +18,19 @@ package service
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
 // RegistryStorage adapts a service registry into apiserver's RESTStorage model.
@@ -47,8 +51,8 @@ func NewRegistryStorage(registry Registry, cloud cloudprovider.Interface, machin
 
 func (rs *RegistryStorage) Create(obj interface{}) (<-chan interface{}, error) {
 	srv := obj.(*api.Service)
-	if errs := api.ValidateService(srv); len(errs) > 0 {
-		return nil, fmt.Errorf("Validation errors: %v", errs)
+	if errs := validation.ValidateService(srv); len(errs) > 0 {
+		return nil, errors.NewInvalid("service", srv.ID, errs)
 	}
 
 	srv.CreationTimestamp = util.Now()
@@ -123,6 +127,12 @@ func (rs *RegistryStorage) List(selector labels.Selector) (interface{}, error) {
 	return list, err
 }
 
+// Watch returns Services events via a watch.Interface.
+// It implements apiserver.ResourceWatcher.
+func (rs *RegistryStorage) Watch(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return rs.registry.WatchServices(label, field, resourceVersion)
+}
+
 func (rs RegistryStorage) New() interface{} {
 	return &api.Service{}
 }
@@ -147,11 +157,8 @@ func GetServiceEnvironmentVariables(registry Registry, machine string) ([]api.En
 
 func (rs *RegistryStorage) Update(obj interface{}) (<-chan interface{}, error) {
 	srv := obj.(*api.Service)
-	if srv.ID == "" {
-		return nil, fmt.Errorf("ID should not be empty: %#v", srv)
-	}
-	if errs := api.ValidateService(srv); len(errs) > 0 {
-		return nil, fmt.Errorf("Validation errors: %v", errs)
+	if errs := validation.ValidateService(srv); len(errs) > 0 {
+		return nil, errors.NewInvalid("service", srv.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (interface{}, error) {
 		// TODO: check to see if external load balancer status changed
@@ -161,6 +168,18 @@ func (rs *RegistryStorage) Update(obj interface{}) (<-chan interface{}, error) {
 		}
 		return rs.registry.GetService(srv.ID)
 	}), nil
+}
+
+// ResourceLocation returns a URL to which one can send traffic for the specified service.
+func (rs *RegistryStorage) ResourceLocation(id string) (string, error) {
+	e, err := rs.registry.GetEndpoints(id)
+	if err != nil {
+		return "", err
+	}
+	if len(e.Endpoints) == 0 {
+		return "", fmt.Errorf("no endpoints available for %v", id)
+	}
+	return e.Endpoints[rand.Intn(len(e.Endpoints))], nil
 }
 
 func (rs *RegistryStorage) deleteExternalLoadBalancer(service *api.Service) error {

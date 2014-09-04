@@ -21,7 +21,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
-// RESTStorage is a generic interface for RESTful storage services
+// RESTStorage is a generic interface for RESTful storage services.
 // Resources which are exported to the RESTful API of apiserver need to implement this interface.
 type RESTStorage interface {
 	// New returns an empty object that can be used with Create and Update after request data has been put into it.
@@ -54,4 +54,10 @@ type ResourceWatcher interface {
 	// isn't supported. 'resourceVersion' allows for continuing/starting a watch at a
 	// particular version.
 	Watch(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error)
+}
+
+// Redirector know how to return a remote resource's location.
+type Redirector interface {
+	// ResourceLocation should return the remote location of the given resource, or an error.
+	ResourceLocation(id string) (remoteLocation string, err error)
 }

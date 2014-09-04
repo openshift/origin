@@ -46,7 +46,7 @@ func NewPodCache(info client.PodInfoGetter, pods pod.Registry) *PodCache {
 	}
 }
 
-// GetPodInfo Implements the PodInfoGetter.GetPodInfo.
+// GetPodInfo implements the PodInfoGetter.GetPodInfo.
 // The returned value should be treated as read-only.
 // TODO: Remove the host from this call, it's totally unnecessary.
 func (p *PodCache) GetPodInfo(host, podID string) (api.PodInfo, error) {
@@ -77,7 +77,7 @@ func (p *PodCache) UpdateAllContainers() {
 		glog.Errorf("Error synchronizing container list: %v", err)
 		return
 	}
-	for _, pod := range pods {
+	for _, pod := range pods.Items {
 		err := p.updatePodInfo(pod.CurrentState.Host, pod.ID)
 		if err != nil && err != client.ErrPodInfoNotAvailable {
 			glog.Errorf("Error synchronizing container: %v", err)

@@ -14,26 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package flag defines utility functions to handle command line flags related to version of Kubernetes.
-package flag
+package endpoint
 
 import (
-	"flag"
-	"fmt"
-	"os"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
-var (
-	versionFlag = flag.Bool("version", false, "Print version information and quit")
-)
-
-// PrintAndExitIfRequested will check if the -version flag was passed
-// and, if so, print the version and exit.
-func PrintAndExitIfRequested() {
-	if *versionFlag {
-		fmt.Printf("Kubernetes %s\n", version.Get())
-		os.Exit(0)
-	}
+// Registry is an interface for things that know how to store endpoints.
+type Registry interface {
+	ListEndpoints() (*api.EndpointsList, error)
+	GetEndpoints(name string) (*api.Endpoints, error)
+	WatchEndpoints(labels, fields labels.Selector, resourceVersion uint64) (watch.Interface, error)
+	UpdateEndpoints(e api.Endpoints) error
 }

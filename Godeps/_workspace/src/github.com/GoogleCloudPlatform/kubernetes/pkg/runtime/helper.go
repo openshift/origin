@@ -14,19 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package runtime
 
 import (
 	"fmt"
 	"reflect"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"gopkg.in/v1/yaml"
 )
 
 // codec defines methods for serializing and deserializing API
-// objects
+// objects.
 type codec interface {
 	Encode(obj interface{}) (data []byte, err error)
 	Decode(data []byte) (interface{}, error)
@@ -34,81 +33,20 @@ type codec interface {
 }
 
 // resourceVersioner provides methods for setting and retrieving
-// the resource version from an API object
+// the resource version from an API object.
 type resourceVersioner interface {
 	SetResourceVersion(obj interface{}, version uint64) error
 	ResourceVersion(obj interface{}) (uint64, error)
 }
 
-var Codec codec
-var ResourceVersioner resourceVersioner
-
-var conversionScheme *conversion.Scheme
+var ResourceVersioner resourceVersioner = NewJSONBaseResourceVersioner()
+var conversionScheme = conversion.NewScheme()
+var Codec codec = conversionScheme
 
 func init() {
-	conversionScheme = conversion.NewScheme()
 	conversionScheme.InternalVersion = ""
 	conversionScheme.ExternalVersion = "v1beta1"
 	conversionScheme.MetaInsertionFactory = metaInsertion{}
-	AddKnownTypes("",
-		PodList{},
-		Pod{},
-		ReplicationControllerList{},
-		ReplicationController{},
-		ServiceList{},
-		Service{},
-		MinionList{},
-		Minion{},
-		Status{},
-		ServerOpList{},
-		ServerOp{},
-		ContainerManifestList{},
-		Endpoints{},
-		Binding{},
-	)
-	AddKnownTypes("v1beta1",
-		v1beta1.PodList{},
-		v1beta1.Pod{},
-		v1beta1.ReplicationControllerList{},
-		v1beta1.ReplicationController{},
-		v1beta1.ServiceList{},
-		v1beta1.Service{},
-		v1beta1.MinionList{},
-		v1beta1.Minion{},
-		v1beta1.Status{},
-		v1beta1.ServerOpList{},
-		v1beta1.ServerOp{},
-		v1beta1.ContainerManifestList{},
-		v1beta1.Endpoints{},
-		v1beta1.Binding{},
-	)
-
-	// TODO: when we get more of this stuff, move to its own file. This is not a
-	// good home for lots of conversion functions.
-	// TODO: Consider inverting dependency chain-- imagine v1beta1 package
-	// registering all of these functions. Then, if you want to be able to understand
-	// v1beta1 objects, you just import that package for its side effects.
-	AddConversionFuncs(
-		// EnvVar's Key is deprecated in favor of Name.
-		func(in *EnvVar, out *v1beta1.EnvVar) error {
-			out.Value = in.Value
-			out.Key = in.Name
-			out.Name = in.Name
-			return nil
-		},
-		func(in *v1beta1.EnvVar, out *EnvVar) error {
-			out.Value = in.Value
-			if in.Name != "" {
-				out.Name = in.Name
-			} else {
-				out.Name = in.Key
-			}
-			return nil
-		},
-	)
-
-	Codec = conversionScheme
-	ResourceVersioner = NewJSONBaseResourceVersioner()
 }
 
 // AddKnownTypes registers the types of the arguments to the marshaller of the package api.
@@ -169,23 +107,6 @@ func FindJSONBase(obj interface{}) (JSONBaseInterface, error) {
 	return g, nil
 }
 
-// FindJSONBaseRO takes an arbitary api type, return a copy of its JSONBase field.
-// obj may be a pointer to an api type, or a non-pointer struct api type.
-func FindJSONBaseRO(obj interface{}) (JSONBase, error) {
-	v := reflect.ValueOf(obj)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	if v.Kind() != reflect.Struct {
-		return JSONBase{}, fmt.Errorf("expected struct, but got %v (%#v)", v.Type().Name(), v.Interface())
-	}
-	jsonBase := v.FieldByName("JSONBase")
-	if !jsonBase.IsValid() {
-		return JSONBase{}, fmt.Errorf("struct %v lacks embedded JSON type", v.Type().Name())
-	}
-	return jsonBase.Interface().(JSONBase), nil
-}
-
 // EncodeOrDie is a version of Encode which will panic instead of returning an error. For tests.
 func EncodeOrDie(obj interface{}) string {
 	return conversionScheme.EncodeOrDie(obj)
@@ -229,7 +150,7 @@ func Encode(obj interface{}) (data []byte, err error) {
 	return conversionScheme.Encode(obj)
 }
 
-// Ensures that obj is a pointer of some sort. Returns a reflect.Value of the
+// enforcePtr ensures that obj is a pointer of some sort. Returns a reflect.Value of the
 // dereferenced pointer, ensuring that it is settable/addressable.
 // Returns an error if this is not possible.
 func enforcePtr(obj interface{}) (reflect.Value, error) {
