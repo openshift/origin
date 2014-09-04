@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
@@ -31,6 +31,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	servicecontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	goetcd "github.com/coreos/go-etcd/etcd"
@@ -54,6 +56,7 @@ type Master struct {
 	podRegistry        pod.Registry
 	controllerRegistry controller.Registry
 	serviceRegistry    service.Registry
+	endpointRegistry   endpoint.Registry
 	minionRegistry     minion.Registry
 	bindingRegistry    binding.Registry
 	storage            map[string]apiserver.RESTStorage
@@ -65,10 +68,11 @@ func New(c *Config) *Master {
 	etcdClient := goetcd.NewClient(c.EtcdServers)
 	minionRegistry := makeMinionRegistry(c)
 	m := &Master{
-		podRegistry:        etcd.NewRegistry(etcdClient, minionRegistry),
-		controllerRegistry: etcd.NewRegistry(etcdClient, minionRegistry),
-		serviceRegistry:    etcd.NewRegistry(etcdClient, minionRegistry),
-		bindingRegistry:    etcd.NewRegistry(etcdClient, minionRegistry),
+		podRegistry:        etcd.NewRegistry(etcdClient),
+		controllerRegistry: etcd.NewRegistry(etcdClient),
+		serviceRegistry:    etcd.NewRegistry(etcdClient),
+		endpointRegistry:   etcd.NewRegistry(etcdClient),
+		bindingRegistry:    etcd.NewRegistry(etcdClient),
 		minionRegistry:     minionRegistry,
 		client:             c.Client,
 	}
@@ -106,7 +110,7 @@ func (m *Master) init(cloud cloudprovider.Interface, podInfoGetter client.PodInf
 	podCache := NewPodCache(podInfoGetter, m.podRegistry)
 	go util.Forever(func() { podCache.UpdateAllContainers() }, time.Second*30)
 
-	endpoints := endpoint.NewEndpointController(m.serviceRegistry, m.client)
+	endpoints := servicecontroller.NewEndpointController(m.serviceRegistry, m.client)
 	go util.Forever(func() { endpoints.SyncServiceEndpoints() }, time.Second*10)
 
 	m.storage = map[string]apiserver.RESTStorage{
@@ -118,6 +122,7 @@ func (m *Master) init(cloud cloudprovider.Interface, podInfoGetter client.PodInf
 		}),
 		"replicationControllers": controller.NewRegistryStorage(m.controllerRegistry, m.podRegistry),
 		"services":               service.NewRegistryStorage(m.serviceRegistry, cloud, m.minionRegistry),
+		"endpoints":              endpoint.NewStorage(m.endpointRegistry),
 		"minions":                minion.NewRegistryStorage(m.minionRegistry),
 
 		// TODO: should appear only in scheduler API group.
@@ -125,11 +130,11 @@ func (m *Master) init(cloud cloudprovider.Interface, podInfoGetter client.PodInf
 	}
 }
 
-// API_v1beta1 returns the resources and codec for API version v1beta1
+// API_v1beta1 returns the resources and codec for API version v1beta1.
 func (m *Master) API_v1beta1() (map[string]apiserver.RESTStorage, apiserver.Codec) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		storage[k] = v
 	}
-	return storage, api.Codec
+	return storage, runtime.Codec
 }

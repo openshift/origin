@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/constraint"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -41,12 +41,12 @@ type Registry struct {
 }
 
 // NewRegistry creates an etcd registry.
-func NewRegistry(client tools.EtcdClient, machines minion.Registry) *Registry {
+func NewRegistry(client tools.EtcdClient) *Registry {
 	registry := &Registry{
 		EtcdHelper: tools.EtcdHelper{
 			client,
-			api.Codec,
-			api.ResourceVersioner,
+			runtime.Codec,
+			runtime.ResourceVersioner,
 		},
 	}
 	registry.manifestFactory = &BasicManifestFactory{
@@ -60,22 +60,24 @@ func makePodKey(podID string) string {
 }
 
 // ListPods obtains a list of pods that match selector.
-func (r *Registry) ListPods(selector labels.Selector) ([]api.Pod, error) {
-	allPods := []api.Pod{}
-	filteredPods := []api.Pod{}
-	if err := r.ExtractList("/registry/pods", &allPods); err != nil {
+func (r *Registry) ListPods(selector labels.Selector) (*api.PodList, error) {
+	allPods := api.PodList{}
+	err := r.ExtractList("/registry/pods", &allPods.Items, &allPods.ResourceVersion)
+	if err != nil {
 		return nil, err
 	}
-	for _, pod := range allPods {
+	filtered := []api.Pod{}
+	for _, pod := range allPods.Items {
 		if selector.Matches(labels.Set(pod.Labels)) {
 			// TODO: Currently nothing sets CurrentState.Host. We need a feedback loop that sets
 			// the CurrentState.Host and Status fields. Here we pretend that reality perfectly
 			// matches our desires.
 			pod.CurrentState.Host = pod.DesiredState.Host
-			filteredPods = append(filteredPods, pod)
+			filtered = append(filtered, pod)
 		}
 	}
-	return filteredPods, nil
+	allPods.Items = filtered
+	return &allPods, nil
 }
 
 // WatchPods begins watching for new, changed, or deleted pods.
@@ -182,7 +184,7 @@ func (r *Registry) DeletePod(podID string) error {
 	podKey := makePodKey(podID)
 	err := r.ExtractObj(podKey, &pod, false)
 	if tools.IsEtcdNotFound(err) {
-		return apiserver.NewNotFoundErr("pod", podID)
+		return errors.NewNotFound("pod", podID)
 	}
 	if err != nil {
 		return err
@@ -191,7 +193,7 @@ func (r *Registry) DeletePod(podID string) error {
 	// machine and attempt to put it somewhere.
 	err = r.Delete(podKey, true)
 	if tools.IsEtcdNotFound(err) {
-		return apiserver.NewNotFoundErr("pod", podID)
+		return errors.NewNotFound("pod", podID)
 	}
 	if err != nil {
 		return err
@@ -226,9 +228,9 @@ func (r *Registry) DeletePod(podID string) error {
 }
 
 // ListControllers obtains a list of ReplicationControllers.
-func (r *Registry) ListControllers() ([]api.ReplicationController, error) {
-	var controllers []api.ReplicationController
-	err := r.ExtractList("/registry/controllers", &controllers)
+func (r *Registry) ListControllers() (*api.ReplicationControllerList, error) {
+	controllers := &api.ReplicationControllerList{}
+	err := r.ExtractList("/registry/controllers", &controllers.Items, &controllers.ResourceVersion)
 	return controllers, err
 }
 
@@ -247,7 +249,7 @@ func (r *Registry) GetController(controllerID string) (*api.ReplicationControlle
 	key := makeControllerKey(controllerID)
 	err := r.ExtractObj(key, &controller, false)
 	if tools.IsEtcdNotFound(err) {
-		return nil, apiserver.NewNotFoundErr("replicationController", controllerID)
+		return nil, errors.NewNotFound("replicationController", controllerID)
 	}
 	if err != nil {
 		return nil, err
@@ -259,14 +261,14 @@ func (r *Registry) GetController(controllerID string) (*api.ReplicationControlle
 func (r *Registry) CreateController(controller api.ReplicationController) error {
 	err := r.CreateObj(makeControllerKey(controller.ID), controller)
 	if tools.IsEtcdNodeExist(err) {
-		return apiserver.NewAlreadyExistsErr("replicationController", controller.ID)
+		return errors.NewAlreadyExists("replicationController", controller.ID)
 	}
 	return err
 }
 
 // UpdateController replaces an existing ReplicationController.
 func (r *Registry) UpdateController(controller api.ReplicationController) error {
-	return r.SetObj(makeControllerKey(controller.ID), controller)
+	return r.SetObj(makeControllerKey(controller.ID), &controller)
 }
 
 // DeleteController deletes a ReplicationController specified by its ID.
@@ -274,7 +276,7 @@ func (r *Registry) DeleteController(controllerID string) error {
 	key := makeControllerKey(controllerID)
 	err := r.Delete(key, false)
 	if tools.IsEtcdNotFound(err) {
-		return apiserver.NewNotFoundErr("replicationController", controllerID)
+		return errors.NewNotFound("replicationController", controllerID)
 	}
 	return err
 }
@@ -284,9 +286,9 @@ func makeServiceKey(name string) string {
 }
 
 // ListServices obtains a list of Services.
-func (r *Registry) ListServices() (api.ServiceList, error) {
-	var list api.ServiceList
-	err := r.ExtractList("/registry/services/specs", &list.Items)
+func (r *Registry) ListServices() (*api.ServiceList, error) {
+	list := &api.ServiceList{}
+	err := r.ExtractList("/registry/services/specs", &list.Items, &list.ResourceVersion)
 	return list, err
 }
 
@@ -294,7 +296,7 @@ func (r *Registry) ListServices() (api.ServiceList, error) {
 func (r *Registry) CreateService(svc api.Service) error {
 	err := r.CreateObj(makeServiceKey(svc.ID), svc)
 	if tools.IsEtcdNodeExist(err) {
-		return apiserver.NewAlreadyExistsErr("service", svc.ID)
+		return errors.NewAlreadyExists("service", svc.ID)
 	}
 	return err
 }
@@ -305,12 +307,26 @@ func (r *Registry) GetService(name string) (*api.Service, error) {
 	var svc api.Service
 	err := r.ExtractObj(key, &svc, false)
 	if tools.IsEtcdNotFound(err) {
-		return nil, apiserver.NewNotFoundErr("service", name)
+		return nil, errors.NewNotFound("service", name)
 	}
 	if err != nil {
 		return nil, err
 	}
 	return &svc, nil
+}
+
+// GetEndpoints obtains the endpoints for the service identified by 'name'.
+func (r *Registry) GetEndpoints(name string) (*api.Endpoints, error) {
+	key := makeServiceEndpointsKey(name)
+	var endpoints api.Endpoints
+	err := r.ExtractObj(key, &endpoints, false)
+	if tools.IsEtcdNotFound(err) {
+		return nil, errors.NewNotFound("endpoints", name)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &endpoints, nil
 }
 
 func makeServiceEndpointsKey(name string) string {
@@ -322,7 +338,7 @@ func (r *Registry) DeleteService(name string) error {
 	key := makeServiceKey(name)
 	err := r.Delete(key, true)
 	if tools.IsEtcdNotFound(err) {
-		return apiserver.NewNotFoundErr("service", name)
+		return errors.NewNotFound("service", name)
 	}
 	if err != nil {
 		return err
@@ -337,13 +353,50 @@ func (r *Registry) DeleteService(name string) error {
 
 // UpdateService replaces an existing Service.
 func (r *Registry) UpdateService(svc api.Service) error {
-	return r.SetObj(makeServiceKey(svc.ID), svc)
+	return r.SetObj(makeServiceKey(svc.ID), &svc)
+}
+
+// WatchServices begins watching for new, changed, or deleted service configurations.
+func (r *Registry) WatchServices(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	if !label.Empty() {
+		return nil, fmt.Errorf("label selectors are not supported on services")
+	}
+	if value, found := field.RequiresExactMatch("ID"); found {
+		return r.Watch(makeServiceKey(value), resourceVersion)
+	}
+	if field.Empty() {
+		return r.WatchList("/registry/services/specs", resourceVersion, tools.Everything)
+	}
+	return nil, fmt.Errorf("only the 'ID' and default (everything) field selectors are supported")
+}
+
+// ListEndpoints obtains a list of Services.
+func (r *Registry) ListEndpoints() (*api.EndpointsList, error) {
+	list := &api.EndpointsList{}
+	err := r.ExtractList("/registry/services/endpoints", &list.Items, &list.ResourceVersion)
+	return list, err
 }
 
 // UpdateEndpoints update Endpoints of a Service.
 func (r *Registry) UpdateEndpoints(e api.Endpoints) error {
+	// TODO: this is a really bad misuse of AtomicUpdate, need to compute a diff inside the loop.
 	return r.AtomicUpdate(makeServiceEndpointsKey(e.ID), &api.Endpoints{},
-		func(interface{}) (interface{}, error) {
+		func(input interface{}) (interface{}, error) {
+			// TODO: racy - label query is returning different results for two simultaneous updaters
 			return e, nil
 		})
+}
+
+// WatchEndpoints begins watching for new, changed, or deleted endpoint configurations.
+func (r *Registry) WatchEndpoints(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	if !label.Empty() {
+		return nil, fmt.Errorf("label selectors are not supported on endpoints")
+	}
+	if value, found := field.RequiresExactMatch("ID"); found {
+		return r.Watch(makeServiceEndpointsKey(value), resourceVersion)
+	}
+	if field.Empty() {
+		return r.WatchList("/registry/services/endpoints", resourceVersion, tools.Everything)
+	}
+	return nil, fmt.Errorf("only the 'ID' and default (everything) field selectors are supported")
 }

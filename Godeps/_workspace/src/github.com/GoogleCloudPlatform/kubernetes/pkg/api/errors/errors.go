@@ -18,82 +18,117 @@ package errors
 
 import (
 	"fmt"
-	"strings"
+	"net/http"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
-// ValidationErrorEnum is a type of validation error.
-type ValidationErrorEnum string
-
-// These are known errors of validation.
-const (
-	Invalid      ValidationErrorEnum = "invalid value"
-	NotSupported ValidationErrorEnum = "unsupported value"
-	Duplicate    ValidationErrorEnum = "duplicate value"
-	NotFound     ValidationErrorEnum = "not found"
-)
-
-// ValidationError is an implementation of the 'error' interface, which represents an error of validation.
-type ValidationError struct {
-	Type     ValidationErrorEnum
-	Field    string
-	BadValue interface{}
+// statusError is an error intended for consumption by a REST API server.
+type statusError struct {
+	status api.Status
 }
 
-func (v ValidationError) Error() string {
-	return fmt.Sprintf("%s: %v '%v'", v.Field, v.Type, v.BadValue)
+// Error implements the Error interface.
+func (e *statusError) Error() string {
+	return e.status.Message
 }
 
-// NewInvalid returns a ValidationError indicating "invalid value".  Use this to
-// report malformed values (e.g. failed regex match) or missing "required" fields.
-func NewInvalid(field string, value interface{}) ValidationError {
-	return ValidationError{Invalid, field, value}
+// Status converts this error into an api.Status object.
+func (e *statusError) Status() api.Status {
+	return e.status
 }
 
-// NewNotSupported returns a ValidationError indicating "unsuported value".  Use
-// this to report valid (as per formatting rules) values that can not be handled
-// (e.g. an enumerated string).
-func NewNotSupported(field string, value interface{}) ValidationError {
-	return ValidationError{NotSupported, field, value}
+// NewNotFound returns a new error which indicates that the resource of the kind and the name was not found.
+func NewNotFound(kind, name string) error {
+	return &statusError{api.Status{
+		Status: api.StatusFailure,
+		Code:   http.StatusNotFound,
+		Reason: api.StatusReasonNotFound,
+		Details: &api.StatusDetails{
+			Kind: kind,
+			ID:   name,
+		},
+		Message: fmt.Sprintf("%s %q not found", kind, name),
+	}}
 }
 
-// NewDuplicate returns a ValidationError indicating "duplicate value".  Use this
-// to report collisions of values that must be unique (e.g. unique IDs).
-func NewDuplicate(field string, value interface{}) ValidationError {
-	return ValidationError{Duplicate, field, value}
+// NewAlreadyExists returns an error indicating the item requested exists by that identifier.
+func NewAlreadyExists(kind, name string) error {
+	return &statusError{api.Status{
+		Status: api.StatusFailure,
+		Code:   http.StatusConflict,
+		Reason: api.StatusReasonAlreadyExists,
+		Details: &api.StatusDetails{
+			Kind: kind,
+			ID:   name,
+		},
+		Message: fmt.Sprintf("%s %q already exists", kind, name),
+	}}
 }
 
-// NewNotFound returns a ValidationError indicating "value not found".  Use this
-// to report failure to find a requested value (e.g. looking up an ID).
-func NewNotFound(field string, value interface{}) ValidationError {
-	return ValidationError{NotFound, field, value}
+// NewConflict returns an error indicating the item can't be updated as provided.
+func NewConflict(kind, name string, err error) error {
+	return &statusError{api.Status{
+		Status: api.StatusFailure,
+		Code:   http.StatusConflict,
+		Reason: api.StatusReasonConflict,
+		Details: &api.StatusDetails{
+			Kind: kind,
+			ID:   name,
+		},
+		Message: fmt.Sprintf("%s %q cannot be updated: %s", kind, name, err),
+	}}
 }
 
-// ErrorList is a collection of errors.  This does not implement the error
-// interface to avoid confusion where an empty ErrorList would still be an
-// error (non-nil).  To produce a single error instance from an ErrorList, use
-// the ToError() method, which will return nil for an empty ErrorList.
-type ErrorList []error
-
-// This helper implements the error interface for ErrorList, but must prevents
-// accidental conversion of ErrorList to error.
-type errorListInternal ErrorList
-
-// Error is part of the error interface.
-func (list errorListInternal) Error() string {
-	if len(list) == 0 {
-		return ""
+// NewInvalid returns an error indicating the item is invalid and cannot be processed.
+func NewInvalid(kind, name string, errs ErrorList) error {
+	causes := make([]api.StatusCause, 0, len(errs))
+	for i := range errs {
+		if err, ok := errs[i].(ValidationError); ok {
+			causes = append(causes, api.StatusCause{
+				Type:    api.CauseType(err.Type),
+				Message: err.Error(),
+				Field:   err.Field,
+			})
+		}
 	}
-	sl := make([]string, len(list))
-	for i := range list {
-		sl[i] = list[i].Error()
-	}
-	return strings.Join(sl, "; ")
+	return &statusError{api.Status{
+		Status: api.StatusFailure,
+		Code:   422, // RFC 4918
+		Reason: api.StatusReasonInvalid,
+		Details: &api.StatusDetails{
+			Kind:   kind,
+			ID:     name,
+			Causes: causes,
+		},
+		Message: fmt.Sprintf("%s %q is invalid: %s", kind, name, errs.ToError()),
+	}}
 }
 
-// ToError converts an ErrorList into a "normal" error, or nil if the list is empty.
-func (list ErrorList) ToError() error {
-	if len(list) == 0 {
-		return nil
+// IsNotFound returns true if the specified error was created by NewNotFoundErr.
+func IsNotFound(err error) bool {
+	return reasonForError(err) == api.StatusReasonNotFound
+}
+
+// IsAlreadyExists determines if the err is an error which indicates that a specified resource already exists.
+func IsAlreadyExists(err error) bool {
+	return reasonForError(err) == api.StatusReasonAlreadyExists
+}
+
+// IsConflict determines if the err is an error which indicates the provided update conflicts.
+func IsConflict(err error) bool {
+	return reasonForError(err) == api.StatusReasonConflict
+}
+
+// IsInvalid determines if the err is an error which indicates the provided resource is not valid.
+func IsInvalid(err error) bool {
+	return reasonForError(err) == api.StatusReasonInvalid
+}
+
+func reasonForError(err error) api.StatusReason {
+	switch t := err.(type) {
+	case *statusError:
+		return t.status.Reason
 	}
-	return errorListInternal(list)
+	return api.StatusReasonUnknown
 }

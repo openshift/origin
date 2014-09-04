@@ -17,6 +17,7 @@ limitations under the License.
 package factory
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
@@ -26,6 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
@@ -37,7 +39,8 @@ func TestCreate(t *testing.T) {
 		T:            t,
 	}
 	server := httptest.NewServer(&handler)
-	factory := ConfigFactory{client.New(server.URL, nil)}
+	client := client.NewOrDie(server.URL, nil)
+	factory := ConfigFactory{client}
 	factory.Create()
 }
 
@@ -87,7 +90,7 @@ func TestCreateWatches(t *testing.T) {
 			T:            t,
 		}
 		server := httptest.NewServer(&handler)
-		factory.Client = client.New(server.URL, nil)
+		factory.Client = client.NewOrDie(server.URL, nil)
 		// This test merely tests that the correct request is made.
 		item.watchFactory(item.rv)
 		handler.ValidateRequest(t, item.location, "GET", nil)
@@ -110,11 +113,15 @@ func TestPollMinions(t *testing.T) {
 		ml := &api.MinionList{Items: item.minions}
 		handler := util.FakeHandler{
 			StatusCode:   200,
-			ResponseBody: api.EncodeOrDie(ml),
+			ResponseBody: runtime.EncodeOrDie(ml),
 			T:            t,
 		}
-		server := httptest.NewServer(&handler)
-		cf := ConfigFactory{client.New(server.URL, nil)}
+		mux := http.NewServeMux()
+		// FakeHandler musn't be sent requests other than the one you want to test.
+		mux.Handle("/api/v1beta1/minions", &handler)
+		server := httptest.NewServer(mux)
+		client := client.NewOrDie(server.URL, nil)
+		cf := ConfigFactory{client}
 
 		ce, err := cf.pollMinions()
 		if err != nil {
@@ -133,11 +140,14 @@ func TestDefaultErrorFunc(t *testing.T) {
 	testPod := &api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
 	handler := util.FakeHandler{
 		StatusCode:   200,
-		ResponseBody: api.EncodeOrDie(testPod),
+		ResponseBody: runtime.EncodeOrDie(testPod),
 		T:            t,
 	}
-	server := httptest.NewServer(&handler)
-	factory := ConfigFactory{client.New(server.URL, nil)}
+	mux := http.NewServeMux()
+	// FakeHandler musn't be sent requests other than the one you want to test.
+	mux.Handle("/api/v1beta1/pods/foo", &handler)
+	server := httptest.NewServer(mux)
+	factory := ConfigFactory{client.NewOrDie(server.URL, nil)}
 	queue := cache.NewFIFO()
 	errFunc := factory.makeDefaultErrorFunc(queue)
 
@@ -242,14 +252,14 @@ func TestBind(t *testing.T) {
 			T:            t,
 		}
 		server := httptest.NewServer(&handler)
-		b := binder{client.New(server.URL, nil)}
+		client := client.NewOrDie(server.URL, nil)
+		b := binder{client}
 
-		err := b.Bind(item.binding)
-		if err != nil {
+		if err := b.Bind(item.binding); err != nil {
 			t.Errorf("Unexpected error: %v", err)
 			continue
 		}
-		expectedBody := api.EncodeOrDie(item.binding)
+		expectedBody := runtime.EncodeOrDie(item.binding)
 		handler.ValidateRequest(t, "/api/v1beta1/bindings", "POST", &expectedBody)
 	}
 }

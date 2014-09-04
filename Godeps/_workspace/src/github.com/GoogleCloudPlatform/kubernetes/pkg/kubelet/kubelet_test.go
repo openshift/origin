@@ -682,16 +682,9 @@ func TestMakeVolumesAndBinds(t *testing.T) {
 				ReadOnly:  false,
 			},
 			{
-				MountPath: "/mnt/path2",
-				Name:      "disk2",
-				ReadOnly:  true,
-				MountType: "LOCAL",
-			},
-			{
 				MountPath: "/mnt/path3",
-				Name:      "disk3",
-				ReadOnly:  false,
-				MountType: "HOST",
+				Name:      "disk",
+				ReadOnly:  true,
 			},
 			{
 				MountPath: "/mnt/path4",
@@ -711,24 +704,21 @@ func TestMakeVolumesAndBinds(t *testing.T) {
 		Namespace: "test",
 	}
 
-	podVolumes := make(volumeMap)
-	podVolumes["disk4"] = &volume.HostDirectory{"/mnt/host"}
-	podVolumes["disk5"] = &volume.EmptyDirectory{"disk5", "podID", "/var/lib/kubelet"}
-
-	volumes, binds := makeVolumesAndBinds(&pod, &container, podVolumes)
-
-	expectedVolumes := []string{"/mnt/path", "/mnt/path2"}
-	expectedBinds := []string{"/exports/pod.test/disk:/mnt/path", "/exports/pod.test/disk2:/mnt/path2:ro", "/mnt/path3:/mnt/path3",
-		"/mnt/host:/mnt/path4", "/var/lib/kubelet/podID/volumes/empty/disk5:/mnt/path5"}
-
-	if len(volumes) != len(expectedVolumes) {
-		t.Errorf("Unexpected volumes. Expected %#v got %#v.  Container was: %#v", expectedVolumes, volumes, container)
+	podVolumes := volumeMap{
+		"disk":  &volume.HostDirectory{"/mnt/disk"},
+		"disk4": &volume.HostDirectory{"/mnt/host"},
+		"disk5": &volume.EmptyDirectory{"disk5", "podID", "/var/lib/kubelet"},
 	}
-	for _, expectedVolume := range expectedVolumes {
-		if _, ok := volumes[expectedVolume]; !ok {
-			t.Errorf("Volumes map is missing key: %s. %#v", expectedVolume, volumes)
-		}
+
+	binds := makeBinds(&pod, &container, podVolumes)
+
+	expectedBinds := []string{
+		"/mnt/disk:/mnt/path",
+		"/mnt/disk:/mnt/path3:ro",
+		"/mnt/host:/mnt/path4",
+		"/var/lib/kubelet/podID/volumes/empty/disk5:/mnt/path5",
 	}
+
 	if len(binds) != len(expectedBinds) {
 		t.Errorf("Unexpected binds: Expected %#v got %#v.  Container was: %#v", expectedBinds, binds, container)
 	}
@@ -1066,7 +1056,7 @@ func TestRunInContainerNoSuchPod(t *testing.T) {
 	podNamespace := "etcd"
 	containerName := "containerFoo"
 	output, err := kubelet.RunInContainer(
-		podName+"."+podNamespace,
+		GetPodFullName(&Pod{Name: podName, Namespace: podNamespace}),
 		containerName,
 		[]string{"ls"})
 	if output != nil {
@@ -1096,7 +1086,7 @@ func TestRunInContainer(t *testing.T) {
 
 	cmd := []string{"ls"}
 	_, err := kubelet.RunInContainer(
-		podName+"."+podNamespace,
+		GetPodFullName(&Pod{Name: podName, Namespace: podNamespace}),
 		containerName,
 		cmd)
 	if fakeCommandRunner.ID != containerID {

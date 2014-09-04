@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
@@ -34,7 +36,7 @@ import (
 	"github.com/golang/glog"
 )
 
-// RegistryStorage implements the RESTStorage interface in terms of a PodRegistry
+// RegistryStorage implements the RESTStorage interface in terms of a PodRegistry.
 type RegistryStorage struct {
 	cloudProvider cloudprovider.Interface
 	mu            sync.Mutex
@@ -68,8 +70,8 @@ func (rs *RegistryStorage) Create(obj interface{}) (<-chan interface{}, error) {
 		pod.ID = uuid.NewUUID().String()
 	}
 	pod.DesiredState.Manifest.ID = pod.ID
-	if errs := api.ValidatePod(pod); len(errs) > 0 {
-		return nil, fmt.Errorf("Validation errors: %v", errs)
+	if errs := validation.ValidatePod(pod); len(errs) > 0 {
+		return nil, errors.NewInvalid("pod", pod.ID, errs)
 	}
 
 	pod.CreationTimestamp = util.Now()
@@ -105,15 +107,16 @@ func (rs *RegistryStorage) Get(id string) (interface{}, error) {
 }
 
 func (rs *RegistryStorage) List(selector labels.Selector) (interface{}, error) {
-	var result api.PodList
 	pods, err := rs.registry.ListPods(selector)
 	if err == nil {
-		result.Items = pods
-		for i := range result.Items {
-			rs.fillPodInfo(&result.Items[i])
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+			rs.fillPodInfo(pod)
+			pod.CurrentState.Status = getPodStatus(pod)
+			pod.CurrentState.HostIP = getInstanceIP(rs.cloudProvider, pod.CurrentState.Host)
 		}
 	}
-	return result, err
+	return pods, err
 }
 
 // Watch begins watching for new, changed, or deleted pods.
@@ -134,8 +137,8 @@ func (rs RegistryStorage) New() interface{} {
 
 func (rs *RegistryStorage) Update(obj interface{}) (<-chan interface{}, error) {
 	pod := obj.(*api.Pod)
-	if errs := api.ValidatePod(pod); len(errs) > 0 {
-		return nil, fmt.Errorf("Validation errors: %v", errs)
+	if errs := validation.ValidatePod(pod); len(errs) > 0 {
+		return nil, errors.NewInvalid("pod", pod.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (interface{}, error) {
 		if err := rs.registry.UpdatePod(*pod); err != nil {

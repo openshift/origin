@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoint
+package service
 
 import (
-	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -121,76 +121,95 @@ func TestFindPort(t *testing.T) {
 	}
 }
 
-func TestSyncEndpointsEmpty(t *testing.T) {
-	body, _ := json.Marshal(newPodList(0))
-	fakeHandler := util.FakeHandler{
-		StatusCode:   200,
-		ResponseBody: string(body),
+type serverResponse struct {
+	statusCode int
+	obj        interface{}
+}
+
+func makeTestServer(t *testing.T, podResponse serverResponse, serviceResponse serverResponse) *httptest.Server {
+	fakePodHandler := util.FakeHandler{
+		StatusCode:   podResponse.statusCode,
+		ResponseBody: util.EncodeJSON(podResponse.obj),
 	}
-	testServer := httptest.NewTLSServer(&fakeHandler)
-	client := client.New(testServer.URL, nil)
+	fakeServiceHandler := util.FakeHandler{
+		StatusCode:   serviceResponse.statusCode,
+		ResponseBody: util.EncodeJSON(serviceResponse.obj),
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/api/v1beta1/pods", &fakePodHandler)
+	mux.Handle("/api/v1beta1/services", &fakeServiceHandler)
+	mux.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+		t.Errorf("unexpected request: %v", req.RequestURI)
+		res.WriteHeader(http.StatusNotFound)
+	})
+	return httptest.NewServer(mux)
+}
+
+func TestSyncEndpointsEmpty(t *testing.T) {
+	testServer := makeTestServer(t,
+		serverResponse{http.StatusOK, newPodList(0)},
+		serverResponse{http.StatusOK, api.ServiceList{}})
+	client := client.NewOrDie(testServer.URL, nil)
 	serviceRegistry := registrytest.ServiceRegistry{}
 	endpoints := NewEndpointController(&serviceRegistry, client)
-	err := endpoints.SyncServiceEndpoints()
-	if err != nil {
+	if err := endpoints.SyncServiceEndpoints(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-
 }
 
 func TestSyncEndpointsError(t *testing.T) {
-	body, _ := json.Marshal(newPodList(0))
-	fakeHandler := util.FakeHandler{
-		StatusCode:   200,
-		ResponseBody: string(body),
-	}
-	testServer := httptest.NewTLSServer(&fakeHandler)
-	client := client.New(testServer.URL, nil)
+	testServer := makeTestServer(t,
+		serverResponse{http.StatusOK, newPodList(0)},
+		serverResponse{http.StatusInternalServerError, api.ServiceList{}})
+	client := client.NewOrDie(testServer.URL, nil)
 	serviceRegistry := registrytest.ServiceRegistry{
 		Err: fmt.Errorf("test error"),
 	}
 	endpoints := NewEndpointController(&serviceRegistry, client)
-	err := endpoints.SyncServiceEndpoints()
-	if err != serviceRegistry.Err {
-		t.Errorf("Errors don't match: %#v %#v", err, serviceRegistry.Err)
+	if err := endpoints.SyncServiceEndpoints(); err == nil {
+		t.Errorf("unexpected non-error")
 	}
 }
 
 func TestSyncEndpointsItems(t *testing.T) {
-	body, _ := json.Marshal(newPodList(1))
-	fakeHandler := util.FakeHandler{
-		StatusCode:   200,
-		ResponseBody: string(body),
-	}
-	testServer := httptest.NewTLSServer(&fakeHandler)
-	client := client.New(testServer.URL, nil)
-	serviceRegistry := registrytest.ServiceRegistry{
-		List: api.ServiceList{
-			Items: []api.Service{
-				{
-					Selector: map[string]string{
-						"foo": "bar",
-					},
+	serviceList := api.ServiceList{
+		Items: []api.Service{
+			{
+				Selector: map[string]string{
+					"foo": "bar",
 				},
 			},
 		},
 	}
+	testServer := makeTestServer(t,
+		serverResponse{http.StatusOK, newPodList(1)},
+		serverResponse{http.StatusOK, serviceList})
+	client := client.NewOrDie(testServer.URL, nil)
+	serviceRegistry := registrytest.ServiceRegistry{}
 	endpoints := NewEndpointController(&serviceRegistry, client)
-	err := endpoints.SyncServiceEndpoints()
-	if err != nil {
+	if err := endpoints.SyncServiceEndpoints(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(serviceRegistry.Endpoints.Endpoints) != 1 {
+	if len(serviceRegistry.Endpoints.Endpoints) != 1 ||
+		serviceRegistry.Endpoints.Endpoints[0] != "1.2.3.4:8080" {
 		t.Errorf("Unexpected endpoints update: %#v", serviceRegistry.Endpoints)
 	}
 }
 
 func TestSyncEndpointsPodError(t *testing.T) {
-	fakeHandler := util.FakeHandler{
-		StatusCode: 500,
+	serviceList := api.ServiceList{
+		Items: []api.Service{
+			{
+				Selector: map[string]string{
+					"foo": "bar",
+				},
+			},
+		},
 	}
-	testServer := httptest.NewTLSServer(&fakeHandler)
-	client := client.New(testServer.URL, nil)
+	testServer := makeTestServer(t,
+		serverResponse{http.StatusInternalServerError, api.PodList{}},
+		serverResponse{http.StatusOK, serviceList})
+	client := client.NewOrDie(testServer.URL, nil)
 	serviceRegistry := registrytest.ServiceRegistry{
 		List: api.ServiceList{
 			Items: []api.Service{
@@ -203,8 +222,7 @@ func TestSyncEndpointsPodError(t *testing.T) {
 		},
 	}
 	endpoints := NewEndpointController(&serviceRegistry, client)
-	err := endpoints.SyncServiceEndpoints()
-	if err == nil {
+	if err := endpoints.SyncServiceEndpoints(); err == nil {
 		t.Error("Unexpected non-error")
 	}
 }

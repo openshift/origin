@@ -31,21 +31,20 @@ import (
 	"github.com/golang/glog"
 )
 
-// Codec defines methods for serializing and deserializing API
-// objects
+// Codec defines methods for serializing and deserializing API objects.
 type Codec interface {
 	Encode(obj interface{}) (data []byte, err error)
 	Decode(data []byte) (interface{}, error)
 	DecodeInto(data []byte, obj interface{}) error
 }
 
-// mux is an object that can register http handlers
+// mux is an object that can register http handlers.
 type mux interface {
 	Handle(pattern string, handler http.Handler)
 	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
 }
 
-// defaultAPIServer exposes nested objects for testability
+// defaultAPIServer exposes nested objects for testability.
 type defaultAPIServer struct {
 	http.Handler
 	group *APIGroup
@@ -95,12 +94,14 @@ func NewAPIGroup(storage map[string]RESTStorage, codec Codec) *APIGroup {
 func (g *APIGroup) InstallREST(mux mux, paths ...string) {
 	restHandler := &g.handler
 	watchHandler := &WatchHandler{g.handler.storage, g.handler.codec}
+	redirectHandler := &RedirectHandler{g.handler.storage, g.handler.codec}
 	opHandler := &OperationHandler{g.handler.ops, g.handler.codec}
 
 	for _, prefix := range paths {
 		prefix = strings.TrimRight(prefix, "/")
 		mux.Handle(prefix+"/", http.StripPrefix(prefix, restHandler))
 		mux.Handle(prefix+"/watch/", http.StripPrefix(prefix+"/watch/", watchHandler))
+		mux.Handle(prefix+"/redirect/", http.StripPrefix(prefix+"/redirect/", redirectHandler))
 		mux.Handle(prefix+"/operations", http.StripPrefix(prefix+"/operations", opHandler))
 		mux.Handle(prefix+"/operations/", http.StripPrefix(prefix+"/operations/", opHandler))
 	}
@@ -115,7 +116,7 @@ func InstallSupport(mux mux) {
 	mux.HandleFunc("/", handleIndex)
 }
 
-// RecoverPanics wraps an http Handler to recover and log panics
+// RecoverPanics wraps an http Handler to recover and log panics.
 func RecoverPanics(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		defer func() {
@@ -129,6 +130,7 @@ func RecoverPanics(handler http.Handler) http.Handler {
 			httplog.StatusIsNot(
 				http.StatusOK,
 				http.StatusAccepted,
+				http.StatusTemporaryRedirect,
 				http.StatusConflict,
 				http.StatusNotFound,
 			),
@@ -139,12 +141,12 @@ func RecoverPanics(handler http.Handler) http.Handler {
 	})
 }
 
-// handleVersionReq writes the server's version information.
+// handleVersion writes the server's version information.
 func handleVersion(w http.ResponseWriter, req *http.Request) {
 	writeRawJSON(http.StatusOK, version.Get(), w)
 }
 
-// writeJSON renders an object as JSON to the response
+// writeJSON renders an object as JSON to the response.
 func writeJSON(statusCode int, codec Codec, object interface{}, w http.ResponseWriter) {
 	output, err := codec.Encode(object)
 	if err != nil {
@@ -156,7 +158,7 @@ func writeJSON(statusCode int, codec Codec, object interface{}, w http.ResponseW
 	w.Write(output)
 }
 
-// errorJSON renders an error to the response
+// errorJSON renders an error to the response.
 func errorJSON(err error, codec Codec, w http.ResponseWriter) {
 	status := errToAPIStatus(err)
 	writeJSON(status.Code, codec, status, w)
@@ -190,7 +192,7 @@ func readBody(req *http.Request) ([]byte, error) {
 	return ioutil.ReadAll(req.Body)
 }
 
-// splitPath returns the segments for a URL path
+// splitPath returns the segments for a URL path.
 func splitPath(path string) []string {
 	path = strings.Trim(path, "/")
 	if path == "" {

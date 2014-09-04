@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
@@ -42,7 +42,7 @@ type Reflector struct {
 // WatchFactory should begin a watch at the specified version.
 type WatchFactory func(resourceVersion uint64) (watch.Interface, error)
 
-// NewReflector makes a new Reflector object which will keep the given store up to
+// NewReflector creates a new Reflector object which will keep the given store up to
 // date with the server's contents for the given resource. Reflector promises to
 // only put things in the store that have the type of expectedType.
 func NewReflector(watchFactory WatchFactory, expectedType interface{}, store Store) *Reflector {
@@ -81,7 +81,7 @@ func (gc *Reflector) watchHandler(w watch.Interface, resourceVersion *uint64) {
 			glog.Errorf("expected type %v, but watch event object had type %v", e, a)
 			continue
 		}
-		jsonBase, err := api.FindJSONBase(event.Object)
+		jsonBase, err := runtime.FindJSONBase(event.Object)
 		if err != nil {
 			glog.Errorf("unable to understand watch event %#v", event)
 			continue

@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
@@ -59,8 +61,8 @@ func (rs *RegistryStorage) Create(obj interface{}) (<-chan interface{}, error) {
 	}
 	// Pod Manifest ID should be assigned by the pod API
 	controller.DesiredState.PodTemplate.DesiredState.Manifest.ID = ""
-	if errs := api.ValidateReplicationController(controller); len(errs) > 0 {
-		return nil, fmt.Errorf("Validation errors: %v", errs)
+	if errs := validation.ValidateReplicationController(controller); len(errs) > 0 {
+		return nil, errors.NewInvalid("replicationController", controller.ID, errs)
 	}
 
 	controller.CreationTimestamp = util.Now()
@@ -92,16 +94,18 @@ func (rs *RegistryStorage) Get(id string) (interface{}, error) {
 
 // List obtains a list of ReplicationControllers that match selector.
 func (rs *RegistryStorage) List(selector labels.Selector) (interface{}, error) {
-	result := api.ReplicationControllerList{}
 	controllers, err := rs.registry.ListControllers()
-	if err == nil {
-		for _, controller := range controllers {
-			if selector.Matches(labels.Set(controller.Labels)) {
-				result.Items = append(result.Items, controller)
-			}
+	if err != nil {
+		return nil, err
+	}
+	filtered := []api.ReplicationController{}
+	for _, controller := range controllers.Items {
+		if selector.Matches(labels.Set(controller.Labels)) {
+			filtered = append(filtered, controller)
 		}
 	}
-	return result, err
+	controllers.Items = filtered
+	return controllers, err
 }
 
 // New creates a new ReplicationController for use with Create and Update.
@@ -116,8 +120,8 @@ func (rs *RegistryStorage) Update(obj interface{}) (<-chan interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("not a replication controller: %#v", obj)
 	}
-	if errs := api.ValidateReplicationController(controller); len(errs) > 0 {
-		return nil, fmt.Errorf("Validation errors: %v", errs)
+	if errs := validation.ValidateReplicationController(controller); len(errs) > 0 {
+		return nil, errors.NewInvalid("replicationController", controller.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (interface{}, error) {
 		err := rs.registry.UpdateController(*controller)
@@ -150,7 +154,7 @@ func (rs *RegistryStorage) waitForController(ctrl api.ReplicationController) (in
 		if err != nil {
 			return ctrl, err
 		}
-		if len(pods) == ctrl.DesiredState.Replicas {
+		if len(pods.Items) == ctrl.DesiredState.Replicas {
 			break
 		}
 		time.Sleep(rs.pollPeriod)
