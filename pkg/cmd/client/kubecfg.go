@@ -19,7 +19,6 @@ package client
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"reflect"
 	"sort"
@@ -31,10 +30,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
-	osclient "github.com/openshift/origin/pkg/client"
+	//osclient "github.com/openshift/origin/pkg/client"
 )
 
 type RESTClient interface {
@@ -118,7 +118,6 @@ func (c *KubeConfig) Run() {
 	util.InitLogs()
 	defer util.FlushLogs()
 
-	secure := true
 	var masterServer string
 	if len(c.HttpServer) > 0 {
 		masterServer = c.HttpServer
@@ -127,26 +126,36 @@ func (c *KubeConfig) Run() {
 	} else {
 		masterServer = "http://localhost:8080"
 	}
-	parsedURL, err := url.Parse(masterServer)
+	kubeClient, err := kubeclient.New(masterServer, nil)
 	if err != nil {
-		glog.Fatalf("Unable to parse %v as a URL\n", err)
+		glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
 	}
-	if parsedURL.Scheme != "" && parsedURL.Scheme != "https" {
-		secure = false
-	}
+	// TODO: uncomment when a client API is being used
+	// client, err := osclient.New(masterServer, nil)
+	// if err != nil {
+	// 	glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
+	// }
 
-	var auth *kubeclient.AuthInfo
-	if secure {
-		auth, err = kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
+	// TODO: this won't work if TLS is enabled with client cert auth, but no
+	// passwords are required. Refactor when we address client auth abstraction.
+	if kubeClient.Secure() {
+		auth, err := kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
 		if err != nil {
 			glog.Fatalf("Error loading auth: %v", err)
 		}
+		kubeClient, err = kubeclient.New(masterServer, auth)
+		if err != nil {
+			glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
+		}
+		// client, err = osclient.New(masterServer, auth)
+		// if err != nil {
+		// 	glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
+		// }
 	}
 
-	client := osclient.New(masterServer, auth)
-
+	// check the kubernetes server version
 	if c.ServerVersion {
-		got, err := client.ServerVersion()
+		got, err := kubeClient.ServerVersion()
 		if err != nil {
 			fmt.Printf("Couldn't read version from server: %v\n", err)
 			os.Exit(1)
@@ -154,9 +163,8 @@ func (c *KubeConfig) Run() {
 		fmt.Printf("Server Version: %#v\n", got)
 		os.Exit(0)
 	}
-
 	if c.PreventSkew {
-		got, err := client.ServerVersion()
+		got, err := kubeClient.ServerVersion()
 		if err != nil {
 			fmt.Printf("Couldn't read version from server: %v\n", err)
 			os.Exit(1)
@@ -169,19 +177,19 @@ func (c *KubeConfig) Run() {
 
 	if c.Proxy {
 		glog.Info("Starting to serve on localhost:8001")
-		server := kubecfg.NewProxyServer(c.WWW, masterServer, auth)
+		server := kubecfg.NewProxyServer(c.WWW, kubeClient)
 		glog.Fatal(server.Serve())
 	}
 
 	method := c.Arg(0)
 	clients := map[string]RESTClient{
-		"minions":                client.Client.RESTClient,
-		"pods":                   client.Client.RESTClient,
-		"services":               client.Client.RESTClient,
-		"replicationControllers": client.Client.RESTClient,
+		"minions":                kubeClient.RESTClient,
+		"pods":                   kubeClient.RESTClient,
+		"services":               kubeClient.RESTClient,
+		"replicationControllers": kubeClient.RESTClient,
 	}
 
-	matchFound := c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, client)
+	matchFound := c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, kubeClient)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -246,7 +254,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients map[string]RESTCli
 		if err != nil {
 			glog.Fatalf("error obtaining resource version for update: %v", err)
 		}
-		jsonBase, err := api.FindJSONBase(obj)
+		jsonBase, err := runtime.FindJSONBase(obj)
 		if err != nil {
 			glog.Fatalf("error finding json base for update: %v", err)
 		}
@@ -266,16 +274,16 @@ func (c *KubeConfig) executeAPIRequest(method string, clients map[string]RESTCli
 	if setBody {
 		if version != 0 {
 			data := c.readConfig(storage)
-			obj, err := api.Decode(data)
+			obj, err := runtime.Decode(data)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
-			jsonBase, err := api.FindJSONBase(obj)
+			jsonBase, err := runtime.FindJSONBase(obj)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
 			jsonBase.SetResourceVersion(version)
-			data, err = api.Encode(obj)
+			data, err = runtime.Encode(obj)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
@@ -330,7 +338,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients map[string]RESTCli
 	return true
 }
 
-func (c *KubeConfig) executeControllerRequest(method string, client *osclient.Client) bool {
+func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.Client) bool {
 	parseController := func() string {
 		if len(c.Args) != 2 {
 			glog.Fatal("usage: kubecfg [OPTIONS] stop|rm|rollingupdate <controller>")
