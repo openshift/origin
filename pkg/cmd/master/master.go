@@ -55,7 +55,7 @@ func startAllInOne() {
 	etcdConfig := etcdconfig.New()
 	etcdConfig.BindAddr = etcdAddr
 	etcdConfig.DataDir = "openshift.local.etcd"
-	etcdConfig.NameFromHostname()
+	etcdConfig.Name = "openshift.local"
 
 	// check docker connection
 	dockerAddr := getDockerEndpoint("")
