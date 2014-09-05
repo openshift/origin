@@ -3,3 +3,4 @@
 /*.etcd
 .project
 .vagrant
+*.swp

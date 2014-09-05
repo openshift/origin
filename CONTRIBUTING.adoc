@@ -1,0 +1,93 @@
+= Contributing to OpenShift 3
+OpenShift Developers <dev@lists.openshift.redhat.com>
+:data-uri:
+:icons:
+:toc2:
+:sectanchors:
+
+The OpenShift 3 architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] to deliver a powerful new Platform as a Service system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.
+
+== Prerequisites
+You can develop OpenShift 3 on Windows, Mac, or Linux, but you'll need Docker installed on Linux to actually launch containers.
+
+* For OpenShift 3 development, install the http://golang.org/[Go] programming language
+* To launch containers, install the https://docker.com/[Docker] platform
+
+Here's how to get set up:
+
+1. For Go and optionally also Docker, follow the links below to get to installation information for these tools: +
+** http://golang.org/doc/install[Installing Go]
+** https://docs.docker.com/installation/#installation[Installing Docker]
+2. Next, create a Go workspace directory: +
++
+----
+$ mkdir $HOME/go
+----
+3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and update your PATH: +
++
+----
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+----
+4. Open up a new terminal or source the changes in your current terminal, and you're ready to code.
+
+== Development: What's on the Menu?
+Right now you can see what's happening with OpenShift development in two repositories:
+
+1. The OpenShift Origin repo: https://github.com/openshift/origin[github.com/openshift/origin]
+2. The OpenShift Kubernetes fork: https://github.com/openshift/kubernetes[github.com/openshift/kubernetes]
+
+Here's a quick summary of what we're doing there:
+
+=== The OpenShift Origin Repo
+This repo contains the OpenShift 3 https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service], built on Kubernetes, along with some script-based examples of the +openshift+ utility in action. Kubernetes is included in this repo for ease of development, and the version we include is periodically updated. In the future it will be possible to run OpenShift on top of an existing system.
+
+*Hacking OpenShift Origin:* +
+To get started, https://help.github.com/articles/fork-a-repo[fork] the https://help.github.com/articles/fork-a-repo[origin repo] and then set up a local copy:
+
+----
+$ go get github.com/openshift/origin
+$ cd $GOPATH/src/github.com/openshift/origin
+$ git remote add <YOUR_GITHUB_USERNAME> git@github.com:<YOUR_GITHUB_USERNAME>/origin
+----
+
+From here, you can follow the https://github.com/openshift/origin/#getting-started[Getting Started section] of the README for a brief tour of OpenShift 3 functionality, which includes single- and multi-container pod examples.
+
+Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
+
+=== The OpenShift Kubernetes Fork
+The OpenShift team is using this fork of the https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] project for two primary purposes:
+
+* As a staging area for pull requests to the upstream project
+* As a build area for Kubernetes that includes OpenShift-specific features that the upstream community does not want to add to the main project
+
+*If you are interested in contributing to Kubernetes directly:* +
+https://github.com/GoogleCloudPlatform/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
+
+*If you are more interested in the OpenShift-specific use of Kubernetes:* +
+First, https://help.github.com/articles/fork-a-repo[fork our fork] of Kubernetes and make a local copy for yourself:
+
+----
+$ go get github.com/openshift/kubernetes
+$ cd $GOPATH/src/github.com/openshift/kubernetes
+$ git remote add <YOUR_GITHUB_USERNAME> git@github.com:<YOUR_GITHUB_USERNAME>/kubernetes
+----
+
+From there, head to the https://github.com/openshift/kubernetes#development[Development section] of the README for general information on tinkering with Kubernetes.
+
+When you're ready to get your hands dirty, check out the roadmap info in the next section.
+
+=== The Roadmap
+The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/openshift-origin-roadmap[on Trello]. Of particular interest to those who want to get involved with the OpenShift 3 architecture are the following topics:
+
+* https://trello.com/c/uqNIamJi[Orchestration]
+* https://trello.com/c/ja8bbQwy[Networking]
+* https://trello.com/c/3zHeVSla[Routing and Load Balancing]
+
+These link to active and backlog tasks that the OpenShift team is planning or working on for Kubernetes development.
+
+== Stay in Touch
+Reach out to the OpenShift team and other community contributors through IRC and our mailing list:
+
+* IRC: Hop onto the http://webchat.freenode.net/?randomnick=1&channels=openshift-dev&uio=d4[#openshift-dev] channel on http://www.freenode.net/[FreeNode].
+* E-mail: Join the OpenShift developers' http://lists.openshift.redhat.com/openshiftmm/listinfo/dev[mailing list].
