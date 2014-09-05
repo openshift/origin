@@ -48,8 +48,7 @@ To get started, https://help.github.com/articles/fork-a-repo[fork] the https://h
 ----
 $ go get github.com/openshift/origin
 $ cd $GOPATH/src/github.com/openshift/origin
-$ git remote rename origin upstream
-$ git remote add origin git@github.com:<YOUR_GITHUB_USERNAME>/origin
+$ git remote add <YOUR_GITHUB_USERNAME> git@github.com:<YOUR_GITHUB_USERNAME>/origin
 ----
 
 From here, you can follow the https://github.com/openshift/origin/#getting-started[Getting Started section] of the README for a brief tour of OpenShift 3 functionality, which includes single- and multi-container pod examples.
@@ -71,8 +70,7 @@ First, https://help.github.com/articles/fork-a-repo[fork our fork] of Kubernetes
 ----
 $ go get github.com/openshift/kubernetes
 $ cd $GOPATH/src/github.com/openshift/kubernetes
-$ git remote rename origin upstream
-$ git remote add origin git@github.com:<YOUR_GITHUB_USERNAME>/kubernetes
+$ git remote add <YOUR_GITHUB_USERNAME> git@github.com:<YOUR_GITHUB_USERNAME>/kubernetes
 ----
 
 From there, head to the https://github.com/openshift/kubernetes#development[Development section] of the README for general information on tinkering with Kubernetes.
