@@ -57,7 +57,7 @@ API
 
 The OpenShift APIs are exposed at `http://localhost:8080/osapi/v1beta1/*`.
 
-* `http://localhost:8080/osapi/v1beta1/services` (placeholder)
+* coming soon
 
 The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 
@@ -66,7 +66,7 @@ The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 * `http://localhost:8080/api/v1beta1/replicationControllers`
 * `http://localhost:8080/api/v1beta1/operations`
 
-Several experimental API objects are being prototyped upstream, and are included here for integration testing:
+Several experimental API objects are being prototyped, and should be available soon at:
 
 * `http://localhost:8080/osapi/v1beta1/images`
 * `http://localhost:8080/osapi/v1beta1/imagesByRepository`
