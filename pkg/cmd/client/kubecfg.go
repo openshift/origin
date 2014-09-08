@@ -34,7 +34,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
-	//osclient "github.com/openshift/origin/pkg/client"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/client/build"
 )
 
 type RESTClient interface {
@@ -86,6 +88,8 @@ var parser = kubecfg.NewParser(map[string]interface{}{
 	"services":               api.Service{},
 	"replicationControllers": api.ReplicationController{},
 	"minions":                api.Minion{},
+	"builds":                 buildapi.Build{},
+	"buildConfigs":           buildapi.BuildConfig{},
 })
 
 func prettyWireStorage() string {
@@ -130,11 +134,10 @@ func (c *KubeConfig) Run() {
 	if err != nil {
 		glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
 	}
-	// TODO: uncomment when a client API is being used
-	// client, err := osclient.New(masterServer, nil)
-	// if err != nil {
-	// 	glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
-	// }
+	client, err := osclient.New(masterServer, nil)
+	if err != nil {
+		glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
+	}
 
 	// TODO: this won't work if TLS is enabled with client cert auth, but no
 	// passwords are required. Refactor when we address client auth abstraction.
@@ -147,10 +150,10 @@ func (c *KubeConfig) Run() {
 		if err != nil {
 			glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
 		}
-		// client, err = osclient.New(masterServer, auth)
-		// if err != nil {
-		// 	glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
-		// }
+		client, err = osclient.New(masterServer, auth)
+		if err != nil {
+			glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
+		}
 	}
 
 	// check the kubernetes server version
@@ -187,6 +190,8 @@ func (c *KubeConfig) Run() {
 		"pods":                   kubeClient.RESTClient,
 		"services":               kubeClient.RESTClient,
 		"replicationControllers": kubeClient.RESTClient,
+		"builds":                 client.RESTClient,
+		"buildConfigs":           client.RESTClient,
 	}
 
 	matchFound := c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, kubeClient)
@@ -387,6 +392,7 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 
 func humanReadablePrinter() *kubecfg.HumanReadablePrinter {
 	printer := kubecfg.NewHumanReadablePrinter()
+	build.RegisterPrintHandlers(printer)
 	// Add Handler calls here to support additional types
 	return printer
 }
