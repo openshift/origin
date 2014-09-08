@@ -38,14 +38,14 @@ import (
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
+	. "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/cmd/client/build"
 	"github.com/openshift/origin/pkg/cmd/client/image"
+	"github.com/openshift/origin/pkg/config"
+	configapi "github.com/openshift/origin/pkg/config/api"
+	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
-
-type RESTClient interface {
-	Verb(verb string) *kubeclient.Request
-}
 
 type KubeConfig struct {
 	ServerVersion bool
@@ -84,6 +84,9 @@ func usage(name string) string {
   %[1]s [OPTIONS] stop|rm|rollingupdate <controller>
   %[1]s [OPTIONS] run <image> <replicas> <controller>
   %[1]s [OPTIONS] resize <controller> <replicas>
+
+	Perform bulk operations on groups of Kubernetes resources:
+  %[1]s [OPTIONS] apply -c config.json
 `, name, prettyWireStorage())
 }
 
@@ -97,6 +100,7 @@ var parser = kubecfg.NewParser(map[string]interface{}{
 	"images":                  imageapi.Image{},
 	"imageRepositories":       imageapi.ImageRepository{},
 	"imageRepositoryMappings": imageapi.ImageRepositoryMapping{},
+	"config":                  configapi.Config{},
 })
 
 func prettyWireStorage() string {
@@ -213,19 +217,19 @@ func (c *KubeConfig) Run() {
 	}
 
 	method := c.Arg(0)
-	clients := map[string]RESTClient{
-		"minions":                 kubeClient.RESTClient,
-		"pods":                    kubeClient.RESTClient,
-		"services":                kubeClient.RESTClient,
-		"replicationControllers":  kubeClient.RESTClient,
-		"builds":                  client.RESTClient,
-		"buildConfigs":            client.RESTClient,
-		"images":                  client.RESTClient,
-		"imageRepositories":       client.RESTClient,
-		"imageRepositoryMappings": client.RESTClient,
+	clients := ClientMappings{
+		"minions":                 {"Minion", kubeClient.RESTClient},
+		"pods":                    {"Pod", kubeClient.RESTClient},
+		"services":                {"Service", kubeClient.RESTClient},
+		"replicationControllers":  {"ReplicationController", kubeClient.RESTClient},
+		"builds":                  {"Build", client.RESTClient},
+		"buildConfigs":            {"BuildConfig", client.RESTClient},
+		"images":                  {"Image", client.RESTClient},
+		"imageRepositories":       {"ImageRepository", client.RESTClient},
+		"imageRepositoryMappings": {"ImageRepositoryMapping", client.RESTClient},
 	}
 
-	matchFound := c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, kubeClient)
+	matchFound := c.executeConfigRequest(method, clients) || c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, kubeClient)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -252,7 +256,7 @@ func checkStorage(storage string) bool {
 	return false
 }
 
-func (c *KubeConfig) executeAPIRequest(method string, clients map[string]RESTClient) bool {
+func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bool {
 	storage, path, hasSuffix := storagePathFromArg(c.Arg(1))
 	validStorage := checkStorage(storage)
 	client, ok := clients[storage]
@@ -286,7 +290,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients map[string]RESTCli
 			glog.Fatalf("usage: kubecfg [OPTIONS] %s <%s>", method, prettyWireStorage())
 		}
 	case "update":
-		obj, err := client.Verb("GET").Path(path).Do().Get()
+		obj, err := client.Client.Verb("GET").Path(path).Do().Get()
 		if err != nil {
 			glog.Fatalf("error obtaining resource version for update: %v", err)
 		}
@@ -304,7 +308,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients map[string]RESTCli
 		return false
 	}
 
-	r := client.Verb(verb).
+	r := client.Client.Verb(verb).
 		Path(path).
 		ParseSelectorParam("labels", c.Selector)
 	if setBody {
@@ -417,6 +421,20 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 	}
 	if err != nil {
 		glog.Fatalf("Error: %v", err)
+	}
+	return true
+}
+
+func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings) bool {
+	if method != "apply" {
+		return false
+	}
+	if len(c.Config) == 0 {
+		glog.Fatal("Need to pass valid configuration file (-c config.json)")
+	}
+	errs := config.Apply(c.readConfig("config"), clients)
+	for _, err := range errs {
+		fmt.Println(err.Error())
 	}
 	return true
 }

@@ -69,3 +69,6 @@ ${KUBE_CMD} -c examples/image/test-mapping.json create imageRepositoryMappings
 ${KUBE_CMD} list images
 ${KUBE_CMD} list imageRepositories
 echo "kube(imageRepositoryMappings): ok"
+
+${KUBE_CMD} apply -c examples/guestbook/config.json
+echo "kube(config): ok"
