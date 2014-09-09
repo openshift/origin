@@ -20,8 +20,18 @@ type Interface interface {
 
 // BuildInterface exposes methods on Build resources.
 type BuildInterface interface {
+	CreateBuild(buildapi.Build) (buildapi.Build, error)
 	ListBuilds(selector labels.Selector) (buildapi.BuildList, error)
 	UpdateBuild(buildapi.Build) (buildapi.Build, error)
+	DeleteBuild(string) error
+}
+
+// BuildConfigInterface exposes methods on BuildConfig resources
+type BuildConfigInterface interface {
+	CreateBuildConfig(buildapi.BuildConfig) (buildapi.BuildConfig, error)
+	ListBuildConfigs(selector labels.Selector) (buildapi.BuildConfigList, error)
+	UpdateBuildConfig(buildapi.BuildConfig) (buildapi.BuildConfig, error)
+	DeleteBuildConfig(string) error
 }
 
 // ImageInterface exposes methods on Image resources.
@@ -59,6 +69,12 @@ func New(host string, auth *kubeclient.AuthInfo) (*Client, error) {
 	return &Client{restClient}, nil
 }
 
+// CreateBuild creates a new build
+func (c *Client) CreateBuild(build buildapi.Build) (result buildapi.Build, err error) {
+	err = c.Post().Path("builds").Body(build).Do().Into(&result)
+	return
+}
+
 // ListBuilds returns a list of builds.
 func (c *Client) ListBuilds(selector labels.Selector) (result buildapi.BuildList, err error) {
 	err = c.Get().Path("builds").SelectorParam("labels", selector).Do().Into(&result)
@@ -68,6 +84,36 @@ func (c *Client) ListBuilds(selector labels.Selector) (result buildapi.BuildList
 // UpdateBuild updates an existing build.
 func (c *Client) UpdateBuild(build buildapi.Build) (result buildapi.Build, err error) {
 	err = c.Put().Path("builds").Path(build.ID).Body(build).Do().Into(&result)
+	return
+}
+
+// DeleteBuild deletes a build
+func (c *Client) DeleteBuild(id string) (err error) {
+	err = c.Delete().Path("builds").Path(id).Do().Error()
+	return
+}
+
+// CreateBuildConfig creates a new build config
+func (c *Client) CreateBuildConfig(build buildapi.BuildConfig) (result buildapi.BuildConfig, err error) {
+	err = c.Post().Path("buildConfigs").Body(build).Do().Into(&result)
+	return
+}
+
+// ListBuildConfigs returns a list of builds.
+func (c *Client) ListBuildConfigs(selector labels.Selector) (result buildapi.BuildConfigList, err error) {
+	err = c.Get().Path("buildConfigs").SelectorParam("labels", selector).Do().Into(&result)
+	return
+}
+
+// UpdateBuildConfig updates an existing build.
+func (c *Client) UpdateBuildConfig(build buildapi.BuildConfig) (result buildapi.BuildConfig, err error) {
+	err = c.Put().Path("buildConfigs").Path(build.ID).Body(build).Do().Into(&result)
+	return
+}
+
+// DeleteBuildConfig deletes a build
+func (c *Client) DeleteBuildConfig(id string) (err error) {
+	err = c.Delete().Path("buildConfigs").Path(id).Do().Error()
 	return
 }
 
