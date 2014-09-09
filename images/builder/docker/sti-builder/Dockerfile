@@ -1,4 +1,4 @@
-FROM kubernetes-fedora-dind
+FROM openshift/kubernetes-fedora-dind
 RUN yum -y install golang golang-src golang-pkg-bin-linux-amd64 golang-pkg-linux-amd64 git && \
     yum clean all
 
