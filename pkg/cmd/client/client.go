@@ -32,7 +32,7 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.BoolVar(&cfg.ServerVersion, "server_version", false, "Print the server's version number.")
 	flag.BoolVar(&cfg.PreventSkew, "expect_version_match", false, "Fail if server's version doesn't match own version.")
 	flag.StringVarP(&cfg.HttpServer, "host", "h", "", "The host to connect to.")
-	flag.StringVarP(&cfg.Config, "config", "c", "", "Path to the config file.")
+	flag.StringVarP(&cfg.Config, "config", "c", "", "Path or URL to the config file.")
 	flag.StringVarP(&cfg.Selector, "label", "l", "", "Selector (label query) to use for listing")
 	flag.DurationVarP(&cfg.UpdatePeriod, "update", "u", 60*time.Second, "Update interval period")
 	flag.StringVarP(&cfg.PortSpec, "port", "p", "", "The port spec, comma-separated list of <external>:<internal>,...")

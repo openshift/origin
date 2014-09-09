@@ -19,6 +19,8 @@ package client
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"sort"
@@ -104,11 +106,32 @@ func (c *KubeConfig) readConfig(storage string) []byte {
 	if len(c.Config) == 0 {
 		glog.Fatal("Need config file (-c)")
 	}
-	data, err := ioutil.ReadFile(c.Config)
-	if err != nil {
-		glog.Fatalf("Unable to read %v: %v\n", c.Config, err)
+
+	var data []byte
+	if url, err := url.Parse(c.Config); err == nil && (url.Scheme == "http" || url.Scheme == "https") {
+		resp, err := http.Get(url.String())
+		if err != nil {
+			glog.Fatalf("Unable to access URL %v: %v\n", url, err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			glog.Fatalf("Unable to read URL, server reported %d %s", resp.StatusCode, resp.Status)
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			glog.Fatalf("Unable to read URL %v: %v\n", url, err)
+		}
+		data = body
+
+	} else {
+		body, err := ioutil.ReadFile(c.Config)
+		if err != nil {
+			glog.Fatalf("Unable to read %v: %v\n", c.Config, err)
+		}
+		data = body
 	}
-	data, err = parser.ToWireFormat(data, storage)
+
+	data, err := parser.ToWireFormat(data, storage)
 	if err != nil {
 		glog.Fatalf("Error parsing %v as an object for %v: %v\n", c.Config, storage, err)
 	}
