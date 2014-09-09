@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script sets up a go workspace locally and builds all go components.
+# This script builds all images locally (requires Docker)
 
 set -o errexit
 set -o nounset
