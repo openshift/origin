@@ -15,7 +15,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.provision "shell", inline: "yum clean all && yum makecache"
     end
 
-    config.vm.provision "shell", path: "provision.sh"
+    config.vm.provision "shell", path: "hack/provision.sh"
     config.vm.synced_folder '.', "/vagrant"
   end
 
