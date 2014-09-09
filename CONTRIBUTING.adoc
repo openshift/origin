@@ -7,7 +7,13 @@ OpenShift Developers <dev@lists.openshift.redhat.com>
 
 The OpenShift 3 architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] to deliver a powerful new Platform as a Service system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.
 
-== Prerequisites
+There are multiple ways to start coding OpenShift.
+
+* <<develop-locally-on-your-host>>
+* <<develop-on-virtual-machine-using-vagrant>>
+
+== Develop locally on your host
+
 You can develop OpenShift 3 on Windows, Mac, or Linux, but you'll need Docker installed on Linux to actually launch containers.
 
 * For OpenShift 3 development, install the http://golang.org/[Go] programming language
@@ -30,6 +36,35 @@ export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 ----
 4. Open up a new terminal or source the changes in your current terminal, and you're ready to code.
+
+== Develop on virtual machine using Vagrant
+
+To facilitate rapid development we've put together a Vagrantfile you can use to stand up a 
+development environment.
+
+1.  http://www.vagrantup.com/downloads[Install Vagrant]
+
+2.  Clone the project and change into the directory:
+
+        $ git clone git://github.com/openshift/origin
+        $ cd origin
+
+3.  Bring up the VM:
+
+        $ vagrant up
+
+4.  SSH in:
+
+        $ vagrant ssh
+        $ cd /vagrant
+
+5.  Run a build:
+
+        $ hack/build-go.sh
+
+6.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
+
+        $ output/go/bin/openshift start
 
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development in two repositories:
