@@ -22,7 +22,6 @@ import (
 	etcdconfig "github.com/coreos/etcd/config"
 	"github.com/coreos/etcd/etcd"
 	etcdclient "github.com/coreos/go-etcd/etcd"
-	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/client"
 	"github.com/openshift/origin/pkg/build"
@@ -31,13 +30,15 @@ import (
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	"github.com/openshift/origin/pkg/build/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/image"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 	"github.com/spf13/cobra"
 )
 
 func NewCommandStartAllInOne(name string) *cobra.Command {
-	cfg := &Config{}
+	dockerHelper := docker.NewHelper()
+	cfg := &config{Docker: *dockerHelper}
 
 	cmd := &cobra.Command{
 		Use:   name,
@@ -50,14 +51,18 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 	flag := cmd.Flags()
 	flag.StringVar(&cfg.ListenAddr, "listenAddr", "127.0.0.1:8080", "The OpenShift server listen address.")
 
+	dockerHelper.InstallFlags(flag)
+
 	return cmd
 }
 
-type Config struct {
+// config contains all options that apply to a running command
+type config struct {
 	ListenAddr string
+	Docker     docker.Helper
 }
 
-func (c *Config) startAllInOne() {
+func (c *config) startAllInOne() {
 	minionHost := "127.0.0.1"
 	minionPort := 10250
 	rootDirectory := path.Clean("/var/lib/openshift")
@@ -82,13 +87,11 @@ func (c *Config) startAllInOne() {
 	etcdConfig.Name = "openshift.local"
 
 	// check docker connection
-	dockerAddr := getDockerEndpoint("")
-	dockerClient, err := docker.NewClient(dockerAddr)
-	if err != nil {
-		glog.Fatal("Couldn't connect to docker.")
-	}
+	dockerClient, dockerAddr := c.Docker.GetClientOrExit()
 	if err := dockerClient.Ping(); err != nil {
 		glog.Errorf("WARNING: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
+	} else {
+		glog.Infof("Connecting to Docker at %s", dockerAddr)
 	}
 
 	cadvisorClient, err := cadvisor.NewClient("http://127.0.0.1:4194")
@@ -224,18 +227,4 @@ func env(key string, defaultValue string) string {
 	} else {
 		return val
 	}
-}
-
-func getDockerEndpoint(dockerEndpoint string) string {
-	var endpoint string
-	if len(dockerEndpoint) > 0 {
-		endpoint = dockerEndpoint
-	} else if len(os.Getenv("DOCKER_HOST")) > 0 {
-		endpoint = os.Getenv("DOCKER_HOST")
-	} else {
-		endpoint = "unix:///var/run/docker.sock"
-	}
-	glog.Infof("Connecting to docker on %s", endpoint)
-
-	return endpoint
 }
