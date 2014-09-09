@@ -14,7 +14,7 @@ find_test_dirs() {
         -o -wholename './target' \
         -o -wholename '*/third_party/*' \
         -o -wholename '*/Godeps/*' \
-        -o -wholename '*/output/*' \
+        -o -wholename '*/_output/*' \
       \) -prune \
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }

@@ -54,7 +54,7 @@ else
   OS_REPO_ROOT=$(readlink -f "${OS_REPO_ROOT}")
 fi
 
-OS_TARGET="${OS_REPO_ROOT}/output/go"
+OS_TARGET="${OS_REPO_ROOT}/_output/go"
 mkdir -p "${OS_TARGET}"
 
 OS_GO_PACKAGE=github.com/openshift/origin
@@ -63,7 +63,7 @@ OS_GO_PACKAGE_DIR="${OS_TARGET}/src/${OS_GO_PACKAGE}"
 OS_GO_PACKAGE_BASEDIR=$(dirname "${OS_GO_PACKAGE_DIR}")
 mkdir -p "${OS_GO_PACKAGE_BASEDIR}"
 
-# Create symlink under output/go/src.
+# Create symlink under _output/go/src.
 ln -snf "${OS_REPO_ROOT}" "${OS_GO_PACKAGE_DIR}"
 
 GOPATH="${OS_TARGET}:${OS_REPO_ROOT}/Godeps/_workspace"

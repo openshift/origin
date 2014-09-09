@@ -22,12 +22,12 @@ From there, you can:
 
 2.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
-        $ output/go/bin/openshift start
+        $ _output/go/bin/openshift start
 
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ output/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
+        $ _output/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
 
 Once that's done, open a browser on your machine and open [http://localhost:6061](http://localhost:6061); you should see a 'Welcome to OpenShift' message.
 
@@ -39,7 +39,8 @@ This example is simply running the ['openshift/hello-openshift' Docker image](ht
 * At the Kubernetes level, we [map that bound port in the container](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L13) [to port 6061 on the host](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L14) so that we can access it via the host browser.
 
 ### Other Examples
-For an example app that includes a databse and an admin front-end, try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json). Also, coming soon: [Vagrant](http://www.vagrantup.com) environments supporting OpenShift - see [Kubernetes README.md](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md) for now.
+For an example app that includes a databse and an admin front-end, try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json). 
+
 
 Getting Started With Vagrant
 ----------------------------
