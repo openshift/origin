@@ -197,4 +197,12 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	if !reflect.DeepEqual(mapping.Image.Metadata, image.Metadata) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
+
+	repo, err := imageRepositoryRegistry.GetImageRepository("repo1")
+	if err != nil {
+		t.Errorf("Unexpected non-nil err: %#v", err)
+	}
+	if e, a := "imageID1", repo.Tags["latest"]; e != a {
+		t.Errorf("Expected %s, got %s", e, a)
+	}
 }

@@ -67,7 +67,7 @@ func (s *ImageRepositoryMappingStorage) Create(obj interface{}) (<-chan interfac
 	if repo.Tags == nil {
 		repo.Tags = make(map[string]string)
 	}
-	repo.Tags[mapping.Tag] = image.DockerImageReference
+	repo.Tags[mapping.Tag] = image.ID
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
 		err = s.imageRegistry.CreateImage(image)
