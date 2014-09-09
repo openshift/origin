@@ -1,6 +1,6 @@
-/output
+/_output
 /third_party
 /*.etcd
-.project
-.vagrant
+/.project
+/.vagrant
 *.swp
