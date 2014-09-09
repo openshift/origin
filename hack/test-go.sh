@@ -30,4 +30,4 @@ if [ "$1" != "" ]; then
   exit 0
 fi
 
-find_test_dirs | xargs go test -race -timeout 30s $KUBE_COVER "${@:2}"
+find_test_dirs | xargs go test -race $KUBE_TIMEOUT $KUBE_COVER "${@:2}"
