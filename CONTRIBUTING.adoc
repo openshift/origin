@@ -51,7 +51,7 @@ $ cd $GOPATH/src/github.com/openshift/origin
 $ git remote add <YOUR_GITHUB_USERNAME> git@github.com:<YOUR_GITHUB_USERNAME>/origin
 ----
 
-From here, you can follow the https://github.com/openshift/origin/#getting-started[Getting Started section] of the README for a brief tour of OpenShift 3 functionality, which includes single- and multi-container pod examples.
+From here, you can follow the https://github.com/openshift/origin/#getting-started[Getting Started section] of the README for a brief tour of OpenShift 3 functionality, which includes single and multi-container pod examples.
 
 Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
 
