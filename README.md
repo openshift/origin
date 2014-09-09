@@ -156,6 +156,12 @@ You'll need [etcd](https://github.com/coreos/etcd) installed and on your path fo
 $ go get github.com/coreos/etcd
 ```
 
+Some of the components of OpenShift run as Docker images, including the builders and deployment tools in `images/builder/docker/*` and 'images/deploy/*`.  To build them locally run
+
+```
+$ hack/build-images.sh
+```
+
 
 License
 -------
