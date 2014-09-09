@@ -100,7 +100,6 @@ The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 Several experimental API objects are being prototyped, and should be available soon at:
 
 * `http://localhost:8080/osapi/v1beta1/images`
-* `http://localhost:8080/osapi/v1beta1/imagesByRepository`
 * `http://localhost:8080/osapi/v1beta1/imageRepositories`
 * `http://localhost:8080/osapi/v1beta1/builds`
 * `http://localhost:8080/osapi/v1beta1/buildConfigs`

@@ -53,3 +53,19 @@ echo "kube(services): ok"
 ${KUBE_CMD} list minions
 ${KUBE_CMD} get minions/127.0.0.1
 echo "kube(minions): ok"
+
+${KUBE_CMD} list images
+${KUBE_CMD} -c examples/image/test-image.json create images
+${KUBE_CMD} delete images/test
+echo "kube(images): ok"
+
+${KUBE_CMD} list imageRepositories
+${KUBE_CMD} -c examples/image/test-image-repository.json create imageRepositories
+${KUBE_CMD} delete imageRepositories/test
+echo "kube(imageRepositories): ok"
+
+${KUBE_CMD} -c examples/image/test-image-repository.json create imageRepositories
+${KUBE_CMD} -c examples/image/test-mapping.json create imageRepositoryMappings
+${KUBE_CMD} list images
+${KUBE_CMD} list imageRepositories
+echo "kube(imageRepositoryMappings): ok"

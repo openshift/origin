@@ -31,24 +31,38 @@ import (
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	"github.com/openshift/origin/pkg/build/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/image"
+	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 	"github.com/spf13/cobra"
 )
 
 func NewCommandStartAllInOne(name string) *cobra.Command {
-	return &cobra.Command{
+	cfg := &Config{}
+
+	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Launch in all-in-one mode",
 		Run: func(c *cobra.Command, args []string) {
-			startAllInOne()
+			cfg.startAllInOne()
 		},
 	}
+
+	flag := cmd.Flags()
+	flag.StringVar(&cfg.ListenAddr, "listenAddr", "127.0.0.1:8080", "The OpenShift server listen address.")
+
+	return cmd
 }
 
-func startAllInOne() {
+type Config struct {
+	ListenAddr string
+}
+
+func (c *Config) startAllInOne() {
 	minionHost := "127.0.0.1"
 	minionPort := 10250
 	rootDirectory := path.Clean("/var/lib/openshift")
-	osAddr := "127.0.0.1:8080"
+	osAddr := c.ListenAddr
+
 	osPrefix := "/osapi/v1beta1"
 	kubePrefix := "/api/v1beta1"
 	kubeClient, err := kubeclient.New("http://"+osAddr, nil)
@@ -117,10 +131,15 @@ func startAllInOne() {
 		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), minionHost, uint(minionPort))
 	}, 0)
 
+	imageRegistry := image.NewEtcdRegistry(etcdClient)
+
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
-		"builds":       buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
-		"buildConfigs": buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"builds":                  buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"buildConfigs":            buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"images":                  image.NewImageStorage(imageRegistry),
+		"imageRepositories":       image.NewImageRepositoryStorage(imageRegistry),
+		"imageRepositoryMappings": image.NewImageRepositoryMappingStorage(imageRegistry, imageRegistry),
 	}
 
 	osMux := http.NewServeMux()

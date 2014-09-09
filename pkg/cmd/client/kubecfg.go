@@ -39,6 +39,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/client/build"
+	"github.com/openshift/origin/pkg/cmd/client/image"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 type RESTClient interface {
@@ -86,12 +88,15 @@ func usage(name string) string {
 }
 
 var parser = kubecfg.NewParser(map[string]interface{}{
-	"pods":                   api.Pod{},
-	"services":               api.Service{},
-	"replicationControllers": api.ReplicationController{},
-	"minions":                api.Minion{},
-	"builds":                 buildapi.Build{},
-	"buildConfigs":           buildapi.BuildConfig{},
+	"pods":                    api.Pod{},
+	"services":                api.Service{},
+	"replicationControllers":  api.ReplicationController{},
+	"minions":                 api.Minion{},
+	"builds":                  buildapi.Build{},
+	"buildConfigs":            buildapi.BuildConfig{},
+	"images":                  imageapi.Image{},
+	"imageRepositories":       imageapi.ImageRepository{},
+	"imageRepositoryMappings": imageapi.ImageRepositoryMapping{},
 })
 
 func prettyWireStorage() string {
@@ -209,12 +214,15 @@ func (c *KubeConfig) Run() {
 
 	method := c.Arg(0)
 	clients := map[string]RESTClient{
-		"minions":                kubeClient.RESTClient,
-		"pods":                   kubeClient.RESTClient,
-		"services":               kubeClient.RESTClient,
-		"replicationControllers": kubeClient.RESTClient,
-		"builds":                 client.RESTClient,
-		"buildConfigs":           client.RESTClient,
+		"minions":                 kubeClient.RESTClient,
+		"pods":                    kubeClient.RESTClient,
+		"services":                kubeClient.RESTClient,
+		"replicationControllers":  kubeClient.RESTClient,
+		"builds":                  client.RESTClient,
+		"buildConfigs":            client.RESTClient,
+		"images":                  client.RESTClient,
+		"imageRepositories":       client.RESTClient,
+		"imageRepositoryMappings": client.RESTClient,
 	}
 
 	matchFound := c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, kubeClient)
@@ -415,7 +423,10 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 
 func humanReadablePrinter() *kubecfg.HumanReadablePrinter {
 	printer := kubecfg.NewHumanReadablePrinter()
-	build.RegisterPrintHandlers(printer)
+
 	// Add Handler calls here to support additional types
+	build.RegisterPrintHandlers(printer)
+	image.RegisterPrintHandlers(printer)
+
 	return printer
 }
