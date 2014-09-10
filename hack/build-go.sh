@@ -28,4 +28,4 @@ for arg; do
   binaries+=("${OS_GO_PACKAGE}/${arg}")
 done
 
-go install -ldflags "-X github.com/GoogleCloudPlatform/kubernetes/pkg/version.commitFromGit '${kube_version}' -X github.com/openshift/origin/pkg/version.commitFromGit '${version}'" "${binaries[@]}"
+go install -ldflags "-X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit '${kube_version}' -X github.com/openshift/origin/pkg/version.commitFromGit '${version}'" "${binaries[@]}"
