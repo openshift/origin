@@ -42,7 +42,7 @@ type BuildConfig struct {
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// DesiredInput is the input used to create builds from this configuration
-	DesiredInput BuildInput
+	DesiredInput BuildInput `json:"desiredInput,omitempty" yaml:"desiredInput,omitempty"`
 }
 
 // BuildType is a type of build (docker, sti, etc)
