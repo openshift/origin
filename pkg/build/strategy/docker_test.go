@@ -30,6 +30,9 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if container.RestartPolicy != "runOnce" {
 		t.Errorf("Expected runOnce, but got %s!", container.RestartPolicy)
 	}
+	if !container.Privileged {
+		t.Errorf("Expected Privileged")
+	}
 	if e := container.Env[0]; e.Name != "BUILD_TAG" && e.Value != expected.Input.ImageTag {
 		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)
 	}
