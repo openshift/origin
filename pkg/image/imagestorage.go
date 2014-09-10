@@ -60,7 +60,7 @@ func (s *ImageStorage) Create(obj interface{}) (<-chan interface{}, error) {
 	}
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		if err := s.registry.CreateImage(*image); err != nil {
+		if err := s.registry.CreateImage(image); err != nil {
 			return nil, err
 		}
 		return s.Get(image.ID)

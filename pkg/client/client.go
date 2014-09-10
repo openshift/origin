@@ -36,23 +36,23 @@ type BuildConfigInterface interface {
 
 // ImageInterface exposes methods on Image resources.
 type ImageInterface interface {
-	ListImages(selector labels.Selector) (imageapi.ImageList, error)
-	GetImage(id string) (imageapi.Image, error)
-	CreateImage(imageapi.Image) (imageapi.Image, error)
+	ListImages(selector labels.Selector) (*imageapi.ImageList, error)
+	GetImage(id string) (*imageapi.Image, error)
+	CreateImage(*imageapi.Image) (*imageapi.Image, error)
 }
 
 // ImageRepositoryInterface exposes methods on ImageRepository resources.
 type ImageRepositoryInterface interface {
-	ListImageRepositories(selector labels.Selector) (imageapi.ImageRepositoryList, error)
-	GetImageRepository(id string) (imageapi.ImageRepository, error)
+	ListImageRepositories(selector labels.Selector) (*imageapi.ImageRepositoryList, error)
+	GetImageRepository(id string) (*imageapi.ImageRepository, error)
 	WatchImageRepositories(field, label labels.Selector, resourceVersion uint64) (watch.Interface, error)
-	CreateImageRepository(repo imageapi.ImageRepository) (imageapi.ImageRepository, error)
-	UpdateImageRepository(repo imageapi.ImageRepository) (imageapi.ImageRepository, error)
+	CreateImageRepository(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
+	UpdateImageRepository(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 }
 
 // ImageRepositoryMappingInterface exposes methods on ImageRepositoryMapping resources.
 type ImageRepositoryMappingInterface interface {
-	CreateImageRepositoryMapping(mapping imageapi.ImageRepositoryMapping) error
+	CreateImageRepositoryMapping(mapping *imageapi.ImageRepositoryMapping) error
 }
 
 // Client is an OpenShift client object
@@ -117,28 +117,33 @@ func (c *Client) DeleteBuildConfig(id string) (err error) {
 	return
 }
 
-func (c *Client) ListImages(selector labels.Selector) (result imageapi.ImageList, err error) {
-	err = c.Get().Path("images").SelectorParam("labels", selector).Do().Into(&result)
+func (c *Client) ListImages(selector labels.Selector) (result *imageapi.ImageList, err error) {
+	result = &imageapi.ImageList{}
+	err = c.Get().Path("images").SelectorParam("labels", selector).Do().Into(result)
 	return
 }
 
-func (c *Client) GetImage(id string) (result imageapi.Image, err error) {
-	err = c.Get().Path("images").Path(id).Do().Into(&result)
+func (c *Client) GetImage(id string) (result *imageapi.Image, err error) {
+	result = &imageapi.Image{}
+	err = c.Get().Path("images").Path(id).Do().Into(result)
 	return
 }
 
-func (c *Client) CreateImage(image imageapi.Image) (result imageapi.Image, err error) {
-	err = c.Post().Path("images").Body(image).Do().Into(&result)
+func (c *Client) CreateImage(image *imageapi.Image) (result *imageapi.Image, err error) {
+	result = &imageapi.Image{}
+	err = c.Post().Path("images").Body(image).Do().Into(result)
 	return
 }
 
-func (c *Client) ListImageRepositories(selector labels.Selector) (result imageapi.ImageRepositoryList, err error) {
-	err = c.Get().Path("imageRepositories").SelectorParam("labels", selector).Do().Into(&result)
+func (c *Client) ListImageRepositories(selector labels.Selector) (result *imageapi.ImageRepositoryList, err error) {
+	result = &imageapi.ImageRepositoryList{}
+	err = c.Get().Path("imageRepositories").SelectorParam("labels", selector).Do().Into(result)
 	return
 }
 
-func (c *Client) GetImageRepository(id string) (result imageapi.ImageRepository, err error) {
-	err = c.Get().Path("imageRepositories").Path(id).Do().Into(&result)
+func (c *Client) GetImageRepository(id string) (result *imageapi.ImageRepository, err error) {
+	result = &imageapi.ImageRepository{}
+	err = c.Get().Path("imageRepositories").Path(id).Do().Into(result)
 	return
 }
 
@@ -152,16 +157,18 @@ func (c *Client) WatchImageRepositories(field, label labels.Selector, resourceVe
 		Watch()
 }
 
-func (c *Client) CreateImageRepository(repo imageapi.ImageRepository) (result imageapi.ImageRepository, err error) {
-	err = c.Post().Path("imageRepositories").Body(repo).Do().Into(&result)
+func (c *Client) CreateImageRepository(repo *imageapi.ImageRepository) (result *imageapi.ImageRepository, err error) {
+	result = &imageapi.ImageRepository{}
+	err = c.Post().Path("imageRepositories").Body(repo).Do().Into(result)
 	return
 }
 
-func (c *Client) UpdateImageRepository(repo imageapi.ImageRepository) (result imageapi.ImageRepository, err error) {
-	err = c.Put().Path("imageRepositories").Path(repo.ID).Body(repo).Do().Into(&result)
+func (c *Client) UpdateImageRepository(repo *imageapi.ImageRepository) (result *imageapi.ImageRepository, err error) {
+	result = &imageapi.ImageRepository{}
+	err = c.Put().Path("imageRepositories").Path(repo.ID).Body(repo).Do().Into(result)
 	return
 }
 
-func (c *Client) CreateImageRepositoryMapping(mapping imageapi.ImageRepositoryMapping) error {
+func (c *Client) CreateImageRepositoryMapping(mapping *imageapi.ImageRepositoryMapping) error {
 	return c.Post().Path("imageRepositoryMappings").Body(mapping).Do().Error()
 }

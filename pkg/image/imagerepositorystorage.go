@@ -75,7 +75,7 @@ func (s *ImageRepositoryStorage) Create(obj interface{}) (<-chan interface{}, er
 	repo.CreationTimestamp = util.Now()
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		if err := s.registry.CreateImageRepository(*repo); err != nil {
+		if err := s.registry.CreateImageRepository(repo); err != nil {
 			return nil, err
 		}
 		return s.Get(repo.ID)
@@ -93,7 +93,7 @@ func (s *ImageRepositoryStorage) Update(obj interface{}) (<-chan interface{}, er
 	}
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		err := s.registry.UpdateImageRepository(*repo)
+		err := s.registry.UpdateImageRepository(repo)
 		if err != nil {
 			return nil, err
 		}

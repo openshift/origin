@@ -32,19 +32,19 @@ func (r *ImageRegistry) GetImage(id string) (*api.Image, error) {
 	return r.Image, r.Err
 }
 
-func (r *ImageRegistry) CreateImage(image api.Image) error {
+func (r *ImageRegistry) CreateImage(image *api.Image) error {
 	r.Lock()
 	defer r.Unlock()
 
-	r.Image = &image
+	r.Image = image
 	return r.Err
 }
 
-func (r *ImageRegistry) UpdateImage(image api.Image) error {
+func (r *ImageRegistry) UpdateImage(image *api.Image) error {
 	r.Lock()
 	defer r.Unlock()
 
-	r.Image = &image
+	r.Image = image
 	return r.Err
 }
 

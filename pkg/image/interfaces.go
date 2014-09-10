@@ -13,9 +13,9 @@ type ImageRegistry interface {
 	// GetImage retrieves a specific image.
 	GetImage(id string) (*api.Image, error)
 	// CreateImage creates a new image.
-	CreateImage(image api.Image) error
+	CreateImage(image *api.Image) error
 	// UpdateImage updates an image.
-	UpdateImage(image api.Image) error
+	UpdateImage(image *api.Image) error
 	// DeleteImage deletes an image.
 	DeleteImage(id string) error
 }
@@ -29,9 +29,9 @@ type ImageRepositoryRegistry interface {
 	// WatchImageRepositories watches for new/changed/deleted image repositories.
 	WatchImageRepositories(resourceVersion uint64, filter func(repo *api.ImageRepository) bool) (watch.Interface, error)
 	// CreateImageRepository creates a new image repository.
-	CreateImageRepository(repo api.ImageRepository) error
+	CreateImageRepository(repo *api.ImageRepository) error
 	// UpdateImageRepository updates an image repository.
-	UpdateImageRepository(repo api.ImageRepository) error
+	UpdateImageRepository(repo *api.ImageRepository) error
 	// DeleteImageRepository deletes an image repository.
 	DeleteImageRepository(id string) error
 }

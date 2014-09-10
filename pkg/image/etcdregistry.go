@@ -61,8 +61,8 @@ func (r *EtcdRegistry) GetImage(id string) (*api.Image, error) {
 }
 
 // CreateImage creates a new image
-func (r *EtcdRegistry) CreateImage(image api.Image) error {
-	err := r.CreateObj(makeImageKey(image.ID), &image)
+func (r *EtcdRegistry) CreateImage(image *api.Image) error {
+	err := r.CreateObj(makeImageKey(image.ID), image)
 	if tools.IsEtcdNodeExist(err) {
 		return apierrors.NewAlreadyExists("image", image.ID)
 	}
@@ -70,7 +70,7 @@ func (r *EtcdRegistry) CreateImage(image api.Image) error {
 }
 
 // UpdateImage updates an existing image
-func (r *EtcdRegistry) UpdateImage(image api.Image) error {
+func (r *EtcdRegistry) UpdateImage(image *api.Image) error {
 	return errors.New("not supported")
 }
 
@@ -127,8 +127,8 @@ func (r *EtcdRegistry) WatchImageRepositories(resourceVersion uint64, filter fun
 }
 
 // CreateImageRepository registers the given ImageRepository.
-func (r *EtcdRegistry) CreateImageRepository(repo api.ImageRepository) error {
-	err := r.CreateObj(makeImageRepositoryKey(repo.ID), &repo)
+func (r *EtcdRegistry) CreateImageRepository(repo *api.ImageRepository) error {
+	err := r.CreateObj(makeImageRepositoryKey(repo.ID), repo)
 	if err != nil && tools.IsEtcdNodeExist(err) {
 		return apierrors.NewAlreadyExists("imageRepository", repo.ID)
 	}
@@ -137,8 +137,8 @@ func (r *EtcdRegistry) CreateImageRepository(repo api.ImageRepository) error {
 }
 
 // UpdateImageRepository replaces an existing ImageRepository in the registry with the given ImageRepository.
-func (r *EtcdRegistry) UpdateImageRepository(repo api.ImageRepository) error {
-	return r.SetObj(makeImageRepositoryKey(repo.ID), &repo)
+func (r *EtcdRegistry) UpdateImageRepository(repo *api.ImageRepository) error {
+	return r.SetObj(makeImageRepositoryKey(repo.ID), repo)
 }
 
 // DeleteImageRepository deletes an ImageRepository by id.
