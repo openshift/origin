@@ -169,7 +169,7 @@ func TestEtcdCreateImage(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcdRegistry(fakeClient)
-	err := registry.CreateImage(api.Image{
+	err := registry.CreateImage(&api.Image{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
 		},
@@ -216,7 +216,7 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcdRegistry(fakeClient)
-	err := registry.CreateImage(api.Image{
+	err := registry.CreateImage(&api.Image{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
 		},
@@ -232,7 +232,7 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 func TestEtcdUpdateImage(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
-	err := registry.UpdateImage(api.Image{})
+	err := registry.UpdateImage(&api.Image{})
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -424,7 +424,7 @@ func TestEtcdCreateImageRepository(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcdRegistry(fakeClient)
-	err := registry.CreateImageRepository(api.ImageRepository{
+	err := registry.CreateImageRepository(&api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
 		},
@@ -474,7 +474,7 @@ func TestEtcdCreateImageRepositoryAlreadyExists(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcdRegistry(fakeClient)
-	err := registry.CreateImageRepository(api.ImageRepository{
+	err := registry.CreateImageRepository(&api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
 		},
@@ -493,7 +493,7 @@ func TestEtcdUpdateImageRepository(t *testing.T) {
 
 	resp, _ := fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
-	err := registry.UpdateImageRepository(api.ImageRepository{
+	err := registry.UpdateImageRepository(&api.ImageRepository{
 		JSONBase:              kubeapi.JSONBase{ID: "foo", ResourceVersion: resp.Node.ModifiedIndex},
 		DockerImageRepository: "some/repo",
 	})

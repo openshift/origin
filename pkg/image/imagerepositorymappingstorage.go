@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	baseapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -70,17 +70,17 @@ func (s *ImageRepositoryMappingStorage) Create(obj interface{}) (<-chan interfac
 	repo.Tags[mapping.Tag] = image.ID
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		err = s.imageRegistry.CreateImage(image)
+		err = s.imageRegistry.CreateImage(&image)
 		if err != nil && !kubeerrors.IsAlreadyExists(err) {
 			return nil, err
 		}
 
-		err = s.imageRepositoryRegistry.UpdateImageRepository(*repo)
+		err = s.imageRepositoryRegistry.UpdateImageRepository(repo)
 		if err != nil {
 			return nil, err
 		}
 
-		return &baseapi.Status{Status: baseapi.StatusSuccess}, nil
+		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, nil
 	}), nil
 }
 

@@ -37,19 +37,19 @@ func (r *ImageRepositoryRegistry) WatchImageRepositories(resourceVersion uint64,
 	return nil, r.Err
 }
 
-func (r *ImageRepositoryRegistry) CreateImageRepository(repo api.ImageRepository) error {
+func (r *ImageRepositoryRegistry) CreateImageRepository(repo *api.ImageRepository) error {
 	r.Lock()
 	defer r.Unlock()
 
-	r.ImageRepository = &repo
+	r.ImageRepository = repo
 	return r.Err
 }
 
-func (r *ImageRepositoryRegistry) UpdateImageRepository(repo api.ImageRepository) error {
+func (r *ImageRepositoryRegistry) UpdateImageRepository(repo *api.ImageRepository) error {
 	r.Lock()
 	defer r.Unlock()
 
-	r.ImageRepository = &repo
+	r.ImageRepository = repo
 	return r.Err
 }
 
