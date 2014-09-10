@@ -39,7 +39,7 @@ This example is simply running the ['openshift/hello-openshift' Docker image](ht
 * At the Kubernetes level, we [map that bound port in the container](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L13) [to port 6061 on the host](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L14) so that we can access it via the host browser.
 
 ### Other Examples
-For an example app that includes a databse and an admin front-end, try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json). 
+For an example app that includes a database and an admin front-end, try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json). 
 
 
 Getting Started With Vagrant
