@@ -40,6 +40,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 							{Name: "SOURCE_REF", Value: build.Input.SourceURI},
 							{Name: "BUILDER_IMAGE", Value: build.Input.BuilderImage},
 						},
+						Privileged: true,
 					},
 				},
 			},

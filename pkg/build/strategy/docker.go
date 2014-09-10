@@ -38,6 +38,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegis
 							{Name: "DOCKER_CONTEXT_URL", Value: build.Input.SourceURI},
 							{Name: "DOCKER_REGISTRY", Value: dockerRegistry},
 						},
+						Privileged: true,
 					},
 				},
 			},
