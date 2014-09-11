@@ -74,7 +74,7 @@ func (bc *BuildController) watchBuilds(syncTime <-chan time.Time) {
 
 				if nextStatus != build.Status {
 					build.Status = nextStatus
-					if _, err := bc.osClient.UpdateBuild(build); err != nil {
+					if _, err := bc.osClient.UpdateBuild(&build); err != nil {
 						glog.Errorf("Error updating build ID %v to status %v: %#v", build.ID, nextStatus, err)
 					}
 				}

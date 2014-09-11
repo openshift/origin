@@ -43,6 +43,9 @@ type BuildConfig struct {
 
 	// DesiredInput is the input used to create builds from this configuration
 	DesiredInput BuildInput `json:"desiredInput,omitempty" yaml:"desiredInput,omitempty"`
+
+	// Secret used to validate requests.
+	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
 }
 
 // BuildType is a type of build (docker, sti, etc)

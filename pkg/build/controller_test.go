@@ -38,7 +38,7 @@ func (_ *okStrategy) CreateBuildPod(build *api.Build, dockerRegistry string) *ku
 }
 
 type errKubeClient struct {
-	*kubeclient.Fake
+	kubeclient.Fake
 }
 
 func (_ *errKubeClient) CreatePod(pod kubeapi.Pod) (kubeapi.Pod, error) {
@@ -50,7 +50,7 @@ func (_ *errKubeClient) GetPod(name string) (kubeapi.Pod, error) {
 }
 
 type okKubeClient struct {
-	*kubeclient.Fake
+	kubeclient.Fake
 }
 
 func (_ *okKubeClient) GetPod(name string) (kubeapi.Pod, error) {

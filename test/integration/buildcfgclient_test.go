@@ -63,7 +63,7 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// get a validation error
-	buildConfig := api.BuildConfig{
+	buildConfig := &api.BuildConfig{
 		Labels: map[string]string{
 			"label1": "value1",
 			"label2": "value2",

@@ -31,6 +31,8 @@ import (
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	"github.com/openshift/origin/pkg/build/strategy"
+	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/image"
@@ -153,6 +155,13 @@ func (c *config) startAllInOne() {
 	}
 
 	osMux := http.NewServeMux()
+
+	// initialize webhooks
+	whPrefix := osPrefix + "/buildConfigHooks/"
+	osMux.Handle(whPrefix, http.StripPrefix(whPrefix,
+		webhook.NewController(osClient, map[string]webhook.Plugin{
+			"github": github.New(),
+		})))
 
 	// initialize Kubernetes API
 	podInfoGetter := &kubeclient.HTTPPodInfoGetter{
