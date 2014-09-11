@@ -29,6 +29,9 @@ type BuildInput struct {
 	// will depend on the type of build to run
 	SourceURI string `json:"sourceURI,omitempty" yaml:"sourceURI,omitempty"`
 
+	// SourceRef is the branch/tag/ref to build.
+	SourceRef string `json:"sourceRef,omitempty" yaml:"sourceRef,omitempty"`
+
 	// ImageTag is the tag to give to the image resulting from the build
 	ImageTag string `json:"imageTag,omitempty" yaml:"imageTag,omitempty"`
 

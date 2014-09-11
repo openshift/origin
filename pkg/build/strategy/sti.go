@@ -37,7 +37,8 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 						Env: []api.EnvVar{
 							{Name: "BUILD_TAG", Value: build.Input.ImageTag},
 							{Name: "DOCKER_REGISTRY", Value: dockerRegistry},
-							{Name: "SOURCE_REF", Value: build.Input.SourceURI},
+							{Name: "SOURCE_URI", Value: build.Input.SourceURI},
+							{Name: "SOURCE_REF", Value: build.Input.SourceRef},
 							{Name: "BUILDER_IMAGE", Value: build.Input.BuilderImage},
 						},
 						Privileged: true,

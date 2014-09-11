@@ -8,8 +8,6 @@ import (
 // or a Docker-in-Docker socket where Docker runs in the container itself.
 func setupDockerSocket(useHostDocker bool, podSpec *api.Pod) {
 	if useHostDocker {
-		podSpec.DesiredState.Manifest.Containers[0].Privileged = true
-	} else {
 		dockerSocketVolume := api.Volume{
 			Name: "docker-socket",
 			Source: &api.VolumeSource{
@@ -29,5 +27,7 @@ func setupDockerSocket(useHostDocker bool, podSpec *api.Pod) {
 		podSpec.DesiredState.Manifest.Containers[0].VolumeMounts =
 			append(podSpec.DesiredState.Manifest.Containers[0].VolumeMounts,
 				dockerSocketVolumeMount)
+	} else {
+		podSpec.DesiredState.Manifest.Containers[0].Privileged = true
 	}
 }
