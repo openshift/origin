@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -21,11 +21,11 @@ func TestValidateImageOK(t *testing.T) {
 func TestValidateImageMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
 		I api.Image
-		T kubeerrors.ValidationErrorType
+		T errors.ValidationErrorType
 		F string
 	}{
-		"missing ID":                   {api.Image{DockerImageReference: "ref"}, kubeerrors.ValidationErrorTypeRequired, "ID"},
-		"missing DockerImageReference": {api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}, kubeerrors.ValidationErrorTypeRequired, "DockerImageReference"},
+		"missing ID":                   {api.Image{DockerImageReference: "ref"}, errors.ValidationErrorTypeRequired, "ID"},
+		"missing DockerImageReference": {api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}, errors.ValidationErrorTypeRequired, "DockerImageReference"},
 	}
 
 	for k, v := range errorCases {
@@ -35,10 +35,10 @@ func TestValidateImageMissingFields(t *testing.T) {
 			continue
 		}
 		for i := range errs {
-			if errs[i].(kubeerrors.ValidationError).Type != v.T {
+			if errs[i].(errors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(kubeerrors.ValidationError).Field != v.F {
+			if errs[i].(errors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
@@ -48,7 +48,7 @@ func TestValidateImageMissingFields(t *testing.T) {
 func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 	errorCases := map[string]struct {
 		I api.ImageRepositoryMapping
-		T kubeerrors.ValidationErrorType
+		T errors.ValidationErrorType
 		F string
 	}{
 		"missing DockerImageRepository": {
@@ -61,7 +61,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 					DockerImageReference: "openshift/ruby-19-centos",
 				},
 			},
-			kubeerrors.ValidationErrorTypeRequired,
+			errors.ValidationErrorTypeRequired,
 			"DockerImageRepository",
 		},
 		"missing Tag": {
@@ -74,7 +74,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 					DockerImageReference: "openshift/ruby-19-centos",
 				},
 			},
-			kubeerrors.ValidationErrorTypeRequired,
+			errors.ValidationErrorTypeRequired,
 			"Tag",
 		},
 		"missing image attributes": {
@@ -85,7 +85,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 					DockerImageReference: "openshift/ruby-19-centos",
 				},
 			},
-			kubeerrors.ValidationErrorTypeRequired,
+			errors.ValidationErrorTypeRequired,
 			"image.ID",
 		},
 	}
@@ -97,10 +97,10 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			continue
 		}
 		for i := range errs {
-			if errs[i].(kubeerrors.ValidationError).Type != v.T {
+			if errs[i].(errors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(kubeerrors.ValidationError).Field != v.F {
+			if errs[i].(errors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}

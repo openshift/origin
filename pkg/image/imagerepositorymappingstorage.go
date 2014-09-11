@@ -1,11 +1,10 @@
 package image
 
 import (
-	"errors"
 	"fmt"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -31,12 +30,12 @@ func (s *ImageRepositoryMappingStorage) New() interface{} {
 
 // Get is not supported.
 func (s *ImageRepositoryMappingStorage) Get(id string) (interface{}, error) {
-	return nil, errors.New("not supported")
+	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }
 
 // List is not supported.
 func (s *ImageRepositoryMappingStorage) List(selector labels.Selector) (interface{}, error) {
-	return nil, errors.New("not supported")
+	return nil, errors.NewNotFound("imageRepositoryMapping", "list")
 }
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
@@ -51,11 +50,13 @@ func (s *ImageRepositoryMappingStorage) Create(obj interface{}) (<-chan interfac
 		return nil, err
 	}
 	if repo == nil {
-		return nil, fmt.Errorf("Unable to locate an image repository for '%s'", mapping.DockerImageRepository)
+		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.ID, errors.ErrorList{
+			errors.NewFieldNotFound("DockerImageRepository", mapping.DockerImageRepository),
+		})
 	}
 
 	if errs := ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
-		return nil, kubeerrors.NewInvalid("imageRepositoryMapping", mapping.ID, errs)
+		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.ID, errs)
 	}
 
 	image := mapping.Image
@@ -71,7 +72,7 @@ func (s *ImageRepositoryMappingStorage) Create(obj interface{}) (<-chan interfac
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
 		err = s.imageRegistry.CreateImage(&image)
-		if err != nil && !kubeerrors.IsAlreadyExists(err) {
+		if err != nil && !errors.IsAlreadyExists(err) {
 			return nil, err
 		}
 
@@ -105,10 +106,10 @@ func (s *ImageRepositoryMappingStorage) findImageRepository(dockerRepo string) (
 
 // Update is not supported.
 func (s *ImageRepositoryMappingStorage) Update(obj interface{}) (<-chan interface{}, error) {
-	return nil, errors.New("not supported")
+	return nil, fmt.Errorf("ImageRepositoryMappings may not be changed.")
 }
 
 // Delete is not supported.
 func (s *ImageRepositoryMappingStorage) Delete(id string) (<-chan interface{}, error) {
-	return nil, errors.New("not supported")
+	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }

@@ -1,11 +1,10 @@
 package image
 
 import (
-	"errors"
 	"fmt"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -56,7 +55,7 @@ func (s *ImageStorage) Create(obj interface{}) (<-chan interface{}, error) {
 	image.CreationTimestamp = util.Now()
 
 	if errs := ValidateImage(image); len(errs) > 0 {
-		return nil, kubeerrors.NewInvalid("image", image.ID, errs)
+		return nil, errors.NewInvalid("image", image.ID, errs)
 	}
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
@@ -69,7 +68,7 @@ func (s *ImageStorage) Create(obj interface{}) (<-chan interface{}, error) {
 
 // Update is not supported for Images, as they are immutable.
 func (s *ImageStorage) Update(obj interface{}) (<-chan interface{}, error) {
-	return nil, errors.New("not supported")
+	return nil, fmt.Errorf("Images may not be changed.")
 }
 
 // Delete asynchronously deletes an Image specified by its id.

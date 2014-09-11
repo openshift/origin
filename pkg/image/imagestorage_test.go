@@ -7,7 +7,7 @@ import (
 	"time"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/imagetest"
@@ -103,7 +103,7 @@ func TestCreateImageMissingID(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Expected nil channel, got %v", channel)
 	}
-	if !kubeerrors.IsInvalid(err) {
+	if !errors.IsInvalid(err) {
 		t.Errorf("Expected 'invalid' error, got %v", err)
 	}
 }
@@ -209,8 +209,11 @@ func TestUpdateImage(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel: %#v", channel)
 	}
-	if err == nil || strings.Index(err.Error(), "not supported") == -1 {
-		t.Errorf("Expected 'not supported' error, got: %#v", err)
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if strings.Index(err.Error(), "Images may not be changed.") == -1 {
+		t.Errorf("Expected 'may not be changed' error, got: %#v", err)
 	}
 }
 
