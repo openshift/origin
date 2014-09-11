@@ -40,30 +40,20 @@ documentation:
       responses:
         200:
           body:
-            example: |
-              {
-                "success": true
-              }
+            example: !include examples/status-success.json
     post:
       description: Instantiate a template in the given project
       body:
         example: !include examples/project-post.json
-/image-repositories:
-  get:
-    queryParameters:
-      projectId:
-        description: Filter list by project
-        type: string
-      visibility:
-        description: Filter by visibility (public, private)
-        type: string
-    description: |
-      Lists all image repositories that you have access to.
 
-      An image repository is a collection of images that share the same metadata. It contains
-      multiple versions of an image as it evolves over time with new builds of the codebase.
-      An image repository may be associated with a build which can be triggered by an event such
-      as a commit to a source repository. The build will then push a new image on to the repository.
+/imageRepositories:
+  get:
+    description: |
+      Lists all image repositories.
+
+      An image repository is a collection of images that share the same metadata. It may
+      reference a Docker image repository on a Docker registry, but this is optional. An
+      image repository also contains a mapping of tags to images.
     responses:
       200:
         body:
@@ -71,8 +61,9 @@ documentation:
   post:
     description: Create a new image repository
     body:
-      example: !include examples/image-repository.json
-/image-repository/{repositoryID}:
+      example: !include examples/create-image-repository.json
+
+/imageRepositories/{repositoryID}:
     get:
       description: Get information about an image repository
       body:
@@ -86,22 +77,16 @@ documentation:
       responses:
         200:
           body:
-            example: |
-              {
-                "success": true
-              }
+            example: !include examples/status-success.json
 /images:
   get:
-    queryParameters:
-      repositoryId:
-        description: Filter list by repository
-        type: string
     description: |
-      Lists images visible to you
+      Lists all images.
 
-      Images can be stored in Openshift servers or can be references to images from
-      an external repository. The metadata that Openshift stores for an image will augment
-      the metadata that has already been specified in the image through its Dockerfile.
+      An image is a reference to an image in a Docker image repository on a Docker
+      registry, plus a set of metadata. The metadata that Openshift stores for an image
+      will augment the metadata that has already been specified in the image through
+      its Dockerfile.
     responses:
       200:
         body:
@@ -110,11 +95,31 @@ documentation:
     description: Create a new image definition
     body:
       example: !include examples/create-image.json
-/image/{imageID}:
+
+/images/{imageID}:
     get:
       description: Get image definition
       body:
         example: !include examples/image.json
+    delete:
+      description: Delete an image
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
+
+/imageRepositoryMappings:
+  post:
+    description: |
+      Creates an image and updates an image repository.
+
+      This is designed as a webhook that a Docker registry can invoke when a
+      new tag is created. The image repository mapping contains a reference
+      to the repository, the image's metadata, and the name of the new tag.
+      Upon execution, a new image is created if it doesn't already exist, and
+      the image repository is updated with the new tag.
+    body:
+      example: !include examples/create-image-repository-mapping.json
 
 /services:
   get:
@@ -154,10 +159,7 @@ documentation:
       responses:
         200:
           body:
-            example: |
-              {
-                "success": true
-              }
+            example: !include examples/status-success.json
     /environment-variables:
       get:
         description: Environment variables associated with this service
@@ -183,10 +185,7 @@ documentation:
           responses:
             200:
               body:
-                example: |
-                  {
-                    "success": true
-                  }
+                example: !include examples/status-success.json
 /deployments:
   get:
     description: |
@@ -245,10 +244,7 @@ documentation:
     responses:
       200:
         body:
-          example: |
-            {
-              "success": true
-            }
+          example: !include examples/status-success.json
 /aliases:
   get:
     description: |
@@ -281,10 +277,7 @@ documentation:
     responses:
       200:
         body:
-          example: |
-            {
-              "success": true
-            }
+          example: !include examples/status-success.json
 /builds:
   get:
     description: |
@@ -318,10 +311,7 @@ documentation:
     responses:
       200:
         body:
-          example: |
-            {
-              "success": true
-            }
+          example: !include examples/status-success.json
   post:
     description: Launch a build
     body:
@@ -335,7 +325,8 @@ documentation:
             example: !include examples/build-results.json
 /buildConfigHooks/{buildId}/{secret}/{plugin}:
   post:
-    description: Webhook on push event from external repository
+    description: |
+      Webhook on push event from external repository
 
       buildId specifies which build to trigger, whereas plugin defines source of
       the request, this might be github, bitbucket or others.
@@ -373,10 +364,7 @@ documentation:
     responses:
       200:
         body:
-          example: |
-            {
-              "success": true
-            }
+          example: !include examples/status-success.json
 /pods:
   get:
     description: List all pods on this cluster
@@ -407,10 +395,7 @@ documentation:
       responses:
         200:
           body:
-            example: |
-              {
-                "success": true
-              }
+            example: !include examples/status-success.json
 
 /replicationControllers:
   get:
@@ -442,10 +427,7 @@ documentation:
       responses:
         200:
           body:
-            example: |
-              {
-                "success": true
-              }
+            example: !include examples/status-success.json
 
 /lbservices:
   get:
@@ -477,8 +459,4 @@ documentation:
       responses:
         200:
           body:
-            example: |
-              {
-                "success": true
-              }
-
+            example: !include examples/status-success.json

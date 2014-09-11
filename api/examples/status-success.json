@@ -1,0 +1,6 @@
+{
+    "apiVersion": "v1beta1",
+    "creationTimestamp": null,
+    "kind": "Status",
+    "status": "success"
+}

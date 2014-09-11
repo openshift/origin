@@ -1,0 +1,86 @@
+{
+    "dockerImageRepository": "localhost:5000/someproject/somerepo",
+    "image": {
+        "dockerImageReference": "localhost:5000/someproject/somerepo:c115fca463efa744a5492ca580ef24b20ed5ef2155c624cc5b1262aefc14797b",
+        "id": "c115fca463efa744a5492ca580ef24b20ed5ef2155c624cc5b1262aefc14797b",
+        "metadata": {
+            "Size": 0,
+            "architecture": "amd64",
+            "config": {
+                "AttachStderr": false,
+                "AttachStdin": false,
+                "AttachStdout": false,
+                "Cmd": [
+                    "/bin/sh"
+                ],
+                "CpuShares": 0,
+                "Cpuset": "",
+                "Domainname": "",
+                "Entrypoint": null,
+                "Env": [
+                    "c=e",
+                    "b=2",
+                    "a=1",
+                    "HOME=/",
+                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+                ],
+                "ExposedPorts": null,
+                "Hostname": "",
+                "Image": "",
+                "Memory": 0,
+                "MemorySwap": 0,
+                "NetworkDisabled": false,
+                "OnBuild": null,
+                "OpenStdin": false,
+                "PortSpecs": null,
+                "StdinOnce": false,
+                "Tty": false,
+                "User": "",
+                "Volumes": null,
+                "WorkingDir": ""
+            },
+            "container": "6b03c2dda0f8cbfa6186d96557e35e35c61915a70e4217a465f92f26c2d9290b",
+            "container_config": {
+                "AttachStderr": true,
+                "AttachStdin": false,
+                "AttachStdout": true,
+                "Cmd": [
+                    "/bin/sh"
+                ],
+                "CpuShares": 0,
+                "Cpuset": "",
+                "Domainname": "",
+                "Entrypoint": null,
+                "Env": [
+                    "c=e",
+                    "b=2",
+                    "a=1",
+                    "HOME=/",
+                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+                ],
+                "ExposedPorts": null,
+                "Hostname": "6b03c2dda0f8",
+                "Image": "localhost:5000/someproject/somerepo",
+                "Memory": 0,
+                "MemorySwap": 0,
+                "NetworkDisabled": false,
+                "OnBuild": null,
+                "OpenStdin": false,
+                "PortSpecs": null,
+                "StdinOnce": false,
+                "Tty": false,
+                "User": "",
+                "Volumes": null,
+                "WorkingDir": ""
+            },
+            "created": "2014-09-04T17:43:39.863545902Z",
+            "docker_version": "1.1.2",
+            "id": "c115fca463efa744a5492ca580ef24b20ed5ef2155c624cc5b1262aefc14797b",
+            "os": "linux",
+            "parent": "32730be9f383719ce6308329c8ee5aac189ece9e41928dc10b8bc0fc35e9d1d5"
+        }
+    },
+    "kind": "ImageRepositoryMapping",
+    "tag": "latest",
+    "version": "v1beta1"
+}
