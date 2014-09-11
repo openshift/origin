@@ -7,6 +7,7 @@
 #   test: Run tests.
 #   run: Run All-in-one server
 #   clean: Clean up.
+#   api: Generate new api docs.
 
 OUT_DIR = _output
 OUT_PKG_DIR = Godeps/_workspace/pkg
@@ -61,3 +62,10 @@ clean:
 	rm -rf $(OUT_DIR) $(OUT_PKG_DIR)
 .PHONY: clean
 
+# Generate api docs from .raml to .html.
+#
+# Example:
+#   make api
+api:
+	hack/build-api-docs-image.sh
+.PHONY: api
