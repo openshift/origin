@@ -52,7 +52,23 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 		Use:   name,
 		Short: "Launch in all-in-one mode",
 		Run: func(c *cobra.Command, args []string) {
-			cfg.startAllInOne()
+			cfg.masterHost = env("OPENSHIFT_MASTER", "127.0.0.1")
+			cfg.bindAddr = env("OPENSHIFT_BIND_ADDR", "127.0.0.1")
+			cfg.nodeHosts = []string{"127.0.0.1"}
+
+			if len(os.Getenv("OPENSHIFT_MASTER")) > 0 {
+				if cfg.masterHost == cfg.bindAddr {
+					cfg.nodeHosts = []string{}
+					cfg.ListenAddr = cfg.masterHost + ":8080"
+					glog.Infof("Starting master with cfg %v", cfg)
+					cfg.startMaster()
+				} else {
+					glog.Infof("Starting node with cfg %v", cfg)
+					cfg.startNode()
+				}
+			} else {
+				cfg.startAllInOne()
+			}
 		},
 	}
 
@@ -68,53 +84,31 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 type config struct {
 	ListenAddr string
 	Docker     docker.Helper
+	masterHost string
+	nodeHosts  []string
+	bindAddr   string
 }
 
-func (c *config) startAllInOne() {
-	minionHost := "127.0.0.1"
-	minionPort := 10250
-	rootDirectory := path.Clean("/var/lib/openshift")
-	osAddr := c.ListenAddr
-
-	osPrefix := "/osapi/v1beta1"
-	kubePrefix := "/api/v1beta1"
-	kubeClient, err := kubeclient.New("http://"+osAddr, nil)
+func (c *config) getKubeClient() *kubeclient.Client {
+	kubeClient, err := kubeclient.New("http://"+c.ListenAddr, nil)
 	if err != nil {
 		glog.Fatalf("Unable to configure client - bad URL: %v", err)
 	}
-	osClient, err := osclient.New("http://"+osAddr, nil)
+	return kubeClient
+}
+
+func (c *config) getOsClient() *osclient.Client {
+	osClient, err := osclient.New("http://"+c.ListenAddr, nil)
 	if err != nil {
 		glog.Fatalf("Unable to configure client - bad URL: %v", err)
 	}
+	return osClient
+}
 
-	etcdAddr := "127.0.0.1:4001"
-	etcdServers := []string{} // default
-	etcdConfig := etcdconfig.New()
-	etcdConfig.BindAddr = etcdAddr
-	etcdConfig.DataDir = "openshift.local.etcd"
-	etcdConfig.Name = "openshift.local"
-
-	// check docker connection
-	dockerClient, dockerAddr := c.Docker.GetClientOrExit()
-	if err := dockerClient.Ping(); err != nil {
-		glog.Errorf("WARNING: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
-	} else {
-		glog.Infof("Connecting to Docker at %s", dockerAddr)
-	}
-
-	cadvisorClient, err := cadvisor.NewClient("http://127.0.0.1:4194")
-	if err != nil {
-		glog.Errorf("Error on creating cadvisor client: %v", err)
-	}
-
-	// initialize etcd
-	etcdServer := etcd.New(etcdConfig)
-	go util.Forever(func() {
-		glog.Infof("Started etcd at http://%s", etcdAddr)
-		etcdServer.Run()
-	}, 0)
-
+func (c *config) getEtcdClient() (*etcdclient.Client, []string) {
+	etcdServers := []string{"http://" + c.masterHost + ":4001"}
 	etcdClient := etcdclient.NewClient(etcdServers)
+
 	for i := 0; ; i += 1 {
 		_, err := etcdClient.Get("/", false, false)
 		if err == nil || tools.IsEtcdNotFound(err) {
@@ -126,21 +120,48 @@ func (c *config) startAllInOne() {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	// initialize Kubelet
-	os.MkdirAll(rootDirectory, 0750)
-	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
-	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(minionHost), etcdClient, cfg.Channel("etcd"))
-	k := kubelet.NewMainKubelet(
-		minionHost,
-		dockerClient,
-		cadvisorClient,
-		etcdClient,
-		rootDirectory,
-		30*time.Second)
-	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
-	go util.Forever(func() {
-		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), minionHost, uint(minionPort))
-	}, 0)
+	return etcdClient, etcdServers
+}
+
+func (c *config) startAllInOne() {
+	c.runEtcd()
+	c.runApiserver()
+	c.runKubelet()
+	c.runProxy()
+	c.runScheduler()
+	c.runReplicationController()
+	c.runBuildController()
+
+	select {}
+}
+
+func (c *config) startMaster() {
+	c.runEtcd()
+	c.runApiserver()
+	c.runScheduler()
+	c.runReplicationController()
+	c.runBuildController()
+
+	select {}
+}
+
+func (c *config) startNode() {
+	c.runProxy()
+	c.runKubelet()
+
+	select {}
+}
+
+func (c *config) runApiserver() {
+	minionPort := 10250
+	osAddr := c.ListenAddr
+
+	kubePrefix := "/api/v1beta1"
+	osPrefix := "/osapi/v1beta1"
+
+	kubeClient := c.getKubeClient()
+	osClient := c.getOsClient()
+	etcdClient, etcdServers := c.getEtcdClient()
 
 	imageRegistry := image.NewEtcdRegistry(etcdClient)
 
@@ -172,7 +193,7 @@ func (c *config) startAllInOne() {
 		Client:             kubeClient,
 		EtcdServers:        etcdServers,
 		HealthCheckMinions: true,
-		Minions:            []string{minionHost},
+		Minions:            c.nodeHosts,
 		PodInfoGetter:      podInfoGetter,
 	}
 	m := master.New(masterConfig)
@@ -194,6 +215,46 @@ func (c *config) startAllInOne() {
 		glog.Infof("Started OpenShift API at http://%s%s", osAddr, osPrefix)
 		glog.Fatal(osApi.ListenAndServe())
 	}, 0)
+}
+
+func (c *config) runKubelet() {
+	rootDirectory := path.Clean("/var/lib/openshift")
+	minionHost := c.bindAddr
+	minionPort := 10250
+
+	cadvisorClient, err := cadvisor.NewClient("http://" + c.masterHost + ":4194")
+	if err != nil {
+		glog.Errorf("Error on creating cadvisor client: %v", err)
+	}
+
+	dockerClient, dockerAddr := c.Docker.GetClientOrExit()
+	if err := dockerClient.Ping(); err != nil {
+		glog.Errorf("WARNING: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
+	} else {
+		glog.Infof("Connecting to Docker at %s", dockerAddr)
+	}
+
+	etcdClient, _ := c.getEtcdClient()
+
+	// initialize Kubelet
+	os.MkdirAll(rootDirectory, 0750)
+	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
+	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(minionHost), etcdClient, cfg.Channel("etcd"))
+	k := kubelet.NewMainKubelet(
+		minionHost,
+		dockerClient,
+		cadvisorClient,
+		etcdClient,
+		rootDirectory,
+		30*time.Second)
+	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
+	go util.Forever(func() {
+		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), minionHost, uint(minionPort))
+	}, 0)
+}
+
+func (c *config) runProxy() {
+	etcdClient, _ := c.getEtcdClient()
 
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
@@ -206,11 +267,35 @@ func (c *config) startAllInOne() {
 	serviceConfig.RegisterHandler(proxier)
 	endpointsConfig.RegisterHandler(loadBalancer)
 	glog.Infof("Started Kubernetes Proxy")
+}
+
+func (c *config) runReplicationController() {
+	kubeClient := c.getKubeClient()
 
 	// initialize replication manager
 	controllerManager := controller.NewReplicationManager(kubeClient)
 	controllerManager.Run(10 * time.Second)
 	glog.Infof("Started Kubernetes Replication Manager")
+}
+
+func (c *config) runEtcd() {
+	etcdAddr := c.bindAddr + ":4001"
+	etcdConfig := etcdconfig.New()
+	etcdConfig.Addr = etcdAddr
+	etcdConfig.BindAddr = etcdAddr
+	etcdConfig.DataDir = "openshift.local.etcd"
+	etcdConfig.Name = "openshift.local"
+
+	// initialize etcd
+	etcdServer := etcd.New(etcdConfig)
+	go util.Forever(func() {
+		glog.Infof("Started etcd at http://%s", etcdAddr)
+		etcdServer.Run()
+	}, 0)
+}
+
+func (c *config) runScheduler() {
+	kubeClient := c.getKubeClient()
 
 	// initialize scheduler
 	configFactory := &factory.ConfigFactory{Client: kubeClient}
@@ -218,6 +303,11 @@ func (c *config) startAllInOne() {
 	s := scheduler.New(config)
 	s.Run()
 	glog.Infof("Started Kubernetes Scheduler")
+}
+
+func (c *config) runBuildController() {
+	kubeClient := c.getKubeClient()
+	osClient := c.getOsClient()
 
 	// initialize build controller
 	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/docker-builder")
@@ -232,8 +322,6 @@ func (c *config) startAllInOne() {
 
 	buildController := build.NewBuildController(kubeClient, osClient, buildStrategies, dockerRegistry, 1200)
 	buildController.Run(10 * time.Second)
-
-	select {}
 }
 
 func env(key string, defaultValue string) string {
