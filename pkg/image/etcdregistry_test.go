@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -224,7 +224,7 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
-	if !kubeerrors.IsAlreadyExists(err) {
+	if !errors.IsAlreadyExists(err) {
 		t.Errorf("Expected 'already exists' error, got %#v", err)
 	}
 }
@@ -246,7 +246,7 @@ func TestEtcdDeleteImageNotFound(t *testing.T) {
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
-	if !kubeerrors.IsNotFound(err) {
+	if !errors.IsNotFound(err) {
 		t.Errorf("Expected 'not found' error, got %#v", err)
 	}
 }
@@ -482,7 +482,7 @@ func TestEtcdCreateImageRepositoryAlreadyExists(t *testing.T) {
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
-	if !kubeerrors.IsAlreadyExists(err) {
+	if !errors.IsAlreadyExists(err) {
 		t.Errorf("Expected 'already exists' error, got %#v", err)
 	}
 }
@@ -515,7 +515,7 @@ func TestEtcdDeleteImageRepositoryNotFound(t *testing.T) {
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
-	if !kubeerrors.IsNotFound(err) {
+	if !errors.IsNotFound(err) {
 		t.Errorf("Expected 'not found' error, got %#v", err)
 	}
 }

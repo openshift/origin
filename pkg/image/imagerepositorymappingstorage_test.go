@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/image/api"
@@ -22,8 +23,11 @@ func TestGetImageRepositoryMapping(t *testing.T) {
 	if obj != nil {
 		t.Errorf("Unexpected non-nil object %#v", obj)
 	}
-	if err == nil || strings.Index(err.Error(), "not supported") == -1 {
-		t.Errorf("Expected 'not supported' error, got %#v", err)
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if !errors.IsNotFound(err) {
+		t.Errorf("Expected 'not found' error, got %#v", err)
 	}
 }
 
@@ -36,8 +40,11 @@ func TestListImageRepositoryMappings(t *testing.T) {
 	if list != nil {
 		t.Errorf("Unexpected non-nil list %#v", list)
 	}
-	if err == nil || strings.Index(err.Error(), "not supported") == -1 {
-		t.Errorf("Expected 'not supported' error, got %#v", err)
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if !errors.IsNotFound(err) {
+		t.Errorf("Expected 'not found' error, got %#v", err)
 	}
 }
 
@@ -50,8 +57,11 @@ func TestDeleteImageRepositoryMapping(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
-	if err == nil || strings.Index(err.Error(), "not supported") == -1 {
-		t.Errorf("Expected 'not supported' error, got %#v", err)
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if !errors.IsNotFound(err) {
+		t.Errorf("Expected 'not found' error, got %#v", err)
 	}
 }
 
@@ -64,8 +74,11 @@ func TestUpdateImageRepositoryMapping(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
-	if err == nil || strings.Index(err.Error(), "not supported") == -1 {
-		t.Errorf("Expected 'not supported' error, got %#v", err)
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if strings.Index(err.Error(), "ImageRepositoryMappings may not be changed.") == -1 {
+		t.Errorf("Expected 'may not be changed' error, got %#v", err)
 	}
 }
 
@@ -78,7 +91,10 @@ func TestCreateImageRepositoryMappingBadObject(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
-	if err == nil || strings.Index(err.Error(), "not an image repository mapping") == -1 {
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if strings.Index(err.Error(), "not an image repository mapping") == -1 {
 		t.Errorf("Expected 'not an image repository mapping' error, got %#v", err)
 	}
 }
@@ -104,7 +120,10 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
-	if err == nil || err.Error() != "123" {
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if err.Error() != "123" {
 		t.Errorf("Expected 'unable to locate' error, got %#v", err)
 	}
 }
@@ -139,8 +158,11 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
-	if err == nil || strings.Index(err.Error(), "Unable to locate an image repository") == -1 {
-		t.Errorf("Expected 'unable to locate' error, got %#v", err)
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	if !errors.IsInvalid(err) {
+		t.Fatalf("Expected 'invalid' err, got: %#v", err)
 	}
 }
 
