@@ -12,9 +12,11 @@ NOTE: This is a very early prototype, and as such is designed for rapid iteratio
 
 Getting Started
 ---------------
-First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc) (CONTRIBUTING.adoc). Note that Docker is not optional if you want to try out these example apps.
+First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc). 
 
-From there, you can:
+You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant).
+
+Once setup, you can:
 
 1.  Run a build
 
@@ -40,38 +42,6 @@ This example is simply running the ['openshift/hello-openshift' Docker image](ht
 
 ### Other Examples
 For an example app that includes a database and an admin front-end, try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json). 
-
-
-Getting Started With Vagrant
-----------------------------
-
-To facilitate rapid development we've put together a Vagrantfile you can use to stand up a 
-development environment.  You'll need Vagrant installed - get it 
-[here](http://www.vagrantup.com/downloads).
-
-1.  Clone the project and change into the directory:
-
-        $ git clone git://github.com/openshift/origin
-        $ cd origin
-
-2.  Bring up the VM:
-
-        $ vagrant up
-
-3.  SSH in:
-
-        $ vagrant ssh
-        $ cd /vagrant
-
-4.  Run a build:
-
-        $ hack/build-go.sh
-
-5.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
-
-        $ output/go/bin/openshift start
-
-You'll then be able to use the steps above to create pods, replication controllers, etc.
 
 Design Documents
 ----------------
