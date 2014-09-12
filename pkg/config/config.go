@@ -55,7 +55,7 @@ func Apply(data []byte, storage clientapi.ClientMappings) (errs errors.ErrorList
 // kind.
 func getClientAndPath(kind string, mappings clientapi.ClientMappings) (client clientapi.RESTClient, path string) {
 	for k, m := range mappings {
-		if k == kind {
+		if m.Kind == kind {
 			return m.Client, k
 		}
 	}
