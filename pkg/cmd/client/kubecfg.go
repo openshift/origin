@@ -229,7 +229,7 @@ func (c *KubeConfig) Run() {
 		"imageRepositoryMappings": {"ImageRepositoryMapping", client.RESTClient},
 	}
 
-	matchFound := c.executeConfigRequest(method, clients) || c.executeAPIRequest(method, clients) || c.executeControllerRequest(method, kubeClient)
+	matchFound := c.executeConfigRequest(method, clients) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -381,7 +381,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.Client) bool {
 	parseController := func() string {
 		if len(c.Args) != 2 {
-			glog.Fatal("usage: kubecfg [OPTIONS] stop|rm|rollingupdate <controller>")
+			glog.Fatal("usage: kubecfg [OPTIONS] stop|rm|rollingupdate|run|resize <controller>")
 		}
 		return c.Arg(1)
 	}
