@@ -7,47 +7,6 @@ mediaType: application/json
 documentation:
  - title: Overview
    content: !include doc/overview.md
-/projects:
-  get:
-    description: |
-      List all projects for your account.
-
-      Projects are a similar concept to v2 domains. A project is a grouping of services
-      with shared access control and resource limits. Applications can be assembled
-      from services in a project by linking them together via service endpoints.
-    responses:
-      200:
-        body:
-          example: !include examples/project-list.json
-  post:
-    description: Create a new project
-    body:
-      example: !include examples/project.json
-
-/project/{projectID}:
-    get:
-      description: Get a specific project
-      responses:
-        200:
-          body:
-            example: !include examples/project.json
-    put:
-      description: Update a project
-      body:
-        example: !include examples/project-put.json
-    delete:
-      description: Delete a project
-      responses:
-        200:
-          body:
-            example: |
-              {
-                "success": true
-              }
-    post:
-      description: Instantiate a template in the given project
-      body:
-        example: !include examples/project-post.json
 /image-repositories:
   get:
     queryParameters:
@@ -343,40 +302,15 @@ documentation:
       204:
         description: No content
 
-/templates:
-  get:
-    description: |
-      Lists all templates that your account has access to
-
-      A template defines 0..n services and 0..m links. When it is applied
-      to an existing project, those services and links are instantiated for
-      that project.
-    responses:
-      200:
-        body:
-          example: !include examples/templates.json
+/templateConfigs:
   post:
-    description: Create a new template
+    description: Create a new Config from Template
     body:
       example: !include examples/template.json
-/template/{templateID}:
-  get:
-    description: Get a specific template
-    body:
-      example: !include examples/template.json
-  put:
-    description: Update a template
-    body:
-      example: !include examples/template.json
-  delete:
-    description: Delete a template
     responses:
       200:
         body:
-          example: |
-            {
-              "success": true
-            }
+          example: !include examples/config.json
 /pods:
   get:
     description: List all pods on this cluster

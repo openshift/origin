@@ -1,28 +1,8 @@
 {
   "id": "guestbook",
-  "kind": "Template",
-  "name": "guestbook-example",
-  "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker",
-  "parameters": [
-    {
-      "name": "ADMIN_USERNAME",
-      "description": "Guestbook administrator username",
-      "type": "string",
-      "expression": "admin[A-Z0-9]{3}"
-    },
-    {
-      "name": "ADMIN_PASSWORD",
-      "description": "Guestboot administrator password",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
-    },
-    {
-      "name": "REDIS_PASSWORD",
-      "description": "The password Redis use for communication",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
-    }
-  ],
+  "kind": "Config",
+  "name": "guestbook",
+  "description": "A simple guestbook application configuration",
   "items": [
     {
       "id": "frontend",
@@ -68,7 +48,7 @@
             "env": [
               {
                 "name": "REDIS_PASSWORD",
-                "value": "${REDIS_PASSWORD}"
+                "value": "secret"
               }
             ],
             "ports": [{
@@ -99,15 +79,15 @@
                 "env": [
                   {
                     "name": "ADMIN_USERNAME",
-                    "value": "${ADMIN_USERNAME}"
+                    "value": "admin"
                   },
                   {
                     "name": "ADMIN_PASSWORD",
-                    "value": "${ADMIN_PASSWORD}"
+                    "value": "secret"
                   },
                   {
                     "name": "REDIS_PASSWORD",
-                    "value": "${REDIS_PASSWORD}"
+                    "value": "secret"
                   }
                 ],
                 "ports": [{"containerPort": 80, "hostPort": 8000}]
@@ -136,7 +116,7 @@
                 "env": [
                   {
                     "name": "REDIS_PASSWORD",
-                    "value": "${REDIS_PASSWORD}"
+                    "value": "secret"
                   }
                 ],
                 "ports": [{"containerPort": 6379, "hostPort": 6380}]
