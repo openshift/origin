@@ -26,7 +26,7 @@ func Apply(data []byte, storage clientapi.ClientMappings) (errs errors.ErrorList
 	}
 
 	for _, item := range conf.Items {
-		kind, itemId, parseErrs := parseKindAndId(item)
+		kind, itemID, parseErrs := parseKindAndID(item)
 		if len(parseErrs) != 0 {
 			errs = append(errs, parseErrs...)
 			continue
@@ -34,17 +34,17 @@ func Apply(data []byte, storage clientapi.ClientMappings) (errs errors.ErrorList
 
 		client, path := getClientAndPath(kind, storage)
 		if client == nil {
-			errs = append(errs, fmt.Errorf("The resource %s is not a known type - unable to create %s", kind, itemId))
+			errs = append(errs, fmt.Errorf("The resource %s is not a known type - unable to create %s", kind, itemID))
 			continue
 		}
 
 		// Serialize the single Config item back into JSON
-		itemJson, _ := json.Marshal(item)
+		itemJSON, _ := json.Marshal(item)
 
-		request := client.Verb("POST").Path(path).Body(itemJson)
+		request := client.Verb("POST").Path(path).Body(itemJSON)
 		_, err := request.Do().Get()
 		if err != nil {
-			errs = append(errs, fmt.Errorf("[%s#%s] Failed to create: %v", kind, itemId, err))
+			errs = append(errs, fmt.Errorf("[%s#%s] Failed to create: %v", kind, itemID, err))
 		}
 	}
 
@@ -62,9 +62,9 @@ func getClientAndPath(kind string, mappings clientapi.ClientMappings) (client cl
 	return
 }
 
-// parseKindAndId extracts the 'kind' and 'id' fields from the Config item JSON
+// parseKindAndID extracts the 'kind' and 'id' fields from the Config item JSON
 // and report errors if these fields are missing.
-func parseKindAndId(item interface{}) (kind, id string, errs errors.ErrorList) {
+func parseKindAndID(item interface{}) (kind, id string, errs errors.ErrorList) {
 	itemMap := item.(map[string]interface{})
 
 	kind, ok := itemMap["kind"].(string)
@@ -83,6 +83,6 @@ func parseKindAndId(item interface{}) (kind, id string, errs errors.ErrorList) {
 // reportError provides a human-readable error message that include the Config
 // item JSON representation.
 func reportError(item interface{}, message string) error {
-	itemJson, _ := json.Marshal(item)
-	return fmt.Errorf(message+": %s", string(itemJson))
+	itemJSON, _ := json.Marshal(item)
+	return fmt.Errorf(message+": %s", string(itemJSON))
 }

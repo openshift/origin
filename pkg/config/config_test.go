@@ -17,13 +17,13 @@ func TestParseKindAndItem(t *testing.T) {
 		t.Errorf("Failed to parse Config: %v", err)
 	}
 
-	kind, itemId, err := parseKindAndId(conf.Items[0])
+	kind, itemID, err := parseKindAndID(conf.Items[0])
 	if len(err) != 0 {
 		t.Errorf("Failed to parse kind and id from the Config item: %v", err)
 	}
 
-	if kind != "Service" && itemId != "frontend" {
-		t.Errorf("Invalid kind and id, should be Service and frontend: %s, %s", kind, itemId)
+	if kind != "Service" && itemID != "frontend" {
+		t.Errorf("Invalid kind and id, should be Service and frontend: %s, %s", kind, itemID)
 	}
 }
 
