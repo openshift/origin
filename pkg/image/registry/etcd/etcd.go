@@ -1,4 +1,4 @@
-package image
+package etcd
 
 import (
 	"errors"
@@ -12,14 +12,14 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 )
 
-// EtcdRegistry implements ImageRegistry and ImageRepositoryRegistry backed by etcd.
-type EtcdRegistry struct {
+// Etcd implements ImageRegistry and ImageRepositoryRegistry backed by etcd.
+type Etcd struct {
 	tools.EtcdHelper
 }
 
-// NewEtcdRegistry returns a new EtcdRegistry.
-func NewEtcdRegistry(client tools.EtcdClient) *EtcdRegistry {
-	registry := &EtcdRegistry{
+// NewEtcd returns a new Etcd.
+func NewEtcd(client tools.EtcdClient) *Etcd {
+	registry := &Etcd{
 		EtcdHelper: tools.EtcdHelper{
 			client,
 			runtime.Codec,
@@ -31,7 +31,7 @@ func NewEtcdRegistry(client tools.EtcdClient) *EtcdRegistry {
 }
 
 // ListImages retrieves a list of images that match selector.
-func (r *EtcdRegistry) ListImages(selector labels.Selector) (*api.ImageList, error) {
+func (r *Etcd) ListImages(selector labels.Selector) (*api.ImageList, error) {
 	list := api.ImageList{}
 	err := r.ExtractList("/images", &list.Items, &list.ResourceVersion)
 	if err != nil {
@@ -52,7 +52,7 @@ func makeImageKey(id string) string {
 }
 
 // GetImage retrieves a specific image
-func (r *EtcdRegistry) GetImage(id string) (*api.Image, error) {
+func (r *Etcd) GetImage(id string) (*api.Image, error) {
 	var image api.Image
 	if err := r.ExtractObj(makeImageKey(id), &image, false); err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (r *EtcdRegistry) GetImage(id string) (*api.Image, error) {
 }
 
 // CreateImage creates a new image
-func (r *EtcdRegistry) CreateImage(image *api.Image) error {
+func (r *Etcd) CreateImage(image *api.Image) error {
 	err := r.CreateObj(makeImageKey(image.ID), image)
 	if tools.IsEtcdNodeExist(err) {
 		return apierrors.NewAlreadyExists("image", image.ID)
@@ -70,12 +70,12 @@ func (r *EtcdRegistry) CreateImage(image *api.Image) error {
 }
 
 // UpdateImage updates an existing image
-func (r *EtcdRegistry) UpdateImage(image *api.Image) error {
+func (r *Etcd) UpdateImage(image *api.Image) error {
 	return errors.New("not supported")
 }
 
 // DeleteImage deletes an existing image
-func (r *EtcdRegistry) DeleteImage(id string) error {
+func (r *Etcd) DeleteImage(id string) error {
 	key := makeImageKey(id)
 	err := r.Delete(key, false)
 	if tools.IsEtcdNotFound(err) {
@@ -85,7 +85,7 @@ func (r *EtcdRegistry) DeleteImage(id string) error {
 }
 
 // ListImageRepositories retrieves a list of ImageRepositories that match selector.
-func (r *EtcdRegistry) ListImageRepositories(selector labels.Selector) (*api.ImageRepositoryList, error) {
+func (r *Etcd) ListImageRepositories(selector labels.Selector) (*api.ImageRepositoryList, error) {
 	list := api.ImageRepositoryList{}
 	err := r.ExtractList("/imageRepositories", &list.Items, &list.ResourceVersion)
 	if err != nil {
@@ -106,7 +106,7 @@ func makeImageRepositoryKey(id string) string {
 }
 
 // GetImageRepository retrieves an ImageRepository by id.
-func (r *EtcdRegistry) GetImageRepository(id string) (*api.ImageRepository, error) {
+func (r *Etcd) GetImageRepository(id string) (*api.ImageRepository, error) {
 	var repo api.ImageRepository
 	if err := r.ExtractObj(makeImageRepositoryKey(id), &repo, false); err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (r *EtcdRegistry) GetImageRepository(id string) (*api.ImageRepository, erro
 }
 
 // WatchImageRepositories begins watching for new, changed, or deleted ImageRepositories.
-func (r *EtcdRegistry) WatchImageRepositories(resourceVersion uint64, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
+func (r *Etcd) WatchImageRepositories(resourceVersion uint64, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
 	return r.WatchList("/imageRepositories", resourceVersion, func(obj interface{}) bool {
 		repo, ok := obj.(*api.ImageRepository)
 		if !ok {
@@ -127,7 +127,7 @@ func (r *EtcdRegistry) WatchImageRepositories(resourceVersion uint64, filter fun
 }
 
 // CreateImageRepository registers the given ImageRepository.
-func (r *EtcdRegistry) CreateImageRepository(repo *api.ImageRepository) error {
+func (r *Etcd) CreateImageRepository(repo *api.ImageRepository) error {
 	err := r.CreateObj(makeImageRepositoryKey(repo.ID), repo)
 	if err != nil && tools.IsEtcdNodeExist(err) {
 		return apierrors.NewAlreadyExists("imageRepository", repo.ID)
@@ -137,12 +137,12 @@ func (r *EtcdRegistry) CreateImageRepository(repo *api.ImageRepository) error {
 }
 
 // UpdateImageRepository replaces an existing ImageRepository in the registry with the given ImageRepository.
-func (r *EtcdRegistry) UpdateImageRepository(repo *api.ImageRepository) error {
+func (r *Etcd) UpdateImageRepository(repo *api.ImageRepository) error {
 	return r.SetObj(makeImageRepositoryKey(repo.ID), repo)
 }
 
 // DeleteImageRepository deletes an ImageRepository by id.
-func (r *EtcdRegistry) DeleteImageRepository(id string) error {
+func (r *Etcd) DeleteImageRepository(id string) error {
 	imageRepositoryKey := makeImageRepositoryKey(id)
 	err := r.Delete(imageRepositoryKey, false)
 	if err != nil && tools.IsEtcdNotFound(err) {

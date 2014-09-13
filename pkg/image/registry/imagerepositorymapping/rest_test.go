@@ -1,4 +1,4 @@
-package image
+package imagerepositorymapping
 
 import (
 	"fmt"
@@ -11,13 +11,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/imagetest"
+	"github.com/openshift/origin/pkg/image/registry/test"
 )
 
 func TestGetImageRepositoryMapping(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	obj, err := storage.Get("foo")
 	if obj != nil {
@@ -32,9 +32,9 @@ func TestGetImageRepositoryMapping(t *testing.T) {
 }
 
 func TestListImageRepositoryMappings(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	list, err := storage.List(labels.Everything())
 	if list != nil {
@@ -49,9 +49,9 @@ func TestListImageRepositoryMappings(t *testing.T) {
 }
 
 func TestDeleteImageRepositoryMapping(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	channel, err := storage.Delete("repo1")
 	if channel != nil {
@@ -66,9 +66,9 @@ func TestDeleteImageRepositoryMapping(t *testing.T) {
 }
 
 func TestUpdateImageRepositoryMapping(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	channel, err := storage.Update("repo1")
 	if channel != nil {
@@ -83,9 +83,9 @@ func TestUpdateImageRepositoryMapping(t *testing.T) {
 }
 
 func TestCreateImageRepositoryMappingBadObject(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	channel, err := storage.Create("bad object")
 	if channel != nil {
@@ -100,10 +100,10 @@ func TestCreateImageRepositoryMappingBadObject(t *testing.T) {
 }
 
 func TestCreateImageRepositoryMappingFindError(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	imageRepositoryRegistry.Err = fmt.Errorf("123")
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
@@ -129,8 +129,8 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 }
 
 func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
@@ -141,7 +141,7 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 			},
 		},
 	}
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
@@ -167,8 +167,8 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 }
 
 func TestCreateImageRepositoryMapping(t *testing.T) {
-	imageRegistry := imagetest.NewImageRegistry()
-	imageRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	imageRegistry := test.NewImageRegistry()
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
@@ -179,7 +179,7 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 			},
 		},
 	}
-	storage := &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",

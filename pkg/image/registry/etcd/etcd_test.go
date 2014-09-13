@@ -1,4 +1,4 @@
-package image
+package etcd
 
 import (
 	"fmt"
@@ -17,8 +17,8 @@ import (
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 )
 
-func NewTestEtcdRegistry(client tools.EtcdClient) *EtcdRegistry {
-	return NewEtcdRegistry(client)
+func NewTestEtcd(client tools.EtcdClient) *Etcd {
+	return NewEtcd(client)
 }
 
 func TestEtcdListImagesEmpty(t *testing.T) {
@@ -32,7 +32,7 @@ func TestEtcdListImagesEmpty(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	images, err := registry.ListImages(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -52,7 +52,7 @@ func TestEtcdListImagesError(t *testing.T) {
 		},
 		E: fmt.Errorf("some error"),
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	images, err := registry.ListImages(labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
@@ -81,7 +81,7 @@ func TestEtcdListImagesEverything(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	images, err := registry.ListImages(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -116,7 +116,7 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	images, err := registry.ListImages(labels.SelectorFromSet(labels.Set{"env": "dev"}))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -130,7 +130,7 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 func TestEtcdGetImage(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Set("/images/foo", runtime.EncodeOrDie(api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	image, err := registry.GetImage("foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -149,7 +149,7 @@ func TestEtcdGetImageNotFound(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	image, err := registry.GetImage("foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
@@ -168,7 +168,7 @@ func TestEtcdCreateImage(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImage(&api.Image{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -215,7 +215,7 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImage(&api.Image{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -231,7 +231,7 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 
 func TestEtcdUpdateImage(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateImage(&api.Image{})
 	if err == nil {
 		t.Error("Unexpected non-error")
@@ -241,7 +241,7 @@ func TestEtcdUpdateImage(t *testing.T) {
 func TestEtcdDeleteImageNotFound(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = tools.EtcdErrorNotFound
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteImage("foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
@@ -254,7 +254,7 @@ func TestEtcdDeleteImageNotFound(t *testing.T) {
 func TestEtcdDeleteImageError(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = fmt.Errorf("Some error")
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteImage("foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
@@ -263,7 +263,7 @@ func TestEtcdDeleteImageError(t *testing.T) {
 
 func TestEtcdDeleteImageOK(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	key := "/images/foo"
 	err := registry.DeleteImage("foo")
 	if err != nil {
@@ -287,7 +287,7 @@ func TestEtcdListImagesRepositoriesEmpty(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	repos, err := registry.ListImageRepositories(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -307,7 +307,7 @@ func TestEtcdListImageRepositoriesError(t *testing.T) {
 		},
 		E: fmt.Errorf("some error"),
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	repos, err := registry.ListImageRepositories(labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
@@ -336,7 +336,7 @@ func TestEtcdListImageRepositoriesEverything(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	repos, err := registry.ListImageRepositories(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -371,7 +371,7 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	repos, err := registry.ListImageRepositories(labels.SelectorFromSet(labels.Set{"env": "dev"}))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -385,7 +385,7 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 func TestEtcdGetImageRepository(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	repo, err := registry.GetImageRepository("foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -404,7 +404,7 @@ func TestEtcdGetImageRepositoryNotFound(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	repo, err := registry.GetImageRepository("foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
@@ -423,7 +423,7 @@ func TestEtcdCreateImageRepository(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImageRepository(&api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -473,7 +473,7 @@ func TestEtcdCreateImageRepositoryAlreadyExists(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImageRepository(&api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -492,7 +492,7 @@ func TestEtcdUpdateImageRepository(t *testing.T) {
 	fakeClient.TestIndex = true
 
 	resp, _ := fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateImageRepository(&api.ImageRepository{
 		JSONBase:              kubeapi.JSONBase{ID: "foo", ResourceVersion: resp.Node.ModifiedIndex},
 		DockerImageRepository: "some/repo",
@@ -510,7 +510,7 @@ func TestEtcdUpdateImageRepository(t *testing.T) {
 func TestEtcdDeleteImageRepositoryNotFound(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = tools.EtcdErrorNotFound
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteImageRepository("foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
@@ -523,7 +523,7 @@ func TestEtcdDeleteImageRepositoryNotFound(t *testing.T) {
 func TestEtcdDeleteImageRepositoryError(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = fmt.Errorf("Some error")
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteImageRepository("foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
@@ -532,7 +532,7 @@ func TestEtcdDeleteImageRepositoryError(t *testing.T) {
 
 func TestEtcdDeleteImageRepositoryOK(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	key := "/imageRepositories/foo"
 	err := registry.DeleteImageRepository("foo")
 	if err != nil {
@@ -547,7 +547,7 @@ func TestEtcdDeleteImageRepositoryOK(t *testing.T) {
 
 func TestEtcdWatchImageRepositories(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	filterFields := labels.SelectorFromSet(labels.Set{"ID": "foo"})
 
 	watching, err := registry.WatchImageRepositories(1, func(repo *api.ImageRepository) bool {
