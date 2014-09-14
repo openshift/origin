@@ -40,11 +40,16 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/template"
+	"github.com/openshift/origin/pkg/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	// Register versioned api types
 	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
 
 func NewCommandStartAllInOne(name string) *cobra.Command {
@@ -167,15 +172,21 @@ func (c *config) runApiserver() {
 	etcdClient, etcdServers := c.getEtcdClient()
 
 	imageRegistry := imageetcd.NewEtcd(etcdClient)
+	userRegistry := useretcd.New(etcdClient, user.NewDefaultUserInitStrategy())
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
-		"builds":                  buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
-		"buildConfigs":            buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"builds":       buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"buildConfigs": buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+
 		"images":                  image.NewREST(imageRegistry),
 		"imageRepositories":       imagerepository.NewREST(imageRegistry),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRegistry),
-		"templateConfigs":         template.NewStorage(),
+
+		"templateConfigs": template.NewStorage(),
+
+		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
+		"users":                userregistry.NewREST(userRegistry),
 	}
 
 	osMux := http.NewServeMux()
