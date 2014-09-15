@@ -7,6 +7,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 type FakeAction struct {
@@ -159,4 +160,34 @@ func (c *Fake) UpdateDeployment(deployment *deployapi.Deployment) (*deployapi.De
 func (c *Fake) DeleteDeployment(id string) error {
 	c.Actions = append(c.Actions, FakeAction{Action: "delete-deployment"})
 	return nil
+}
+
+func (c *Fake) ListRoutes(selector labels.Selector) (*routeapi.RouteList, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "list-routes"})
+	return &routeapi.RouteList{}, nil
+}
+
+func (c *Fake) GetRoute(id string) (*routeapi.Route, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-route"})
+	return &routeapi.Route{}, nil
+}
+
+func (c *Fake) CreateRoute(route *routeapi.Route) (*routeapi.Route, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "create-route"})
+	return &routeapi.Route{}, nil
+}
+
+func (c *Fake) UpdateRoute(route *routeapi.Route) (*routeapi.Route, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "update-route"})
+	return &routeapi.Route{}, nil
+}
+
+func (c *Fake) DeleteRoute(id string) error {
+	c.Actions = append(c.Actions, FakeAction{Action: "delete-route"})
+	return nil
+}
+
+func (c *Fake) WatchRoutes(field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "watch-routes"})
+	return nil, nil
 }

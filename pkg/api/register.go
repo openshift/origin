@@ -9,6 +9,7 @@ import (
 	_ "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/image/api"
 	_ "github.com/openshift/origin/pkg/template/api"
+	_ "github.com/openshift/origin/pkg/route/api"
 )
 
 // Codec is the identity codec for this package - it can only convert itself
