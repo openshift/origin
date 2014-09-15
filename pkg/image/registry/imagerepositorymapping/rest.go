@@ -1,4 +1,4 @@
-package image
+package imagerepositorymapping
 
 import (
 	"fmt"
@@ -9,37 +9,40 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/api/validation"
+	"github.com/openshift/origin/pkg/image/registry/image"
+	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 )
 
-// ImageRepositoryMappingStorage implements the RESTStorage interface in terms of an ImageRegistry and ImageRepositoryRegistry.
+// REST implements the RESTStorage interface in terms of an Registry and Registry.
 // It Only supports the Create method and is used to simply adding a new Image and tag to an ImageRepository.
-type ImageRepositoryMappingStorage struct {
-	imageRegistry           ImageRegistry
-	imageRepositoryRegistry ImageRepositoryRegistry
+type REST struct {
+	imageRegistry           image.Registry
+	imageRepositoryRegistry imagerepository.Registry
 }
 
-// NewImageRepositoryMappingStorage returns a new ImageRepositoryMappingStorage.
-func NewImageRepositoryMappingStorage(imageRegistry ImageRegistry, imageRepositoryRegistry ImageRepositoryRegistry) apiserver.RESTStorage {
-	return &ImageRepositoryMappingStorage{imageRegistry, imageRepositoryRegistry}
+// NewREST returns a new REST.
+func NewREST(imageRegistry image.Registry, imageRepositoryRegistry imagerepository.Registry) apiserver.RESTStorage {
+	return &REST{imageRegistry, imageRepositoryRegistry}
 }
 
 // New returns a new ImageRepositoryMapping for use with Create.
-func (s *ImageRepositoryMappingStorage) New() interface{} {
+func (s *REST) New() interface{} {
 	return &api.ImageRepositoryMapping{}
 }
 
 // Get is not supported.
-func (s *ImageRepositoryMappingStorage) Get(id string) (interface{}, error) {
+func (s *REST) Get(id string) (interface{}, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }
 
 // List is not supported.
-func (s *ImageRepositoryMappingStorage) List(selector labels.Selector) (interface{}, error) {
+func (s *REST) List(selector labels.Selector) (interface{}, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", "list")
 }
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
-func (s *ImageRepositoryMappingStorage) Create(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 	mapping, ok := obj.(*api.ImageRepositoryMapping)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository mapping: %#v", obj)
@@ -55,7 +58,7 @@ func (s *ImageRepositoryMappingStorage) Create(obj interface{}) (<-chan interfac
 		})
 	}
 
-	if errs := ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
+	if errs := validation.ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
 		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.ID, errs)
 	}
 
@@ -86,7 +89,7 @@ func (s *ImageRepositoryMappingStorage) Create(obj interface{}) (<-chan interfac
 }
 
 // findImageRepository retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
-func (s *ImageRepositoryMappingStorage) findImageRepository(dockerRepo string) (*api.ImageRepository, error) {
+func (s *REST) findImageRepository(dockerRepo string) (*api.ImageRepository, error) {
 	//TODO make this more efficient
 	list, err := s.imageRepositoryRegistry.ListImageRepositories(labels.Everything())
 	if err != nil {
@@ -105,11 +108,11 @@ func (s *ImageRepositoryMappingStorage) findImageRepository(dockerRepo string) (
 }
 
 // Update is not supported.
-func (s *ImageRepositoryMappingStorage) Update(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	return nil, fmt.Errorf("ImageRepositoryMappings may not be changed.")
 }
 
 // Delete is not supported.
-func (s *ImageRepositoryMappingStorage) Delete(id string) (<-chan interface{}, error) {
+func (s *REST) Delete(id string) (<-chan interface{}, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }

@@ -1,4 +1,4 @@
-package imagetest
+package test
 
 import (
 	"sync"

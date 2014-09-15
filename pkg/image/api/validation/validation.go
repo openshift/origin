@@ -1,4 +1,4 @@
-package image
+package validation
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"

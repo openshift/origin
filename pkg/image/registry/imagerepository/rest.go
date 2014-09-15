@@ -1,4 +1,4 @@
-package image
+package imagerepository
 
 import (
 	"fmt"
@@ -13,23 +13,23 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 )
 
-// ImageRepositoryStorage implements the RESTStorage interface in terms of an ImageRepositoryRegistry.
-type ImageRepositoryStorage struct {
-	registry ImageRepositoryRegistry
+// REST implements the RESTStorage interface in terms of an Registry.
+type REST struct {
+	registry Registry
 }
 
-// NewImageRepositoryStorage returns a new ImageRepositoryStorage.
-func NewImageRepositoryStorage(registry ImageRepositoryRegistry) apiserver.RESTStorage {
-	return &ImageRepositoryStorage{registry}
+// NewREST returns a new REST.
+func NewREST(registry Registry) apiserver.RESTStorage {
+	return &REST{registry}
 }
 
 // New returns a new ImageRepository for use with Create and Update.
-func (s *ImageRepositoryStorage) New() interface{} {
+func (s *REST) New() interface{} {
 	return &api.ImageRepository{}
 }
 
 // Get retrieves an ImageRepository by id.
-func (s *ImageRepositoryStorage) Get(id string) (interface{}, error) {
+func (s *REST) Get(id string) (interface{}, error) {
 	repo, err := s.registry.GetImageRepository(id)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (s *ImageRepositoryStorage) Get(id string) (interface{}, error) {
 }
 
 // List retrieves a list of ImageRepositories that match selector.
-func (s *ImageRepositoryStorage) List(selector labels.Selector) (interface{}, error) {
+func (s *REST) List(selector labels.Selector) (interface{}, error) {
 	imageRepositories, err := s.registry.ListImageRepositories(selector)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (s *ImageRepositoryStorage) List(selector labels.Selector) (interface{}, er
 }
 
 // Watch begins watching for new, changed, or deleted ImageRepositories.
-func (s *ImageRepositoryStorage) Watch(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (s *REST) Watch(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
 	return s.registry.WatchImageRepositories(resourceVersion, func(repo *api.ImageRepository) bool {
 		fields := labels.Set{
 			"ID": repo.ID,
@@ -58,7 +58,7 @@ func (s *ImageRepositoryStorage) Watch(label, field labels.Selector, resourceVer
 }
 
 // Create registers the given ImageRepository.
-func (s *ImageRepositoryStorage) Create(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository: %#v", obj)
@@ -83,7 +83,7 @@ func (s *ImageRepositoryStorage) Create(obj interface{}) (<-chan interface{}, er
 }
 
 // Update replaces an existing ImageRepository in the registry with the given ImageRepository.
-func (s *ImageRepositoryStorage) Update(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository: %#v", obj)
@@ -102,7 +102,7 @@ func (s *ImageRepositoryStorage) Update(obj interface{}) (<-chan interface{}, er
 }
 
 // Delete asynchronously deletes an ImageRepository specified by its id.
-func (s *ImageRepositoryStorage) Delete(id string) (<-chan interface{}, error) {
+func (s *REST) Delete(id string) (<-chan interface{}, error) {
 	return apiserver.MakeAsync(func() (interface{}, error) {
 		return &baseapi.Status{Status: baseapi.StatusSuccess}, s.registry.DeleteImageRepository(id)
 	}), nil

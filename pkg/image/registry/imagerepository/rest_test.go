@@ -1,4 +1,4 @@
-package image
+package imagerepository
 
 import (
 	"fmt"
@@ -9,13 +9,13 @@ import (
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/imagetest"
+	"github.com/openshift/origin/pkg/image/registry/test"
 )
 
 func TestGetImageRepositoryError(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.Err = fmt.Errorf("test error")
-	storage := ImageRepositoryStorage{registry: mockRepositoryRegistry}
+	storage := REST{registry: mockRepositoryRegistry}
 
 	image, err := storage.Get("image1")
 	if image != nil {
@@ -27,12 +27,12 @@ func TestGetImageRepositoryError(t *testing.T) {
 }
 
 func TestGetImageRepositoryOK(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.ImageRepository = &api.ImageRepository{
 		JSONBase:              kubeapi.JSONBase{ID: "foo"},
 		DockerImageRepository: "openshift/ruby-19-centos",
 	}
-	storage := ImageRepositoryStorage{registry: mockRepositoryRegistry}
+	storage := REST{registry: mockRepositoryRegistry}
 
 	repo, err := storage.Get("foo")
 	if repo == nil {
@@ -47,10 +47,10 @@ func TestGetImageRepositoryOK(t *testing.T) {
 }
 
 func TestListImageRepositoriesError(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.Err = fmt.Errorf("test error")
 
-	storage := ImageRepositoryStorage{
+	storage := REST{
 		registry: mockRepositoryRegistry,
 	}
 
@@ -65,12 +65,12 @@ func TestListImageRepositoriesError(t *testing.T) {
 }
 
 func TestListImageRepositoriesEmptyList(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{},
 	}
 
-	storage := ImageRepositoryStorage{
+	storage := REST{
 		registry: mockRepositoryRegistry,
 	}
 
@@ -85,7 +85,7 @@ func TestListImageRepositoriesEmptyList(t *testing.T) {
 }
 
 func TestListImageRepositoriesPopulatedList(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
@@ -101,7 +101,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 		},
 	}
 
-	storage := ImageRepositoryStorage{
+	storage := REST{
 		registry: mockRepositoryRegistry,
 	}
 
@@ -118,7 +118,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 }
 
 func TestCreateImageRepositoryBadObject(t *testing.T) {
-	storage := ImageRepositoryStorage{}
+	storage := REST{}
 
 	channel, err := storage.Create("hello")
 	if channel != nil {
@@ -130,8 +130,8 @@ func TestCreateImageRepositoryBadObject(t *testing.T) {
 }
 
 func TestCreateImageRepositoryOK(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := ImageRepositoryStorage{registry: mockRepositoryRegistry}
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Create(&api.ImageRepository{})
 	if err != nil {
@@ -151,10 +151,10 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 	}
 }
 
-func TestCreateImageRepositoryRegistryErrorSaving(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+func TestCreateRegistryErrorSaving(t *testing.T) {
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
-	storage := ImageRepositoryStorage{registry: mockRepositoryRegistry}
+	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Create(&api.ImageRepository{})
 	if err != nil {
@@ -171,7 +171,7 @@ func TestCreateImageRepositoryRegistryErrorSaving(t *testing.T) {
 }
 
 func TestUpdateImageRepositoryBadObject(t *testing.T) {
-	storage := ImageRepositoryStorage{}
+	storage := REST{}
 
 	channel, err := storage.Update("hello")
 	if channel != nil {
@@ -183,7 +183,7 @@ func TestUpdateImageRepositoryBadObject(t *testing.T) {
 }
 
 func TestUpdateImageRepositoryMissingID(t *testing.T) {
-	storage := ImageRepositoryStorage{}
+	storage := REST{}
 
 	channel, err := storage.Update(&api.ImageRepository{})
 	if channel != nil {
@@ -194,10 +194,10 @@ func TestUpdateImageRepositoryMissingID(t *testing.T) {
 	}
 }
 
-func TestUpdateImageRepositoryRegistryErrorSaving(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
+func TestUpdateRegistryErrorSaving(t *testing.T) {
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
-	storage := ImageRepositoryStorage{registry: mockRepositoryRegistry}
+	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(&api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{ID: "bar"},
@@ -216,8 +216,8 @@ func TestUpdateImageRepositoryRegistryErrorSaving(t *testing.T) {
 }
 
 func TestUpdateImageRepositoryOK(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := ImageRepositoryStorage{registry: mockRepositoryRegistry}
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(&api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{ID: "bar"},
@@ -236,8 +236,8 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 }
 
 func TestDeleteImageRepository(t *testing.T) {
-	mockRepositoryRegistry := imagetest.NewImageRepositoryRegistry()
-	storage := ImageRepositoryStorage{registry: mockRepositoryRegistry}
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Delete("foo")
 	if err != nil {

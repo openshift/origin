@@ -35,7 +35,10 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
-	"github.com/openshift/origin/pkg/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/etcd"
+	"github.com/openshift/origin/pkg/image/registry/image"
+	"github.com/openshift/origin/pkg/image/registry/imagerepository"
+	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/template"
 
 	// Register versioned api types
@@ -163,15 +166,15 @@ func (c *config) runApiserver() {
 	osClient := c.getOsClient()
 	etcdClient, etcdServers := c.getEtcdClient()
 
-	imageRegistry := image.NewEtcdRegistry(etcdClient)
+	imageRegistry := imageetcd.NewEtcd(etcdClient)
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
 		"builds":                  buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
 		"buildConfigs":            buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
-		"images":                  image.NewImageStorage(imageRegistry),
-		"imageRepositories":       image.NewImageRepositoryStorage(imageRegistry),
-		"imageRepositoryMappings": image.NewImageRepositoryMappingStorage(imageRegistry, imageRegistry),
+		"images":                  image.NewREST(imageRegistry),
+		"imageRepositories":       imagerepository.NewREST(imageRegistry),
+		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRegistry),
 		"templateConfigs":         template.NewStorage(),
 	}
 

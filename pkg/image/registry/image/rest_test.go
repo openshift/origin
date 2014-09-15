@@ -10,14 +10,14 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/imagetest"
+	"github.com/openshift/origin/pkg/image/registry/test"
 )
 
 func TestListImagesError(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
+	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Err = fmt.Errorf("test error")
 
-	storage := ImageStorage{
+	storage := REST{
 		registry: mockRegistry,
 	}
 
@@ -32,12 +32,12 @@ func TestListImagesError(t *testing.T) {
 }
 
 func TestListImagesEmptyList(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
+	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Images = &api.ImageList{
 		Items: []api.Image{},
 	}
 
-	storage := ImageStorage{
+	storage := REST{
 		registry: mockRegistry,
 	}
 
@@ -52,7 +52,7 @@ func TestListImagesEmptyList(t *testing.T) {
 }
 
 func TestListImagesPopulatedList(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
+	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Images = &api.ImageList{
 		Items: []api.Image{
 			{
@@ -68,7 +68,7 @@ func TestListImagesPopulatedList(t *testing.T) {
 		},
 	}
 
-	storage := ImageStorage{
+	storage := REST{
 		registry: mockRegistry,
 	}
 
@@ -85,7 +85,7 @@ func TestListImagesPopulatedList(t *testing.T) {
 }
 
 func TestCreateImageBadObject(t *testing.T) {
-	storage := ImageStorage{}
+	storage := REST{}
 
 	channel, err := storage.Create("hello")
 	if channel != nil {
@@ -97,7 +97,7 @@ func TestCreateImageBadObject(t *testing.T) {
 }
 
 func TestCreateImageMissingID(t *testing.T) {
-	storage := ImageStorage{}
+	storage := REST{}
 
 	channel, err := storage.Create(&api.Image{})
 	if channel != nil {
@@ -108,10 +108,10 @@ func TestCreateImageMissingID(t *testing.T) {
 	}
 }
 
-func TestCreateImageRegistrySaveError(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
+func TestCreateRegistrySaveError(t *testing.T) {
+	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Err = fmt.Errorf("test error")
-	storage := ImageStorage{registry: mockRegistry}
+	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(&api.Image{
 		JSONBase:             kubeapi.JSONBase{ID: "foo"},
@@ -140,8 +140,8 @@ func TestCreateImageRegistrySaveError(t *testing.T) {
 }
 
 func TestCreateImageOK(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
-	storage := ImageStorage{registry: mockRegistry}
+	mockRegistry := test.NewImageRegistry()
+	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(&api.Image{
 		JSONBase:             kubeapi.JSONBase{ID: "foo"},
@@ -170,9 +170,9 @@ func TestCreateImageOK(t *testing.T) {
 }
 
 func TestGetImageError(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
+	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Err = fmt.Errorf("bad")
-	storage := ImageStorage{registry: mockRegistry}
+	storage := REST{registry: mockRegistry}
 
 	image, err := storage.Get("foo")
 	if image != nil {
@@ -184,12 +184,12 @@ func TestGetImageError(t *testing.T) {
 }
 
 func TestGetImageOK(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
+	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Image = &api.Image{
 		JSONBase:             kubeapi.JSONBase{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	}
-	storage := ImageStorage{registry: mockRegistry}
+	storage := REST{registry: mockRegistry}
 
 	image, err := storage.Get("foo")
 	if image == nil {
@@ -204,7 +204,7 @@ func TestGetImageOK(t *testing.T) {
 }
 
 func TestUpdateImage(t *testing.T) {
-	storage := ImageStorage{}
+	storage := REST{}
 	channel, err := storage.Update(&api.Image{})
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel: %#v", channel)
@@ -218,8 +218,8 @@ func TestUpdateImage(t *testing.T) {
 }
 
 func TestDeleteImage(t *testing.T) {
-	mockRegistry := imagetest.NewImageRegistry()
-	storage := ImageStorage{registry: mockRegistry}
+	mockRegistry := test.NewImageRegistry()
+	storage := REST{registry: mockRegistry}
 	channel, err := storage.Delete("foo")
 	if channel == nil {
 		t.Error("Unexpected nil channel")
