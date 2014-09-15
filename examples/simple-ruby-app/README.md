@@ -16,8 +16,23 @@ All commands assume the `openshift` binary is in your path:
 
 1. Launch `openshift`
 
-        $ USE_HOST_DOCKER_SOCKET=true openshift start --listenAddr="0.0.0.0:8080"
+        $ DOCKER_REGISTRY=localhost:5000 openshift start --listenAddr="0.0.0.0:8080"
 
+2. Deploy the private docker registry within OpenShift:
+
+        $ openshift kube apply -c registry_config/registry_config.json
+
+3. Confirm the registry is started:
+
+        $ openshift kube list pods
+        
+    You should see:
+            
+        ID                                                  Image(s)                   Host                Labels                                                      Status
+        ----------                                          ----------                 ----------          ----------                                                  ----------
+        05929ee5-3fb2-11e4-a043-3c970e3bf0b7                registry                   127.0.0.1/          name=frontendPod,replicationController=frontendController   Running
+
+                 
 2. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
 
 3. *Optional:* Add the following webhook to your new github repository:
@@ -27,8 +42,6 @@ All commands assume the `openshift` binary is in your path:
 
 4. Edit buildcfg/buildcfg.json
  * Update the sourceURI to point to your forked repository.
- * Update the imageTag to reflect your Docker username (eg &lt;docker_username&gt;/origin-ruby-sample)
-  * The built image will be tagged with this id and pushed to Docker later.
 
 5. Create a build configuration for your application.  This configuration is used by OpenShift to rebuild your application's Docker image (eg when you push changes to the application source).
 
@@ -62,23 +75,19 @@ All commands assume the `openshift` binary is in your path:
         ----------                             ----------          ----------
         20f54507-3dcd-11e4-984b-3c970e3bf0b7   complete            build-docker-20f54507-3dcd-11e4-984b-3c970e3bf0b7
 
-        
-8. Once the build is complete, push the resulting image to your Docker repository:
+     The build will be automatically pushed to the private docker registry running in OpenShift and tagged with the imageTag listed
+     in the buildcfg.json.  Note that the private docker registry is using ephemeral storage, so when it is stopped, the image will
+     be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
+     
+9. Submit the application template for processing:
 
-        $ docker push <docker_username>/origin-ruby-sample        
+        $ openshift kube process -c template/template.json > processed/template.processed.json
 
-9. Modify the application template to reference your Docker image:
- * Change "image": "openshift/origin-ruby-sample", to "image": "&lt;docker_username&gt;/origin-ruby-sample",
- 
-10. Submit the application template for processing:
-
-        $ curl -sld @template/template.json http://localhost:8080/osapi/v1beta1/templateConfigs > processed/template.processed.json
-
-11. Create the application using the processed template:
+10. Create the application using the processed template:
 
         $ openshift kube apply -c processed/template.processed.json
         
-12. Wait for the application's frontend pod to be started:
+11. Wait for the application's frontend pod to be started:
 
         $ openshift kube list pods
 
@@ -88,7 +97,7 @@ All commands assume the `openshift` binary is in your path:
         ----------                                          ----------                     ----------          ----------                                               ----------
         fc66bffd-3dcc-11e4-984b-3c970e3bf0b7                openshift/origin-ruby-sample   127.0.0.1/          name=frontend,replicationController=frontendController   Running
 
-13. Confirm the application is now accessible via the frontend service on port 5432:
+12. Confirm the application is now accessible via the frontend service on port 5432:
 
         $ curl localhost:5432
 
@@ -100,18 +109,18 @@ All commands assume the `openshift` binary is in your path:
         DB password is dQfUlnTG
 
                         
-14. Make an additional change to your ruby sample app.rb file and push it.
+13. Make an additional change to your ruby sample app.rb file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
-15. Repeat steps 7-8
+14. Repeat steps 7-8
 
-16. Locate the container running the ruby application and kill it:
+15. Locate the container running the ruby application and kill it:
  
-        $ docker kill `docker ps | grep origin-ruby-sample | awk '{print $1}'`
+        $ docker kill `docker ps | grep /usr/bin/ruby | awk '{print $1}'`
 
-17. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
+16. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
 
         $ curl localhost:5432
 
@@ -119,5 +128,5 @@ Congratulations, you've successfully deployed and updated an application on Open
         
         $ ./cleanup.sh
 
-    This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
+This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
         
