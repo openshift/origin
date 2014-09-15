@@ -228,6 +228,10 @@
 			"Rev": "a713d26df274e999ec10e9bbc7e73a1c4791053c"
 		},
 		{
+			"ImportPath": "github.com/RangelReale/osin",
+			"Rev": "1f4e9754a8931fbd9834ab11592f358418efc9ff"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/config",
 			"Comment": "v0.4.3-7-gfc2afe1",
 			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
