@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
 	"github.com/openshift/origin/pkg/user/api"
 )
 
@@ -35,21 +36,22 @@ func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 	return nil, fmt.Errorf("not implemented")
 }
 
-// Create registers the given UserIdentityMapping.
+// Create is not supported for UserIdentityMappings
 func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// Update will create or update a UserIdentityMapping
+func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
 		return nil, fmt.Errorf("not a user identity mapping: %#v", obj)
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return s.registry.GetOrCreateUserIdentityMapping(mapping)
+		obj, created, err := s.registry.CreateOrUpdateUserIdentityMapping(mapping)
+		return &apiserver.CreateOrUpdate{Created: created, Object: obj}, err
 	}), nil
-}
-
-// Update is not supported for UserIdentityMappings, as they are immutable.
-func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
-	return nil, fmt.Errorf("not implemented")
 }
 
 // Delete asynchronously deletes an UserIdentityMapping specified by its id.

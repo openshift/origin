@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -23,6 +24,8 @@ type Interface interface {
 	DeploymentInterface
 	DeploymentConfigInterface
 	RouteInterface
+	UserInterface
+	UserIdentityMappingInterface
 }
 
 // BuildInterface exposes methods on Build resources.

@@ -31,6 +31,7 @@ func init() {
 }
 
 func TestBuildClient(t *testing.T) {
+	deleteAllEtcdKeys()
 	ctx := kapi.NewContext()
 	etcdClient := newEtcdClient()
 	helper, _ := master.NewEtcdHelper(etcdClient.GetCluster(), klatest.Version)

@@ -9,6 +9,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 type FakeAction struct {
@@ -84,7 +85,7 @@ func (c *Fake) CreateImage(ctx api.Context, image *imageapi.Image) (*imageapi.Im
 }
 
 func (c *Fake) ListImageRepositories(ctx api.Context, labels labels.Selector) (*imageapi.ImageRepositoryList, error) {
-	c.Actions = append(c.Actions, FakeAction{Action: "list-imagerepositries"})
+	c.Actions = append(c.Actions, FakeAction{Action: "list-imagerepositories"})
 	return &imageapi.ImageRepositoryList{}, nil
 }
 
@@ -191,4 +192,14 @@ func (c *Fake) DeleteRoute(ctx api.Context, id string) error {
 func (c *Fake) WatchRoutes(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-routes"})
 	return nil, nil
+}
+
+func (c *Fake) GetUser(id string) (*userapi.User, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-user", Value: id})
+	return &userapi.User{}, nil
+}
+
+func (c *Fake) CreateOrUpdateUserIdentityMapping(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, bool, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "createorupdate-useridentitymapping"})
+	return nil, false, nil
 }

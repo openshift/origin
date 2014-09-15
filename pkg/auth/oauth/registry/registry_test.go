@@ -1,0 +1,219 @@
+package registry
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/RangelReale/osincli"
+
+	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/openshift/origin/pkg/auth/oauth/handlers"
+	oapi "github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/registry/test"
+	"github.com/openshift/origin/pkg/oauth/server/osinserver"
+	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+)
+
+type testHandlers struct {
+	User         api.UserInfo
+	Authenticate bool
+	Err          error
+	AuthNeed     bool
+	AuthErr      error
+	GrantNeed    bool
+	GrantErr     error
+}
+
+func (h *testHandlers) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) {
+	h.AuthNeed = true
+}
+
+func (h *testHandlers) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
+	h.AuthErr = err
+}
+
+func (h *testHandlers) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+	return h.User, h.Authenticate, h.Err
+}
+
+func (h *testHandlers) GrantNeeded(grant *api.Grant, w http.ResponseWriter, req *http.Request) {
+	h.GrantNeed = true
+}
+
+func (h *testHandlers) GrantError(err error, w http.ResponseWriter, req *http.Request) {
+	h.GrantErr = err
+}
+
+func TestRegistryAndServer(t *testing.T) {
+	ch := make(chan *http.Request, 1)
+	assertServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ch <- req
+	}))
+
+	validClient := &oapi.Client{
+		Name:         "test",
+		Secret:       "secret",
+		RedirectURIs: []string{assertServer.URL + "/assert"},
+	}
+	validClientAuth := &oapi.ClientAuthorization{
+		UserName:   "user",
+		ClientName: "test",
+	}
+
+	testCases := map[string]struct {
+		Client      *oapi.Client
+		ClientAuth  *oapi.ClientAuthorization
+		AuthSuccess bool
+		AuthUser    api.UserInfo
+		Scope       string
+		Check       func(*testHandlers, *http.Request)
+	}{
+		"needs auth": {
+			Client: validClient,
+			Check: func(h *testHandlers, _ *http.Request) {
+				if !h.AuthNeed || h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil {
+					t.Errorf("expected request to need authentication: %#v", h)
+				}
+			},
+		},
+		"needs grant": {
+			Client:      validClient,
+			AuthSuccess: true,
+			AuthUser: &api.DefaultUserInfo{
+				Name: "user",
+			},
+			Check: func(h *testHandlers, _ *http.Request) {
+				if h.AuthNeed || !h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil {
+					t.Errorf("expected request to need to grant access: %#v", h)
+				}
+			},
+		},
+		"has non covered grant": {
+			Client:      validClient,
+			AuthSuccess: true,
+			AuthUser: &api.DefaultUserInfo{
+				Name: "user",
+			},
+			ClientAuth: &oapi.ClientAuthorization{
+				UserName:   "user",
+				ClientName: "test",
+				Scopes:     []string{"test"},
+			},
+			Scope: "test other",
+			Check: func(h *testHandlers, req *http.Request) {
+				if h.AuthNeed || !h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil {
+					t.Errorf("expected request to need to grant access because of uncovered scopes: %#v", h)
+				}
+			},
+		},
+		"has covered grant": {
+			Client:      validClient,
+			AuthSuccess: true,
+			AuthUser: &api.DefaultUserInfo{
+				Name: "user",
+			},
+			ClientAuth: &oapi.ClientAuthorization{
+				UserName:   "user",
+				ClientName: "test",
+				Scopes:     []string{"test", "other"},
+			},
+			Scope: "test other",
+			Check: func(h *testHandlers, req *http.Request) {
+				if h.AuthNeed || h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil {
+					t.Errorf("unexpected flow: %#v", h)
+				}
+			},
+		},
+		"has auth and grant": {
+			Client:      validClient,
+			AuthSuccess: true,
+			AuthUser: &api.DefaultUserInfo{
+				Name: "user",
+			},
+			ClientAuth: validClientAuth,
+			Check: func(h *testHandlers, req *http.Request) {
+				if h.AuthNeed || h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil {
+					t.Errorf("unexpected flow: %#v", h)
+					return
+				}
+				if req == nil {
+					t.Errorf("unexpected nil assertion request")
+					return
+				}
+				if code := req.URL.Query().Get("code"); code == "" {
+					t.Errorf("expected query param 'code', got: %#v", req)
+				}
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		h := &testHandlers{}
+		h.Authenticate = testCase.AuthSuccess
+		h.User = testCase.AuthUser
+		access, authorize := &test.AccessTokenRegistry{}, &test.AuthorizeTokenRegistry{}
+		client := &test.ClientRegistry{
+			Client: testCase.Client,
+		}
+		if testCase.Client == nil {
+			client.Err = errors.NewNotFound("client", "unknown")
+		}
+		grant := &test.ClientAuthorizationRegistry{
+			ClientAuthorization: testCase.ClientAuth,
+		}
+		if testCase.ClientAuth == nil {
+			grant.Err = errors.NewNotFound("clientAuthorization", "test:test")
+		}
+		storage := registrystorage.New(access, authorize, client, NewUserConversion())
+		config := osinserver.NewDefaultServerConfig()
+		server := osinserver.New(
+			config,
+			storage,
+			osinserver.AuthorizeHandlers{
+				handlers.NewAuthorizeAuthenticator(
+					h,
+					h,
+				),
+				handlers.NewGrantCheck(
+					NewClientAuthorizationGrantChecker(grant),
+					h,
+				),
+			},
+			osinserver.AccessHandlers{
+				handlers.NewDenyAccessAuthenticator(),
+			},
+		)
+		mux := http.NewServeMux()
+		server.Install(mux, "")
+		s := httptest.NewServer(mux)
+
+		oaclientConfig := &osincli.ClientConfig{
+			ClientId:     "test",
+			ClientSecret: "secret",
+			RedirectUrl:  assertServer.URL + "/assert",
+			AuthorizeUrl: s.URL + "/authorize",
+			TokenUrl:     s.URL + "/token",
+			Scope:        testCase.Scope,
+		}
+		oaclient, err := osincli.NewClient(oaclientConfig)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		aReq := oaclient.NewAuthorizeRequest(osincli.CODE)
+		if _, err := http.Get(aReq.GetAuthorizeUrl().String()); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		var req *http.Request
+		select {
+		case out := <-ch:
+			req = out
+		default:
+		}
+
+		testCase.Check(h, req)
+	}
+}
