@@ -32,6 +32,7 @@ func init() {
 }
 
 func TestWebhookGithubPush(t *testing.T) {
+	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
 	m := master.New(&master.Config{
 		EtcdServers: etcdClient.GetCluster(),

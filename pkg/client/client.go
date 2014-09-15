@@ -1,6 +1,8 @@
 package client
 
 import (
+	"net/http"
+
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -17,6 +19,8 @@ type Interface interface {
 	ImageInterface
 	ImageRepositoryInterface
 	ImageRepositoryMappingInterface
+	UserInterface
+	UserIdentityMappingInterface
 }
 
 // BuildInterface exposes methods on Build resources.
@@ -65,6 +69,15 @@ type Client struct {
 // New creates and returns a new Client.
 func New(host string, auth *kubeclient.AuthInfo) (*Client, error) {
 	restClient, err := kubeclient.NewRESTClient(host, auth, "/osapi/v1beta1")
+	if err != nil {
+		return nil, err
+	}
+	return &Client{restClient}, nil
+}
+
+// New creates and returns a new Client.
+func NewDirect(host string, rt http.RoundTripper) (*Client, error) {
+	restClient, err := kubeclient.NewDirectRESTClient(host, "/osapi/v1beta1", rt)
 	if err != nil {
 		return nil, err
 	}

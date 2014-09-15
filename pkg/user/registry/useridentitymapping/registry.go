@@ -6,7 +6,7 @@ import (
 
 // Registry is an interface for things that know how to store Identity objects.
 type Registry interface {
-	// GetOrCreateUserIdentityMapping creates or retrieves the mapping between an
+	// CreateOrUpdateUserIdentityMapping creates or updates the mapping between an
 	// identity and a user.
-	GetOrCreateUserIdentityMapping(mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
+	CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, bool, error)
 }

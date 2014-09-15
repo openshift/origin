@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
 	"github.com/openshift/origin/pkg/user/api"
 )
 
@@ -33,21 +34,22 @@ func (s *REST) List(selector labels.Selector) (interface{}, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-// Create registers the given UserIdentityMapping.
+// Create is not supported for UserIdentityMappings
 func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// Update will create or update a UserIdentityMapping
+func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
 		return nil, fmt.Errorf("not a user identity mapping: %#v", obj)
 	}
 
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		return s.registry.GetOrCreateUserIdentityMapping(mapping)
+		updated, create, err := s.registry.CreateOrUpdateUserIdentityMapping(mapping)
+		return apiserver.CreateOrUpdate{create, updated}, err
 	}), nil
-}
-
-// Update is not supported for UserIdentityMappings, as they are immutable.
-func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
-	return nil, fmt.Errorf("not implemented")
 }
 
 // Delete asynchronously deletes an UserIdentityMapping specified by its id.

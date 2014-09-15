@@ -5,6 +5,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 type FakeAction struct {
@@ -80,7 +81,7 @@ func (c *Fake) CreateImage(image *imageapi.Image) (*imageapi.Image, error) {
 }
 
 func (c *Fake) ListImageRepositories(selector labels.Selector) (*imageapi.ImageRepositoryList, error) {
-	c.Actions = append(c.Actions, FakeAction{Action: "list-imagerepositries"})
+	c.Actions = append(c.Actions, FakeAction{Action: "list-imagerepositories"})
 	return &imageapi.ImageRepositoryList{}, nil
 }
 
@@ -105,6 +106,16 @@ func (c *Fake) UpdateImageRepository(repo *imageapi.ImageRepository) (*imageapi.
 }
 
 func (c *Fake) CreateImageRepositoryMapping(mapping *imageapi.ImageRepositoryMapping) error {
-	c.Actions = append(c.Actions, FakeAction{Action: "create-imagerepository-mapping"})
+	c.Actions = append(c.Actions, FakeAction{Action: "create-imagerepositorymapping"})
 	return nil
+}
+
+func (c *Fake) GetUser(id string) (*userapi.User, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-user", Value: id})
+	return &userapi.User{}, nil
+}
+
+func (c *Fake) CreateOrUpdateUserIdentityMapping(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, bool, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "createorupdate-useridentitymapping"})
+	return nil, false, nil
 }

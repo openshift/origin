@@ -28,6 +28,7 @@ func init() {
 }
 
 func TestBuildClient(t *testing.T) {
+	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
 	m := master.New(&master.Config{
 		EtcdServers: etcdClient.GetCluster(),

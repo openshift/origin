@@ -11,8 +11,11 @@ type User struct {
 	kubeapi.JSONBase `json:",inline" yaml:",inline"`
 	Labels           map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
-	// Name is a human readable string uniquely representing this user.
+	// Name is a human readable string uniquely representing this user at any time.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+
+	// UID is a unique in time and space value which uniquely identifies this user.
+	UID string `json:"uid,omitempty" yaml:"uid,omitempty"`
 
 	FullName string `json:"fullName,omitempty" yaml:"fullName,omitempty"`
 }
