@@ -32,7 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/deploy"
+	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
@@ -221,12 +221,34 @@ func (c *MasterConfig) RunBuildController() {
 
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
-	env := []api.EnvVar{
-		api.EnvVar{Name: "KUBERNETES_MASTER", Value: "http://" + c.MasterAddr},
+	factory := deploycontrollerfactory.DeploymentControllerFactory{
+		Client:     c.OSClient,
+		KubeClient: c.KubeClient,
+		Environment: []api.EnvVar{
+			api.EnvVar{Name: "KUBERNETES_MASTER", Value: "http://" + c.MasterAddr},
+		},
 	}
 
-	deployController := deploy.NewDeploymentController(c.KubeClient, c.OSClient, env)
-	deployController.Run(10 * time.Second)
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunDeploymentConfigController() {
+	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{c.OSClient}
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunConfigChangeController() {
+	factory := deploycontrollerfactory.ConfigChangeControllerFactory{c.OSClient}
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
+	factory := deploycontrollerfactory.ImageChangeControllerFactory{c.OSClient}
+	controller := factory.Create()
+	controller.Run()
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
