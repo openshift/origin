@@ -11,7 +11,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	const dockerRegistry = "docker-test-registry"
 	strategy := NewDockerBuildStrategy("docker-test-image", false)
 	expected := mockDockerBuild()
-	actual := strategy.CreateBuildPod(expected, dockerRegistry)
+	actual, _ := strategy.CreateBuildPod(expected, dockerRegistry)
 
 	if actual.JSONBase.ID != expected.PodID {
 		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.JSONBase.ID)

@@ -320,7 +320,8 @@ func (c *config) runBuildController() {
 
 	buildStrategies := map[buildapi.BuildType]build.BuildJobStrategy{
 		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage, useHostDockerSocket),
-		buildapi.STIBuildType:    strategy.NewSTIBuildStrategy(stiBuilderImage, useHostDockerSocket),
+		buildapi.STIBuildType: strategy.NewSTIBuildStrategy(stiBuilderImage,
+			useHostDockerSocket, strategy.STITempDirectoryCreator),
 	}
 
 	buildController := build.NewBuildController(kubeClient, osClient, buildStrategies, dockerRegistry, 1200)

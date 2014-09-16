@@ -7,11 +7,17 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
+type FakeTempDirCreator struct{}
+
+func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
+	return "", nil
+}
+
 func TestSTICreateBuildPod(t *testing.T) {
 	const dockerRegistry = "sti-test-registry"
-	strategy := NewSTIBuildStrategy("sti-test-image", false)
+	strategy := NewSTIBuildStrategy("sti-test-image", false, &FakeTempDirCreator{})
 	expected := mockSTIBuild()
-	actual := strategy.CreateBuildPod(expected, dockerRegistry)
+	actual, _ := strategy.CreateBuildPod(expected, dockerRegistry)
 
 	if actual.JSONBase.ID != expected.PodID {
 		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.JSONBase.ID)
