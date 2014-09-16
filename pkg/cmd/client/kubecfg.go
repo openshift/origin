@@ -44,6 +44,8 @@ import (
 	"github.com/openshift/origin/pkg/config"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployclient "github.com/openshift/origin/pkg/deploy/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -101,6 +103,8 @@ var parser = kubecfg.NewParser(map[string]interface{}{
 	"imageRepositories":       imageapi.ImageRepository{},
 	"imageRepositoryMappings": imageapi.ImageRepositoryMapping{},
 	"config":                  configapi.Config{},
+	"deployments":             deployapi.Deployment{},
+	"deploymentConfigs":       deployapi.DeploymentConfig{},
 })
 
 func prettyWireStorage() string {
@@ -198,6 +202,7 @@ func (c *KubeConfig) Run() {
 		fmt.Printf("Server Version: %#v\n", got)
 		os.Exit(0)
 	}
+
 	if c.PreventSkew {
 		got, err := kubeClient.ServerVersion()
 		if err != nil {
@@ -227,6 +232,8 @@ func (c *KubeConfig) Run() {
 		"images":                  {"Image", client.RESTClient},
 		"imageRepositories":       {"ImageRepository", client.RESTClient},
 		"imageRepositoryMappings": {"ImageRepositoryMapping", client.RESTClient},
+		"deployments":             {"Deployment", client.RESTClient},
+		"deploymentConfigs":       {"DeploymentConfig", client.RESTClient},
 	}
 
 	matchFound := c.executeConfigRequest(method, clients) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
@@ -445,6 +452,7 @@ func humanReadablePrinter() *kubecfg.HumanReadablePrinter {
 	// Add Handler calls here to support additional types
 	build.RegisterPrintHandlers(printer)
 	image.RegisterPrintHandlers(printer)
+	deployclient.RegisterPrintHandlers(printer)
 
 	return printer
 }

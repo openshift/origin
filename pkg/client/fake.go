@@ -4,6 +4,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -106,5 +107,55 @@ func (c *Fake) UpdateImageRepository(repo *imageapi.ImageRepository) (*imageapi.
 
 func (c *Fake) CreateImageRepositoryMapping(mapping *imageapi.ImageRepositoryMapping) error {
 	c.Actions = append(c.Actions, FakeAction{Action: "create-imagerepository-mapping"})
+	return nil
+}
+
+func (c *Fake) ListDeploymentConfigs(selector labels.Selector) (*deployapi.DeploymentConfigList, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "list-deploymentconfig"})
+	return &deployapi.DeploymentConfigList{}, nil
+}
+
+func (c *Fake) GetDeploymentConfig(id string) (*deployapi.DeploymentConfig, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-deploymentconfig"})
+	return &deployapi.DeploymentConfig{}, nil
+}
+
+func (c *Fake) CreateDeploymentConfig(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "create-deploymentconfig"})
+	return &deployapi.DeploymentConfig{}, nil
+}
+
+func (c *Fake) UpdateDeploymentConfig(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "update-deploymentconfig"})
+	return &deployapi.DeploymentConfig{}, nil
+}
+
+func (c *Fake) DeleteDeploymentConfig(id string) error {
+	c.Actions = append(c.Actions, FakeAction{Action: "delete-deploymentconfig"})
+	return nil
+}
+
+func (c *Fake) ListDeployments(selector labels.Selector) (*deployapi.DeploymentList, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "list-deployment"})
+	return &deployapi.DeploymentList{}, nil
+}
+
+func (c *Fake) GetDeployment(id string) (*deployapi.Deployment, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-deployment"})
+	return &deployapi.Deployment{}, nil
+}
+
+func (c *Fake) CreateDeployment(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "create-deployment"})
+	return &deployapi.Deployment{}, nil
+}
+
+func (c *Fake) UpdateDeployment(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "update-deployment"})
+	return &deployapi.Deployment{}, nil
+}
+
+func (c *Fake) DeleteDeployment(id string) error {
+	c.Actions = append(c.Actions, FakeAction{Action: "delete-deployment"})
 	return nil
 }
