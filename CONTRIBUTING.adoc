@@ -66,6 +66,8 @@ development environment.
 
         $ output/go/bin/openshift start
 
+TIP: In some cases (eg. after git pull), you might run `make clean` inside the *origin/* repository to clean up the object files that are be outdated.
+
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development in two repositories:
 
