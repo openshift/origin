@@ -1,4 +1,4 @@
-package registry
+package registrystorage
 
 import (
 	"errors"
@@ -28,11 +28,11 @@ type storage struct {
 	user           UserStorage
 }
 
-func NewStorage(accessRegistry accesstoken.Registry, authorizeRegistry authorizetoken.Registry, clientRegistry client.Registry, user UserStorage) osin.Storage {
+func New(access accesstoken.Registry, authorize authorizetoken.Registry, client client.Registry, user UserStorage) osin.Storage {
 	return &storage{
-		accesstoken:    accessRegistry,
-		authorizetoken: authorizeRegistry,
-		client:         clientRegistry,
+		accesstoken:    access,
+		authorizetoken: authorize,
+		client:         client,
 		user:           user,
 	}
 }

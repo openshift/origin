@@ -36,6 +36,12 @@ func (s *Server) Install(mux Mux, paths ...string) {
 	}
 }
 
+// TokenHandler returns an http.Handler capable of granting tokens. Used for
+// implicit authorization special flows.
+func (s *Server) TokenHandler() http.Handler {
+	return http.HandlerFunc(s.handleToken)
+}
+
 func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	resp := s.server.NewResponse()
 	defer resp.Close()

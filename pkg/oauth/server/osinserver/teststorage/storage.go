@@ -1,4 +1,4 @@
-package storage
+package teststorage
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ type Test struct {
 	Err           error
 }
 
-func NewTest() *Test {
+func New() *Test {
 	return &Test{
 		Clients:   make(map[string]osin.Client),
 		Authorize: make(map[string]*osin.AuthorizeData),

@@ -9,11 +9,11 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 
-	"github.com/openshift/origin/pkg/oauth/server/osinserver/storage"
+	"github.com/openshift/origin/pkg/oauth/server/osinserver/teststorage"
 )
 
 func TestClientCredentialFlow(t *testing.T) {
-	storage := storage.NewTest()
+	storage := teststorage.New()
 	storage.Clients["test"] = &osin.DefaultClient{
 		Id:          "test",
 		Secret:      "secret",
