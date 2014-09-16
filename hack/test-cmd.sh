@@ -70,5 +70,10 @@ ${KUBE_CMD} list images
 ${KUBE_CMD} list imageRepositories
 echo "kube(imageRepositoryMappings): ok"
 
-${KUBE_CMD} apply -c examples/guestbook/config.json
+tmp_config=$(mktemp --suffix=.json)
+${KUBE_CMD} process -c examples/guestbook/template.json > $tmp_config
+echo "kube(template): ok"
+
+${KUBE_CMD} apply -c $tmp_config
 echo "kube(config): ok"
+rm $tmp_config
