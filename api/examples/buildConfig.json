@@ -1,0 +1,13 @@
+{
+    "apiVersion": "v1beta1",
+    "creationTimestamp": "2014-09-16T19:33:36Z",
+    "desiredInput": {
+        "builderImage": "openshift/ruby-19-centos",
+        "imageTag": "test-ruby-app",
+        "sourceURI": "git://github.com/pmorie/simple-ruby",
+        "type": "sti"
+    },
+    "id": "5a6a5b9c-3dd8-11e4-9d75-0800279696e1",
+    "kind": "BuildConfig",
+    "resourceVersion": 117
+}

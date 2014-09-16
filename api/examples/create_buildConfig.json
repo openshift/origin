@@ -1,0 +1,10 @@
+{
+	"kind": "BuildConfig",
+	"apiVersion": "v1beta1",
+	"desiredInput": {
+		"type": "sti",
+		"sourceURI": "git://github.com/pmorie/simple-ruby",
+		"builderImage": "openshift/ruby-19-centos",
+		"imageTag": "test-ruby-app"
+	}
+}

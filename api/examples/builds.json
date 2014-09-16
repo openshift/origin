@@ -1,13 +1,20 @@
 {
-  "list":
-  [
-    {
-      "id": "53c4249f076573c0f4000002",
-      "imageStream": "server/name",
-      "type": "source-build",
-      "repository": "openshift/myapp"
-      "builderImageStream": "myserver/builderimage"
-    }
-  ]
+    "apiVersion": "v1beta1",
+    "creationTimestamp": null,
+    "items": [
+        {
+            "creationTimestamp": "2014-09-16T02:58:19Z",
+            "id": "5065bcf2-3d4d-11e4-a95b-0800279696e1",
+            "input": {
+                "imageTag": "test/dockerbuild",
+                "sourceURI": "git://github.com/test/dockerbuild",
+                "type": "docker"
+            },
+            "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",
+            "resourceVersion": 114,
+            "status": "new"
+        }
+    ],
+    "kind": "BuildList",
+    "resourceVersion": 116
 }
-
