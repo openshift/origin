@@ -13,8 +13,11 @@ import (
 // eg. github, bitbucket or else, so there must be a separate Plugin
 // instance for each webhook provider.
 type Plugin interface {
-	// Method extracts build information returning it with eventual error.
-	Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (*api.Build, error)
+	// Method extracts build information and returns:
+	// - newly created build object or nil if default is to be created
+	// - information whether to trigger the build itself
+	// - eventual error.
+	Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (*api.Build, bool, error)
 }
 
 // controller used for processing webhook requests.
@@ -59,9 +62,12 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		notFound(w, "Plugin ", uv.plugin, " not found!")
 		return
 	}
-	build, err := plugin.Extract(buildCfg, uv.path, req)
+	build, proceed, err := plugin.Extract(buildCfg, uv.path, req)
 	if err != nil {
 		badRequest(w, err.Error())
+		return
+	}
+	if !proceed {
 		return
 	}
 	if build == nil {
