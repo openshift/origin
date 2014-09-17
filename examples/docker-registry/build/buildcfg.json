@@ -1,0 +1,11 @@
+{
+    "id": "build100",
+    "desiredInput":
+    {
+        "type": "docker",
+        "sourceURI": "https://raw.githubusercontent.com/openshift/ruby_hello_world/master/Dockerfile",
+        "imageTag":     "openshift/origin_ruby_sample",
+    },
+ 
+    "secret": "secret101"
+}
