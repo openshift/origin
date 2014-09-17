@@ -33,16 +33,19 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if !container.Privileged {
 		t.Errorf("Expected Privileged")
 	}
-	if e := container.Env[0]; e.Name != "BUILD_TAG" && e.Value != expected.Input.ImageTag {
+	if e := container.Env[0]; e.Name != "BUILD_TAG" || e.Value != expected.Input.ImageTag {
 		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)
 	}
-	if e := container.Env[1]; e.Name != "DOCKER_REGISTRY" && e.Value != dockerRegistry {
+	if e := container.Env[1]; e.Name != "DOCKER_REGISTRY" || e.Value != dockerRegistry {
 		t.Errorf("Expected %s got %s:%s!", dockerRegistry, e.Name, e.Value)
 	}
-	if e := container.Env[2]; e.Name != "SOURCE_REF" && e.Value != expected.Input.SourceURI {
+	if e := container.Env[2]; e.Name != "SOURCE_URI" || e.Value != expected.Input.SourceURI {
 		t.Errorf("Expected %s got %s:%s!", expected.Input.SourceURI, e.Name, e.Value)
 	}
-	if e := container.Env[3]; e.Name != "BUILDER_IMAGE" && e.Value != expected.Input.BuilderImage {
+	if e := container.Env[3]; e.Name != "SOURCE_REF" || e.Value != expected.Input.SourceRef {
+		t.Errorf("Expected %s got %s:%s!", expected.Input.SourceRef, e.Name, e.Value)
+	}
+	if e := container.Env[4]; e.Name != "BUILDER_IMAGE" || e.Value != expected.Input.BuilderImage {
 		t.Errorf("Expected %s, got %s:%s!", expected.Input.BuilderImage, e.Name, e.Value)
 	}
 }
