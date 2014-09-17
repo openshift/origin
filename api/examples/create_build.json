@@ -1,0 +1,9 @@
+{
+	"kind": "Build",
+	"apiVersion": "v1beta1",
+	"input": {
+		"type": "docker",
+		"sourceURI": "github.com/test/dockerBuild",
+		"imageTag": "test/dockerBuild"
+	}
+}

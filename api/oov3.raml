@@ -281,12 +281,10 @@ documentation:
 /builds:
   get:
     description: |
-      Retrieves a list of builds visible to you
+      Retrieves a list of builds
 
-      A build is associated with an image repository and can be triggered by a webhook
-      on Github. It can either be a Docker build or a source build based on a
-      specified image. When a build completes, it posts a new image to the image
-      repository that it's associated with.
+      Build encapsulates the inputs needed to produce a new deployable image, as well as
+      the status of the operation and a reference to the Pod which runs the build.
     responses:
       200:
         body:
@@ -294,8 +292,8 @@ documentation:
   post:
     description: Create a new build
     body:
-      example: !include examples/build.json
-/build/{buildId}:
+      example: !include examples/create_build.json
+/builds/{buildId}:
   get:
     description: Retrieve a single build definition
     responses:
@@ -312,17 +310,38 @@ documentation:
       200:
         body:
           example: !include examples/status-success.json
+/buildConfigs:
+  get:
+    description: |
+      Retrieves a list of BuildConfigs
+
+      BuildConfig contains the inputs needed to produce a new deployable image
+    responses:
+      200:
+        body:
+          example: !include examples/buildConfigs.json
   post:
-    description: Launch a build
+    description: Create a new build
     body:
-      example: !include examples/launch-build.json
-  /results:
-    get:
-      description: Retrieves list of build results
-      responses:
-        200:
-          body:
-            example: !include examples/build-results.json
+      example: !include examples/create_buildConfig.json
+
+/buildConfigs/{configId}:
+  get:
+    description: Retrieve a build configuration
+    responses:
+      200:
+        body:
+          example: !include examples/buildConfig.json
+  put:
+    description: Update a build configuration
+    body:
+      example: !include examples/buildConfig.json
+  delete:
+    description: Delete a build configuration
+    responses:
+      200:
+        body:
+          example: !include examples/status-success.json
 /buildConfigHooks/{buildId}/{secret}/{plugin}:
   post:
     description: |

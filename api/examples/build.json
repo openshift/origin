@@ -1,9 +1,14 @@
 {
-  "data":
-  {
-    "id": "53c4249f076573c0f4000001",
-    "imageStream": "server/name",
-    "type": "docker-build",
-    "repository": "openshift/dockerrepo"
-  }
+    "apiVersion": "v1beta1",
+    "creationTimestamp": "2014-09-16T02:58:19Z",
+    "id": "5065bcf2-3d4d-11e4-a95b-0800279696e1",
+    "input": {
+        "imageTag": "test/dockerBuild",
+        "sourceURI": "github.com/test/dockerBuild",
+        "type": "docker"
+    },
+    "kind": "Build",
+    "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",
+    "resourceVersion": 114,
+    "status": "pending"
 }
