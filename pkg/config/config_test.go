@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -62,8 +61,5 @@ func ExampleApply() {
 		"services": {"Service", kubeClient.RESTClient},
 	}
 	data, _ := ioutil.ReadFile("../../examples/guestbook/config.json")
-	errs := Apply(data, testClientMappings)
-	fmt.Println(errs)
-	// Output:
-	// [[Service#frontend] Failed to create: Post http://127.0.0.1/api/v1beta1/services: dial tcp 127.0.0.1:80: connection refused [Service#redismaster] Failed to create: Post http://127.0.0.1/api/v1beta1/services: dial tcp 127.0.0.1:80: connection refused [Service#redisslave] Failed to create: Post http://127.0.0.1/api/v1beta1/services: dial tcp 127.0.0.1:80: connection refused [Pod#redis-master-2] Failed to create: Post http://127.0.0.1/api/v1beta1/pods: dial tcp 127.0.0.1:80: connection refused The resource ReplicationController is not a known type - unable to create frontendController The resource ReplicationController is not a known type - unable to create redisSlaveController]
+	Apply(data, testClientMappings)
 }
