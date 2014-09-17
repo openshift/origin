@@ -7,7 +7,9 @@ mediaType: application/json
 documentation:
  - title: Overview
    content: !include doc/overview.md
+
 /projects:
+  displayName: /projects (NOT IMPLEMENTED)
   get:
     description: |
       List all projects for your account.
@@ -25,26 +27,27 @@ documentation:
       example: !include examples/project.json
 
 /project/{projectID}:
-    get:
-      description: Get a specific project
-      responses:
-        200:
-          body:
-            example: !include examples/project.json
-    put:
-      description: Update a project
-      body:
-        example: !include examples/project-put.json
-    delete:
-      description: Delete a project
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
-    post:
-      description: Instantiate a template in the given project
-      body:
-        example: !include examples/project-post.json
+  displayName: /project/{projectID} (NOT IMPLEMENTED)   
+  get:
+    description: Get a specific project
+    responses:
+      200:
+        body:
+          example: !include examples/project.json
+  put:
+    description: Update a project
+    body:
+      example: !include examples/project-put.json
+  delete:
+    description: Delete a project
+    responses:
+      200:
+        body:
+          example: !include examples/status-success.json
+  post:
+    description: Instantiate a template in the given project
+    body:
+      example: !include examples/project-post.json
 
 /imageRepositories:
   get:
@@ -121,72 +124,8 @@ documentation:
     body:
       example: !include examples/create-image-repository-mapping.json
 
-/services:
-  get:
-    description: |
-      Lists all services that your account has access to
-
-      Services can be public or owned by a project. They contain a template of a pod and
-      reference image repositories that supply the images for those templates. A service may
-      be configured to react to an image being pushed to an image repository by initiating a
-      deployment. Deployments are associated with a service and make use of
-      Kubernetes replication controllers to manage pods in a cluster.
-      For deployments, a service contains a policy that constrains how deployments can occur.
-      For example, it may require that there exist at least 2 operational pods at all times.
-      A deployment needs to operate under those constraints when making changes.
-    queryParameters:
-      projectId:
-        description: filter the services owned by a particular project
-    responses:
-      200:
-        body:
-          example: !include examples/services.json
-  post:
-    description: Create a new service
-    body:
-      example: !include examples/create-service.json
-/service/{serviceID}:
-    get:
-      description: Get a specific service definition
-      body:
-        example: !include examples/service.json
-    put:
-      description: Update a service
-      body:
-        example: !include examples/service.json
-    delete:
-      description: Delete a service
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
-    /environment-variables:
-      get:
-        description: Environment variables associated with this service
-        responses:
-          200:
-            body:
-              example: !include examples/envvars.json
-      post:
-        description: Create/update environment variables
-        body:
-          example: !include examples/envvars.json
-      /{variableName}:
-        get:
-          description: Get environment variable
-          body:
-            example: !include examples/envvar.json
-        put:
-          description: Update an environment variable's value
-          body:
-            example: !include examples/envvar.json
-        delete:
-          description: Delete an environment variable
-          responses:
-            200:
-              body:
-                example: !include examples/status-success.json
 /deployments:
+  displayName: /deployments (NOT IMPLEMENTED)
   get:
     description: |
       Lists active deployments in the current project
@@ -205,11 +144,14 @@ documentation:
     body:
       example: !include examples/create-deployment.json
 /deployment/{deploymentID}:
+  displayName: /deployment/{deploymentID} (NOT IMPLEMENTED)
   get:
     description: Get deployment details
     body:
       example: !include examples/deployment.json
+
 /links:
+  displayName: /links (NOT IMPLEMENTED)
   get:
     description: |
       List of links between services in your account
@@ -231,6 +173,7 @@ documentation:
     body:
       example: !include examples/link.json
 /link/{linkID}:
+  displayName: /link/{linkID} (NOT IMPLEMENTED)
   get:
     description: Get link details
     body:
@@ -245,7 +188,9 @@ documentation:
       200:
         body:
           example: !include examples/status-success.json
+
 /aliases:
+  displayName: /aliases (NOT IMPLEMENTED)
   get:
     description: |
       List all aliases visible to you
@@ -264,6 +209,7 @@ documentation:
     body:
       example: !include examples/alias.json
 /alias/{aliasID}:
+  displayName: /alias/{aliasID} (NOT IMPLEMENTED)
   get:
     description: Get alias
     body:
@@ -278,6 +224,7 @@ documentation:
       200:
         body:
           example: !include examples/status-success.json
+
 /builds:
   get:
     description: |
@@ -354,6 +301,7 @@ documentation:
         description: No content
 
 /templates:
+  displayName: /templates (NOT IMPLEMENTED)
   get:
     description: |
       Lists all templates that your account has access to
@@ -363,27 +311,21 @@ documentation:
       that project.
     responses:
       200:
-        body:
-          example: !include examples/templates.json
   post:
     description: Create a new template
-    body:
-      example: !include examples/template.json
 /template/{templateID}:
+  displayName: /template/{templateID} (NOT IMPLEMENTED)
   get:
     description: Get a specific template
-    body:
-      example: !include examples/template.json
   put:
     description: Update a template
-    body:
-      example: !include examples/template.json
   delete:
     description: Delete a template
     responses:
       200:
         body:
           example: !include examples/status-success.json
+
 /pods:
   get:
     description: List all pods on this cluster
@@ -448,7 +390,7 @@ documentation:
           body:
             example: !include examples/status-success.json
 
-/lbservices:
+/services:
   get:
     description: List all services on this cluster
     responses:
@@ -459,7 +401,7 @@ documentation:
     description: Create a new service
     body:
       schema: !include doc/service-schema.json
-      example: !include examples/lbservice.json
+      example: !include examples/service.json
 
   /{serviceId}:
     get:
