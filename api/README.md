@@ -3,7 +3,7 @@
 
 ## Viewing the documentation ##
 Use htmlpreview for github with a URL like:
-[https://rawgit.com/openshift/origin/master/api/oov3.html] (https://rawgit.com/openshift/origin/master/api/oov3.html)
+[http://rawgit.com/openshift/origin/master/api/openshift3.html] (http://rawgit.com/openshift/origin/master/api/openshift3.html)
 
 ## Generating the API document
 ```

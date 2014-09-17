@@ -74,7 +74,7 @@ Several experimental API objects are being prototyped, and should be available s
 * `http://localhost:8080/osapi/v1beta1/builds`
 * `http://localhost:8080/osapi/v1beta1/buildConfigs`
 
-A draft of the proposed API is available at https://rawgit.com/openshift/origin/master/api/oov3.html and is developed under the [api](./api) directory.  Expect significant changes.
+A draft of the proposed API is available at http://rawgit.com/openshift/origin/master/api/openshift3.html and is developed under the [api](./api) directory.  Expect significant changes.
 
 
 FAQ
