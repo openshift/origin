@@ -17,7 +17,7 @@ import (
 // BuildJobStrategy represents a strategy for executing a build by
 // creating a pod definition that will execute the build
 type BuildJobStrategy interface {
-	CreateBuildPod(build *api.Build, dockerImage string) *kubeapi.Pod
+	CreateBuildPod(build *api.Build, dockerImage string) (*kubeapi.Pod, error)
 }
 
 // BuildController watches build resources and manages their state
@@ -106,10 +106,14 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 			return api.BuildError, fmt.Errorf("No build type for %s", build.Input.Type)
 		}
 
-		podSpec := buildStrategy.CreateBuildPod(build, bc.dockerRegistry)
+		podSpec, err := buildStrategy.CreateBuildPod(build, bc.dockerRegistry)
+		if err != nil {
+			glog.Errorf("Unable to create build pod: %v", err)
+			return api.BuildFailed, err
+		}
 
 		glog.Infof("Attempting to create pod: %#v", podSpec)
-		_, err := bc.kubeClient.CreatePod(*podSpec)
+		_, err = bc.kubeClient.CreatePod(*podSpec)
 
 		// TODO: strongly typed error checking
 		if err != nil {

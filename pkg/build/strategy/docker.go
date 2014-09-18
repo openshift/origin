@@ -20,7 +20,7 @@ func NewDockerBuildStrategy(dockerBuilderImage string, useHostDocker bool) *Dock
 
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
-func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry string) *api.Pod {
+func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry string) (*api.Pod, error) {
 	pod := &api.Pod{
 		JSONBase: api.JSONBase{
 			ID: build.PodID,
@@ -46,5 +46,5 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegis
 	}
 
 	setupDockerSocket(bs.useHostDocker, pod)
-	return pod
+	return pod, nil
 }
