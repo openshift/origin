@@ -6,16 +6,13 @@ import (
 )
 
 // DockerBuildStrategy creates Docker build using a docker builder image
-// useHostDocker determines whether the minion Docker daemon is used for the build
-// or a separate Docker daemon is run inside the container
 type DockerBuildStrategy struct {
 	dockerBuilderImage string
-	useHostDocker      bool
 }
 
 // NewDockerBuildStrategy creates a new DockerBuildStrategy
-func NewDockerBuildStrategy(dockerBuilderImage string, useHostDocker bool) *DockerBuildStrategy {
-	return &DockerBuildStrategy{dockerBuilderImage, useHostDocker}
+func NewDockerBuildStrategy(dockerBuilderImage string) *DockerBuildStrategy {
+	return &DockerBuildStrategy{dockerBuilderImage}
 }
 
 // CreateBuildPod creates the pod to be used for the Docker build
@@ -38,13 +35,12 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegis
 							{Name: "DOCKER_CONTEXT_URL", Value: build.Input.SourceURI},
 							{Name: "DOCKER_REGISTRY", Value: dockerRegistry},
 						},
-						Privileged: true,
 					},
 				},
 			},
 		},
 	}
 
-	setupDockerSocket(bs.useHostDocker, pod)
+	setupDockerSocket(pod)
 	return pod, nil
 }

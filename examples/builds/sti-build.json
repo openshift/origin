@@ -1,0 +1,10 @@
+{
+  "kind": "Build",
+  "apiVersion": "v1beta1",
+  "input": {
+    "type": "sti",
+    "sourceURI": "https://raw.githubusercontent.com/openshift/origin/master/examples/builds/images/docker-build/Dockerfile",
+    "imageTag": "openshift/sti-build-example",
+    "builderImage": "ncdc/sti-busybox"
+  }
+}
