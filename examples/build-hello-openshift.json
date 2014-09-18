@@ -1,0 +1,9 @@
+{
+  "kind":"Build",
+  "version":"v1beta1",
+  "input": {
+    "type": "docker",
+    "sourceURI": "https://github.com/openshift/origin/examples/hello-openshift",
+    "imageTag": "test/hello-openshift"
+  }
+}
