@@ -4,10 +4,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-hackdir=$(CDPATH="" cd $(dirname $0); pwd)
+hack_dir=$(CDPATH="" cd $(dirname $0); pwd)
+api_dir=$hack_dir/../api
 
-cd $hackdir/../api && docker build -t kubernetes/raml2html .
-docker rm oov3docgen &>/dev/null || :
-docker run --name=oov3docgen kubernetes/raml2html
-docker cp oov3docgen:/data/oov3.html $hackdir/../api/
-docker rm oov3docgen &>/dev/null || :
+image_name=kubernetes/raml2html
+image=$(docker images -q $image_name)
+
+if [ -z "$image" ]; then
+  echo "Building raml2html image"
+  (cd $api_dir && docker build -t kubernetes/raml2html .)
+fi
+
+echo "Running raml2html"
+docker run --rm -v $api_dir:/data --name=oov3docgen kubernetes/raml2html
