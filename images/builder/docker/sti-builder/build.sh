@@ -48,5 +48,21 @@ if [ -n "$DOCKER_REGISTRY" ]; then
 fi
 
 if [ $NEED_DIND == "true" ]; then
-  kill -15 $(cat /var/run/docker.pid)
+  docker_pid=$(cat /var/run/docker.pid)
+  kill -15 $docker_pid
+
+  # wait up to 10 seconds for the Docker daemon to stop
+  #
+  # if it takes longer than that, something is probably wrong
+  # and we may end up leaking loopback devices
+  ATTEMPTS=0
+  while [ $ATTEMPTS -lt 10 ]; do
+    ps -p $docker_pid &> /dev/null
+    if [ $? -eq 0 ]; then
+      let ATTEMPTS=ATTEMPTS+1
+      sleep 1
+    else
+      break
+    fi
+  done
 fi
