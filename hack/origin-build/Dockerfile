@@ -9,6 +9,7 @@ RUN mkdir /go
 ENV GOPATH /go
 
 ADD dind /usr/bin/dind
+ADD with_docker_service /usr/bin/with_docker_service
 
 WORKDIR /go/src/github.com/openshift/origin
 VOLUME /origin

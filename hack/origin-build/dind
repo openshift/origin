@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/bash 
 
 # BASED ON: https://github.com/jpetazzo/dind
-
 
 # First, make sure that cgroups are mounted correctly.
 CGROUP=/sys/fs/cgroup
@@ -111,5 +110,5 @@ ensure_loop $LOOP_B
 # delete it so that docker can start.
 rm -rf /var/run/docker.pid &>/dev/null
 
-docker -d -H unix:///var/run/docker.sock -H 0.0.0.0:2375 &>/var/log/docker.log & 
+docker -d -H unix:///var/run/docker.sock -H 0.0.0.0:2375 &>/var/log/docker.log 
 

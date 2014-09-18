@@ -24,13 +24,17 @@ function build {
     echo "Using cached origin-build image"
   else
     echo "Making origin-build image..."
-    time build-origin-build
+    time build_origin_build
   fi
 
   echo "Building local source into origin-build container..."
   local cmd=""
   cmd+="docker run --name origin-build"
   cmd+=" -v $(pwd):/go/src/github.com/openshift/origin:ro"
+
+  if $purge_build; then
+    cmd+=" --rm"
+  fi
 
   if [ ${#dep_overrides[@]} -gt 0 ]; then
     for d in ${dep_overrides[@]:()}; do
@@ -40,7 +44,6 @@ function build {
 
   cmd+=" -e GOPATH=/go:/go/src/github.com/openshift/origin/Godeps/_workspace"
   cmd+=" openshift/origin-build go build -o /origin/openshift ./cmd/openshift"
-  echo "executing cmd: $cmd"
 
   if ! time $(eval "$cmd") ; then
     cleanup "origin-build"
@@ -48,19 +51,19 @@ function build {
   fi 
 }
 
-function build-origin-build {
+function build_origin_build {
   pushd hack/origin-build &>/dev/null
   echo "Building openshift/origin-build"
-  docker build -q -t openshift/origin-build .
+  docker build -q -t openshift/origin-build . >/dev/null
   popd &>/dev/null
 }
 
-function ip-of {
+function ip_of {
   local ip=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $1 | tr -d '\n')
   echo $ip
 }
 
-function launch-cluster {
+function launch_cluster {
   trap cleanup EXIT
 
   echo "Launching an OpenShift cluster with ${#nodes[@]} nodes"
@@ -77,7 +80,7 @@ function launch-cluster {
     openshift/origin-build \
     bash -c "OPENSHIFT_BIND_ADDR=\$(hostname -i) OPENSHIFT_MASTER=\$(hostname -i) /origin/openshift start"
   ) >/dev/null
-  local master_ip=$(ip-of $cid)
+  local master_ip=$(ip_of $cid)
 
   for node_name in ${nodes[@]}; do
     echo "Creating node ${node_name}"
@@ -90,29 +93,30 @@ function launch-cluster {
       --workdir /tmp \
       --env OPENSHIFT_MASTER=${master_ip} \
       openshift/origin-build \
-      bash -c "/usr/bin/dind ; OPENSHIFT_BIND_ADDR=\$(hostname -i) /origin/openshift start"
+      bash -c "OPENSHIFT_BIND_ADDR=\$(hostname -i) /usr/bin/with_docker_service /origin/openshift start"
     ) >/dev/null
-    local node_ip=$(ip-of ${cid})
+    local node_ip=$(ip_of ${cid})
 
-    register-node ${node_name} ${node_ip} ${master_ip}
+    register_node ${node_name} ${node_ip} ${master_ip}
   done
 
-  echo "Cluster started. Press Ctrl-C to stop..."
+  echo -e "\nCluster started. Press Ctrl-C to stop..."
 
   if $watch_logs; then
     echo -e "\nWatching cluster logs..."
-    watch-logs
+    watch_logs
   else
     echo -e "\nWatch logs with the following commands:"
-    for c in "${containers[@]}"; do
-      echo "  docker logs -f ${c}"
+    echo docker logs -f origin-master
+    for node in ${nodes[@]}; do
+      echo docker logs -f ${node}
     done
   fi
 
   while true; do read x; done
 }
 
-function register-node {
+function register_node {
   local node_name=$1
   local node_ip=$2
   local master_ip=$3
@@ -149,7 +153,7 @@ function cleanup {
 
   for c in ${containers[@]}; do
     echo " --> killing container: ${c}"
-    time docker kill $c >/dev/null || true
+    time docker stop $c >/dev/null || true
     echo " --> removing container: ${c}"
     time docker rm -f $c >/dev/null || true
   done
@@ -157,7 +161,7 @@ function cleanup {
   echo "Done cleaning up"
 }
 
-function watch-logs {
+function watch_logs {
   docker logs -f origin-master &
   for node in ${nodes[@]}; do
     docker logs -f ${node} &
@@ -167,7 +171,7 @@ function watch-logs {
 use_cached_builder=false
 launch_after_build=false
 watch_logs=false
-preserve_build=false
+purge_build=false
 dep_overrides=()
 node_count=1
 nodes=()
@@ -178,7 +182,7 @@ while getopts "lcwhpd:n:" o; do
     c) use_cached_builder=true;;
     w) watch_logs=true;;
     d) IFS=, read -a dep_overrides <<< "$OPTARG";;
-    p) preserve_build=true;;
+    p) purge_build=true;;
     n) node_count=$OPTARG;;
     h) usage;;
     *) usage;;
@@ -198,10 +202,6 @@ fi
 build
 
 if $launch_after_build; then
-  launch-cluster
-else
-  if ! $preserve_build; then
-    cleanup "origin-build"
-  fi
+  launch_cluster
 fi
 
