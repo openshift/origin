@@ -27,7 +27,7 @@ documentation:
       example: !include examples/project.json
 
 /project/{projectID}:
-  displayName: /project/{projectID} (NOT IMPLEMENTED)   
+  displayName: /project/{projectID} (NOT IMPLEMENTED)
   get:
     description: Get a specific project
     responses:
@@ -304,23 +304,144 @@ documentation:
   displayName: /templates (NOT IMPLEMENTED)
   get:
     description: |
-      Lists all templates that your account has access to
+      Lists all templates that your account has access to.
 
-      A template defines 0..n services and 0..m links. When it is applied
-      to an existing project, those services and links are instantiated for
-      that project.
-    responses:
-      200:
+      A template represents generic config with parameters.
+
+      Parameters:
+
+        Example #1 - static paramater:
+
+          {
+
+            "name": "DB_NAME",
+
+            "description": "PostgreSQL database name",
+
+            "type": "string",
+
+            "value": "mydb"
+
+          }
+
+        The above parameter can be referenced in the rest of the template
+        as ${DB_NAME} expression, which is to be substituted by its value
+        (the "mydb" string) during the transformation.
+
+        Example #2 - parameter with generator:
+
+          {
+
+            "name": "DB_PASSWORD",
+
+            "description": "PostgreSQL admin user password",
+
+            "type": "string",
+
+            "expression": "[a-zA-Z0-9]{8}"
+
+          }
+
+        The above parameter can be referenced in the rest of the template
+        as ${DB_PASSWORD} expression, which is to be substituted by its
+        newly generated value during the transformation.
+
+      Generators:
+
+        Generators generate random values based on the input. OpenShift 3
+        currently support expression value generator only.
+
+        Expression value generator generates random string based on the
+        input expression. The input expression is a string, which may contain
+        "[a-zA-Z0-9]{length}" expression constructs, defining range and length
+        of the result random characters.
+
+        Examples ("expression" => "value"):
+
+          "test[0-9]{1}x" => "test7x"
+
+          "[0-1]{8}" => "01001100"
+
+          "0x[A-F0-9]{4}" => "0xB3AF"
+
+          "[a-zA-Z0-9]{8}" => "hW4yQU5i"
+
   post:
     description: Create a new template
+    body:
+      schema: !include doc/template-schema.json
+      example: !include examples/template.json
+    responses:
+      200:
+        body:
+          example: !include examples/status-success.json
 /template/{templateID}:
   displayName: /template/{templateID} (NOT IMPLEMENTED)
   get:
     description: Get a specific template
+    responses:
+      200:
+        body:
+         example: !include examples/template.json
   put:
     description: Update a template
+    responses:
+      200:
+        body:
+          example: !include examples/status-success.json
   delete:
     description: Delete a template
+    responses:
+      200:
+        body:
+          example: !include examples/status-success.json
+
+/templateConfigs:
+  post:
+    description: Process a template into a config. See /templates endpoint for details on template transformation, parameters and generators.
+    body:
+      schema: !include doc/template-schema.json
+      example: !include examples/template.json
+    responses:
+      200:
+        body:
+#         example: !include examples/config.json
+
+/configs:
+  displayName: /configs (NOT IMPLEMENTED)
+  get:
+    description: |
+      Lists all configs that your account has access to
+
+      A config defines 0..n Kubernetes resources.
+    responses:
+      200:
+  post:
+    description: Create a new config
+    body:
+#     schema: !include doc/config-schema.json
+#     example: !include examples/config.json
+    responses:
+      200:
+        body:
+          example: !include examples/status-success.json
+
+/config/{configID}:
+  displayName: /config/{configID} (NOT IMPLEMENTED)
+  get:
+    description: Get a specific config
+    responses:
+      200:
+        body:
+#         example: !include examples/config.json
+  put:
+    description: Update a config
+    responses:
+      200:
+        body:
+          example: !include examples/status-success.json
+  delete:
+    description: Delete a config
     responses:
       200:
         body:
