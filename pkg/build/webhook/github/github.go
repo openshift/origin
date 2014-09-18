@@ -20,7 +20,7 @@ func New() *GitHubWebHook {
 }
 
 // Extract responsible for servicing webhooks from github.com.
-func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (build *api.Build, err error) {
+func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
 	if err = verifyRequest(req); err != nil {
 		return
 	}
@@ -29,6 +29,7 @@ func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, path string, req *htt
 		err = fmt.Errorf("Unknown X-GitHub-Event %s!", method)
 		return
 	}
+	proceed = (method == "push")
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return

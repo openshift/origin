@@ -32,6 +32,81 @@ func init() {
 }
 
 func TestWebhookGithubPush(t *testing.T) {
+	osClient, url := setup(t)
+
+	// create buildconfig
+	buildConfig := &buildapi.BuildConfig{
+		JSONBase: kubeapi.JSONBase{
+			ID: "pushbuild",
+		},
+		DesiredInput: buildapi.BuildInput{
+			Type:      buildapi.DockerBuildType,
+			SourceURI: "http://my.docker/build",
+			ImageTag:  "namespace/builtimage",
+		},
+		Secret: "secret101",
+	}
+	if _, err := osClient.CreateBuildConfig(buildConfig); err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// trigger build event sending push notification
+	postFile("push", "pushevent.json", url+"pushbuild/secret101/github", http.StatusOK, t)
+
+	// get a list of builds
+	builds, err := osClient.ListBuilds(labels.Everything())
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(builds.Items) != 1 {
+		t.Fatalf("Expected one build, got %#v", builds)
+	}
+	actual := builds.Items[0]
+	if actual.Status != buildapi.BuildNew {
+		t.Errorf("Expected %s, got %s", buildapi.BuildNew, actual.Status)
+	}
+	if !reflect.DeepEqual(actual.Input, buildConfig.DesiredInput) {
+		t.Errorf("Expected %#v, got %#v", buildConfig.DesiredInput, actual.Input)
+	}
+
+	cleanup(osClient, t)
+}
+
+func TestWebhookGithubPing(t *testing.T) {
+	osClient, url := setup(t)
+
+	// create buildconfig
+	buildConfig := &buildapi.BuildConfig{
+		JSONBase: kubeapi.JSONBase{
+			ID: "pingbuild",
+		},
+		DesiredInput: buildapi.BuildInput{
+			Type:      buildapi.DockerBuildType,
+			SourceURI: "http://my.docker/build",
+			ImageTag:  "namespace/builtimage",
+		},
+		Secret: "secret101",
+	}
+	if _, err := osClient.CreateBuildConfig(buildConfig); err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// trigger build event sending push notification
+	postFile("ping", "pingevent.json", url+"pingbuild/secret101/github", http.StatusOK, t)
+
+	// get a list of builds
+	builds, err := osClient.ListBuilds(labels.Everything())
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(builds.Items) != 0 {
+		t.Fatalf("Unexpected build appeared, got %#v", builds)
+	}
+
+	cleanup(osClient, t)
+}
+
+func setup(t *testing.T) (*osclient.Client, string) {
 	etcdClient := newEtcdClient()
 	m := master.New(&master.Config{
 		EtcdServers: etcdClient.GetCluster(),
@@ -65,59 +140,49 @@ func TestWebhookGithubPush(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", e, a)
 	}
 
-	// create buildconfig
-	buildConfig := &buildapi.BuildConfig{
-		JSONBase: kubeapi.JSONBase{
-			ID: "build100",
-		},
-		DesiredInput: buildapi.BuildInput{
-			Type:      buildapi.DockerBuildType,
-			SourceURI: "http://my.docker/build",
-			ImageTag:  "namespace/builtimage",
-		},
-		Secret: "secret101",
-	}
-	if _, err := osClient.CreateBuildConfig(buildConfig); err != nil {
+	return osClient, s.URL + whPrefix
+}
+
+func cleanup(osClient *osclient.Client, t *testing.T) {
+	builds, err := osClient.ListBuilds(labels.Everything())
+	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-
-	// trigger build event sending push notification
-	client := &http.Client{}
-	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/fixtures/pushevent.json")
-	if err != nil {
-		t.Fatalf("Failed to open pushevent.json: %v", err)
+	for _, build := range builds.Items {
+		if err := osClient.DeleteBuild(build.ID); err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}
-	req, err := http.NewRequest("POST", s.URL+whPrefix+"build100/secret101/github", bytes.NewReader(data))
+	buildConfigs, err := osClient.ListBuildConfigs(labels.Everything())
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	for _, bc := range buildConfigs.Items {
+		if err := osClient.DeleteBuildConfig(bc.ID); err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	}
+}
+
+func postFile(event, filename, url string, expStatusCode int, t *testing.T) {
+	client := &http.Client{}
+	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/fixtures/" + filename)
+	if err != nil {
+		t.Fatalf("Failed to open %s: %v", filename, err)
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Error creating POST request: %v", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
-	req.Header.Add("X-Github-Event", "push")
+	req.Header.Add("X-Github-Event", event)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed posting webhook: %v", err)
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Wrong response code, expecting 200, got %s: %s!",
-			resp.Status, string(body))
+	if resp.StatusCode != expStatusCode {
+		t.Errorf("Wrong response code, expecting %d, got %s: %s!", expStatusCode, resp.Status, string(body))
 	}
-
-	// get a list of builds
-	builds, err := osClient.ListBuilds(labels.Everything())
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if len(builds.Items) != 1 {
-		t.Fatalf("Expected one build, got %#v", builds)
-	}
-	actual := builds.Items[0]
-	if actual.Status != buildapi.BuildNew {
-		t.Errorf("Expected %s, got %s", buildapi.BuildNew, actual.Status)
-	}
-	if !reflect.DeepEqual(actual.Input, buildConfig.DesiredInput) {
-		t.Errorf("Expected %#v, got %#v", buildConfig.DesiredInput, actual.Input)
-	}
-
 }

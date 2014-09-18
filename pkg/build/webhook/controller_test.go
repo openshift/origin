@@ -40,17 +40,15 @@ type pathPlugin struct {
 	Path string
 }
 
-func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, path string,
-	req *http.Request) (*api.Build, error) {
+func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (*api.Build, bool, error) {
 	p.Path = path
-	return nil, nil
+	return nil, true, nil
 }
 
 type errPlugin struct{}
 
-func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, path string,
-	req *http.Request) (*api.Build, error) {
-	return nil, errors.New("Plugin error!")
+func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (*api.Build, bool, error) {
+	return nil, true, errors.New("Plugin error!")
 }
 
 func TestParseUrlError(t *testing.T) {
