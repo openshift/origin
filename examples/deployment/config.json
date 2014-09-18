@@ -105,7 +105,6 @@
                               "ports":[
                                  {
                                     "containerPort":80,
-                                    "hostPort":8000
                                  }
                               ]
                            }
@@ -154,7 +153,6 @@
                               "ports":[
                                  {
                                     "containerPort":6379,
-                                    "hostPort":6380
                                  }
                               ]
                            }
@@ -211,7 +209,6 @@
                            "ports":[
                               {
                                  "containerPort":80,
-                                 "hostPort":8000
                               }
                            ]
                         }
@@ -259,7 +256,6 @@
                            "ports":[
                               {
                                  "containerPort":6379,
-                                 "hostPort":6380
                               }
                            ]
                         }
