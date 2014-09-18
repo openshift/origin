@@ -11,7 +11,6 @@
           "image": "openshift/centos-rockmongo",
           "ports": [{
             "containerPort": 80,
-            "hostPort": 6060
           }]
         },
         {
