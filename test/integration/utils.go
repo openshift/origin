@@ -11,7 +11,7 @@ import (
 )
 
 func newEtcdClient() *etcd.Client {
-	return etcd.NewClient([]string{})
+	return etcd.NewClient([]string{"http://127.0.0.1:4001"})
 }
 
 func requireEtcd() {
