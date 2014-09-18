@@ -14,26 +14,24 @@ import (
 	"github.com/openshift/origin/pkg/build/api/validation"
 )
 
-// Storage is an implementation of RESTStorage for the api server.
-type Storage struct {
+// REST is an implementation of RESTStorage for the api server.
+type REST struct {
 	registry Registry
 }
 
-// NewStorage creates a new Storage for BuildConfig.
-func NewStorage(registry Registry) apiserver.RESTStorage {
-	return &Storage{
-		registry: registry,
-	}
+// NewREST creates a new REST for BuildConfig.
+func NewREST(registry Registry) apiserver.RESTStorage {
+	return &REST{registry}
 }
 
 // New creates a new BuildConfig.
-func (storage *Storage) New() interface{} {
+func (r *REST) New() interface{} {
 	return &api.BuildConfig{}
 }
 
 // List obtains a list of BuildConfigs that match selector.
-func (storage *Storage) List(selector labels.Selector) (interface{}, error) {
-	builds, err := storage.registry.ListBuildConfigs(selector)
+func (r *REST) List(selector labels.Selector) (interface{}, error) {
+	builds, err := r.registry.ListBuildConfigs(selector)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +39,8 @@ func (storage *Storage) List(selector labels.Selector) (interface{}, error) {
 }
 
 // Get obtains the BuildConfig specified by its id.
-func (storage *Storage) Get(id string) (interface{}, error) {
-	buildConfig, err := storage.registry.GetBuildConfig(id)
+func (r *REST) Get(id string) (interface{}, error) {
+	buildConfig, err := r.registry.GetBuildConfig(id)
 	if err != nil {
 		return nil, err
 	}
@@ -50,21 +48,21 @@ func (storage *Storage) Get(id string) (interface{}, error) {
 }
 
 // Delete asynchronously deletes the BuildConfig specified by its id.
-func (storage *Storage) Delete(id string) (<-chan interface{}, error) {
+func (r *REST) Delete(id string) (<-chan interface{}, error) {
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, storage.registry.DeleteBuildConfig(id)
+		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, r.registry.DeleteBuildConfig(id)
 	}), nil
 }
 
 // Extract deserializes user provided data into an api.BuildConfig.
-func (storage *Storage) Extract(body []byte) (interface{}, error) {
+func (r *REST) Extract(body []byte) (interface{}, error) {
 	result := api.BuildConfig{}
 	err := runtime.DecodeInto(body, &result)
 	return result, err
 }
 
-// Create registers a given new BuildConfig instance to storage.registry.
-func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {
+// Create registers a given new BuildConfig instance to r.registry.
+func (r *REST) Create(obj interface{}) (<-chan interface{}, error) {
 	buildConfig, ok := obj.(*api.BuildConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a buildConfig: %#v", obj)
@@ -77,7 +75,7 @@ func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {
 		return nil, errors.NewInvalid("buildConfig", buildConfig.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		err := storage.registry.CreateBuildConfig(buildConfig)
+		err := r.registry.CreateBuildConfig(buildConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -85,8 +83,8 @@ func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {
 	}), nil
 }
 
-// Update replaces a given BuildConfig instance with an existing instance in storage.registry.
-func (storage *Storage) Update(obj interface{}) (<-chan interface{}, error) {
+// Update replaces a given BuildConfig instance with an existing instance in r.registry.
+func (r *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	buildConfig, ok := obj.(*api.BuildConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a buildConfig: %#v", obj)
@@ -95,7 +93,7 @@ func (storage *Storage) Update(obj interface{}) (<-chan interface{}, error) {
 		return nil, errors.NewInvalid("buildConfig", buildConfig.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		err := storage.registry.UpdateBuildConfig(buildConfig)
+		err := r.registry.UpdateBuildConfig(buildConfig)
 		if err != nil {
 			return nil, err
 		}

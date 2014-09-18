@@ -33,6 +33,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	"github.com/openshift/origin/pkg/build/strategy"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
@@ -175,13 +176,14 @@ func (c *config) runApiserver() {
 	osClient := c.getOsClient()
 	etcdClient, etcdServers := c.getEtcdClient()
 
+	buildRegistry := buildetcd.NewEtcd(etcdClient)
 	imageRegistry := imageetcd.NewEtcd(etcdClient)
 	deployEtcd := deployetcd.NewEtcd(etcdClient)
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
-		"builds":                  buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
-		"buildConfigs":            buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"builds":                  buildregistry.NewREST(buildRegistry),
+		"buildConfigs":            buildconfigregistry.NewREST(buildRegistry),
 		"images":                  image.NewREST(imageRegistry),
 		"imageRepositories":       imagerepository.NewREST(imageRegistry),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRegistry),
