@@ -18,10 +18,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 
-	"github.com/openshift/origin/pkg/build"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -112,9 +112,10 @@ func setup(t *testing.T) (*osclient.Client, string) {
 		EtcdServers: etcdClient.GetCluster(),
 	})
 	osMux := http.NewServeMux()
+	buildRegistry := buildetcd.NewEtcd(etcdClient)
 	storage := map[string]apiserver.RESTStorage{
-		"builds":       buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
-		"buildConfigs": buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"builds":       buildregistry.NewREST(buildRegistry),
+		"buildConfigs": buildconfigregistry.NewREST(buildRegistry),
 	}
 	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
 	osPrefix := "/osapi/v1beta1"

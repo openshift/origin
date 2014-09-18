@@ -20,7 +20,7 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
-	storage := Storage{registry: &mockRegistry}
+	storage := REST{&mockRegistry}
 	obj := storage.New()
 	_, ok := obj.(*api.BuildConfig)
 	if !ok {
@@ -31,7 +31,7 @@ func TestNewConfig(t *testing.T) {
 func TestGetConfig(t *testing.T) {
 	expectedConfig := mockBuildConfig()
 	mockRegistry := test.BuildConfigRegistry{BuildConfig: expectedConfig}
-	storage := Storage{registry: &mockRegistry}
+	storage := REST{&mockRegistry}
 	configObj, err := storage.Get("foo")
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
@@ -47,7 +47,7 @@ func TestGetConfig(t *testing.T) {
 
 func TestGetConfigError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("get error")}
-	storage := Storage{registry: &mockRegistry}
+	storage := REST{&mockRegistry}
 	buildObj, err := storage.Get("foo")
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
@@ -60,7 +60,7 @@ func TestGetConfigError(t *testing.T) {
 func TestDeleteBuild(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	configId := "test-config-id"
-	storage := Storage{registry: &mockRegistry}
+	storage := REST{&mockRegistry}
 	channel, err := storage.Delete(configId)
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
@@ -86,7 +86,7 @@ func TestDeleteBuild(t *testing.T) {
 func TestDeleteBuildError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Delete error")}
 	configId := "test-config-id"
-	storage := Storage{registry: &mockRegistry}
+	storage := REST{&mockRegistry}
 	channel, _ := storage.Delete(configId)
 	select {
 	case result := <-channel:
@@ -106,9 +106,7 @@ func TestListConfigsError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{
 		Err: fmt.Errorf("test error"),
 	}
-	storage := Storage{
-		registry: &mockRegistry,
-	}
+	storage := REST{&mockRegistry}
 	configs, err := storage.List(nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
@@ -120,9 +118,7 @@ func TestListConfigsError(t *testing.T) {
 
 func TestListEmptyConfigList(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{JSONBase: kubeapi.JSONBase{ResourceVersion: 1}}}
-	storage := Storage{
-		registry: &mockRegistry,
-	}
+	storage := REST{&mockRegistry}
 	buildConfigs, err := storage.List(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -153,9 +149,7 @@ func TestListConfigs(t *testing.T) {
 			},
 		},
 	}
-	storage := Storage{
-		registry: &mockRegistry,
-	}
+	storage := REST{&mockRegistry}
 	configsObj, err := storage.List(labels.Everything())
 	configs := configsObj.(*api.BuildConfigList)
 	if err != nil {
@@ -174,9 +168,7 @@ func TestListConfigs(t *testing.T) {
 
 func TestBuildConfigDecode(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
-	storage := Storage{
-		registry: &mockRegistry,
-	}
+	storage := REST{registry: &mockRegistry}
 	buildConfig := &api.BuildConfig{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -238,7 +230,7 @@ func TestBuildConfigParsing(t *testing.T) {
 
 func TestCreateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
-	storage := Storage{&mockRegistry}
+	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
 	channel, err := storage.Create(buildConfig)
 	if err != nil {
@@ -274,7 +266,7 @@ func mockBuildConfig() *api.BuildConfig {
 
 func TestUpdateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
-	storage := Storage{&mockRegistry}
+	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
 	channel, err := storage.Update(buildConfig)
 	if err != nil {
@@ -301,7 +293,7 @@ func TestUpdateBuildConfig(t *testing.T) {
 
 func TestUpdateBuildConfigError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Update error")}
-	storage := Storage{&mockRegistry}
+	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
 	channel, err := storage.Update(buildConfig)
 	if err != nil {
@@ -322,9 +314,9 @@ func TestUpdateBuildConfigError(t *testing.T) {
 	}
 }
 
-func TestBuildConfigStorageValidatesCreate(t *testing.T) {
+func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
-	storage := Storage{&mockRegistry}
+	storage := REST{&mockRegistry}
 	failureCases := map[string]api.BuildConfig{
 		"blank sourceURI": {
 			JSONBase: kubeapi.JSONBase{ID: "abc"},
@@ -364,9 +356,9 @@ func TestBuildConfigStorageValidatesCreate(t *testing.T) {
 	}
 }
 
-func TestBuildStorageValidatesUpdate(t *testing.T) {
+func TestBuildRESTValidatesUpdate(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
-	storage := Storage{&mockRegistry}
+	storage := REST{&mockRegistry}
 	failureCases := map[string]api.BuildConfig{
 		"empty ID": {
 			JSONBase: kubeapi.JSONBase{ID: ""},

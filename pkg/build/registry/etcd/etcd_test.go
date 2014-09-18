@@ -1,11 +1,9 @@
-package build
+package etcd
 
 import (
-	//	"reflect"
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	//	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -17,15 +15,15 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 )
 
-func NewTestEtcdRegistry(client tools.EtcdClient) *EtcdRegistry {
-	registry := NewEtcdRegistry(client)
+func NewTestEtcd(client tools.EtcdClient) *Etcd {
+	registry := NewEtcd(client)
 	return registry
 }
 
 func TestEtcdGetBuild(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Set("/registry/builds/foo", runtime.EncodeOrDie(api.Build{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	build, err := registry.GetBuild("foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -42,7 +40,7 @@ func TestEtcdGetBuildNotFound(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	_, err := registry.GetBuild("foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
@@ -58,7 +56,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(&api.Build{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -103,7 +101,7 @@ func TestEtcdCreateBuildAlreadyExisting(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(&api.Build{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -122,7 +120,7 @@ func TestEtcdDeleteBuild(t *testing.T) {
 	fakeClient.Set(key, runtime.EncodeOrDie(api.Build{
 		JSONBase: kubeapi.JSONBase{ID: "foo"},
 	}), 0)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuild("foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -146,7 +144,7 @@ func TestEtcdEmptyListBuilds(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	builds, err := registry.ListBuilds(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -179,7 +177,7 @@ func TestEtcdListBuilds(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	builds, err := registry.ListBuilds(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -193,7 +191,7 @@ func TestEtcdListBuilds(t *testing.T) {
 func TestEtcdGetBuildConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Set("/registry/build-configs/foo", runtime.EncodeOrDie(api.BuildConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	buildConfig, err := registry.GetBuildConfig("foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -210,7 +208,7 @@ func TestEtcdGetBuildConfigNotFound(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	_, err := registry.GetBuildConfig("foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
@@ -226,7 +224,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 		},
 		E: tools.EtcdErrorNotFound,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(&api.BuildConfig{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -269,7 +267,7 @@ func TestEtcdCreateBuildConfigAlreadyExisting(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(&api.BuildConfig{
 		JSONBase: kubeapi.JSONBase{
 			ID: "foo",
@@ -288,7 +286,7 @@ func TestEtcdDeleteBuildConfig(t *testing.T) {
 	fakeClient.Set(key, runtime.EncodeOrDie(api.BuildConfig{
 		JSONBase: kubeapi.JSONBase{ID: "foo"},
 	}), 0)
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuildConfig("foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -312,7 +310,7 @@ func TestEtcdEmptyListBuildConfigs(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	buildConfigs, err := registry.ListBuildConfigs(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -345,7 +343,7 @@ func TestEtcdListBuildConfigs(t *testing.T) {
 		},
 		E: nil,
 	}
-	registry := NewTestEtcdRegistry(fakeClient)
+	registry := NewTestEtcd(fakeClient)
 	buildConfigs, err := registry.ListBuildConfigs(labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

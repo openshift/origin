@@ -14,26 +14,24 @@ import (
 	"github.com/openshift/origin/pkg/build/api/validation"
 )
 
-// Storage is an implementation of RESTStorage for the api server.
-type Storage struct {
+// REST implements the RESTStorage interface in terms of an Registry.
+type REST struct {
 	registry Registry
 }
 
-// NewStorage creates a new Storage for builds.
-func NewStorage(registry Registry) apiserver.RESTStorage {
-	return &Storage{
-		registry: registry,
-	}
+// NewREST creates a new REST for builds.
+func NewREST(registry Registry) apiserver.RESTStorage {
+	return &REST{registry}
 }
 
 // New creates a new Build object
-func (storage *Storage) New() interface{} {
+func (r *REST) New() interface{} {
 	return &api.Build{}
 }
 
 // List obtains a list of Builds that match selector.
-func (storage *Storage) List(selector labels.Selector) (interface{}, error) {
-	builds, err := storage.registry.ListBuilds(selector)
+func (r *REST) List(selector labels.Selector) (interface{}, error) {
+	builds, err := r.registry.ListBuilds(selector)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +40,8 @@ func (storage *Storage) List(selector labels.Selector) (interface{}, error) {
 }
 
 // Get obtains the build specified by its id.
-func (storage *Storage) Get(id string) (interface{}, error) {
-	build, err := storage.registry.GetBuild(id)
+func (r *REST) Get(id string) (interface{}, error) {
+	build, err := r.registry.GetBuild(id)
 	if err != nil {
 		return nil, err
 	}
@@ -51,21 +49,21 @@ func (storage *Storage) Get(id string) (interface{}, error) {
 }
 
 // Delete asynchronously deletes the Build specified by its id.
-func (storage *Storage) Delete(id string) (<-chan interface{}, error) {
+func (r *REST) Delete(id string) (<-chan interface{}, error) {
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, storage.registry.DeleteBuild(id)
+		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, r.registry.DeleteBuild(id)
 	}), nil
 }
 
 // Extract deserializes user provided data into an api.Build.
-func (storage *Storage) Extract(body []byte) (interface{}, error) {
+func (r *REST) Extract(body []byte) (interface{}, error) {
 	result := api.Build{}
 	err := runtime.DecodeInto(body, &result)
 	return result, err
 }
 
-// Create registers a given new Build instance to storage.registry.
-func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {
+// Create registers a given new Build instance to r.registry.
+func (r *REST) Create(obj interface{}) (<-chan interface{}, error) {
 	build, ok := obj.(*api.Build)
 	if !ok {
 		return nil, fmt.Errorf("not a build: %#v", obj)
@@ -81,7 +79,7 @@ func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {
 		return nil, errors.NewInvalid("build", build.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		err := storage.registry.CreateBuild(build)
+		err := r.registry.CreateBuild(build)
 		if err != nil {
 			return nil, err
 		}
@@ -89,8 +87,8 @@ func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {
 	}), nil
 }
 
-// Update replaces a given Build instance with an existing instance in storage.registry.
-func (storage *Storage) Update(obj interface{}) (<-chan interface{}, error) {
+// Update replaces a given Build instance with an existing instance in r.registry.
+func (r *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	build, ok := obj.(*api.Build)
 	if !ok {
 		return nil, fmt.Errorf("not a build: %#v", obj)
@@ -99,7 +97,7 @@ func (storage *Storage) Update(obj interface{}) (<-chan interface{}, error) {
 		return nil, errors.NewInvalid("build", build.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (interface{}, error) {
-		err := storage.registry.UpdateBuild(build)
+		err := r.registry.UpdateBuild(build)
 		if err != nil {
 			return nil, err
 		}

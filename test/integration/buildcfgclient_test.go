@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"testing"
 
-	// "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -16,10 +15,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 
-	"github.com/openshift/origin/pkg/build"
 	"github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	osclient "github.com/openshift/origin/pkg/client"
 )
 
@@ -33,9 +32,10 @@ func TestBuildConfigClient(t *testing.T) {
 		EtcdServers: etcdClient.GetCluster(),
 	})
 	osMux := http.NewServeMux()
+	buildRegistry := buildetcd.NewEtcd(etcdClient)
 	storage := map[string]apiserver.RESTStorage{
-		"builds":       buildregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
-		"buildConfigs": buildconfigregistry.NewStorage(build.NewEtcdRegistry(etcdClient)),
+		"builds":       buildregistry.NewREST(buildRegistry),
+		"buildConfigs": buildconfigregistry.NewREST(buildRegistry),
 	}
 	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
 	apiserver.NewAPIGroup(storage, runtime.Codec).InstallREST(osMux, "/osapi/v1beta1")
