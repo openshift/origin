@@ -32,7 +32,7 @@ function wait_for_url {
     fi
     sleep $wait
   done
-  echo "ERROR: gave up waiting for $url with output:"
+  echo "ERROR: gave up waiting for $url"
   curl $url
   set -e
   return 1
