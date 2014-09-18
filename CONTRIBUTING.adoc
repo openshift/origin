@@ -9,8 +9,15 @@ The OpenShift 3 architecture builds upon the flexibility and scalability of http
 
 There are multiple ways to start coding OpenShift.
 
+* <<download-from-github>>
 * <<develop-locally-on-your-host>>
 * <<develop-on-virtual-machine-using-vagrant>>
+
+== Download from GitHub
+
+The OpenShift team periodically publishes binaries to Github on [the Releases page](https://github.com/openshift/origin/releases).  These are precompiled Linux 64bit binaries and will not  work on other platforms.
+
+The tar file contans a single binary `openshift` which is the all-in-one OpenShift installation.  Unzip the tar file and make this file executable and you can get started with OpenShift in seconds.
 
 == Develop locally on your host
 
