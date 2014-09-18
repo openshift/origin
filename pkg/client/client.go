@@ -6,6 +6,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/v1beta1"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/v1beta1"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 )
@@ -17,6 +19,8 @@ type Interface interface {
 	ImageInterface
 	ImageRepositoryInterface
 	ImageRepositoryMappingInterface
+	DeploymentInterface
+	DeploymentConfigInterface
 }
 
 // BuildInterface exposes methods on Build resources.
@@ -55,6 +59,24 @@ type ImageRepositoryInterface interface {
 // ImageRepositoryMappingInterface exposes methods on ImageRepositoryMapping resources.
 type ImageRepositoryMappingInterface interface {
 	CreateImageRepositoryMapping(*imageapi.ImageRepositoryMapping) error
+}
+
+// DeploymentConfigInterface contains methods for working with DeploymentConfigs
+type DeploymentConfigInterface interface {
+	ListDeploymentConfigs(selector labels.Selector) (*deployapi.DeploymentConfigList, error)
+	GetDeploymentConfig(id string) (*deployapi.DeploymentConfig, error)
+	CreateDeploymentConfig(*deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfig(*deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	DeleteDeploymentConfig(string) error
+}
+
+// DeploymentInterface contains methods for working with Deployments
+type DeploymentInterface interface {
+	ListDeployments(selector labels.Selector) (*deployapi.DeploymentList, error)
+	GetDeployment(id string) (*deployapi.Deployment, error)
+	CreateDeployment(*deployapi.Deployment) (*deployapi.Deployment, error)
+	UpdateDeployment(*deployapi.Deployment) (*deployapi.Deployment, error)
+	DeleteDeployment(string) error
 }
 
 // Client is an OpenShift client object
@@ -194,4 +216,70 @@ func (c *Client) UpdateImageRepository(repo *imageapi.ImageRepository) (result *
 // CreateImageRepositoryMapping create a new imagerepository mapping on the server. Returns error if one occurs.
 func (c *Client) CreateImageRepositoryMapping(mapping *imageapi.ImageRepositoryMapping) error {
 	return c.Post().Path("imageRepositoryMappings").Body(mapping).Do().Error()
+}
+
+// ListDeploymentConfigs takes a selector, and returns the list of deploymentConfigs that match that selector
+func (c *Client) ListDeploymentConfigs(selector labels.Selector) (result *deployapi.DeploymentConfigList, err error) {
+	result = &deployapi.DeploymentConfigList{}
+	err = c.Get().Path("deploymentConfigs").SelectorParam("labels", selector).Do().Into(result)
+	return
+}
+
+// GetDeploymentConfig returns information about a particular deploymentConfig
+func (c *Client) GetDeploymentConfig(id string) (result *deployapi.DeploymentConfig, err error) {
+	result = &deployapi.DeploymentConfig{}
+	err = c.Get().Path("deploymentConfigs").Path(id).Do().Into(result)
+	return
+}
+
+// CreateDeploymentConfig creates a new deploymentConfig
+func (c *Client) CreateDeploymentConfig(deploymentConfig *deployapi.DeploymentConfig) (result *deployapi.DeploymentConfig, err error) {
+	result = &deployapi.DeploymentConfig{}
+	err = c.Post().Path("deploymentConfigs").Body(deploymentConfig).Do().Into(result)
+	return
+}
+
+// UpdateDeploymentConfig updates an existing deploymentConfig
+func (c *Client) UpdateDeploymentConfig(deploymentConfig *deployapi.DeploymentConfig) (result *deployapi.DeploymentConfig, err error) {
+	result = &deployapi.DeploymentConfig{}
+	err = c.Put().Path("deploymentConfigs").Path(deploymentConfig.ID).Body(deploymentConfig).Do().Into(result)
+	return
+}
+
+// DeleteDeploymentConfig deletes an existing deploymentConfig.
+func (c *Client) DeleteDeploymentConfig(id string) error {
+	return c.Delete().Path("deploymentConfigs").Path(id).Do().Error()
+}
+
+// ListDeployments takes a selector, and returns the list of deployments that match that selector
+func (c *Client) ListDeployments(selector labels.Selector) (result *deployapi.DeploymentList, err error) {
+	result = &deployapi.DeploymentList{}
+	err = c.Get().Path("deployments").SelectorParam("labels", selector).Do().Into(result)
+	return
+}
+
+// GetDeployment returns information about a particular deployment
+func (c *Client) GetDeployment(id string) (result *deployapi.Deployment, err error) {
+	result = &deployapi.Deployment{}
+	err = c.Get().Path("deployments").Path(id).Do().Into(result)
+	return
+}
+
+// CreateDeployment creates a new deployment
+func (c *Client) CreateDeployment(deployment *deployapi.Deployment) (result *deployapi.Deployment, err error) {
+	result = &deployapi.Deployment{}
+	err = c.Post().Path("deployments").Body(deployment).Do().Into(result)
+	return
+}
+
+// UpdateDeployment updates an existing deployment
+func (c *Client) UpdateDeployment(deployment *deployapi.Deployment) (result *deployapi.Deployment, err error) {
+	result = &deployapi.Deployment{}
+	err = c.Put().Path("deployments").Path(deployment.ID).Body(deployment).Do().Into(result)
+	return
+}
+
+// DeleteDeployment deletes an existing replication deployment.
+func (c *Client) DeleteDeployment(id string) error {
+	return c.Delete().Path("deployments").Path(id).Do().Error()
 }
