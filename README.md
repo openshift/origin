@@ -12,9 +12,9 @@ NOTE: This is a very early prototype, and as such is designed for rapid iteratio
 
 Getting Started
 ---------------
-First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc). 
+You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux 64bit pre-built binary](CONTRIBUTING.adoc#download-from-github).
 
-You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant).
+First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc). 
 
 Once setup, you can:
 
