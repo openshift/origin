@@ -17,6 +17,8 @@ function gitcommit() {
     # Check if the tree is dirty.
     if ! dirty_tree=$(git status --porcelain) || [[ -n "${dirty_tree}" ]]; then
       echo "${git_commit}-dirty"
+    else
+      echo "${git_commit}"
     fi
   else
     echo "(none)"
@@ -71,3 +73,5 @@ export GOPATH
 
 # Unset GOBIN in case it already exists in the current session.
 unset GOBIN
+
+OS_BUILD_TAGS=${OS_BUILD_TAGS-}

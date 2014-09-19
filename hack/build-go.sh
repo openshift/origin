@@ -28,4 +28,10 @@ for arg; do
   binaries+=("${OS_GO_PACKAGE}/${arg}")
 done
 
-go install -ldflags "-X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit '${kube_version}' -X github.com/openshift/origin/pkg/version.commitFromGit '${version}'" "${binaries[@]}"
+build_tags=""
+if [[ ! -z "$OS_BUILD_TAGS" ]]; then
+  build_tags="-tags \"$OS_BUILD_TAGS\""
+fi
+
+
+go install $build_tags -ldflags "-X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit '${kube_version}' -X github.com/openshift/origin/pkg/version.commitFromGit '${version}'" "${binaries[@]}"
