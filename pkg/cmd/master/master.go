@@ -84,7 +84,9 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 	}
 
 	flag := cmd.Flags()
-	flag.StringVar(&cfg.ListenAddr, "listenAddr", "127.0.0.1:8080", "The OpenShift server listen address.")
+	flag.StringVar(&cfg.ListenAddr, "listenAddr", "127.0.0.1:8080", "The server listen address.")
+	flag.StringVar(&cfg.VolumeDir, "volumeDir", "openshift.local.volumes", "The volume storage directory.")
+	flag.StringVar(&cfg.EtcdDir, "etcdDir", "openshift.local.etcd", "The etcd data directory.")
 
 	dockerHelper.InstallFlags(flag)
 
@@ -94,6 +96,8 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 // config contains all options that apply to a running command
 type config struct {
 	ListenAddr string
+	VolumeDir  string
+	EtcdDir    string
 	Docker     docker.Helper
 	masterHost string
 	nodeHosts  []string
@@ -235,7 +239,7 @@ func (c *config) runApiserver() {
 }
 
 func (c *config) runKubelet() {
-	rootDirectory := path.Clean("/var/lib/openshift")
+	rootDirectory := path.Clean(c.VolumeDir)
 	minionHost := c.bindAddr
 	minionPort := 10250
 
@@ -254,7 +258,12 @@ func (c *config) runKubelet() {
 	etcdClient, _ := c.getEtcdClient()
 
 	// initialize Kubelet
-	os.MkdirAll(rootDirectory, 0750)
+	if _, err := os.Stat(rootDirectory); os.IsNotExist(err) {
+		if mkdirErr := os.MkdirAll(rootDirectory, 0750); mkdirErr != nil {
+			glog.Fatalf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, mkdirErr)
+		}
+	}
+
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
 	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(minionHost), etcdClient, cfg.Channel("etcd"))
 	k := kubelet.NewMainKubelet(
@@ -300,7 +309,7 @@ func (c *config) runEtcd() {
 	etcdConfig := etcdconfig.New()
 	etcdConfig.Addr = etcdAddr
 	etcdConfig.BindAddr = etcdAddr
-	etcdConfig.DataDir = "openshift.local.etcd"
+	etcdConfig.DataDir = c.EtcdDir
 	etcdConfig.Name = "openshift.local"
 
 	// initialize etcd
