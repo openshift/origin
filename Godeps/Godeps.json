@@ -387,6 +387,11 @@
 			"Rev": "5a6d06c02600b1e57e55a9d9f71dbac1bfc9fe6c"
 		},
 		{
+			"ImportPath": "github.com/jteeuwen/go-bindata",
+			"Comment": "v3.0.5-31-g93b909d",
+			"Rev": "93b909d1499a38620121b0a5eb43a18f3bccb083"
+		},    
+		{
 			"ImportPath": "github.com/google/gofuzz",
 			"Rev": "aef70dacbc78771e35beb261bb3a72986adf7906"
 		},
