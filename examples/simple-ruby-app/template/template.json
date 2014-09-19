@@ -1,0 +1,74 @@
+{
+  "id": "ruby-helloworld-sample-template",
+  "kind": "Template",
+  "name": "ruby-hello-world-template",
+  "description": "This example shows how to create a simple ruby application in openshift origin v3",
+  "parameters": [
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "administrator username",
+      "type": "string",
+      "expression": "admin[A-Z0-9]{3}"
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "administrator password",
+      "type": "string",
+      "expression": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "DB_PASSWORD",
+      "description": "",
+      "type": "string",
+      "expression": "[a-zA-Z0-9]{8}"
+    }
+  ],
+  "items": [
+    {
+      "id": "frontend",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 5432,
+      "selector": {
+        "name": "frontend"
+      }
+    },
+    {
+      "id": "frontendController",
+      "kind": "ReplicationController",
+      "apiVersion": "v1beta1",
+      "desiredState": {
+        "replicas": 1,
+        "replicaSelector": {"name": "frontend"},
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "frontendController",
+              "containers": [{
+                "name": "ruby-helloworld",
+                "image": "openshift/origin-ruby-sample",
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "${ADMIN_USERNAME}"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "${ADMIN_PASSWORD}"
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "value": "${DB_PASSWORD}"
+                  }
+                ],
+                "ports": [{"containerPort": 8080}]
+              }]
+            }
+          },
+          "labels": {"name": "frontend"}
+        }},
+        "labels": {"name": "frontend"}
+    }
+  ]
+}
