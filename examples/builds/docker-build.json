@@ -1,0 +1,9 @@
+{
+  "kind": "Build",
+  "apiVersion": "v1beta1",
+  "input": {
+    "type": "docker",
+    "sourceURI": "https://raw.githubusercontent.com/openshift/origin/master/examples/builds/images/docker-build/Dockerfile",
+    "imageTag": "openshift/docker-build-example"
+  }
+}

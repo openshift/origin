@@ -24,7 +24,7 @@ import (
 	"github.com/coreos/etcd/etcd"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/client"
+	cadvisor "github.com/google/cadvisor/client"
 	"github.com/spf13/cobra"
 
 	_ "github.com/openshift/origin/pkg/api"
@@ -328,14 +328,12 @@ func (c *config) runBuildController() {
 
 	// initialize build controller
 	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/docker-builder")
-	useHostDockerSocket := len(env("USE_HOST_DOCKER_SOCKET", "")) > 0
 	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/sti-builder")
 	dockerRegistry := env("DOCKER_REGISTRY", "")
 
 	buildStrategies := map[buildapi.BuildType]build.BuildJobStrategy{
-		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage, useHostDockerSocket),
-		buildapi.STIBuildType: strategy.NewSTIBuildStrategy(stiBuilderImage,
-			useHostDockerSocket, strategy.STITempDirectoryCreator),
+		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage),
+		buildapi.STIBuildType:    strategy.NewSTIBuildStrategy(stiBuilderImage, strategy.STITempDirectoryCreator),
 	}
 
 	buildController := build.NewBuildController(kubeClient, osClient, buildStrategies, dockerRegistry, 1200)

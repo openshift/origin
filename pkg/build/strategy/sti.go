@@ -8,11 +8,8 @@ import (
 )
 
 // STIBuildStrategy creates STI(source to image) builds
-// useHostDocker determines whether the minion Docker daemon is used for the build
-// or a separate Docker daemon is run inside the container
 type STIBuildStrategy struct {
 	stiBuilderImage      string
-	useHostDocker        bool
 	tempDirectoryCreator TempDirectoryCreator
 }
 
@@ -30,8 +27,8 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 
 // NewSTIBuildStrategy creates a new STIBuildStrategy with the given
 // builder image
-func NewSTIBuildStrategy(stiBuilderImage string, useHostDocker bool, tc TempDirectoryCreator) *STIBuildStrategy {
-	return &STIBuildStrategy{stiBuilderImage, useHostDocker, tc}
+func NewSTIBuildStrategy(stiBuilderImage string, tc TempDirectoryCreator) *STIBuildStrategy {
+	return &STIBuildStrategy{stiBuilderImage, tc}
 }
 
 // CreateBuildPod creates a pod that will execute the STI build
@@ -56,34 +53,40 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 							{Name: "SOURCE_REF", Value: build.Input.SourceRef},
 							{Name: "BUILDER_IMAGE", Value: build.Input.BuilderImage},
 						},
-						Privileged: true,
 					},
 				},
 			},
 		},
 	}
-	if bs.useHostDocker {
-		tempDir, err := bs.tempDirectoryCreator.CreateTempDirectory()
-		if err != nil {
-			return nil, err
-		}
-		tmpVolume := api.Volume{
-			Name: "tmp",
-			Source: &api.VolumeSource{
-				HostDirectory: &api.HostDirectory{
-					Path: tempDir,
-				},
-			},
-		}
-		tmpMount := api.VolumeMount{Name: "tmp", ReadOnly: false, MountPath: tempDir}
-		pod.DesiredState.Manifest.Volumes = append(pod.DesiredState.Manifest.Volumes, tmpVolume)
-		pod.DesiredState.Manifest.Containers[0].VolumeMounts =
-			append(pod.DesiredState.Manifest.Containers[0].VolumeMounts, tmpMount)
-		pod.DesiredState.Manifest.Containers[0].Env =
-			append(pod.DesiredState.Manifest.Containers[0].Env, api.EnvVar{
-				Name: "TEMP_DIR", Value: tempDir})
+
+	if err := bs.setupTempVolume(pod); err != nil {
+		return nil, err
 	}
 
-	setupDockerSocket(bs.useHostDocker, pod)
+	setupDockerSocket(pod)
 	return pod, nil
+}
+
+func (bs *STIBuildStrategy) setupTempVolume(pod *api.Pod) error {
+	tempDir, err := bs.tempDirectoryCreator.CreateTempDirectory()
+	if err != nil {
+		return err
+	}
+	tmpVolume := api.Volume{
+		Name: "tmp",
+		Source: &api.VolumeSource{
+			HostDirectory: &api.HostDirectory{
+				Path: tempDir,
+			},
+		},
+	}
+	tmpMount := api.VolumeMount{Name: "tmp", ReadOnly: false, MountPath: tempDir}
+	pod.DesiredState.Manifest.Volumes = append(pod.DesiredState.Manifest.Volumes, tmpVolume)
+	pod.DesiredState.Manifest.Containers[0].VolumeMounts =
+		append(pod.DesiredState.Manifest.Containers[0].VolumeMounts, tmpMount)
+	pod.DesiredState.Manifest.Containers[0].Env =
+		append(pod.DesiredState.Manifest.Containers[0].Env, api.EnvVar{
+			Name: "TEMP_DIR", Value: tempDir})
+
+	return nil
 }

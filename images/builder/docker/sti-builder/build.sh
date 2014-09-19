@@ -1,33 +1,10 @@
 #!/bin/bash -ex
 
-NEED_DIND=false
-if [ ! -e /var/run/docker.sock ]; then
-  NEED_DIND=true
-fi
+DOCKER_SOCKET=/var/run/docker.sock
 
-if [ $NEED_DIND == "true" ]; then
-  DOCKER_READY=false
-  dind &
-
-  # wait for docker to be available
-  ATTEMPTS=0
-  while [ $ATTEMPTS -lt 10 ]; do
-    set +e
-    docker version &> /dev/null
-    if [ $? -eq 0 ]; then
-      DOCKER_READY=true
-      break
-    fi
-    set -e
-
-    let ATTEMPTS=ATTEMPTS+1
-    sleep 1
-  done
-
-  if [ $DOCKER_READY != "true" ]; then
-    echo 'Docker-in-Docker daemon not accessible'
-    exit 1
-  fi
+if [ ! -e $DOCKER_SOCKET ]; then
+  echo "Docker socket missing at $DOCKER_SOCKET"
+  exit 1
 fi
 
 TAG=$BUILD_TAG
@@ -45,8 +22,4 @@ TMPDIR=$BUILD_TEMP_DIR sti build $SOURCE_URI $BUILDER_IMAGE $TAG $REF_OPTION
 
 if [ -n "$DOCKER_REGISTRY" ]; then
   docker push $TAG
-fi
-
-if [ $NEED_DIND == "true" ]; then
-  kill -15 $(cat /var/run/docker.pid)
 fi

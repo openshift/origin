@@ -17,7 +17,7 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 		},
 	}
 
-	setupDockerSocket(true, &pod)
+	setupDockerSocket(&pod)
 
 	if len(pod.DesiredState.Manifest.Volumes) != 1 {
 		t.Fatalf("Expected 1 volume, got: %#v", pod.DesiredState.Manifest.Volumes)
@@ -51,29 +51,5 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	}
 	if pod.DesiredState.Manifest.Containers[0].Privileged {
 		t.Error("Expected privileged to be false")
-	}
-}
-
-func TestSetupDockerSocketDockerInDocker(t *testing.T) {
-	pod := api.Pod{
-		DesiredState: api.PodState{
-			Manifest: api.ContainerManifest{
-				Containers: []api.Container{
-					{},
-				},
-			},
-		},
-	}
-
-	setupDockerSocket(false, &pod)
-
-	if len(pod.DesiredState.Manifest.Volumes) != 0 {
-		t.Errorf("Expected 0 volumes, got: %#v", pod.DesiredState.Manifest.Volumes)
-	}
-	if len(pod.DesiredState.Manifest.Containers[0].VolumeMounts) != 0 {
-		t.Errorf("Expected 0 volume mounts, got: %#v", pod.DesiredState.Manifest.Containers[0].VolumeMounts)
-	}
-	if !pod.DesiredState.Manifest.Containers[0].Privileged {
-		t.Error("Expected privileged to be true")
 	}
 }
