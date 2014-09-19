@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
+	"github.com/openshift/origin/pkg/cmd/global"
 )
 
 func Printfln(format string, a ...interface{}) (n int, err error) {
-	return fmt.Printf(format+"\n", a...)
+	return fmt.Printf(format+LineBreak(), a...)
 }
 
 func Strong(s string) string {
@@ -30,7 +31,31 @@ func Info(s string) string {
 	return colorize(color.FgBlue, s)
 }
 
+func LineBreak() string {
+	return "\n"
+}
+
+func BR() string {
+	return LineBreak()
+}
+
+func Paragraph(content string) string {
+	return LineBreak() + LineBreak() + content + LineBreak() + LineBreak() //ouch
+}
+
+func P(content string) string {
+	return Paragraph(content)
+}
+
+func Tab() string {
+	return "\t"
+}
+
 func colorize(c color.Attribute, s string) string {
-	colorize := color.New(c).SprintFunc()
-	return colorize(s)
+	if global.Raw {
+		return s
+	} else {
+		colorize := color.New(c).SprintFunc()
+		return colorize(s)
+	}
 }
