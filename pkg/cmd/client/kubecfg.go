@@ -50,22 +50,23 @@ import (
 )
 
 type KubeConfig struct {
-	ServerVersion bool
-	PreventSkew   bool
-	HttpServer    string
-	Config        string
-	Selector      string
-	UpdatePeriod  time.Duration
-	PortSpec      string
-	ServicePort   int
-	AuthConfig    string
-	JSON          bool
-	YAML          bool
-	Verbose       bool
-	Proxy         bool
-	WWW           string
-	TemplateFile  string
-	TemplateStr   string
+	ServerVersion  bool
+	PreventSkew    bool
+	HttpServer     string
+	Config         string
+	TemplateConfig string
+	Selector       string
+	UpdatePeriod   time.Duration
+	PortSpec       string
+	ServicePort    int
+	AuthConfig     string
+	JSON           bool
+	YAML           bool
+	Verbose        bool
+	Proxy          bool
+	WWW            string
+	TemplateFile   string
+	TemplateStr    string
 
 	Args []string
 }
@@ -87,8 +88,11 @@ func usage(name string) string {
   %[1]s [OPTIONS] run <image> <replicas> <controller>
   %[1]s [OPTIONS] resize <controller> <replicas>
 
-	Perform bulk operations on groups of Kubernetes resources:
+  Perform bulk operations on groups of Kubernetes resources:
   %[1]s [OPTIONS] apply -c config.json
+
+  Process template into config:
+  %[1]s [OPTIONS] process -c template.json
 `, name, prettyWireStorage())
 }
 
@@ -236,7 +240,7 @@ func (c *KubeConfig) Run() {
 		"deploymentConfigs":       {"DeploymentConfig", client.RESTClient},
 	}
 
-	matchFound := c.executeConfigRequest(method, clients) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
+	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -428,6 +432,32 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 	}
 	if err != nil {
 		glog.Fatalf("Error: %v", err)
+	}
+	return true
+}
+
+// executeTemplateRequest transform the JSON file with Config template into a
+// valid Config JSON.
+func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Client) bool {
+	if method != "process" {
+		return false
+	}
+	if len(c.Config) == 0 {
+		glog.Fatal("Need template file (-t)")
+	}
+	data, err := ioutil.ReadFile(c.Config)
+	if err != nil {
+		glog.Fatalf("error reading template file: %v", err)
+	}
+	request := client.Verb("POST").Path("/templateConfigs").Body(data)
+	result := request.Do()
+	body, err := result.Raw()
+	if err != nil {
+		glog.Fatalf("failed to process template: %v", err)
+	}
+	printer := JSONPrinter{}
+	if err := printer.Print(body, os.Stdout); err != nil {
+		glog.Fatalf("unable to pretty print config JSON: %v [%s]", err, string(body))
 	}
 	return true
 }
