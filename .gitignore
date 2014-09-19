@@ -1,6 +1,6 @@
 /_output
 /third_party
-/*.etcd
+/openshift.local.*
 /.project
 /.vagrant
 *.swp
