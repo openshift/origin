@@ -20,7 +20,6 @@ The OpenShift team periodically publishes binaries to Github on https://github.c
 The tar file contains a single binary `openshift` which is the all-in-one OpenShift installation.
 
 * Use `openshift start` to launch the server
-* Use `openshift tour` to get a walkthrough of what OpenShift does today
 * Use `openshift help` to see more about the commands in the binary
 
 == Develop locally on your host
