@@ -8,21 +8,22 @@ To do this, run:
 
 This will:
 
-1. Launch the openshift server
+1. Launch the OpenShift server
  * Logs are available in logs/openshift.log
  
-2. Submit the template/template.json for parameterization
+2. Create a private Docker registry running in OpenShift
 
-3. Store the resulting config json in processed/template.processed.json
+3. Define a build configuration for the application
 
-4. Submit the config json to openshift for creation
+4. Trigger a new build of the application
 
-5. Confirm the application is created/accessible via curl
+5. Submit the template/template.json for parameterization
 
-6. Trigger a new build of the application
+6. Store the resulting config json in processed/template.processed.json
 
-7. Show the new docker image created on your local system as a result of the build
- * Normally the next step would be to push this image to a docker registry and then create a new openshift application based on it, or cause the existing application to be redeployed with the new image.  See the next section to exercise this flow.
+7. Submit the config json to OpenShift for creation
+
+8. Confirm the application is created/accessible via curl
 
 To reset your system after running this example, you can run:
         

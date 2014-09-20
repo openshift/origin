@@ -47,7 +47,7 @@
               "id": "frontendController",
               "containers": [{
                 "name": "ruby-helloworld",
-                "image": "openshift/origin-ruby-sample",
+                "image": "localhost:5000/openshift/origin-ruby-sample",
                 "env": [
                   {
                     "name": "ADMIN_USERNAME",
