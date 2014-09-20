@@ -41,7 +41,14 @@ This example is simply running the ['openshift/hello-openshift' Docker image](ht
 * At the Kubernetes level, we [map that bound port in the container](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L13) [to port 6061 on the host](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L14) so that we can access it via the host browser.
 
 ### Other Examples
-For an example app that includes a database and an admin front-end, try the [multiple container pod](https://github.com/openshift/origin/blob/master/examples/test-pod-multi.json). 
+
+* [OpenShift full walkthrough](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app/README.md)
+* [Kubernetes walkthrough](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/walkthrough)
+* [Kubernetes guestbook](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/guestbook)
+* [OpenShift guestbook template](https://github.com/openshift/origin/blob/master/examples/guestbook) takes the previous example and templatizes it
+
+Remember, you can pass a URL to `-c` when using the `kube` command, so you can [download the latest release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you don't even need clone the source.
+
 
 Design Documents
 ----------------
