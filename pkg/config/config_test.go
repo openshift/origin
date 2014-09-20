@@ -10,7 +10,7 @@ import (
 )
 
 func TestParseKindAndItem(t *testing.T) {
-	data, _ := ioutil.ReadFile("../../examples/guestbook/config.json")
+	data, _ := ioutil.ReadFile("config_test.json")
 	conf := configJSON{}
 	if err := json.Unmarshal(data, &conf); err != nil {
 		t.Errorf("Failed to parse Config: %v", err)
@@ -60,6 +60,6 @@ func ExampleApply() {
 		"pods":     {"Pod", kubeClient.RESTClient},
 		"services": {"Service", kubeClient.RESTClient},
 	}
-	data, _ := ioutil.ReadFile("../../examples/guestbook/config.json")
+	data, _ := ioutil.ReadFile("config_test.json")
 	Apply(data, testClientMappings)
 }

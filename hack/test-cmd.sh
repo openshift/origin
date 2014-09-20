@@ -46,7 +46,7 @@ ${KUBE_CMD} delete pods/hello-openshift
 echo "kube(pods): ok"
 
 ${KUBE_CMD} list services
-${KUBE_CMD} -c examples/test-service.json create services
+${KUBE_CMD} -c test/integration/fixtures/test-service.json create services
 ${KUBE_CMD} delete services/frontend
 echo "kube(services): ok"
 
@@ -55,25 +55,20 @@ ${KUBE_CMD} get minions/127.0.0.1
 echo "kube(minions): ok"
 
 ${KUBE_CMD} list images
-${KUBE_CMD} -c examples/image/test-image.json create images
+${KUBE_CMD} -c test/integration/fixtures/test-image.json create images
 ${KUBE_CMD} delete images/test
 echo "kube(images): ok"
 
 ${KUBE_CMD} list imageRepositories
-${KUBE_CMD} -c examples/image/test-image-repository.json create imageRepositories
+${KUBE_CMD} -c test/integration/fixtures/test-image-repository.json create imageRepositories
 ${KUBE_CMD} delete imageRepositories/test
 echo "kube(imageRepositories): ok"
 
-${KUBE_CMD} -c examples/image/test-image-repository.json create imageRepositories
-${KUBE_CMD} -c examples/image/test-mapping.json create imageRepositoryMappings
+${KUBE_CMD} -c test/integration/fixtures/test-image-repository.json create imageRepositories
+${KUBE_CMD} -c test/integration/fixtures/test-mapping.json create imageRepositoryMappings
 ${KUBE_CMD} list images
 ${KUBE_CMD} list imageRepositories
 echo "kube(imageRepositoryMappings): ok"
 
-tmp_config=$(mktemp --suffix=.json)
-${KUBE_CMD} process -c examples/guestbook/template.json > $tmp_config
-echo "kube(template): ok"
-
-${KUBE_CMD} apply -c $tmp_config
-echo "kube(config): ok"
-rm $tmp_config
+${KUBE_CMD} process -c examples/guestbook/template.json | ${KUBE_CMD} apply -c -
+echo "kube(template+config): ok"
