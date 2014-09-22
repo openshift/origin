@@ -52,7 +52,7 @@ func deployTarget(client *kubeclient.Client, osClient osclient.Interface) {
 	}
 	glog.Infof("Retrieving deployment id: %v", deploymentID)
 
-	var deployment deployapi.Deployment
+	var deployment *deployapi.Deployment
 	var err error
 	if deployment, err = osClient.GetDeployment(deploymentID); err != nil {
 		glog.Fatalf("An error occurred retrieving the deployment object: %v", err)
