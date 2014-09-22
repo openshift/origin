@@ -114,7 +114,7 @@ All commands assume the `openshift` binary is in your path:
 
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
-14. Repeat steps 7-8
+14. Repeat steps 8-9
 
 15. Locate the container running the ruby application and kill it:
  
