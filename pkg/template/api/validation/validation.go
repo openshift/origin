@@ -1,7 +1,6 @@
 package validation
 
 import (
-	"fmt"
 	"regexp"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -40,7 +39,7 @@ func ValidateTemplate(template *Template) (errs ErrorList) {
 		case *kubeapi.Service:
 			err = ValidateService(obj)
 		default:
-			err = append(err, NewFieldInvalid("kind", fmt.Sprintf("%T", item)))
+			// Pass-through unknown types.
 		}
 		errs = append(errs, err.PrefixIndex(i).Prefix("items")...)
 	}
