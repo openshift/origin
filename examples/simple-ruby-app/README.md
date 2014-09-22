@@ -16,7 +16,7 @@ All commands assume the `openshift` binary is in your path:
 
 1. Launch `openshift`
 
-        $ DOCKER_REGISTRY=localhost:5000 $openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
+        $ DOCKER_REGISTRY=localhost:5000 openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
 
 2. Deploy the private docker registry within OpenShift:
 
