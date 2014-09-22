@@ -3,10 +3,12 @@ package deployment
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/util/formatting"
+	p "github.com/openshift/origin/pkg/cmd/util/printer"
 	api "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/spf13/cobra"
 )
+
+var printer = p.TerminalPrinter{} // TODO: improve, we can think about things like FilePrinter, JsonPrinter, etc
 
 // Commands
 
@@ -27,19 +29,19 @@ func NewCommandDeploymentList(name string) *cobra.Command {
 		Short: fmt.Sprintf("Command '%s' (main)", name),
 		Long:  fmt.Sprintf("Command '%s' (main)", name),
 		Run: func(c *cobra.Command, args []string) {
-			fmt.Printf("Fetching '%s' ... ", formatting.Strong("deployments"))
+			printer.Print("Fetching deployments ... ")
 
 			items := api.DeploymentList{}.Items
 
 			if len(items) == 0 {
-				formatting.Printfln(formatting.Error("nothing found"))
+				printer.Errorln("nothing found")
 
 			} else {
 				for _, d := range items {
 					fmt.Printf("\n%s\t%s\n", d.ID, d.State)
 				}
 
-				formatting.Printfln(formatting.Success("done"))
+				printer.Successln("done")
 			}
 		},
 	}

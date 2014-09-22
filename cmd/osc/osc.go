@@ -5,13 +5,14 @@ import (
 	"os"
 
 	"github.com/openshift/origin/pkg/cmd/deployment"
-	"github.com/openshift/origin/pkg/cmd/global"
 	"github.com/openshift/origin/pkg/cmd/setup"
 	"github.com/openshift/origin/pkg/cmd/version"
 	"github.com/spf13/cobra"
 )
 
 func main() {
+	var verbose, raw bool
+
 	// Main osc command
 	oscCmd := &cobra.Command{
 		Use:   "osc",
@@ -37,8 +38,8 @@ func main() {
 	oscCmd.AddCommand(setup.NewCommandSetup("setup"))
 
 	// Global flags
-	oscCmd.PersistentFlags().BoolVarP(&global.Verbose, "verbose", "v", false, "Verbose output")
-	oscCmd.PersistentFlags().BoolVar(&global.Raw, "raw", false, "Do not format the output from the requested operations")
+	oscCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	oscCmd.PersistentFlags().BoolVar(&raw, "raw", false, "Do not format the output from the requested operations")
 
 	// Root command execution path
 	err := oscCmd.Execute()
