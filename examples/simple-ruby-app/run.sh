@@ -6,7 +6,7 @@ OSHOST=localhost
 # OpenShift binary
 openshift="../../_output/go/bin/openshift"
 
-# OPTIONAL: Wipe out previous OpenShift/k8s deployment information for a 
+# OPTIONAL: Wipe out previous OpenShift/k8s deployment information for a
 # clean start.
 rm -rf openshift.local.etcd
 
@@ -24,7 +24,7 @@ DOCKER_REGISTRY=localhost:5000 $openshift start --listenAddr="0.0.0.0:8080" &> l
 sleep 5
 
 # Deploy the private Docker registry config
-openshift kube apply -c registry_config/registry_config.json
+$openshift kube apply -c registry_config/registry_config.json
 
 # Wait for the app container to start up
 rc=1
@@ -89,7 +89,7 @@ done
 
 # Convert template to config
 echo "Submitting application template json for processing..."
-openshift kube process -c template/template.json > processed/template.processed.json
+$openshift kube process -c template/template.json > processed/template.processed.json
 
 # Deploy the config
 $openshift kube -h http://$OSHOST:8080 apply -c processed/template.processed.json
@@ -123,4 +123,4 @@ sleep 15
 # Confirm the app is running/responsive.
 echo "Frontend is available, sending request.  Frontend says:"
 curl localhost:5432
-  
+
