@@ -22,7 +22,7 @@ All commands assume the `openshift` binary is in your path:
 
         $ openshift kube apply -c registry_config/registry_config.json
 
-3. Confirm the registry is started:
+3. Confirm the registry is started (this can take a few mins):
 
         $ openshift kube list pods
         
@@ -65,7 +65,7 @@ All commands assume the `openshift` binary is in your path:
                 
     which confirms the webhook was triggered.
                 
-7. Monitor the builds and wait for the status to go to "complete"
+7. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
  
         $ openshift kube list builds
         
@@ -87,7 +87,7 @@ All commands assume the `openshift` binary is in your path:
 
         $ openshift kube apply -c processed/template.processed.json
         
-11. Wait for the application's frontend pod to be started:
+11. Wait for the application's frontend pod to be started (this can take a few mins):
 
         $ openshift kube list pods
 
