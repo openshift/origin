@@ -3,18 +3,30 @@ package deployment
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/base"
 	"github.com/openshift/origin/pkg/cmd/util/formatting"
 	api "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/spf13/cobra"
 )
 
-func Main() *base.CmdExecutor {
-	return List()
+// Commands
+
+func NewCommandDeployment(name string) *cobra.Command {
+	return &cobra.Command{
+		Use:   name,
+		Short: fmt.Sprintf("Command '%s' (main)", name),
+		Long:  fmt.Sprintf("Command '%s' (main)", name),
+		Run: func(c *cobra.Command, args []string) {
+			c.Help()
+		},
+	}
 }
 
-func List() *base.CmdExecutor {
-	return &base.CmdExecutor{
-		Execute: func(name string, args []string) {
+func NewCommandDeploymentList(name string) *cobra.Command {
+	return &cobra.Command{
+		Use:   name,
+		Short: fmt.Sprintf("Command '%s' (main)", name),
+		Long:  fmt.Sprintf("Command '%s' (main)", name),
+		Run: func(c *cobra.Command, args []string) {
 			fmt.Printf("Fetching '%s' ... ", formatting.Strong("deployments"))
 
 			items := api.DeploymentList{}.Items
@@ -33,30 +45,32 @@ func List() *base.CmdExecutor {
 	}
 }
 
-func Show() *base.CmdExecutor {
-	return &base.CmdExecutor{
-		Execute: func(name string, args []string) {
+func NewCommandDeploymentShow(name string) *cobra.Command {
+	return &cobra.Command{
+		Use:   name,
+		Short: fmt.Sprintf("Command '%s' (main)", name),
+		Long:  fmt.Sprintf("Command '%s' (main)", name),
+		Run: func(c *cobra.Command, args []string) {
 		},
 	}
 }
 
-func Create() *base.CmdExecutor {
-	return &base.CmdExecutor{
-		Execute: func(name string, args []string) {
+func NewCommandDeploymentUpdate(name string) *cobra.Command {
+	return &cobra.Command{
+		Use:   name,
+		Short: fmt.Sprintf("Command '%s' (main)", name),
+		Long:  fmt.Sprintf("Command '%s' (main)", name),
+		Run: func(c *cobra.Command, args []string) {
 		},
 	}
 }
 
-func Update() *base.CmdExecutor {
-	return &base.CmdExecutor{
-		Execute: func(name string, args []string) {
-		},
-	}
-}
-
-func Remove() *base.CmdExecutor {
-	return &base.CmdExecutor{
-		Execute: func(name string, args []string) {
+func NewCommandDeploymentRemove(name string) *cobra.Command {
+	return &cobra.Command{
+		Use:   name,
+		Short: fmt.Sprintf("Command '%s' (main)", name),
+		Long:  fmt.Sprintf("Command '%s' (main)", name),
+		Run: func(c *cobra.Command, args []string) {
 		},
 	}
 }

@@ -1,14 +1,17 @@
 package setup
 
 import (
-	"github.com/openshift/origin/pkg/cmd/base"
-	"github.com/openshift/origin/pkg/cmd/util/formatting"
+	"fmt"
+
+	"github.com/spf13/cobra"
 )
 
-func Main() *base.CmdExecutor {
-	return &base.CmdExecutor{
-		Execute: func(name string, args []string) {
-			formatting.Printfln("Doing '%s'... %s.", formatting.Strong(name), formatting.Success("done"))
+func NewCommandSetup(name string) *cobra.Command {
+	return &cobra.Command{
+		Use:   name,
+		Short: fmt.Sprintf("Command '%s' (main)", name),
+		Long:  fmt.Sprintf("Command '%s' (main)", name),
+		Run: func(c *cobra.Command, args []string) {
 		},
 	}
 }
