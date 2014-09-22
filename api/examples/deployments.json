@@ -1,34 +1,54 @@
 {
-  "list": [
+  "apiVersion": "v1beta1",
+  "creationTimestamp": null,
+  "kind": "DeploymentList",
+  "items": [
     {
-      "id": "1234235172374",
-      "serviceId": "the-service-id",
-      "replicationControllers": [
-        "replication-controller-id1",
-        "replication-controller-id2",
-        "replication-controller-id3"
-      ],
-      "currentState": {
-        "replicas": 1,
-        "replicaSelector": {
-          "name": "nginx"
-        },
-        "containers": [{
-          "image": "dockerfile/nginx",
-          "ports": [{"containerPort": 80, "hostPort": 8080}]
-        }],
+      "id": "redisslave-deploy",
+      "kind": "Deployment",
+      "apiVersion": "v1beta1",
+      "triggerPolicy": "manual",
+      "configId": "redisslave-config",
+      "strategy": {
+        "type": "customPod",
+        "customPod": {
+          "image": "127.0.0.1:5000/openshift/kube-deploy"
+        }
       },
-      "desiredState": {
+      "controllerTemplate": {
         "replicas": 2,
         "replicaSelector": {
-          "name": "nginx"
+          "name": "redisslave"
         },
-        "containers": [{
-          "image": "dockerfile/nginx/v2tag",
-          "ports": [{"containerPort": 80, "hostPort": 8080}]
-        }],
-      },
-      "status": "active"
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "redisSlaveController",
+              "containers": [
+                {
+                  "name": "slave",
+                  "image": "brendanburns/redis-slave",
+                  "env": [
+                    {
+                      "name": "REDIS_PASSWORD",
+                      "value": "secret"
+                    }
+                  ],
+                  "ports": [
+                    {
+                      "containerPort": 6379
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "labels": {
+            "name": "redisslave"
+          }
+        }
+      }
     }
   ]
 }

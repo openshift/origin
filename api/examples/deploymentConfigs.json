@@ -1,0 +1,55 @@
+{
+  "apiVersion": "v1beta1",
+  "creationTimestamp": null,
+  "kind": "DeploymentConfigList",
+  "items": [
+    {
+      "id": "redisslave-config",
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
+      "triggerPolicy": "manual",
+      "template": {
+        "strategy": {
+          "type": "customPod",
+          "customPod": {
+            "image": "127.0.0.1:5000/openshift/kube-deploy"
+          }
+        },
+        "controllerTemplate": {
+          "replicas": 2,
+          "replicaSelector": {
+            "name": "redisslave"
+          },
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "version": "v1beta1",
+                "id": "redisSlaveController",
+                "containers": [
+                  {
+                    "name": "slave",
+                    "image": "brendanburns/redis-slave",
+                    "env": [
+                      {
+                        "name": "REDIS_PASSWORD",
+                        "value": "secret"
+                      }
+                    ],
+                    "ports": [
+                      {
+                        "containerPort": 6379
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "labels": {
+              "name": "redisslave"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

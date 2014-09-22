@@ -125,16 +125,11 @@ documentation:
       example: !include examples/create-image-repository-mapping.json
 
 /deployments:
-  displayName: /deployments (NOT IMPLEMENTED)
   get:
     description: |
-      List active deployments in the current project.
+      List all deployments.
 
-      Deployments effect change in a service such as scaling up, down, updating the
-      current image, etc. Deployments may use different policies for carrying out
-      the change. For example, a rolling update with a single pod change at a time, or
-      a batch update, etc. Deployments make use of Kubernetes replicationControllers
-      to bring about the changes.
+      A deployment represents a single unique realization of a deployment config.
     responses:
       200:
         body:
@@ -142,13 +137,60 @@ documentation:
   post:
     description: Create a new deployment.
     body:
-      example: !include examples/create-deployment.json
+      example: !include examples/deployment.json
 
   /{deploymentID}:
     get:
       description: Get details about a specific deployment.
+      responses:
+        200:
+          body:
+            example: !include examples/deployment.json
+    put:
+      description: Update a specific deployment.
       body:
         example: !include examples/deployment.json
+    delete:
+      description: Delete a specific deployment.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
+
+/deploymentConfigs:
+  get:
+    description: |
+      List all DeploymentConfigs.
+
+      A DeploymentConfig represents a configuration for a single deployment
+      of a replication controller: a template for the deployment, how new
+      deployments are triggered, what the current deployed state is.
+    responses:
+      200:
+        body:
+          example: !include examples/deploymentConfigs.json
+  post:
+    description: Create a new build.
+    body:
+      example: !include examples/status-success.json
+
+  /{configID}:
+    get:
+      description: Get a specific build configuration.
+      responses:
+        200:
+          body:
+            example: !include examples/deploymentConfig.json
+    put:
+      description: Update a specific build configuration.
+      body:
+        example: !include examples/deploymentConfig.json
+    delete:
+      description: Delete a specific build configuration.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
 
 /links:
   displayName: /links (NOT IMPLEMENTED)
