@@ -22,37 +22,36 @@ documentation:
         body:
           example: !include examples/project-list.json
   post:
-    description: Create a new project
+    description: Create a new project.
     body:
       example: !include examples/project.json
 
-/project/{projectID}:
-  displayName: /project/{projectID} (NOT IMPLEMENTED)
-  get:
-    description: Get a specific project
-    responses:
-      200:
-        body:
-          example: !include examples/project.json
-  put:
-    description: Update a project
-    body:
-      example: !include examples/project-put.json
-  delete:
-    description: Delete a project
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
-  post:
-    description: Instantiate a template in the given project
-    body:
-      example: !include examples/project-post.json
+  /{projectID}:
+    get:
+      description: Get a specific project.
+      responses:
+        200:
+          body:
+            example: !include examples/project.json
+    put:
+      description: Update a project.
+      body:
+        example: !include examples/project-put.json
+    delete:
+      description: Delete a project.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
+    post:
+      description: Instantiate a template in the given project.
+      body:
+        example: !include examples/project-post.json
 
 /imageRepositories:
   get:
     description: |
-      Lists all image repositories.
+      List all image repositories.
 
       An image repository is a collection of images that share the same metadata. It may
       reference a Docker image repository on a Docker registry, but this is optional. An
@@ -62,29 +61,30 @@ documentation:
         body:
           example: !include examples/image-repositories.json
   post:
-    description: Create a new image repository
+    description: Create a new image repository.
     body:
       example: !include examples/create-image-repository.json
 
-/imageRepositories/{repositoryID}:
-    get:
-      description: Get information about an image repository
-      body:
-        example: !include examples/image-repository.json
-    put:
-      description: Update an image repository
-      body:
-        example: !include examples/image-repository.json
-    delete:
-      description: Delete an image repository
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
+  /{repositoryID}:
+      get:
+        description: Get information about a specific image repository.
+        body:
+          example: !include examples/image-repository.json
+      put:
+        description: Update an image repository.
+        body:
+          example: !include examples/image-repository.json
+      delete:
+        description: Delete an image repository.
+        responses:
+          200:
+            body:
+              example: !include examples/status-success.json
+
 /images:
   get:
     description: |
-      Lists all images.
+      List all images.
 
       An image is a reference to an image in a Docker image repository on a Docker
       registry, plus a set of metadata. The metadata that Openshift stores for an image
@@ -95,26 +95,26 @@ documentation:
         body:
           example: !include examples/images.json
   post:
-    description: Create a new image definition
+    description: Create a new image definition.
     body:
       example: !include examples/create-image.json
 
-/images/{imageID}:
-    get:
-      description: Get image definition
-      body:
-        example: !include examples/image.json
-    delete:
-      description: Delete an image
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
+  /{imageID}:
+      get:
+        description: Get a specific image definition.
+        body:
+          example: !include examples/image.json
+      delete:
+        description: Delete a specific image.
+        responses:
+          200:
+            body:
+              example: !include examples/status-success.json
 
 /imageRepositoryMappings:
   post:
     description: |
-      Creates an image and updates an image repository.
+      Create an image and update an image repository.
 
       This is designed as a webhook that a Docker registry can invoke when a
       new tag is created. The image repository mapping contains a reference
@@ -128,7 +128,7 @@ documentation:
   displayName: /deployments (NOT IMPLEMENTED)
   get:
     description: |
-      Lists active deployments in the current project
+      List active deployments in the current project.
 
       Deployments effect change in a service such as scaling up, down, updating the
       current image, etc. Deployments may use different policies for carrying out
@@ -140,95 +140,95 @@ documentation:
         body:
           example: !include examples/deployments.json
   post:
-    description: Create a new deployment
+    description: Create a new deployment.
     body:
       example: !include examples/create-deployment.json
-/deployment/{deploymentID}:
-  displayName: /deployment/{deploymentID} (NOT IMPLEMENTED)
-  get:
-    description: Get deployment details
-    body:
-      example: !include examples/deployment.json
+
+  /{deploymentID}:
+    get:
+      description: Get details about a specific deployment.
+      body:
+        example: !include examples/deployment.json
 
 /links:
   displayName: /links (NOT IMPLEMENTED)
   get:
     description: |
-      List of links between services in your account
+      List of links between services in your account.
 
       Unlike a Docker link, a Link in OpenShift defines a relationship between services
       which may be composed by multiple Docker images. A link may include additional metadata
       about the relationship such as the algorithm to use to distribute requests.
     queryParameters:
-      projectId:
-        description: filter the links owned by a particular project
-      serviceId:
-        description: filter the links attached to a particular service
+      projectID:
+        description: filter the links owned by a particular project.
+      serviceID:
+        description: filter the links attached to a particular service.
     responses:
       200:
         body:
           example: !include examples/links.json
   post:
-    description: Create a new link between this service and a different service
+    description: Create a new link between two services.
     body:
       example: !include examples/link.json
-/link/{linkID}:
-  displayName: /link/{linkID} (NOT IMPLEMENTED)
-  get:
-    description: Get link details
-    body:
-      example: !include examples/link.json
-  put:
-    description: Update a link
-    body:
-      example: !include examples/link.json
-  delete:
-    description: Delete a link
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
+
+  /{linkID}:
+    get:
+      description: Get details about a specific link.
+      body:
+        example: !include examples/link.json
+    put:
+      description: Update a specific link.
+      body:
+        example: !include examples/link.json
+    delete:
+      description: Delete a specific link.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
 
 /aliases:
   displayName: /aliases (NOT IMPLEMENTED)
   get:
     description: |
-      List all aliases visible to you
+      List all aliases visible to you.
 
       Aliases in v3 perform the same function as aliases in v2. The main difference
       is that in v3 an alias is associated with a service, not an application.
     queryParameters:
-      serviceId:
-        description: filter aliases by associated service
+      serviceID:
+        description: filter aliases by associated service.
     responses:
       200:
         body:
           example: !include examples/aliases.json
   post:
-    description: Create an alias for this service
+    description: Create an alias for this service.
     body:
       example: !include examples/alias.json
-/alias/{aliasID}:
-  displayName: /alias/{aliasID} (NOT IMPLEMENTED)
-  get:
-    description: Get alias
-    body:
-      example: !include examples/alias.json
-  put:
-    description: Update an alias
-    body:
-      example: !include examples/alias.json
-  delete:
-    description: Delete an alias
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
+
+  /{aliasID}:
+    get:
+      description: Get a specific alias.
+      body:
+        example: !include examples/alias.json
+    put:
+      description: Update a specific alias.
+      body:
+        example: !include examples/alias.json
+    delete:
+      description: Delete a specific alias.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
 
 /builds:
   get:
     description: |
-      Retrieves a list of builds
+      List all builds.
 
       Build encapsulates the inputs needed to produce a new deployable image, as well as
       the status of the operation and a reference to the Pod which runs the build.
@@ -237,64 +237,67 @@ documentation:
         body:
           example: !include examples/builds.json
   post:
-    description: Create a new build
+    description: Create a new build.
     body:
       example: !include examples/create_build.json
-/builds/{buildId}:
-  get:
-    description: Retrieve a single build definition
-    responses:
-      200:
-        body:
-          example: !include examples/build.json
-  put:
-    description: Update a build definition
-    body:
-      example: !include examples/build.json
-  delete:
-    description: Delete a build definition
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
+
+  /{buildID}:
+    get:
+      description: Get details about a specific build.
+      responses:
+        200:
+          body:
+            example: !include examples/build.json
+    put:
+      description: Update a specific build.
+      body:
+        example: !include examples/build.json
+    delete:
+      description: Delete a specific build.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
+
 /buildConfigs:
   get:
     description: |
-      Retrieves a list of BuildConfigs
+      List all BuildConfigs.
 
-      BuildConfig contains the inputs needed to produce a new deployable image
+      BuildConfig contains the inputs needed to produce a new deployable image.
     responses:
       200:
         body:
           example: !include examples/buildConfigs.json
   post:
-    description: Create a new build
+    description: Create a new build.
     body:
       example: !include examples/create_buildConfig.json
 
-/buildConfigs/{configId}:
-  get:
-    description: Retrieve a build configuration
-    responses:
-      200:
-        body:
-          example: !include examples/buildConfig.json
-  put:
-    description: Update a build configuration
-    body:
-      example: !include examples/buildConfig.json
-  delete:
-    description: Delete a build configuration
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
-/buildConfigHooks/{buildId}/{secret}/{plugin}:
+  /{configID}:
+    get:
+      description: Get a specific build configuration.
+      responses:
+        200:
+          body:
+            example: !include examples/buildConfig.json
+    put:
+      description: Update a specific build configuration.
+      body:
+        example: !include examples/buildConfig.json
+    delete:
+      description: Delete a specific build configuration.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
+
+/buildConfigHooks/{buildID}/{secret}/{plugin}:
   post:
     description: |
-      Webhook on push event from external repository
+      Webhook on push event from external repository.
 
-      buildId specifies which build to trigger, whereas plugin defines source of
+      buildID specifies which build to trigger, whereas plugin defines source of
       the request, this might be github, bitbucket or others.
     responses:
       204:
@@ -304,7 +307,7 @@ documentation:
   displayName: /templates (NOT IMPLEMENTED)
   get:
     description: |
-      Lists all templates that your account has access to.
+      List all templates that your account has access to.
 
       A template represents generic config with parameters.
 
@@ -367,7 +370,7 @@ documentation:
           "[a-zA-Z0-9]{8}" => "hW4yQU5i"
 
   post:
-    description: Create a new template
+    description: Create a new template.
     body:
       schema: !include doc/template-schema.json
       example: !include examples/template.json
@@ -375,30 +378,34 @@ documentation:
       200:
         body:
           example: !include examples/status-success.json
-/template/{templateID}:
-  displayName: /template/{templateID} (NOT IMPLEMENTED)
-  get:
-    description: Get a specific template
-    responses:
-      200:
-        body:
-         example: !include examples/template.json
-  put:
-    description: Update a template
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
-  delete:
-    description: Delete a template
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
+
+  /{templateID}:
+    displayName: /template/{templateID}
+    get:
+      description: Get a specific template.
+      responses:
+        200:
+          body:
+           example: !include examples/template.json
+    put:
+      description: Update a specific template.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
+    delete:
+      description: Delete a specific template.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
 
 /templateConfigs:
   post:
-    description: Process a template into a config. See /templates endpoint for details on template transformation, parameters and generators.
+    description: |
+      Process a template into a config.
+      See /templates endpoint for details on template transformation,
+      parameters and generators.
     body:
       schema: !include doc/template-schema.json
       example: !include examples/template.json
@@ -411,13 +418,13 @@ documentation:
   displayName: /configs (NOT IMPLEMENTED)
   get:
     description: |
-      Lists all configs that your account has access to
+      List all configs that your account has access to.
 
       A config defines 0..n Kubernetes resources.
     responses:
       200:
   post:
-    description: Create a new config
+    description: Create a new config.
     body:
       schema: !include doc/config-schema.json
       example: !include examples/config.json
@@ -426,30 +433,29 @@ documentation:
         body:
           example: !include examples/status-success.json
 
-/config/{configID}:
-  displayName: /config/{configID} (NOT IMPLEMENTED)
-  get:
-    description: Get a specific config
-    responses:
-      200:
-        body:
-          example: !include examples/config.json
-  put:
-    description: Update a config
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
-  delete:
-    description: Delete a config
-    responses:
-      200:
-        body:
-          example: !include examples/status-success.json
+  /{configID}:
+    get:
+      description: Get a specific config.
+      responses:
+        200:
+          body:
+            example: !include examples/config.json
+    put:
+      description: Update a specific config.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
+    delete:
+      description: Delete a specific config.
+      responses:
+        200:
+          body:
+            example: !include examples/status-success.json
 
 /pods:
   get:
-    description: List all pods on this cluster
+    description: List all pods on this cluster.
     responses:
       200:
         body:
@@ -460,20 +466,20 @@ documentation:
       schema: !include doc/pod-schema.json
       example: !include examples/pod.json
 
-  /{podId}:
+  /{podID}:
     get:
-      description: Get a specific pod
+      description: Get a specific pod.
       responses:
         200:
           body:
             example: !include examples/pod.json
     put:
-      description: Update a pod
+      description: Update a specific pod.
       body:
         schema: !include doc/pod-schema.json
         example: !include examples/pod.json
     delete:
-      description: Delete a specific pod
+      description: Delete a specific pod.
       responses:
         200:
           body:
@@ -481,7 +487,7 @@ documentation:
 
 /replicationControllers:
   get:
-    description: List all replicationControllers on this cluster
+    description: List all replicationControllers on this cluster.
     responses:
       200:
         body:
@@ -492,20 +498,20 @@ documentation:
       schema: !include doc/controller-schema.json
       example: !include examples/controller.json
 
-  /{controllerId}:
+  /{controllerID}:
     get:
-      description: Get a specific controller
+      description: Get a specific controller.
       responses:
         200:
           body:
             example: !include examples/controller.json
     put:
-      description: Update a controller
+      description: Update a specific controller.
       body:
         schema: !include doc/controller-schema.json
         example: !include examples/controller.json
     delete:
-      description: Delete a specific controller
+      description: Delete a specific controller.
       responses:
         200:
           body:
@@ -513,31 +519,31 @@ documentation:
 
 /services:
   get:
-    description: List all services on this cluster
+    description: List all services on this cluster.
     responses:
       200:
         body:
           example: !include examples/service-list.json
   post:
-    description: Create a new service
+    description: Create a new service.
     body:
       schema: !include doc/service-schema.json
       example: !include examples/service.json
 
-  /{serviceId}:
+  /{serviceID}:
     get:
-      description: Get a specific service
+      description: Get a specific service.
       responses:
         200:
           body:
             example: !include examples/service.json
     put:
-      description: Update a service
+      description: Update a specific service.
       body:
         schema: !include doc/service-schema.json
         example: !include examples/service.json
     delete:
-      description: Delete a specific service
+      description: Delete a specific service.
       responses:
         200:
           body:
