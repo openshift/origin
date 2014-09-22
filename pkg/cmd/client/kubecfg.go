@@ -125,10 +125,17 @@ func (c *KubeConfig) readConfig(storage string) []byte {
 	}
 
 	var data []byte
-	if url, err := url.Parse(c.Config); err == nil && (url.Scheme == "http" || url.Scheme == "https") {
+	if c.Config == "-" {
+		body, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			glog.Fatalf("Unable to read from STDIN: %v", err)
+		}
+		data = body
+
+	} else if url, err := url.Parse(c.Config); err == nil && (url.Scheme == "http" || url.Scheme == "https") {
 		resp, err := http.Get(url.String())
 		if err != nil {
-			glog.Fatalf("Unable to access URL %v: %v\n", url, err)
+			glog.Fatalf("Unable to access URL %v: %v", url, err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
@@ -136,24 +143,24 @@ func (c *KubeConfig) readConfig(storage string) []byte {
 		}
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			glog.Fatalf("Unable to read URL %v: %v\n", url, err)
+			glog.Fatalf("Unable to read URL %v: %v", url, err)
 		}
 		data = body
 
 	} else {
 		body, err := ioutil.ReadFile(c.Config)
 		if err != nil {
-			glog.Fatalf("Unable to read %v: %v\n", c.Config, err)
+			glog.Fatalf("Unable to read %v: %v", c.Config, err)
 		}
 		data = body
 	}
 
 	data, err := parser.ToWireFormat(data, storage)
 	if err != nil {
-		glog.Fatalf("Error parsing %v as an object for %v: %v\n", c.Config, storage, err)
+		glog.Fatalf("Error parsing %v as an object for %v: %v", c.Config, storage, err)
 	}
 	if c.Verbose {
-		glog.Infof("Parsed config file successfully; sending:\n%v\n", string(data))
+		glog.Infof("Parsed config file successfully; sending:\n%v", string(data))
 	}
 	return data
 }
@@ -200,21 +207,21 @@ func (c *KubeConfig) Run() {
 	if c.ServerVersion {
 		got, err := kubeClient.ServerVersion()
 		if err != nil {
-			fmt.Printf("Couldn't read version from server: %v\n", err)
+			fmt.Printf("Couldn't read version from server: %v", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Server Version: %#v\n", got)
+		fmt.Printf("Server Version: %#v", got)
 		os.Exit(0)
 	}
 
 	if c.PreventSkew {
 		got, err := kubeClient.ServerVersion()
 		if err != nil {
-			fmt.Printf("Couldn't read version from server: %v\n", err)
+			fmt.Printf("Couldn't read version from server: %v", err)
 			os.Exit(1)
 		}
 		if c, s := version.Get(), *got; !reflect.DeepEqual(c, s) {
-			fmt.Printf("Server version (%#v) differs from client version (%#v)!\n", s, c)
+			fmt.Printf("Server version (%#v) differs from client version (%#v)!", s, c)
 			os.Exit(1)
 		}
 	}
@@ -346,7 +353,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 	result := r.Do()
 	obj, err := result.Get()
 	if err != nil {
-		glog.Fatalf("Got request error: %v\n", err)
+		glog.Fatalf("Got request error: %v", err)
 		return false
 	}
 
@@ -362,7 +369,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 			var err error
 			data, err = ioutil.ReadFile(c.TemplateFile)
 			if err != nil {
-				glog.Fatalf("Error reading template %s, %v\n", c.TemplateFile, err)
+				glog.Fatalf("Error reading template %s, %v", c.TemplateFile, err)
 				return false
 			}
 		} else {
@@ -370,7 +377,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		}
 		tmpl, err := template.New("output").Parse(string(data))
 		if err != nil {
-			glog.Fatalf("Error parsing template %s, %v\n", string(data), err)
+			glog.Fatalf("Error parsing template %s, %v", string(data), err)
 			return false
 		}
 		printer = &kubecfg.TemplatePrinter{
