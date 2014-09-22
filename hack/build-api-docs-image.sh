@@ -7,7 +7,7 @@ set -o pipefail
 hackdir=$(CDPATH="" cd $(dirname $0); pwd)
 
 cd $hackdir/../api && docker build -t kubernetes/raml2html .
-docker rm oov3docgen &>/dev/null || :
-docker run --name=oov3docgen kubernetes/raml2html
-docker cp oov3docgen:/data/oov3.html $hackdir/../api/
-docker rm oov3docgen &>/dev/null || :
+docker rm openshift3docgen &>/dev/null || :
+docker run --name=openshift3docgen kubernetes/raml2html
+docker cp openshift3docgen:/data/openshift3.html $hackdir/../api/
+docker rm openshift3docgen &>/dev/null || :
