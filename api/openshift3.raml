@@ -1,12 +1,27 @@
 #%RAML 0.8
 # vim: set ft=yaml:
-baseUri: http://server/broker/rest
 title: OpenShift 3
 version: v1beta1
+baseUri: http://localhost:8080/osapi/{version}
 mediaType: application/json
 documentation:
  - title: Overview
-   content: !include doc/overview.md
+   content: |
+    The OpenShift 3.x model attempts to expose underlying Docker and Kubernetes
+    models as accurately as possible, with a focus on easy composition of
+    applications by a developer (install Ruby, push code, add MySQL).
+
+    Unlike 2.x, more flexibility of configuration is exposed after creation in
+    all aspects of the model. Terminology is still being weighed, but the
+    concept of an application as a separate object is being removed in favor of
+    more flexible composition of "services" - allowing two web containers to
+    reuse a DB, or expose a DB directly to the edge of the network. The
+    existing API will continue to be supported through 3.x, with concepts
+    mapped as closely as possible to the new model.
+
+ - title: Kubernetes API
+   content: |
+    OpenShift exposes [Kubernetes API](http://htmlpreview.github.io/?https://github.com/GoogleCloudPlatform/kubernetes/blob/master/api/kubernetes.html) at http://localhost:8080/api/v1beta1/.
 
 /projects:
   displayName: /projects (NOT IMPLEMENTED)
@@ -490,102 +505,6 @@ documentation:
             example: !include examples/status-success.json
     delete:
       description: Delete a specific config.
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
-
-/pods:
-  get:
-    description: List all pods on this cluster.
-    responses:
-      200:
-        body:
-          example: !include examples/pod-list.json
-  post:
-    description: Create a new pod. currentState is ignored if present.
-    body:
-      schema: !include doc/pod-schema.json
-      example: !include examples/pod.json
-
-  /{podID}:
-    get:
-      description: Get a specific pod.
-      responses:
-        200:
-          body:
-            example: !include examples/pod.json
-    put:
-      description: Update a specific pod.
-      body:
-        schema: !include doc/pod-schema.json
-        example: !include examples/pod.json
-    delete:
-      description: Delete a specific pod.
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
-
-/replicationControllers:
-  get:
-    description: List all replicationControllers on this cluster.
-    responses:
-      200:
-        body:
-          example: !include examples/controller-list.json
-  post:
-    description: Create a new controller. currentState is ignored if present.
-    body:
-      schema: !include doc/controller-schema.json
-      example: !include examples/controller.json
-
-  /{controllerID}:
-    get:
-      description: Get a specific controller.
-      responses:
-        200:
-          body:
-            example: !include examples/controller.json
-    put:
-      description: Update a specific controller.
-      body:
-        schema: !include doc/controller-schema.json
-        example: !include examples/controller.json
-    delete:
-      description: Delete a specific controller.
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
-
-/services:
-  get:
-    description: List all services on this cluster.
-    responses:
-      200:
-        body:
-          example: !include examples/service-list.json
-  post:
-    description: Create a new service.
-    body:
-      schema: !include doc/service-schema.json
-      example: !include examples/service.json
-
-  /{serviceID}:
-    get:
-      description: Get a specific service.
-      responses:
-        200:
-          body:
-            example: !include examples/service.json
-    put:
-      description: Update a specific service.
-      body:
-        schema: !include doc/service-schema.json
-        example: !include examples/service.json
-    delete:
-      description: Delete a specific service.
       responses:
         200:
           body:
