@@ -67,7 +67,7 @@ func TestValidateTemplate(t *testing.T) {
 	template.Parameters[0].Name = "VALID_NAME"
 	shouldPass(template)
 
-	// Add invalid Item, should fail on Object.kind
+	// Add Item of unknown Kind, should pass
 	template.Items = []runtime.Object{{}}
-	shouldFail(template)
+	shouldPass(template)
 }

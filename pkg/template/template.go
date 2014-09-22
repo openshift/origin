@@ -78,6 +78,8 @@ func (p *TemplateProcessor) GetParameterByName(t *api.Template, name string) *ap
 //
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}
+//
+// TODO: Implement substitution for more types and fields.
 func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 	// Make searching for given parameter name/value more effective
 	paramMap := make(map[string]string, len(t.Parameters))
@@ -94,7 +96,7 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 			p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
 			t.Items[i] = runtime.Object{Object: *obj}
 		default:
-			glog.V(1).Infof("Unable to process parameters for resource '%T'.", obj)
+			glog.V(1).Infof("Parameter substitution not implemented for resource '%T'.", obj)
 		}
 	}
 
