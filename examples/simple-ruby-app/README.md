@@ -43,7 +43,7 @@ All commands assume the `openshift` binary is in your path:
 4. Edit buildcfg/buildcfg.json
  * Update the sourceURI to point to your forked repository.
 
-5. Create a build configuration for your application.  This configuration is used by OpenShift to rebuild your application's Docker image (eg when you push changes to the application source).
+5. Create a build configuration for your application.  This configuration is used by OpenShift to rebuild your application's Docker image (e.g. when you push changes to the application source).
 
         $ openshift kube create buildConfigs -c buildcfg/buildcfg.json
 
