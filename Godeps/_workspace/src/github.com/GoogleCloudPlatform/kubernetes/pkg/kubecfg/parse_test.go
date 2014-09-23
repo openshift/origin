@@ -17,28 +17,33 @@ limitations under the License.
 package kubecfg
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"gopkg.in/v1/yaml"
 )
 
 func TestParseBadStorage(t *testing.T) {
-	p := NewParser(map[string]interface{}{})
-	_, err := p.ToWireFormat([]byte("{}"), "badstorage")
+	p := NewParser(map[string]runtime.Object{})
+	_, err := p.ToWireFormat([]byte("{}"), "badstorage", latest.Codec, latest.Codec)
 	if err == nil {
 		t.Errorf("Expected error, received none")
 	}
 }
 
-func DoParseTest(t *testing.T, storage string, obj interface{}, p *Parser) {
-	jsonData, _ := runtime.Encode(obj)
-	yamlData, _ := yaml.Marshal(obj)
+func DoParseTest(t *testing.T, storage string, obj runtime.Object, codec runtime.Codec, p *Parser) {
+	jsonData, _ := codec.Encode(obj)
+	var tmp map[string]interface{}
+	json.Unmarshal(jsonData, &tmp)
+	yamlData, _ := yaml.Marshal(tmp)
 	t.Logf("Intermediate yaml:\n%v\n", string(yamlData))
 	t.Logf("Intermediate json:\n%v\n", string(jsonData))
-	jsonGot, jsonErr := p.ToWireFormat(jsonData, storage)
-	yamlGot, yamlErr := p.ToWireFormat(yamlData, storage)
+	jsonGot, jsonErr := p.ToWireFormat(jsonData, storage, latest.Codec, codec)
+	yamlGot, yamlErr := p.ToWireFormat(yamlData, storage, latest.Codec, codec)
 
 	if jsonErr != nil {
 		t.Errorf("json err: %#v", jsonErr)
@@ -56,14 +61,14 @@ func DoParseTest(t *testing.T, storage string, obj interface{}, p *Parser) {
 	}
 }
 
-var testParser = NewParser(map[string]interface{}{
-	"pods":                   api.Pod{},
-	"services":               api.Service{},
-	"replicationControllers": api.ReplicationController{},
+var testParser = NewParser(map[string]runtime.Object{
+	"pods":                   &api.Pod{},
+	"services":               &api.Service{},
+	"replicationControllers": &api.ReplicationController{},
 })
 
 func TestParsePod(t *testing.T) {
-	DoParseTest(t, "pods", api.Pod{
+	DoParseTest(t, "pods", &api.Pod{
 		JSONBase: api.JSONBase{APIVersion: "v1beta1", ID: "test pod", Kind: "Pod"},
 		DesiredState: api.PodState{
 			Manifest: api.ContainerManifest{
@@ -76,11 +81,11 @@ func TestParsePod(t *testing.T) {
 				},
 			},
 		},
-	}, testParser)
+	}, v1beta1.Codec, testParser)
 }
 
 func TestParseService(t *testing.T) {
-	DoParseTest(t, "services", api.Service{
+	DoParseTest(t, "services", &api.Service{
 		JSONBase: api.JSONBase{APIVersion: "v1beta1", ID: "my service", Kind: "Service"},
 		Port:     8080,
 		Labels: map[string]string{
@@ -89,11 +94,11 @@ func TestParseService(t *testing.T) {
 		Selector: map[string]string{
 			"area": "staging",
 		},
-	}, testParser)
+	}, v1beta1.Codec, testParser)
 }
 
 func TestParseController(t *testing.T) {
-	DoParseTest(t, "replicationControllers", api.ReplicationController{
+	DoParseTest(t, "replicationControllers", &api.ReplicationController{
 		JSONBase: api.JSONBase{APIVersion: "v1beta1", ID: "my controller", Kind: "ReplicationController"},
 		DesiredState: api.ReplicationControllerState{
 			Replicas: 9001,
@@ -111,7 +116,7 @@ func TestParseController(t *testing.T) {
 				},
 			},
 		},
-	}, testParser)
+	}, v1beta1.Codec, testParser)
 }
 
 type TestParseType struct {
@@ -119,14 +124,17 @@ type TestParseType struct {
 	Data         string `json:"data" yaml:"data"`
 }
 
+func (*TestParseType) IsAnAPIObject() {}
+
 func TestParseCustomType(t *testing.T) {
-	runtime.AddKnownTypes("", TestParseType{})
-	runtime.AddKnownTypes("v1beta1", TestParseType{})
-	parser := NewParser(map[string]interface{}{
-		"custom": TestParseType{},
+	api.Scheme.AddKnownTypes("", &TestParseType{})
+	api.Scheme.AddKnownTypes("v1beta1", &TestParseType{})
+	api.Scheme.AddKnownTypes("v1beta2", &TestParseType{})
+	parser := NewParser(map[string]runtime.Object{
+		"custom": &TestParseType{},
 	})
-	DoParseTest(t, "custom", TestParseType{
+	DoParseTest(t, "custom", &TestParseType{
 		JSONBase: api.JSONBase{APIVersion: "", ID: "my custom object", Kind: "TestParseType"},
 		Data:     "test data",
-	}, parser)
+	}, v1beta1.Codec, parser)
 }

@@ -43,9 +43,8 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 				Version: "v1beta1",
 				Containers: []api.Container{
 					{
-						Name:          "sti-build",
-						Image:         bs.stiBuilderImage,
-						RestartPolicy: "runOnce",
+						Name:  "sti-build",
+						Image: bs.stiBuilderImage,
 						Env: []api.EnvVar{
 							{Name: "BUILD_TAG", Value: build.Input.ImageTag},
 							{Name: "DOCKER_REGISTRY", Value: dockerRegistry},
@@ -54,6 +53,9 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 							{Name: "BUILDER_IMAGE", Value: build.Input.BuilderImage},
 						},
 					},
+				},
+				RestartPolicy: api.RestartPolicy{
+					Never: &api.RestartPolicyNever{},
 				},
 			},
 		},

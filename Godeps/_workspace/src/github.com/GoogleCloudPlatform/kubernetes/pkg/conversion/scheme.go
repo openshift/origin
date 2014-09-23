@@ -51,6 +51,10 @@ type Scheme struct {
 	// is registered for multiple versions, the last one wins.
 	typeToVersion map[reflect.Type]string
 
+	// typeToKind allows one to figure out the desired "kind" field for a given
+	// go object. Requirements and caveats are the same as typeToVersion.
+	typeToKind map[reflect.Type]string
+
 	// converter stores all registered conversion functions. It also has
 	// default coverting behavior.
 	converter *Converter
@@ -62,9 +66,6 @@ type Scheme struct {
 	// you use "" for the internal version.
 	InternalVersion string
 
-	// ExternalVersion is the default external version.
-	ExternalVersion string
-
 	// MetaInsertionFactory is used to create an object to store and retrieve
 	// the version and kind information for all objects. The default uses the
 	// keys "version" and "kind" respectively.
@@ -73,20 +74,31 @@ type Scheme struct {
 
 // NewScheme manufactures a new scheme.
 func NewScheme() *Scheme {
-	return &Scheme{
+	s := &Scheme{
 		versionMap:           map[string]map[string]reflect.Type{},
 		typeToVersion:        map[reflect.Type]string{},
+		typeToKind:           map[reflect.Type]string{},
 		converter:            NewConverter(),
 		InternalVersion:      "",
-		ExternalVersion:      "v1",
 		MetaInsertionFactory: metaInsertion{},
 	}
+	s.converter.NameFunc = s.nameFunc
+	return s
+}
+
+// nameFunc returns the name of the type that we wish to use for encoding. Defaults to
+// the go name of the type if the type is not registered.
+func (s *Scheme) nameFunc(t reflect.Type) string {
+	if kind, ok := s.typeToKind[t]; ok {
+		return kind
+	}
+	return t.Name()
 }
 
 // AddKnownTypes registers all types passed in 'types' as being members of version 'version.
 // Encode() will refuse objects unless their type has been registered with AddKnownTypes.
-// All objects passed to types should be structs, not pointers to structs. The name that go
-// reports for the struct becomes the "kind" field when encoding.
+// All objects passed to types should be pointers to structs. The name that go reports for
+// the struct becomes the "kind" field when encoding.
 func (s *Scheme) AddKnownTypes(version string, types ...interface{}) {
 	knownTypes, found := s.versionMap[version]
 	if !found {
@@ -95,12 +107,52 @@ func (s *Scheme) AddKnownTypes(version string, types ...interface{}) {
 	}
 	for _, obj := range types {
 		t := reflect.TypeOf(obj)
+		if t.Kind() != reflect.Ptr {
+			panic("All types must be pointers to structs.")
+		}
+		t = t.Elem()
 		if t.Kind() != reflect.Struct {
-			panic("All types must be structs.")
+			panic("All types must be pointers to structs.")
 		}
 		knownTypes[t.Name()] = t
 		s.typeToVersion[t] = version
+		s.typeToKind[t] = t.Name()
 	}
+}
+
+// AddKnownTypeWithName is like AddKnownTypes, but it lets you specify what this type should
+// be encoded as. Useful for testing when you don't want to make multiple packages to define
+// your structs.
+func (s *Scheme) AddKnownTypeWithName(version, kind string, obj interface{}) {
+	knownTypes, found := s.versionMap[version]
+	if !found {
+		knownTypes = map[string]reflect.Type{}
+		s.versionMap[version] = knownTypes
+	}
+	t := reflect.TypeOf(obj)
+	if t.Kind() != reflect.Ptr {
+		panic("All types must be pointers to structs.")
+	}
+	t = t.Elem()
+	if t.Kind() != reflect.Struct {
+		panic("All types must be pointers to structs.")
+	}
+	knownTypes[kind] = t
+	s.typeToVersion[t] = version
+	s.typeToKind[t] = kind
+}
+
+// KnownTypes returns an array of the types that are known for a particular version.
+func (s *Scheme) KnownTypes(version string) map[string]reflect.Type {
+	all, ok := s.versionMap[version]
+	if !ok {
+		return map[string]reflect.Type{}
+	}
+	types := make(map[string]reflect.Type)
+	for k, v := range all {
+		types[k] = v
+	}
+	return types
 }
 
 // NewObject returns a new object of the given version and name,
@@ -120,9 +172,26 @@ func (s *Scheme) NewObject(versionName, typeName string) (interface{}, error) {
 // sub-objects. We deduce how to call these functions from the types of their two
 // parameters; see the comment for Converter.Register.
 //
-// Note that, if you need to copy sub-objects that didn't change, it's safe to call
-// s.Convert() inside your conversionFuncs, as long as you don't start a conversion
-// chain that's infinitely recursive.
+// Note that, if you need to copy sub-objects that didn't change, you can use the
+// conversion.Scope object that will be passed to your conversion function.
+// Additionally, all conversions started by Scheme will set the SrcVersion and
+// DestVersion fields on the Meta object. Example:
+//
+// s.AddConversionFuncs(
+//	func(in *InternalObject, out *ExternalObject, scope conversion.Scope) error {
+//		// You can depend on Meta() being non-nil, and this being set to
+//		// the source version, e.g., ""
+//		s.Meta().SrcVersion
+//		// You can depend on this being set to the destination version,
+//		// e.g., "v1beta1".
+//		s.Meta().DestVersion
+//		// Call scope.Convert to copy sub-fields.
+//		s.Convert(&in.SubFieldThatMoved, &out.NewLocation.NewName, 0)
+//		return nil
+//	},
+// )
+//
+// (For more detail about conversion functions, see Converter.Register's comment.)
 //
 // Also note that the default behavior, if you don't add a conversion function, is to
 // sanely copy fields that have the same names and same type names. It's OK if the
@@ -140,9 +209,28 @@ func (s *Scheme) AddConversionFuncs(conversionFuncs ...interface{}) error {
 
 // Convert will attempt to convert in into out. Both must be pointers. For easy
 // testing of conversion functions. Returns an error if the conversion isn't
-// possible.
+// possible. You can call this with types that haven't been registered (for example,
+// a to test conversion of types that are nested within registered types), but in
+// that case, the conversion.Scope object passed to your conversion functions won't
+// have SrcVersion or DestVersion fields set correctly in Meta().
 func (s *Scheme) Convert(in, out interface{}) error {
-	return s.converter.Convert(in, out, 0)
+	inVersion := "unknown"
+	outVersion := "unknown"
+	if v, _, err := s.ObjectVersionAndKind(in); err == nil {
+		inVersion = v
+	}
+	if v, _, err := s.ObjectVersionAndKind(out); err == nil {
+		outVersion = v
+	}
+	return s.converter.Convert(in, out, 0, s.generateConvertMeta(inVersion, outVersion))
+}
+
+// generateConvertMeta constructs the meta value we pass to Convert.
+func (s *Scheme) generateConvertMeta(srcVersion, destVersion string) *Meta {
+	return &Meta{
+		SrcVersion:  srcVersion,
+		DestVersion: destVersion,
+	}
 }
 
 // metaInsertion provides a default implementation of MetaInsertionFactory.
@@ -190,11 +278,12 @@ func (s *Scheme) ObjectVersionAndKind(obj interface{}) (apiVersion, kind string,
 		return "", "", err
 	}
 	t := v.Type()
-	if version, ok := s.typeToVersion[t]; !ok {
+	version, vOK := s.typeToVersion[t]
+	kind, kOK := s.typeToKind[t]
+	if !vOK || !kOK {
 		return "", "", fmt.Errorf("Unregistered type: %v", t)
-	} else {
-		return version, t.Name(), nil
 	}
+	return version, kind, nil
 }
 
 // SetVersionAndKind sets the version and kind fields (with help from
@@ -202,7 +291,7 @@ func (s *Scheme) ObjectVersionAndKind(obj interface{}) (apiVersion, kind string,
 // must be a pointer.
 func (s *Scheme) SetVersionAndKind(version, kind string, obj interface{}) error {
 	versionAndKind := s.MetaInsertionFactory.Create(version, kind)
-	return s.converter.Convert(versionAndKind, obj, SourceToDest|IgnoreMissingFields|AllowDifferentFieldTypeNames)
+	return s.converter.Convert(versionAndKind, obj, SourceToDest|IgnoreMissingFields|AllowDifferentFieldTypeNames, nil)
 }
 
 // maybeCopy copies obj if it is not a pointer, to get a settable/addressable

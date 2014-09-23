@@ -39,7 +39,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/coreos/go-etcd/etcd"
@@ -120,10 +120,12 @@ func (s ConfigSourceEtcd) Run() {
 func (s ConfigSourceEtcd) GetServices() ([]api.Service, []api.Endpoints, error) {
 	response, err := s.client.Get(registryRoot+"/specs", true, false)
 	if err != nil {
-		glog.V(1).Infof("Failed to get the key %s: %v", registryRoot, err)
 		if tools.IsEtcdNotFound(err) {
-			return []api.Service{}, []api.Endpoints{}, err
+			glog.V(1).Infof("Failed to get the key %s: %v", registryRoot, err)
+		} else {
+			glog.Errorf("Failed to contact etcd for key %s: %v", registryRoot, err)
 		}
+		return []api.Service{}, []api.Endpoints{}, err
 	}
 	if response.Node.Dir == true {
 		retServices := make([]api.Service, len(response.Node.Nodes))
@@ -133,7 +135,7 @@ func (s ConfigSourceEtcd) GetServices() ([]api.Service, []api.Endpoints, error) 
 		// and create a Service entry for it.
 		for i, node := range response.Node.Nodes {
 			var svc api.Service
-			err = runtime.DecodeInto([]byte(node.Value), &svc)
+			err = latest.Codec.DecodeInto([]byte(node.Value), &svc)
 			if err != nil {
 				glog.Errorf("Failed to load Service: %s (%#v)", node.Value, err)
 				continue
@@ -166,7 +168,7 @@ func (s ConfigSourceEtcd) GetEndpoints(service string) (api.Endpoints, error) {
 	}
 	// Parse all the endpoint specifications in this value.
 	var e api.Endpoints
-	err = runtime.DecodeInto([]byte(response.Node.Value), &e)
+	err = latest.Codec.DecodeInto([]byte(response.Node.Value), &e)
 	return e, err
 }
 
@@ -176,7 +178,7 @@ func etcdResponseToService(response *etcd.Response) (*api.Service, error) {
 		return nil, fmt.Errorf("invalid response from etcd: %#v", response)
 	}
 	var svc api.Service
-	err := runtime.DecodeInto([]byte(response.Node.Value), &svc)
+	err := latest.Codec.DecodeInto([]byte(response.Node.Value), &svc)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +232,7 @@ func (s ConfigSourceEtcd) ProcessChange(response *etcd.Response) {
 func (s ConfigSourceEtcd) ProcessEndpointResponse(response *etcd.Response) {
 	glog.Infof("Processing a change in endpoint configuration... %s", *response)
 	var endpoints api.Endpoints
-	err := runtime.DecodeInto([]byte(response.Node.Value), &endpoints)
+	err := latest.Codec.DecodeInto([]byte(response.Node.Value), &endpoints)
 	if err != nil {
 		glog.Errorf("Failed to parse service out of etcd key: %v : %+v", response.Node.Value, err)
 		return

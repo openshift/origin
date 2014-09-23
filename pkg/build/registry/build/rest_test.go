@@ -10,11 +10,11 @@ import (
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/build/api/v1beta1"
 	"github.com/openshift/origin/pkg/build/registry/test"
 )
 
@@ -107,7 +107,7 @@ func TestListBuildsError(t *testing.T) {
 		Err: fmt.Errorf("test error"),
 	}
 	storage := REST{&mockRegistry}
-	builds, err := storage.List(nil)
+	builds, err := storage.List(nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -119,7 +119,7 @@ func TestListBuildsError(t *testing.T) {
 func TestListEmptyBuildList(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Builds: &api.BuildList{JSONBase: kubeapi.JSONBase{ResourceVersion: 1}}}
 	storage := REST{&mockRegistry}
-	builds, err := storage.List(labels.Everything())
+	builds, err := storage.List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestListBuilds(t *testing.T) {
 		},
 	}
 	storage := REST{registry: &mockRegistry}
-	buildsObj, err := storage.List(labels.Everything())
+	buildsObj, err := storage.List(labels.Everything(), labels.Everything())
 	builds := buildsObj.(*api.BuildList)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -175,13 +175,13 @@ func TestBuildDecode(t *testing.T) {
 			ID: "foo",
 		},
 	}
-	body, err := runtime.Encode(build)
+	body, err := latest.Codec.Encode(build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	buildOut := storage.New()
-	if err := runtime.DecodeInto(body, buildOut); err != nil {
+	if err := latest.Codec.DecodeInto(body, buildOut); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

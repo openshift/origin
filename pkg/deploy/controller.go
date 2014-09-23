@@ -101,7 +101,7 @@ func (dh *DefaultDeploymentHandler) saveDeployment(deployment *deployapi.Deploym
 	return err
 }
 
-func (dh *DefaultDeploymentHandler) makeDeploymentPod(deployment *deployapi.Deployment) api.Pod {
+func (dh *DefaultDeploymentHandler) makeDeploymentPod(deployment *deployapi.Deployment) *api.Pod {
 	podID := deploymentPodID(deployment)
 
 	envVars := deployment.Strategy.CustomPod.Environment
@@ -110,7 +110,7 @@ func (dh *DefaultDeploymentHandler) makeDeploymentPod(deployment *deployapi.Depl
 		envVars = append(envVars, env)
 	}
 
-	return api.Pod{
+	return &api.Pod{
 		JSONBase: api.JSONBase{
 			ID: podID,
 		},
@@ -119,15 +119,14 @@ func (dh *DefaultDeploymentHandler) makeDeploymentPod(deployment *deployapi.Depl
 				Version: "v1beta1",
 				Containers: []api.Container{
 					{
-						Name:          "deployment",
-						Image:         deployment.Strategy.CustomPod.Image,
-						Env:           envVars,
-						RestartPolicy: "runOnce",
+						Name:  "deployment",
+						Image: deployment.Strategy.CustomPod.Image,
+						Env:   envVars,
 					},
 				},
-			},
-			RestartPolicy: api.RestartPolicy{
-				Type: api.RestartNever,
+				RestartPolicy: api.RestartPolicy{
+					Never: &api.RestartPolicyNever{},
+				},
 			},
 		},
 	}
@@ -190,7 +189,7 @@ func (dh *DefaultDeploymentHandler) HandleRunning(deployment *deployapi.Deployme
 	return dh.saveDeployment(deployment)
 }
 
-func (dh *DefaultDeploymentHandler) checkForTerminatedDeploymentPod(deployment *deployapi.Deployment, pod api.Pod) {
+func (dh *DefaultDeploymentHandler) checkForTerminatedDeploymentPod(deployment *deployapi.Deployment, pod *api.Pod) {
 	if pod.CurrentState.Status != api.PodTerminated {
 		glog.Infof("The deployment has not yet finished. Pod status is %s. Continuing", pod.CurrentState.Status)
 		return

@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -179,16 +180,32 @@ func TestValidateVolumeMounts(t *testing.T) {
 
 func TestValidateContainers(t *testing.T) {
 	volumes := util.StringSet{}
+	capabilities.SetForTests(capabilities.Capabilities{
+		AllowPrivileged: true,
+	})
 
 	successCase := []api.Container{
 		{Name: "abc", Image: "image"},
 		{Name: "123", Image: "image"},
 		{Name: "abc-123", Image: "image"},
+		{
+			Name:  "life-123",
+			Image: "image",
+			Lifecycle: &api.Lifecycle{
+				PreStop: &api.Handler{
+					Exec: &api.ExecAction{Command: []string{"ls", "-l"}},
+				},
+			},
+		},
+		{Name: "abc-1234", Image: "image", Privileged: true},
 	}
 	if errs := validateContainers(successCase, volumes); len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
 
+	capabilities.SetForTests(capabilities.Capabilities{
+		AllowPrivileged: false,
+	})
 	errorCases := map[string][]api.Container{
 		"zero-length name":     {{Name: "", Image: "image"}},
 		"name > 63 characters": {{Name: strings.Repeat("a", 64), Image: "image"}},
@@ -208,12 +225,80 @@ func TestValidateContainers(t *testing.T) {
 		"unknown volume name": {
 			{Name: "abc", Image: "image", VolumeMounts: []api.VolumeMount{{Name: "anything", MountPath: "/foo"}}},
 		},
+		"invalid lifecycle, no exec command.": {
+			{
+				Name:  "life-123",
+				Image: "image",
+				Lifecycle: &api.Lifecycle{
+					PreStop: &api.Handler{
+						Exec: &api.ExecAction{},
+					},
+				},
+			},
+		},
+		"invalid lifecycle, no http path.": {
+			{
+				Name:  "life-123",
+				Image: "image",
+				Lifecycle: &api.Lifecycle{
+					PreStop: &api.Handler{
+						HTTPGet: &api.HTTPGetAction{},
+					},
+				},
+			},
+		},
+		"invalid lifecycle, no action.": {
+			{
+				Name:  "life-123",
+				Image: "image",
+				Lifecycle: &api.Lifecycle{
+					PreStop: &api.Handler{},
+				},
+			},
+		},
+		"privilege disabled": {
+			{Name: "abc", Image: "image", Privileged: true},
+		},
 	}
 	for k, v := range errorCases {
 		if errs := validateContainers(v, volumes); len(errs) == 0 {
 			t.Errorf("expected failure for %s", k)
 		}
 	}
+}
+
+func TestValidateRestartPolicy(t *testing.T) {
+	successCases := []api.RestartPolicy{
+		{},
+		{Always: &api.RestartPolicyAlways{}},
+		{OnFailure: &api.RestartPolicyOnFailure{}},
+		{Never: &api.RestartPolicyNever{}},
+	}
+	for _, policy := range successCases {
+		if errs := validateRestartPolicy(&policy); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
+	}
+
+	errorCases := []api.RestartPolicy{
+		{Always: &api.RestartPolicyAlways{}, Never: &api.RestartPolicyNever{}},
+		{Never: &api.RestartPolicyNever{}, OnFailure: &api.RestartPolicyOnFailure{}},
+	}
+	for k, policy := range errorCases {
+		if errs := validateRestartPolicy(&policy); len(errs) == 0 {
+			t.Errorf("expected failure for %s", k)
+		}
+	}
+
+	noPolicySpecified := api.RestartPolicy{}
+	errs := validateRestartPolicy(&noPolicySpecified)
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+	if noPolicySpecified.Always == nil {
+		t.Errorf("expected Always policy specified")
+	}
+
 }
 
 func TestValidateManifest(t *testing.T) {
@@ -286,8 +371,13 @@ func TestValidatePod(t *testing.T) {
 			"foo": "bar",
 		},
 		DesiredState: api.PodState{
-			Manifest:      api.ContainerManifest{Version: "v1beta1", ID: "abc"},
-			RestartPolicy: api.RestartPolicy{Type: "RestartAlways"},
+			Manifest: api.ContainerManifest{
+				Version: "v1beta1",
+				ID:      "abc",
+				RestartPolicy: api.RestartPolicy{
+					Always: &api.RestartPolicyAlways{},
+				},
+			},
 		},
 	})
 	if len(errs) != 0 {
@@ -312,8 +402,12 @@ func TestValidatePod(t *testing.T) {
 			"foo": "bar",
 		},
 		DesiredState: api.PodState{
-			Manifest:      api.ContainerManifest{Version: "v1beta1", ID: "abc"},
-			RestartPolicy: api.RestartPolicy{Type: "WhatEver"},
+			Manifest: api.ContainerManifest{
+				Version: "v1beta1",
+				ID:      "abc",
+				RestartPolicy: api.RestartPolicy{Always: &api.RestartPolicyAlways{},
+					Never: &api.RestartPolicyNever{}},
+			},
 		},
 	})
 	if len(errs) != 1 {
@@ -322,50 +416,118 @@ func TestValidatePod(t *testing.T) {
 }
 
 func TestValidateService(t *testing.T) {
-	// This test should fail because the port number is invalid i.e.
-	// the Port field has a default value of 0.
-	errs := ValidateService(&api.Service{
-		JSONBase: api.JSONBase{ID: "foo"},
-		Selector: map[string]string{
-			"foo": "bar",
+	testCases := []struct {
+		name    string
+		svc     api.Service
+		numErrs int
+	}{
+		{
+			name: "missing id",
+			svc: api.Service{
+				Port:     8675,
+				Selector: map[string]string{"foo": "bar"},
+			},
+			// Should fail because the ID is missing.
+			numErrs: 1,
 		},
-	})
-	if len(errs) != 1 {
-		t.Errorf("Unexpected error list: %#v", errs)
+		{
+			name: "invalid id",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "123abc"},
+				Port:     8675,
+				Selector: map[string]string{"foo": "bar"},
+			},
+			// Should fail because the ID is invalid.
+			numErrs: 1,
+		},
+		{
+			name: "missing port",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "abc123"},
+				Selector: map[string]string{"foo": "bar"},
+			},
+			// Should fail because the port number is missing/invalid.
+			numErrs: 1,
+		},
+		{
+			name: "invalid port",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "abc123"},
+				Port:     65536,
+				Selector: map[string]string{"foo": "bar"},
+			},
+			// Should fail because the port number is invalid.
+			numErrs: 1,
+		},
+		{
+			name: "invalid protocol",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "abc123"},
+				Port:     8675,
+				Protocol: "INVALID",
+				Selector: map[string]string{"foo": "bar"},
+			},
+			// Should fail because the protocol is invalid.
+			numErrs: 1,
+		},
+		{
+			name: "missing selector",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "foo"},
+				Port:     8675,
+			},
+			// Should fail because the selector is missing.
+			numErrs: 1,
+		},
+		{
+			name: "valid 1",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "abc123"},
+				Port:     1,
+				Protocol: "TCP",
+				Selector: map[string]string{"foo": "bar"},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "valid 2",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "abc123"},
+				Port:     65535,
+				Protocol: "UDP",
+				Selector: map[string]string{"foo": "bar"},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "valid 3",
+			svc: api.Service{
+				JSONBase: api.JSONBase{ID: "abc123"},
+				Port:     80,
+				Selector: map[string]string{"foo": "bar"},
+			},
+			numErrs: 0,
+		},
 	}
 
-	errs = ValidateService(&api.Service{
+	for _, tc := range testCases {
+		errs := ValidateService(&tc.svc)
+		if len(errs) != tc.numErrs {
+			t.Errorf("Unexpected error list for case %q: %+v", tc.name, errs)
+		}
+	}
+
+	svc := api.Service{
 		Port:     6502,
 		JSONBase: api.JSONBase{ID: "foo"},
-		Selector: map[string]string{
-			"foo": "bar",
-		},
-	})
+		Selector: map[string]string{"foo": "bar"},
+	}
+	errs := ValidateService(&svc)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected non-zero error list: %#v", errs)
 	}
-
-	errs = ValidateService(&api.Service{
-		Port: 6502,
-		Selector: map[string]string{
-			"foo": "bar",
-		},
-	})
-	if len(errs) != 1 {
-		t.Errorf("Unexpected error list: %#v", errs)
-	}
-
-	errs = ValidateService(&api.Service{
-		Port:     6502,
-		JSONBase: api.JSONBase{ID: "foo"},
-	})
-	if len(errs) != 1 {
-		t.Errorf("Unexpected error list: %#v", errs)
-	}
-
-	errs = ValidateService(&api.Service{})
-	if len(errs) != 3 {
-		t.Errorf("Unexpected error list: %#v", errs)
+	if svc.Protocol != "TCP" {
+		t.Errorf("Expected default protocol of 'TCP': %#v", errs)
 	}
 }
 

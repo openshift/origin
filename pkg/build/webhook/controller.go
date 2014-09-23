@@ -59,7 +59,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	plugin, ok := c.plugins[uv.plugin]
 	if !ok {
-		notFound(w, "Plugin ", uv.plugin, " not found!")
+		notFound(w, "Plugin ", uv.plugin, " not found")
 		return
 	}
 	build, proceed, err := plugin.Extract(buildCfg, uv.path, req)
@@ -84,7 +84,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func parseUrl(url string) (uv urlVars, err error) {
 	parts := splitPath(url)
 	if len(parts) < 3 {
-		err = fmt.Errorf("Unexpected URL %s!", url)
+		err = fmt.Errorf("Unexpected URL %s", url)
 		return
 	}
 	uv = urlVars{parts[0], parts[1], parts[2], ""}

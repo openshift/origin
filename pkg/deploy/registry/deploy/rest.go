@@ -8,7 +8,9 @@ import (
 	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
+
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
 )
@@ -25,7 +27,7 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 }
 
 // List obtains a list of Deployments that match selector.
-func (s *REST) List(selector labels.Selector) (interface{}, error) {
+func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 	deployments, err := s.registry.ListDeployments(selector)
 	if err != nil {
 		return nil, err
@@ -35,12 +37,12 @@ func (s *REST) List(selector labels.Selector) (interface{}, error) {
 }
 
 // New creates a new Deployment for use with Create and Update
-func (s *REST) New() interface{} {
+func (s *REST) New() runtime.Object {
 	return &deployapi.Deployment{}
 }
 
 // Get obtains the Deployment specified by its id.
-func (s *REST) Get(id string) (interface{}, error) {
+func (s *REST) Get(id string) (runtime.Object, error) {
 	deployment, err := s.registry.GetDeployment(id)
 	if err != nil {
 		return nil, err
@@ -49,14 +51,14 @@ func (s *REST) Get(id string) (interface{}, error) {
 }
 
 // Delete asynchronously deletes the Deployment specified by its id.
-func (s *REST) Delete(id string) (<-chan interface{}, error) {
-	return apiserver.MakeAsync(func() (interface{}, error) {
-		return api.Status{Status: api.StatusSuccess}, s.registry.DeleteDeployment(id)
+func (s *REST) Delete(id string) (<-chan runtime.Object, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
+		return &api.Status{Status: api.StatusSuccess}, s.registry.DeleteDeployment(id)
 	}), nil
 }
 
 // Create registers a given new Deployment instance to s.registry.
-func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 	deployment, ok := obj.(*deployapi.Deployment)
 	if !ok {
 		return nil, fmt.Errorf("not a deployment: %#v", obj)
@@ -73,17 +75,17 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 		return nil, kubeerrors.NewInvalid("deployment", deployment.ID, errs)
 	}
 
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := s.registry.CreateDeployment(deployment)
 		if err != nil {
 			return nil, err
 		}
-		return *deployment, nil
+		return deployment, nil
 	}), nil
 }
 
 // Update replaces a given Deployment instance with an existing instance in s.registry.
-func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
 	deployment, ok := obj.(*deployapi.Deployment)
 	if !ok {
 		return nil, fmt.Errorf("not a deployment: %#v", obj)
@@ -91,7 +93,7 @@ func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	if len(deployment.ID) == 0 {
 		return nil, fmt.Errorf("id is unspecified: %#v", deployment)
 	}
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := s.registry.UpdateDeployment(deployment)
 		if err != nil {
 			return nil, err

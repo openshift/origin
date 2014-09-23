@@ -7,6 +7,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -22,7 +24,7 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 }
 
 // List obtains a list of DeploymentConfigs that match selector.
-func (s *REST) List(selector labels.Selector) (interface{}, error) {
+func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 	deploymentConfigs, err := s.registry.ListDeploymentConfigs(selector)
 	if err != nil {
 		return nil, err
@@ -32,7 +34,7 @@ func (s *REST) List(selector labels.Selector) (interface{}, error) {
 }
 
 // Get obtains the DeploymentConfig specified by its id.
-func (s *REST) Get(id string) (interface{}, error) {
+func (s *REST) Get(id string) (runtime.Object, error) {
 	deploymentConfig, err := s.registry.GetDeploymentConfig(id)
 	if err != nil {
 		return nil, err
@@ -41,19 +43,19 @@ func (s *REST) Get(id string) (interface{}, error) {
 }
 
 // Delete asynchronously deletes the DeploymentConfig specified by its id.
-func (s *REST) Delete(id string) (<-chan interface{}, error) {
-	return apiserver.MakeAsync(func() (interface{}, error) {
-		return api.Status{Status: api.StatusSuccess}, s.registry.DeleteDeploymentConfig(id)
+func (s *REST) Delete(id string) (<-chan runtime.Object, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
+		return &api.Status{Status: api.StatusSuccess}, s.registry.DeleteDeploymentConfig(id)
 	}), nil
 }
 
 // New creates a new DeploymentConfig for use with Create and Update
-func (s *REST) New() interface{} {
+func (s *REST) New() runtime.Object {
 	return &deployapi.DeploymentConfig{}
 }
 
 // Create registers a given new DeploymentConfig instance to s.registry.
-func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a deploymentConfig: %#v", obj)
@@ -64,7 +66,7 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 
 	//TODO: Add validation
 
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := s.registry.CreateDeploymentConfig(deploymentConfig)
 		if err != nil {
 			return nil, err
@@ -74,7 +76,7 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 }
 
 // Update replaces a given DeploymentConfig instance with an existing instance in s.registry.
-func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
 	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a deploymentConfig: %#v", obj)
@@ -82,7 +84,7 @@ func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	if len(deploymentConfig.ID) == 0 {
 		return nil, fmt.Errorf("id is unspecified: %#v", deploymentConfig)
 	}
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := s.registry.UpdateDeploymentConfig(deploymentConfig)
 		if err != nil {
 			return nil, err

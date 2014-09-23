@@ -9,6 +9,7 @@ import (
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -113,7 +114,7 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 		}
 
 		glog.Infof("Attempting to create pod: %#v", podSpec)
-		_, err = bc.kubeClient.CreatePod(*podSpec)
+		_, err = bc.kubeClient.CreatePod(podSpec)
 
 		// TODO: strongly typed error checking
 		if err != nil {

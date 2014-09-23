@@ -21,6 +21,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -180,6 +181,45 @@ func checkHostPortConflicts(containers []api.Container) errs.ErrorList {
 	return AccumulateUniquePorts(containers, allPorts, func(p *api.Port) int { return p.HostPort })
 }
 
+func validateExecAction(exec *api.ExecAction) errs.ErrorList {
+	allErrors := errs.ErrorList{}
+	if len(exec.Command) == 0 {
+		allErrors = append(allErrors, errs.NewFieldRequired("command", exec.Command))
+	}
+	return allErrors
+}
+
+func validateHTTPGetAction(http *api.HTTPGetAction) errs.ErrorList {
+	allErrors := errs.ErrorList{}
+	if len(http.Path) == 0 {
+		allErrors = append(allErrors, errs.NewFieldRequired("path", http.Path))
+	}
+	return allErrors
+}
+
+func validateHandler(handler *api.Handler) errs.ErrorList {
+	allErrors := errs.ErrorList{}
+	if handler.Exec != nil {
+		allErrors = append(allErrors, validateExecAction(handler.Exec).Prefix("exec")...)
+	} else if handler.HTTPGet != nil {
+		allErrors = append(allErrors, validateHTTPGetAction(handler.HTTPGet).Prefix("httpGet")...)
+	} else {
+		allErrors = append(allErrors, errs.NewFieldInvalid("", handler))
+	}
+	return allErrors
+}
+
+func validateLifecycle(lifecycle *api.Lifecycle) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	if lifecycle.PostStart != nil {
+		allErrs = append(allErrs, validateHandler(lifecycle.PostStart).Prefix("postStart")...)
+	}
+	if lifecycle.PreStop != nil {
+		allErrs = append(allErrs, validateHandler(lifecycle.PreStop).Prefix("preStop")...)
+	}
+	return allErrs
+}
+
 func validateContainers(containers []api.Container, volumes util.StringSet) errs.ErrorList {
 	allErrs := errs.ErrorList{}
 
@@ -187,17 +227,23 @@ func validateContainers(containers []api.Container, volumes util.StringSet) errs
 	for i := range containers {
 		cErrs := errs.ErrorList{}
 		ctr := &containers[i] // so we can set default values
+		capabilities := capabilities.Get()
 		if len(ctr.Name) == 0 {
 			cErrs = append(cErrs, errs.NewFieldRequired("name", ctr.Name))
 		} else if !util.IsDNSLabel(ctr.Name) {
 			cErrs = append(cErrs, errs.NewFieldInvalid("name", ctr.Name))
 		} else if allNames.Has(ctr.Name) {
 			cErrs = append(cErrs, errs.NewFieldDuplicate("name", ctr.Name))
+		} else if ctr.Privileged && !capabilities.AllowPrivileged {
+			cErrs = append(cErrs, errs.NewFieldInvalid("privileged", ctr.Privileged))
 		} else {
 			allNames.Insert(ctr.Name)
 		}
 		if len(ctr.Image) == 0 {
 			cErrs = append(cErrs, errs.NewFieldRequired("image", ctr.Image))
+		}
+		if ctr.Lifecycle != nil {
+			cErrs = append(cErrs, validateLifecycle(ctr.Lifecycle).Prefix("lifecycle")...)
 		}
 		cErrs = append(cErrs, validatePorts(ctr.Ports).Prefix("ports")...)
 		cErrs = append(cErrs, validateEnv(ctr.Env).Prefix("env")...)
@@ -228,22 +274,36 @@ func ValidateManifest(manifest *api.ContainerManifest) errs.ErrorList {
 	} else if !supportedManifestVersions.Has(strings.ToLower(manifest.Version)) {
 		allErrs = append(allErrs, errs.NewFieldNotSupported("version", manifest.Version))
 	}
-	allVolumes, errs := validateVolumes(manifest.Volumes)
-	allErrs = append(allErrs, errs.Prefix("volumes")...)
+	allVolumes, vErrs := validateVolumes(manifest.Volumes)
+	allErrs = append(allErrs, vErrs.Prefix("volumes")...)
 	allErrs = append(allErrs, validateContainers(manifest.Containers, allVolumes).Prefix("containers")...)
+	allErrs = append(allErrs, validateRestartPolicy(&manifest.RestartPolicy).Prefix("restartPolicy")...)
 	return allErrs
+}
+
+func validateRestartPolicy(restartPolicy *api.RestartPolicy) errs.ErrorList {
+	numPolicies := 0
+	allErrors := errs.ErrorList{}
+	if restartPolicy.Always != nil {
+		numPolicies++
+	}
+	if restartPolicy.OnFailure != nil {
+		numPolicies++
+	}
+	if restartPolicy.Never != nil {
+		numPolicies++
+	}
+	if numPolicies == 0 {
+		restartPolicy.Always = &api.RestartPolicyAlways{}
+	}
+	if numPolicies > 1 {
+		allErrors = append(allErrors, errs.NewFieldInvalid("", restartPolicy))
+	}
+	return allErrors
 }
 
 func ValidatePodState(podState *api.PodState) errs.ErrorList {
 	allErrs := errs.ErrorList(ValidateManifest(&podState.Manifest)).Prefix("manifest")
-	if podState.RestartPolicy.Type == "" {
-		podState.RestartPolicy.Type = api.RestartAlways
-	} else if podState.RestartPolicy.Type != api.RestartAlways &&
-		podState.RestartPolicy.Type != api.RestartOnFailure &&
-		podState.RestartPolicy.Type != api.RestartNever {
-		allErrs = append(allErrs, errs.NewFieldNotSupported("restartPolicy.type", podState.RestartPolicy.Type))
-	}
-
 	return allErrs
 }
 
@@ -268,6 +328,11 @@ func ValidateService(service *api.Service) errs.ErrorList {
 	if !util.IsValidPortNum(service.Port) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("Service.Port", service.Port))
 	}
+	if len(service.Protocol) == 0 {
+		service.Protocol = "TCP"
+	} else if !supportedPortProtocols.Has(strings.ToUpper(service.Protocol)) {
+		allErrs = append(allErrs, errs.NewFieldNotSupported("protocol", service.Protocol))
+	}
 	if labels.Set(service.Selector).AsSelector().Empty() {
 		allErrs = append(allErrs, errs.NewFieldRequired("selector", service.Selector))
 	}
@@ -280,17 +345,24 @@ func ValidateReplicationController(controller *api.ReplicationController) errs.E
 	if len(controller.ID) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("id", controller.ID))
 	}
-	if labels.Set(controller.DesiredState.ReplicaSelector).AsSelector().Empty() {
-		allErrs = append(allErrs, errs.NewFieldRequired("desiredState.replicaSelector", controller.DesiredState.ReplicaSelector))
+	allErrs = append(allErrs, ValidateReplicationControllerState(&controller.DesiredState).Prefix("desiredState")...)
+	return allErrs
+}
+
+// ValidateReplicationControllerState tests if required fields in the replication controller state are set.
+func ValidateReplicationControllerState(state *api.ReplicationControllerState) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	if labels.Set(state.ReplicaSelector).AsSelector().Empty() {
+		allErrs = append(allErrs, errs.NewFieldRequired("replicaSelector", state.ReplicaSelector))
 	}
-	selector := labels.Set(controller.DesiredState.ReplicaSelector).AsSelector()
-	labels := labels.Set(controller.DesiredState.PodTemplate.Labels)
+	selector := labels.Set(state.ReplicaSelector).AsSelector()
+	labels := labels.Set(state.PodTemplate.Labels)
 	if !selector.Matches(labels) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("desiredState.podTemplate.labels", controller.DesiredState.PodTemplate))
+		allErrs = append(allErrs, errs.NewFieldInvalid("podTemplate.labels", state.PodTemplate))
 	}
-	if controller.DesiredState.Replicas < 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("desiredState.replicas", controller.DesiredState.Replicas))
+	if state.Replicas < 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("replicas", state.Replicas))
 	}
-	allErrs = append(allErrs, ValidateManifest(&controller.DesiredState.PodTemplate.DesiredState.Manifest).Prefix("desiredState.podTemplate.desiredState.manifest")...)
+	allErrs = append(allErrs, ValidateManifest(&state.PodTemplate.DesiredState.Manifest).Prefix("podTemplate.desiredState.manifest")...)
 	return allErrs
 }

@@ -30,12 +30,15 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	. "github.com/openshift/origin/pkg/cmd/client/api"
@@ -43,7 +46,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/client/image"
 	"github.com/openshift/origin/pkg/config"
 	configapi "github.com/openshift/origin/pkg/config/api"
-	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployclient "github.com/openshift/origin/pkg/deploy/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -68,6 +70,15 @@ type KubeConfig struct {
 	TemplateFile   string
 	TemplateStr    string
 
+	ImageName string
+
+	CAFile   string
+	CertFile string
+	KeyFile  string
+
+	APIVersion   string
+	OSAPIVersion string
+
 	Args []string
 }
 
@@ -84,9 +95,15 @@ func usage(name string) string {
   %[1]s [OPTIONS] get|list|create|delete|update <%[2]s>[/<id>]
 
   Manage replication controllers:
-  %[1]s [OPTIONS] stop|rm|rollingupdate <controller>
-  %[1]s [OPTIONS] run <image> <replicas> <controller>
+
+  %[1]s [OPTIONS] stop|rm <controller>
+  %[1]s [OPTIONS] [-u <time>] [-image <image>] rollingupdate <controller>
   %[1]s [OPTIONS] resize <controller> <replicas>
+
+  Launch a simple ReplicationController with a single container based
+  on the given image:
+
+  %[1]s [OPTIONS] [-p <port spec>] run <image> <replicas> <controller>
 
   Perform bulk operations on groups of Kubernetes resources:
   %[1]s [OPTIONS] apply -c config.json
@@ -96,19 +113,19 @@ func usage(name string) string {
 `, name, prettyWireStorage())
 }
 
-var parser = kubecfg.NewParser(map[string]interface{}{
-	"pods":                    api.Pod{},
-	"services":                api.Service{},
-	"replicationControllers":  api.ReplicationController{},
-	"minions":                 api.Minion{},
-	"builds":                  buildapi.Build{},
-	"buildConfigs":            buildapi.BuildConfig{},
-	"images":                  imageapi.Image{},
-	"imageRepositories":       imageapi.ImageRepository{},
-	"imageRepositoryMappings": imageapi.ImageRepositoryMapping{},
-	"config":                  configapi.Config{},
-	"deployments":             deployapi.Deployment{},
-	"deploymentConfigs":       deployapi.DeploymentConfig{},
+var parser = kubecfg.NewParser(map[string]runtime.Object{
+	"pods":                    &api.Pod{},
+	"services":                &api.Service{},
+	"replicationControllers":  &api.ReplicationController{},
+	"minions":                 &api.Minion{},
+	"builds":                  &buildapi.Build{},
+	"buildConfigs":            &buildapi.BuildConfig{},
+	"images":                  &imageapi.Image{},
+	"imageRepositories":       &imageapi.ImageRepository{},
+	"imageRepositoryMappings": &imageapi.ImageRepositoryMapping{},
+	"config":                  &configapi.Config{},
+	"deployments":             &deployapi.Deployment{},
+	"deploymentConfigs":       &deployapi.DeploymentConfig{},
 })
 
 func prettyWireStorage() string {
@@ -117,45 +134,49 @@ func prettyWireStorage() string {
 	return strings.Join(types, "|")
 }
 
-// readConfig reads and parses pod, replicationController, and service
-// configuration files. If any errors log and exit non-zero.
-func (c *KubeConfig) readConfig(storage string) []byte {
-	if len(c.Config) == 0 {
-		glog.Fatal("Need config file (-c)")
+// readConfigData reads the bytes from the specified filesytem or network location associated with the *config flag
+func (c *KubeConfig) readConfigData() []byte {
+	// read from STDIN
+	if c.Config == "-" {
+		data, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			glog.Fatalf("Unable to read from STDIN: %v\n", err)
+		}
+		return data
 	}
 
-	var data []byte
-	if c.Config == "-" {
-		body, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			glog.Fatalf("Unable to read from STDIN: %v", err)
-		}
-		data = body
-
-	} else if url, err := url.Parse(c.Config); err == nil && (url.Scheme == "http" || url.Scheme == "https") {
+	// we look for http:// or https:// to determine if valid URL, otherwise do normal file IO
+	if url, err := url.Parse(c.Config); err == nil && (url.Scheme == "http" || url.Scheme == "https") {
 		resp, err := http.Get(url.String())
 		if err != nil {
-			glog.Fatalf("Unable to access URL %v: %v", url, err)
+			glog.Fatalf("Unable to access URL %v: %v\n", c.Config, err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
 			glog.Fatalf("Unable to read URL, server reported %d %s", resp.StatusCode, resp.Status)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			glog.Fatalf("Unable to read URL %v: %v", url, err)
+			glog.Fatalf("Unable to read URL %v: %v\n", c.Config, err)
 		}
-		data = body
-
-	} else {
-		body, err := ioutil.ReadFile(c.Config)
-		if err != nil {
-			glog.Fatalf("Unable to read %v: %v", c.Config, err)
-		}
-		data = body
+		return data
 	}
 
-	data, err := parser.ToWireFormat(data, storage)
+	data, err := ioutil.ReadFile(c.Config)
+	if err != nil {
+		glog.Fatalf("Unable to read %v: %v\n", c.Config, err)
+	}
+	return data
+}
+
+// readConfig reads and parses pod, replicationController, and service
+// configuration files. If any errors log and exit non-zero.
+func (c *KubeConfig) readConfig(storage string, serverCodec runtime.Codec) []byte {
+	if len(c.Config) == 0 {
+		glog.Fatal("Need config file (-c)")
+	}
+
+	data, err := parser.ToWireFormat(c.readConfigData(), storage, latest.Codec, serverCodec)
 	if err != nil {
 		glog.Fatalf("Error parsing %v as an object for %v: %v", c.Config, storage, err)
 	}
@@ -177,11 +198,11 @@ func (c *KubeConfig) Run() {
 	} else {
 		masterServer = "http://localhost:8080"
 	}
-	kubeClient, err := kubeclient.New(masterServer, nil)
+	kubeClient, err := kubeclient.New(masterServer, c.APIVersion, nil)
 	if err != nil {
 		glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
 	}
-	client, err := osclient.New(masterServer, nil)
+	client, err := osclient.New(masterServer, c.OSAPIVersion, nil)
 	if err != nil {
 		glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
 	}
@@ -193,11 +214,20 @@ func (c *KubeConfig) Run() {
 		if err != nil {
 			glog.Fatalf("Error loading auth: %v", err)
 		}
-		kubeClient, err = kubeclient.New(masterServer, auth)
+		if c.CAFile != "" {
+			auth.CAFile = c.CAFile
+		}
+		if c.CertFile != "" {
+			auth.CertFile = c.CertFile
+		}
+		if c.KeyFile != "" {
+			auth.KeyFile = c.KeyFile
+		}
+		kubeClient, err = kubeclient.New(masterServer, c.APIVersion, auth)
 		if err != nil {
 			glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
 		}
-		client, err = osclient.New(masterServer, auth)
+		client, err = osclient.New(masterServer, c.OSAPIVersion, auth)
 		if err != nil {
 			glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
 		}
@@ -234,17 +264,17 @@ func (c *KubeConfig) Run() {
 
 	method := c.Arg(0)
 	clients := ClientMappings{
-		"minions":                 {"Minion", kubeClient.RESTClient},
-		"pods":                    {"Pod", kubeClient.RESTClient},
-		"services":                {"Service", kubeClient.RESTClient},
-		"replicationControllers":  {"ReplicationController", kubeClient.RESTClient},
-		"builds":                  {"Build", client.RESTClient},
-		"buildConfigs":            {"BuildConfig", client.RESTClient},
-		"images":                  {"Image", client.RESTClient},
-		"imageRepositories":       {"ImageRepository", client.RESTClient},
-		"imageRepositoryMappings": {"ImageRepositoryMapping", client.RESTClient},
-		"deployments":             {"Deployment", client.RESTClient},
-		"deploymentConfigs":       {"DeploymentConfig", client.RESTClient},
+		"minions":                 {"Minion", kubeClient.RESTClient, klatest.Codec},
+		"pods":                    {"Pod", kubeClient.RESTClient, klatest.Codec},
+		"services":                {"Service", kubeClient.RESTClient, klatest.Codec},
+		"replicationControllers":  {"ReplicationController", kubeClient.RESTClient, klatest.Codec},
+		"builds":                  {"Build", client.RESTClient, latest.Codec},
+		"buildConfigs":            {"BuildConfig", client.RESTClient, latest.Codec},
+		"images":                  {"Image", client.RESTClient, latest.Codec},
+		"imageRepositories":       {"ImageRepository", client.RESTClient, latest.Codec},
+		"imageRepositoryMappings": {"ImageRepositoryMapping", client.RESTClient, latest.Codec},
+		"deployments":             {"Deployment", client.RESTClient, latest.Codec},
+		"deploymentConfigs":       {"DeploymentConfig", client.RESTClient, latest.Codec},
 	}
 
 	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
@@ -331,8 +361,8 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		ParseSelectorParam("labels", c.Selector)
 	if setBody {
 		if version != 0 {
-			data := c.readConfig(storage)
-			obj, err := runtime.Decode(data)
+			data := c.readConfig(storage, client.Codec)
+			obj, err := latest.Codec.Decode(data)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
@@ -341,13 +371,13 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 				glog.Fatalf("error setting resource version: %v", err)
 			}
 			jsonBase.SetResourceVersion(version)
-			data, err = runtime.Encode(obj)
+			data, err = client.Codec.Encode(obj)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
 			r.Body(data)
 		} else {
-			r.Body(c.readConfig(storage))
+			r.Body(c.readConfig(storage, client.Codec))
 		}
 	}
 	result := r.Do()
@@ -411,7 +441,7 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 	case "rm":
 		err = kubecfg.DeleteController(parseController(), client)
 	case "rollingupdate":
-		err = kubecfg.Update(parseController(), client, c.UpdatePeriod)
+		err = kubecfg.Update(parseController(), client, c.UpdatePeriod, c.ImageName)
 	case "run":
 		if len(c.Args) != 4 {
 			glog.Fatal("usage: kubecfg [OPTIONS] run <image> <replicas> <controller>")
@@ -476,7 +506,7 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 	if len(c.Config) == 0 {
 		glog.Fatal("Need to pass valid configuration file (-c config.json)")
 	}
-	errs := config.Apply(c.readConfig("config"), clients)
+	errs := config.Apply(c.readConfig("config", latest.Codec), clients)
 	for _, err := range errs {
 		fmt.Println(err.Error())
 	}

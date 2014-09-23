@@ -13,12 +13,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/fsouza/go-dockerclient"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
-	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return NewEtcd(client)
+	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
 }
 
 func TestEtcdListImagesEmpty(t *testing.T) {
@@ -71,10 +72,10 @@ func TestEtcdListImagesEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.Image{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
 					},
 				},
 			},
@@ -100,13 +101,13 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.Image{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{
 							JSONBase: kubeapi.JSONBase{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.Image{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{
 							JSONBase: kubeapi.JSONBase{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
@@ -129,7 +130,7 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 
 func TestEtcdGetImage(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/images/foo", runtime.EncodeOrDie(api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/images/foo", runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	image, err := registry.GetImage("foo")
 	if err != nil {
@@ -187,7 +188,7 @@ func TestEtcdCreateImage(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	var image api.Image
-	err = runtime.DecodeInto([]byte(resp.Node.Value), &image)
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &image)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -210,7 +211,7 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 	fakeClient.Data["/images/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 			},
 		},
 		E: nil,
@@ -326,10 +327,10 @@ func TestEtcdListImageRepositoriesEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
 					},
 				},
 			},
@@ -355,13 +356,13 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.ImageRepository{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
 							JSONBase: kubeapi.JSONBase{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.ImageRepository{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
 							JSONBase: kubeapi.JSONBase{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
@@ -384,7 +385,7 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 
 func TestEtcdGetImageRepository(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	repo, err := registry.GetImageRepository("foo")
 	if err != nil {
@@ -441,7 +442,7 @@ func TestEtcdCreateImageRepository(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	var repo api.ImageRepository
-	err = runtime.DecodeInto([]byte(resp.Node.Value), &repo)
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &repo)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -468,7 +469,7 @@ func TestEtcdCreateImageRepositoryAlreadyExists(t *testing.T) {
 	fakeClient.Data["/imageRepositories/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 			},
 		},
 		E: nil,
@@ -491,7 +492,7 @@ func TestEtcdUpdateImageRepository(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 
-	resp, _ := fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	resp, _ := fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateImageRepository(&api.ImageRepository{
 		JSONBase:              kubeapi.JSONBase{ID: "foo", ResourceVersion: resp.Node.ModifiedIndex},
@@ -562,7 +563,7 @@ func TestEtcdWatchImageRepositories(t *testing.T) {
 	fakeClient.WaitForWatchCompletion()
 
 	repo := &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}
-	repoBytes, _ := runtime.Codec.Encode(repo)
+	repoBytes, _ := latest.Codec.Encode(repo)
 	fakeClient.WatchResponse <- &etcd.Response{
 		Action: "set",
 		Node: &etcd.Node{

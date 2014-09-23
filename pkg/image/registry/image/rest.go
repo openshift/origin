@@ -7,7 +7,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 )
@@ -23,12 +25,12 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 }
 
 // New returns a new Image for use with Create and Update.
-func (s *REST) New() interface{} {
+func (s *REST) New() runtime.Object {
 	return &api.Image{}
 }
 
 // Get retrieves an Image by id.
-func (s *REST) Get(id string) (interface{}, error) {
+func (s *REST) Get(id string) (runtime.Object, error) {
 	image, err := s.registry.GetImage(id)
 	if err != nil {
 		return nil, err
@@ -37,7 +39,7 @@ func (s *REST) Get(id string) (interface{}, error) {
 }
 
 // List retrieves a list of Images that match selector.
-func (s *REST) List(selector labels.Selector) (interface{}, error) {
+func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 	images, err := s.registry.ListImages(selector)
 	if err != nil {
 		return nil, err
@@ -47,7 +49,7 @@ func (s *REST) List(selector labels.Selector) (interface{}, error) {
 }
 
 // Create registers the given Image.
-func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 	image, ok := obj.(*api.Image)
 	if !ok {
 		return nil, fmt.Errorf("not an image: %#v", obj)
@@ -59,7 +61,7 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 		return nil, errors.NewInvalid("image", image.ID, errs)
 	}
 
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateImage(image); err != nil {
 			return nil, err
 		}
@@ -68,13 +70,13 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 }
 
 // Update is not supported for Images, as they are immutable.
-func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
 	return nil, fmt.Errorf("Images may not be changed.")
 }
 
 // Delete asynchronously deletes an Image specified by its id.
-func (s *REST) Delete(id string) (<-chan interface{}, error) {
-	return apiserver.MakeAsync(func() (interface{}, error) {
+func (s *REST) Delete(id string) (<-chan runtime.Object, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteImage(id)
 	}), nil
 }

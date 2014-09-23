@@ -9,20 +9,19 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/build/api/v1beta1"
 
 	"github.com/coreos/go-etcd/etcd"
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	registry := NewEtcd(client)
-	return registry
+	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
 }
 
 func TestEtcdGetBuild(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/registry/builds/foo", runtime.EncodeOrDie(api.Build{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/registry/builds/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	build, err := registry.GetBuild("foo")
 	if err != nil {
@@ -81,7 +80,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	var build api.Build
-	err = runtime.DecodeInto([]byte(resp.Node.Value), &build)
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -96,7 +95,7 @@ func TestEtcdCreateBuildAlreadyExisting(t *testing.T) {
 	fakeClient.Data["/registry/builds/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(api.Build{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Build{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 			},
 		},
 		E: nil,
@@ -117,7 +116,7 @@ func TestEtcdDeleteBuild(t *testing.T) {
 	fakeClient.TestIndex = true
 
 	key := "/registry/builds/foo"
-	fakeClient.Set(key, runtime.EncodeOrDie(api.Build{
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Build{
 		JSONBase: kubeapi.JSONBase{ID: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
@@ -163,12 +162,12 @@ func TestEtcdListBuilds(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.Build{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
 							JSONBase: kubeapi.JSONBase{ID: "foo"},
 						}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.Build{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
 							JSONBase: kubeapi.JSONBase{ID: "bar"},
 						}),
 					},
@@ -190,7 +189,7 @@ func TestEtcdListBuilds(t *testing.T) {
 
 func TestEtcdGetBuildConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/registry/build-configs/foo", runtime.EncodeOrDie(api.BuildConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/registry/build-configs/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	buildConfig, err := registry.GetBuildConfig("foo")
 	if err != nil {
@@ -247,7 +246,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	var buildConfig api.BuildConfig
-	err = runtime.DecodeInto([]byte(resp.Node.Value), &buildConfig)
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &buildConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -262,7 +261,7 @@ func TestEtcdCreateBuildConfigAlreadyExisting(t *testing.T) {
 	fakeClient.Data["/registry/build-configs/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(api.BuildConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 			},
 		},
 		E: nil,
@@ -283,7 +282,7 @@ func TestEtcdDeleteBuildConfig(t *testing.T) {
 	fakeClient.TestIndex = true
 
 	key := "/registry/build-configs/foo"
-	fakeClient.Set(key, runtime.EncodeOrDie(api.BuildConfig{
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
 		JSONBase: kubeapi.JSONBase{ID: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
@@ -329,12 +328,12 @@ func TestEtcdListBuildConfigs(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.BuildConfig{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
 							JSONBase: kubeapi.JSONBase{ID: "foo"},
 						}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.BuildConfig{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
 							JSONBase: kubeapi.JSONBase{ID: "bar"},
 						}),
 					},

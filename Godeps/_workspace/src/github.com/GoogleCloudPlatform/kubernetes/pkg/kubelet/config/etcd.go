@@ -24,9 +24,8 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -47,8 +46,8 @@ type SourceEtcd struct {
 func NewSourceEtcd(key string, client tools.EtcdClient, updates chan<- interface{}) *SourceEtcd {
 	helper := tools.EtcdHelper{
 		client,
-		runtime.Codec,
-		runtime.ResourceVersioner,
+		latest.Codec,
+		latest.ResourceVersioner,
 	}
 	source := &SourceEtcd{
 		key:     key,
@@ -99,7 +98,9 @@ func eventToPods(ev watch.Event) ([]kubelet.Pod, error) {
 		if name == "" {
 			name = fmt.Sprintf("%d", i+1)
 		}
-		pods = append(pods, kubelet.Pod{Name: name, Manifest: manifest})
+		pods = append(pods, kubelet.Pod{
+			Name:     name,
+			Manifest: manifest})
 	}
 
 	return pods, nil

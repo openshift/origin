@@ -21,7 +21,7 @@ func TestListImagesError(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	images, err := storage.List(nil)
+	images, err := storage.List(nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -41,7 +41,7 @@ func TestListImagesEmptyList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	images, err := storage.List(labels.Everything())
+	images, err := storage.List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -72,7 +72,7 @@ func TestListImagesPopulatedList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	list, err := storage.List(labels.Everything())
+	list, err := storage.List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -87,7 +87,7 @@ func TestListImagesPopulatedList(t *testing.T) {
 func TestCreateImageBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create("hello")
+	channel, err := storage.Create(&api.ImageList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}

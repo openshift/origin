@@ -26,7 +26,7 @@ func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, path string, req *htt
 	}
 	method := req.Header.Get("X-GitHub-Event")
 	if method != "ping" && method != "push" {
-		err = fmt.Errorf("Unknown X-GitHub-Event %s!", method)
+		err = fmt.Errorf("Unknown X-GitHub-Event %s", method)
 		return
 	}
 	proceed = (method == "push")
@@ -44,16 +44,16 @@ func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, path string, req *htt
 
 func verifyRequest(req *http.Request) error {
 	if method := req.Method; method != "POST" {
-		return fmt.Errorf("Unsupported HTTP method %s!", method)
+		return fmt.Errorf("Unsupported HTTP method %s", method)
 	}
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-		return fmt.Errorf("Unsupported Content-Type %s!", contentType)
+		return fmt.Errorf("Unsupported Content-Type %s", contentType)
 	}
 	if userAgent := req.Header.Get("User-Agent"); !strings.HasPrefix(userAgent, "GitHub-Hookshot/") {
-		return fmt.Errorf("Unsupported User-Agent %s!")
+		return fmt.Errorf("Unsupported User-Agent %s")
 	}
 	if req.Header.Get("X-GitHub-Event") == "" {
-		return errors.New("Missing X-GitHub-Event!")
+		return errors.New("Missing X-GitHub-Event")
 	}
 	return nil
 }

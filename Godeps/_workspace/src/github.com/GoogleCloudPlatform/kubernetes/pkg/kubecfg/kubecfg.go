@@ -29,6 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
@@ -78,11 +79,24 @@ func LoadAuthInfo(path string, r io.Reader) (*client.AuthInfo, error) {
 // 'name' points to a replication controller.
 // 'client' is used for updating pods.
 // 'updatePeriod' is the time between pod updates.
-func Update(name string, client client.Interface, updatePeriod time.Duration) error {
+// 'imageName' is the new image to update for the template.  This will work
+//     with the first container in the pod.  There is no support yet for
+//     updating more complex replication controllers.  If this is blank then no
+//     update of the image is performed.
+func Update(name string, client client.Interface, updatePeriod time.Duration, imageName string) error {
 	controller, err := client.GetReplicationController(name)
 	if err != nil {
 		return err
 	}
+
+	if len(imageName) != 0 {
+		controller.DesiredState.PodTemplate.DesiredState.Manifest.Containers[0].Image = imageName
+		controller, err = client.UpdateReplicationController(controller)
+		if err != nil {
+			return err
+		}
+	}
+
 	s := labels.Set(controller.DesiredState.ReplicaSelector).AsSelector()
 
 	podList, err := client.ListPods(s)
@@ -140,20 +154,36 @@ func portsFromString(spec string) []api.Port {
 	var result []api.Port
 	for _, part := range parts {
 		pieces := strings.Split(part, ":")
-		if len(pieces) != 2 {
+		if len(pieces) < 1 || len(pieces) > 2 {
 			glog.Infof("Bad port spec: %s", part)
 			continue
 		}
-		host, err := strconv.Atoi(pieces[0])
-		if err != nil {
-			glog.Errorf("Host part is not integer: %s %v", pieces[0], err)
+		host := 0
+		container := 0
+		var err error
+		if len(pieces) == 1 {
+			container, err = strconv.Atoi(pieces[0])
+			if err != nil {
+				glog.Errorf("Container port is not integer: %s %v", pieces[0], err)
+				continue
+			}
+		} else {
+			host, err = strconv.Atoi(pieces[0])
+			if err != nil {
+				glog.Errorf("Host port is not integer: %s %v", pieces[0], err)
+				continue
+			}
+			container, err = strconv.Atoi(pieces[1])
+			if err != nil {
+				glog.Errorf("Container port is not integer: %s %v", pieces[1], err)
+				continue
+			}
+		}
+		if container < 1 {
+			glog.Errorf("Container port is not valid: %d", container)
 			continue
 		}
-		container, err := strconv.Atoi(pieces[1])
-		if err != nil {
-			glog.Errorf("Container part is not integer: %s %v", pieces[1], err)
-			continue
-		}
+
 		result = append(result, api.Port{ContainerPort: container, HostPort: host})
 	}
 	return result
@@ -161,14 +191,17 @@ func portsFromString(spec string) []api.Port {
 
 // RunController creates a new replication controller named 'name' which creates 'replicas' pods running 'image'.
 func RunController(image, name string, replicas int, client client.Interface, portSpec string, servicePort int) error {
-	controller := api.ReplicationController{
+	if servicePort > 0 && !util.IsDNSLabel(name) {
+		return fmt.Errorf("Service creation requested, but an invalid name for a service was provided (%s). Service names must be valid DNS labels.", name)
+	}
+	controller := &api.ReplicationController{
 		JSONBase: api.JSONBase{
 			ID: name,
 		},
 		DesiredState: api.ReplicationControllerState{
 			Replicas: replicas,
 			ReplicaSelector: map[string]string{
-				"name": name,
+				"simpleService": name,
 			},
 			PodTemplate: api.PodTemplate{
 				DesiredState: api.PodState{
@@ -184,12 +217,9 @@ func RunController(image, name string, replicas int, client client.Interface, po
 					},
 				},
 				Labels: map[string]string{
-					"name": name,
+					"simpleService": name,
 				},
 			},
-		},
-		Labels: map[string]string{
-			"name": name,
 		},
 	}
 
@@ -217,15 +247,15 @@ func RunController(image, name string, replicas int, client client.Interface, po
 	return nil
 }
 
-func createService(name string, port int, client client.Interface) (api.Service, error) {
-	svc := api.Service{
+func createService(name string, port int, client client.Interface) (*api.Service, error) {
+	svc := &api.Service{
 		JSONBase: api.JSONBase{ID: name},
 		Port:     port,
 		Labels: map[string]string{
-			"name": name,
+			"simpleService": name,
 		},
 		Selector: map[string]string{
-			"name": name,
+			"simpleService": name,
 		},
 	}
 	svc, err := client.CreateService(svc)

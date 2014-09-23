@@ -3,7 +3,6 @@ package etcd
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -14,17 +13,11 @@ type Etcd struct {
 	tools.EtcdHelper
 }
 
-// NewEtcd creates an etcd registry.
-// 'client' is the connection to etcd
-func NewEtcd(client tools.EtcdClient) *Etcd {
-	registry := &Etcd{
-		EtcdHelper: tools.EtcdHelper{
-			client,
-			runtime.Codec,
-			runtime.ResourceVersioner,
-		},
+// New creates an etcd registry.
+func New(helper tools.EtcdHelper) *Etcd {
+	return &Etcd{
+		EtcdHelper: helper,
 	}
-	return registry
 }
 
 func makeBuildKey(id string) string {

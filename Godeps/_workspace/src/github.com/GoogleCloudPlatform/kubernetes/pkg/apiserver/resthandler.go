@@ -23,11 +23,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 type RESTHandler struct {
 	storage     map[string]RESTStorage
-	codec       Codec
+	codec       runtime.Codec
 	ops         *Operations
 	asyncOpWait time.Duration
 }
@@ -41,7 +42,7 @@ func (h *RESTHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	storage := h.storage[parts[0]]
 	if storage == nil {
-		httplog.LogOf(w).Addf("'%v' has no storage object", parts[0])
+		httplog.LogOf(req, w).Addf("'%v' has no storage object", parts[0])
 		notFound(w, req)
 		return
 	}
@@ -69,12 +70,17 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 	case "GET":
 		switch len(parts) {
 		case 1:
-			selector, err := labels.ParseSelector(req.URL.Query().Get("labels"))
+			label, err := labels.ParseSelector(req.URL.Query().Get("labels"))
 			if err != nil {
 				errorJSON(err, h.codec, w)
 				return
 			}
-			list, err := storage.List(selector)
+			field, err := labels.ParseSelector(req.URL.Query().Get("fields"))
+			if err != nil {
+				errorJSON(err, h.codec, w)
+				return
+			}
+			list, err := storage.List(label, field)
 			if err != nil {
 				errorJSON(err, h.codec, w)
 				return
@@ -113,7 +119,7 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			return
 		}
 		op := h.createOperation(out, sync, timeout)
-		h.finishReq(op, w)
+		h.finishReq(op, req, w)
 
 	case "DELETE":
 		if len(parts) != 2 {
@@ -126,7 +132,7 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			return
 		}
 		op := h.createOperation(out, sync, timeout)
-		h.finishReq(op, w)
+		h.finishReq(op, req, w)
 
 	case "PUT":
 		if len(parts) != 2 {
@@ -150,7 +156,7 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			return
 		}
 		op := h.createOperation(out, sync, timeout)
-		h.finishReq(op, w)
+		h.finishReq(op, req, w)
 
 	default:
 		notFound(w, req)
@@ -158,7 +164,7 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 }
 
 // createOperation creates an operation to process a channel response.
-func (h *RESTHandler) createOperation(out <-chan interface{}, sync bool, timeout time.Duration) *Operation {
+func (h *RESTHandler) createOperation(out <-chan runtime.Object, sync bool, timeout time.Duration) *Operation {
 	op := h.ops.NewOperation(out)
 	if sync {
 		op.WaitFor(timeout)
@@ -170,16 +176,11 @@ func (h *RESTHandler) createOperation(out <-chan interface{}, sync bool, timeout
 
 // finishReq finishes up a request, waiting until the operation finishes or, after a timeout, creating an
 // Operation to receive the result and returning its ID down the writer.
-func (h *RESTHandler) finishReq(op *Operation, w http.ResponseWriter) {
+func (h *RESTHandler) finishReq(op *Operation, req *http.Request, w http.ResponseWriter) {
 	obj, complete := op.StatusOrResult()
 	if complete {
 		status := http.StatusOK
 		switch stat := obj.(type) {
-		case api.Status:
-			httplog.LogOf(w).Addf("programmer error: use *api.Status as a result, not api.Status.")
-			if stat.Code != 0 {
-				status = stat.Code
-			}
 		case *api.Status:
 			if stat.Code != 0 {
 				status = stat.Code

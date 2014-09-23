@@ -10,13 +10,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/coreos/go-etcd/etcd"
-	"github.com/openshift/origin/pkg/deploy/api"
 
-	_ "github.com/openshift/origin/pkg/deploy/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/deploy/api"
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return NewEtcd(client)
+	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
 }
 
 func TestEtcdListEmptyDeployments(t *testing.T) {
@@ -69,10 +69,10 @@ func TestEtcdListEverythingDeployments(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.Deployment{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
 					},
 				},
 			},
@@ -98,13 +98,13 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.Deployment{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
 							JSONBase: kubeapi.JSONBase{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.Deployment{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
 							JSONBase: kubeapi.JSONBase{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
@@ -127,7 +127,7 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 
 func TestEtcdGetDeployments(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/deployments/foo", runtime.EncodeOrDie(api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/deployments/foo", runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	deployment, err := registry.GetDeployment("foo")
 	if err != nil {
@@ -181,7 +181,7 @@ func TestEtcdCreateDeployments(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	var deployment api.Deployment
-	err = runtime.DecodeInto([]byte(resp.Node.Value), &deployment)
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &deployment)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestEtcdCreateAlreadyExistsDeployments(t *testing.T) {
 	fakeClient.Data["/deployments/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 			},
 		},
 		E: nil,
@@ -312,10 +312,10 @@ func TestEtcdListEverythingDeploymentConfig(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
 					},
 				},
 			},
@@ -341,13 +341,13 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(api.DeploymentConfig{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{
 							JSONBase: kubeapi.JSONBase{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
-						Value: runtime.EncodeOrDie(api.DeploymentConfig{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{
 							JSONBase: kubeapi.JSONBase{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
@@ -370,7 +370,7 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 
 func TestEtcdGetDeploymentConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/deploymentConfigs/foo", runtime.EncodeOrDie(api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/deploymentConfigs/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	deployment, err := registry.GetDeploymentConfig("foo")
 	if err != nil {
@@ -424,7 +424,7 @@ func TestEtcdCreateDeploymentConfig(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	var d api.DeploymentConfig
-	err = runtime.DecodeInto([]byte(resp.Node.Value), &d)
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &d)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -439,7 +439,7 @@ func TestEtcdCreateAlreadyExistsDeploymentConfig(t *testing.T) {
 	fakeClient.Data["/deploymentConfigs/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
 			},
 		},
 		E: nil,

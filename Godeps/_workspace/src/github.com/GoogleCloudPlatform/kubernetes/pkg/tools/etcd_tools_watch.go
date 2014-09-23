@@ -18,7 +18,9 @@ package tools
 
 import (
 	"sync"
+	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/coreos/go-etcd/etcd"
@@ -27,10 +29,10 @@ import (
 
 // FilterFunc is a predicate which takes an API object and returns true
 // iff the object should remain in the set.
-type FilterFunc func(obj interface{}) bool
+type FilterFunc func(obj runtime.Object) bool
 
 // Everything is a FilterFunc which accepts all objects.
-func Everything(interface{}) bool {
+func Everything(runtime.Object) bool {
 	return true
 }
 
@@ -59,7 +61,7 @@ func (h *EtcdHelper) Watch(key string, resourceVersion uint64) (watch.Interface,
 // change or wrap the serialized etcd object.
 //
 //   startTime := time.Now()
-//   helper.WatchAndTransform(key, version, func(input interface{}) (interface{}, error) {
+//   helper.WatchAndTransform(key, version, func(input runtime.Object) (runtime.Object, error) {
 //     value := input.(TimeAwareValue)
 //     value.Since = startTime
 //     return value, nil
@@ -68,16 +70,16 @@ func (h *EtcdHelper) Watch(key string, resourceVersion uint64) (watch.Interface,
 func (h *EtcdHelper) WatchAndTransform(key string, resourceVersion uint64, transform TransformFunc) (watch.Interface, error) {
 	w := newEtcdWatcher(false, Everything, h.Codec, h.ResourceVersioner, transform)
 	go w.etcdWatch(h.Client, key, resourceVersion)
-	return w, nil
+	return w, <-w.immediateError
 }
 
 // TransformFunc attempts to convert an object to another object for use with a watcher.
-type TransformFunc func(interface{}) (interface{}, error)
+type TransformFunc func(runtime.Object) (runtime.Object, error)
 
 // etcdWatcher converts a native etcd watch to a watch.Interface.
 type etcdWatcher struct {
-	encoding  Codec
-	versioner ResourceVersioner
+	encoding  runtime.Codec
+	versioner runtime.ResourceVersioner
 	transform TransformFunc
 
 	list   bool // If we're doing a recursive watch, should be true.
@@ -86,6 +88,11 @@ type etcdWatcher struct {
 	etcdIncoming  chan *etcd.Response
 	etcdStop      chan bool
 	etcdCallEnded chan struct{}
+
+	// etcdWatch will send an error down this channel if the Watch fails.
+	// Otherwise, a nil will be sent down this channel watchWaitDuration
+	// after the watch starts.
+	immediateError chan error
 
 	outgoing chan watch.Event
 	userStop chan struct{}
@@ -96,20 +103,24 @@ type etcdWatcher struct {
 	emit func(watch.Event)
 }
 
+// watchWaitDuration is the amount of time to wait for an error from watch.
+const watchWaitDuration = 100 * time.Millisecond
+
 // newEtcdWatcher returns a new etcdWatcher; if list is true, watch sub-nodes.  If you provide a transform
 // and a versioner, the versioner must be able to handle the objects that transform creates.
-func newEtcdWatcher(list bool, filter FilterFunc, encoding Codec, versioner ResourceVersioner, transform TransformFunc) *etcdWatcher {
+func newEtcdWatcher(list bool, filter FilterFunc, encoding runtime.Codec, versioner runtime.ResourceVersioner, transform TransformFunc) *etcdWatcher {
 	w := &etcdWatcher{
-		encoding:      encoding,
-		versioner:     versioner,
-		transform:     transform,
-		list:          list,
-		filter:        filter,
-		etcdIncoming:  make(chan *etcd.Response),
-		etcdStop:      make(chan bool),
-		etcdCallEnded: make(chan struct{}),
-		outgoing:      make(chan watch.Event),
-		userStop:      make(chan struct{}),
+		encoding:       encoding,
+		versioner:      versioner,
+		transform:      transform,
+		list:           list,
+		filter:         filter,
+		etcdIncoming:   make(chan *etcd.Response),
+		etcdStop:       make(chan bool),
+		etcdCallEnded:  make(chan struct{}),
+		immediateError: make(chan error),
+		outgoing:       make(chan watch.Event),
+		userStop:       make(chan struct{}),
 	}
 	w.emit = func(e watch.Event) { w.outgoing <- e }
 	go w.translate()
@@ -117,10 +128,17 @@ func newEtcdWatcher(list bool, filter FilterFunc, encoding Codec, versioner Reso
 }
 
 // etcdWatch calls etcd's Watch function, and handles any errors. Meant to be called
-// as a goroutine.
+// as a goroutine. Will either send an error over w.immediateError if Watch fails, or in 100ms will
 func (w *etcdWatcher) etcdWatch(client EtcdGetSet, key string, resourceVersion uint64) {
 	defer util.HandleCrash()
 	defer close(w.etcdCallEnded)
+	go func() {
+		// This is racy; assume that Watch will fail within 100ms if it is going to fail.
+		// It's still more useful than blocking until the first result shows up.
+		// Trying to detect the 401: watch window expired error.
+		<-time.After(watchWaitDuration)
+		w.immediateError <- nil
+	}()
 	if resourceVersion == 0 {
 		latest, ok := etcdGetInitialWatchState(client, key, w.list, w.etcdIncoming)
 		if !ok {
@@ -131,6 +149,7 @@ func (w *etcdWatcher) etcdWatch(client EtcdGetSet, key string, resourceVersion u
 	_, err := client.Watch(key, resourceVersion, w.list, w.etcdIncoming, w.etcdStop)
 	if err != etcd.ErrWatchStoppedByUser {
 		glog.Errorf("etcd.Watch stopped unexpectedly: %v (%#v)", err, key)
+		w.immediateError <- err
 	}
 }
 
@@ -192,7 +211,7 @@ func (w *etcdWatcher) translate() {
 	}
 }
 
-func (w *etcdWatcher) decodeObject(data []byte, index uint64) (interface{}, error) {
+func (w *etcdWatcher) decodeObject(data []byte, index uint64) (runtime.Object, error) {
 	obj, err := w.encoding.Decode(data)
 	if err != nil {
 		return nil, err
@@ -260,7 +279,7 @@ func (w *etcdWatcher) sendModify(res *etcd.Response) {
 	}
 	curObjPasses := w.filter(curObj)
 	oldObjPasses := false
-	var oldObj interface{}
+	var oldObj runtime.Object
 	if res.PrevNode != nil && res.PrevNode.Value != "" {
 		// Ignore problems reading the old object.
 		if oldObj, err = w.decodeObject([]byte(res.PrevNode.Value), res.PrevNode.ModifiedIndex); err == nil {

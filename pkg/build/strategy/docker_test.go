@@ -27,8 +27,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected %s image, got %s!", container.Image,
 			strategy.dockerBuilderImage)
 	}
-	if container.RestartPolicy != "runOnce" {
-		t.Errorf("Expected runOnce, but got %s!", container.RestartPolicy)
+	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
+		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
 	}
 	if e := container.Env[0]; e.Name != "BUILD_TAG" && e.Value != expected.Input.ImageTag {
 		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)

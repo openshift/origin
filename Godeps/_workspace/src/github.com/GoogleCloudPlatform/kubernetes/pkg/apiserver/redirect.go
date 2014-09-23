@@ -20,11 +20,12 @@ import (
 	"net/http"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 type RedirectHandler struct {
 	storage map[string]RESTStorage
-	codec   Codec
+	codec   runtime.Codec
 }
 
 func (r *RedirectHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -37,14 +38,14 @@ func (r *RedirectHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	id := parts[1]
 	storage, ok := r.storage[resourceName]
 	if !ok {
-		httplog.LogOf(w).Addf("'%v' has no storage object", resourceName)
+		httplog.LogOf(req, w).Addf("'%v' has no storage object", resourceName)
 		notFound(w, req)
 		return
 	}
 
 	redirector, ok := storage.(Redirector)
 	if !ok {
-		httplog.LogOf(w).Addf("'%v' is not a redirector", resourceName)
+		httplog.LogOf(req, w).Addf("'%v' is not a redirector", resourceName)
 		notFound(w, req)
 		return
 	}

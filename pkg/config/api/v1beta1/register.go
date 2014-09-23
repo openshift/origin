@@ -1,7 +1,13 @@
 package v1beta1
 
-import "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+)
 
 func init() {
-	runtime.AddKnownTypes("v1beta1", Config{})
+	api.Scheme.AddKnownTypes("v1beta1",
+		&Config{},
+	)
 }
+
+func (*Config) IsAnAPIObject() {}

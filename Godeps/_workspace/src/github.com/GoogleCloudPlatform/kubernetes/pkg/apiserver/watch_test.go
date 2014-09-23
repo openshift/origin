@@ -25,13 +25,19 @@ import (
 	"testing"
 
 	"code.google.com/p/go.net/websocket"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
+// watchJSON defines the expected JSON wire equivalent of watch.Event
+type watchJSON struct {
+	Type   watch.EventType `json:"type,omitempty" yaml:"type,omitempty"`
+	Object json.RawMessage `json:"object,omitempty" yaml:"object,omitempty"`
+}
+
 var watchTestTable = []struct {
 	t   watch.EventType
-	obj interface{}
+	obj runtime.Object
 }{
 	{watch.Added, &Simple{Name: "A Name"}},
 	{watch.Modified, &Simple{Name: "Another Name"}},
@@ -56,11 +62,11 @@ func TestWatchWebsocket(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	try := func(action watch.EventType, object interface{}) {
+	try := func(action watch.EventType, object runtime.Object) {
 		// Send
 		simpleStorage.fakeWatch.Action(action, object)
 		// Test receive
-		var got api.WatchEvent
+		var got watchJSON
 		err := websocket.JSON.Receive(ws, &got)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -68,8 +74,8 @@ func TestWatchWebsocket(t *testing.T) {
 		if got.Type != action {
 			t.Errorf("Unexpected type: %v", got.Type)
 		}
-		if e, a := object, got.Object.Object; !reflect.DeepEqual(e, a) {
-			t.Errorf("Expected %v, got %v", e, a)
+		if e, a := runtime.EncodeOrDie(codec, object), string(got.Object); !reflect.DeepEqual(e, a) {
+			t.Errorf("Expected %#v, got %#v", e, a)
 		}
 	}
 
@@ -78,7 +84,7 @@ func TestWatchWebsocket(t *testing.T) {
 	}
 	simpleStorage.fakeWatch.Stop()
 
-	var got api.WatchEvent
+	var got watchJSON
 	err = websocket.JSON.Receive(ws, &got)
 	if err == nil {
 		t.Errorf("Unexpected non-error")
@@ -113,29 +119,25 @@ func TestWatchHTTP(t *testing.T) {
 
 	decoder := json.NewDecoder(response.Body)
 
-	try := func(action watch.EventType, object interface{}) {
+	for i, item := range watchTestTable {
 		// Send
-		simpleStorage.fakeWatch.Action(action, object)
+		simpleStorage.fakeWatch.Action(item.t, item.obj)
 		// Test receive
-		var got api.WatchEvent
+		var got watchJSON
 		err := decoder.Decode(&got)
 		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
+			t.Fatalf("%d: Unexpected error: %v", i, err)
 		}
-		if got.Type != action {
-			t.Errorf("Unexpected type: %v", got.Type)
+		if got.Type != item.t {
+			t.Errorf("%d: Unexpected type: %v", i, got.Type)
 		}
-		if e, a := object, got.Object.Object; !reflect.DeepEqual(e, a) {
-			t.Errorf("Expected %v, got %v", e, a)
+		if e, a := runtime.EncodeOrDie(codec, item.obj), string(got.Object); !reflect.DeepEqual(e, a) {
+			t.Errorf("Expected %#v, got %#v", e, a)
 		}
-	}
-
-	for _, item := range watchTestTable {
-		try(item.t, item.obj)
 	}
 	simpleStorage.fakeWatch.Stop()
 
-	var got api.WatchEvent
+	var got watchJSON
 	err = decoder.Decode(&got)
 	if err == nil {
 		t.Errorf("Unexpected non-error")
@@ -200,6 +202,54 @@ func TestWatchParamParsing(t *testing.T) {
 		}
 		if e, a := item.fieldSelector, simpleStorage.requestedFieldSelector.String(); e != a {
 			t.Errorf("%v: expected %v, got %v", item.rawQuery, e, a)
+		}
+	}
+}
+
+func TestWatchProtocolSelection(t *testing.T) {
+	simpleStorage := &SimpleRESTStorage{}
+	handler := Handle(map[string]RESTStorage{
+		"foo": simpleStorage,
+	}, codec, "/prefix/version")
+	server := httptest.NewServer(handler)
+	client := http.Client{}
+
+	dest, _ := url.Parse(server.URL)
+	dest.Path = "/prefix/version/watch/foo"
+	dest.RawQuery = ""
+
+	table := []struct {
+		isWebsocket bool
+		connHeader  string
+	}{
+		{true, "Upgrade"},
+		{true, "keep-alive, Upgrade"},
+		{true, "upgrade"},
+		{false, "keep-alive"},
+	}
+
+	for _, item := range table {
+		request, err := http.NewRequest("GET", dest.String(), nil)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		request.Header.Set("Connection", item.connHeader)
+		request.Header.Set("Upgrade", "websocket")
+
+		response, err := client.Do(request)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		// The requests recognized as websocket requests based on connection
+		// and upgrade headers will not also have the necessary Sec-Websocket-*
+		// headers so it is expected to throw a 400
+		if item.isWebsocket && response.StatusCode != http.StatusBadRequest {
+			t.Errorf("Unexpected response %#v", response)
+		}
+
+		if !item.isWebsocket && response.StatusCode != http.StatusOK {
+			t.Errorf("Unexpected response %#v", response)
 		}
 	}
 }
