@@ -19,11 +19,9 @@ This will:
 
 5. Submit the template/template.json for parameterization
 
-6. Store the resulting config json in processed/template.processed.json
+6. Submit the config json to OpenShift for creation
 
-7. Submit the config json to OpenShift for creation
-
-8. Confirm the application is created/accessible via curl
+7. Confirm the application is created/accessible via curl
 
 To reset your system after running this example, you can run:
         
