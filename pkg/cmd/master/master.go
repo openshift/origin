@@ -1,6 +1,7 @@
 package master
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -23,12 +24,14 @@ import (
 	etcdconfig "github.com/coreos/etcd/config"
 	"github.com/coreos/etcd/etcd"
 	etcdclient "github.com/coreos/go-etcd/etcd"
+	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/build"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -48,6 +51,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/template"
+	"github.com/openshift/origin/pkg/version"
 
 	// Register versioned api types
 	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
@@ -158,6 +162,7 @@ func (c *config) getEtcdClient() (*etcdclient.Client, []string) {
 func (c *config) startAllInOne() {
 	c.runEtcd()
 	c.runApiserver()
+	c.runAssetServer()
 	c.runKubelet()
 	c.runProxy()
 	c.runScheduler()
@@ -263,6 +268,38 @@ func (c *config) runApiserver() {
 		glog.Infof("Started Kubernetes API at http://%s%s", osAddr, kube2Prefix)
 		glog.Infof("Started OpenShift API at http://%s%s", osAddr, osPrefix)
 		glog.Fatal(osApi.ListenAndServe())
+	}, 0)
+}
+
+func (c *config) runAssetServer() {
+	// TODO prefix should be able to be overridden at the command line
+	// move this out to a helper / config
+	prefix := fmt.Sprintf("/assets/%s/", version.Get().GitCommit)
+	// TODO configurable listen address
+	addr := c.masterHost + ":8091"
+	// TODO - For now redirect requests to the root to the commit-based index.html URL
+	// Next step is to have the root page served without redirecting.  May require build
+	// changes or altering index.html while serving.
+	mux := http.NewServeMux()
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		urlStr := fmt.Sprintf("%sindex.html", prefix)
+		http.Redirect(w, req, urlStr, http.StatusTemporaryRedirect)
+	}))
+
+	mux.Handle(prefix, http.StripPrefix(prefix, http.FileServer(
+		&assetfs.AssetFS{assets.Asset, assets.AssetDir, ""})))
+
+	osAssets := &http.Server{
+		Addr:           addr,
+		Handler:        mux,
+		ReadTimeout:    5 * time.Minute,
+		WriteTimeout:   5 * time.Minute,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	go util.Forever(func() {
+		glog.Infof("Started OpenShift static asset server at http://%s", addr)
+		glog.Fatal(osAssets.ListenAndServe())
 	}, 0)
 }
 
