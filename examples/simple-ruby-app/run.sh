@@ -89,10 +89,7 @@ done
 
 # Convert template to config
 echo "Submitting application template json for processing..."
-$openshift kube process -c template/template.json > processed/template.processed.json
-
-# Deploy the config
-$openshift kube -h http://$OSHOST:8080 apply -c processed/template.processed.json
+$openshift kube process -c template/template.json | $openshift kube -h http://$OSHOST:8080 apply -c -
 
 # Wait for the app container to start up
 rc=1
@@ -118,7 +115,7 @@ done
 
 # Sometimes the app isn't quite available even though the pod is running,
 # wait a little longer.
-sleep 15
+sleep 20
 
 # Confirm the app is running/responsive.
 echo "Frontend is available, sending request.  Frontend says:"
