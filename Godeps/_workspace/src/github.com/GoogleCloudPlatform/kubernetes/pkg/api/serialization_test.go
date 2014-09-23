@@ -19,22 +19,44 @@ package api_test
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
+	"math/rand"
 	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta2"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/google/gofuzz"
 )
 
-var fuzzIters = flag.Int("fuzz_iters", 50, "How many fuzzing iterations to do.")
+var fuzzIters = flag.Int("fuzz_iters", 40, "How many fuzzing iterations to do.")
 
 // apiObjectFuzzer can randomly populate api objects.
 var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
+	func(j *runtime.PluginBase, c fuzz.Continue) {
+		// Do nothing; this struct has only a Kind field and it must stay blank in memory.
+	},
+	func(j *runtime.JSONBase, c fuzz.Continue) {
+		// We have to customize the randomization of JSONBases because their
+		// APIVersion and Kind must remain blank in memory.
+		j.APIVersion = ""
+		j.Kind = ""
+		j.ID = c.RandString()
+		// TODO: Fix JSON/YAML packages and/or write custom encoding
+		// for uint64's. Somehow the LS *byte* of this is lost, but
+		// only when all 8 bytes are set.
+		j.ResourceVersion = c.RandUint64() >> 8
+		j.SelfLink = c.RandString()
+
+		var sec, nsec int64
+		c.Fuzz(&sec)
+		c.Fuzz(&nsec)
+		j.CreationTimestamp = util.Unix(sec, nsec).Rfc3339Copy()
+	},
 	func(j *api.JSONBase, c fuzz.Continue) {
 		// We have to customize the randomization of JSONBases because their
 		// APIVersion and Kind must remain blank in memory.
@@ -85,27 +107,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 	},
 )
 
-func objDiff(a, b interface{}) string {
-	ab, err := json.Marshal(a)
-	if err != nil {
-		panic("a")
-	}
-	bb, err := json.Marshal(b)
-	if err != nil {
-		panic("b")
-	}
-	return util.StringDiff(string(ab), string(bb))
-
-	// An alternate diff attempt, in case json isn't showing you
-	// the difference. (reflect.DeepEqual makes a distinction between
-	// nil and empty slices, for example.)
-	return util.StringDiff(
-		fmt.Sprintf("%#v", a),
-		fmt.Sprintf("%#v", b),
-	)
-}
-
-func runTest(t *testing.T, source interface{}) {
+func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 	name := reflect.TypeOf(source).Elem().Name()
 	apiObjectFuzzer.Fuzz(source)
 	j, err := runtime.FindJSONBase(source)
@@ -115,37 +117,37 @@ func runTest(t *testing.T, source interface{}) {
 	j.SetKind("")
 	j.SetAPIVersion("")
 
-	data, err := runtime.Encode(source)
+	data, err := codec.Encode(source)
 	if err != nil {
 		t.Errorf("%v: %v (%#v)", name, err, source)
 		return
 	}
 
-	obj2, err := runtime.Decode(data)
+	obj2, err := codec.Decode(data)
 	if err != nil {
 		t.Errorf("%v: %v", name, err)
 		return
 	} else {
 		if !reflect.DeepEqual(source, obj2) {
-			t.Errorf("1: %v: diff: %v", name, objDiff(source, obj2))
+			t.Errorf("1: %v: diff: %v", name, runtime.ObjectDiff(source, obj2))
 			return
 		}
 	}
-	obj3 := reflect.New(reflect.TypeOf(source).Elem()).Interface()
-	err = runtime.DecodeInto(data, obj3)
+	obj3 := reflect.New(reflect.TypeOf(source).Elem()).Interface().(runtime.Object)
+	err = codec.DecodeInto(data, obj3)
 	if err != nil {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	} else {
 		if !reflect.DeepEqual(source, obj3) {
-			t.Errorf("3: %v: diff: %v", name, objDiff(source, obj3))
+			t.Errorf("3: %v: diff: %v", name, runtime.ObjectDiff(source, obj3))
 			return
 		}
 	}
 }
 
 func TestTypes(t *testing.T) {
-	table := []interface{}{
+	table := []runtime.Object{
 		&api.PodList{},
 		&api.Pod{},
 		&api.ServiceList{},
@@ -164,26 +166,10 @@ func TestTypes(t *testing.T) {
 	for _, item := range table {
 		// Try a few times, since runTest uses random values.
 		for i := 0; i < *fuzzIters; i++ {
-			runTest(t, item)
+			runTest(t, v1beta1.Codec, item)
+			runTest(t, v1beta2.Codec, item)
+			runTest(t, api.Codec, item)
 		}
-	}
-}
-
-func TestEncode_NonPtr(t *testing.T) {
-	pod := api.Pod{
-		Labels: map[string]string{"name": "foo"},
-	}
-	obj := interface{}(pod)
-	data, err := runtime.Encode(obj)
-	obj2, err2 := runtime.Decode(data)
-	if err != nil || err2 != nil {
-		t.Fatalf("Failure: '%v' '%v'", err, err2)
-	}
-	if _, ok := obj2.(*api.Pod); !ok {
-		t.Fatalf("Got wrong type")
-	}
-	if !reflect.DeepEqual(obj2, &pod) {
-		t.Errorf("Expected:\n %#v,\n Got:\n %#v", &pod, obj2)
 	}
 }
 
@@ -191,9 +177,9 @@ func TestEncode_Ptr(t *testing.T) {
 	pod := &api.Pod{
 		Labels: map[string]string{"name": "foo"},
 	}
-	obj := interface{}(pod)
-	data, err := runtime.Encode(obj)
-	obj2, err2 := runtime.Decode(data)
+	obj := runtime.Object(pod)
+	data, err := latest.Codec.Encode(obj)
+	obj2, err2 := latest.Codec.Decode(data)
 	if err != nil || err2 != nil {
 		t.Fatalf("Failure: '%v' '%v'", err, err2)
 	}
@@ -207,15 +193,69 @@ func TestEncode_Ptr(t *testing.T) {
 
 func TestBadJSONRejection(t *testing.T) {
 	badJSONMissingKind := []byte(`{ }`)
-	if _, err := runtime.Decode(badJSONMissingKind); err == nil {
+	if _, err := latest.Codec.Decode(badJSONMissingKind); err == nil {
 		t.Errorf("Did not reject despite lack of kind field: %s", badJSONMissingKind)
 	}
 	badJSONUnknownType := []byte(`{"kind": "bar"}`)
-	if _, err1 := runtime.Decode(badJSONUnknownType); err1 == nil {
+	if _, err1 := latest.Codec.Decode(badJSONUnknownType); err1 == nil {
 		t.Errorf("Did not reject despite use of unknown type: %s", badJSONUnknownType)
 	}
 	/*badJSONKindMismatch := []byte(`{"kind": "Pod"}`)
 	if err2 := DecodeInto(badJSONKindMismatch, &Minion{}); err2 == nil {
 		t.Errorf("Kind is set but doesn't match the object type: %s", badJSONKindMismatch)
 	}*/
+}
+
+const benchmarkSeed = 100
+
+func BenchmarkEncode(b *testing.B) {
+	pod := api.Pod{}
+	apiObjectFuzzer.RandSource(rand.NewSource(benchmarkSeed))
+	apiObjectFuzzer.Fuzz(&pod)
+	for i := 0; i < b.N; i++ {
+		latest.Codec.Encode(&pod)
+	}
+}
+
+// BenchmarkEncodeJSON provides a baseline for regular JSON encode performance
+func BenchmarkEncodeJSON(b *testing.B) {
+	pod := api.Pod{}
+	apiObjectFuzzer.RandSource(rand.NewSource(benchmarkSeed))
+	apiObjectFuzzer.Fuzz(&pod)
+	for i := 0; i < b.N; i++ {
+		json.Marshal(&pod)
+	}
+}
+
+func BenchmarkDecode(b *testing.B) {
+	pod := api.Pod{}
+	apiObjectFuzzer.RandSource(rand.NewSource(benchmarkSeed))
+	apiObjectFuzzer.Fuzz(&pod)
+	data, _ := latest.Codec.Encode(&pod)
+	for i := 0; i < b.N; i++ {
+		latest.Codec.Decode(data)
+	}
+}
+
+func BenchmarkDecodeInto(b *testing.B) {
+	pod := api.Pod{}
+	apiObjectFuzzer.RandSource(rand.NewSource(benchmarkSeed))
+	apiObjectFuzzer.Fuzz(&pod)
+	data, _ := latest.Codec.Encode(&pod)
+	for i := 0; i < b.N; i++ {
+		obj := api.Pod{}
+		latest.Codec.DecodeInto(data, &obj)
+	}
+}
+
+// BenchmarkDecodeJSON provides a baseline for regular JSON decode performance
+func BenchmarkDecodeJSON(b *testing.B) {
+	pod := api.Pod{}
+	apiObjectFuzzer.RandSource(rand.NewSource(benchmarkSeed))
+	apiObjectFuzzer.Fuzz(&pod)
+	data, _ := latest.Codec.Encode(&pod)
+	for i := 0; i < b.N; i++ {
+		obj := api.Pod{}
+		json.Unmarshal(data, &obj)
+	}
 }

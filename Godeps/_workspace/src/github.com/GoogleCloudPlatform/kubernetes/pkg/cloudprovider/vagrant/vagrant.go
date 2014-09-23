@@ -19,6 +19,8 @@ package vagrant_cloud
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -37,7 +39,7 @@ type VagrantCloud struct {
 }
 
 func init() {
-	cloudprovider.RegisterCloudProvider("vagrant", func() (cloudprovider.Interface, error) { return newVagrantCloud() })
+	cloudprovider.RegisterCloudProvider("vagrant", func(config io.Reader) (cloudprovider.Interface, error) { return newVagrantCloud() })
 }
 
 // SaltToken is an authorization token required by Salt REST API.
@@ -55,7 +57,7 @@ type SaltLoginResponse struct {
 // SaltMinion is a machine managed by the Salt service.
 type SaltMinion struct {
 	Roles []string `json:"roles"`
-	IP    string   `json:"minion_ip"`
+	IP    string   `json:"node_ip"`
 	Host  string   `json:"host"`
 }
 
@@ -94,8 +96,22 @@ func (v *VagrantCloud) Zones() (cloudprovider.Zones, bool) {
 
 // IPAddress returns the address of a particular machine instance.
 func (v *VagrantCloud) IPAddress(instance string) (net.IP, error) {
-	// since the instance now is the IP in the vagrant env, this is trivial no-op
-	return net.ParseIP(instance), nil
+	token, err := v.saltLogin()
+	if err != nil {
+		return nil, err
+	}
+	minions, err := v.saltMinions(token)
+	if err != nil {
+		return nil, err
+	}
+	filteredMinions := v.saltMinionsByRole(minions, "kubernetes-pool")
+	for _, minion := range filteredMinions {
+		// Due to vagrant not running with a dedicated DNS setup, we return the IP address of a minion as its hostname at this time
+		if minion.IP == instance {
+			return net.ParseIP(minion.IP), nil
+		}
+	}
+	return nil, fmt.Errorf("Unable to find IP address for instance:", instance)
 }
 
 // saltMinionsByRole filters a list of minions that have a matching role.
@@ -187,6 +203,7 @@ func (v *VagrantCloud) List(filter string) ([]string, error) {
 	filteredMinions := v.saltMinionsByRole(minions, "kubernetes-pool")
 	var instances []string
 	for _, instance := range filteredMinions {
+		// With no dedicated DNS setup in cluster, IP address is used as hostname
 		instances = append(instances, instance.IP)
 	}
 

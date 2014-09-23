@@ -20,22 +20,24 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
+var Scheme = runtime.NewScheme()
+
 func init() {
-	runtime.AddKnownTypes("",
-		PodList{},
-		Pod{},
-		ReplicationControllerList{},
-		ReplicationController{},
-		ServiceList{},
-		Service{},
-		MinionList{},
-		Minion{},
-		Status{},
-		ServerOpList{},
-		ServerOp{},
-		ContainerManifestList{},
-		Endpoints{},
-		EndpointsList{},
-		Binding{},
+	Scheme.AddKnownTypes("",
+		&PodList{},
+		&Pod{},
+		&ReplicationControllerList{},
+		&ReplicationController{},
+		&ServiceList{},
+		&Service{},
+		&MinionList{},
+		&Minion{},
+		&Status{},
+		&ServerOpList{},
+		&ServerOp{},
+		&ContainerManifestList{},
+		&Endpoints{},
+		&EndpointsList{},
+		&Binding{},
 	)
 }

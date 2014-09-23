@@ -18,25 +18,16 @@ package apiserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
 )
-
-// Codec defines methods for serializing and deserializing API objects.
-type Codec interface {
-	Encode(obj interface{}) (data []byte, err error)
-	Decode(data []byte) (interface{}, error)
-	DecodeInto(data []byte, obj interface{}) error
-}
 
 // mux is an object that can register http handlers.
 type mux interface {
@@ -50,17 +41,20 @@ type defaultAPIServer struct {
 	group *APIGroup
 }
 
+const (
+	StatusUnprocessableEntity = 422
+)
+
 // Handle returns a Handler function that expose the provided storage interfaces
 // as RESTful resources at prefix, serialized by codec, and also includes the support
 // http resources.
-func Handle(storage map[string]RESTStorage, codec Codec, prefix string) http.Handler {
+func Handle(storage map[string]RESTStorage, codec runtime.Codec, prefix string) http.Handler {
 	group := NewAPIGroup(storage, codec)
 
 	mux := http.NewServeMux()
 	group.InstallREST(mux, prefix)
 	InstallSupport(mux)
-
-	return &defaultAPIServer{RecoverPanics(mux), group}
+	return &defaultAPIServer{mux, group}
 }
 
 // APIGroup is a http.Handler that exposes multiple RESTStorage objects
@@ -78,7 +72,7 @@ type APIGroup struct {
 // This is a helper method for registering multiple sets of REST handlers under different
 // prefixes onto a server.
 // TODO: add multitype codec serialization
-func NewAPIGroup(storage map[string]RESTStorage, codec Codec) *APIGroup {
+func NewAPIGroup(storage map[string]RESTStorage, codec runtime.Codec) *APIGroup {
 	return &APIGroup{RESTHandler{
 		storage: storage,
 		codec:   codec,
@@ -97,13 +91,28 @@ func (g *APIGroup) InstallREST(mux mux, paths ...string) {
 	redirectHandler := &RedirectHandler{g.handler.storage, g.handler.codec}
 	opHandler := &OperationHandler{g.handler.ops, g.handler.codec}
 
+	servers := map[string]string{
+		"controller-manager": "127.0.0.1:10252",
+		"scheduler":          "127.0.0.1:10251",
+		// TODO: Add minion health checks here too.
+	}
+	validator, err := NewValidator(servers)
+	if err != nil {
+		glog.Errorf("failed to set up validator: %v", err)
+		validator = nil
+	}
 	for _, prefix := range paths {
 		prefix = strings.TrimRight(prefix, "/")
+		proxyHandler := &ProxyHandler{prefix + "/proxy/", g.handler.storage, g.handler.codec}
 		mux.Handle(prefix+"/", http.StripPrefix(prefix, restHandler))
 		mux.Handle(prefix+"/watch/", http.StripPrefix(prefix+"/watch/", watchHandler))
+		mux.Handle(prefix+"/proxy/", http.StripPrefix(prefix+"/proxy/", proxyHandler))
 		mux.Handle(prefix+"/redirect/", http.StripPrefix(prefix+"/redirect/", redirectHandler))
 		mux.Handle(prefix+"/operations", http.StripPrefix(prefix+"/operations", opHandler))
 		mux.Handle(prefix+"/operations/", http.StripPrefix(prefix+"/operations/", opHandler))
+		if validator != nil {
+			mux.Handle(prefix+"/validate", validator)
+		}
 	}
 }
 
@@ -116,38 +125,13 @@ func InstallSupport(mux mux) {
 	mux.HandleFunc("/", handleIndex)
 }
 
-// RecoverPanics wraps an http Handler to recover and log panics.
-func RecoverPanics(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		defer func() {
-			if x := recover(); x != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, "apis panic. Look in log for details.")
-				glog.Infof("APIServer panic'd on %v %v: %#v\n%s\n", req.Method, req.RequestURI, x, debug.Stack())
-			}
-		}()
-		defer httplog.NewLogged(req, &w).StacktraceWhen(
-			httplog.StatusIsNot(
-				http.StatusOK,
-				http.StatusAccepted,
-				http.StatusTemporaryRedirect,
-				http.StatusConflict,
-				http.StatusNotFound,
-			),
-		).Log()
-
-		// Dispatch to the internal handler
-		handler.ServeHTTP(w, req)
-	})
-}
-
 // handleVersion writes the server's version information.
 func handleVersion(w http.ResponseWriter, req *http.Request) {
 	writeRawJSON(http.StatusOK, version.Get(), w)
 }
 
 // writeJSON renders an object as JSON to the response.
-func writeJSON(statusCode int, codec Codec, object interface{}, w http.ResponseWriter) {
+func writeJSON(statusCode int, codec runtime.Codec, object runtime.Object, w http.ResponseWriter) {
 	output, err := codec.Encode(object)
 	if err != nil {
 		errorJSON(err, codec, w)
@@ -159,7 +143,7 @@ func writeJSON(statusCode int, codec Codec, object interface{}, w http.ResponseW
 }
 
 // errorJSON renders an error to the response.
-func errorJSON(err error, codec Codec, w http.ResponseWriter) {
+func errorJSON(err error, codec runtime.Codec, w http.ResponseWriter) {
 	status := errToAPIStatus(err)
 	writeJSON(status.Code, codec, status, w)
 }

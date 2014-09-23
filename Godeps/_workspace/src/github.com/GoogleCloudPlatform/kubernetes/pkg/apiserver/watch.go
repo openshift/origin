@@ -17,22 +17,23 @@ limitations under the License.
 package apiserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"code.google.com/p/go.net/websocket"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	watchjson "github.com/GoogleCloudPlatform/kubernetes/pkg/watch/json"
 )
 
 type WatchHandler struct {
 	storage map[string]RESTStorage
-	codec   Codec
+	codec   runtime.Codec
 }
 
 func getWatchParams(query url.Values) (label, field labels.Selector, resourceVersion uint64) {
@@ -50,6 +51,12 @@ func getWatchParams(query url.Values) (label, field labels.Selector, resourceVer
 		resourceVersion = rv
 	}
 	return label, field, resourceVersion
+}
+
+var connectionUpgradeRegex = regexp.MustCompile("(^|.*,\\s*)upgrade($|\\s*,)")
+
+func isWebsocketRequest(req *http.Request) bool {
+	return connectionUpgradeRegex.MatchString(strings.ToLower(req.Header.Get("Connection"))) && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
 }
 
 // ServeHTTP processes watch requests.
@@ -74,8 +81,8 @@ func (h *WatchHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		// TODO: This is one watch per connection. We want to multiplex, so that
 		// multiple watches of the same thing don't create two watches downstream.
-		watchServer := &WatchServer{watching}
-		if req.Header.Get("Connection") == "Upgrade" && req.Header.Get("Upgrade") == "websocket" {
+		watchServer := &WatchServer{watching, h.codec}
+		if isWebsocketRequest(req) {
 			websocket.Handler(watchServer.HandleWS).ServeHTTP(httplog.Unlogged(w), req)
 		} else {
 			watchServer.ServeHTTP(w, req)
@@ -89,6 +96,7 @@ func (h *WatchHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // WatchServer serves a watch.Interface over a websocket or vanilla HTTP.
 type WatchServer struct {
 	watching watch.Interface
+	codec    runtime.Codec
 }
 
 // HandleWS implements a websocket handler.
@@ -111,11 +119,13 @@ func (w *WatchServer) HandleWS(ws *websocket.Conn) {
 				// End of results.
 				return
 			}
-			err := websocket.JSON.Send(ws, &api.WatchEvent{
-				Type:   event.Type,
-				Object: runtime.Object{event.Object},
-			})
+			obj, err := watchjson.Object(w.codec, &event)
 			if err != nil {
+				// Client disconnect.
+				w.watching.Stop()
+				return
+			}
+			if err := websocket.JSON.Send(ws, obj); err != nil {
 				// Client disconnect.
 				w.watching.Stop()
 				return
@@ -127,27 +137,27 @@ func (w *WatchServer) HandleWS(ws *websocket.Conn) {
 // ServeHTTP serves a series of JSON encoded events via straight HTTP with
 // Transfer-Encoding: chunked.
 func (self *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	loggedW := httplog.LogOf(w)
+	loggedW := httplog.LogOf(req, w)
 	w = httplog.Unlogged(w)
 
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		loggedW.Addf("unable to get CloseNotifier")
-		http.NotFound(loggedW, req)
+		http.NotFound(w, req)
 		return
 	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		loggedW.Addf("unable to get Flusher")
-		http.NotFound(loggedW, req)
+		http.NotFound(w, req)
 		return
 	}
 
-	loggedW.Header().Set("Transfer-Encoding", "chunked")
-	loggedW.WriteHeader(http.StatusOK)
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
 
-	encoder := json.NewEncoder(w)
+	encoder := watchjson.NewEncoder(w, self.codec)
 	for {
 		select {
 		case <-cn.CloseNotify():
@@ -158,11 +168,7 @@ func (self *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				// End of results.
 				return
 			}
-			err := encoder.Encode(&api.WatchEvent{
-				Type:   event.Type,
-				Object: runtime.Object{event.Object},
-			})
-			if err != nil {
+			if err := encoder.Encode(&event); err != nil {
 				// Client disconnect.
 				self.watching.Stop()
 				return

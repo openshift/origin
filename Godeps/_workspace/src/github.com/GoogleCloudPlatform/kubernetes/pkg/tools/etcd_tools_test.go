@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/coreos/go-etcd/etcd"
@@ -40,15 +40,17 @@ type TestResource struct {
 	Value        int `json:"value" yaml:"value,omitempty"`
 }
 
-var scheme *conversion.Scheme
-var codec = runtime.Codec
-var versioner = runtime.ResourceVersioner
+func (*TestResource) IsAnAPIObject() {}
+
+var scheme *runtime.Scheme
+var codec runtime.Codec
+var versioner = runtime.NewJSONBaseResourceVersioner()
 
 func init() {
-	scheme = conversion.NewScheme()
-	scheme.ExternalVersion = "v1beta1"
-	scheme.AddKnownTypes("", TestResource{})
-	scheme.AddKnownTypes("v1beta1", TestResource{})
+	scheme = runtime.NewScheme()
+	scheme.AddKnownTypes("", &TestResource{})
+	scheme.AddKnownTypes("v1beta1", &TestResource{})
+	codec = runtime.CodecFor(scheme, "v1beta1")
 }
 
 func TestIsEtcdNotFound(t *testing.T) {
@@ -93,7 +95,7 @@ func TestExtractList(t *testing.T) {
 	}
 
 	var got []api.Pod
-	helper := EtcdHelper{fakeClient, codec, versioner}
+	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
 	resourceVersion := uint64(0)
 	err := helper.ExtractList("/some/key", &got, &resourceVersion)
 	if err != nil {
@@ -114,7 +116,7 @@ func TestExtractObj(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
 	expect := api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
 	fakeClient.Set("/some/key", util.EncodeJSON(expect), 0)
-	helper := EtcdHelper{fakeClient, codec, versioner}
+	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
 	var got api.Pod
 	err := helper.ExtractObj("/some/key", &got, false)
 	if err != nil {
@@ -166,14 +168,14 @@ func TestExtractObjNotFoundErr(t *testing.T) {
 }
 
 func TestSetObj(t *testing.T) {
-	obj := api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
+	obj := &api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
 	fakeClient := NewFakeEtcdClient(t)
-	helper := EtcdHelper{fakeClient, codec, versioner}
+	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
 	err := helper.SetObj("/some/key", obj)
 	if err != nil {
 		t.Errorf("Unexpected error %#v", err)
 	}
-	data, err := codec.Encode(obj)
+	data, err := latest.Codec.Encode(obj)
 	if err != nil {
 		t.Errorf("Unexpected error %#v", err)
 	}
@@ -191,18 +193,18 @@ func TestSetObjWithVersion(t *testing.T) {
 	fakeClient.Data["/some/key"] = EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(obj),
+				Value:         runtime.EncodeOrDie(latest.Codec, obj),
 				ModifiedIndex: 1,
 			},
 		},
 	}
 
-	helper := EtcdHelper{fakeClient, codec, versioner}
+	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
 	err := helper.SetObj("/some/key", obj)
 	if err != nil {
 		t.Fatalf("Unexpected error %#v", err)
 	}
-	data, err := codec.Encode(obj)
+	data, err := latest.Codec.Encode(obj)
 	if err != nil {
 		t.Fatalf("Unexpected error %#v", err)
 	}
@@ -214,14 +216,14 @@ func TestSetObjWithVersion(t *testing.T) {
 }
 
 func TestSetObjWithoutResourceVersioner(t *testing.T) {
-	obj := api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
+	obj := &api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
 	fakeClient := NewFakeEtcdClient(t)
-	helper := EtcdHelper{fakeClient, codec, nil}
+	helper := EtcdHelper{fakeClient, latest.Codec, nil}
 	err := helper.SetObj("/some/key", obj)
 	if err != nil {
 		t.Errorf("Unexpected error %#v", err)
 	}
-	data, err := codec.Encode(obj)
+	data, err := latest.Codec.Encode(obj)
 	if err != nil {
 		t.Errorf("Unexpected error %#v", err)
 	}
@@ -235,13 +237,12 @@ func TestSetObjWithoutResourceVersioner(t *testing.T) {
 func TestAtomicUpdate(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
-	codec := scheme
 	helper := EtcdHelper{fakeClient, codec, runtime.NewJSONBaseResourceVersioner()}
 
 	// Create a new node.
 	fakeClient.ExpectNotFoundGet("/some/key")
 	obj := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 1}
-	err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in interface{}) (interface{}, error) {
+	err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		return obj, nil
 	})
 	if err != nil {
@@ -260,7 +261,7 @@ func TestAtomicUpdate(t *testing.T) {
 	// Update an existing node.
 	callbackCalled := false
 	objUpdate := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 2}
-	err = helper.AtomicUpdate("/some/key", &TestResource{}, func(in interface{}) (interface{}, error) {
+	err = helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		callbackCalled = true
 
 		if in.(*TestResource).Value != 1 {
@@ -290,12 +291,12 @@ func TestAtomicUpdate(t *testing.T) {
 func TestAtomicUpdateNoChange(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
-	helper := EtcdHelper{fakeClient, scheme, runtime.NewJSONBaseResourceVersioner()}
+	helper := EtcdHelper{fakeClient, codec, runtime.NewJSONBaseResourceVersioner()}
 
 	// Create a new node.
 	fakeClient.ExpectNotFoundGet("/some/key")
 	obj := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 1}
-	err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in interface{}) (interface{}, error) {
+	err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		return obj, nil
 	})
 	if err != nil {
@@ -306,7 +307,7 @@ func TestAtomicUpdateNoChange(t *testing.T) {
 	callbackCalled := false
 	objUpdate := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 1}
 	fakeClient.Err = errors.New("should not be called")
-	err = helper.AtomicUpdate("/some/key", &TestResource{}, func(in interface{}) (interface{}, error) {
+	err = helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		callbackCalled = true
 		return objUpdate, nil
 	})
@@ -321,7 +322,6 @@ func TestAtomicUpdateNoChange(t *testing.T) {
 func TestAtomicUpdate_CreateCollision(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
-	codec := scheme
 	helper := EtcdHelper{fakeClient, codec, runtime.NewJSONBaseResourceVersioner()}
 
 	fakeClient.ExpectNotFoundGet("/some/key")
@@ -338,7 +338,7 @@ func TestAtomicUpdate_CreateCollision(t *testing.T) {
 			defer wgDone.Done()
 
 			firstCall := true
-			err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in interface{}) (interface{}, error) {
+			err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 				defer func() { firstCall = false }()
 
 				if firstCall {
@@ -348,7 +348,7 @@ func TestAtomicUpdate_CreateCollision(t *testing.T) {
 				}
 
 				currValue := in.(*TestResource).Value
-				obj := TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: currValue + 1}
+				obj := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: currValue + 1}
 				return obj, nil
 			})
 			if err != nil {
