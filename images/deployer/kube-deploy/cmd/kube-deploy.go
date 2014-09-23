@@ -5,10 +5,12 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	latest "github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"gopkg.in/v1/yaml"
@@ -29,13 +31,13 @@ func main() {
 		glog.Fatalf("Unable to parse %v as a URL\n", err)
 	}
 
-	client, err := kubeclient.New(masterServer, nil)
+	client, err := kubeclient.New(masterServer, klatest.Version, nil)
 	if err != nil {
 		glog.Errorf("Unable to connect to kubernetes master: %v", err)
 		os.Exit(1)
 	}
 
-	osClient, err := osclient.New(masterServer, nil)
+	osClient, err := osclient.New(masterServer, latest.Version, nil)
 	if err != nil {
 		glog.Errorf("Unable to connect to openshift master: %v", err)
 		os.Exit(1)
@@ -66,7 +68,7 @@ func deployTarget(client *kubeclient.Client, osClient osclient.Interface) {
 		return
 	}
 
-	controller := api.ReplicationController{
+	controller := &api.ReplicationController{
 		DesiredState: deployment.ControllerTemplate,
 		Labels:       map[string]string{"deployment": deployment.ConfigID},
 	}
