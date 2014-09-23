@@ -450,7 +450,7 @@ func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Clie
 		return false
 	}
 	if len(c.Config) == 0 {
-		glog.Fatal("Need template file (-t)")
+		glog.Fatal("Need template file (-c)")
 	}
 	data, err := ioutil.ReadFile(c.Config)
 	if err != nil {
