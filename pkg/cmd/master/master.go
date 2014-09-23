@@ -36,6 +36,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	"github.com/openshift/origin/pkg/build/strategy"
 	"github.com/openshift/origin/pkg/build/webhook"
@@ -205,6 +206,7 @@ func (c *config) runApiserver() {
 	kubePrefix := "/api/v1beta1"
 	kube2Prefix := "/api/v1beta2"
 	osPrefix := "/osapi/v1beta1"
+	proxyPrefix := "/proxy/minion"
 
 	kubeClient := c.getKubeClient()
 	osClient := c.getOsClient()
@@ -227,6 +229,7 @@ func (c *config) runApiserver() {
 	storage := map[string]apiserver.RESTStorage{
 		"builds":                  buildregistry.NewREST(buildRegistry),
 		"buildConfigs":            buildconfigregistry.NewREST(buildRegistry),
+		"buildLogs":               buildlogregistry.NewREST(buildRegistry, kubeClient, proxyPrefix),
 		"images":                  image.NewREST(imageRegistry),
 		"imageRepositories":       imagerepository.NewREST(imageRegistry),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRegistry),
