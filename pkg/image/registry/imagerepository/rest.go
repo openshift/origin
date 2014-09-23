@@ -8,8 +8,10 @@ import (
 	baseapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -24,12 +26,12 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 }
 
 // New returns a new ImageRepository for use with Create and Update.
-func (s *REST) New() interface{} {
+func (s *REST) New() runtime.Object {
 	return &api.ImageRepository{}
 }
 
 // Get retrieves an ImageRepository by id.
-func (s *REST) Get(id string) (interface{}, error) {
+func (s *REST) Get(id string) (runtime.Object, error) {
 	repo, err := s.registry.GetImageRepository(id)
 	if err != nil {
 		return nil, err
@@ -38,7 +40,7 @@ func (s *REST) Get(id string) (interface{}, error) {
 }
 
 // List retrieves a list of ImageRepositories that match selector.
-func (s *REST) List(selector labels.Selector) (interface{}, error) {
+func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 	imageRepositories, err := s.registry.ListImageRepositories(selector)
 	if err != nil {
 		return nil, err
@@ -58,7 +60,7 @@ func (s *REST) Watch(label, field labels.Selector, resourceVersion uint64) (watc
 }
 
 // Create registers the given ImageRepository.
-func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository: %#v", obj)
@@ -74,7 +76,7 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 
 	repo.CreationTimestamp = util.Now()
 
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateImageRepository(repo); err != nil {
 			return nil, err
 		}
@@ -83,7 +85,7 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 }
 
 // Update replaces an existing ImageRepository in the registry with the given ImageRepository.
-func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
 	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository: %#v", obj)
@@ -92,7 +94,7 @@ func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
 		return nil, fmt.Errorf("id is unspecified: %#v", repo)
 	}
 
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := s.registry.UpdateImageRepository(repo)
 		if err != nil {
 			return nil, err
@@ -102,8 +104,8 @@ func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
 }
 
 // Delete asynchronously deletes an ImageRepository specified by its id.
-func (s *REST) Delete(id string) (<-chan interface{}, error) {
-	return apiserver.MakeAsync(func() (interface{}, error) {
+func (s *REST) Delete(id string) (<-chan runtime.Object, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &baseapi.Status{Status: baseapi.StatusSuccess}, s.registry.DeleteImageRepository(id)
 	}), nil
 }

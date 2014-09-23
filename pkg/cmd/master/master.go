@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
@@ -15,7 +16,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
@@ -27,8 +27,8 @@ import (
 	cadvisor "github.com/google/cadvisor/client"
 	"github.com/spf13/cobra"
 
-	_ "github.com/openshift/origin/pkg/api"
-	_ "github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/build"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -102,10 +102,27 @@ type config struct {
 	masterHost string
 	nodeHosts  []string
 	bindAddr   string
+
+	storageVersion string
+}
+
+// newEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
+// is incorrect.
+func (c *config) newEtcdHelper() (helper tools.EtcdHelper, err error) {
+	client, _ := c.getEtcdClient()
+	version := c.storageVersion
+	if version == "" {
+		version = latest.Version
+	}
+	codec, versioner, err := latest.InterfacesFor(version)
+	if err != nil {
+		return helper, err
+	}
+	return tools.EtcdHelper{client, codec, versioner}, nil
 }
 
 func (c *config) getKubeClient() *kubeclient.Client {
-	kubeClient, err := kubeclient.New("http://"+c.ListenAddr, nil)
+	kubeClient, err := kubeclient.New("http://"+c.ListenAddr, klatest.Version, nil)
 	if err != nil {
 		glog.Fatalf("Unable to configure client - bad URL: %v", err)
 	}
@@ -113,7 +130,7 @@ func (c *config) getKubeClient() *kubeclient.Client {
 }
 
 func (c *config) getOsClient() *osclient.Client {
-	osClient, err := osclient.New("http://"+c.ListenAddr, nil)
+	osClient, err := osclient.New("http://"+c.ListenAddr, latest.Version, nil)
 	if err != nil {
 		glog.Fatalf("Unable to configure client - bad URL: %v", err)
 	}
@@ -174,15 +191,24 @@ func (c *config) runApiserver() {
 	osAddr := c.ListenAddr
 
 	kubePrefix := "/api/v1beta1"
+	kube2Prefix := "/api/v1beta2"
 	osPrefix := "/osapi/v1beta1"
 
 	kubeClient := c.getKubeClient()
 	osClient := c.getOsClient()
-	etcdClient, etcdServers := c.getEtcdClient()
+	_, etcdServers := c.getEtcdClient()
+	etcdHelper, err := c.newEtcdHelper()
+	if err != nil {
+		glog.Errorf("Error setting up server storage: %v", err)
+	}
+	ketcdHelper, err := master.NewEtcdHelper(etcdServers, klatest.Version)
+	if err != nil {
+		glog.Errorf("Error setting up Kubernetes server storage: %v", err)
+	}
 
-	buildRegistry := buildetcd.NewEtcd(etcdClient)
-	imageRegistry := imageetcd.NewEtcd(etcdClient)
-	deployEtcd := deployetcd.NewEtcd(etcdClient)
+	buildRegistry := buildetcd.New(etcdHelper)
+	imageRegistry := imageetcd.New(etcdHelper)
+	deployEtcd := deployetcd.New(etcdHelper)
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
@@ -191,9 +217,9 @@ func (c *config) runApiserver() {
 		"images":                  image.NewREST(imageRegistry),
 		"imageRepositories":       imagerepository.NewREST(imageRegistry),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRegistry),
-		"templateConfigs":         template.NewStorage(),
 		"deployments":             deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":       deployconfigregistry.NewREST(deployEtcd),
+		"templateConfigs":         template.NewStorage(),
 	}
 
 	osMux := http.NewServeMux()
@@ -212,7 +238,7 @@ func (c *config) runApiserver() {
 	}
 	masterConfig := &master.Config{
 		Client:             kubeClient,
-		EtcdServers:        etcdServers,
+		EtcdHelper:         ketcdHelper,
 		HealthCheckMinions: true,
 		Minions:            c.nodeHosts,
 		PodInfoGetter:      podInfoGetter,
@@ -220,7 +246,8 @@ func (c *config) runApiserver() {
 	m := master.New(masterConfig)
 
 	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(osMux, kubePrefix)
-	apiserver.NewAPIGroup(storage, runtime.Codec).InstallREST(osMux, osPrefix)
+	apiserver.NewAPIGroup(m.API_v1beta2()).InstallREST(osMux, kube2Prefix)
+	apiserver.NewAPIGroup(storage, v1beta1.Codec).InstallREST(osMux, osPrefix)
 	apiserver.InstallSupport(osMux)
 
 	osApi := &http.Server{
@@ -233,6 +260,7 @@ func (c *config) runApiserver() {
 
 	go util.Forever(func() {
 		glog.Infof("Started Kubernetes API at http://%s%s", osAddr, kubePrefix)
+		glog.Infof("Started Kubernetes API at http://%s%s", osAddr, kube2Prefix)
 		glog.Infof("Started OpenShift API at http://%s%s", osAddr, osPrefix)
 		glog.Fatal(osApi.ListenAndServe())
 	}, 0)
@@ -289,7 +317,7 @@ func (c *config) runProxy() {
 		serviceConfig.Channel("etcd"),
 		endpointsConfig.Channel("etcd"))
 	loadBalancer := proxy.NewLoadBalancerRR()
-	proxier := proxy.NewProxier(loadBalancer)
+	proxier := proxy.NewProxier(loadBalancer, c.bindAddr)
 	serviceConfig.RegisterHandler(proxier)
 	endpointsConfig.RegisterHandler(loadBalancer)
 	glog.Infof("Started Kubernetes Proxy")

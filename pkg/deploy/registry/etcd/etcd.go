@@ -3,8 +3,8 @@ package etcd
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+
 	"github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -13,12 +13,11 @@ type Etcd struct {
 	tools.EtcdHelper
 }
 
-// NewEtcd creates an etcd registry using the given etcd client.
-func NewEtcd(client tools.EtcdClient) *Etcd {
-	registry := &Etcd{
-		tools.EtcdHelper{client, runtime.Codec, runtime.ResourceVersioner},
+// New creates an etcd registry.
+func New(helper tools.EtcdHelper) *Etcd {
+	return &Etcd{
+		EtcdHelper: helper,
 	}
-	return registry
 }
 
 // ListDeployments obtains a list of Deployments.

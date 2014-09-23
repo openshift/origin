@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
 )
@@ -25,12 +26,12 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 }
 
 // New creates a new Build object
-func (r *REST) New() interface{} {
+func (r *REST) New() runtime.Object {
 	return &api.Build{}
 }
 
 // List obtains a list of Builds that match selector.
-func (r *REST) List(selector labels.Selector) (interface{}, error) {
+func (r *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 	builds, err := r.registry.ListBuilds(selector)
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func (r *REST) List(selector labels.Selector) (interface{}, error) {
 }
 
 // Get obtains the build specified by its id.
-func (r *REST) Get(id string) (interface{}, error) {
+func (r *REST) Get(id string) (runtime.Object, error) {
 	build, err := r.registry.GetBuild(id)
 	if err != nil {
 		return nil, err
@@ -49,21 +50,14 @@ func (r *REST) Get(id string) (interface{}, error) {
 }
 
 // Delete asynchronously deletes the Build specified by its id.
-func (r *REST) Delete(id string) (<-chan interface{}, error) {
-	return apiserver.MakeAsync(func() (interface{}, error) {
+func (r *REST) Delete(id string) (<-chan runtime.Object, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, r.registry.DeleteBuild(id)
 	}), nil
 }
 
-// Extract deserializes user provided data into an api.Build.
-func (r *REST) Extract(body []byte) (interface{}, error) {
-	result := api.Build{}
-	err := runtime.DecodeInto(body, &result)
-	return result, err
-}
-
 // Create registers a given new Build instance to r.registry.
-func (r *REST) Create(obj interface{}) (<-chan interface{}, error) {
+func (r *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 	build, ok := obj.(*api.Build)
 	if !ok {
 		return nil, fmt.Errorf("not a build: %#v", obj)
@@ -78,7 +72,7 @@ func (r *REST) Create(obj interface{}) (<-chan interface{}, error) {
 	if errs := validation.ValidateBuild(build); len(errs) > 0 {
 		return nil, errors.NewInvalid("build", build.ID, errs)
 	}
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := r.registry.CreateBuild(build)
 		if err != nil {
 			return nil, err
@@ -88,7 +82,7 @@ func (r *REST) Create(obj interface{}) (<-chan interface{}, error) {
 }
 
 // Update replaces a given Build instance with an existing instance in r.registry.
-func (r *REST) Update(obj interface{}) (<-chan interface{}, error) {
+func (r *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
 	build, ok := obj.(*api.Build)
 	if !ok {
 		return nil, fmt.Errorf("not a build: %#v", obj)
@@ -96,7 +90,7 @@ func (r *REST) Update(obj interface{}) (<-chan interface{}, error) {
 	if errs := validation.ValidateBuild(build); len(errs) > 0 {
 		return nil, errors.NewInvalid("build", build.ID, errs)
 	}
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := r.registry.UpdateBuild(build)
 		if err != nil {
 			return nil, err

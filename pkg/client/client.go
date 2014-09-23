@@ -1,15 +1,17 @@
 package client
 
 import (
+	"fmt"
+	"strings"
+
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/build/api/v1beta1"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	_ "github.com/openshift/origin/pkg/deploy/api/v1beta1"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 )
 
 // Interface exposes methods on OpenShift resources.
@@ -85,10 +87,20 @@ type Client struct {
 }
 
 // New creates and returns a new Client.
-func New(host string, auth *kubeclient.AuthInfo) (*Client, error) {
-	restClient, err := kubeclient.NewRESTClient(host, auth, "/osapi/v1beta1")
+func New(host, version string, auth *kubeclient.AuthInfo) (*Client, error) {
+	if version == "" {
+		// Clients default to the preferred code API version
+		// TODO: implement version negotation (highest version supported by server)
+		version = latest.Version
+	}
+	serverCodec, _, err := latest.InterfacesFor(version)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
+	}
+	prefix := fmt.Sprintf("/osapi/%s/", version)
+	restClient, err := kubeclient.NewRESTClient(host, auth, prefix, serverCodec)
+	if err != nil {
+		return nil, fmt.Errorf("API URL '%s' is not valid: %v", host, err)
 	}
 	return &Client{restClient}, nil
 }

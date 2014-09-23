@@ -91,10 +91,10 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 		switch obj := item.Object.(type) {
 		case *kubeapi.ReplicationController:
 			p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.Object{Object: *obj}
+			t.Items[i] = runtime.EmbeddedObject{Object: obj}
 		case *kubeapi.Pod:
 			p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.Object{Object: *obj}
+			t.Items[i] = runtime.EmbeddedObject{Object: obj}
 		default:
 			glog.V(1).Infof("Parameter substitution not implemented for resource '%T'.", obj)
 		}

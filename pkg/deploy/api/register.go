@@ -1,14 +1,19 @@
 package api
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 func init() {
-	runtime.AddKnownTypes("",
-		DeploymentList{},
-		Deployment{},
-		DeploymentConfigList{},
-		DeploymentConfig{},
+	api.Scheme.AddKnownTypes("",
+		&Deployment{},
+		&DeploymentList{},
+		&DeploymentConfig{},
+		&DeploymentConfigList{},
 	)
 }
+
+func (*Deployment) IsAnAPIObject()           {}
+func (*DeploymentList) IsAnAPIObject()       {}
+func (*DeploymentConfig) IsAnAPIObject()     {}
+func (*DeploymentConfigList) IsAnAPIObject() {}

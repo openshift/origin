@@ -27,15 +27,17 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegis
 				Version: "v1beta1",
 				Containers: []api.Container{
 					{
-						Name:          "docker-build",
-						Image:         bs.dockerBuilderImage,
-						RestartPolicy: "runOnce",
+						Name:  "docker-build",
+						Image: bs.dockerBuilderImage,
 						Env: []api.EnvVar{
 							{Name: "BUILD_TAG", Value: build.Input.ImageTag},
 							{Name: "DOCKER_CONTEXT_URL", Value: build.Input.SourceURI},
 							{Name: "DOCKER_REGISTRY", Value: dockerRegistry},
 						},
 					},
+				},
+				RestartPolicy: api.RestartPolicy{
+					Never: &api.RestartPolicyNever{},
 				},
 			},
 		},

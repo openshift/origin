@@ -1,7 +1,13 @@
 package api
 
-import "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+)
 
 func init() {
-	runtime.AddKnownTypes("", Config{})
+	api.Scheme.AddKnownTypes("",
+		&Config{},
+	)
 }
+
+func (*Config) IsAnAPIObject() {}

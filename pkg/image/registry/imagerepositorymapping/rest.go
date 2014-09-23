@@ -7,7 +7,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -27,22 +29,22 @@ func NewREST(imageRegistry image.Registry, imageRepositoryRegistry imagereposito
 }
 
 // New returns a new ImageRepositoryMapping for use with Create.
-func (s *REST) New() interface{} {
+func (s *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
 }
 
 // Get is not supported.
-func (s *REST) Get(id string) (interface{}, error) {
+func (s *REST) Get(id string) (runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }
 
 // List is not supported.
-func (s *REST) List(selector labels.Selector) (interface{}, error) {
+func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", "list")
 }
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
-func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 	mapping, ok := obj.(*api.ImageRepositoryMapping)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository mapping: %#v", obj)
@@ -73,7 +75,7 @@ func (s *REST) Create(obj interface{}) (<-chan interface{}, error) {
 	}
 	repo.Tags[mapping.Tag] = image.ID
 
-	return apiserver.MakeAsync(func() (interface{}, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err = s.imageRegistry.CreateImage(&image)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return nil, err
@@ -108,11 +110,11 @@ func (s *REST) findImageRepository(dockerRepo string) (*api.ImageRepository, err
 }
 
 // Update is not supported.
-func (s *REST) Update(obj interface{}) (<-chan interface{}, error) {
+func (s *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
 	return nil, fmt.Errorf("ImageRepositoryMappings may not be changed.")
 }
 
 // Delete is not supported.
-func (s *REST) Delete(id string) (<-chan interface{}, error) {
+func (s *REST) Delete(id string) (<-chan runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }

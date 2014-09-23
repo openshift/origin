@@ -17,9 +17,9 @@ type Template struct {
 
 	// Required: Items is an array of Kubernetes resources of Service,
 	// Pod and/or ReplicationController kind.
-	// TODO: Handle unregistered types. Define custom []interface{}
+	// TODO: Handle unregistered types. Define custom []runtime.Object
 	//       type and its unmarshaller instead of []runtime.Object.
-	Items []runtime.Object `json:"items" yaml:"items"`
+	Items []runtime.EmbeddedObject `json:"items" yaml:"items"`
 
 	// Optional: Parameters is an array of Parameters used during the
 	// Template to Config transformation.
@@ -47,6 +47,6 @@ type Parameter struct {
 
 	// Optional: Value holds the Parameter data. The data replaces all occurances
 	// of the Parameter name during the Template to Config transformation.
-	// TODO: Change this to interface{} and support more types than just string.
+	// TODO: Change this to runtime.Object and support more types than just string.
 	Value string `json:"value,omitempty" yaml:"value,omitempty"`
 }

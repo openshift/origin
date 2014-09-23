@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -17,17 +18,11 @@ type Etcd struct {
 	tools.EtcdHelper
 }
 
-// NewEtcd returns a new Etcd.
-func NewEtcd(client tools.EtcdClient) *Etcd {
-	registry := &Etcd{
-		EtcdHelper: tools.EtcdHelper{
-			client,
-			runtime.Codec,
-			runtime.ResourceVersioner,
-		},
+// New returns a new etcd registry.
+func New(helper tools.EtcdHelper) *Etcd {
+	return &Etcd{
+		EtcdHelper: helper,
 	}
-
-	return registry
 }
 
 // ListImages retrieves a list of images that match selector.
@@ -116,7 +111,7 @@ func (r *Etcd) GetImageRepository(id string) (*api.ImageRepository, error) {
 
 // WatchImageRepositories begins watching for new, changed, or deleted ImageRepositories.
 func (r *Etcd) WatchImageRepositories(resourceVersion uint64, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
-	return r.WatchList("/imageRepositories", resourceVersion, func(obj interface{}) bool {
+	return r.WatchList("/imageRepositories", resourceVersion, func(obj runtime.Object) bool {
 		repo, ok := obj.(*api.ImageRepository)
 		if !ok {
 			glog.Errorf("Unexpected object during image repository watch: %#v", obj)
