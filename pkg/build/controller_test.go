@@ -13,22 +13,22 @@ import (
 
 type okOsClient struct{}
 
-func (_ *okOsClient) ListBuilds(selector labels.Selector) (api.BuildList, error) {
-	return api.BuildList{}, nil
+func (_ *okOsClient) ListBuilds(selector labels.Selector) (*api.BuildList, error) {
+	return &api.BuildList{}, nil
 }
 
-func (_ *okOsClient) UpdateBuild(api.Build) (api.Build, error) {
-	return api.Build{}, nil
+func (_ *okOsClient) UpdateBuild(*api.Build) (*api.Build, error) {
+	return &api.Build{}, nil
 }
 
 type errOsClient struct{}
 
-func (_ *errOsClient) ListBuilds(selector labels.Selector) (api.BuildList, error) {
-	return api.BuildList{}, errors.New("ListBuild error!")
+func (_ *errOsClient) ListBuilds(selector labels.Selector) (*api.BuildList, error) {
+	return &api.BuildList{}, errors.New("ListBuild error!")
 }
 
-func (_ *errOsClient) UpdateBuild(build api.Build) (api.Build, error) {
-	return api.Build{}, errors.New("UpdateBuild error!")
+func (_ *errOsClient) UpdateBuild(build *api.Build) (*api.Build, error) {
+	return &api.Build{}, errors.New("UpdateBuild error!")
 }
 
 type okStrategy struct{}
@@ -41,20 +41,20 @@ type errKubeClient struct {
 	kubeclient.Fake
 }
 
-func (_ *errKubeClient) CreatePod(pod kubeapi.Pod) (kubeapi.Pod, error) {
-	return kubeapi.Pod{}, errors.New("CreatePod error!")
+func (_ *errKubeClient) CreatePod(pod *kubeapi.Pod) (*kubeapi.Pod, error) {
+	return &kubeapi.Pod{}, errors.New("CreatePod error!")
 }
 
-func (_ *errKubeClient) GetPod(name string) (kubeapi.Pod, error) {
-	return kubeapi.Pod{}, errors.New("GedPod error!")
+func (_ *errKubeClient) GetPod(name string) (*kubeapi.Pod, error) {
+	return &kubeapi.Pod{}, errors.New("GedPod error!")
 }
 
 type okKubeClient struct {
 	kubeclient.Fake
 }
 
-func (_ *okKubeClient) GetPod(name string) (kubeapi.Pod, error) {
-	return kubeapi.Pod{
+func (_ *okKubeClient) GetPod(name string) (*kubeapi.Pod, error) {
+	return &kubeapi.Pod{
 		CurrentState: kubeapi.PodState{Status: kubeapi.PodTerminated},
 	}, nil
 }

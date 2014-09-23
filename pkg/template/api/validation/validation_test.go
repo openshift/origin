@@ -68,6 +68,6 @@ func TestValidateTemplate(t *testing.T) {
 	shouldPass(template)
 
 	// Add Item of unknown Kind, should pass
-	template.Items = []runtime.Object{{}}
+	template.Items = []runtime.EmbeddedObject{{}}
 	shouldPass(template)
 }

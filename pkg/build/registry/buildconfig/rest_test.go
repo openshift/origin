@@ -12,9 +12,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/build/api/v1beta1"
 	"github.com/openshift/origin/pkg/build/registry/test"
 )
 
@@ -107,7 +107,7 @@ func TestListConfigsError(t *testing.T) {
 		Err: fmt.Errorf("test error"),
 	}
 	storage := REST{&mockRegistry}
-	configs, err := storage.List(nil)
+	configs, err := storage.List(nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -119,7 +119,7 @@ func TestListConfigsError(t *testing.T) {
 func TestListEmptyConfigList(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{JSONBase: kubeapi.JSONBase{ResourceVersion: 1}}}
 	storage := REST{&mockRegistry}
-	buildConfigs, err := storage.List(labels.Everything())
+	buildConfigs, err := storage.List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestListConfigs(t *testing.T) {
 		},
 	}
 	storage := REST{&mockRegistry}
-	configsObj, err := storage.List(labels.Everything())
+	configsObj, err := storage.List(labels.Everything(), labels.Everything())
 	configs := configsObj.(*api.BuildConfigList)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -174,13 +174,13 @@ func TestBuildConfigDecode(t *testing.T) {
 			ID: "foo",
 		},
 	}
-	body, err := runtime.Encode(buildConfig)
+	body, err := latest.Codec.Encode(buildConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	buildConfigOut := storage.New()
-	if err := runtime.DecodeInto(body, buildConfigOut); err != nil {
+	if err := latest.Codec.DecodeInto(body, buildConfigOut); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

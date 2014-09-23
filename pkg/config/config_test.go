@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 )
@@ -40,10 +41,10 @@ func TestApply(t *testing.T) {
 }
 
 func TestGetClientAndPath(t *testing.T) {
-	kubeClient, _ := kubeclient.New("127.0.0.1", nil)
+	kubeClient, _ := kubeclient.New("127.0.0.1", "", nil)
 	testClientMappings := clientapi.ClientMappings{
-		"pods":     {"Pod", kubeClient.RESTClient},
-		"services": {"Service", kubeClient.RESTClient},
+		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
+		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
 	}
 	client, path := getClientAndPath("Service", testClientMappings)
 	if client != kubeClient.RESTClient {
@@ -55,10 +56,10 @@ func TestGetClientAndPath(t *testing.T) {
 }
 
 func ExampleApply() {
-	kubeClient, _ := kubeclient.New("127.0.0.1", nil)
+	kubeClient, _ := kubeclient.New("127.0.0.1", "", nil)
 	testClientMappings := clientapi.ClientMappings{
-		"pods":     {"Pod", kubeClient.RESTClient},
-		"services": {"Service", kubeClient.RESTClient},
+		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
+		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
 	}
 	data, _ := ioutil.ReadFile("config_test.json")
 	Apply(data, testClientMappings)

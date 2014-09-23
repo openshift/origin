@@ -20,7 +20,7 @@ func TestListDeploymentsError(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	deployments, err := storage.List(nil)
+	deployments, err := storage.List(nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -40,7 +40,7 @@ func TestListDeploymentsEmptyList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	deployments, err := storage.List(labels.Everything())
+	deployments, err := storage.List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -71,7 +71,7 @@ func TestListDeploymentsPopulatedList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	list, err := storage.List(labels.Everything())
+	list, err := storage.List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -86,7 +86,7 @@ func TestListDeploymentsPopulatedList(t *testing.T) {
 func TestCreateDeploymentBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create("hello")
+	channel, err := storage.Create(&api.DeploymentList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -205,7 +205,7 @@ func TestGetDeploymentOK(t *testing.T) {
 func TestUpdateDeploymentBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update("hello")
+	channel, err := storage.Update(&api.DeploymentConfig{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}

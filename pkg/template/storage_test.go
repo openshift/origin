@@ -9,7 +9,7 @@ import (
 
 func TestNewStorageInvalidType(t *testing.T) {
 	storage := NewStorage()
-	_, err := storage.Create("string")
+	_, err := storage.Create(&kubeapi.Pod{})
 	if err == nil {
 		t.Errorf("Expected type error.")
 	}
@@ -18,7 +18,7 @@ func TestNewStorageInvalidType(t *testing.T) {
 func TestStorageNotImplementedFunctions(t *testing.T) {
 	storage := NewStorage()
 
-	if _, err := storage.List(nil); err == nil {
+	if _, err := storage.List(nil, nil); err == nil {
 		t.Errorf("Expected not implemented error.")
 	}
 

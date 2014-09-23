@@ -1,5 +1,6 @@
 {
   "id": "guestbook",
+  "apiVersion": "v1beta1",
   "kind": "Template",
   "name": "guestbook-example",
   "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker",

@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/fsouza/go-dockerclient"
+
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/test"
 )
@@ -36,7 +37,7 @@ func TestListImageRepositoryMappings(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	list, err := storage.List(labels.Everything())
+	list, err := storage.List(labels.Everything(), labels.Everything())
 	if list != nil {
 		t.Errorf("Unexpected non-nil list %#v", list)
 	}
@@ -70,7 +71,7 @@ func TestUpdateImageRepositoryMapping(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	channel, err := storage.Update("repo1")
+	channel, err := storage.Update(&api.ImageList{})
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
@@ -87,7 +88,7 @@ func TestCreateImageRepositoryMappingBadObject(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	channel, err := storage.Create("bad object")
+	channel, err := storage.Create(&api.ImageList{})
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
