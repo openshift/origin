@@ -66,6 +66,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 	}
 
 	setupDockerSocket(pod)
+	setupDockerConfig(pod)
 	return pod, nil
 }
 

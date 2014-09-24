@@ -44,5 +44,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegis
 	}
 
 	setupDockerSocket(pod)
+	setupDockerConfig(pod)
 	return pod, nil
 }
