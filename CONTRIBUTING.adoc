@@ -74,7 +74,7 @@ development environment.
 
 6.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
-        $ output/go/bin/openshift start
+        $ _output/go/bin/openshift start
 
 TIP: In some cases (eg. after git pull), you might run `make clean` inside the *origin/* repository to clean up the object files that are be outdated.
 
