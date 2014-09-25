@@ -1,7 +1,7 @@
 package etcd
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
@@ -45,11 +45,8 @@ func (r *Etcd) ListBuilds(selector labels.Selector) (*api.BuildList, error) {
 func (r *Etcd) GetBuild(id string) (*api.Build, error) {
 	var build api.Build
 	err := r.ExtractObj(makeBuildKey(id), &build, false)
-	if tools.IsEtcdNotFound(err) {
-		return nil, errors.NewNotFound("build", id)
-	}
 	if err != nil {
-		return nil, err
+		return nil, etcderr.InterpretGetError(err, "build", id)
 	}
 	return &build, nil
 }
@@ -57,25 +54,20 @@ func (r *Etcd) GetBuild(id string) (*api.Build, error) {
 // CreateBuild creates a new Build.
 func (r *Etcd) CreateBuild(build *api.Build) error {
 	err := r.CreateObj(makeBuildKey(build.ID), build)
-	if tools.IsEtcdNodeExist(err) {
-		return errors.NewAlreadyExists("build", build.ID)
-	}
-	return err
+	return etcderr.InterpretCreateError(err, "build", build.ID)
 }
 
 // UpdateBuild replaces an existing Build.
 func (r *Etcd) UpdateBuild(build *api.Build) error {
-	return r.SetObj(makeBuildKey(build.ID), build)
+	err := r.SetObj(makeBuildKey(build.ID), build)
+	return etcderr.InterpretUpdateError(err, "build", build.ID)
 }
 
 // DeleteBuild deletes a Build specified by its ID.
 func (r *Etcd) DeleteBuild(id string) error {
 	key := makeBuildKey(id)
 	err := r.Delete(key, true)
-	if tools.IsEtcdNotFound(err) {
-		return errors.NewNotFound("build", id)
-	}
-	return err
+	return etcderr.InterpretDeleteError(err, "build", id)
 }
 
 func makeBuildConfigKey(id string) string {
@@ -103,11 +95,8 @@ func (r *Etcd) ListBuildConfigs(selector labels.Selector) (*api.BuildConfigList,
 func (r *Etcd) GetBuildConfig(id string) (*api.BuildConfig, error) {
 	var config api.BuildConfig
 	err := r.ExtractObj(makeBuildConfigKey(id), &config, false)
-	if tools.IsEtcdNotFound(err) {
-		return nil, errors.NewNotFound("buildConfig", id)
-	}
 	if err != nil {
-		return nil, err
+		return nil, etcderr.InterpretGetError(err, "buildConfig", id)
 	}
 	return &config, nil
 }
@@ -115,23 +104,18 @@ func (r *Etcd) GetBuildConfig(id string) (*api.BuildConfig, error) {
 // CreateBuildConfig creates a new BuildConfig.
 func (r *Etcd) CreateBuildConfig(config *api.BuildConfig) error {
 	err := r.CreateObj(makeBuildConfigKey(config.ID), config)
-	if tools.IsEtcdNodeExist(err) {
-		return errors.NewAlreadyExists("buildConfig", config.ID)
-	}
-	return err
+	return etcderr.InterpretCreateError(err, "buildConfig", config.ID)
 }
 
 // UpdateBuildConfig replaces an existing BuildConfig.
 func (r *Etcd) UpdateBuildConfig(config *api.BuildConfig) error {
-	return r.SetObj(makeBuildConfigKey(config.ID), config)
+	err := r.SetObj(makeBuildConfigKey(config.ID), config)
+	return etcderr.InterpretUpdateError(err, "buildConfig", config.ID)
 }
 
 // DeleteBuildConfig deletes a BuildConfig specified by its ID.
 func (r *Etcd) DeleteBuildConfig(id string) error {
 	key := makeBuildConfigKey(id)
 	err := r.Delete(key, true)
-	if tools.IsEtcdNotFound(err) {
-		return errors.NewNotFound("buildConfig", id)
-	}
-	return err
+	return etcderr.InterpretDeleteError(err, "buildConfig", id)
 }
