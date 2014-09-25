@@ -1,0 +1,10 @@
+{
+  "id": "testroute",
+  "kind": "Route",
+  "apiVersion": "v1beta1",
+  "host": "test.example.com",
+  "serviceName": "testservice",
+  "labels": {
+    "name": "test"
+  }
+}
