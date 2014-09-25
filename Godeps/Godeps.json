@@ -411,6 +411,18 @@
 		{
 			"ImportPath": "github.com/google/gofuzz",
 			"Rev": "aef70dacbc78771e35beb261bb3a72986adf7906"
+	 	},
+                {
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "a8662172a384296ff59d28f837e151643c662985"
+		},
+		{
+			"ImportPath": "github.com/gorilla/securecookie",
+			"Rev": "1b0c7f6e9ab3d7f500fd7d50c7ad835ff428139b"
+		},
+		{
+			"ImportPath": "github.com/gorilla/sessions",
+			"Rev": "aa5e036e6c44aec69a32eb41097001978b29ad31"
 		},
 		{
 			"ImportPath": "github.com/influxdb/influxdb/client",
