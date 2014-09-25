@@ -5,80 +5,82 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 )
 
-// configJSON stores the raw Config JSON representation
-// TODO: Replace this with configapi.Config when it handles the unregistred types.
-type configJSON struct {
-	Items []interface{} `json:"items" yaml:"items"`
-}
-
 // Apply creates and manages resources defined in the Config. It wont stop on
 // error, but it will finish the job and then return list of errors.
+//
+// TODO: Return the output for each resource on success, so the client can
+//       print it out.
 func Apply(data []byte, storage clientapi.ClientMappings) (errs errors.ErrorList) {
 
-	// Unmarshal the Config JSON using default json package instead of
-	// api.Decode()
-	conf := configJSON{}
+	// Unmarshal the Config JSON manually instead of using runtime.Decode()
+	conf := struct {
+		Items []json.RawMessage `json:"items" yaml:"items"`
+	}{}
 	if err := json.Unmarshal(data, &conf); err != nil {
 		return append(errs, fmt.Errorf("Unable to parse Config: %v", err))
 	}
 
-	for _, item := range conf.Items {
-		kind, itemID, parseErrs := parseKindAndID(item)
-		if len(parseErrs) != 0 {
-			errs = append(errs, parseErrs...)
+	if len(conf.Items) == 0 {
+		return append(errs, fmt.Errorf("Config.items is empty"))
+	}
+
+	for i, item := range conf.Items {
+		if item == nil || (len(item) == 4 && string(item) == "null") {
+			errs = append(errs, fmt.Errorf("Config.items[%v] is null", i))
 			continue
 		}
 
-		client, path := getClientAndPath(kind, storage)
-		if client == nil {
-			errs = append(errs, fmt.Errorf("The resource %s is not a known type - unable to create %s", kind, itemID))
-			continue
-		}
-
-		// Serialize the single Config item back into JSON
-		itemJSON, _ := json.Marshal(item)
-
-		request := client.Verb("POST").Path(path).Body(itemJSON)
-		_, err := request.Do().Get()
+		_, kind, err := runtime.VersionAndKind(item)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("[%s#%s] Failed to create: %v", kind, itemID, err))
+			errs = append(errs, fmt.Errorf("Config.items[%v]: %v", i, err))
+			continue
+		}
+
+		if kind == "" {
+			errs = append(errs, fmt.Errorf("Config.items[%v] has an empty 'kind'", i))
+			continue
+		}
+
+		client, path, err := getClientAndPath(kind, storage)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("Config.items[%v]: %v", i, err))
+			continue
+		}
+		if client == nil {
+			errs = append(errs, fmt.Errorf("Config.items[%v]: Invalid client for 'kind=%v'", i, kind))
+			continue
+		}
+
+		jsonResource, err := item.MarshalJSON()
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		request := client.Verb("POST").Path(path).Body(jsonResource)
+		_, err = request.Do().Get()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("Failed to create Config.items[%v] of 'kind=%v': %v", i, kind, err))
 		}
 	}
 
 	return
 }
 
-// getClientAndPath returns the RESTClient and path defined for given resource
-// kind.
-func getClientAndPath(kind string, mappings clientapi.ClientMappings) (client clientapi.RESTClient, path string) {
+// getClientAndPath returns the RESTClient and path defined for a given
+// resource kind. Returns an error when no RESTClient is found.
+func getClientAndPath(kind string, mappings clientapi.ClientMappings) (clientapi.RESTClient, string, error) {
 	for k, m := range mappings {
 		if m.Kind == kind {
-			return m.Client, k
+			return m.Client, k, nil
 		}
 	}
-	return
-}
-
-// parseKindAndID extracts the 'kind' and 'id' fields from the Config item JSON
-// and report errors if these fields are missing.
-func parseKindAndID(item interface{}) (kind, id string, errs errors.ErrorList) {
-	itemMap := item.(map[string]interface{})
-
-	kind, ok := itemMap["kind"].(string)
-	if !ok {
-		errs = append(errs, reportError(item, "Missing 'kind' field for Config item"))
-	}
-
-	id, ok = itemMap["id"].(string)
-	if !ok {
-		errs = append(errs, reportError(item, "Missing 'id' field for Config item"))
-	}
-
-	return
+	return nil, "", fmt.Errorf("No client found for 'kind=%v'", kind)
 }
 
 // reportError provides a human-readable error message that include the Config

@@ -1,43 +1,74 @@
 package config
 
 import (
-	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 )
 
-func TestParseKindAndItem(t *testing.T) {
-	data, _ := ioutil.ReadFile("config_test.json")
-	conf := configJSON{}
-	if err := json.Unmarshal(data, &conf); err != nil {
-		t.Errorf("Failed to parse Config: %v", err)
+func TestApplyInvalidConfig(t *testing.T) {
+	clients := clientapi.ClientMappings{
+		"InvalidClientMapping": {"InvalidClientResource", nil, nil},
 	}
-
-	kind, itemID, err := parseKindAndID(conf.Items[0])
-	if len(err) != 0 {
-		t.Errorf("Failed to parse kind and id from the Config item: %v", err)
+	invalidConfigs := []string{
+		`{}`,
+		`{ "foo": "bar" }`,
+		`{ "items": null }`,
+		`{ "items": "bar" }`,
+		`{ "items": [ null ] }`,
+		`{ "items": [ { "foo": "bar" } ] }`,
+		`{ "items": [ { "kind": "", "apiVersion": "v1beta1" } ] }`,
+		`{ "items": [ { "kind": "UnknownResource", "apiVersion": "v1beta1" } ] }`,
+		`{ "items": [ { "kind": "InvalidClientResource", "apiVersion": "v1beta1" } ] }`,
 	}
-
-	if kind != "Service" && itemID != "frontend" {
-		t.Errorf("Invalid kind and id, should be Service and frontend: %s, %s", kind, itemID)
+	for _, invalidConfig := range invalidConfigs {
+		errs := Apply([]byte(invalidConfig), clients)
+		if len(errs) == 0 {
+			t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig)
+		}
 	}
 }
 
-func TestApply(t *testing.T) {
-	clients := clientapi.ClientMappings{}
-	invalidData := []byte(`{"items": [ { "foo": "bar" } ]}`)
-	errs := Apply(invalidData, clients)
-	if len(errs) == 0 {
-		t.Errorf("Expected missing kind field for Config item, got %v", errs)
+type FakeResource struct {
+	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+}
+
+func (*FakeResource) IsAnAPIObject() {}
+
+func TestApplySendsData(t *testing.T) {
+	fakeScheme := runtime.NewScheme()
+	// TODO: The below should work with "FakeResource" name instead.
+	fakeScheme.AddKnownTypeWithName("", "", &FakeResource{})
+	fakeScheme.AddKnownTypeWithName("v1beta1", "", &FakeResource{})
+	fakeCodec := runtime.CodecFor(fakeScheme, "v1beta1")
+
+	received := make(chan bool, 1)
+	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- true
+		if r.RequestURI != "/api/v1beta1/FakeMapping" {
+			t.Errorf("Unexpected RESTClient RequestURI. Expected: %v, got: %v.", "/api/v1beta1/FakeMapping", r.RequestURI)
+		}
+	}))
+
+	fakeClient, _ := kubeclient.NewRESTClient(fakeServer.URL, nil, "/api/v1beta1/", fakeCodec)
+	clients := clientapi.ClientMappings{
+		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
-	uErrs := Apply([]byte(`{ "foo": }`), clients)
-	if len(uErrs) == 0 {
-		t.Errorf("Expected unmarshal error, got nothing")
+	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1" } ] }`
+
+	errs := Apply([]byte(config), clients)
+	if len(errs) != 0 {
+		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, errs)
 	}
+
+	<-received
 }
 
 func TestGetClientAndPath(t *testing.T) {
@@ -46,7 +77,7 @@ func TestGetClientAndPath(t *testing.T) {
 		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
 		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
 	}
-	client, path := getClientAndPath("Service", testClientMappings)
+	client, path, _ := getClientAndPath("Service", testClientMappings)
 	if client != kubeClient.RESTClient {
 		t.Errorf("Failed to get client for Service")
 	}
