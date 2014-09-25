@@ -15,11 +15,9 @@ rm -rf openshift.local.etcd
 
 
 # Start the OpenShift all-in-one server
-# (starts a kubernetes master and minion as well as providing the
-# origin REST api)
-# DOCKER_REGISTRY refers to the private Docker registry running inside a pod in OpenShift.
+# (starts a kubernetes master and minion as well as providing the origin REST api)
 echo "Launching openshift all-in-one server"
-DOCKER_REGISTRY=localhost:5000 $openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
+$openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
 
 sleep 5
 

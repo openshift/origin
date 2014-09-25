@@ -33,7 +33,7 @@ func NewSTIBuildStrategy(stiBuilderImage string, tc TempDirectoryCreator) *STIBu
 
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
-func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry string) (*api.Pod, error) {
+func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, error) {
 	pod := &api.Pod{
 		JSONBase: api.JSONBase{
 			ID: build.PodID,
@@ -47,7 +47,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 						Image: bs.stiBuilderImage,
 						Env: []api.EnvVar{
 							{Name: "BUILD_TAG", Value: build.Input.ImageTag},
-							{Name: "DOCKER_REGISTRY", Value: dockerRegistry},
+							{Name: "DOCKER_REGISTRY", Value: build.Input.Registry},
 							{Name: "SOURCE_URI", Value: build.Input.SourceURI},
 							{Name: "SOURCE_REF", Value: build.Input.SourceRef},
 							{Name: "BUILDER_IMAGE", Value: build.Input.BuilderImage},
@@ -66,6 +66,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry
 	}
 
 	setupDockerSocket(pod)
+	setupDockerConfig(pod)
 	return pod, nil
 }
 

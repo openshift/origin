@@ -1,6 +1,9 @@
 package strategy
 
 import (
+	"os"
+	"path"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
@@ -25,4 +28,32 @@ func setupDockerSocket(podSpec *api.Pod) {
 	podSpec.DesiredState.Manifest.Containers[0].VolumeMounts =
 		append(podSpec.DesiredState.Manifest.Containers[0].VolumeMounts,
 			dockerSocketVolumeMount)
+}
+
+// setupDockerConfig configures the path to .dockercfg which contains registry credentials
+func setupDockerConfig(podSpec *api.Pod) {
+	dockerConfig := path.Join(os.Getenv("HOME"), ".dockercfg")
+	if _, err := os.Stat(dockerConfig); os.IsNotExist(err) {
+		return
+	}
+	dockerConfigVolume := api.Volume{
+		Name: "docker-cfg",
+		Source: &api.VolumeSource{
+			HostDirectory: &api.HostDirectory{
+				Path: dockerConfig,
+			},
+		},
+	}
+
+	dockerConfigVolumeMount := api.VolumeMount{
+		Name:      "docker-cfg",
+		ReadOnly:  true,
+		MountPath: "/.dockercfg",
+	}
+
+	podSpec.DesiredState.Manifest.Volumes = append(podSpec.DesiredState.Manifest.Volumes,
+		dockerConfigVolume)
+	podSpec.DesiredState.Manifest.Containers[0].VolumeMounts =
+		append(podSpec.DesiredState.Manifest.Containers[0].VolumeMounts,
+			dockerConfigVolumeMount)
 }

@@ -17,7 +17,7 @@ func NewDockerBuildStrategy(dockerBuilderImage string) *DockerBuildStrategy {
 
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
-func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegistry string) (*api.Pod, error) {
+func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, error) {
 	pod := &api.Pod{
 		JSONBase: api.JSONBase{
 			ID: build.PodID,
@@ -32,7 +32,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegis
 						Env: []api.EnvVar{
 							{Name: "BUILD_TAG", Value: build.Input.ImageTag},
 							{Name: "DOCKER_CONTEXT_URL", Value: build.Input.SourceURI},
-							{Name: "DOCKER_REGISTRY", Value: dockerRegistry},
+							{Name: "DOCKER_REGISTRY", Value: build.Input.Registry},
 						},
 					},
 				},
@@ -44,5 +44,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build, dockerRegis
 	}
 
 	setupDockerSocket(pod)
+	setupDockerConfig(pod)
 	return pod, nil
 }

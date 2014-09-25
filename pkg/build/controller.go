@@ -18,7 +18,7 @@ import (
 // BuildJobStrategy represents a strategy for executing a build by
 // creating a pod definition that will execute the build
 type BuildJobStrategy interface {
-	CreateBuildPod(build *api.Build, dockerImage string) (*kubeapi.Pod, error)
+	CreateBuildPod(build *api.Build) (*kubeapi.Pod, error)
 }
 
 // BuildController watches build resources and manages their state
@@ -26,7 +26,6 @@ type BuildController struct {
 	osClient        osclient.Interface
 	kubeClient      kubeclient.Interface
 	buildStrategies map[api.BuildType]BuildJobStrategy
-	dockerRegistry  string
 	timeout         int
 }
 
@@ -34,17 +33,14 @@ type BuildController struct {
 func NewBuildController(kc kubeclient.Interface,
 	oc osclient.Interface,
 	strategies map[api.BuildType]BuildJobStrategy,
-	registry string,
 	timeout int) *BuildController {
 
-	glog.Infof("Creating build controller with dockerRegistry=%s, timeout=%d",
-		registry, timeout)
+	glog.Infof("Creating build controller with timeout=%d", timeout)
 
 	bc := &BuildController{
 		kubeClient:      kc,
 		osClient:        oc,
 		buildStrategies: strategies,
-		dockerRegistry:  registry,
 		timeout:         timeout,
 	}
 	return bc
@@ -107,7 +103,7 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 			return api.BuildError, fmt.Errorf("No build type for %s", build.Input.Type)
 		}
 
-		podSpec, err := buildStrategy.CreateBuildPod(build, bc.dockerRegistry)
+		podSpec, err := buildStrategy.CreateBuildPod(build)
 		if err != nil {
 			glog.Errorf("Unable to create build pod: %v", err)
 			return api.BuildFailed, err

@@ -17,9 +17,9 @@ if [ -n "$SOURCE_REF" ]; then
   REF_OPTION="--ref $SOURCE_REF"
 fi
 
-BUILD_TEMP_DIR=${TEMP_DIR-$TMPDIR} 
+BUILD_TEMP_DIR=${TEMP_DIR-$TMPDIR}
 TMPDIR=$BUILD_TEMP_DIR sti build $SOURCE_URI $BUILDER_IMAGE $TAG $REF_OPTION
 
-if [ -n "$DOCKER_REGISTRY" ]; then
+if [ -n "$DOCKER_REGISTRY" ] || [ -s "/.dockercfg" ]; then
   docker push $TAG
 fi

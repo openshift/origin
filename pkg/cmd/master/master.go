@@ -408,14 +408,13 @@ func (c *config) runBuildController() {
 	// initialize build controller
 	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/docker-builder")
 	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/sti-builder")
-	dockerRegistry := env("DOCKER_REGISTRY", "")
 
 	buildStrategies := map[buildapi.BuildType]build.BuildJobStrategy{
 		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage),
 		buildapi.STIBuildType:    strategy.NewSTIBuildStrategy(stiBuilderImage, strategy.STITempDirectoryCreator),
 	}
 
-	buildController := build.NewBuildController(kubeClient, osClient, buildStrategies, dockerRegistry, 1200)
+	buildController := build.NewBuildController(kubeClient, osClient, buildStrategies, 1200)
 	buildController.Run(10 * time.Second)
 }
 

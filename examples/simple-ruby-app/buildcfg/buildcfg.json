@@ -2,10 +2,11 @@
     "id": "build100",
     "desiredInput":
     {
-        "type": "docker",
+        "type":      "docker",
         "sourceURI": "git://github.com/openshift/ruby-hello-world.git",
-        "imageTag":     "openshift/origin-ruby-sample",
+        "imageTag":  "openshift/origin-ruby-sample",
+        "registry":  "localhost:5000",
     },
- 
+
     "secret": "secret101"
 }

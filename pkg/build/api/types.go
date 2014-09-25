@@ -35,6 +35,9 @@ type BuildInput struct {
 	// ImageTag is the tag to give to the image resulting from the build
 	ImageTag string `json:"imageTag,omitempty" yaml:"imageTag,omitempty"`
 
+	// Registry to push the result image to
+	Registry string `json:"registry",omitempty" yaml:"registry,omitempty"`
+
 	// BuilderImage is the image used to execute the build when running STI builds
 	BuilderImage string `json:"builderImage,omitempty" yaml:"builderImage,omitempty"`
 }

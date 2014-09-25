@@ -14,7 +14,7 @@ Getting Started
 ---------------
 You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux 64bit pre-built binary](CONTRIBUTING.adoc#download-from-github).
 
-First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc). 
+First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
 
 Once setup, you can:
 
@@ -49,6 +49,26 @@ This example is simply running the ['openshift/hello-openshift' Docker image](ht
 
 Remember, you can pass a URL to `-c` when using the `kube` command, so you can [download the latest release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you don't even need clone the source.
 
+### Docker registry
+
+OpenShift builds allow pushing built images into docker registry, for details see [our API](#API).
+You can use either private [docker registry](https://github.com/docker/docker-registry) or the
+[official docker hub](https://hub.docker.com/). If the two are available private will be favored.
+
+**Private docker registry**
+
+To setup private docker registry you can either follow the steps [here](https://github.com/docker/docker-registry#quick-start)
+or use [simple-ruby-app example](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app)
+to host one inside OpenShift. Now all you need to do is to specify your repository in `buildConfig`.
+
+**Docker Hub**
+
+To access the [official docker hub](https://hub.docker.com/) you need to login using `docker login` command.
+In result a file named `.dockercfg` is created in your home directory. It contains credentials used
+when accessing the hub. Now when running OpenShift, the binary will pick up these credentials and
+use them inside build pods to push your result images to the hub.
+
+NOTE: Make sure to tag your build appropriately to match hub requirements, meaning `username/imagename`.
 
 Design Documents
 ----------------
