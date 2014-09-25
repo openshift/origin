@@ -50,6 +50,8 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
+	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/version"
 
@@ -57,6 +59,7 @@ import (
 	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
 )
 
 func NewCommandStartAllInOne(name string) *cobra.Command {
@@ -214,6 +217,7 @@ func (c *config) runApiserver() {
 	buildRegistry := buildetcd.New(etcdHelper)
 	imageRegistry := imageetcd.New(etcdHelper)
 	deployEtcd := deployetcd.New(etcdHelper)
+	routeEtcd := routeetcd.New(etcdHelper)
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
@@ -225,6 +229,7 @@ func (c *config) runApiserver() {
 		"deployments":             deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":       deployconfigregistry.NewREST(deployEtcd),
 		"templateConfigs":         template.NewStorage(),
+		"routes":                  routeregistry.NewREST(routeEtcd),
 	}
 
 	osMux := http.NewServeMux()

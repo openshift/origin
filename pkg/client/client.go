@@ -12,6 +12,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 // Interface exposes methods on OpenShift resources.
@@ -23,6 +24,7 @@ type Interface interface {
 	ImageRepositoryMappingInterface
 	DeploymentInterface
 	DeploymentConfigInterface
+	RouteInterface
 }
 
 // BuildInterface exposes methods on Build resources.
@@ -79,6 +81,16 @@ type DeploymentInterface interface {
 	CreateDeployment(*deployapi.Deployment) (*deployapi.Deployment, error)
 	UpdateDeployment(*deployapi.Deployment) (*deployapi.Deployment, error)
 	DeleteDeployment(string) error
+}
+
+// RouteInterface exposes methods on Route resources
+type RouteInterface interface {
+	ListRoutes(selector labels.Selector) (*routeapi.RouteList, error)
+	GetRoute(routeID string) (*routeapi.Route, error)
+	CreateRoute(route *routeapi.Route) (*routeapi.Route, error)
+	UpdateRoute(route *routeapi.Route) (*routeapi.Route, error)
+	DeleteRoute(routeID string) error
+	WatchRoutes(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error)
 }
 
 // Client is an OpenShift client object
@@ -294,4 +306,44 @@ func (c *Client) UpdateDeployment(deployment *deployapi.Deployment) (result *dep
 // DeleteDeployment deletes an existing replication deployment.
 func (c *Client) DeleteDeployment(id string) error {
 	return c.Delete().Path("deployments").Path(id).Do().Error()
+}
+
+// ListRoutes takes a selector, and returns the list of routes that match that selector
+func (c *Client) ListRoutes(selector labels.Selector) (result *routeapi.RouteList, err error) {
+	err = c.Get().Path("routes").SelectorParam("labels", selector).Do().Into(result)
+	return
+}
+
+// GetRoute takes the name of the route, and returns the corresponding Route object, and an error if it occurs
+func (c *Client) GetRoute(name string) (result *routeapi.Route, err error) {
+	err = c.Get().Path("routes").Path(name).Do().Into(result)
+	return
+}
+
+// DeleteRoute takes the name of the route, and returns an error if one occurs
+func (c *Client) DeleteRoute(name string) error {
+	return c.Delete().Path("routes").Path(name).Do().Error()
+}
+
+// CreateRoute takes the representation of a route.  Returns the server's representation of the route, and an error, if it occurs
+func (c *Client) CreateRoute(route *routeapi.Route) (result *routeapi.Route, err error) {
+	err = c.Post().Path("routes").Body(route).Do().Into(result)
+	return
+}
+
+// UpdateRoute takes the representation of a route to update.  Returns the server's representation of the route, and an error, if it occurs
+func (c *Client) UpdateRoute(route *routeapi.Route) (result *routeapi.Route, err error) {
+	err = c.Put().Path("routes").Path(route.ID).Body(route).Do().Into(result)
+	return
+}
+
+// WatchRoutes returns a watch.Interface that watches the requested routes.
+func (c *Client) WatchRoutes(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return c.Get().
+		Path("watch").
+		Path("routes").
+		UintParam("resourceVersion", resourceVersion).
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Watch()
 }
