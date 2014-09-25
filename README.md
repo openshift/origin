@@ -83,6 +83,7 @@ Several experimental API objects are being prototyped, and should be available s
 * `http://localhost:8080/osapi/v1beta1/imageRepositories`
 * `http://localhost:8080/osapi/v1beta1/imageRepositoryMappings`
 * `http://localhost:8080/osapi/v1beta1/images`
+* `http://localhost:8080/osapi/v1beta1/templateConfigs`
 
 A draft of the proposed API is available at http://rawgit.com/openshift/origin/master/api/openshift3.html and is developed under the [api](./api) directory.  Expect significant changes.
 
