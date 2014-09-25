@@ -3,7 +3,7 @@ package etcd
 import (
 	"errors"
 
-	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -50,7 +50,7 @@ func makeImageKey(id string) string {
 func (r *Etcd) GetImage(id string) (*api.Image, error) {
 	var image api.Image
 	if err := r.ExtractObj(makeImageKey(id), &image, false); err != nil {
-		return nil, err
+		return nil, etcderr.InterpretGetError(err, "image", id)
 	}
 	return &image, nil
 }
@@ -58,10 +58,7 @@ func (r *Etcd) GetImage(id string) (*api.Image, error) {
 // CreateImage creates a new image
 func (r *Etcd) CreateImage(image *api.Image) error {
 	err := r.CreateObj(makeImageKey(image.ID), image)
-	if tools.IsEtcdNodeExist(err) {
-		return apierrors.NewAlreadyExists("image", image.ID)
-	}
-	return err
+	return etcderr.InterpretCreateError(err, "image", image.ID)
 }
 
 // UpdateImage updates an existing image
@@ -73,10 +70,7 @@ func (r *Etcd) UpdateImage(image *api.Image) error {
 func (r *Etcd) DeleteImage(id string) error {
 	key := makeImageKey(id)
 	err := r.Delete(key, false)
-	if tools.IsEtcdNotFound(err) {
-		return apierrors.NewNotFound("image", id)
-	}
-	return err
+	return etcderr.InterpretDeleteError(err, "image", id)
 }
 
 // ListImageRepositories retrieves a list of ImageRepositories that match selector.
@@ -104,7 +98,7 @@ func makeImageRepositoryKey(id string) string {
 func (r *Etcd) GetImageRepository(id string) (*api.ImageRepository, error) {
 	var repo api.ImageRepository
 	if err := r.ExtractObj(makeImageRepositoryKey(id), &repo, false); err != nil {
-		return nil, err
+		return nil, etcderr.InterpretGetError(err, "imageRepository", id)
 	}
 	return &repo, nil
 }
@@ -124,24 +118,18 @@ func (r *Etcd) WatchImageRepositories(resourceVersion uint64, filter func(repo *
 // CreateImageRepository registers the given ImageRepository.
 func (r *Etcd) CreateImageRepository(repo *api.ImageRepository) error {
 	err := r.CreateObj(makeImageRepositoryKey(repo.ID), repo)
-	if err != nil && tools.IsEtcdNodeExist(err) {
-		return apierrors.NewAlreadyExists("imageRepository", repo.ID)
-	}
-
-	return err
+	return etcderr.InterpretCreateError(err, "imageRepository", repo.ID)
 }
 
 // UpdateImageRepository replaces an existing ImageRepository in the registry with the given ImageRepository.
 func (r *Etcd) UpdateImageRepository(repo *api.ImageRepository) error {
-	return r.SetObj(makeImageRepositoryKey(repo.ID), repo)
+	err := r.SetObj(makeImageRepositoryKey(repo.ID), repo)
+	return etcderr.InterpretUpdateError(err, "imageRepository", repo.ID)
 }
 
 // DeleteImageRepository deletes an ImageRepository by id.
 func (r *Etcd) DeleteImageRepository(id string) error {
 	imageRepositoryKey := makeImageRepositoryKey(id)
 	err := r.Delete(imageRepositoryKey, false)
-	if err != nil && tools.IsEtcdNotFound(err) {
-		return apierrors.NewNotFound("imageRepository", id)
-	}
-	return err
+	return etcderr.InterpretDeleteError(err, "imageRepository", id)
 }

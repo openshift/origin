@@ -1,7 +1,7 @@
 package etcd
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
@@ -47,11 +47,8 @@ func (r *Etcd) GetDeployment(id string) (*api.Deployment, error) {
 	var deployment api.Deployment
 	key := makeDeploymentKey(id)
 	err := r.ExtractObj(key, &deployment, false)
-	if tools.IsEtcdNotFound(err) {
-		return nil, errors.NewNotFound("deployment", id)
-	}
 	if err != nil {
-		return nil, err
+		return nil, etcderr.InterpretGetError(err, "deployment", id)
 	}
 	return &deployment, nil
 }
@@ -59,25 +56,20 @@ func (r *Etcd) GetDeployment(id string) (*api.Deployment, error) {
 // CreateDeployment creates a new Deployment.
 func (r *Etcd) CreateDeployment(deployment *api.Deployment) error {
 	err := r.CreateObj(makeDeploymentKey(deployment.ID), deployment)
-	if tools.IsEtcdNodeExist(err) {
-		return errors.NewAlreadyExists("deployment", deployment.ID)
-	}
-	return err
+	return etcderr.InterpretCreateError(err, "deployment", deployment.ID)
 }
 
 // UpdateDeployment replaces an existing Deployment.
 func (r *Etcd) UpdateDeployment(deployment *api.Deployment) error {
-	return r.SetObj(makeDeploymentKey(deployment.ID), deployment)
+	err := r.SetObj(makeDeploymentKey(deployment.ID), deployment)
+	return etcderr.InterpretUpdateError(err, "deployment", deployment.ID)
 }
 
 // DeleteDeployment deletes a Deployment specified by its ID.
 func (r *Etcd) DeleteDeployment(id string) error {
 	key := makeDeploymentKey(id)
 	err := r.Delete(key, false)
-	if tools.IsEtcdNotFound(err) {
-		return errors.NewNotFound("deployment", id)
-	}
-	return err
+	return etcderr.InterpretDeleteError(err, "deployment", id)
 }
 
 // ListDeploymentConfigs obtains a list of DeploymentConfigs.
@@ -107,11 +99,8 @@ func (r *Etcd) GetDeploymentConfig(id string) (*api.DeploymentConfig, error) {
 	var deploymentConfig api.DeploymentConfig
 	key := makeDeploymentConfigKey(id)
 	err := r.ExtractObj(key, &deploymentConfig, false)
-	if tools.IsEtcdNotFound(err) {
-		return nil, errors.NewNotFound("deploymentConfig", id)
-	}
 	if err != nil {
-		return nil, err
+		return nil, etcderr.InterpretGetError(err, "deploymentConfig", id)
 	}
 	return &deploymentConfig, nil
 }
@@ -119,23 +108,18 @@ func (r *Etcd) GetDeploymentConfig(id string) (*api.DeploymentConfig, error) {
 // CreateDeploymentConfig creates a new DeploymentConfig.
 func (r *Etcd) CreateDeploymentConfig(deploymentConfig *api.DeploymentConfig) error {
 	err := r.CreateObj(makeDeploymentConfigKey(deploymentConfig.ID), deploymentConfig)
-	if tools.IsEtcdNodeExist(err) {
-		return errors.NewAlreadyExists("deploymentConfig", deploymentConfig.ID)
-	}
-	return err
+	return etcderr.InterpretCreateError(err, "deploymentConfig", deploymentConfig.ID)
 }
 
 // UpdateDeploymentConfig replaces an existing DeploymentConfig.
 func (r *Etcd) UpdateDeploymentConfig(deploymentConfig *api.DeploymentConfig) error {
-	return r.SetObj(makeDeploymentConfigKey(deploymentConfig.ID), deploymentConfig)
+	err := r.SetObj(makeDeploymentConfigKey(deploymentConfig.ID), deploymentConfig)
+	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.ID)
 }
 
 // DeleteDeploymentConfig deletes a DeploymentConfig specified by its ID.
 func (r *Etcd) DeleteDeploymentConfig(id string) error {
 	key := makeDeploymentConfigKey(id)
 	err := r.Delete(key, false)
-	if tools.IsEtcdNotFound(err) {
-		return errors.NewNotFound("deploymentConfig", id)
-	}
-	return err
+	return etcderr.InterpretDeleteError(err, "deploymentConfig", id)
 }
