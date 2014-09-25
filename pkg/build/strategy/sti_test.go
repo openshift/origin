@@ -14,10 +14,9 @@ func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
 }
 
 func TestSTICreateBuildPod(t *testing.T) {
-	const dockerRegistry = "sti-test-registry"
 	strategy := NewSTIBuildStrategy("sti-test-image", &FakeTempDirCreator{})
 	expected := mockSTIBuild()
-	actual, _ := strategy.CreateBuildPod(expected, dockerRegistry)
+	actual, _ := strategy.CreateBuildPod(expected)
 
 	if actual.JSONBase.ID != expected.PodID {
 		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.JSONBase.ID)
@@ -39,8 +38,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if e := container.Env[0]; e.Name != "BUILD_TAG" || e.Value != expected.Input.ImageTag {
 		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)
 	}
-	if e := container.Env[1]; e.Name != "DOCKER_REGISTRY" || e.Value != dockerRegistry {
-		t.Errorf("Expected %s got %s:%s!", dockerRegistry, e.Name, e.Value)
+	if e := container.Env[1]; e.Name != "DOCKER_REGISTRY" || e.Value != expected.Input.Registry {
+		t.Errorf("Expected %s got %s:%s!", expected.Input.Registry, e.Name, e.Value)
 	}
 	if e := container.Env[2]; e.Name != "SOURCE_URI" || e.Value != expected.Input.SourceURI {
 		t.Errorf("Expected %s got %s:%s!", expected.Input.SourceURI, e.Name, e.Value)
@@ -62,6 +61,7 @@ func mockSTIBuild() *api.Build {
 			Type:      api.STIBuildType,
 			SourceURI: "http://my.build.com/the/stibuild/Dockerfile",
 			ImageTag:  "repository/stiBuild",
+			Registry:  "docker-registry",
 		},
 		Status: api.BuildNew,
 		PodID:  "-the-pod-id",

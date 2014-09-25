@@ -32,11 +32,15 @@ func setupDockerSocket(podSpec *api.Pod) {
 
 // setupDockerConfig configures the path to .dockercfg which contains registry credentials
 func setupDockerConfig(podSpec *api.Pod) {
+	dockerConfig := path.Join(os.Getenv("HOME"), ".dockercfg")
+	if _, err := os.Stat(dockerConfig); os.IsNotExist(err) {
+		return
+	}
 	dockerConfigVolume := api.Volume{
 		Name: "docker-cfg",
 		Source: &api.VolumeSource{
 			HostDirectory: &api.HostDirectory{
-				Path: path.Join(os.Getenv("HOME"), ".dockercfg"),
+				Path: dockerConfig,
 			},
 		},
 	}

@@ -51,15 +51,15 @@ Remember, you can pass a URL to `-c` when using the `kube` command, so you can [
 
 ### Docker registry
 
-OpenShift builds allow pushing built images into docker registry. Currently we only support one registry per OpenShift installation.
-Still you can use either private [docker registry](https://github.com/docker/docker-registry) or the [official docker hub](https://hub.docker.com/).
+OpenShift builds allow pushing built images into docker registry, for details see [our API](#API).
+You can use either private [docker registry](https://github.com/docker/docker-registry) or the
+[official docker hub](https://hub.docker.com/). If the two are available private will be favored.
 
 **Private docker registry**
 
 To setup private docker registry you can either follow the steps [here](https://github.com/docker/docker-registry#quick-start)
 or use [simple-ruby-app example](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app)
-to host one inside OpenShift. Afterwards you need to pass `DOCKER_REGISTRY` environment variable to `openshift start`
-command, specifying the address of your registry, e.g. `DOCKER_REGISTRY=localhost:5000`.
+to host one inside OpenShift. Now all you need to do is to specify your repository in `buildConfig`.
 
 **Docker Hub**
 

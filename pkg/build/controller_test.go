@@ -33,7 +33,7 @@ func (_ *errOsClient) UpdateBuild(build *api.Build) (*api.Build, error) {
 
 type okStrategy struct{}
 
-func (_ *okStrategy) CreateBuildPod(build *api.Build, dockerRegistry string) (*kubeapi.Pod, error) {
+func (_ *okStrategy) CreateBuildPod(build *api.Build) (*kubeapi.Pod, error) {
 	return &kubeapi.Pod{}, nil
 }
 

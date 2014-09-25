@@ -8,10 +8,9 @@ import (
 )
 
 func TestDockerCreateBuildPod(t *testing.T) {
-	const dockerRegistry = "docker-test-registry"
 	strategy := NewDockerBuildStrategy("docker-test-image")
 	expected := mockDockerBuild()
-	actual, _ := strategy.CreateBuildPod(expected, dockerRegistry)
+	actual, _ := strategy.CreateBuildPod(expected)
 
 	if actual.JSONBase.ID != expected.PodID {
 		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.JSONBase.ID)
@@ -36,8 +35,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if e := container.Env[1]; e.Name != "DOCKER_CONTEXT_URL" && e.Value != expected.Input.SourceURI {
 		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)
 	}
-	if e := container.Env[2]; e.Name != "DOCKER_REGISTRY" && e.Value != dockerRegistry {
-		t.Errorf("Expected %s got %s:%s!", dockerRegistry, e.Name, e.Value)
+	if e := container.Env[2]; e.Name != "DOCKER_REGISTRY" && e.Value != expected.Input.Registry {
+		t.Errorf("Expected %s got %s:%s!", expected.Input.Registry, e.Name, e.Value)
 	}
 }
 
@@ -50,6 +49,7 @@ func mockDockerBuild() *api.Build {
 			Type:      api.DockerBuildType,
 			SourceURI: "http://my.build.com/the/dockerbuild/Dockerfile",
 			ImageTag:  "repository/dockerBuild",
+			Registry:  "docker-registry",
 		},
 		Status: api.BuildNew,
 		PodID:  "-the-pod-id",
