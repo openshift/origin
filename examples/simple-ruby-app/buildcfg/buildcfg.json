@@ -5,7 +5,7 @@
         "type":      "docker",
         "sourceURI": "git://github.com/openshift/ruby-hello-world.git",
         "imageTag":  "openshift/origin-ruby-sample",
-        "registry":  "localhost:5000",
+        "registry":  "127.0.0.1:5000",
     },
 
     "secret": "secret101"
