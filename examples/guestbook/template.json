@@ -26,6 +26,16 @@
   ],
   "items": [
     {
+      "id": "frontendroute",
+      "kind": "Route",
+      "apiVersion": "v1beta1",
+      "host": "guestbook.example.com",
+      "serviceName": "frontend",
+      "labels": {
+        "name": "frontend"
+        }
+    },
+    {
       "id": "frontend",
       "kind": "Service",
       "apiVersion": "v1beta1",

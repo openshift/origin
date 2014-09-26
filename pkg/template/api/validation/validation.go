@@ -8,6 +8,8 @@ import (
 	. "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 
 	. "github.com/openshift/origin/pkg/template/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
+	. "github.com/openshift/origin/pkg/route/api/validation"
 )
 
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
@@ -38,6 +40,8 @@ func ValidateTemplate(template *Template) (errs ErrorList) {
 			err = ValidatePod(obj)
 		case *kubeapi.Service:
 			err = ValidateService(obj)
+                case *routeapi.Route:
+                        err = ValidateRoute(obj)
 		default:
 			// Pass-through unknown types.
 		}
