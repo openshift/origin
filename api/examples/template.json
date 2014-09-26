@@ -1,6 +1,7 @@
 {
-  "kind": "Template",
   "id": "example1",
+  "kind": "Template",
+  "apiVersion": "v1beta1",
   "name": "My awesome PHP app",
   "description": "Example PHP application with PostgreSQL database",
   "parameters": [
