@@ -6,4 +6,4 @@ ADD . /gopath/src/github.com/openshift/origin
 RUN go get github.com/openshift/origin && \
     hack/build-go.sh
 
-ENTRYPOINT ["output/go/bin/openshift"]
+ENTRYPOINT ["_output/go/bin/openshift"]
