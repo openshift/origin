@@ -25,6 +25,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 )
 
+// CreateOrUpdate may be returned by a handler to distingush between a PUT
+// that creates an object and a PUT that updates an object.
+type CreateOrUpdate struct {
+	Created bool
+	Object  interface{}
+}
+
 type RESTHandler struct {
 	storage     map[string]RESTStorage
 	codec       Codec
@@ -184,6 +191,9 @@ func (h *RESTHandler) finishReq(op *Operation, w http.ResponseWriter) {
 			if stat.Code != 0 {
 				status = stat.Code
 			}
+		case CreateOrUpdate:
+			obj = stat.Object
+			status = http.StatusCreated
 		}
 		writeJSON(status, h.codec, obj, w)
 	} else {

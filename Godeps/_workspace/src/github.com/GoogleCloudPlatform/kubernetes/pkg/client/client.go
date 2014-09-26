@@ -205,18 +205,18 @@ func (c *RESTClient) Secure() bool {
 
 // doRequest executes a request, adds authentication (if auth != nil), and HTTPS
 // cert ignoring.
-func (c *RESTClient) doRequest(request *http.Request) ([]byte, error) {
+func (c *RESTClient) doRequest(request *http.Request) ([]byte, bool, error) {
 	if c.auth != nil {
 		request.SetBasicAuth(c.auth.User, c.auth.Password)
 	}
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return body, err
+		return body, false, err
 	}
 
 	// Did the server give us a status response?
@@ -230,20 +230,21 @@ func (c *RESTClient) doRequest(request *http.Request) ([]byte, error) {
 	case response.StatusCode == http.StatusConflict:
 		// Return error given by server, if there was one.
 		if isStatusResponse {
-			return nil, &StatusErr{status}
+			return nil, false, &StatusErr{status}
 		}
 		fallthrough
 	case response.StatusCode < http.StatusOK || response.StatusCode > http.StatusPartialContent:
-		return nil, fmt.Errorf("request [%#v] failed (%d) %s: %s", request, response.StatusCode, response.Status, string(body))
+		return nil, false, fmt.Errorf("request [%#v] failed (%d) %s: %s", request, response.StatusCode, response.Status, string(body))
 	}
 
 	// If the server gave us a status back, look at what it was.
 	if isStatusResponse && status.Status != api.StatusSuccess {
 		// "Working" requests need to be handled specially.
 		// "Failed" requests are clearly just an error and it makes sense to return them as such.
-		return nil, &StatusErr{status}
+		return nil, false, &StatusErr{status}
 	}
-	return body, err
+	created := response.StatusCode == http.StatusCreated
+	return body, created, err
 }
 
 // ListPods takes a selector, and returns the list of pods that match that selector.

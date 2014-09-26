@@ -279,7 +279,7 @@ func (r *Request) Do() Result {
 		if err != nil {
 			return Result{err: err}
 		}
-		respBody, err := r.c.doRequest(req)
+		respBody, created, err := r.c.doRequest(req)
 		if err != nil {
 			if statusErr, ok := err.(*StatusErr); ok {
 				if statusErr.Status.Status == api.StatusWorking && r.pollPeriod != 0 {
@@ -298,14 +298,15 @@ func (r *Request) Do() Result {
 				}
 			}
 		}
-		return Result{respBody, err}
+		return Result{respBody, err, created}
 	}
 }
 
 // Result contains the result of calling Request.Do().
 type Result struct {
-	body []byte
-	err  error
+	body    []byte
+	err     error
+	created bool
 }
 
 // Raw returns the raw result.
@@ -327,6 +328,15 @@ func (r Result) Into(obj interface{}) error {
 		return r.err
 	}
 	return runtime.DecodeInto(r.body, obj)
+}
+
+// IntoCreated stores the result into obj, if possible, and then returns
+// true if the server indicated an object was created.
+func (r Result) IntoCreated(obj interface{}) (bool, error) {
+	if r.err != nil {
+		return false, r.err
+	}
+	return r.created, runtime.DecodeInto(r.body, obj)
 }
 
 // Error returns the error executing the request, nil if no error occurred.
