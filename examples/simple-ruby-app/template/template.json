@@ -1,6 +1,7 @@
 {
   "id": "ruby-helloworld-sample-template",
   "kind": "Template",
+  "apiVersion": "v1beta1",
   "name": "ruby-hello-world-template",
   "description": "This example shows how to create a simple ruby application in openshift origin v3",
   "parameters": [
