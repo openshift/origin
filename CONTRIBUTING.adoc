@@ -49,8 +49,7 @@ export PATH=$PATH:$GOPATH/bin
 
 == Develop on virtual machine using Vagrant
 
-To facilitate rapid development we've put together a Vagrantfile you can use to stand up a 
-development environment.
+To facilitate rapid development we've put together a Vagrantfile you can use to stand up a development environment.
 
 1.  http://www.vagrantup.com/downloads[Install Vagrant]
 
@@ -66,17 +65,16 @@ development environment.
 4.  SSH in:
 
         $ vagrant ssh
-        $ cd /vagrant
 
-5.  Run a build:
+5.  Run a build (ssh puts you into the correct origin directory):
 
         $ hack/build-go.sh
 
 6.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
-        $ _output/go/bin/openshift start
+        $ openshift start
 
-TIP: In some cases (eg. after git pull), you might run `make clean` inside the *origin/* repository to clean up the object files that are be outdated.
+TIP: In some cases (eg. after git pull), you might run `make clean` in the `origin` directory to clean up outdated compiled files.
 
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development in two repositories:
