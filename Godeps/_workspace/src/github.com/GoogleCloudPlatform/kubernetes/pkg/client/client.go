@@ -106,6 +106,14 @@ func New(host string, auth *AuthInfo) (*Client, error) {
 	return &Client{restClient}, nil
 }
 
+func NewDirect(host string, rt http.RoundTripper) (*Client, error) {
+	restClient, err := NewDirectRESTClient(host, "/api/v1beta1/", rt)
+	if err != nil {
+		return nil, err
+	}
+	return &Client{restClient}, nil
+}
+
 // NewOrDie creates a Kubernetes client and panics if the provided host is invalid.
 func NewOrDie(host string, auth *AuthInfo) *Client {
 	client, err := New(host, auth)
@@ -148,6 +156,22 @@ type RESTClient struct {
 // NewRESTClient creates a new RESTClient. This client performs generic REST functions
 // such as Get, Put, Post, and Delete on specified paths.
 func NewRESTClient(host string, auth *AuthInfo, path string) (*RESTClient, error) {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	client, err := NewDirectRESTClient(host, path, transport)
+	if err != nil {
+		return nil, err
+	}
+	client.auth = auth
+	return client, nil
+}
+
+// NewRESTClient creates a new RESTClient. This client performs generic REST functions
+// such as Get, Put, Post, and Delete on specified paths.
+func NewDirectRESTClient(host string, path string, rt http.RoundTripper) (*RESTClient, error) {
 	prefix, err := normalizePrefix(host, path)
 	if err != nil {
 		return nil, err
@@ -157,17 +181,10 @@ func NewRESTClient(host string, auth *AuthInfo, path string) (*RESTClient, error
 	base.RawQuery = ""
 	base.Fragment = ""
 	return &RESTClient{
-		host:   base.String(),
-		prefix: prefix.Path,
-		secure: prefix.Scheme == "https",
-		auth:   auth,
-		httpClient: &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		},
+		host:       base.String(),
+		prefix:     prefix.Path,
+		secure:     prefix.Scheme == "https",
+		httpClient: &http.Client{Transport: rt},
 		Sync:       false,
 		PollPeriod: time.Second * 2,
 		Timeout:    time.Second * 20,
