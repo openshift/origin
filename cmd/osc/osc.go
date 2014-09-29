@@ -6,40 +6,23 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/deployment"
 	"github.com/openshift/origin/pkg/cmd/setup"
-	"github.com/openshift/origin/pkg/cmd/version"
+	"github.com/openshift/origin/pkg/version"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	var verbose, raw bool
-
-	// Main osc command
-	oscCmd := &cobra.Command{
-		Use:   "osc",
-		Short: "Command line interface for OpenShift",
-		Long:  "Command line interface for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat",
-		Run: func(c *cobra.Command, args []string) {
-			c.Help()
-		},
-	}
-
-	// Deployment
-	deploymentCmd := deployment.NewCommandDeployment("deployment")
-	deploymentCmd.AddCommand(deployment.NewCommandDeploymentList("list"))
-	deploymentCmd.AddCommand(deployment.NewCommandDeploymentShow("show"))
-	deploymentCmd.AddCommand(deployment.NewCommandDeploymentUpdate("update"))
-	deploymentCmd.AddCommand(deployment.NewCommandDeploymentRemove("remove"))
-	oscCmd.AddCommand(deploymentCmd)
-
-	// Setup
-	oscCmd.AddCommand(version.NewCommandVersion("version"))
+	// Root command
+	oscCmd := NewCommandOpenShiftClient("osc")
 
 	// Version
-	oscCmd.AddCommand(setup.NewCommandSetup("setup"))
-
-	// Global flags
-	oscCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	oscCmd.PersistentFlags().BoolVar(&raw, "raw", false, "Do not format the output from the requested operations")
+	oscCmd.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: fmt.Sprintf("Command '%s' (main)", "version"),
+		Long:  fmt.Sprintf("Command '%s' (main)", "version"),
+		Run: func(c *cobra.Command, args []string) {
+			fmt.Println("OpenShift", version.Get().String())
+		},
+	})
 
 	// Root command execution path
 	err := oscCmd.Execute()
@@ -48,4 +31,30 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %s", err)
 		os.Exit(1)
 	}
+}
+
+func NewCommandOpenShiftClient(name string) *cobra.Command {
+	var verbose, raw bool
+
+	// Main command
+	cmd := &cobra.Command{
+		Use:   name,
+		Short: "Client tools for OpenShift",
+		Long:  "Client tools for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat",
+		Run: func(c *cobra.Command, args []string) {
+			c.Help()
+		},
+	}
+
+	// Deployment
+	cmd.AddCommand(deployment.NewCommandDeployment("deployment"))
+
+	// Setup
+	cmd.AddCommand(setup.NewCommandSetup("setup"))
+
+	// Global flags
+	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	cmd.PersistentFlags().BoolVar(&raw, "raw", false, "Do not format the output from the requested operations")
+
+	return cmd
 }

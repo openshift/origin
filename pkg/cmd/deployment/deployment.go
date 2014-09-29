@@ -10,10 +10,10 @@ import (
 
 var printer = p.TerminalPrinter{} // TODO: improve, we can think about things like FilePrinter, JsonPrinter, etc
 
-// Commands
+// Root Deployment Command
 
 func NewCommandDeployment(name string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("Command '%s' (main)", name),
 		Long:  fmt.Sprintf("Command '%s' (main)", name),
@@ -21,7 +21,14 @@ func NewCommandDeployment(name string) *cobra.Command {
 			c.Help()
 		},
 	}
+	cmd.AddCommand(NewCommandDeploymentList("list"))
+	cmd.AddCommand(NewCommandDeploymentShow("show"))
+	cmd.AddCommand(NewCommandDeploymentUpdate("update"))
+	cmd.AddCommand(NewCommandDeploymentRemove("remove"))
+	return cmd
 }
+
+// Children Commands
 
 func NewCommandDeploymentList(name string) *cobra.Command {
 	return &cobra.Command{
