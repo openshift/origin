@@ -25,16 +25,24 @@ if [ "${TRAVIS_GO_VERSION}" == "tip" ]; then
   KUBE_COVER=""
 else
   # -covermode=atomic becomes default with -race in Go >=1.3
-  KUBE_COVER=${KUBE_COVER:--cover -covermode=atomic}
+  if [ -z ${KUBE_COVER+x} ]; then
+    KUBE_COVER="-cover -covermode=atomic"
+  fi
 fi
 KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 30s}
 
-KUBE_RACE=${KUBE_RACE:--race}
+if [ -z ${KUBE_RACE+x} ]; then
+  KUBE_RACE="-race"
+fi
 
 cd "${OS_TARGET}"
 
 if [ "$1" != "" ]; then
-  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER -coverprofile=tmp.out "$OS_GO_PACKAGE/$1" "${@:2}"
+  if [ -n "${KUBE_COVER}" ]; then
+    KUBE_COVER="${KUBE_COVER} -coverprofile=tmp.out"
+  fi
+
+  echo go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$OS_GO_PACKAGE/$1" "${@:2}"
   exit 0
 fi
 
