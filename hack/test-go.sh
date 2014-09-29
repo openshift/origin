@@ -29,11 +29,18 @@ else
 fi
 KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 30s}
 
+# make race detection configurable to facilitate faster local iteration
+if [ "${KUBE_RACE:-true}" == "false" ] ; then
+  KUBE_RACE=""
+else
+  KUBE_RACE="-race"
+fi
+
 cd "${OS_TARGET}"
 
 if [ "$1" != "" ]; then
-  go test -race $KUBE_TIMEOUT $KUBE_COVER -coverprofile=tmp.out "$OS_GO_PACKAGE/$1" "${@:2}"
+  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER -coverprofile=tmp.out "$OS_GO_PACKAGE/$1" "${@:2}"
   exit 0
 fi
 
-find_test_dirs | xargs go test -race $KUBE_TIMEOUT $KUBE_COVER "${@:2}"
+find_test_dirs | xargs go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}"
