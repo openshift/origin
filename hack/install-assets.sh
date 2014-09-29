@@ -14,3 +14,10 @@ pushd assets > /dev/null
   bower install
 popd > /dev/null
 gem install compass
+
+pushd Godeps/_workspace > /dev/null
+  godep_path=$(pwd)
+  pushd src/github.com/jteeuwen/go-bindata > /dev/null
+    GOPATH=$godep_path go install ./...
+  popd > /dev/null
+popd > /dev/null

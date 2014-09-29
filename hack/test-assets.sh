@@ -10,4 +10,10 @@ fi
 
 pushd assets > /dev/null
   grunt test
+  grunt build
 popd > /dev/null
+
+Godeps/_workspace/bin/go-bindata -prefix "assets/dist" -pkg "assets" -o "test/assets/bindata.go" assets/dist/...
+
+echo "Validating checked in bindata.go is up to date..."
+diff test/assets/bindata.go pkg/assets/bindata.go > /dev/null
