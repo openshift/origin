@@ -8,8 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var printer = p.TerminalPrinter{} // TODO: improve, we can think about things like FilePrinter, JsonPrinter, etc
-
 // Root Deployment Command
 
 func NewCommandDeployment(name string) *cobra.Command {
@@ -31,6 +29,8 @@ func NewCommandDeployment(name string) *cobra.Command {
 // Children Commands
 
 func NewCommandDeploymentList(name string) *cobra.Command {
+	printer := p.TerminalPrinter{}
+
 	return &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("Command '%s' (main)", name),
