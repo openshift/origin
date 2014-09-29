@@ -1,85 +1,71 @@
 package deployment
 
 import (
-	"fmt"
-
-	p "github.com/openshift/origin/pkg/cmd/util/printer"
+	"github.com/openshift/origin/pkg/cmd/base"
 	api "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/spf13/cobra"
 )
 
-// Root Deployment Command
+// Root command
 
-func NewCommandDeployment(name string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   name,
-		Short: fmt.Sprintf("Command '%s' (main)", name),
-		Long:  fmt.Sprintf("Command '%s' (main)", name),
-		Run: func(c *cobra.Command, args []string) {
-			c.Help()
-		},
-	}
-	cmd.AddCommand(NewCommandDeploymentList("list"))
-	cmd.AddCommand(NewCommandDeploymentShow("show"))
-	cmd.AddCommand(NewCommandDeploymentUpdate("update"))
-	cmd.AddCommand(NewCommandDeploymentRemove("remove"))
-	return cmd
+func NewCmdDeployment(resource string) *cobra.Command {
+	deploymentCmd := base.CreateCmdRoot(resource)
+
+	deploymentListCmd := NewCmdDeploymentList(resource, "list")
+	deploymentShowCmd := NewCmdDeploymentShow(resource, "show")
+	deploymentCreateCmd := NewCmdDeploymentCreate(resource, "create")
+	deploymentUpdateCmd := NewCmdDeploymentUpdate(resource, "update")
+	deploymentRemoveCmd := NewCmdDeploymentRemove(resource, "remove")
+
+	deploymentCmd.AddCommand(deploymentListCmd)
+	deploymentCmd.AddCommand(deploymentShowCmd)
+	deploymentCmd.AddCommand(deploymentCreateCmd)
+	deploymentCmd.AddCommand(deploymentUpdateCmd)
+	deploymentCmd.AddCommand(deploymentRemoveCmd)
+
+	return deploymentCmd
 }
 
-// Children Commands
+// Subcommands
 
-func NewCommandDeploymentList(name string) *cobra.Command {
-	printer := p.TerminalPrinter{}
-
-	return &cobra.Command{
-		Use:   name,
-		Short: fmt.Sprintf("Command '%s' (main)", name),
-		Long:  fmt.Sprintf("Command '%s' (main)", name),
-		Run: func(c *cobra.Command, args []string) {
-			printer.Print("Fetching deployments ... ")
-
-			items := api.DeploymentList{}.Items
-
-			if len(items) == 0 {
-				printer.Errorln("nothing found")
-
-			} else {
-				for _, d := range items {
-					fmt.Printf("\n%s\t%s\n", d.ID, d.State)
-				}
-
-				printer.Successln("done")
-			}
-		},
-	}
+func NewCmdDeploymentList(resource string, name string) *cobra.Command {
+	return base.CreateCmdList(resource, name, ListDeployments)
 }
 
-func NewCommandDeploymentShow(name string) *cobra.Command {
-	return &cobra.Command{
-		Use:   name,
-		Short: fmt.Sprintf("Command '%s' (main)", name),
-		Long:  fmt.Sprintf("Command '%s' (main)", name),
-		Run: func(c *cobra.Command, args []string) {
-		},
-	}
+func NewCmdDeploymentShow(resource string, name string) *cobra.Command {
+	return base.CreateCmdShow(resource, name, ShowDeployment)
 }
 
-func NewCommandDeploymentUpdate(name string) *cobra.Command {
-	return &cobra.Command{
-		Use:   name,
-		Short: fmt.Sprintf("Command '%s' (main)", name),
-		Long:  fmt.Sprintf("Command '%s' (main)", name),
-		Run: func(c *cobra.Command, args []string) {
-		},
-	}
+func NewCmdDeploymentCreate(resource string, name string) *cobra.Command {
+	return base.CreateCmdCreate(resource, name, CreateDeployment)
 }
 
-func NewCommandDeploymentRemove(name string) *cobra.Command {
-	return &cobra.Command{
-		Use:   name,
-		Short: fmt.Sprintf("Command '%s' (main)", name),
-		Long:  fmt.Sprintf("Command '%s' (main)", name),
-		Run: func(c *cobra.Command, args []string) {
-		},
-	}
+func NewCmdDeploymentUpdate(resource string, name string) *cobra.Command {
+	return base.CreateCmdUpdate(resource, name, UpdateDeployment)
+}
+
+func NewCmdDeploymentRemove(resource string, name string) *cobra.Command {
+	return base.CreateCmdRemove(resource, name, RemoveDeployment)
+}
+
+// Executors
+
+func ListDeployments() (interface{}, error) {
+	return api.DeploymentList{}.Items, nil
+}
+
+func ShowDeployment(id string) (interface{}, error) {
+	return nil, nil
+}
+
+func CreateDeployment(payload interface{}) (string, error) {
+	return "", nil
+}
+
+func UpdateDeployment(id string, payload interface{}) (string, error) {
+	return id, nil
+}
+
+func RemoveDeployment(id string) (string, error) {
+	return id, nil
 }

@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Root command
-	oscCmd := NewCommandOpenShiftClient("osc")
+	oscCmd := NewCmdOpenShiftClient("osc")
 
 	// Version
 	oscCmd.AddCommand(&cobra.Command{
@@ -25,17 +25,13 @@ func main() {
 	})
 
 	// Root command execution path
-	err := oscCmd.Execute()
-
-	if err != nil {
+	if err := oscCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s", err)
 		os.Exit(1)
 	}
 }
 
-func NewCommandOpenShiftClient(name string) *cobra.Command {
-	var verbose, raw bool
-
+func NewCmdOpenShiftClient(name string) *cobra.Command {
 	// Main command
 	cmd := &cobra.Command{
 		Use:   name,
@@ -46,15 +42,9 @@ func NewCommandOpenShiftClient(name string) *cobra.Command {
 		},
 	}
 
-	// Deployment
-	cmd.AddCommand(deployment.NewCommandDeployment("deployment"))
-
-	// Setup
-	cmd.AddCommand(setup.NewCommandSetup("setup"))
-
-	// Global flags
-	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	cmd.PersistentFlags().BoolVar(&raw, "raw", false, "Do not format the output from the requested operations")
+	// Subcommands
+	cmd.AddCommand(deployment.NewCmdDeployment("deployment"))
+	cmd.AddCommand(setup.NewCmdSetup("setup"))
 
 	return cmd
 }

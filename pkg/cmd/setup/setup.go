@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCommandSetup(name string) *cobra.Command {
+func NewCmdSetup(name string) *cobra.Command {
 	return &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("Command '%s' (main)", name),
