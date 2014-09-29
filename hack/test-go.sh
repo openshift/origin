@@ -29,12 +29,7 @@ else
 fi
 KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 30s}
 
-# make race detection configurable to facilitate faster local iteration
-if [ "${KUBE_RACE:-true}" == "false" ] ; then
-  KUBE_RACE=""
-else
-  KUBE_RACE="-race"
-fi
+KUBE_RACE=${KUBE_RACE:--race}
 
 cd "${OS_TARGET}"
 
