@@ -13,6 +13,9 @@ pushd assets > /dev/null
   grunt build
 popd > /dev/null
 
+echo "Calculating asset checksums..."
+find assets/dist -type f | sort | xargs md5sum
+
 Godeps/_workspace/bin/go-bindata -prefix "assets/dist" -pkg "assets" -o "test/assets/bindata.go" assets/dist/...
 
 echo "Validating checked in bindata.go is up to date..."

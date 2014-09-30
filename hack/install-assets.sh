@@ -13,7 +13,7 @@ pushd assets > /dev/null
   npm install
   bower install
 popd > /dev/null
-gem install compass
+gem install compass -v 0.12.7
 
 pushd Godeps/_workspace > /dev/null
   godep_path=$(pwd)
