@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -54,10 +55,20 @@ func (root *assetTree) funcOrNil() string {
 
 func (root *assetTree) writeGoMap(w io.Writer, nident int) {
 	fmt.Fprintf(w, "&_bintree_t{%s, map[string]*_bintree_t{\n", root.funcOrNil())
-	for p, child := range root.Children {
+
+	// Sort to make output stable between invocations
+	filenames := make([]string, len(root.Children))
+	i := 0
+	for filename, _ := range root.Children {
+		filenames[i] = filename
+		i++
+	}
+	sort.Strings(filenames)
+
+	for _, p := range filenames {
 		ident(w, nident+1)
 		fmt.Fprintf(w, `"%s": `, p)
-		child.writeGoMap(w, nident+1)
+		root.Children[p].writeGoMap(w, nident+1)
 	}
 	ident(w, nident)
 	io.WriteString(w, "}}")
