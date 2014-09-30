@@ -207,10 +207,12 @@ module.exports = function (grunt) {
     filerev: {
       dist: {
         src: [
-          '<%= yeoman.dist %>/scripts/{,*/}*.js',
-          '<%= yeoman.dist %>/styles/{,*/}*.css',
-          '<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-          '<%= yeoman.dist %>/styles/fonts/*'
+          // We do not need digest filenames as our files are loaded from
+          // a commit-based path
+          //'<%= yeoman.dist %>/scripts/{,*/}*.js',
+          //'<%= yeoman.dist %>/styles/{,*/}*.css',
+          //'<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
+          //'<%= yeoman.dist %>/styles/fonts/*'
         ]
       }
     },

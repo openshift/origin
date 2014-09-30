@@ -16,4 +16,5 @@ popd > /dev/null
 Godeps/_workspace/bin/go-bindata -prefix "assets/dist" -pkg "assets" -o "test/assets/bindata.go" assets/dist/...
 
 echo "Validating checked in bindata.go is up to date..."
-diff test/assets/bindata.go pkg/assets/bindata.go > /dev/null
+# TODO remove the pipe to head as it messes up the exit code
+diff test/assets/bindata.go pkg/assets/bindata.go | head -n 100

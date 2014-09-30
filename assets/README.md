@@ -40,7 +40,7 @@ Contributing
 3. From the root of the origin repo, run:
 
     ```
-    go-bindata -prefix "assets/dist" -pkg "assets" -o "pkg/assets/bindata.go" assets/dist/...
+    Godeps/_workspace/bin/go-bindata -prefix "assets/dist" -pkg "assets" -o "pkg/assets/bindata.go" assets/dist/...
 
     hack/build-go.sh
     ```
