@@ -1,0 +1,26 @@
+#!/bin/bash
+
+function cleanup {
+  echo "Killing docker-in-docker"
+  pkill docker
+}
+
+trap cleanup EXIT
+
+echo "Starting docker..."
+/usr/bin/dind &
+
+ATTEMPTS=0
+while [ $ATTEMPTS -lt 10 ]; do
+  docker version &> /dev/null
+  if [ $? -eq 0 ]; then
+    break
+  fi
+
+  let ATTEMPTS=ATTEMPTS+1
+  sleep 1
+done
+echo "Docker started"
+
+eval "$@"
+
