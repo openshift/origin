@@ -62,10 +62,10 @@ func CreateDeployment(payload interface{}) (string, error) {
 	return "", nil
 }
 
-func UpdateDeployment(id string, payload interface{}) (string, error) {
-	return id, nil
+func UpdateDeployment(id string, payload interface{}) error {
+	return nil
 }
 
-func RemoveDeployment(id string) (string, error) {
-	return id, nil
+func RemoveDeployment(id string) error {
+	return nil
 }

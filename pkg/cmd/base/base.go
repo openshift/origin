@@ -30,10 +30,8 @@ func CreateCmdList(resource string, name string, listFunc func() (interface{}, e
 		Long:  fmt.Sprintf("List one or more %s.", resource),
 		Run: func(cmd *cobra.Command, args []string) {
 			format := getFlagAsString(cmd, "format")
-
-			payload, err := listFunc()
-
-			print(format, payload, err)
+			items, err := listFunc()
+			print(format, items, err)
 		},
 	}
 	cmd.Flags().StringP("format", "f", "terminal", "Output format: terminal|raw|json|yaml")
@@ -49,11 +47,10 @@ func CreateCmdShow(resource string, name string, showFunc func(id string) (inter
 			if len(args) == 0 {
 				usageError(cmd, "Need to supply an ID")
 			}
+			id := args[0]
 			format := getFlagAsString(cmd, "format")
-
-			payload, err := showFunc(args[0])
-
-			print(format, payload, err)
+			item, err := showFunc(id)
+			print(format, item, err)
 		},
 	}
 	cmd.Flags().StringP("format", "f", "terminal", "Output format: terminal|raw|json|yaml")
@@ -73,7 +70,7 @@ func CreateCmdCreate(resource string, name string, createFunc func(payload inter
 	return cmd
 }
 
-func CreateCmdUpdate(resource string, name string, updateFunc func(id string, payload interface{}) (string, error)) *cobra.Command {
+func CreateCmdUpdate(resource string, name string, updateFunc func(id string, payload interface{}) error) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("Update a %s", resource),
@@ -83,14 +80,14 @@ func CreateCmdUpdate(resource string, name string, updateFunc func(id string, pa
 				usageError(cmd, "Need to supply an ID")
 			}
 			id := args[0]
-			updateFunc(id, nil) // TODO
+			_ = updateFunc(id, nil) // TODO
 			fmt.Printf("Updated %s %s", resource, id)
 		},
 	}
 	return cmd
 }
 
-func CreateCmdRemove(resource string, name string, removeFunc func(id string) (string, error)) *cobra.Command {
+func CreateCmdRemove(resource string, name string, removeFunc func(id string) error) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name + " <id>",
 		Short: fmt.Sprintf("Remove a %s", resource),
@@ -100,7 +97,7 @@ func CreateCmdRemove(resource string, name string, removeFunc func(id string) (s
 				usageError(cmd, "Need to supply an ID")
 			}
 			id := args[0]
-			removeFunc(id)
+			_ = removeFunc(id)
 			fmt.Printf("Removed %s %s", resource, id)
 		},
 	}
