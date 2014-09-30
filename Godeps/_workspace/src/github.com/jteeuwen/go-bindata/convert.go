@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -33,6 +34,9 @@ func Translate(c *Config) error {
 			return err
 		}
 	}
+
+	// Sort to make output stable between invocations
+	sort.Sort(ByPath(toc))
 
 	// Create output file.
 	fd, err := os.Create(c.Output)
