@@ -42,7 +42,7 @@ if [ "$1" != "" ]; then
     KUBE_COVER="${KUBE_COVER} -coverprofile=tmp.out"
   fi
 
-  echo go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$OS_GO_PACKAGE/$1" "${@:2}"
+  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$OS_GO_PACKAGE/$1" "${@:2}"
   exit 0
 fi
 
