@@ -366,7 +366,7 @@
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
 			"Rev": "4e003f5e7162b67b84ea0f6117218f9c6f8fd2df"
 		},
-		{      
+		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Comment": "0.2.1-241-g0dbb508",
 			"Rev": "0dbb508e94dd899a6743d035d8f249c7634d26da"
@@ -392,9 +392,9 @@
 		},
 		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",
-			"Comment": "v3.0.5-31-g93b909d",
-			"Rev": "93b909d1499a38620121b0a5eb43a18f3bccb083"
-		},    
+			"Comment": "v3.0.6",
+			"Rev": "1743f47c0112eff669b0199889670d61384b4730"
+		},
 		{
 			"ImportPath": "github.com/google/gofuzz",
 			"Rev": "aef70dacbc78771e35beb261bb3a72986adf7906"

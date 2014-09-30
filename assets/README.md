@@ -28,14 +28,21 @@ Contributing
 
 #### Production builds
 1. From the `assets` directory, run `grunt build`
-2. From the root of the origin repo, run:
+2. Make sure the go-bindata binary is up to date by running:
 
     ```
-    go get github.com/jteeuwen/go-bindata/...
+    cd Godeps/_workspace/src/github.com/jteeuwen/go-bindata
 
-    go-bindata -prefix "assets/dist" -pkg "assets" -o "pkg/assets/bindata.go" -tags "release" assets/dist/...
+    GOPATH=$GOPATH/src/github.com/openshift/origin/Godeps/_workspace go install ./...
 
-    OS_BUILD_TAGS=release hack/build-go.sh
     ```
 
-Now when starting the openshift all-in-one server it will also serve the console assets. The default listens at [http://localhost:8091](http://localhost:8091)
+3. From the root of the origin repo, run:
+
+    ```
+    Godeps/_workspace/bin/go-bindata -prefix "assets/dist" -pkg "assets" -o "pkg/assets/bindata.go" assets/dist/...
+
+    hack/build-go.sh
+    ```
+
+The assets served by the OpenShift all-in-one server will now be up to date. By default the assets are served from [http://localhost:8091](http://localhost:8091)
