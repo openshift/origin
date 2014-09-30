@@ -3,11 +3,15 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
+	"github.com/openshift/origin/pkg/config/api"
 )
 
 // Apply creates and manages resources defined in the Config. It wont stop on
@@ -70,6 +74,118 @@ func Apply(data []byte, storage clientapi.ClientMappings) (errs errors.ErrorList
 	}
 
 	return
+}
+
+// AddConfigLabels adds new label(s) to all resources defined in the given Config.
+func AddConfigLabels(c *api.Config, labels labels.Set) error {
+	for i, _ := range c.Items {
+		switch t := c.Items[i].Object.(type) {
+		case *kubeapi.Pod:
+			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] Pod.Labels: %v", i, err)
+			}
+		case *kubeapi.Service:
+			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] Service.Labels: %v", i, err)
+			}
+		case *kubeapi.ReplicationController:
+			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.Labels: %v", i, err)
+			}
+			if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.DesiredState.PodTemplate.Labels: %v", i, err)
+			}
+		default:
+			// Unknown generic object. Try to find "Labels" field in it.
+			obj := reflect.ValueOf(c.Items[i].Object)
+
+			if obj.Kind() == reflect.Interface || obj.Kind() == reflect.Ptr {
+				obj = obj.Elem()
+			}
+			if obj.Kind() != reflect.Struct {
+				return fmt.Errorf("Template.Items[%v]: Invalid object kind. Expected: Struct, got:", i, obj.Kind())
+			}
+
+			obj = obj.FieldByName("Labels")
+			if obj.IsValid() {
+				// Merge labels into the Template.Items[i].Labels field.
+				if err := mergeMaps(obj.Interface(), labels, ErrorOnDifferentDstKeyValue); err != nil {
+					return fmt.Errorf("Unable to add labels to Template.Items[%v] GenericObject.Labels: %v", i, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// mergeMaps flags
+const (
+	OverwriteExistingDstKey     = 1 << iota
+	ErrorOnExistingDstKey       = 1 << iota
+	ErrorOnDifferentDstKeyValue = 1 << iota
+)
+
+// mergeMaps merges items from a src map into a dst map.
+// Returns an error when the maps are not of the same type.
+// Flags:
+// - ErrorOnExistingDstKey
+//     When set: Return an error if any of the dst keys is already set.
+// - ErrorOnDifferentDstKeyValue
+//     When set: Return an error if any of the dst keys is already set
+//               to a different value than src key.
+// - OverwriteDstKey
+//     When set: Overwrite existing dst key value with src key value.
+func mergeMaps(dst, src interface{}, flags int) error {
+	dstVal := reflect.ValueOf(dst)
+	srcVal := reflect.ValueOf(src)
+
+	if dstVal.Kind() == reflect.Interface || dstVal.Kind() == reflect.Ptr {
+		dstVal = dstVal.Elem()
+	}
+	if srcVal.Kind() == reflect.Interface || srcVal.Kind() == reflect.Ptr {
+		srcVal = srcVal.Elem()
+	}
+
+	if !dstVal.IsValid() {
+		return fmt.Errorf("Dst is not a valid value")
+	}
+	if dstVal.Kind() != reflect.Map {
+		return fmt.Errorf("Dst is not a map")
+	}
+
+	dstTyp := dstVal.Type()
+	srcTyp := srcVal.Type()
+	if !dstTyp.AssignableTo(srcTyp) {
+		return fmt.Errorf("Type mismatch, can't assign '%v' to '%v'", srcTyp, dstTyp)
+	}
+
+	if dstVal.IsNil() {
+		if !dstVal.CanSet() {
+			return fmt.Errorf("Dst value is (not addressable) nil, pass a pointer instead")
+		}
+		dstVal.Set(reflect.MakeMap(dstTyp))
+	}
+
+	for _, k := range srcVal.MapKeys() {
+		if dstVal.MapIndex(k).IsValid() {
+			if flags&ErrorOnExistingDstKey != 0 {
+				return fmt.Errorf("ErrorOnExistingDstKey flag: Dst key already set to a different value, '%v'='%v'", k, dstVal.MapIndex(k))
+			}
+			if dstVal.MapIndex(k).String() != srcVal.MapIndex(k).String() {
+				if flags&ErrorOnDifferentDstKeyValue != 0 {
+					return fmt.Errorf("ErrorOnDifferentDstKeyValue flag: Dst key already set to a different value, '%v'='%v'", k, dstVal.MapIndex(k))
+				}
+				if flags&OverwriteExistingDstKey != 0 {
+					dstVal.SetMapIndex(k, srcVal.MapIndex(k))
+				}
+			}
+		} else {
+			dstVal.SetMapIndex(k, srcVal.MapIndex(k))
+		}
+	}
+
+	return nil
 }
 
 // getClientAndPath returns the RESTClient and path defined for a given
