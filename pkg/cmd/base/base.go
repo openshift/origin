@@ -110,6 +110,11 @@ func usageError(cmd *cobra.Command, format string, args ...interface{}) {
 }
 
 func print(format string, payload interface{}, err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		os.Exit(1)
+	}
+
 	printer := p.TerminalPrinter{} // TODO: use printer according to the provided format
 
 	if reflect.TypeOf(payload).Kind() == reflect.Slice {

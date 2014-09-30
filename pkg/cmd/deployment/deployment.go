@@ -1,8 +1,9 @@
 package deployment
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/cmd/base"
-	api "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +52,9 @@ func NewCmdDeploymentRemove(resource string, name string) *cobra.Command {
 // Executors
 
 func ListDeployments() (interface{}, error) {
-	return api.DeploymentList{}.Items, nil
+	cli := config.NewClient()
+	deployments, err := cli.ListDeployments(labels.Everything())
+	return deployments.Items, err
 }
 
 func ShowDeployment(id string) (interface{}, error) {
