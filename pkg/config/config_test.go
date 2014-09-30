@@ -5,13 +5,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
+	"github.com/openshift/origin/pkg/config/api"
 )
 
 func TestApplyInvalidConfig(t *testing.T) {
@@ -96,4 +99,195 @@ func ExampleApply() {
 	}
 	data, _ := ioutil.ReadFile("config_test.json")
 	Apply(data, testClientMappings)
+}
+
+type FakeLabelsResource struct {
+	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	Labels           map[string]string `json:"labels" yaml:"labels"`
+}
+
+func (*FakeLabelsResource) IsAnAPIObject() {}
+
+func TestAddConfigLabels(t *testing.T) {
+	testCases := []struct {
+		resource       runtime.Object
+		addLabels      map[string]string
+		shouldPass     bool
+		expectedLabels map[string]string
+	}{
+		{ // Test empty labels
+			&kubeapi.Pod{},
+			map[string]string{},
+			true,
+			map[string]string{},
+		},
+		{ // Test resource labels + 0 => expected labels
+			&kubeapi.Pod{Labels: map[string]string{"foo": "bar"}},
+			map[string]string{},
+			true,
+			map[string]string{"foo": "bar"},
+		},
+		{ // Test 0 + addLabels => expected labels
+			&kubeapi.Pod{},
+			map[string]string{"foo": "bar"},
+			true,
+			map[string]string{"foo": "bar"},
+		},
+		{ // Test resource labels + addLabels => expected labels
+			&kubeapi.Service{Labels: map[string]string{"baz": ""}},
+			map[string]string{"foo": "bar"},
+			true,
+			map[string]string{"foo": "bar", "baz": ""},
+		},
+		{ // Test conflicting keys with the same value
+			&kubeapi.Service{Labels: map[string]string{"foo": "same value"}},
+			map[string]string{"foo": "same value"},
+			true,
+			map[string]string{"foo": "same value"},
+		},
+		{ // Test conflicting keys with a different value
+			&kubeapi.Service{Labels: map[string]string{"foo": "first value"}},
+			map[string]string{"foo": "second value"},
+			false,
+			map[string]string{"foo": "first value"},
+		},
+		{ // Test conflicting keys with the same value in the nested ReplicationController labels
+			&kubeapi.ReplicationController{
+				Labels: map[string]string{"foo": "same value"},
+				DesiredState: kubeapi.ReplicationControllerState{
+					PodTemplate: kubeapi.PodTemplate{
+						Labels: map[string]string{"foo": "same value"},
+					},
+				},
+			},
+			map[string]string{"foo": "same value"},
+			true,
+			map[string]string{"foo": "same value"},
+		},
+		{ // Test conflicting keys with a different value in the nested ReplicationController labels
+			&kubeapi.ReplicationController{
+				Labels: map[string]string{"foo": "first value"},
+				DesiredState: kubeapi.ReplicationControllerState{
+					PodTemplate: kubeapi.PodTemplate{
+						Labels: map[string]string{"foo": "first value"},
+					},
+				},
+			},
+			map[string]string{"foo": "second value"},
+			false,
+			map[string]string{"foo": "first value"},
+		},
+		{ // Test unknown Generic Object with Labels field
+			&FakeLabelsResource{Labels: map[string]string{"baz": ""}},
+			map[string]string{"foo": "bar"},
+			true,
+			map[string]string{"foo": "bar", "baz": ""},
+		},
+	}
+
+	for i, test := range testCases {
+		items := []runtime.EmbeddedObject{{Object: test.resource}}
+		cfg := api.Config{Items: items}
+
+		err := AddConfigLabels(&cfg, test.addLabels)
+		if err != nil && test.shouldPass {
+			t.Errorf("Unexpected error while setting labels on testCase[%v].", i)
+		}
+		if err == nil && !test.shouldPass {
+			t.Errorf("Unexpected non-error while setting labels on testCase[%v].", i)
+		}
+
+		obj := reflect.ValueOf(cfg.Items[0].Object)
+		if obj.Kind() == reflect.Interface || obj.Kind() == reflect.Ptr {
+			obj = obj.Elem()
+		}
+
+		// Test Item[i].Labels.
+		rootLabels := obj.FieldByName("Labels").Interface().(map[string]string)
+		if !reflect.DeepEqual(rootLabels, test.expectedLabels) {
+			t.Errorf("Unexpected root labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, rootLabels)
+		}
+
+		// Test ReplicationController's nested labels.
+		if obj.Type().Name() == "ReplicationController" {
+			// Test Items[i].DesiredState.PodTemplate.Labels.
+			nestedLabels := obj.FieldByName("DesiredState").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
+			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
+				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
+			}
+		}
+	}
+}
+
+func TestMergeMaps(t *testing.T) {
+	testCases := []struct {
+		dst        interface{}
+		src        interface{}
+		flags      int
+		shouldPass bool
+		expected   interface{}
+	}{
+		{ // Test empty maps
+			map[int]int{},
+			map[int]int{},
+			0,
+			true,
+			map[int]int{},
+		},
+		{ // Test dst + src => expected
+			map[int]string{1: "foo"},
+			map[int]string{2: "bar"},
+			0,
+			true,
+			map[int]string{1: "foo", 2: "bar"},
+		},
+		{ // Test dst + src => expected, do not overwrite dst
+			map[string]string{"foo": "bar"},
+			map[string]string{"foo": ""},
+			0,
+			true,
+			map[string]string{"foo": "bar"},
+		},
+		{ // Test dst + src => expected, overwrite dst
+			map[string]string{"foo": "bar"},
+			map[string]string{"foo": ""},
+			OverwriteExistingDstKey,
+			true,
+			map[string]string{"foo": ""},
+		},
+		{ // Test dst + src => expected, error on existing key value
+			map[string]string{"foo": "bar"},
+			map[string]string{"foo": "bar"},
+			ErrorOnExistingDstKey | OverwriteExistingDstKey,
+			false,
+			map[string]string{"foo": "bar"},
+		},
+		{ // Test dst + src => expected, do not error on same key value
+			map[string]string{"foo": "bar"},
+			map[string]string{"foo": "bar"},
+			ErrorOnDifferentDstKeyValue | OverwriteExistingDstKey,
+			true,
+			map[string]string{"foo": "bar"},
+		},
+		{ // Test dst + src => expected, error on different key value
+			map[string]string{"foo": "bar"},
+			map[string]string{"foo": ""},
+			ErrorOnDifferentDstKeyValue | OverwriteExistingDstKey,
+			false,
+			map[string]string{"foo": "bar"},
+		},
+	}
+
+	for i, test := range testCases {
+		err := mergeMaps(test.dst, test.src, test.flags)
+		if err != nil && test.shouldPass {
+			t.Errorf("Unexpected error while merging maps on testCase[%v].", i)
+		}
+		if err == nil && !test.shouldPass {
+			t.Errorf("Unexpected non-error while merging maps on testCase[%v].", i)
+		}
+		if !reflect.DeepEqual(test.dst, test.expected) {
+			t.Errorf("Unexpected map on testCase[%v]. Expected: %v, got: %v.", i, test.expected, test.dst)
+		}
+	}
 }
