@@ -479,6 +479,9 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 
 // executeTemplateRequest transform the JSON file with Config template into a
 // valid Config JSON.
+//
+// TODO: Print the output for each resource on success, as "create" method
+//       does in the executeAPIRequest().
 func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Client) bool {
 	if method != "process" {
 		return false
