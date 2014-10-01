@@ -1,4 +1,4 @@
-package base
+package resource
 
 import (
 	"fmt"
@@ -64,7 +64,8 @@ func CreateCmdCreate(resource string, name string, createFunc func(payload inter
 		Long:  fmt.Sprintf("Create a %s.", resource),
 		Run: func(cmd *cobra.Command, args []string) {
 			id, _ := createFunc(nil) // TODO
-			fmt.Printf("Created %s %s", resource, id)
+			printer := p.TerminalPrinter{}
+			printer.Printf("Created %s %s", resource, id)
 		},
 	}
 	return cmd
@@ -81,7 +82,8 @@ func CreateCmdUpdate(resource string, name string, updateFunc func(id string, pa
 			}
 			id := args[0]
 			_ = updateFunc(id, nil) // TODO
-			fmt.Printf("Updated %s %s", resource, id)
+			printer := p.TerminalPrinter{}
+			printer.Printf("Updated %s %s", resource, id)
 		},
 	}
 	return cmd
@@ -98,7 +100,8 @@ func CreateCmdRemove(resource string, name string, removeFunc func(id string) er
 			}
 			id := args[0]
 			_ = removeFunc(id)
-			fmt.Printf("Removed %s %s", resource, id)
+			printer := p.TerminalPrinter{}
+			printer.Printf("Removed %s %s", resource, id)
 		},
 	}
 	return cmd
@@ -110,27 +113,27 @@ func usageError(cmd *cobra.Command, format string, args ...interface{}) {
 }
 
 func print(format string, payload interface{}, err error) {
+	printer := p.TerminalPrinter{} // TODO: use printer according to the provided format
+
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		printer.Errorf("Error: %s", err)
 		os.Exit(1)
 	}
-
-	printer := p.TerminalPrinter{} // TODO: use printer according to the provided format
 
 	if reflect.TypeOf(payload).Kind() == reflect.Slice {
 		items := reflect.ValueOf(payload)
 
 		if items.Len() == 0 {
-			printer.Errorln("Nothing found")
+			printer.Errorf("Nothing found")
 
 		} else {
 			for i := 0; i < items.Len(); i++ {
-				fmt.Println(items.Index(i))
+				printer.Printf("Item: %s", items.Index(i))
 			}
 		}
 
 	} else {
-		fmt.Println(payload)
+		printer.Printf("Item: %s", payload)
 	}
 }
 

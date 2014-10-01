@@ -2,15 +2,15 @@ package deployment
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/openshift/origin/pkg/cmd/base"
 	"github.com/openshift/origin/pkg/cmd/config"
+	r "github.com/openshift/origin/pkg/cmd/resource"
 	"github.com/spf13/cobra"
 )
 
 // Root command
 
 func NewCmdDeployment(resource string) *cobra.Command {
-	deploymentCmd := base.CreateCmdRoot(resource)
+	deploymentCmd := r.CreateCmdRoot(resource)
 
 	deploymentListCmd := NewCmdDeploymentList(resource, "list")
 	deploymentShowCmd := NewCmdDeploymentShow(resource, "show")
@@ -30,23 +30,23 @@ func NewCmdDeployment(resource string) *cobra.Command {
 // Subcommands
 
 func NewCmdDeploymentList(resource string, name string) *cobra.Command {
-	return base.CreateCmdList(resource, name, ListDeployments)
+	return r.CreateCmdList(resource, name, ListDeployments)
 }
 
 func NewCmdDeploymentShow(resource string, name string) *cobra.Command {
-	return base.CreateCmdShow(resource, name, ShowDeployment)
+	return r.CreateCmdShow(resource, name, ShowDeployment)
 }
 
 func NewCmdDeploymentCreate(resource string, name string) *cobra.Command {
-	return base.CreateCmdCreate(resource, name, CreateDeployment)
+	return r.CreateCmdCreate(resource, name, CreateDeployment)
 }
 
 func NewCmdDeploymentUpdate(resource string, name string) *cobra.Command {
-	return base.CreateCmdUpdate(resource, name, UpdateDeployment)
+	return r.CreateCmdUpdate(resource, name, UpdateDeployment)
 }
 
 func NewCmdDeploymentRemove(resource string, name string) *cobra.Command {
-	return base.CreateCmdRemove(resource, name, RemoveDeployment)
+	return r.CreateCmdRemove(resource, name, RemoveDeployment)
 }
 
 // Executors
