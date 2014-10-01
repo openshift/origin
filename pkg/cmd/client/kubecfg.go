@@ -509,9 +509,21 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 	if len(c.Config) == 0 {
 		glog.Fatal("Need to pass valid configuration file (-c config.json)")
 	}
-	errs := config.Apply(c.readConfig("config", latest.Codec), clients)
-	for _, err := range errs {
-		fmt.Println(err.Error())
+	result, err := config.Apply(c.readConfig("config", latest.Codec), clients)
+	if err != nil {
+		glog.Fatalf("Error applying the config: %v", err)
+	}
+	for _, itemResult := range result {
+		if itemResult.Error == nil {
+			fmt.Println(itemResult.Message)
+			continue
+		}
+
+		if statusErr, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+			fmt.Printf("Error: %v\n", statusErr.Status().Message)
+		} else {
+			fmt.Printf("Error: %v\n", itemResult.Error)
+		}
 	}
 	return true
 }
