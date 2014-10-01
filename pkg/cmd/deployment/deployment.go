@@ -52,7 +52,7 @@ func NewCmdDeploymentRemove(resource string, name string) *cobra.Command {
 // Executors
 
 func ListDeployments() (interface{}, error) {
-	cli := config.NewClient()
+	cli := config.NewOpenShiftClient()
 	deployments, err := cli.ListDeployments(labels.Everything())
 	return deployments.Items, err
 }

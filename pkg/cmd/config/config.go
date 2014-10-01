@@ -4,12 +4,21 @@ import (
 	"fmt"
 	"os"
 
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/openshift/origin/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	oclient "github.com/openshift/origin/pkg/client"
 )
 
-func NewClient() *client.Client {
-	cli, err := client.New(GetHost(), GetVersion(), GetAuthInfo())
+func NewOpenShiftClient() *oclient.Client {
+	cli, err := oclient.New(GetHost(), GetVersion(), GetAuthInfo())
+	if err != nil {
+		fmt.Errorf("Error: %s", err)
+		os.Exit(1)
+	}
+	return cli
+}
+
+func NewKubeClient() *kclient.Client {
+	cli, err := kclient.New(GetHost(), GetVersion(), GetAuthInfo())
 	if err != nil {
 		fmt.Errorf("Error: %s", err)
 		os.Exit(1)
@@ -29,6 +38,6 @@ func GetVersion() string {
 	return ""
 }
 
-func GetAuthInfo() *kubeclient.AuthInfo {
+func GetAuthInfo() *kclient.AuthInfo {
 	return nil
 }
