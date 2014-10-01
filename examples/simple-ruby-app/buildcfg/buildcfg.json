@@ -1,5 +1,7 @@
 {
     "id": "build100",
+    "kind": "BuildConfig",
+    "apiVersion": "v1beta1",
     "desiredInput":
     {
         "type":      "docker",
@@ -7,6 +9,5 @@
         "imageTag":  "openshift/origin-ruby-sample",
         "registry":  "127.0.0.1:5000"
     },
-
     "secret": "secret101"
 }
