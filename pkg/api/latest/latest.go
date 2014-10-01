@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	_ "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 )
 
