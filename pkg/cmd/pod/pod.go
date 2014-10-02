@@ -10,19 +10,15 @@ import (
 // Root command
 
 func NewCmdPod(resource string) *cobra.Command {
-	podCmd := r.CreateCmdRoot(resource)
-
-	podListCmd := NewCmdPodList(resource, "list")
-
-	podCmd.AddCommand(podListCmd)
-
+	podCmd := r.NewCmdRoot(resource)
+	podCmd.AddCommand(NewCmdPodList(resource, "list"))
 	return podCmd
 }
 
 // Subcommands
 
 func NewCmdPodList(resource string, name string) *cobra.Command {
-	return r.CreateCmdList(resource, name, ListPods)
+	return r.NewCmdList(resource, name, ListPods)
 }
 
 // Executors

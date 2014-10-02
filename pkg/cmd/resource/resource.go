@@ -11,7 +11,7 @@ import (
 
 // Base commands
 
-func CreateCmdRoot(resource string) *cobra.Command {
+func NewCmdRoot(resource string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   resource,
 		Short: fmt.Sprintf("Command '%s' (main)", resource),
@@ -23,7 +23,7 @@ func CreateCmdRoot(resource string) *cobra.Command {
 	return cmd
 }
 
-func CreateCmdList(resource string, name string, listFunc func() (interface{}, error)) *cobra.Command {
+func NewCmdList(resource string, name string, listFunc func() (interface{}, error)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("List one or more %s", resource),
@@ -38,7 +38,7 @@ func CreateCmdList(resource string, name string, listFunc func() (interface{}, e
 	return cmd
 }
 
-func CreateCmdShow(resource string, name string, showFunc func(id string) (interface{}, error)) *cobra.Command {
+func NewCmdShow(resource string, name string, showFunc func(id string) (interface{}, error)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name + " <id>",
 		Short: fmt.Sprintf("Display information about a %s", resource),
@@ -57,7 +57,7 @@ func CreateCmdShow(resource string, name string, showFunc func(id string) (inter
 	return cmd
 }
 
-func CreateCmdCreate(resource string, name string, createFunc func(payload interface{}) (string, error)) *cobra.Command {
+func NewCmdCreate(resource string, name string, createFunc func(payload interface{}) (string, error)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("Create a %s", resource),
@@ -71,7 +71,7 @@ func CreateCmdCreate(resource string, name string, createFunc func(payload inter
 	return cmd
 }
 
-func CreateCmdUpdate(resource string, name string, updateFunc func(id string, payload interface{}) error) *cobra.Command {
+func NewCmdUpdate(resource string, name string, updateFunc func(id string, payload interface{}) error) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: fmt.Sprintf("Update a %s", resource),
@@ -89,7 +89,7 @@ func CreateCmdUpdate(resource string, name string, updateFunc func(id string, pa
 	return cmd
 }
 
-func CreateCmdRemove(resource string, name string, removeFunc func(id string) error) *cobra.Command {
+func NewCmdRemove(resource string, name string, removeFunc func(id string) error) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name + " <id>",
 		Short: fmt.Sprintf("Remove a %s", resource),
