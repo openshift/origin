@@ -2,15 +2,41 @@
 
 set -e
 
+hackdir=$(CDPATH="" cd $(dirname $0); pwd)
+
 # If we are running inside of Travis then do not run the rest of this
 # script unless we want to TEST_ASSETS
 if [[ "${TRAVIS}" == "true" && "${TEST_ASSETS}" == "false" ]]; then
   exit
 fi
 
-npm install -g bower grunt-cli
-pushd assets > /dev/null
+# Install bower if needed
+if ! which bower > /dev/null 2>&1 ; then
+  if [[ "${TRAVIS}" == "true" ]]; then
+    npm install -g bower
+  else
+    sudo npm install -g bower
+  fi
+fi
+ 
+# Install grunt if needed
+if ! which grunt > /dev/null 2>&1 ; then
+  if [[ "${TRAVIS}" == "true" ]]; then
+    npm install -g grunt-cli
+  else
+    sudo npm install -g grunt-cli
+  fi
+fi
+
+pushd ${hackdir}/../assets > /dev/null
   npm install
   bower install
+  bundle install
 popd > /dev/null
-gem install compass
+
+pushd ${hackdir}/../Godeps/_workspace > /dev/null
+  godep_path=$(pwd)
+  pushd src/github.com/jteeuwen/go-bindata > /dev/null
+    GOPATH=$godep_path go install ./...
+  popd > /dev/null
+popd > /dev/null
