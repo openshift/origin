@@ -37,13 +37,40 @@ fi
 
 cd "${OS_TARGET}"
 
-if [ "$1" != "" ]; then
+usage() {
+  echo "Usage:"
+  echo "  $0 [-p PACKAGE][-r REGEXP] | [-h]"
+  echo ""
+  echo "  -p PACKAGE     The test package to run"
+  echo "  -r REGEXP      Run tests that match the given REGEXP.  The default"
+  echo "                 is to run all tests"
+  echo "  -h             This help."
+}
+
+while getopts "x:p:r:h" FLAG; do
+  case $FLAG in
+    p)
+	  PACKAGE=$OPTARG
+      ;;
+    r)
+      TESTS_TO_RUN="-run ${OPTARG}"
+      ;;
+	x)
+	  EXTRA_FLAGS=$OPTARG
+      ;;
+    h)
+	  usage
+	  exit 0
+  esac
+done
+
+if [ "$PACKAGE" != "" ]; then
   if [ -n "${KUBE_COVER}" ]; then
     KUBE_COVER="${KUBE_COVER} -coverprofile=tmp.out"
   fi
 
-  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$OS_GO_PACKAGE/$1" "${@:2}"
+  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$OS_GO_PACKAGE/$PACKAGE" $TESTS_TO_RUN $EXTRA_FLAGS
   exit 0
 fi
 
-find_test_dirs | xargs go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}"
+find_test_dirs | xargs go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER ${TESTS_TO_RUN} $EXTRA_FLAGS
