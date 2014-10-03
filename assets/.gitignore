@@ -4,4 +4,3 @@ dist
 .sass-cache
 .bundle
 bower_components
-Gemfile.lock
