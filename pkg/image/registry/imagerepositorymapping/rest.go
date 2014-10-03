@@ -33,18 +33,18 @@ func (s *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
 }
 
-// Get is not supported.
-func (s *REST) Get(id string) (runtime.Object, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", id)
-}
-
 // List is not supported.
-func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", "list")
 }
 
+// Get is not supported.
+func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+	return nil, errors.NewNotFound("imageRepositoryMapping", id)
+}
+
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
-func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	mapping, ok := obj.(*api.ImageRepositoryMapping)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository mapping: %#v", obj)
@@ -110,11 +110,11 @@ func (s *REST) findImageRepository(dockerRepo string) (*api.ImageRepository, err
 }
 
 // Update is not supported.
-func (s *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	return nil, fmt.Errorf("ImageRepositoryMappings may not be changed.")
 }
 
 // Delete is not supported.
-func (s *REST) Delete(id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }

@@ -3,7 +3,7 @@ package deploy
 import (
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -31,11 +31,11 @@ type DeploymentStateHandler interface {
 type DefaultDeploymentHandler struct {
 	osClient    osclient.Interface
 	kubeClient  kubeclient.Interface
-	environment []api.EnvVar
+	environment []kubeapi.EnvVar
 }
 
 // NewDeploymentController creates a new DeploymentController.
-func NewDeploymentController(kubeClient kubeclient.Interface, osClient osclient.Interface, initialEnvironment []api.EnvVar) *DeploymentController {
+func NewDeploymentController(kubeClient kubeclient.Interface, osClient osclient.Interface, initialEnvironment []kubeapi.EnvVar) *DeploymentController {
 	dc := &DeploymentController{
 		kubeClient: kubeClient,
 		osClient:   osClient,
@@ -101,31 +101,31 @@ func (dh *DefaultDeploymentHandler) saveDeployment(deployment *deployapi.Deploym
 	return err
 }
 
-func (dh *DefaultDeploymentHandler) makeDeploymentPod(deployment *deployapi.Deployment) *api.Pod {
+func (dh *DefaultDeploymentHandler) makeDeploymentPod(deployment *deployapi.Deployment) *kubeapi.Pod {
 	podID := deploymentPodID(deployment)
 
 	envVars := deployment.Strategy.CustomPod.Environment
-	envVars = append(envVars, api.EnvVar{Name: "KUBERNETES_DEPLOYMENT_ID", Value: deployment.ID})
+	envVars = append(envVars, kubeapi.EnvVar{Name: "KUBERNETES_DEPLOYMENT_ID", Value: deployment.ID})
 	for _, env := range dh.environment {
 		envVars = append(envVars, env)
 	}
 
-	return &api.Pod{
-		JSONBase: api.JSONBase{
+	return &kubeapi.Pod{
+		JSONBase: kubeapi.JSONBase{
 			ID: podID,
 		},
-		DesiredState: api.PodState{
-			Manifest: api.ContainerManifest{
+		DesiredState: kubeapi.PodState{
+			Manifest: kubeapi.ContainerManifest{
 				Version: "v1beta1",
-				Containers: []api.Container{
+				Containers: []kubeapi.Container{
 					{
 						Name:  "deployment",
 						Image: deployment.Strategy.CustomPod.Image,
 						Env:   envVars,
 					},
 				},
-				RestartPolicy: api.RestartPolicy{
-					Never: &api.RestartPolicyNever{},
+				RestartPolicy: kubeapi.RestartPolicy{
+					Never: &kubeapi.RestartPolicyNever{},
 				},
 			},
 		},
@@ -140,7 +140,7 @@ func deploymentPodID(deployment *deployapi.Deployment) string {
 func (dh *DefaultDeploymentHandler) HandleNew(deployment *deployapi.Deployment) error {
 	deploymentPod := dh.makeDeploymentPod(deployment)
 	glog.Infof("Attempting to create deployment pod: %+v", deploymentPod)
-	if pod, err := dh.kubeClient.CreatePod(deploymentPod); err != nil {
+	if pod, err := dh.kubeClient.CreatePod(kubeapi.NewContext(), deploymentPod); err != nil {
 		glog.Warningf("Received error creating pod: %v", err)
 		deployment.State = deployapi.DeploymentFailed
 	} else {
@@ -155,7 +155,7 @@ func (dh *DefaultDeploymentHandler) HandleNew(deployment *deployapi.Deployment) 
 func (dh *DefaultDeploymentHandler) HandlePending(deployment *deployapi.Deployment) error {
 	podID := deploymentPodID(deployment)
 	glog.Infof("Retrieving deployment pod id %s", podID)
-	pod, err := dh.kubeClient.GetPod(podID)
+	pod, err := dh.kubeClient.GetPod(kubeapi.NewContext(), podID)
 	if err != nil {
 		glog.Errorf("Error retrieving pod for deployment ID %v: %#v", deployment.ID, err)
 		deployment.State = deployapi.DeploymentFailed
@@ -163,9 +163,9 @@ func (dh *DefaultDeploymentHandler) HandlePending(deployment *deployapi.Deployme
 		glog.Infof("Deployment pod is %+v", pod)
 
 		switch pod.CurrentState.Status {
-		case api.PodRunning:
+		case kubeapi.PodRunning:
 			deployment.State = deployapi.DeploymentRunning
-		case api.PodTerminated:
+		case kubeapi.PodTerminated:
 			dh.checkForTerminatedDeploymentPod(deployment, pod)
 		}
 	}
@@ -177,7 +177,7 @@ func (dh *DefaultDeploymentHandler) HandlePending(deployment *deployapi.Deployme
 func (dh *DefaultDeploymentHandler) HandleRunning(deployment *deployapi.Deployment) error {
 	podID := deploymentPodID(deployment)
 	glog.Infof("Retrieving deployment pod id %s", podID)
-	pod, err := dh.kubeClient.GetPod(podID)
+	pod, err := dh.kubeClient.GetPod(kubeapi.NewContext(), podID)
 	if err != nil {
 		glog.Errorf("Error retrieving pod for deployment ID %v: %#v", deployment.ID, err)
 		deployment.State = deployapi.DeploymentFailed
@@ -189,15 +189,15 @@ func (dh *DefaultDeploymentHandler) HandleRunning(deployment *deployapi.Deployme
 	return dh.saveDeployment(deployment)
 }
 
-func (dh *DefaultDeploymentHandler) checkForTerminatedDeploymentPod(deployment *deployapi.Deployment, pod *api.Pod) {
-	if pod.CurrentState.Status != api.PodTerminated {
+func (dh *DefaultDeploymentHandler) checkForTerminatedDeploymentPod(deployment *deployapi.Deployment, pod *kubeapi.Pod) {
+	if pod.CurrentState.Status != kubeapi.PodTerminated {
 		glog.Infof("The deployment has not yet finished. Pod status is %s. Continuing", pod.CurrentState.Status)
 		return
 	}
 
 	deployment.State = deployapi.DeploymentComplete
 	for _, info := range pod.CurrentState.Info {
-		if info.State.ExitCode != 0 {
+		if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
 			deployment.State = deployapi.DeploymentFailed
 		}
 	}
@@ -205,7 +205,7 @@ func (dh *DefaultDeploymentHandler) checkForTerminatedDeploymentPod(deployment *
 	if deployment.State == deployapi.DeploymentComplete {
 		podID := deploymentPodID(deployment)
 		glog.Infof("Removing deployment pod for ID %v", podID)
-		dh.kubeClient.DeletePod(podID)
+		dh.kubeClient.DeletePod(kubeapi.NewContext(), podID)
 	}
 
 	glog.Infof("The deployment pod has finished. Setting deployment state to %s", deployment.State)

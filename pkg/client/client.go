@@ -1,9 +1,6 @@
 package client
 
 import (
-	"fmt"
-	"strings"
-
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -98,23 +95,33 @@ type Client struct {
 	*kubeclient.RESTClient
 }
 
-// New creates and returns a new Client.
-func New(host, version string, auth *kubeclient.AuthInfo) (*Client, error) {
-	if version == "" {
+// New creates an OpenShift client for the given config. This client works with builds, deployments,
+// templates, routes, and images. It allows operations such as list, get, update and delete on these
+// objects. An error is returned if the provided configuration is not valid.
+func New(c *kubeclient.Config) (*Client, error) {
+	config := *c
+	if config.Prefix == "" {
+		config.Prefix = "/osapi"
+	}
+	if config.Version == "" {
 		// Clients default to the preferred code API version
-		// TODO: implement version negotation (highest version supported by server)
-		version = latest.Version
+		// TODO: implement version negotiation (highest version supported by server)
+		config.Version = latest.Version
 	}
-	serverCodec, _, err := latest.InterfacesFor(version)
+	client, err := kubeclient.RESTClientFor(&config)
 	if err != nil {
-		return nil, fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
+		return nil, err
 	}
-	prefix := fmt.Sprintf("/osapi/%s/", version)
-	restClient, err := kubeclient.NewRESTClient(host, auth, prefix, serverCodec)
+	return &Client{client}, nil
+}
+
+// NewOrDie creates an OpenShift client and panics if the provided API version is not recognized.
+func NewOrDie(c *kubeclient.Config) *Client {
+	client, err := New(c)
 	if err != nil {
-		return nil, fmt.Errorf("API URL '%s' is not valid: %v", host, err)
+		panic(err)
 	}
-	return &Client{restClient}, nil
+	return client
 }
 
 // CreateBuild creates new build. Returns the server's representation of the build and error if one occurs.

@@ -32,7 +32,7 @@ func (rs *REST) New() runtime.Object {
 }
 
 // List obtains a list of Routes that match selector.
-func (rs *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
+func (rs *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	list, err := rs.registry.ListRoutes(selector)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (rs *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 }
 
 // Get obtains the route specified by its id.
-func (rs *REST) Get(id string) (runtime.Object, error) {
+func (rs *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 	route, err := rs.registry.GetRoute(id)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (rs *REST) Get(id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the Route specified by its id.
-func (rs *REST) Delete(id string) (<-chan runtime.Object, error) {
+func (rs *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
 	_, err := rs.registry.GetRoute(id)
 	if err != nil {
 		return nil, err
@@ -61,12 +61,12 @@ func (rs *REST) Delete(id string) (<-chan runtime.Object, error) {
 }
 
 // Create registers a given new Route instance to rs.registry.
-func (rs *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
 		return nil, fmt.Errorf("not a route: %#v", obj)
 	}
-	
+
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
 		return nil, errors.NewInvalid("route", route.ID, errs)
 	}
@@ -86,7 +86,7 @@ func (rs *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 }
 
 // Update replaces a given Route instance with an existing instance in rs.registry.
-func (rs *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
 		return nil, fmt.Errorf("not a route: %#v", obj)
@@ -109,6 +109,6 @@ func (rs *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
 
 // Watch returns Routes events via a watch.Interface.
 // It implements apiserver.ResourceWatcher.
-func (rs *REST) Watch(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (rs *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(label, field, resourceVersion)
 }

@@ -31,7 +31,7 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag := cmd.Flags()
 	flag.BoolVar(&cfg.ServerVersion, "server_version", false, "Print the server's version number.")
 	flag.BoolVar(&cfg.PreventSkew, "expect_version_match", false, "Fail if server's version doesn't match own version.")
-	flag.StringVarP(&cfg.HttpServer, "host", "h", "", "The host to connect to.")
+	flag.StringVarP(&cfg.ClientConfig.Host, "host", "h", "", "The host to connect to.")
 	flag.StringVarP(&cfg.Config, "config", "c", "", "Path or URL to the config file, or '-' to read from STDIN")
 	flag.StringVarP(&cfg.Selector, "label", "l", "", "Selector (label query) to use for listing")
 	flag.DurationVarP(&cfg.UpdatePeriod, "update", "u", 60*time.Second, "Update interval period")
@@ -45,9 +45,10 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.StringVar(&cfg.WWW, "www", "", "If -proxy is true, use this directory to serve static files")
 	flag.StringVar(&cfg.TemplateFile, "template_file", "", "If present, load this file as a golang template and use it for output printing")
 	flag.StringVar(&cfg.TemplateStr, "template", "", "If present, parse this string as a golang template and use it for output printing")
-	flag.StringVar(&cfg.CAFile, "certificate_authority", "", "Path to a cert. file for the certificate authority")
-	flag.StringVar(&cfg.CertFile, "client_certificate", "", "Path to a client certificate for TLS.")
-	flag.StringVar(&cfg.KeyFile, "client_key", "", "Path to a client key file for TLS.")
+	flag.StringVar(&cfg.ClientConfig.CAFile, "certificate_authority", "", "Path to a cert. file for the certificate authority")
+	flag.StringVar(&cfg.ClientConfig.CertFile, "client_certificate", "", "Path to a client certificate for TLS.")
+	flag.StringVar(&cfg.ClientConfig.KeyFile, "client_key", "", "Path to a client key file for TLS.")
+	flag.BoolVar(&cfg.ClientConfig.Insecure, "insecure_skip_tls_verify", false, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
 	flag.StringVar(&cfg.ImageName, "image", "", "Image used when updating a replicationController.  Will apply to the first container in the pod template.")
 
 	return cmd

@@ -53,7 +53,7 @@ func (r *Etcd) GetBuild(id string) (*api.Build, error) {
 
 // CreateBuild creates a new Build.
 func (r *Etcd) CreateBuild(build *api.Build) error {
-	err := r.CreateObj(makeBuildKey(build.ID), build)
+	err := r.CreateObj(makeBuildKey(build.ID), build, 0)
 	return etcderr.InterpretCreateError(err, "build", build.ID)
 }
 
@@ -103,7 +103,7 @@ func (r *Etcd) GetBuildConfig(id string) (*api.BuildConfig, error) {
 
 // CreateBuildConfig creates a new BuildConfig.
 func (r *Etcd) CreateBuildConfig(config *api.BuildConfig) error {
-	err := r.CreateObj(makeBuildConfigKey(config.ID), config)
+	err := r.CreateObj(makeBuildConfigKey(config.ID), config, 0)
 	return etcderr.InterpretCreateError(err, "buildConfig", config.ID)
 }
 

@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -19,33 +20,23 @@ import (
 type Storage struct{}
 
 // NewStorage creates new RESTStorage for the Template objects.
-func NewStorage() apiserver.RESTStorage {
+func NewStorage() *Storage {
 	return &Storage{}
-}
-
-func (s *Storage) List(selector, fields labels.Selector) (runtime.Object, error) {
-	return nil, errors.New("template.Storage.List() is not implemented.")
-}
-
-func (s *Storage) Get(id string) (runtime.Object, error) {
-	return nil, errors.New("template.Storage.Get() is not implemented.")
 }
 
 func (s *Storage) New() runtime.Object {
 	return &api.Template{}
 }
 
-func (s *Storage) Delete(id string) (<-chan runtime.Object, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return nil, errors.New("template.Storage.Delete() is not implemented.")
-	}), nil
+func (s *Storage) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+	return nil, errors.New("template.Storage.List() is not implemented.")
 }
 
-func (s *Storage) Update(minion runtime.Object) (<-chan runtime.Object, error) {
-	return nil, errors.New("template.Storage.Update() is not implemented.")
+func (s *Storage) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+	return nil, errors.New("template.Storage.Get() is not implemented.")
 }
 
-func (s *Storage) Create(obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *Storage) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	template, ok := obj.(*api.Template)
 	if !ok {
 		return nil, errors.New("Not a template config.")
@@ -60,5 +51,15 @@ func (s *Storage) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 		processor := NewTemplateProcessor(generators)
 		config, err := processor.Process(template)
 		return config, err
+	}), nil
+}
+
+func (s *Storage) Update(ctx kubeapi.Context, template runtime.Object) (<-chan runtime.Object, error) {
+	return nil, errors.New("template.Storage.Update() is not implemented.")
+}
+
+func (s *Storage) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
+		return nil, errors.New("template.Storage.Delete() is not implemented.")
 	}), nil
 }

@@ -12,7 +12,7 @@ func setupDockerSocket(podSpec *api.Pod) {
 	dockerSocketVolume := api.Volume{
 		Name: "docker-socket",
 		Source: &api.VolumeSource{
-			HostDirectory: &api.HostDirectory{
+			HostDir: &api.HostDir{
 				Path: "/var/run/docker.sock",
 			},
 		},
@@ -39,7 +39,7 @@ func setupDockerConfig(podSpec *api.Pod) {
 	dockerConfigVolume := api.Volume{
 		Name: "docker-cfg",
 		Source: &api.VolumeSource{
-			HostDirectory: &api.HostDirectory{
+			HostDir: &api.HostDir{
 				Path: dockerConfig,
 			},
 		},

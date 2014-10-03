@@ -55,7 +55,7 @@ func (r *Etcd) GetDeployment(id string) (*api.Deployment, error) {
 
 // CreateDeployment creates a new Deployment.
 func (r *Etcd) CreateDeployment(deployment *api.Deployment) error {
-	err := r.CreateObj(makeDeploymentKey(deployment.ID), deployment)
+	err := r.CreateObj(makeDeploymentKey(deployment.ID), deployment, 0)
 	return etcderr.InterpretCreateError(err, "deployment", deployment.ID)
 }
 
@@ -107,7 +107,7 @@ func (r *Etcd) GetDeploymentConfig(id string) (*api.DeploymentConfig, error) {
 
 // CreateDeploymentConfig creates a new DeploymentConfig.
 func (r *Etcd) CreateDeploymentConfig(deploymentConfig *api.DeploymentConfig) error {
-	err := r.CreateObj(makeDeploymentConfigKey(deploymentConfig.ID), deploymentConfig)
+	err := r.CreateObj(makeDeploymentConfigKey(deploymentConfig.ID), deploymentConfig, 0)
 	return etcderr.InterpretCreateError(err, "deploymentConfig", deploymentConfig.ID)
 }
 

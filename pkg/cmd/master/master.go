@@ -50,16 +50,16 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
-	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
+	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/version"
 
 	// Register versioned api types
 	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
 )
 
 func NewCommandStartAllInOne(name string) *cobra.Command {
@@ -73,6 +73,7 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 			cfg.masterHost = env("OPENSHIFT_MASTER", "127.0.0.1")
 			cfg.bindAddr = env("OPENSHIFT_BIND_ADDR", "127.0.0.1")
 			cfg.nodeHosts = []string{"127.0.0.1"}
+			cfg.networkContainerImage = env("KUBERNETES_NETWORK_CONTAINER_IMAGE", kubelet.NetworkContainerImage)
 
 			if len(os.Getenv("OPENSHIFT_MASTER")) > 0 {
 				if cfg.masterHost == cfg.bindAddr {
@@ -106,9 +107,12 @@ type config struct {
 	VolumeDir  string
 	EtcdDir    string
 	Docker     docker.Helper
+
 	masterHost string
 	nodeHosts  []string
 	bindAddr   string
+
+	networkContainerImage string
 
 	storageVersion string
 }
@@ -121,15 +125,15 @@ func (c *config) newEtcdHelper() (helper tools.EtcdHelper, err error) {
 	if version == "" {
 		version = latest.Version
 	}
-	codec, versioner, err := latest.InterfacesFor(version)
+	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {
 		return helper, err
 	}
-	return tools.EtcdHelper{client, codec, versioner}, nil
+	return tools.EtcdHelper{client, interfaces.Codec, interfaces.ResourceVersioner}, nil
 }
 
 func (c *config) getKubeClient() *kubeclient.Client {
-	kubeClient, err := kubeclient.New("http://"+c.ListenAddr, klatest.Version, nil)
+	kubeClient, err := kubeclient.New(&kubeclient.Config{Host: c.ListenAddr, Version: klatest.Version})
 	if err != nil {
 		glog.Fatalf("Unable to configure client - bad URL: %v", err)
 	}
@@ -137,7 +141,7 @@ func (c *config) getKubeClient() *kubeclient.Client {
 }
 
 func (c *config) getOsClient() *osclient.Client {
-	osClient, err := osclient.New("http://"+c.ListenAddr, latest.Version, nil)
+	osClient, err := osclient.New(&kubeclient.Config{Host: c.ListenAddr, Version: latest.Version})
 	if err != nil {
 		glog.Fatalf("Unable to configure client - bad URL: %v", err)
 	}
@@ -257,7 +261,7 @@ func (c *config) runApiserver() {
 
 	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(osMux, kubePrefix)
 	apiserver.NewAPIGroup(m.API_v1beta2()).InstallREST(osMux, kube2Prefix)
-	apiserver.NewAPIGroup(storage, v1beta1.Codec).InstallREST(osMux, osPrefix)
+	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, latest.SelfLinker).InstallREST(osMux, osPrefix)
 	apiserver.InstallSupport(osMux)
 
 	osApi := &http.Server{
@@ -342,7 +346,10 @@ func (c *config) runKubelet() {
 		cadvisorClient,
 		etcdClient,
 		rootDirectory,
-		30*time.Second)
+		c.networkContainerImage,
+		30*time.Second,
+		0.0,
+		10)
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 	go util.Forever(func() {
 		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), minionHost, uint(minionPort))
