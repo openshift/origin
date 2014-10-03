@@ -31,7 +31,7 @@ fi
 pushd ${hackdir}/../assets > /dev/null
   npm install
   bower install
-  bundle install
+  bundle install --path ${hackdir}/../assets/.bundle
 popd > /dev/null
 
 pushd ${hackdir}/../Godeps/_workspace > /dev/null
