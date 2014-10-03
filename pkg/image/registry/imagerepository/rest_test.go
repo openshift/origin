@@ -17,7 +17,7 @@ func TestGetImageRepositoryError(t *testing.T) {
 	mockRepositoryRegistry.Err = fmt.Errorf("test error")
 	storage := REST{registry: mockRepositoryRegistry}
 
-	image, err := storage.Get("image1")
+	image, err := storage.Get(nil, "image1")
 	if image != nil {
 		t.Errorf("Unexpected non-nil image: %#v", image)
 	}
@@ -34,7 +34,7 @@ func TestGetImageRepositoryOK(t *testing.T) {
 	}
 	storage := REST{registry: mockRepositoryRegistry}
 
-	repo, err := storage.Get("foo")
+	repo, err := storage.Get(nil, "foo")
 	if repo == nil {
 		t.Errorf("Unexpected nil repo: %#v", repo)
 	}
@@ -54,7 +54,7 @@ func TestListImageRepositoriesError(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	imageRepositories, err := storage.List(nil, nil)
+	imageRepositories, err := storage.List(nil, nil, nil)
 	if err != mockRepositoryRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRepositoryRegistry.Err, err)
 	}
@@ -74,7 +74,7 @@ func TestListImageRepositoriesEmptyList(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	imageRepositories, err := storage.List(labels.Everything(), labels.Everything())
+	imageRepositories, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -105,7 +105,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	list, err := storage.List(labels.Everything(), labels.Everything())
+	list, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -120,7 +120,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 func TestCreateImageRepositoryBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(&api.ImageList{})
+	channel, err := storage.Create(nil, &api.ImageList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -133,7 +133,7 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Create(&api.ImageRepository{})
+	channel, err := storage.Create(nil, &api.ImageRepository{})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -156,7 +156,7 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Create(&api.ImageRepository{})
+	channel, err := storage.Create(nil, &api.ImageRepository{})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -165,7 +165,7 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
-	if status.Status != "failure" || status.Message != "foo" {
+	if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
 		t.Errorf("Expected status=failure, message=foo, got %#v", status)
 	}
 }
@@ -173,7 +173,7 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 func TestUpdateImageRepositoryBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(&api.ImageList{})
+	channel, err := storage.Update(nil, &api.ImageList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -185,7 +185,7 @@ func TestUpdateImageRepositoryBadObject(t *testing.T) {
 func TestUpdateImageRepositoryMissingID(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(&api.ImageRepository{})
+	channel, err := storage.Update(nil, &api.ImageRepository{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -199,7 +199,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(&api.ImageRepository{
+	channel, err := storage.Update(nil, &api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
@@ -210,7 +210,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
-	if status.Status != "failure" || status.Message != "foo" {
+	if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
 		t.Errorf("Expected status=failure, message=foo, got %#v", status)
 	}
 }
@@ -219,7 +219,7 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(&api.ImageRepository{
+	channel, err := storage.Update(nil, &api.ImageRepository{
 		JSONBase: kubeapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
@@ -239,7 +239,7 @@ func TestDeleteImageRepository(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Delete("foo")
+	channel, err := storage.Delete(nil, "foo")
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -248,7 +248,7 @@ func TestDeleteImageRepository(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
-	if status.Status != "success" {
+	if status.Status != kubeapi.StatusSuccess {
 		t.Errorf("Expected status=success, got %#v", status)
 	}
 }

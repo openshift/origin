@@ -54,31 +54,31 @@ func NewSourceEtcd(key string, client tools.EtcdClient, updates chan<- interface
 		helper:  helper,
 		updates: updates,
 	}
-	glog.Infof("Watching etcd for %s", key)
+	glog.V(1).Infof("Watching etcd for %s", key)
 	go util.Forever(source.run, time.Second)
 	return source
 }
 
 func (s *SourceEtcd) run() {
-	watching, err := s.helper.Watch(s.key, 0)
-	if err != nil {
-		glog.Errorf("Failed to initialize etcd watch: %v", err)
-		return
-	}
+	watching := s.helper.Watch(s.key, 0)
 	for {
 		select {
 		case event, ok := <-watching.ResultChan():
 			if !ok {
 				return
 			}
-
+			if event.Type == watch.Error {
+				glog.Errorf("Watch error: %v", event.Object)
+				watching.Stop()
+				return
+			}
 			pods, err := eventToPods(event)
 			if err != nil {
 				glog.Errorf("Failed to parse result from etcd watch: %v", err)
 				continue
 			}
 
-			glog.Infof("Received state from etcd watch: %+v", pods)
+			glog.V(4).Infof("Received state from etcd watch: %+v", pods)
 			s.updates <- kubelet.PodUpdate{pods, kubelet.SET}
 		}
 	}

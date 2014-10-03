@@ -115,8 +115,8 @@ func setup(t *testing.T) (*osclient.Client, string) {
 	m := master.New(&master.Config{
 		EtcdHelper: helper,
 	})
-	codec, versioner, _ := latest.InterfacesFor(latest.Version)
-	buildRegistry := buildetcd.New(tools.EtcdHelper{etcdClient, codec, versioner})
+	interfaces, _ := latest.InterfacesFor(latest.Version)
+	buildRegistry := buildetcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, interfaces.ResourceVersioner})
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildRegistry),
 		"buildConfigs": buildconfigregistry.NewREST(buildRegistry),
@@ -125,12 +125,12 @@ func setup(t *testing.T) (*osclient.Client, string) {
 	osMux := http.NewServeMux()
 	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroup(storage, v1beta1.Codec).InstallREST(osMux, osPrefix)
+	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, interfaces.SelfLinker).InstallREST(osMux, osPrefix)
 	apiserver.InstallSupport(osMux)
 	s := httptest.NewServer(osMux)
 
-	kubeclient := client.NewOrDie(s.URL, klatest.Version, nil)
-	osClient, _ := osclient.New(s.URL, latest.Version, nil)
+	kubeclient := client.NewOrDie(&client.Config{Host: s.URL, Version: klatest.Version})
+	osClient := osclient.NewOrDie(&client.Config{Host: s.URL, Version: latest.Version})
 
 	whPrefix := osPrefix + "/buildConfigHooks/"
 	osMux.Handle(whPrefix, http.StripPrefix(whPrefix,

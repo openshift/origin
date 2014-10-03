@@ -32,7 +32,7 @@ func TestGetConfig(t *testing.T) {
 	expectedConfig := mockBuildConfig()
 	mockRegistry := test.BuildConfigRegistry{BuildConfig: expectedConfig}
 	storage := REST{&mockRegistry}
-	configObj, err := storage.Get("foo")
+	configObj, err := storage.Get(nil, "foo")
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestGetConfig(t *testing.T) {
 func TestGetConfigError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("get error")}
 	storage := REST{&mockRegistry}
-	buildObj, err := storage.Get("foo")
+	buildObj, err := storage.Get(nil, "foo")
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -61,7 +61,7 @@ func TestDeleteBuild(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	configId := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, err := storage.Delete(configId)
+	channel, err := storage.Delete(nil, configId)
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestDeleteBuildError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Delete error")}
 	configId := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, _ := storage.Delete(configId)
+	channel, _ := storage.Delete(nil, configId)
 	select {
 	case result := <-channel:
 		status, ok := result.(*kubeapi.Status)
@@ -107,7 +107,7 @@ func TestListConfigsError(t *testing.T) {
 		Err: fmt.Errorf("test error"),
 	}
 	storage := REST{&mockRegistry}
-	configs, err := storage.List(nil, nil)
+	configs, err := storage.List(nil, nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -119,7 +119,7 @@ func TestListConfigsError(t *testing.T) {
 func TestListEmptyConfigList(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{JSONBase: kubeapi.JSONBase{ResourceVersion: 1}}}
 	storage := REST{&mockRegistry}
-	buildConfigs, err := storage.List(labels.Everything(), labels.Everything())
+	buildConfigs, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestListConfigs(t *testing.T) {
 		},
 	}
 	storage := REST{&mockRegistry}
-	configsObj, err := storage.List(labels.Everything(), labels.Everything())
+	configsObj, err := storage.List(nil, labels.Everything(), labels.Everything())
 	configs := configsObj.(*api.BuildConfigList)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -232,7 +232,7 @@ func TestCreateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Create(buildConfig)
+	channel, err := storage.Create(nil, buildConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestUpdateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Update(buildConfig)
+	channel, err := storage.Update(nil, buildConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -295,7 +295,7 @@ func TestUpdateBuildConfigError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Update error")}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Update(buildConfig)
+	channel, err := storage.Update(nil, buildConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -346,7 +346,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Create(&failureCase)
+		c, err := storage.Create(nil, &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}
@@ -405,7 +405,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Update(&failureCase)
+		c, err := storage.Update(nil, &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}

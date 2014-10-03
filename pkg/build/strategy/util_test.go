@@ -29,13 +29,13 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	if volume.Source == nil {
 		t.Fatalf("Unexpected nil volume source")
 	}
-	if volume.Source.HostDirectory == nil {
+	if volume.Source.HostDir == nil {
 		t.Fatalf("Unexpected nil host directory")
 	}
-	if volume.Source.EmptyDirectory != nil {
-		t.Errorf("Unexpected non-nil empty directory: %#v", volume.Source.EmptyDirectory)
+	if volume.Source.EmptyDir != nil {
+		t.Errorf("Unexpected non-nil empty directory: %#v", volume.Source.EmptyDir)
 	}
-	if e, a := "/var/run/docker.sock", volume.Source.HostDirectory.Path; e != a {
+	if e, a := "/var/run/docker.sock", volume.Source.HostDir.Path; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
 

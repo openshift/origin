@@ -57,7 +57,7 @@ func (registry *Etcd) GetRoute(routeID string) (*api.Route, error) {
 
 // CreateRoute creates a new Route.
 func (registry *Etcd) CreateRoute(route *api.Route) error {
-	err := registry.CreateObj(makeRouteKey(route.ID), route)
+	err := registry.CreateObj(makeRouteKey(route.ID), route, 0)
 	return etcderr.InterpretCreateError(err, "route", route.ID)
 }
 
@@ -80,7 +80,7 @@ func (registry *Etcd) WatchRoutes(label, field labels.Selector, resourceVersion 
 		return nil, fmt.Errorf("label selectors are not supported on routes yet")
 	}
 	if value, found := field.RequiresExactMatch("ID"); found {
-		return registry.Watch(makeRouteKey(value), resourceVersion)
+		return registry.Watch(makeRouteKey(value), resourceVersion), nil
 	}
 	if field.Empty() {
 		return registry.WatchList("/routes", resourceVersion, tools.Everything)

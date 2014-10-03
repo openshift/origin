@@ -32,7 +32,7 @@ func TestGetBuild(t *testing.T) {
 	expectedBuild := mockBuild()
 	mockRegistry := test.BuildRegistry{Build: expectedBuild}
 	storage := REST{&mockRegistry}
-	buildObj, err := storage.Get("foo")
+	buildObj, err := storage.Get(nil, "foo")
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestGetBuild(t *testing.T) {
 func TestGetBuildError(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Err: fmt.Errorf("get error")}
 	storage := REST{&mockRegistry}
-	buildObj, err := storage.Get("foo")
+	buildObj, err := storage.Get(nil, "foo")
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -61,7 +61,7 @@ func TestDeleteBuild(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	buildId := "test-build-id"
 	storage := REST{&mockRegistry}
-	channel, err := storage.Delete(buildId)
+	channel, err := storage.Delete(nil, buildId)
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestDeleteBuildError(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Err: fmt.Errorf("Delete error")}
 	buildId := "test-build-id"
 	storage := REST{&mockRegistry}
-	channel, _ := storage.Delete(buildId)
+	channel, _ := storage.Delete(nil, buildId)
 	select {
 	case result := <-channel:
 		status, ok := result.(*kubeapi.Status)
@@ -107,7 +107,7 @@ func TestListBuildsError(t *testing.T) {
 		Err: fmt.Errorf("test error"),
 	}
 	storage := REST{&mockRegistry}
-	builds, err := storage.List(nil, nil)
+	builds, err := storage.List(nil, nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -119,7 +119,7 @@ func TestListBuildsError(t *testing.T) {
 func TestListEmptyBuildList(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Builds: &api.BuildList{JSONBase: kubeapi.JSONBase{ResourceVersion: 1}}}
 	storage := REST{&mockRegistry}
-	builds, err := storage.List(labels.Everything(), labels.Everything())
+	builds, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestListBuilds(t *testing.T) {
 		},
 	}
 	storage := REST{registry: &mockRegistry}
-	buildsObj, err := storage.List(labels.Everything(), labels.Everything())
+	buildsObj, err := storage.List(nil, labels.Everything(), labels.Everything())
 	builds := buildsObj.(*api.BuildList)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -233,7 +233,7 @@ func TestCreateBuild(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	storage := REST{&mockRegistry}
 	build := mockBuild()
-	channel, err := storage.Create(build)
+	channel, err := storage.Create(nil, build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -260,7 +260,7 @@ func TestUpdateBuild(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	storage := REST{&mockRegistry}
 	build := mockBuild()
-	channel, err := storage.Update(build)
+	channel, err := storage.Update(nil, build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -287,7 +287,7 @@ func TestUpdateBuildError(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Err: fmt.Errorf("Update error")}
 	storage := REST{&mockRegistry}
 	build := mockBuild()
-	channel, err := storage.Update(build)
+	channel, err := storage.Update(nil, build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -316,7 +316,7 @@ func TestBuildRESTValidatesCreate(t *testing.T) {
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Create(&failureCase)
+		c, err := storage.Create(nil, &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}
@@ -344,7 +344,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Update(&failureCase)
+		c, err := storage.Update(nil, &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}

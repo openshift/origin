@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -46,14 +47,16 @@ func NewEndpointController(serviceRegistry service.Registry, client *client.Clie
 
 // SyncServiceEndpoints syncs service endpoints.
 func (e *EndpointController) SyncServiceEndpoints() error {
-	services, err := e.client.ListServices(labels.Everything())
+	ctx := api.NewContext()
+	services, err := e.client.ListServices(ctx, labels.Everything())
 	if err != nil {
 		glog.Errorf("Failed to list services: %v", err)
 		return err
 	}
 	var resultErr error
 	for _, service := range services.Items {
-		pods, err := e.client.ListPods(labels.Set(service.Selector).AsSelector())
+		nsCtx := api.WithNamespace(ctx, service.Namespace)
+		pods, err := e.client.ListPods(nsCtx, labels.Set(service.Selector).AsSelector())
 		if err != nil {
 			glog.Errorf("Error syncing service: %#v, skipping.", service)
 			resultErr = err
@@ -72,17 +75,65 @@ func (e *EndpointController) SyncServiceEndpoints() error {
 			}
 			endpoints[ix] = net.JoinHostPort(pod.CurrentState.PodIP, strconv.Itoa(port))
 		}
-		// TODO: this is totally broken, we need to compute this and store inside an AtomicUpdate loop.
-		err = e.serviceRegistry.UpdateEndpoints(&api.Endpoints{
-			JSONBase:  api.JSONBase{ID: service.ID},
-			Endpoints: endpoints,
-		})
+		currentEndpoints, err := e.client.GetEndpoints(nsCtx, service.ID)
+		if err != nil {
+			// TODO this is brittle as all get out, refactor the client libraries to return a structured error.
+			if strings.Contains(err.Error(), "not found") {
+				currentEndpoints = &api.Endpoints{
+					JSONBase: api.JSONBase{
+						ID: service.ID,
+					},
+				}
+			} else {
+				glog.Errorf("Error getting endpoints: %#v", err)
+				continue
+			}
+		}
+		newEndpoints := &api.Endpoints{}
+		*newEndpoints = *currentEndpoints
+		newEndpoints.Endpoints = endpoints
+
+		if currentEndpoints.ResourceVersion == 0 {
+			// No previous endpoints, create them
+			_, err = e.client.CreateEndpoints(nsCtx, newEndpoints)
+		} else {
+			// Pre-existing
+			if endpointsEqual(currentEndpoints, endpoints) {
+				glog.V(2).Infof("endpoints are equal for %s, skipping update", service.ID)
+				continue
+			}
+			_, err = e.client.UpdateEndpoints(nsCtx, newEndpoints)
+		}
 		if err != nil {
 			glog.Errorf("Error updating endpoints: %#v", err)
 			continue
 		}
 	}
 	return resultErr
+}
+
+func containsEndpoint(endpoints *api.Endpoints, endpoint string) bool {
+	if endpoints == nil {
+		return false
+	}
+	for ix := range endpoints.Endpoints {
+		if endpoints.Endpoints[ix] == endpoint {
+			return true
+		}
+	}
+	return false
+}
+
+func endpointsEqual(e *api.Endpoints, endpoints []string) bool {
+	if len(e.Endpoints) != len(endpoints) {
+		return false
+	}
+	for _, endpoint := range endpoints {
+		if !containsEndpoint(e, endpoint) {
+			return false
+		}
+	}
+	return true
 }
 
 // findPort locates the container port for the given manifest and portName.

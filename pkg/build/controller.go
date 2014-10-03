@@ -110,7 +110,7 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 		}
 
 		glog.Infof("Attempting to create pod: %#v", podSpec)
-		_, err = bc.kubeClient.CreatePod(podSpec)
+		_, err = bc.kubeClient.CreatePod(kubeapi.NewContext(), podSpec)
 
 		// TODO: strongly typed error checking
 		if err != nil {
@@ -127,7 +127,7 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 			return api.BuildFailed, fmt.Errorf("Build timed out")
 		}
 
-		pod, err := bc.kubeClient.GetPod(build.PodID)
+		pod, err := bc.kubeClient.GetPod(kubeapi.NewContext(), build.PodID)
 		if err != nil {
 			return build.Status, fmt.Errorf("Error retrieving pod for build ID %v: %#v", build.ID, err)
 		}
@@ -141,7 +141,7 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 
 		// check the exit codes of all the containers in the pod
 		for _, info := range pod.CurrentState.Info {
-			if info.State.ExitCode != 0 {
+			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
 				nextStatus = api.BuildFailed
 			}
 		}

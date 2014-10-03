@@ -21,7 +21,7 @@ func TestListRoutesEmptyList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	routes, err := storage.List(labels.Everything(), labels.Everything())
+	routes, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -52,7 +52,7 @@ func TestListRoutesPopulatedList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	list, err := storage.List(labels.Everything(), labels.Everything())
+	list, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -67,7 +67,7 @@ func TestListRoutesPopulatedList(t *testing.T) {
 func TestCreateRouteBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(&api.RouteList{})
+	channel, err := storage.Create(nil, &api.RouteList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -80,9 +80,9 @@ func TestCreateRouteOK(t *testing.T) {
 	mockRegistry := test.NewRouteRegistry()
 	storage := REST{registry: mockRegistry}
 
-	channel, err := storage.Create(&api.Route{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
-		Host: "www.frontend.com",
+	channel, err := storage.Create(nil, &api.Route{
+		JSONBase:    kubeapi.JSONBase{ID: "foo"},
+		Host:        "www.frontend.com",
 		ServiceName: "myrubyservice",
 	})
 	if channel == nil {
@@ -111,7 +111,7 @@ func TestGetRouteError(t *testing.T) {
 	mockRegistry := test.NewRouteRegistry()
 	storage := REST{registry: mockRegistry}
 
-	route, err := storage.Get("foo")
+	route, err := storage.Get(nil, "foo")
 	if route != nil {
 		t.Errorf("Unexpected non-nil route: %#v", route)
 	}
@@ -132,7 +132,7 @@ func TestGetRouteOK(t *testing.T) {
 	}
 	storage := REST{registry: mockRegistry}
 
-	route, err := storage.Get("foo")
+	route, err := storage.Get(nil, "foo")
 	if route == nil {
 		t.Error("Unexpected nil route")
 	}
@@ -147,7 +147,7 @@ func TestGetRouteOK(t *testing.T) {
 func TestUpdateRouteBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(&api.RouteList{})
+	channel, err := storage.Update(nil, &api.RouteList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -159,7 +159,7 @@ func TestUpdateRouteBadObject(t *testing.T) {
 func TestUpdateRouteMissingID(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(&api.Route{})
+	channel, err := storage.Update(nil, &api.Route{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -172,9 +172,9 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry := test.NewRouteRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(&api.Route{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
-		Host: "www.frontend.com",
+	channel, err := storage.Update(nil, &api.Route{
+		JSONBase:    kubeapi.JSONBase{ID: "foo"},
+		Host:        "www.frontend.com",
 		ServiceName: "rubyservice",
 	})
 	if err != nil {
@@ -185,7 +185,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
-	if status.Status != "failure" || status.Message != "Route foo not found" {
+	if status.Status != kubeapi.StatusFailure || status.Message != "Route foo not found" {
 		t.Errorf("Expected status=failure, message=Route foo not found, got %#v", status)
 	}
 }
@@ -195,8 +195,8 @@ func TestUpdateRouteOK(t *testing.T) {
 	mockRepositoryRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				JSONBase: kubeapi.JSONBase{ID: "bar"},
-				Host: "www.frontend.com",
+				JSONBase:    kubeapi.JSONBase{ID: "bar"},
+				Host:        "www.frontend.com",
 				ServiceName: "rubyservice",
 			},
 		},
@@ -204,12 +204,12 @@ func TestUpdateRouteOK(t *testing.T) {
 
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(&api.Route{
-		JSONBase: kubeapi.JSONBase{ID: "bar"},
-		Host: "www.newfrontend.com",
+	channel, err := storage.Update(nil, &api.Route{
+		JSONBase:    kubeapi.JSONBase{ID: "bar"},
+		Host:        "www.newfrontend.com",
 		ServiceName: "newrubyservice",
 	})
-									
+
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -236,7 +236,7 @@ func TestUpdateRouteOK(t *testing.T) {
 func TestDeleteRouteError(t *testing.T) {
 	mockRegistry := test.NewRouteRegistry()
 	storage := REST{registry: mockRegistry}
-	_, err := storage.Delete("foo")
+	_, err := storage.Delete(nil, "foo")
 	if err == nil {
 		t.Errorf("Unexpected nil error: %#v", err)
 	}
@@ -255,7 +255,7 @@ func TestDeleteRouteOk(t *testing.T) {
 		},
 	}
 	storage := REST{registry: mockRegistry}
-	channel, err := storage.Delete("foo")
+	channel, err := storage.Delete(nil, "foo")
 	if channel == nil {
 		t.Error("Unexpected nil channel")
 	}
@@ -269,7 +269,7 @@ func TestDeleteRouteOk(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != "success" {
+		if status.Status != kubeapi.StatusSuccess {
 			t.Errorf("Expected status=success, got: %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):

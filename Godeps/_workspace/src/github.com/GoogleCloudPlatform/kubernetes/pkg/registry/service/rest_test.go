@@ -18,6 +18,7 @@ package service
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -27,7 +28,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func TestServiceRegistryCreate(t *testing.T) {
@@ -40,7 +40,8 @@ func TestServiceRegistryCreate(t *testing.T) {
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz"},
 	}
-	c, _ := storage.Create(svc)
+	ctx := api.NewDefaultContext()
+	c, _ := storage.Create(ctx, svc)
 	created_svc := <-c
 	created_service := created_svc.(*api.Service)
 	if created_service.ID != "foo" {
@@ -52,7 +53,7 @@ func TestServiceRegistryCreate(t *testing.T) {
 	if len(fakeCloud.Calls) != 0 {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)
 	}
-	srv, err := registry.GetService(svc.ID)
+	srv, err := registry.GetService(ctx, svc.ID)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -75,8 +76,9 @@ func TestServiceStorageValidatesCreate(t *testing.T) {
 			Selector: map[string]string{},
 		},
 	}
+	ctx := api.NewDefaultContext()
 	for _, failureCase := range failureCases {
-		c, err := storage.Create(&failureCase)
+		c, err := storage.Create(ctx, &failureCase)
 		if c != nil {
 			t.Errorf("Expected nil channel")
 		}
@@ -88,14 +90,15 @@ func TestServiceStorageValidatesCreate(t *testing.T) {
 }
 
 func TestServiceRegistryUpdate(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
-	registry.CreateService(&api.Service{
+	registry.CreateService(ctx, &api.Service{
 		Port:     6502,
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz1"},
 	})
 	storage := NewREST(registry, nil, nil)
-	c, err := storage.Update(&api.Service{
+	c, err := storage.Update(ctx, &api.Service{
 		Port:     6502,
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz2"},
@@ -117,8 +120,9 @@ func TestServiceRegistryUpdate(t *testing.T) {
 }
 
 func TestServiceStorageValidatesUpdate(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
-	registry.CreateService(&api.Service{
+	registry.CreateService(ctx, &api.Service{
 		Port:     6502,
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz"},
@@ -137,7 +141,7 @@ func TestServiceStorageValidatesUpdate(t *testing.T) {
 		},
 	}
 	for _, failureCase := range failureCases {
-		c, err := storage.Update(&failureCase)
+		c, err := storage.Update(ctx, &failureCase)
 		if c != nil {
 			t.Errorf("Expected nil channel")
 		}
@@ -148,6 +152,7 @@ func TestServiceStorageValidatesUpdate(t *testing.T) {
 }
 
 func TestServiceRegistryExternalService(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
@@ -158,12 +163,12 @@ func TestServiceRegistryExternalService(t *testing.T) {
 		Selector:                   map[string]string{"bar": "baz"},
 		CreateExternalLoadBalancer: true,
 	}
-	c, _ := storage.Create(svc)
+	c, _ := storage.Create(ctx, svc)
 	<-c
 	if len(fakeCloud.Calls) != 2 || fakeCloud.Calls[0] != "get-zone" || fakeCloud.Calls[1] != "create" {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)
 	}
-	srv, err := registry.GetService(svc.ID)
+	srv, err := registry.GetService(ctx, svc.ID)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -185,7 +190,8 @@ func TestServiceRegistryExternalServiceError(t *testing.T) {
 		Selector:                   map[string]string{"bar": "baz"},
 		CreateExternalLoadBalancer: true,
 	}
-	c, _ := storage.Create(svc)
+	ctx := api.NewDefaultContext()
+	c, _ := storage.Create(ctx, svc)
 	<-c
 	if len(fakeCloud.Calls) != 1 || fakeCloud.Calls[0] != "get-zone" {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)
@@ -196,6 +202,7 @@ func TestServiceRegistryExternalServiceError(t *testing.T) {
 }
 
 func TestServiceRegistryDelete(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
@@ -204,8 +211,8 @@ func TestServiceRegistryDelete(t *testing.T) {
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz"},
 	}
-	registry.CreateService(svc)
-	c, _ := storage.Delete(svc.ID)
+	registry.CreateService(ctx, svc)
+	c, _ := storage.Delete(ctx, svc.ID)
 	<-c
 	if len(fakeCloud.Calls) != 0 {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)
@@ -216,6 +223,7 @@ func TestServiceRegistryDelete(t *testing.T) {
 }
 
 func TestServiceRegistryDeleteExternal(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
@@ -225,8 +233,8 @@ func TestServiceRegistryDeleteExternal(t *testing.T) {
 		Selector:                   map[string]string{"bar": "baz"},
 		CreateExternalLoadBalancer: true,
 	}
-	registry.CreateService(svc)
-	c, _ := storage.Delete(svc.ID)
+	registry.CreateService(ctx, svc)
+	c, _ := storage.Delete(ctx, svc.ID)
 	<-c
 	if len(fakeCloud.Calls) != 2 || fakeCloud.Calls[0] != "get-zone" || fakeCloud.Calls[1] != "delete" {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)
@@ -237,37 +245,81 @@ func TestServiceRegistryDeleteExternal(t *testing.T) {
 }
 
 func TestServiceRegistryMakeLinkVariables(t *testing.T) {
-	service := api.Service{
-		JSONBase:      api.JSONBase{ID: "foo-bar"},
-		Selector:      map[string]string{"bar": "baz"},
-		ContainerPort: util.IntOrString{Kind: util.IntstrString, StrVal: "a-b-c"},
-	}
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
 	registry.List = api.ServiceList{
-		Items: []api.Service{service},
+		Items: []api.Service{
+			{
+				JSONBase: api.JSONBase{ID: "foo-bar"},
+				Selector: map[string]string{"bar": "baz"},
+				Port:     8080,
+				Protocol: "TCP",
+			},
+			{
+				JSONBase: api.JSONBase{ID: "abc-123"},
+				Selector: map[string]string{"bar": "baz"},
+				Port:     8081,
+				Protocol: "UDP",
+			},
+			{
+				JSONBase: api.JSONBase{ID: "q-u-u-x"},
+				Selector: map[string]string{"bar": "baz"},
+				Port:     8082,
+				Protocol: "",
+			},
+		},
 	}
 	machine := "machine"
-	vars, err := GetServiceEnvironmentVariables(registry, machine)
+	vars, err := GetServiceEnvironmentVariables(ctx, registry, machine)
 	if err != nil {
 		t.Errorf("Unexpected err: %v", err)
 	}
-	for _, v := range vars {
-		if !util.IsCIdentifier(v.Name) {
-			t.Errorf("Environment variable name is not valid: %v", v.Name)
+	expected := []api.EnvVar{
+		{Name: "FOO_BAR_SERVICE_HOST", Value: "machine"},
+		{Name: "FOO_BAR_SERVICE_PORT", Value: "8080"},
+		{Name: "FOO_BAR_PORT", Value: "tcp://machine:8080"},
+		{Name: "FOO_BAR_PORT_8080_TCP", Value: "tcp://machine:8080"},
+		{Name: "FOO_BAR_PORT_8080_TCP_PROTO", Value: "tcp"},
+		{Name: "FOO_BAR_PORT_8080_TCP_PORT", Value: "8080"},
+		{Name: "FOO_BAR_PORT_8080_TCP_ADDR", Value: "machine"},
+		{Name: "ABC_123_SERVICE_HOST", Value: "machine"},
+		{Name: "ABC_123_SERVICE_PORT", Value: "8081"},
+		{Name: "ABC_123_PORT", Value: "udp://machine:8081"},
+		{Name: "ABC_123_PORT_8081_UDP", Value: "udp://machine:8081"},
+		{Name: "ABC_123_PORT_8081_UDP_PROTO", Value: "udp"},
+		{Name: "ABC_123_PORT_8081_UDP_PORT", Value: "8081"},
+		{Name: "ABC_123_PORT_8081_UDP_ADDR", Value: "machine"},
+		{Name: "Q_U_U_X_SERVICE_HOST", Value: "machine"},
+		{Name: "Q_U_U_X_SERVICE_PORT", Value: "8082"},
+		{Name: "Q_U_U_X_PORT", Value: "tcp://machine:8082"},
+		{Name: "Q_U_U_X_PORT_8082_TCP", Value: "tcp://machine:8082"},
+		{Name: "Q_U_U_X_PORT_8082_TCP_PROTO", Value: "tcp"},
+		{Name: "Q_U_U_X_PORT_8082_TCP_PORT", Value: "8082"},
+		{Name: "Q_U_U_X_PORT_8082_TCP_ADDR", Value: "machine"},
+		{Name: "SERVICE_HOST", Value: "machine"},
+	}
+	if len(vars) != len(expected) {
+		t.Errorf("Expected %d env vars, got: %+v", len(expected), vars)
+		return
+	}
+	for i := range expected {
+		if !reflect.DeepEqual(vars[i], expected[i]) {
+			t.Errorf("expected %#v, got %#v", vars[i], expected[i])
 		}
 	}
 }
 
 func TestServiceRegistryGet(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	storage := NewREST(registry, fakeCloud, minion.NewRegistry(machines))
-	registry.CreateService(&api.Service{
+	registry.CreateService(ctx, &api.Service{
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz"},
 	})
-	storage.Get("foo")
+	storage.Get(ctx, "foo")
 	if len(fakeCloud.Calls) != 0 {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)
 	}
@@ -277,17 +329,18 @@ func TestServiceRegistryGet(t *testing.T) {
 }
 
 func TestServiceRegistryResourceLocation(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
 	registry.Endpoints = api.Endpoints{Endpoints: []string{"foo:80"}}
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	storage := NewREST(registry, fakeCloud, minion.NewRegistry(machines))
-	registry.CreateService(&api.Service{
+	registry.CreateService(ctx, &api.Service{
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz"},
 	})
 	redirector := apiserver.Redirector(storage)
-	location, err := redirector.ResourceLocation("foo")
+	location, err := redirector.ResourceLocation(ctx, "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -300,26 +353,27 @@ func TestServiceRegistryResourceLocation(t *testing.T) {
 
 	// Test error path
 	registry.Err = fmt.Errorf("fake error")
-	if _, err = redirector.ResourceLocation("foo"); err == nil {
+	if _, err = redirector.ResourceLocation(ctx, "foo"); err == nil {
 		t.Errorf("unexpected nil error")
 	}
 }
 
 func TestServiceRegistryList(t *testing.T) {
+	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	storage := NewREST(registry, fakeCloud, minion.NewRegistry(machines))
-	registry.CreateService(&api.Service{
+	registry.CreateService(ctx, &api.Service{
 		JSONBase: api.JSONBase{ID: "foo"},
 		Selector: map[string]string{"bar": "baz"},
 	})
-	registry.CreateService(&api.Service{
+	registry.CreateService(ctx, &api.Service{
 		JSONBase: api.JSONBase{ID: "foo2"},
 		Selector: map[string]string{"bar2": "baz2"},
 	})
 	registry.List.ResourceVersion = 1
-	s, _ := storage.List(labels.Everything(), labels.Everything())
+	s, _ := storage.List(ctx, labels.Everything(), labels.Everything())
 	sl := s.(*api.ServiceList)
 	if len(fakeCloud.Calls) != 0 {
 		t.Errorf("Unexpected call(s): %#v", fakeCloud.Calls)

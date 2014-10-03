@@ -57,7 +57,7 @@ func (r *Etcd) GetImage(id string) (*api.Image, error) {
 
 // CreateImage creates a new image
 func (r *Etcd) CreateImage(image *api.Image) error {
-	err := r.CreateObj(makeImageKey(image.ID), image)
+	err := r.CreateObj(makeImageKey(image.ID), image, 0)
 	return etcderr.InterpretCreateError(err, "image", image.ID)
 }
 
@@ -117,7 +117,7 @@ func (r *Etcd) WatchImageRepositories(resourceVersion uint64, filter func(repo *
 
 // CreateImageRepository registers the given ImageRepository.
 func (r *Etcd) CreateImageRepository(repo *api.ImageRepository) error {
-	err := r.CreateObj(makeImageRepositoryKey(repo.ID), repo)
+	err := r.CreateObj(makeImageRepositoryKey(repo.ID), repo, 0)
 	return etcderr.InterpretCreateError(err, "imageRepository", repo.ID)
 }
 

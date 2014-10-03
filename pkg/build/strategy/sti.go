@@ -78,7 +78,7 @@ func (bs *STIBuildStrategy) setupTempVolume(pod *api.Pod) error {
 	tmpVolume := api.Volume{
 		Name: "tmp",
 		Source: &api.VolumeSource{
-			HostDirectory: &api.HostDirectory{
+			HostDir: &api.HostDir{
 				Path: tempDir,
 			},
 		},

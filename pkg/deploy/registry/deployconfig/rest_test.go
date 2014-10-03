@@ -20,7 +20,7 @@ func TestListDeploymentConfigsError(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	deploymentConfigs, err := storage.List(nil, nil)
+	deploymentConfigs, err := storage.List(nil, nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -40,7 +40,7 @@ func TestListDeploymentConfigsEmptyList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	deploymentConfigs, err := storage.List(labels.Everything(), labels.Everything())
+	deploymentConfigs, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -71,7 +71,7 @@ func TestListDeploymentConfigsPopulatedList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	list, err := storage.List(labels.Everything(), labels.Everything())
+	list, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -86,7 +86,7 @@ func TestListDeploymentConfigsPopulatedList(t *testing.T) {
 func TestCreateDeploymentConfigBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(&api.DeploymentList{})
+	channel, err := storage.Create(nil, &api.DeploymentList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -100,7 +100,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	mockRegistry.Err = fmt.Errorf("test error")
 	storage := REST{registry: mockRegistry}
 
-	channel, err := storage.Create(&api.DeploymentConfig{
+	channel, err := storage.Create(nil, &api.DeploymentConfig{
 		JSONBase: kubeapi.JSONBase{ID: "foo"},
 	})
 	if channel == nil {
@@ -116,7 +116,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != "failure" || status.Message != "foo" {
+		if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
 			t.Errorf("Expected failure status, got %#V", status)
 		}
 	case <-time.After(50 * time.Millisecond):
@@ -129,7 +129,7 @@ func TestCreateDeploymentConfigOK(t *testing.T) {
 	mockRegistry := test.NewDeploymentConfigRegistry()
 	storage := REST{registry: mockRegistry}
 
-	channel, err := storage.Create(&api.DeploymentConfig{
+	channel, err := storage.Create(nil, &api.DeploymentConfig{
 		JSONBase: kubeapi.JSONBase{ID: "foo"},
 	})
 	if channel == nil {
@@ -159,7 +159,7 @@ func TestGetDeploymentConfigError(t *testing.T) {
 	mockRegistry.Err = fmt.Errorf("bad")
 	storage := REST{registry: mockRegistry}
 
-	deploymentConfig, err := storage.Get("foo")
+	deploymentConfig, err := storage.Get(nil, "foo")
 	if deploymentConfig != nil {
 		t.Errorf("Unexpected non-nil deploymentConfig: %#v", deploymentConfig)
 	}
@@ -175,7 +175,7 @@ func TestGetDeploymentConfigOK(t *testing.T) {
 	}
 	storage := REST{registry: mockRegistry}
 
-	deploymentConfig, err := storage.Get("foo")
+	deploymentConfig, err := storage.Get(nil, "foo")
 	if deploymentConfig == nil {
 		t.Error("Unexpected nil deploymentConfig")
 	}
@@ -190,7 +190,7 @@ func TestGetDeploymentConfigOK(t *testing.T) {
 func TestUpdateDeploymentConfigBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(&api.DeploymentList{})
+	channel, err := storage.Update(nil, &api.DeploymentList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -202,7 +202,7 @@ func TestUpdateDeploymentConfigBadObject(t *testing.T) {
 func TestUpdateDeploymentConfigMissingID(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(&api.DeploymentConfig{})
+	channel, err := storage.Update(nil, &api.DeploymentConfig{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -216,7 +216,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(&api.DeploymentConfig{
+	channel, err := storage.Update(nil, &api.DeploymentConfig{
 		JSONBase: kubeapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
@@ -227,7 +227,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
-	if status.Status != "failure" || status.Message != "foo" {
+	if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
 		t.Errorf("Expected status=failure, message=foo, got %#v", status)
 	}
 }
@@ -236,7 +236,7 @@ func TestUpdateDeploymentConfigOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewDeploymentConfigRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(&api.DeploymentConfig{
+	channel, err := storage.Update(nil, &api.DeploymentConfig{
 		JSONBase: kubeapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
@@ -255,7 +255,7 @@ func TestUpdateDeploymentConfigOK(t *testing.T) {
 func TestDeleteDeploymentConfig(t *testing.T) {
 	mockRegistry := test.NewDeploymentConfigRegistry()
 	storage := REST{registry: mockRegistry}
-	channel, err := storage.Delete("foo")
+	channel, err := storage.Delete(nil, "foo")
 	if channel == nil {
 		t.Error("Unexpected nil channel")
 	}
@@ -269,7 +269,7 @@ func TestDeleteDeploymentConfig(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != "success" {
+		if status.Status != kubeapi.StatusSuccess {
 			t.Errorf("Expected status=success, got: %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):

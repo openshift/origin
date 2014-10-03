@@ -67,8 +67,11 @@ func NewREST(config *RESTConfig) *REST {
 	}
 }
 
-func (rs *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	pod := obj.(*api.Pod)
+	if !api.ValidNamespace(ctx, &pod.JSONBase) {
+		return nil, errors.NewConflict("pod", pod.Namespace, fmt.Errorf("Pod.Namespace does not match the provided context"))
+	}
 	pod.DesiredState.Manifest.UUID = uuid.NewUUID().String()
 	if len(pod.ID) == 0 {
 		pod.ID = pod.DesiredState.Manifest.UUID
@@ -77,25 +80,24 @@ func (rs *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 	if errs := validation.ValidatePod(pod); len(errs) > 0 {
 		return nil, errors.NewInvalid("pod", pod.ID, errs)
 	}
-
 	pod.CreationTimestamp = util.Now()
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := rs.registry.CreatePod(pod); err != nil {
+		if err := rs.registry.CreatePod(ctx, pod); err != nil {
 			return nil, err
 		}
-		return rs.registry.GetPod(pod.ID)
+		return rs.registry.GetPod(ctx, pod.ID)
 	}), nil
 }
 
-func (rs *REST) Delete(id string) (<-chan runtime.Object, error) {
+func (rs *REST) Delete(ctx api.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &api.Status{Status: api.StatusSuccess}, rs.registry.DeletePod(id)
+		return &api.Status{Status: api.StatusSuccess}, rs.registry.DeletePod(ctx, id)
 	}), nil
 }
 
-func (rs *REST) Get(id string) (runtime.Object, error) {
-	pod, err := rs.registry.GetPod(id)
+func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
+	pod, err := rs.registry.GetPod(ctx, id)
 	if err != nil {
 		return pod, err
 	}
@@ -131,8 +133,8 @@ func (rs *REST) filterFunc(label, field labels.Selector) func(*api.Pod) bool {
 	}
 }
 
-func (rs *REST) List(label, field labels.Selector) (runtime.Object, error) {
-	pods, err := rs.registry.ListPodsPredicate(rs.filterFunc(label, field))
+func (rs *REST) List(ctx api.Context, label, field labels.Selector) (runtime.Object, error) {
+	pods, err := rs.registry.ListPodsPredicate(ctx, rs.filterFunc(label, field))
 	if err == nil {
 		for i := range pods.Items {
 			pod := &pods.Items[i]
@@ -149,24 +151,27 @@ func (rs *REST) List(label, field labels.Selector) (runtime.Object, error) {
 }
 
 // Watch begins watching for new, changed, or deleted pods.
-func (rs *REST) Watch(label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
-	return rs.registry.WatchPods(resourceVersion, rs.filterFunc(label, field))
+func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return rs.registry.WatchPods(ctx, resourceVersion, rs.filterFunc(label, field))
 }
 
 func (*REST) New() runtime.Object {
 	return &api.Pod{}
 }
 
-func (rs *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	pod := obj.(*api.Pod)
+	if !api.ValidNamespace(ctx, &pod.JSONBase) {
+		return nil, errors.NewConflict("pod", pod.Namespace, fmt.Errorf("Pod.Namespace does not match the provided context"))
+	}
 	if errs := validation.ValidatePod(pod); len(errs) > 0 {
 		return nil, errors.NewInvalid("pod", pod.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := rs.registry.UpdatePod(pod); err != nil {
+		if err := rs.registry.UpdatePod(ctx, pod); err != nil {
 			return nil, err
 		}
-		return rs.registry.GetPod(pod.ID)
+		return rs.registry.GetPod(ctx, pod.ID)
 	}), nil
 }
 
@@ -196,8 +201,8 @@ func (rs *REST) fillPodInfo(pod *api.Pod) {
 		pod.CurrentState.Info = info
 		netContainerInfo, ok := info["net"]
 		if ok {
-			if netContainerInfo.NetworkSettings != nil {
-				pod.CurrentState.PodIP = netContainerInfo.NetworkSettings.IPAddress
+			if netContainerInfo.DetailInfo.NetworkSettings != nil {
+				pod.CurrentState.PodIP = netContainerInfo.DetailInfo.NetworkSettings.IPAddress
 			} else {
 				glog.Warningf("No network settings: %#v", netContainerInfo)
 			}
@@ -253,11 +258,13 @@ func getPodStatus(pod *api.Pod, minions client.MinionInterface) (api.PodStatus, 
 	stopped := 0
 	unknown := 0
 	for _, container := range pod.DesiredState.Manifest.Containers {
-		if info, ok := pod.CurrentState.Info[container.Name]; ok {
-			if info.State.Running {
+		if containerStatus, ok := pod.CurrentState.Info[container.Name]; ok {
+			if containerStatus.State.Running != nil {
 				running++
-			} else {
+			} else if containerStatus.State.Termination != nil {
 				stopped++
+			} else {
+				unknown++
 			}
 		} else {
 			unknown++
@@ -275,9 +282,9 @@ func getPodStatus(pod *api.Pod, minions client.MinionInterface) (api.PodStatus, 
 	}
 }
 
-func (rs *REST) waitForPodRunning(pod *api.Pod) (runtime.Object, error) {
+func (rs *REST) waitForPodRunning(ctx api.Context, pod *api.Pod) (runtime.Object, error) {
 	for {
-		podObj, err := rs.Get(pod.ID)
+		podObj, err := rs.Get(ctx, pod.ID)
 		if err != nil || podObj == nil {
 			return nil, err
 		}

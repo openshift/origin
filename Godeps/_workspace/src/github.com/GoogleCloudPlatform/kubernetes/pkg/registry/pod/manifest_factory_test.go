@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package etcd
+package pod
 
 import (
 	"reflect"
@@ -28,7 +28,7 @@ import (
 func TestMakeManifestNoServices(t *testing.T) {
 	registry := registrytest.ServiceRegistry{}
 	factory := &BasicManifestFactory{
-		serviceRegistry: &registry,
+		ServiceRegistry: &registry,
 	}
 
 	manifest, err := factory.MakeManifest("machine", api.Pod{
@@ -74,7 +74,7 @@ func TestMakeManifestServices(t *testing.T) {
 		},
 	}
 	factory := &BasicManifestFactory{
-		serviceRegistry: &registry,
+		ServiceRegistry: &registry,
 	}
 
 	manifest, err := factory.MakeManifest("machine", api.Pod{
@@ -95,6 +95,10 @@ func TestMakeManifestServices(t *testing.T) {
 	container := manifest.Containers[0]
 	envs := []api.EnvVar{
 		{
+			Name:  "TEST_SERVICE_HOST",
+			Value: "machine",
+		},
+		{
 			Name:  "TEST_SERVICE_PORT",
 			Value: "8080",
 		},
@@ -103,19 +107,19 @@ func TestMakeManifestServices(t *testing.T) {
 			Value: "tcp://machine:8080",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP",
+			Name:  "TEST_PORT_8080_TCP",
 			Value: "tcp://machine:8080",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP_PROTO",
+			Name:  "TEST_PORT_8080_TCP_PROTO",
 			Value: "tcp",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP_PORT",
+			Name:  "TEST_PORT_8080_TCP_PORT",
 			Value: "8080",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP_ADDR",
+			Name:  "TEST_PORT_8080_TCP_ADDR",
 			Value: "machine",
 		},
 		{
@@ -123,8 +127,8 @@ func TestMakeManifestServices(t *testing.T) {
 			Value: "machine",
 		},
 	}
-	if len(container.Env) != 7 {
-		t.Errorf("Expected 7 env vars, got %d: %#v", len(container.Env), manifest)
+	if len(container.Env) != len(envs) {
+		t.Errorf("Expected %d env vars, got %d: %#v", len(envs), len(container.Env), manifest)
 		return
 	}
 	for ix := range container.Env {
@@ -150,7 +154,7 @@ func TestMakeManifestServicesExistingEnvVar(t *testing.T) {
 		},
 	}
 	factory := &BasicManifestFactory{
-		serviceRegistry: &registry,
+		ServiceRegistry: &registry,
 	}
 
 	manifest, err := factory.MakeManifest("machine", api.Pod{
@@ -181,6 +185,10 @@ func TestMakeManifestServicesExistingEnvVar(t *testing.T) {
 			Value: "bar",
 		},
 		{
+			Name:  "TEST_SERVICE_HOST",
+			Value: "machine",
+		},
+		{
 			Name:  "TEST_SERVICE_PORT",
 			Value: "8080",
 		},
@@ -189,19 +197,19 @@ func TestMakeManifestServicesExistingEnvVar(t *testing.T) {
 			Value: "tcp://machine:8080",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP",
+			Name:  "TEST_PORT_8080_TCP",
 			Value: "tcp://machine:8080",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP_PROTO",
+			Name:  "TEST_PORT_8080_TCP_PROTO",
 			Value: "tcp",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP_PORT",
+			Name:  "TEST_PORT_8080_TCP_PORT",
 			Value: "8080",
 		},
 		{
-			Name:  "TEST_PORT_900_TCP_ADDR",
+			Name:  "TEST_PORT_8080_TCP_ADDR",
 			Value: "machine",
 		},
 		{
@@ -209,8 +217,8 @@ func TestMakeManifestServicesExistingEnvVar(t *testing.T) {
 			Value: "machine",
 		},
 	}
-	if len(container.Env) != 8 {
-		t.Errorf("Expected 8 env vars, got: %#v", manifest)
+	if len(container.Env) != len(envs) {
+		t.Errorf("Expected %d env vars, got: %#v", len(envs), manifest)
 		return
 	}
 	for ix := range container.Env {

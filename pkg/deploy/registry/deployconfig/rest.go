@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -23,8 +23,13 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 	}
 }
 
+// New creates a new DeploymentConfig for use with Create and Update
+func (s *REST) New() runtime.Object {
+	return &deployapi.DeploymentConfig{}
+}
+
 // List obtains a list of DeploymentConfigs that match selector.
-func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	deploymentConfigs, err := s.registry.ListDeploymentConfigs(selector)
 	if err != nil {
 		return nil, err
@@ -34,7 +39,7 @@ func (s *REST) List(selector, fields labels.Selector) (runtime.Object, error) {
 }
 
 // Get obtains the DeploymentConfig specified by its id.
-func (s *REST) Get(id string) (runtime.Object, error) {
+func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 	deploymentConfig, err := s.registry.GetDeploymentConfig(id)
 	if err != nil {
 		return nil, err
@@ -43,19 +48,14 @@ func (s *REST) Get(id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the DeploymentConfig specified by its id.
-func (s *REST) Delete(id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &api.Status{Status: api.StatusSuccess}, s.registry.DeleteDeploymentConfig(id)
+		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteDeploymentConfig(id)
 	}), nil
 }
 
-// New creates a new DeploymentConfig for use with Create and Update
-func (s *REST) New() runtime.Object {
-	return &deployapi.DeploymentConfig{}
-}
-
 // Create registers a given new DeploymentConfig instance to s.registry.
-func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a deploymentConfig: %#v", obj)
@@ -76,7 +76,7 @@ func (s *REST) Create(obj runtime.Object) (<-chan runtime.Object, error) {
 }
 
 // Update replaces a given DeploymentConfig instance with an existing instance in s.registry.
-func (s *REST) Update(obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a deploymentConfig: %#v", obj)

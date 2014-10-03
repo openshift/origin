@@ -17,12 +17,12 @@ limitations under the License.
 package kubelet
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -84,11 +84,11 @@ func TestKillContainerWithError(t *testing.T) {
 		ContainerList: []docker.APIContainers{
 			{
 				ID:    "1234",
-				Names: []string{"/k8s--foo--qux--1234"},
+				Names: []string{"/k8s_foo_qux_1234"},
 			},
 			{
 				ID:    "5678",
-				Names: []string{"/k8s--bar--qux--5678"},
+				Names: []string{"/k8s_bar_qux_5678"},
 			},
 		},
 	}
@@ -106,11 +106,11 @@ func TestKillContainer(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			ID:    "1234",
-			Names: []string{"/k8s--foo--qux--1234"},
+			Names: []string{"/k8s_foo_qux_1234"},
 		},
 		{
 			ID:    "5678",
-			Names: []string{"/k8s--bar--qux--5678"},
+			Names: []string{"/k8s_bar_qux_5678"},
 		},
 	}
 	fakeDocker.Container = &docker.Container{
@@ -155,13 +155,13 @@ func TestSyncPodsDoesNothing(t *testing.T) {
 	container := api.Container{Name: "bar"}
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
-			// format is k8s--<container-id>--<pod-fullname>
-			Names: []string{"/k8s--bar." + strconv.FormatUint(dockertools.HashContainer(&container), 16) + "--foo.test"},
+			// format is k8s_<container-id>_<pod-fullname>
+			Names: []string{"/k8s_bar." + strconv.FormatUint(dockertools.HashContainer(&container), 16) + "_foo.test"},
 			ID:    "1234",
 		},
 		{
 			// network container
-			Names: []string{"/k8s--net--foo.test--"},
+			Names: []string{"/k8s_net_foo.test_"},
 			ID:    "9876",
 		},
 	}
@@ -207,6 +207,7 @@ func matchString(t *testing.T, pattern, str string) bool {
 
 func TestSyncPodsCreatesNetAndContainer(t *testing.T) {
 	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet.networkContainerImage = "custom_image_name"
 	fakeDocker.ContainerList = []docker.APIContainers{}
 	err := kubelet.SyncPods([]Pod{
 		{
@@ -229,9 +230,60 @@ func TestSyncPodsCreatesNetAndContainer(t *testing.T) {
 		"list", "list", "create", "start", "list", "inspect", "list", "create", "start"})
 
 	fakeDocker.Lock()
+
+	found := false
+	for _, c := range fakeDocker.ContainerList {
+		if c.Image == "custom_image_name" && strings.HasPrefix(c.Names[0], "/k8s_net") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("Custom net container not found: %v", fakeDocker.ContainerList)
+	}
+
 	if len(fakeDocker.Created) != 2 ||
-		!matchString(t, "k8s--net\\.[a-f0-9]+--foo.test--", fakeDocker.Created[0]) ||
-		!matchString(t, "k8s--bar\\.[a-f0-9]+--foo.test--", fakeDocker.Created[1]) {
+		!matchString(t, "k8s_net\\.[a-f0-9]+_foo.test_", fakeDocker.Created[0]) ||
+		!matchString(t, "k8s_bar\\.[a-f0-9]+_foo.test_", fakeDocker.Created[1]) {
+		t.Errorf("Unexpected containers created %v", fakeDocker.Created)
+	}
+	fakeDocker.Unlock()
+}
+
+func TestSyncPodsCreatesNetAndContainerPullsImage(t *testing.T) {
+	kubelet, _, fakeDocker := newTestKubelet(t)
+	puller := kubelet.dockerPuller.(*dockertools.FakeDockerPuller)
+	puller.HasImages = []string{}
+	kubelet.networkContainerImage = "custom_image_name"
+	fakeDocker.ContainerList = []docker.APIContainers{}
+	err := kubelet.SyncPods([]Pod{
+		{
+			Name:      "foo",
+			Namespace: "test",
+			Manifest: api.ContainerManifest{
+				ID: "foo",
+				Containers: []api.Container{
+					{Name: "bar"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	kubelet.drainWorkers()
+
+	verifyCalls(t, fakeDocker, []string{
+		"list", "list", "create", "start", "list", "inspect", "list", "create", "start"})
+
+	fakeDocker.Lock()
+
+	if !reflect.DeepEqual(puller.ImagesPulled, []string{"custom_image_name", ""}) {
+		t.Errorf("Unexpected pulled containers: %v", puller.ImagesPulled)
+	}
+
+	if len(fakeDocker.Created) != 2 ||
+		!matchString(t, "k8s_net\\.[a-f0-9]+_foo.test_", fakeDocker.Created[0]) ||
+		!matchString(t, "k8s_bar\\.[a-f0-9]+_foo.test_", fakeDocker.Created[1]) {
 		t.Errorf("Unexpected containers created %v", fakeDocker.Created)
 	}
 	fakeDocker.Unlock()
@@ -242,7 +294,7 @@ func TestSyncPodsWithNetCreatesContainer(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			// network container
-			Names: []string{"/k8s--net--foo.test--"},
+			Names: []string{"/k8s_net_foo.test_"},
 			ID:    "9876",
 		},
 	}
@@ -268,7 +320,7 @@ func TestSyncPodsWithNetCreatesContainer(t *testing.T) {
 
 	fakeDocker.Lock()
 	if len(fakeDocker.Created) != 1 ||
-		!matchString(t, "k8s--bar\\.[a-f0-9]+--foo.test--", fakeDocker.Created[0]) {
+		!matchString(t, "k8s_bar\\.[a-f0-9]+_foo.test_", fakeDocker.Created[0]) {
 		t.Errorf("Unexpected containers created %v", fakeDocker.Created)
 	}
 	fakeDocker.Unlock()
@@ -281,7 +333,7 @@ func TestSyncPodsWithNetCreatesContainerCallsHandler(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			// network container
-			Names: []string{"/k8s--net--foo.test--"},
+			Names: []string{"/k8s_net_foo.test_"},
 			ID:    "9876",
 		},
 	}
@@ -318,7 +370,7 @@ func TestSyncPodsWithNetCreatesContainerCallsHandler(t *testing.T) {
 
 	fakeDocker.Lock()
 	if len(fakeDocker.Created) != 1 ||
-		!matchString(t, "k8s--bar\\.[a-f0-9]+--foo.test--", fakeDocker.Created[0]) {
+		!matchString(t, "k8s_bar\\.[a-f0-9]+_foo.test_", fakeDocker.Created[0]) {
 		t.Errorf("Unexpected containers created %v", fakeDocker.Created)
 	}
 	fakeDocker.Unlock()
@@ -331,8 +383,8 @@ func TestSyncPodsDeletesWithNoNetContainer(t *testing.T) {
 	kubelet, _, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
-			// format is k8s--<container-id>--<pod-fullname>
-			Names: []string{"/k8s--bar--foo.test"},
+			// format is k8s_<container-id>_<pod-fullname>
+			Names: []string{"/k8s_bar_foo.test"},
 			ID:    "1234",
 		},
 	}
@@ -373,12 +425,12 @@ func TestSyncPodsDeletes(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			// the k8s prefix is required for the kubelet to manage the container
-			Names: []string{"/k8s--foo--bar.test"},
+			Names: []string{"/k8s_foo_bar.test"},
 			ID:    "1234",
 		},
 		{
 			// network container
-			Names: []string{"/k8s--net--foo.test--"},
+			Names: []string{"/k8s_net_foo.test_"},
 			ID:    "9876",
 		},
 		{
@@ -411,22 +463,22 @@ func TestSyncPodDeletesDuplicate(t *testing.T) {
 	dockerContainers := dockertools.DockerContainers{
 		"1234": &docker.APIContainers{
 			// the k8s prefix is required for the kubelet to manage the container
-			Names: []string{"/k8s--foo--bar.test--1"},
+			Names: []string{"/k8s_foo_bar.test_1"},
 			ID:    "1234",
 		},
 		"9876": &docker.APIContainers{
 			// network container
-			Names: []string{"/k8s--net--bar.test--"},
+			Names: []string{"/k8s_net_bar.test_"},
 			ID:    "9876",
 		},
 		"4567": &docker.APIContainers{
 			// Duplicate for the same container.
-			Names: []string{"/k8s--foo--bar.test--2"},
+			Names: []string{"/k8s_foo_bar.test_2"},
 			ID:    "4567",
 		},
 		"2304": &docker.APIContainers{
 			// Container for another pod, untouched.
-			Names: []string{"/k8s--baz--fiz.test--6"},
+			Names: []string{"/k8s_baz_fiz.test_6"},
 			ID:    "2304",
 		},
 	}
@@ -458,18 +510,22 @@ func (f *FalseHealthChecker) HealthCheck(podFullName string, state api.PodState,
 	return health.Unhealthy, nil
 }
 
+func (f *FalseHealthChecker) CanCheck(probe *api.LivenessProbe) bool {
+	return true
+}
+
 func TestSyncPodBadHash(t *testing.T) {
 	kubelet, _, fakeDocker := newTestKubelet(t)
 	kubelet.healthChecker = &FalseHealthChecker{}
 	dockerContainers := dockertools.DockerContainers{
 		"1234": &docker.APIContainers{
 			// the k8s prefix is required for the kubelet to manage the container
-			Names: []string{"/k8s--bar.1234--foo.test"},
+			Names: []string{"/k8s_bar.1234_foo.test"},
 			ID:    "1234",
 		},
 		"9876": &docker.APIContainers{
 			// network container
-			Names: []string{"/k8s--net--foo.test--"},
+			Names: []string{"/k8s_net_foo.test_"},
 			ID:    "9876",
 		},
 	}
@@ -506,12 +562,12 @@ func TestSyncPodUnhealthy(t *testing.T) {
 	dockerContainers := dockertools.DockerContainers{
 		"1234": &docker.APIContainers{
 			// the k8s prefix is required for the kubelet to manage the container
-			Names: []string{"/k8s--bar--foo.test"},
+			Names: []string{"/k8s_bar_foo.test"},
 			ID:    "1234",
 		},
 		"9876": &docker.APIContainers{
 			// network container
-			Names: []string{"/k8s--net--foo.test--"},
+			Names: []string{"/k8s_net_foo.test_"},
 			ID:    "9876",
 		},
 	}
@@ -523,8 +579,7 @@ func TestSyncPodUnhealthy(t *testing.T) {
 			Containers: []api.Container{
 				{Name: "bar",
 					LivenessProbe: &api.LivenessProbe{
-						// Always returns healthy == false
-						Type: "false",
+					// Always returns healthy == false
 					},
 				},
 			},
@@ -544,53 +599,6 @@ func TestSyncPodUnhealthy(t *testing.T) {
 	if len(fakeDocker.Stopped) != 1 ||
 		!expectedToStop[fakeDocker.Stopped[0]] {
 		t.Errorf("Wrong containers were stopped: %v", fakeDocker.Stopped)
-	}
-}
-
-func TestEventWriting(t *testing.T) {
-	kubelet, fakeEtcd, _ := newTestKubelet(t)
-	expectedEvent := api.Event{
-		Event: "test",
-		Container: &api.Container{
-			Name: "foo",
-		},
-	}
-	err := kubelet.LogEvent(&expectedEvent)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if fakeEtcd.Ix != 1 {
-		t.Errorf("Unexpected number of children added: %d, expected 1", fakeEtcd.Ix)
-	}
-	response, err := fakeEtcd.Get("/events/foo/1", false, false)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	var event api.Event
-	err = json.Unmarshal([]byte(response.Node.Value), &event)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if event.Event != expectedEvent.Event ||
-		event.Container.Name != expectedEvent.Container.Name {
-		t.Errorf("Event's don't match.  Expected: %#v Saw: %#v", expectedEvent, event)
-	}
-}
-
-func TestEventWritingError(t *testing.T) {
-	kubelet, fakeEtcd, _ := newTestKubelet(t)
-	fakeEtcd.Err = fmt.Errorf("test error")
-	err := kubelet.LogEvent(&api.Event{
-		Event: "test",
-		Container: &api.Container{
-			Name: "foo",
-		},
-	})
-	if err == nil {
-		t.Errorf("Unexpected non-error")
 	}
 }
 
@@ -626,14 +634,14 @@ func TestMountExternalVolumes(t *testing.T) {
 			{
 				Name: "host-dir",
 				Source: &api.VolumeSource{
-					HostDirectory: &api.HostDirectory{"/dir/path"},
+					HostDir: &api.HostDir{"/dir/path"},
 				},
 			},
 		},
 	}
 	podVolumes, _ := kubelet.mountExternalVolumes(&manifest)
 	expectedPodVolumes := make(volumeMap)
-	expectedPodVolumes["host-dir"] = &volume.HostDirectory{"/dir/path"}
+	expectedPodVolumes["host-dir"] = &volume.HostDir{"/dir/path"}
 	if len(expectedPodVolumes) != len(podVolumes) {
 		t.Errorf("Unexpected volumes. Expected %#v got %#v.  Manifest was: %#v", expectedPodVolumes, podVolumes, manifest)
 	}
@@ -676,9 +684,9 @@ func TestMakeVolumesAndBinds(t *testing.T) {
 	}
 
 	podVolumes := volumeMap{
-		"disk":  &volume.HostDirectory{"/mnt/disk"},
-		"disk4": &volume.HostDirectory{"/mnt/host"},
-		"disk5": &volume.EmptyDirectory{"disk5", "podID", "/var/lib/kubelet"},
+		"disk":  &volume.HostDir{"/mnt/disk"},
+		"disk4": &volume.HostDir{"/mnt/host"},
+		"disk5": &volume.EmptyDir{"disk5", "podID", "/var/lib/kubelet"},
 	}
 
 	binds := makeBinds(&pod, &container, podVolumes)
@@ -824,7 +832,7 @@ func TestGetContainerInfo(t *testing.T) {
 			ID: containerID,
 			// pod id: qux
 			// container id: foo
-			Names: []string{"/k8s--foo--qux--1234"},
+			Names: []string{"/k8s_foo_qux_1234"},
 		},
 	}
 
@@ -874,7 +882,7 @@ func TestGetContainerInfoWithoutCadvisor(t *testing.T) {
 			ID: "foobar",
 			// pod id: qux
 			// container id: foo
-			Names: []string{"/k8s--foo--qux--uuid--1234"},
+			Names: []string{"/k8s_foo_qux_uuid_1234"},
 		},
 	}
 
@@ -903,7 +911,7 @@ func TestGetContainerInfoWhenCadvisorFailed(t *testing.T) {
 			ID: containerID,
 			// pod id: qux
 			// container id: foo
-			Names: []string{"/k8s--foo--qux--uuid--1234"},
+			Names: []string{"/k8s_foo_qux_uuid_1234"},
 		},
 	}
 
@@ -982,7 +990,7 @@ func TestRunInContainer(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			ID:    containerID,
-			Names: []string{"/k8s--" + containerName + "--" + podName + "." + podNamespace + "--1234"},
+			Names: []string{"/k8s_" + containerName + "_" + podName + "." + podNamespace + "_1234"},
 		},
 	}
 
@@ -1016,7 +1024,7 @@ func TestRunHandlerExec(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			ID:    containerID,
-			Names: []string{"/k8s--" + containerName + "--" + podName + "." + podNamespace + "--1234"},
+			Names: []string{"/k8s_" + containerName + "_" + podName + "." + podNamespace + "_1234"},
 		},
 	}
 
@@ -1120,7 +1128,7 @@ func TestSyncPodEventHandlerFails(t *testing.T) {
 	dockerContainers := dockertools.DockerContainers{
 		"9876": &docker.APIContainers{
 			// network container
-			Names: []string{"/k8s--net--foo.test--"},
+			Names: []string{"/k8s_net_foo.test_"},
 			ID:    "9876",
 		},
 	}

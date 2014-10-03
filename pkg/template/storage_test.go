@@ -9,7 +9,7 @@ import (
 
 func TestNewStorageInvalidType(t *testing.T) {
 	storage := NewStorage()
-	_, err := storage.Create(&kubeapi.Pod{})
+	_, err := storage.Create(nil, &kubeapi.Pod{})
 	if err == nil {
 		t.Errorf("Expected type error.")
 	}
@@ -18,19 +18,19 @@ func TestNewStorageInvalidType(t *testing.T) {
 func TestStorageNotImplementedFunctions(t *testing.T) {
 	storage := NewStorage()
 
-	if _, err := storage.List(nil, nil); err == nil {
+	if _, err := storage.List(nil, nil, nil); err == nil {
 		t.Errorf("Expected not implemented error.")
 	}
 
-	if _, err := storage.Get(""); err == nil {
+	if _, err := storage.Get(nil, ""); err == nil {
 		t.Errorf("Expected not implemented error.")
 	}
 
-	if _, err := storage.Update(nil); err == nil {
+	if _, err := storage.Update(nil, nil); err == nil {
 		t.Errorf("Expected not implemented error.")
 	}
 
-	channel, err := storage.Delete("")
+	channel, err := storage.Delete(nil, "")
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
 	}

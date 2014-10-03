@@ -54,9 +54,9 @@ import (
 )
 
 type KubeConfig struct {
+	ClientConfig   kubeclient.Config
 	ServerVersion  bool
 	PreventSkew    bool
-	HttpServer     string
 	Config         string
 	TemplateConfig string
 	Selector       string
@@ -73,10 +73,6 @@ type KubeConfig struct {
 	TemplateStr    string
 
 	ImageName string
-
-	CAFile   string
-	CertFile string
-	KeyFile  string
 
 	APIVersion   string
 	OSAPIVersion string
@@ -193,47 +189,46 @@ func (c *KubeConfig) Run() {
 	util.InitLogs()
 	defer util.FlushLogs()
 
-	var masterServer string
-	if len(c.HttpServer) > 0 {
-		masterServer = c.HttpServer
-	} else if len(os.Getenv("KUBERNETES_MASTER")) > 0 {
-		masterServer = os.Getenv("KUBERNETES_MASTER")
-	} else {
-		masterServer = "http://localhost:8080"
+	clientConfig := &c.ClientConfig
+	// Initialize the client
+	if clientConfig.Host == "" {
+		clientConfig.Host = os.Getenv("KUBERNETES_MASTER")
 	}
-	kubeClient, err := kubeclient.New(masterServer, c.APIVersion, nil)
-	if err != nil {
-		glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
-	}
-	client, err := osclient.New(masterServer, c.OSAPIVersion, nil)
-	if err != nil {
-		glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
+	if clientConfig.Host == "" {
+		// TODO: eventually apiserver should start on 443 and be secure by default
+		clientConfig.Host = "http://localhost:8080"
 	}
 
-	// TODO: this won't work if TLS is enabled with client cert auth, but no
-	// passwords are required. Refactor when we address client auth abstraction.
-	if kubeClient.Secure() {
+	if kubeclient.IsConfigTransportSecure(clientConfig) {
 		auth, err := kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
 		if err != nil {
 			glog.Fatalf("Error loading auth: %v", err)
 		}
-		if c.CAFile != "" {
-			auth.CAFile = c.CAFile
+		clientConfig.Username = auth.User
+		clientConfig.Password = auth.Password
+		if auth.CAFile != "" {
+			clientConfig.CAFile = auth.CAFile
 		}
-		if c.CertFile != "" {
-			auth.CertFile = c.CertFile
+		if auth.CertFile != "" {
+			clientConfig.CertFile = auth.CertFile
 		}
-		if c.KeyFile != "" {
-			auth.KeyFile = c.KeyFile
+		if auth.KeyFile != "" {
+			clientConfig.KeyFile = auth.KeyFile
 		}
-		kubeClient, err = kubeclient.New(masterServer, c.APIVersion, auth)
-		if err != nil {
-			glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
+		if auth.Insecure != nil {
+			clientConfig.Insecure = *auth.Insecure
 		}
-		client, err = osclient.New(masterServer, c.OSAPIVersion, auth)
-		if err != nil {
-			glog.Fatalf("Unable to parse %s as a URL: %v", masterServer, err)
-		}
+	}
+	clientConfig.Version = c.APIVersion
+	kubeClient, err := kubeclient.New(clientConfig)
+	if err != nil {
+		glog.Fatalf("Unable to set up the Kubernetes API client: %v", err)
+	}
+
+	clientConfig.Version = c.OSAPIVersion
+	client, err := osclient.New(clientConfig)
+	if err != nil {
+		glog.Fatalf("Unable to set up the OpenShift API client: %v", err)
 	}
 
 	// check the kubernetes server version
@@ -438,14 +433,15 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 		return c.Arg(1)
 	}
 
+	ctx := api.NewContext()
 	var err error
 	switch method {
 	case "stop":
-		err = kubecfg.StopController(parseController(), client)
+		err = kubecfg.StopController(ctx, parseController(), client)
 	case "rm":
-		err = kubecfg.DeleteController(parseController(), client)
+		err = kubecfg.DeleteController(ctx, parseController(), client)
 	case "rollingupdate":
-		err = kubecfg.Update(parseController(), client, c.UpdatePeriod, c.ImageName)
+		err = kubecfg.Update(ctx, parseController(), client, c.UpdatePeriod, c.ImageName)
 	case "run":
 		if len(c.Args) != 4 {
 			glog.Fatal("usage: kubecfg [OPTIONS] run <image> <replicas> <controller>")
@@ -456,7 +452,7 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 		if err != nil {
 			glog.Fatalf("Error parsing replicas: %v", err)
 		}
-		err = kubecfg.RunController(image, name, replicas, client, c.PortSpec, c.ServicePort)
+		err = kubecfg.RunController(ctx, image, name, replicas, client, c.PortSpec, c.ServicePort)
 	case "resize":
 		args := c.Args
 		if len(args) < 3 {
@@ -467,7 +463,7 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 		if err != nil {
 			glog.Fatalf("Error parsing replicas: %v", err)
 		}
-		err = kubecfg.ResizeController(name, replicas, client)
+		err = kubecfg.ResizeController(ctx, name, replicas, client)
 	default:
 		return false
 	}

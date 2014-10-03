@@ -35,8 +35,8 @@ func TestBuildConfigClient(t *testing.T) {
 	m := master.New(&master.Config{
 		EtcdHelper: helper,
 	})
-	codec, versioner, _ := latest.InterfacesFor(latest.Version)
-	buildRegistry := buildetcd.New(tools.EtcdHelper{etcdClient, codec, versioner})
+	interfaces, _ := latest.InterfacesFor(latest.Version)
+	buildRegistry := buildetcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, interfaces.ResourceVersioner})
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildRegistry),
 		"buildConfigs": buildconfigregistry.NewREST(buildRegistry),
@@ -44,12 +44,12 @@ func TestBuildConfigClient(t *testing.T) {
 
 	osMux := http.NewServeMux()
 	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
-	apiserver.NewAPIGroup(storage, v1beta1.Codec).InstallREST(osMux, "/osapi/v1beta1")
+	apiserver.NewAPIGroup(storage, v1beta1.Codec, "/osapi/v1beta1", interfaces.SelfLinker).InstallREST(osMux, "/osapi/v1beta1")
 	apiserver.InstallSupport(osMux)
 	s := httptest.NewServer(osMux)
 
-	kubeclient := client.NewOrDie(s.URL, klatest.Version, nil)
-	osclient, _ := osclient.New(s.URL, latest.Version, nil)
+	kubeclient := client.NewOrDie(&client.Config{Host: s.URL, Version: klatest.Version})
+	osClient := osclient.NewOrDie(&client.Config{Host: s.URL, Version: latest.Version})
 
 	info, err := kubeclient.ServerVersion()
 	if err != nil {
@@ -59,7 +59,7 @@ func TestBuildConfigClient(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", e, a)
 	}
 
-	buildConfigs, err := osclient.ListBuildConfigs(labels.Everything())
+	buildConfigs, err := osClient.ListBuildConfigs(labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -80,14 +80,14 @@ func TestBuildConfigClient(t *testing.T) {
 			BuilderImage: "anImage",
 		},
 	}
-	got, err := osclient.CreateBuildConfig(buildConfig)
+	got, err := osClient.CreateBuildConfig(buildConfig)
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 
 	// get a created buildConfig
 	buildConfig.DesiredInput.BuilderImage = ""
-	got, err = osclient.CreateBuildConfig(buildConfig)
+	got, err = osClient.CreateBuildConfig(buildConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// get a list of buildConfigs
-	buildConfigs, err = osclient.ListBuildConfigs(labels.Everything())
+	buildConfigs, err = osClient.ListBuildConfigs(labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -109,11 +109,11 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// delete a buildConfig
-	err = osclient.DeleteBuildConfig(got.ID)
+	err = osClient.DeleteBuildConfig(got.ID)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	buildConfigs, err = osclient.ListBuildConfigs(labels.Everything())
+	buildConfigs, err = osClient.ListBuildConfigs(labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}

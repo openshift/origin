@@ -48,8 +48,7 @@ func TestDoRequestNewWay(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
-	auth := AuthInfo{User: "user", Password: "pass"}
-	c := NewOrDie(testServer.URL, "v1beta2", &auth)
+	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta2", Username: "user", Password: "pass"})
 	obj, err := c.Verb("POST").
 		Path("foo/bar").
 		Path("baz").
@@ -83,8 +82,7 @@ func TestDoRequestNewWayReader(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
-	auth := AuthInfo{User: "user", Password: "pass"}
-	c := NewOrDie(testServer.URL, "v1beta1", &auth)
+	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta1", Username: "user", Password: "pass"})
 	obj, err := c.Verb("POST").
 		Path("foo/bar").
 		Path("baz").
@@ -120,8 +118,7 @@ func TestDoRequestNewWayObj(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
-	auth := AuthInfo{User: "user", Password: "pass"}
-	c := NewOrDie(testServer.URL, "v1beta2", &auth)
+	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta2", Username: "user", Password: "pass"})
 	obj, err := c.Verb("POST").
 		Path("foo/bar").
 		Path("baz").
@@ -170,8 +167,7 @@ func TestDoRequestNewWayFile(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
-	auth := AuthInfo{User: "user", Password: "pass"}
-	c := NewOrDie(testServer.URL, "v1beta1", &auth)
+	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta1", Username: "user", Password: "pass"})
 	obj, err := c.Verb("POST").
 		Path("foo/bar").
 		Path("baz").
@@ -196,7 +192,7 @@ func TestDoRequestNewWayFile(t *testing.T) {
 }
 
 func TestVerbs(t *testing.T) {
-	c := NewOrDie("localhost", "", nil)
+	c := NewOrDie(&Config{})
 	if r := c.Post(); r.verb != "POST" {
 		t.Errorf("Post verb is wrong")
 	}
@@ -213,7 +209,7 @@ func TestVerbs(t *testing.T) {
 
 func TestAbsPath(t *testing.T) {
 	expectedPath := "/bar/foo"
-	c := NewOrDie("localhost", "", nil)
+	c := NewOrDie(&Config{})
 	r := c.Post().Path("/foo").AbsPath(expectedPath)
 	if r.path != expectedPath {
 		t.Errorf("unexpected path: %s, expected %s", r.path, expectedPath)
@@ -221,7 +217,7 @@ func TestAbsPath(t *testing.T) {
 }
 
 func TestSync(t *testing.T) {
-	c := NewOrDie("localhost", "", nil)
+	c := NewOrDie(&Config{})
 	r := c.Get()
 	if r.sync {
 		t.Errorf("sync has wrong default")
@@ -248,7 +244,7 @@ func TestUintParam(t *testing.T) {
 	}
 
 	for _, item := range table {
-		c := NewOrDie("localhost", "", nil)
+		c := NewOrDie(&Config{})
 		r := c.Get().AbsPath("").UintParam(item.name, item.testVal)
 		if e, a := item.expectStr, r.finalURL(); e != a {
 			t.Errorf("expected %v, got %v", e, a)
@@ -267,7 +263,7 @@ func TestUnacceptableParamNames(t *testing.T) {
 	}
 
 	for _, item := range table {
-		c := NewOrDie("localhost", "", nil)
+		c := NewOrDie(&Config{})
 		r := c.Get().setParam(item.name, item.testVal)
 		if e, a := item.expectSuccess, r.err == nil; e != a {
 			t.Errorf("expected %v, got %v (%v)", e, a, r.err)
@@ -276,7 +272,7 @@ func TestUnacceptableParamNames(t *testing.T) {
 }
 
 func TestSetPollPeriod(t *testing.T) {
-	c := NewOrDie("localhost", "", nil)
+	c := NewOrDie(&Config{})
 	r := c.Get()
 	if r.pollPeriod == 0 {
 		t.Errorf("polling should be on by default")
@@ -306,8 +302,7 @@ func TestPolling(t *testing.T) {
 		w.Write(data)
 	}))
 
-	auth := AuthInfo{User: "user", Password: "pass"}
-	c := NewOrDie(testServer.URL, "v1beta1", &auth)
+	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta1", Username: "user", Password: "pass"})
 
 	trials := []func(){
 		func() {
@@ -332,7 +327,7 @@ func TestPolling(t *testing.T) {
 				t.Errorf("Unexpected non error: %v", obj)
 				return
 			}
-			if se, ok := err.(*StatusErr); !ok || se.Status.Status != api.StatusWorking {
+			if se, ok := err.(APIStatus); !ok || se.Status().Status != api.StatusWorking {
 				t.Errorf("Unexpected kind of error: %#v", err)
 				return
 			}
@@ -347,7 +342,7 @@ func TestPolling(t *testing.T) {
 	}
 }
 
-func authFromReq(r *http.Request) (*AuthInfo, bool) {
+func authFromReq(r *http.Request) (*Config, bool) {
 	auth, ok := r.Header["Authorization"]
 	if !ok {
 		return nil, false
@@ -366,16 +361,16 @@ func authFromReq(r *http.Request) (*AuthInfo, bool) {
 	if len(parts) != 2 {
 		return nil, false
 	}
-	return &AuthInfo{User: parts[0], Password: parts[1]}, true
+	return &Config{Username: parts[0], Password: parts[1]}, true
 }
 
 // checkAuth sets errors if the auth found in r doesn't match the expectation.
 // TODO: Move to util, test in more places.
-func checkAuth(t *testing.T, expect AuthInfo, r *http.Request) {
+func checkAuth(t *testing.T, expect *Config, r *http.Request) {
 	foundAuth, found := authFromReq(r)
 	if !found {
 		t.Errorf("no auth found")
-	} else if e, a := expect, *foundAuth; !reflect.DeepEqual(e, a) {
+	} else if e, a := expect, foundAuth; !reflect.DeepEqual(e, a) {
 		t.Fatalf("Wrong basic auth: wanted %#v, got %#v", e, a)
 	}
 }
@@ -390,7 +385,7 @@ func TestWatch(t *testing.T) {
 		{watch.Deleted, &api.Pod{JSONBase: api.JSONBase{ID: "last"}}},
 	}
 
-	auth := AuthInfo{User: "user", Password: "pass"}
+	auth := &Config{Username: "user", Password: "pass"}
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		checkAuth(t, auth, r)
 		flusher, ok := w.(http.Flusher)
@@ -411,7 +406,12 @@ func TestWatch(t *testing.T) {
 		}
 	}))
 
-	s, err := New(testServer.URL, "v1beta1", &auth)
+	s, err := New(&Config{
+		Host:     testServer.URL,
+		Version:  "v1beta1",
+		Username: "user",
+		Password: "pass",
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -437,5 +437,44 @@ func TestWatch(t *testing.T) {
 	_, ok := <-watching.ResultChan()
 	if ok {
 		t.Fatal("Unexpected non-close")
+	}
+}
+
+func TestStream(t *testing.T) {
+	auth := &Config{Username: "user", Password: "pass"}
+	expectedBody := "expected body"
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		checkAuth(t, auth, r)
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			panic("need flusher!")
+		}
+		w.Header().Set("Transfer-Encoding", "chunked")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(expectedBody))
+		flusher.Flush()
+	}))
+
+	s, err := New(&Config{
+		Host:     testServer.URL,
+		Version:  "v1beta1",
+		Username: "user",
+		Password: "pass",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	readCloser, err := s.Get().Path("path/to/stream/thing").Stream()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer readCloser.Close()
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(readCloser)
+	resultBody := buf.String()
+
+	if expectedBody != resultBody {
+		t.Errorf("Expected %s, got %s", expectedBody, resultBody)
 	}
 }
