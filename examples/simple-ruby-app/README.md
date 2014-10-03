@@ -95,7 +95,7 @@ All commands assume the `openshift` binary is in your path:
 
 12. Confirm the application is now accessible via the frontend service on port 5432:
 
-        $ curl localhost:5432
+        $ curl 127.0.0.1:5432
 
     Sample output:
 
@@ -118,7 +118,7 @@ All commands assume the `openshift` binary is in your path:
 
 16. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
 
-        $ curl localhost:5432
+        $ curl 127.0.0.1:5432
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.  To clean up your environment, you can run:
         
