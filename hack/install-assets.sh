@@ -30,7 +30,11 @@ fi
 
 pushd ${hackdir}/../assets > /dev/null
   npm install
+
+  # In case upstream components change things without incrementing versions
+  bower cache clean
   bower install
+
   bundle install --path ${hackdir}/../assets/.bundle
 popd > /dev/null
 
