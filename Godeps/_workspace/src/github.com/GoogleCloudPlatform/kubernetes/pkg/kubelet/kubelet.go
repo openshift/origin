@@ -20,13 +20,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"io"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
@@ -399,12 +400,16 @@ func (kl *Kubelet) createNetworkContainer(pod *Pod) (dockertools.DockerID, error
 	for _, container := range pod.Manifest.Containers {
 		ports = append(ports, container.Ports...)
 	}
+	image := networkContainerImage
+	if os.Getenv("KUBERNETES_NETWORK_CONTAINER_IMAGE") != "" {
+		image = os.Getenv("KUBERNETES_NETWORK_CONTAINER_IMAGE")
+	}
 	container := &api.Container{
 		Name:  networkContainerName,
-		Image: networkContainerImage,
+		Image: image,
 		Ports: ports,
 	}
-	kl.dockerPuller.Pull(networkContainerImage)
+	kl.dockerPuller.Pull(image)
 	return kl.runContainer(pod, container, nil, "")
 }
 
@@ -758,7 +763,7 @@ func (kl *Kubelet) GetKubeletContainerLogs(podFullName, containerName, tail stri
 	if !found {
 		return fmt.Errorf("container not found (%s)\n", containerName)
 	}
-	return dockertools.GetKubeletDockerContainerLogs(kl.dockerClient, dockerContainer.ID, tail , follow, stdout, stderr)
+	return dockertools.GetKubeletDockerContainerLogs(kl.dockerClient, dockerContainer.ID, tail, follow, stdout, stderr)
 }
 
 // GetPodInfo returns information from Docker about the containers in a pod
