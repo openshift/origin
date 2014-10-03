@@ -10,12 +10,8 @@ env:
 
 matrix:
   exclude:
-    - go: 1.3
-      env: TEST_ASSETS=false
     - go: 1.2
       env: TEST_ASSETS=true
-    - go: tip
-      env: TEST_ASSETS=true      
 
 before_install:
   - ./hack/before-install-assets.sh
