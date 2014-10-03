@@ -28,7 +28,7 @@ popd > /dev/null
 pushd ${hackdir}/../ > /dev/null
   Godeps/_workspace/bin/go-bindata -prefix "assets/dist" -pkg "assets" -o "_output/test/assets/bindata.go" assets/dist/...
   echo "Validating checked in bindata.go is up to date..."
-  if ! diff _output/test/assets/bindata.go pkg/assets/bindata.go ; then
+  if ! diff -q _output/test/assets/bindata.go pkg/assets/bindata.go ; then
 
     pushd ${hackdir}/../assets > /dev/null
 
@@ -38,17 +38,19 @@ pushd ${hackdir}/../ > /dev/null
         diff -r dist debug/dist
       fi
 
-      echo ""
-      echo "Bundler versions..."
-      bundle list
+      if [[ "${TRAVIS}" == "true" ]]; then
+        echo ""
+        echo "Bundler versions..."
+        bundle list
 
-      echo ""
-      echo "Bower versions..."
-      bower list -o
+        echo ""
+        echo "Bower versions..."
+        bower list -o
 
-      echo ""
-      echo "NPM versions..."
-      npm list
+        echo ""
+        echo "NPM versions..."
+        npm list
+      fi
 
     popd > /dev/null  
 
