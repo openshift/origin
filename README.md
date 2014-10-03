@@ -1,11 +1,16 @@
 OpenShift 3 Alpha
 =================
 
-This is the source repository for the next version of OpenShift - the third architectural revision.  It is based around [Docker](https://www.docker.io) containers and images and the [Kubernetes](https://github.com/GoogleCloudPlatform/kubernetes) container management solution.  OpenShift adds developer  centric and organization centric workflows on top of Kubernetes, and much of the core functionality of OpenShift is designed as plugins to the core Kubernetes concepts.
+This is the source repository for the next version of OpenShift - the third architectural revision.
+It is based around [Docker](https://www.docker.io) containers and images and the
+[Kubernetes](https://github.com/GoogleCloudPlatform/kubernetes) container management solution.
+OpenShift adds developer  centric and organization centric workflows on top of Kubernetes, and much
+of the core functionality of OpenShift is designed as plugins to the core Kubernetes concepts.
 
 Please see the [OpenShift 3 Project Enhancement Proposal (PEP)](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md) for a deeper discussion of the features you see here.
 
-NOTE: This is a very early prototype, and as such is designed for rapid iteration around core concepts.
+NOTE: This is a very early prototype, and as such is designed for rapid iteration around core
+concepts.
 
 [![GoDoc](https://godoc.org/github.com/openshift/origin?status.png)](https://godoc.org/github.com/openshift/origin)
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
@@ -47,7 +52,9 @@ This example is simply running the ['openshift/hello-openshift' Docker image](ht
 * [Kubernetes guestbook](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/guestbook)
 * [OpenShift guestbook template](https://github.com/openshift/origin/blob/master/examples/guestbook) takes the previous example and templatizes it
 
-Remember, you can pass a URL to `-c` when using the `kube` command, so you can [download the latest release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you don't even need clone the source.
+Remember, you can pass a URL to `-c` when using the `kube` command, so you can [download the latest
+release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you
+don't even need clone the source.
 
 ### Docker registry
 
@@ -55,20 +62,21 @@ OpenShift builds allow pushing built images into docker registry, for details se
 You can use either private [docker registry](https://github.com/docker/docker-registry) or the
 [official docker hub](https://hub.docker.com/). If the two are available private will be favored.
 
-**Private docker registry**
+**Private docker registry
 
-To setup private docker registry you can either follow the steps [here](https://github.com/docker/docker-registry#quick-start)
-or use [simple-ruby-app example](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app)
-to host one inside OpenShift. Now all you need to do is to specify your repository in `buildConfig`.
+To setup private docker registry you can either follow the steps [here](https://github.com/docker/docker-registry#quick-start) 
+or use [simple-ruby-app example](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app) to host one
+inside OpenShift. Now all you need to do is to specify your repository in `buildConfig`.
 
-**Docker Hub**
+**Docker Hub
 
-To access the [official docker hub](https://hub.docker.com/) you need to login using `docker login` command.
-In result a file named `.dockercfg` is created in your home directory. It contains credentials used
-when accessing the hub. Now when running OpenShift, the binary will pick up these credentials and
-use them inside build pods to push your result images to the hub.
+To access the [official docker hub](https://hub.docker.com/) you need to login using `docker login`
+command. In result a file named `.dockercfg` is created in your home directory. It contains
+credentials used when accessing the hub. Now when running OpenShift, the binary will pick up these
+credentials and use them inside build pods to push your result images to the hub.
 
-NOTE: Make sure to tag your build appropriately to match hub requirements, meaning `username/imagename`.
+NOTE: Make sure to tag your build appropriately to match hub requirements, meaning
+`username/imagename`.
 
 Design Documents
 ----------------
@@ -113,31 +121,60 @@ FAQ
 
 1. How does OpenShift relate to Kubernetes?
 
-    OpenShift embeds Kubernetes and adds additional functionality to offer a simple, powerful, and easy-to-approach developer and operator experience for building applications in containers.  Kubernetes today is focused around composing containerized applications - OpenShift adds building images, managing them, and integrating them into deployment flows.  Our goal is to do most of that work upstream, with integration and final packaging occuring in OpenShift.  As we iterate through the next few months, you'll see this repository focus more on integration and plugins, with more and more features becoming part of Kubernetes.
+    OpenShift embeds Kubernetes and adds additional functionality to offer a simple, powerful, and
+    easy-to-approach developer and operator experience for building applications in containers.
+    Kubernetes today is focused around composing containerized applications - OpenShift adds
+    building images, managing them, and integrating them into deployment flows.  Our goal is to do
+    most of that work upstream, with integration and final packaging occuring in OpenShift.  As we
+    iterate through the next few months, you'll see this repository focus more on integration and
+    plugins, with more and more features becoming part of Kubernetes.
 
-    OpenShift tracks the Kubernetes upstream at [github.com/openshift/kubernetes](https://github.com/openshift/kubernetes).  See the wiki in that project for more on how we manage the process of integrating prototyped features.
+    OpenShift tracks the Kubernetes upstream at
+    [github.com/openshift/kubernetes](https://github.com/openshift/kubernetes).  See the wiki in
+    that project for more on how we manage the process of integrating prototyped features.
 
 2. What about [geard](https://github.com/openshift/geard)?
 
-    Geard started as a prototype vehicle for the next generation of the OpenShift node - as an orchestration endpoint, to offer integration with systemd, and to prototype network abstraction, routing, SSH access to containers, and Git hosting.  Its intended goal is to provide a simple way of reliably managing containers at scale, and to offer administrators tools for easily composing those applications (gear deploy).
+    Geard started as a prototype vehicle for the next generation of the OpenShift node - as an
+    orchestration endpoint, to offer integration with systemd, and to prototype network abstraction,
+    routing, SSH access to containers, and Git hosting.  Its intended goal is to provide a simple
+    way of reliably managing containers at scale, and to offer administrators tools for easily
+    composing those applications (gear deploy).
 
-    With the introduction of Kubernetes, the Kubelet, and the pull model it leverages from etcd, we believe we can implement the pull-orchestration model described in [orchestrating geard](https://github.com/openshift/geard/blob/master/docs/orchestrating_geard.md), especially now that we have a path to properly [limit host compromises from affecting the cluster](https://github.com/GoogleCloudPlatform/kubernetes/pull/860).  The pull-model has many advantages for end clients, not least of which that they are guaranteed to eventually converge to the correct state of the server.  We expect that the use cases the geard endpoint offered will be merged into the Kubelet for consumption by admins.
+    With the introduction of Kubernetes, the Kubelet, and the pull model it leverages from etcd, we
+    believe we can implement the pull-orchestration model described in
+    [orchestrating geard](https://github.com/openshift/geard/blob/master/docs/orchestrating_geard.md), 
+    especially now that we have a path to properly 
+    [limit host compromises from affecting the cluster](https://github.com/GoogleCloudPlatform/kubernetes/pull/860).  
+    The pull-model has many advantages for end clients, not least of which that they are guaranteed 
+    to eventually converge to the correct state of the server. We expect that the use cases the geard 
+    endpoint offered will be merged into the Kubelet for consumption by admins.
 
-    systemd and Docker integration offers efficient and clean process management and secure logging aggregation with the system.  We plan on introducing those capabilities into Kubernetes over time, especially as we work with the Docker upstream to limit the impact of the Docker daemon's parent child process relationship with containers, where death of the Docker daemon terminates the containers under it
+    systemd and Docker integration offers efficient and clean process management and secure logging
+    aggregation with the system.  We plan on introducing those capabilities into Kubernetes over
+    time, especially as we work with the Docker upstream to limit the impact of the Docker daemon's
+    parent child process relationship with containers, where death of the Docker daemon terminates
+    the containers under it
 
-    Network links and their ability to simplify how software connects to other containers is planned for Docker links v2 and is a capability we believe will be important in Kubernetes as well ([see issue 494 for more details](https://github.com/GoogleCloudPlatform/kubernetes/issues/494)).
+    Network links and their ability to simplify how software connects to other containers is planned
+    for Docker links v2 and is a capability we believe will be important in Kubernetes as well ([see issue 494 for more details](https://github.com/GoogleCloudPlatform/kubernetes/issues/494)).
 
-    The geard deployment descriptor describes containers and their relationships and will be mapped to deployment on top of Kubernetes.  The geard commandline itself will likely be merged directly into the `openshift` command for all-in-one management of a cluster.
+    The geard deployment descriptor describes containers and their relationships and will be mapped
+    to deployment on top of Kubernetes.  The geard commandline itself will likely be merged directly
+    into the `openshift` command for all-in-one management of a cluster.
 
 
-Contributing
-------------
+Contributing ------------
 
-Contributions are welcome - a more formal process is coming soon.  In the meantime, open issues as necessary, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes).
+Contributions are welcome - a more formal process is coming soon.  In the meantime, open issues as
+necessary, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved
+in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes).
 
-See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on developing on OpenShift.
+See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on
+developing on OpenShift including how different tests are setup.
 
-If you want to run the test suite, make sure you have your environment from above set up, and from the origin directory run:
+If you want to run the test suite, make sure you have your environment from above set up, and from
+the origin directory run:
 
 ```
 # run the unit tests
@@ -153,7 +190,7 @@ $ hack/test-integration.sh
 You'll need [etcd](https://github.com/coreos/etcd) installed and on your path for the last step to run.  To install etcd you should be able to run:
 
 ```
-$ go get github.com/coreos/etcd
+$ hack/install-etcd.sh
 ```
 
 Some of the components of OpenShift run as Docker images, including the builders and deployment tools in `images/builder/docker/*` and 'images/deploy/*`.  To build them locally run
