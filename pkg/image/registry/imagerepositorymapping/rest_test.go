@@ -20,7 +20,7 @@ func TestGetImageRepositoryMapping(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	obj, err := storage.Get("foo")
+	obj, err := storage.Get(nil, "foo")
 	if obj != nil {
 		t.Errorf("Unexpected non-nil object %#v", obj)
 	}
@@ -37,7 +37,7 @@ func TestListImageRepositoryMappings(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	list, err := storage.List(labels.Everything(), labels.Everything())
+	list, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if list != nil {
 		t.Errorf("Unexpected non-nil list %#v", list)
 	}
@@ -54,7 +54,7 @@ func TestDeleteImageRepositoryMapping(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	channel, err := storage.Delete("repo1")
+	channel, err := storage.Delete(nil, "repo1")
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
@@ -71,7 +71,7 @@ func TestUpdateImageRepositoryMapping(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	channel, err := storage.Update(&api.ImageList{})
+	channel, err := storage.Update(nil, &api.ImageList{})
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
@@ -88,7 +88,7 @@ func TestCreateImageRepositoryMappingBadObject(t *testing.T) {
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	channel, err := storage.Create(&api.ImageList{})
+	channel, err := storage.Create(nil, &api.ImageList{})
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
@@ -117,7 +117,7 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 		Tag: "latest",
 	}
 
-	channel, err := storage.Create(&mapping)
+	channel, err := storage.Create(nil, &mapping)
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
@@ -155,7 +155,7 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 		Tag: "latest",
 	}
 
-	channel, err := storage.Create(&mapping)
+	channel, err := storage.Create(nil, &mapping)
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel %#v", channel)
 	}
@@ -202,7 +202,7 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 		},
 		Tag: "latest",
 	}
-	ch, err := storage.Create(&mapping)
+	ch, err := storage.Create(nil, &mapping)
 	if err != nil {
 		t.Errorf("Unexpected error creating mapping: %#v", err)
 	}

@@ -41,11 +41,11 @@ type errKubeClient struct {
 	kubeclient.Fake
 }
 
-func (_ *errKubeClient) CreatePod(pod *kubeapi.Pod) (*kubeapi.Pod, error) {
+func (_ *errKubeClient) CreatePod(ctx kubeapi.Context, pod *kubeapi.Pod) (*kubeapi.Pod, error) {
 	return &kubeapi.Pod{}, errors.New("CreatePod error!")
 }
 
-func (_ *errKubeClient) GetPod(name string) (*kubeapi.Pod, error) {
+func (_ *errKubeClient) GetPod(ctx kubeapi.Context, name string) (*kubeapi.Pod, error) {
 	return &kubeapi.Pod{}, errors.New("GedPod error!")
 }
 
@@ -53,7 +53,7 @@ type okKubeClient struct {
 	kubeclient.Fake
 }
 
-func (_ *okKubeClient) GetPod(name string) (*kubeapi.Pod, error) {
+func (_ *okKubeClient) GetPod(ctx kubeapi.Context, name string) (*kubeapi.Pod, error) {
 	return &kubeapi.Pod{
 		CurrentState: kubeapi.PodState{Status: kubeapi.PodTerminated},
 	}, nil

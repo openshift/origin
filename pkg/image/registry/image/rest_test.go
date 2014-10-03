@@ -21,7 +21,7 @@ func TestListImagesError(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	images, err := storage.List(nil, nil)
+	images, err := storage.List(nil, nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -41,7 +41,7 @@ func TestListImagesEmptyList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	images, err := storage.List(labels.Everything(), labels.Everything())
+	images, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -72,7 +72,7 @@ func TestListImagesPopulatedList(t *testing.T) {
 		registry: mockRegistry,
 	}
 
-	list, err := storage.List(labels.Everything(), labels.Everything())
+	list, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -87,7 +87,7 @@ func TestListImagesPopulatedList(t *testing.T) {
 func TestCreateImageBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(&api.ImageList{})
+	channel, err := storage.Create(nil, &api.ImageList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -99,7 +99,7 @@ func TestCreateImageBadObject(t *testing.T) {
 func TestCreateImageMissingID(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(&api.Image{})
+	channel, err := storage.Create(nil, &api.Image{})
 	if channel != nil {
 		t.Errorf("Expected nil channel, got %v", channel)
 	}
@@ -113,7 +113,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	mockRegistry.Err = fmt.Errorf("test error")
 	storage := REST{registry: mockRegistry}
 
-	channel, err := storage.Create(&api.Image{
+	channel, err := storage.Create(nil, &api.Image{
 		JSONBase:             kubeapi.JSONBase{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
@@ -130,7 +130,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != "failure" || status.Message != "foo" {
+		if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
 			t.Errorf("Expected failure status, got %#V", status)
 		}
 	case <-time.After(50 * time.Millisecond):
@@ -143,7 +143,7 @@ func TestCreateImageOK(t *testing.T) {
 	mockRegistry := test.NewImageRegistry()
 	storage := REST{registry: mockRegistry}
 
-	channel, err := storage.Create(&api.Image{
+	channel, err := storage.Create(nil, &api.Image{
 		JSONBase:             kubeapi.JSONBase{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
@@ -174,7 +174,7 @@ func TestGetImageError(t *testing.T) {
 	mockRegistry.Err = fmt.Errorf("bad")
 	storage := REST{registry: mockRegistry}
 
-	image, err := storage.Get("foo")
+	image, err := storage.Get(nil, "foo")
 	if image != nil {
 		t.Errorf("Unexpected non-nil image: %#v", image)
 	}
@@ -191,7 +191,7 @@ func TestGetImageOK(t *testing.T) {
 	}
 	storage := REST{registry: mockRegistry}
 
-	image, err := storage.Get("foo")
+	image, err := storage.Get(nil, "foo")
 	if image == nil {
 		t.Error("Unexpected nil image")
 	}
@@ -205,7 +205,7 @@ func TestGetImageOK(t *testing.T) {
 
 func TestUpdateImage(t *testing.T) {
 	storage := REST{}
-	channel, err := storage.Update(&api.Image{})
+	channel, err := storage.Update(nil, &api.Image{})
 	if channel != nil {
 		t.Errorf("Unexpected non-nil channel: %#v", channel)
 	}
@@ -220,7 +220,7 @@ func TestUpdateImage(t *testing.T) {
 func TestDeleteImage(t *testing.T) {
 	mockRegistry := test.NewImageRegistry()
 	storage := REST{registry: mockRegistry}
-	channel, err := storage.Delete("foo")
+	channel, err := storage.Delete(nil, "foo")
 	if channel == nil {
 		t.Error("Unexpected nil channel")
 	}
@@ -234,7 +234,7 @@ func TestDeleteImage(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != "success" {
+		if status.Status != kubeapi.StatusSuccess {
 			t.Errorf("Expected status=success, got: %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):

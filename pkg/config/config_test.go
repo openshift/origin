@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -57,7 +58,8 @@ func TestApplySendsData(t *testing.T) {
 		}
 	}))
 
-	fakeClient, _ := kubeclient.NewRESTClient(fakeServer.URL, nil, "/api/v1beta1/", fakeCodec)
+	uri, _ := url.Parse(fakeServer.URL + "/api/v1beta1")
+	fakeClient := kubeclient.NewRESTClient(uri, fakeCodec)
 	clients := clientapi.ClientMappings{
 		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
@@ -72,7 +74,7 @@ func TestApplySendsData(t *testing.T) {
 }
 
 func TestGetClientAndPath(t *testing.T) {
-	kubeClient, _ := kubeclient.New("127.0.0.1", "", nil)
+	kubeClient, _ := kubeclient.New(&kubeclient.Config{Host: "127.0.0.1"})
 	testClientMappings := clientapi.ClientMappings{
 		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
 		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
@@ -87,7 +89,7 @@ func TestGetClientAndPath(t *testing.T) {
 }
 
 func ExampleApply() {
-	kubeClient, _ := kubeclient.New("127.0.0.1", "", nil)
+	kubeClient, _ := kubeclient.New(&kubeclient.Config{Host: "127.0.0.1"})
 	testClientMappings := clientapi.ClientMappings{
 		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
 		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
