@@ -14,30 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package scheduler
+// Package testapi provides a helper for retrieving the KUBE_API_VERSION environment variable.
+package testapi
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"os"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
-// RoundRobinScheduler chooses machines in order.
-type RoundRobinScheduler struct {
-	currentIndex int
-}
-
-func NewRoundRobinScheduler() Scheduler {
-	return &RoundRobinScheduler{
-		currentIndex: -1,
+// Version returns the API version to test against as set by the KUBE_API_VERSION env var.
+func Version() string {
+	version := os.Getenv("KUBE_API_VERSION")
+	if version == "" {
+		version = latest.Version
 	}
+	return version
 }
 
-// Schedule schedules a pod on the machine next to the last scheduled machine.
-func (s *RoundRobinScheduler) Schedule(pod api.Pod, minionLister MinionLister) (string, error) {
-	machines, err := minionLister.List()
+func CodecForVersionOrDie() runtime.Codec {
+	interfaces, err := latest.InterfacesFor(Version())
 	if err != nil {
-		return "", err
+		panic(err)
 	}
-	s.currentIndex = (s.currentIndex + 1) % len(machines)
-	result := machines[s.currentIndex]
-	return result, nil
+	return interfaces.Codec
 }

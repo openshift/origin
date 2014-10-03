@@ -85,7 +85,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 func TestInternalRoundTrip(t *testing.T) {
 	latest := "v1beta2"
 
-	for k, _ := range internal.Scheme.KnownTypes("") {
+	for k := range internal.Scheme.KnownTypes("") {
 		obj, err := internal.Scheme.New("", k)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", k, err)
@@ -146,11 +146,11 @@ func TestCodec(t *testing.T) {
 }
 
 func TestInterfacesFor(t *testing.T) {
-	if _, _, err := InterfacesFor(""); err == nil {
+	if _, err := InterfacesFor(""); err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 	for i, version := range append([]string{Version, OldestVersion}, Versions...) {
-		if codec, versioner, err := InterfacesFor(version); err != nil || codec == nil || versioner == nil {
+		if vi, err := InterfacesFor(version); err != nil || vi == nil {
 			t.Fatalf("%d: unexpected result: %v", i, err)
 		}
 	}

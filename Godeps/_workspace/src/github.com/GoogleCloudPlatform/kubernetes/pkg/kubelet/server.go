@@ -48,7 +48,7 @@ type Server struct {
 
 // ListenAndServeKubeletServer initializes a server to respond to HTTP network requests on the Kubelet.
 func ListenAndServeKubeletServer(host HostInterface, updates chan<- interface{}, address string, port uint) {
-	glog.Infof("Starting to listen on %s:%d", address, port)
+	glog.V(1).Infof("Starting to listen on %s:%d", address, port)
 	handler := NewServer(host, updates)
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address, strconv.FormatUint(uint64(port), 10)),
@@ -172,7 +172,7 @@ func (s *Server) handleContainerLogs(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, `{"message": "Missing container name."}`, http.StatusBadRequest)
 		return
 	}
-	
+
 	uriValues := u.Query()
 	follow, _ := strconv.ParseBool(uriValues.Get("follow"))
 	tail := uriValues.Get("tail")

@@ -56,11 +56,11 @@ func validateVolumes(volumes []api.Volume) (util.StringSet, errs.ErrorList) {
 func validateSource(source *api.VolumeSource) errs.ErrorList {
 	numVolumes := 0
 	allErrs := errs.ErrorList{}
-	if source.HostDirectory != nil {
+	if source.HostDir != nil {
 		numVolumes++
-		allErrs = append(allErrs, validateHostDir(source.HostDirectory).Prefix("hostDirectory")...)
+		allErrs = append(allErrs, validateHostDir(source.HostDir).Prefix("hostDirectory")...)
 	}
-	if source.EmptyDirectory != nil {
+	if source.EmptyDir != nil {
 		numVolumes++
 		//EmptyDirs have nothing to validate
 	}
@@ -70,7 +70,7 @@ func validateSource(source *api.VolumeSource) errs.ErrorList {
 	return allErrs
 }
 
-func validateHostDir(hostDir *api.HostDirectory) errs.ErrorList {
+func validateHostDir(hostDir *api.HostDir) errs.ErrorList {
 	allErrs := errs.ErrorList{}
 	if hostDir.Path == "" {
 		allErrs = append(allErrs, errs.NewNotFound("path", hostDir.Path))
@@ -78,7 +78,7 @@ func validateHostDir(hostDir *api.HostDirectory) errs.ErrorList {
 	return allErrs
 }
 
-var supportedPortProtocols = util.NewStringSet("TCP", "UDP")
+var supportedPortProtocols = util.NewStringSet(string(api.ProtocolTCP), string(api.ProtocolUDP))
 
 func validatePorts(ports []api.Port) errs.ErrorList {
 	allErrs := errs.ErrorList{}
@@ -106,7 +106,7 @@ func validatePorts(ports []api.Port) errs.ErrorList {
 		}
 		if len(port.Protocol) == 0 {
 			port.Protocol = "TCP"
-		} else if !supportedPortProtocols.Has(strings.ToUpper(port.Protocol)) {
+		} else if !supportedPortProtocols.Has(strings.ToUpper(string(port.Protocol))) {
 			pErrs = append(pErrs, errs.NewFieldNotSupported("protocol", port.Protocol))
 		}
 		allErrs = append(allErrs, pErrs.PrefixIndex(i)...)
@@ -164,7 +164,7 @@ func AccumulateUniquePorts(containers []api.Container, accumulator map[int]bool,
 				continue
 			}
 			if accumulator[port] {
-				cErrs = append(cErrs, errs.NewFieldDuplicate("Port", port))
+				cErrs = append(cErrs, errs.NewFieldDuplicate("port", port))
 			} else {
 				accumulator[port] = true
 			}
@@ -313,6 +313,9 @@ func ValidatePod(pod *api.Pod) errs.ErrorList {
 	if len(pod.ID) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("id", pod.ID))
 	}
+	if !util.IsDNSSubdomain(pod.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", pod.Namespace))
+	}
 	allErrs = append(allErrs, ValidatePodState(&pod.DesiredState).Prefix("desiredState")...)
 	return allErrs
 }
@@ -325,12 +328,15 @@ func ValidateService(service *api.Service) errs.ErrorList {
 	} else if !util.IsDNS952Label(service.ID) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("id", service.ID))
 	}
+	if !util.IsDNSSubdomain(service.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", service.Namespace))
+	}
 	if !util.IsValidPortNum(service.Port) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("Service.Port", service.Port))
+		allErrs = append(allErrs, errs.NewFieldInvalid("port", service.Port))
 	}
 	if len(service.Protocol) == 0 {
 		service.Protocol = "TCP"
-	} else if !supportedPortProtocols.Has(strings.ToUpper(service.Protocol)) {
+	} else if !supportedPortProtocols.Has(strings.ToUpper(string(service.Protocol))) {
 		allErrs = append(allErrs, errs.NewFieldNotSupported("protocol", service.Protocol))
 	}
 	if labels.Set(service.Selector).AsSelector().Empty() {
@@ -344,6 +350,9 @@ func ValidateReplicationController(controller *api.ReplicationController) errs.E
 	allErrs := errs.ErrorList{}
 	if len(controller.ID) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("id", controller.ID))
+	}
+	if !util.IsDNSSubdomain(controller.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", controller.Namespace))
 	}
 	allErrs = append(allErrs, ValidateReplicationControllerState(&controller.DesiredState).Prefix("desiredState")...)
 	return allErrs
