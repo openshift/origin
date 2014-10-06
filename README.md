@@ -18,6 +18,10 @@ First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.ado
 
 Once setup, you can:
 
+0. If you are on OS X (and maybe Windows?) you need to run this first:
+
+        $ export OSTYPE=darwin
+
 1.  Run a build
 
         $ hack/build-go.sh
