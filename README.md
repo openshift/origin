@@ -18,19 +18,19 @@ First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.ado
 
 Once setup, you can:
 
-0. If you are on OS X (and maybe Windows?) and $OSTYPE does not start with "darwin" you need to run this first:
-
-        $ export OSTYPE=darwin
-
 1.  Run a build
 
         $ hack/build-go.sh
 
-2.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
+2. If your build fails, it could be an incorrect value of $OSTYPE. So try running this and rerunning the build:
+
+        $ export OSTYPE=darwin
+
+3.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
         $ _output/go/bin/openshift start
 
-3.  In another terminal window, switch to the directory and start an app:
+4.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
         $ _output/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
