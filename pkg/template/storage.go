@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/config"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -49,8 +50,14 @@ func (s *Storage) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtim
 			"expression": NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 		}
 		processor := NewTemplateProcessor(generators)
-		config, err := processor.Process(template)
-		return config, err
+		cfg, err := processor.Process(template)
+		if err != nil {
+			return nil, err
+		}
+		if err := config.AddConfigLabels(cfg, labels.Set{"template": template.ID}); err != nil {
+			return nil, err
+		}
+		return cfg, nil
 	}), nil
 }
 
