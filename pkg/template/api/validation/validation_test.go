@@ -1,9 +1,9 @@
 package validation
 
 import (
-	goruntime "runtime"
 	"testing"
 
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/template/api"
@@ -37,37 +37,51 @@ func TestValidateParameter(t *testing.T) {
 }
 
 func TestValidateTemplate(t *testing.T) {
-	shouldPass := func(template *api.Template) {
-		errs := ValidateTemplate(template)
-		if len(errs) != 0 {
-			_, _, line, _ := goruntime.Caller(1)
-			t.Errorf("line %v: Unexpected non-zero error list: %#v", line, errs)
+	var tests = []struct {
+		template        *api.Template
+		isValidExpected bool
+	}{
+		{ // Empty Template, should fail on empty ID
+			&api.Template{},
+			false,
+		},
+		{ // Template with ID, should pass
+			&api.Template{
+				JSONBase: kubeapi.JSONBase{ID: "templateId"},
+			},
+			true,
+		},
+		{ // Template with invalid Parameter, should fail on Parameter name
+			&api.Template{
+				JSONBase:   kubeapi.JSONBase{ID: "templateId"},
+				Parameters: []api.Parameter{{Name: "", Value: "1"}},
+			},
+			false,
+		},
+		{ // Template with valid Parameter, should pass
+			&api.Template{
+				JSONBase:   kubeapi.JSONBase{ID: "templateId"},
+				Parameters: []api.Parameter{{Name: "VALID_NAME", Value: "1"}},
+			},
+			true,
+		},
+		{ // Template with Item of unknown Kind, should pass
+			&api.Template{
+				JSONBase:   kubeapi.JSONBase{ID: "templateId"},
+				Parameters: []api.Parameter{{Name: "VALID_NAME", Value: "1"}},
+				Items:      []runtime.EmbeddedObject{{}},
+			},
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		errs := ValidateTemplate(test.template)
+		if len(errs) != 0 && test.isValidExpected {
+			t.Errorf("Unexpected non-empty error list: %#v", errs)
+		}
+		if len(errs) == 0 && !test.isValidExpected {
+			t.Errorf("Unexpected empty error list: %#v", errs)
 		}
 	}
-	shouldFail := func(template *api.Template) {
-		if len(ValidateTemplate(template)) == 0 {
-			_, _, line, _ := goruntime.Caller(1)
-			t.Errorf("line %v: Expected non-zero error list", line)
-		}
-	}
-
-	// Test empty Template, should fail on empty ID
-	template := &api.Template{}
-	shouldFail(template)
-
-	// Set ID, should pass
-	template.JSONBase.ID = "templateId"
-	shouldPass(template)
-
-	// Add invalid Parameter, should fail on Parameter name
-	template.Parameters = []api.Parameter{{Name: "", Value: "1"}}
-	shouldFail(template)
-
-	// Fix Parameter name, should pass
-	template.Parameters[0].Name = "VALID_NAME"
-	shouldPass(template)
-
-	// Add Item of unknown Kind, should pass
-	template.Items = []runtime.EmbeddedObject{{}}
-	shouldPass(template)
 }
