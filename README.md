@@ -18,7 +18,7 @@ First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.ado
 
 Once setup, you can:
 
-0. If you are on OS X (and maybe Windows?) you need to run this first:
+0. If you are on OS X (and maybe Windows?) and $OSTYPE does not start with "darwin" you need to run this first:
 
         $ export OSTYPE=darwin
 
