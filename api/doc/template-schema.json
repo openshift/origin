@@ -27,16 +27,15 @@
             "type": "string",
             "required": true
           },
-          "type": {
-            "type": "string",
-            "required": true,
-            "enum": ["string"]
-          },
-          "value": {
+          "generate": {
             "type": "string",
             "required": false
           },
-          "expression": {
+          "from": {
+            "type": "string",
+            "required": false
+          },
+          "value": {
             "type": "string",
             "required": false
           },

@@ -35,18 +35,20 @@ type Parameter struct {
 	Name string `json:"name" yaml:"name"`
 
 	// Optional: Description describes the Parameter.
-	Description string `json:"description" yaml:"description"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	// Required: Type defines the type of the Parameter value.
-	Type string `json:"type" yaml:"type"`
+	// Optional: Generate specifies the generator to be used to generate
+	// random string from an input value specified by From field. The result
+	// string is stored into Value field. If empty, no generator is being
+	// used, leaving the result Value untouched.
+	Generate string `json:"generate,omitempty" yaml:"generate,omitempty"`
 
-	// Optional: Expression generates new Value data using the
-	// GeneratorExpressionValue expression.
-	// TODO: Support more Generator types.
-	Expression string `json:"expression,omitempty" yaml:"expression,omitempty"`
+	// Optional: From is an input value for the generator.
+	From string `json:"from,omitempty" yaml:"from,omitempty"`
 
-	// Optional: Value holds the Parameter data. The data replaces all occurances
-	// of the Parameter name during the Template to Config transformation.
-	// TODO: Change this to runtime.Object and support more types than just string.
+	// Optional: Value holds the Parameter data. The Value data can be
+	// overwritten by the generator. The value replaces all occurances
+	// of the Parameter ${Name} expression during the Template to Config
+	// transformation.
 	Value string `json:"value,omitempty" yaml:"value,omitempty"`
 }

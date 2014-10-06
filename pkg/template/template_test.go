@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/template/api"
-	. "github.com/openshift/origin/pkg/template/generator"
+	"github.com/openshift/origin/pkg/template/generator"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -44,16 +44,67 @@ func TestAddParameter(t *testing.T) {
 	}
 }
 
-func TestEmptyGenerators(t *testing.T) {
-	var template api.Template
-	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
-	json.Unmarshal(jsonData, &template)
+type FooGenerator struct {
+}
 
-	processor := NewTemplateProcessor(map[string]Generator{})
+func (g FooGenerator) GenerateValue(expression string) (interface{}, error) {
+	return "foo", nil
+}
 
-	_, err := processor.Process(&template)
-	if err == nil {
-		t.Errorf("Expected error, no generators defined for Expression fields.")
+type ErrorGenerator struct {
+}
+
+func (g ErrorGenerator) GenerateValue(expression string) (interface{}, error) {
+	return "", fmt.Errorf("error")
+}
+
+func TestParameterGenerators(t *testing.T) {
+	tests := []struct {
+		parameter  api.Parameter
+		generators map[string]generator.Generator
+		shouldPass bool
+		expected   api.Parameter
+	}{
+		{ // Empty generator, should pass
+			api.Parameter{Name: "PARAM", Generate: "", Value: "X"},
+			map[string]generator.Generator{},
+			true,
+			api.Parameter{Name: "PARAM", Generate: "", Value: "X"},
+		},
+		{ // Foo generator, should pass
+			api.Parameter{Name: "PARAM", Generate: "foo", Value: ""},
+			map[string]generator.Generator{"foo": FooGenerator{}},
+			true,
+			api.Parameter{Name: "PARAM", Generate: "", Value: "foo"},
+		},
+		{ // Invalid generator, should fail
+			api.Parameter{Name: "PARAM", Generate: "invalid", Value: ""},
+			map[string]generator.Generator{"invalid": nil},
+			false,
+			api.Parameter{Name: "PARAM", Generate: "invalid", Value: ""},
+		},
+		{ // Error generator, should fail
+			api.Parameter{Name: "PARAM", Generate: "error", Value: ""},
+			map[string]generator.Generator{"error": ErrorGenerator{}},
+			false,
+			api.Parameter{Name: "PARAM", Generate: "error", Value: ""},
+		},
+	}
+
+	for i, test := range tests {
+		processor := NewTemplateProcessor(test.generators)
+		template := api.Template{Parameters: []api.Parameter{test.parameter}}
+		err := processor.GenerateParameterValues(&template)
+		if err != nil && test.shouldPass {
+			t.Errorf("test[%v]: Unexpected error %v", i, err)
+		}
+		if err == nil && !test.shouldPass {
+			t.Errorf("test[%v]: Expected error", i)
+		}
+		actual := template.Parameters[0]
+		if actual.Value != test.expected.Value {
+			t.Errorf("test[%v]: Unexpected value: Expected: %#v, got: %#v", i, test.expected.Value, test.parameter.Value)
+		}
 	}
 }
 
@@ -62,8 +113,8 @@ func ExampleProcessTemplateParameters() {
 	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
 	latest.Codec.DecodeInto(jsonData, &template)
 
-	generators := map[string]Generator{
-		"expression": NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
+	generators := map[string]generator.Generator{
+		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
 	}
 	processor := NewTemplateProcessor(generators)
 

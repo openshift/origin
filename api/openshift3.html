@@ -1,4 +1,4 @@
-<!DOCTYPE HTML><html><head><title>OpenShift 3 API documentation</title><meta http-equiv=X-UA-Compatible content="IE=edge"><meta http-equiv=Content-Type content="text/html; charset=utf-8"><meta name=generator content="https://github.com/kevinrenskers/raml2html 1.0.4"><link rel=stylesheet href=http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css><link rel=stylesheet href=http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/styles/default.min.css><script type=text/javascript src=http://code.jquery.com/jquery-1.11.0.min.js></script><script type=text/javascript src=http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js></script><script type=text/javascript src=http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/highlight.min.js></script><script type=text/javascript>
+<!DOCTYPE HTML><html><head><title>OpenShift 3 API documentation</title><meta http-equiv=X-UA-Compatible content="IE=edge"><meta http-equiv=Content-Type content="text/html; charset=utf-8"><meta name=generator content="https://github.com/kevinrenskers/raml2html 1.0.3"><link rel=stylesheet href=http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css><link rel=stylesheet href=http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/styles/default.min.css><script type=text/javascript src=http://code.jquery.com/jquery-1.11.0.min.js></script><script type=text/javascript src=http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js></script><script type=text/javascript src=http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/highlight.min.js></script><script type=text/javascript>
         $(document).ready(function() {
             $('.page-header pre code, .top-resource-description pre code').each(function(i, block) {
                 hljs.highlightBlock(block);
@@ -1577,16 +1577,15 @@
             "type": "string",
             "required": true
           },
-          "type": {
-            "type": "string",
-            "required": true,
-            "enum": ["string"]
-          },
-          "value": {
+          "generate": {
             "type": "string",
             "required": false
           },
-          "expression": {
+          "from": {
+            "type": "string",
+            "required": false
+          },
+          "value": {
             "type": "string",
             "required": false
           },
@@ -1617,27 +1616,27 @@
     }
   }
 }</code></pre><p><strong>Example</strong>:</p><pre><code>{
-  "kind": "Template",
   "id": "example1",
+  "kind": "Template",
+  "apiVersion": "v1beta1",
   "name": "My awesome PHP app",
   "description": "Example PHP application with PostgreSQL database",
   "parameters": [
     {
       "name": "DB_PASSWORD",
       "description": "PostgreSQL admin user password",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DB_USER",
       "description": "PostgreSQL username",
-      "type": "string",
-      "expression": "admin[a-zA-Z0-9]{4}"
+      "generate": "expression",
+      "from": "admin[a-zA-Z0-9]{4}"
     },
     {
       "name": "DB_NAME",
       "description": "PostgreSQL database name",
-      "type": "string",
       "value": "mydb"
     }
   ],
@@ -1754,7 +1753,8 @@
       }
     }
   ]
-}</code></pre></div><div class=tab-pane id=_templateConfigs_post_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
+}
+</code></pre></div><div class=tab-pane id=_templateConfigs_post_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
   "kind": "Config",
   "id": "example1",
   "name": "My awesome PHP app",
@@ -1902,63 +1902,49 @@
     }
   ]
 }</code></pre></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class=panel-heading><h3 id=_templates class=panel-title>/templates (NOT IMPLEMENTED)</h3></div><div class=panel-body><div class=panel-group><div class="panel panel-white"><div class=panel-heading><h4 class=panel-title><a class=collapsed data-toggle=collapse href=#panel__templates><span class=parent></span>/templates</a> <span class=methods><a href=# data-toggle=modal data-target=#_templates_get><span class="badge badge_get">get</span></a> <a href=# data-toggle=modal data-target=#_templates_post><span class="badge badge_post">post</span></a></span></h4></div><div id=panel__templates class="panel-collapse collapse"><div class=panel-body><div class=list-group><div data-toggle=modal data-target=#_templates_get class=list-group-item><span class="badge badge_get">get</span><div class=method_description><p>List all templates that your account has access to.</p><p>A template represents generic config with parameters.</p><p>Parameters:</p><p>Example #1 - static paramater:</p><pre><code>{
-
   "name": "DB_NAME",
-
   "description": "PostgreSQL database name",
-
-  "type": "string",
-
   "value": "mydb"
-
 }
-</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_NAME} expression, which is to be substituted by its value (the "mydb" string) during the transformation.</p><p>Example #2 - parameter with generator:</p><pre><code>{
-
+</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_NAME} expression, which is to be substituted by its value (the "mydb" string) during the template to config transformation.</p><p>Example #2 - parameter with generator:</p><pre><code>{
   "name": "DB_PASSWORD",
-
   "description": "PostgreSQL admin user password",
-
-  "type": "string",
-
-  "expression": "[a-zA-Z0-9]{8}"
-
+  "generate": "expression",
+  "from": "[a-zA-Z0-9]{8}"
 }
-</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_PASSWORD} expression, which is to be substituted by its newly generated value during the transformation.</p><p>Generators:</p><p>Generators generate random values based on the input. OpenShift 3 currently support expression value generator only.</p><p>Expression value generator generates random string based on the input expression. The input expression is a string, which may contain "[a-zA-Z0-9]{length}" expression constructs, defining range and length of the result random characters.</p><p>Examples ("expression" =&gt; "value"):</p><pre><code>"test[0-9]{1}x" =&gt; "test7x"
-
-"[0-1]{8}" =&gt; "01001100"
-
-"0x[A-F0-9]{4}" =&gt; "0xB3AF"
-
-"[a-zA-Z0-9]{8}" =&gt; "hW4yQU5i"
+</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_PASSWORD} expression, which is to be substituted with its newly generated value by expression value generator during the template to config transformation.</p><p>Generators:</p><p>The value of "generate" field specifies the generator to be used. The selected generator then generates random value based on the "from" input value. OpenShift 3 currently supports expression value generator only.</p><p>Expression value generator:</p><p>Expression value generator is used when generate field matches "expression" value. It generates random string based on the "from" input value. The input value is a string expression, which may contain "[a-zA-Z0-9]{length}" constructs, defining range and length of the result random characters.</p><pre><code>{
+  "name": "PARAM",
+  "generate": "expression",
+  "from": "input expression"
+}
+</code></pre><p>Examples:</p><pre><code>from             | value
+-----------------------------
+"test[0-9]{1}x"  | "test7x"
+"[0-1]{8}"       | "01001100"
+"0x[A-F0-9]{4}"  | "0xB3AF"
+"[a-zA-Z0-9]{8}" | "hW4yQU5i"
 </code></pre></div><div class=clearfix></div></div><div data-toggle=modal data-target=#_templates_post class=list-group-item><span class="badge badge_post">post</span><div class=method_description><p>Create a new template.</p></div><div class=clearfix></div></div></div></div></div><div class="modal fade" tabindex=0 id=_templates_get><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_get">get</span> <span class=parent></span>/templates</h4></div><div class=modal-body><div class="alert alert-info"><p>List all templates that your account has access to.</p><p>A template represents generic config with parameters.</p><p>Parameters:</p><p>Example #1 - static paramater:</p><pre><code>{
-
   "name": "DB_NAME",
-
   "description": "PostgreSQL database name",
-
-  "type": "string",
-
   "value": "mydb"
-
 }
-</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_NAME} expression, which is to be substituted by its value (the "mydb" string) during the transformation.</p><p>Example #2 - parameter with generator:</p><pre><code>{
-
+</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_NAME} expression, which is to be substituted by its value (the "mydb" string) during the template to config transformation.</p><p>Example #2 - parameter with generator:</p><pre><code>{
   "name": "DB_PASSWORD",
-
   "description": "PostgreSQL admin user password",
-
-  "type": "string",
-
-  "expression": "[a-zA-Z0-9]{8}"
-
+  "generate": "expression",
+  "from": "[a-zA-Z0-9]{8}"
 }
-</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_PASSWORD} expression, which is to be substituted by its newly generated value during the transformation.</p><p>Generators:</p><p>Generators generate random values based on the input. OpenShift 3 currently support expression value generator only.</p><p>Expression value generator generates random string based on the input expression. The input expression is a string, which may contain "[a-zA-Z0-9]{length}" expression constructs, defining range and length of the result random characters.</p><p>Examples ("expression" =&gt; "value"):</p><pre><code>"test[0-9]{1}x" =&gt; "test7x"
-
-"[0-1]{8}" =&gt; "01001100"
-
-"0x[A-F0-9]{4}" =&gt; "0xB3AF"
-
-"[a-zA-Z0-9]{8}" =&gt; "hW4yQU5i"
+</code></pre><p>The above parameter can be referenced in the rest of the template as ${DB_PASSWORD} expression, which is to be substituted with its newly generated value by expression value generator during the template to config transformation.</p><p>Generators:</p><p>The value of "generate" field specifies the generator to be used. The selected generator then generates random value based on the "from" input value. OpenShift 3 currently supports expression value generator only.</p><p>Expression value generator:</p><p>Expression value generator is used when generate field matches "expression" value. It generates random string based on the "from" input value. The input value is a string expression, which may contain "[a-zA-Z0-9]{length}" constructs, defining range and length of the result random characters.</p><pre><code>{
+  "name": "PARAM",
+  "generate": "expression",
+  "from": "input expression"
+}
+</code></pre><p>Examples:</p><pre><code>from             | value
+-----------------------------
+"test[0-9]{1}x"  | "test7x"
+"[0-1]{8}"       | "01001100"
+"0x[A-F0-9]{4}"  | "0xB3AF"
+"[a-zA-Z0-9]{8}" | "hW4yQU5i"
 </code></pre></div><ul class="nav nav-tabs"><li class=active><a href=#_templates_get_request data-toggle=tab>Request</a></li></ul><div class=tab-content><div class="tab-pane active" id=_templates_get_request></div></div></div></div></div></div><div class="modal fade" tabindex=0 id=_templates_post><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_post">post</span> <span class=parent></span>/templates</h4></div><div class=modal-body><div class="alert alert-info"><p>Create a new template.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_templates_post_request data-toggle=tab>Request</a></li><li><a href=#_templates_post_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_templates_post_request><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Schema</strong>:</p><pre><code>{
   "$schema": "http://json-schema.org/draft-03/schema",
   "type": "object",
@@ -1988,16 +1974,15 @@
             "type": "string",
             "required": true
           },
-          "type": {
-            "type": "string",
-            "required": true,
-            "enum": ["string"]
-          },
-          "value": {
+          "generate": {
             "type": "string",
             "required": false
           },
-          "expression": {
+          "from": {
+            "type": "string",
+            "required": false
+          },
+          "value": {
             "type": "string",
             "required": false
           },
@@ -2028,27 +2013,27 @@
     }
   }
 }</code></pre><p><strong>Example</strong>:</p><pre><code>{
-  "kind": "Template",
   "id": "example1",
+  "kind": "Template",
+  "apiVersion": "v1beta1",
   "name": "My awesome PHP app",
   "description": "Example PHP application with PostgreSQL database",
   "parameters": [
     {
       "name": "DB_PASSWORD",
       "description": "PostgreSQL admin user password",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DB_USER",
       "description": "PostgreSQL username",
-      "type": "string",
-      "expression": "admin[a-zA-Z0-9]{4}"
+      "generate": "expression",
+      "from": "admin[a-zA-Z0-9]{4}"
     },
     {
       "name": "DB_NAME",
       "description": "PostgreSQL database name",
-      "type": "string",
       "value": "mydb"
     }
   ],
@@ -2165,34 +2150,35 @@
       }
     }
   ]
-}</code></pre></div><div class=tab-pane id=_templates_post_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
+}
+</code></pre></div><div class=tab-pane id=_templates_post_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
     "apiVersion": "v1beta1",
     "creationTimestamp": null,
     "kind": "Status",
     "status": "success"
 }
 </code></pre></div></div></div></div></div></div></div><div class="panel panel-white"><div class=panel-heading><h4 class=panel-title><a class=collapsed data-toggle=collapse href=#panel__templates__templateID_><span class=parent>/templates</span>/{templateID}</a> <span class=methods><a href=# data-toggle=modal data-target=#_templates__templateID__get><span class="badge badge_get">get</span></a> <a href=# data-toggle=modal data-target=#_templates__templateID__put><span class="badge badge_put">put</span></a> <a href=# data-toggle=modal data-target=#_templates__templateID__delete><span class="badge badge_delete">delete</span></a></span></h4></div><div id=panel__templates__templateID_ class="panel-collapse collapse"><div class=panel-body><div class=list-group><div data-toggle=modal data-target=#_templates__templateID__get class=list-group-item><span class="badge badge_get">get</span><div class=method_description><p>Get a specific template.</p></div><div class=clearfix></div></div><div data-toggle=modal data-target=#_templates__templateID__put class=list-group-item><span class="badge badge_put">put</span><div class=method_description><p>Update a specific template.</p></div><div class=clearfix></div></div><div data-toggle=modal data-target=#_templates__templateID__delete class=list-group-item><span class="badge badge_delete">delete</span><div class=method_description><p>Delete a specific template.</p></div><div class=clearfix></div></div></div></div></div><div class="modal fade" tabindex=0 id=_templates__templateID__get><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_get">get</span> <span class=parent>/templates</span>/{templateID}</h4></div><div class=modal-body><div class="alert alert-info"><p>Get a specific template.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_templates__templateID__get_request data-toggle=tab>Request</a></li><li><a href=#_templates__templateID__get_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_templates__templateID__get_request><h3>URI Parameters</h3><ul><li><strong>templateID</strong>: <em>required (string)</em></li></ul></div><div class=tab-pane id=_templates__templateID__get_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
-  "kind": "Template",
   "id": "example1",
+  "kind": "Template",
+  "apiVersion": "v1beta1",
   "name": "My awesome PHP app",
   "description": "Example PHP application with PostgreSQL database",
   "parameters": [
     {
       "name": "DB_PASSWORD",
       "description": "PostgreSQL admin user password",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DB_USER",
       "description": "PostgreSQL username",
-      "type": "string",
-      "expression": "admin[a-zA-Z0-9]{4}"
+      "generate": "expression",
+      "from": "admin[a-zA-Z0-9]{4}"
     },
     {
       "name": "DB_NAME",
       "description": "PostgreSQL database name",
-      "type": "string",
       "value": "mydb"
     }
   ],
@@ -2309,7 +2295,8 @@
       }
     }
   ]
-}</code></pre></div></div></div></div></div></div><div class="modal fade" tabindex=0 id=_templates__templateID__put><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_put">put</span> <span class=parent>/templates</span>/{templateID}</h4></div><div class=modal-body><div class="alert alert-info"><p>Update a specific template.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_templates__templateID__put_request data-toggle=tab>Request</a></li><li><a href=#_templates__templateID__put_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_templates__templateID__put_request><h3>URI Parameters</h3><ul><li><strong>templateID</strong>: <em>required (string)</em></li></ul></div><div class=tab-pane id=_templates__templateID__put_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
+}
+</code></pre></div></div></div></div></div></div><div class="modal fade" tabindex=0 id=_templates__templateID__put><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_put">put</span> <span class=parent>/templates</span>/{templateID}</h4></div><div class=modal-body><div class="alert alert-info"><p>Update a specific template.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_templates__templateID__put_request data-toggle=tab>Request</a></li><li><a href=#_templates__templateID__put_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_templates__templateID__put_request><h3>URI Parameters</h3><ul><li><strong>templateID</strong>: <em>required (string)</em></li></ul></div><div class=tab-pane id=_templates__templateID__put_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
     "apiVersion": "v1beta1",
     "creationTimestamp": null,
     "kind": "Status",

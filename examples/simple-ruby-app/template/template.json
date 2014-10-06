@@ -8,20 +8,20 @@
     {
       "name": "ADMIN_USERNAME",
       "description": "administrator username",
-      "type": "string",
-      "expression": "admin[A-Z0-9]{3}"
+      "generate": "expression",
+      "from": "admin[A-Z0-9]{3}"
     },
     {
       "name": "ADMIN_PASSWORD",
       "description": "administrator password",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DB_PASSWORD",
-      "description": "",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
     }
   ],
   "items": [
