@@ -50,6 +50,7 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.StringVar(&cfg.ClientConfig.KeyFile, "client_key", "", "Path to a client key file for TLS.")
 	flag.BoolVar(&cfg.ClientConfig.Insecure, "insecure_skip_tls_verify", false, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
 	flag.StringVar(&cfg.ImageName, "image", "", "Image used when updating a replicationController.  Will apply to the first container in the pod template.")
+	flag.StringVar(&cfg.ID, "id", "", "Specifies ID of requested resource.")
 
 	return cmd
 }

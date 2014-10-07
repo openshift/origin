@@ -18,6 +18,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -71,6 +72,7 @@ type KubeConfig struct {
 	WWW            string
 	TemplateFile   string
 	TemplateStr    string
+	ID             string
 
 	ImageName string
 
@@ -108,6 +110,9 @@ func usage(name string) string {
 
   Process template into config:
   %[1]s [OPTIONS] process -c template.json
+
+  Retrieve build logs:
+  %[1]s [OPTIONS] buildLogs --id="buildID"
 `, name, prettyWireStorage())
 }
 
@@ -277,7 +282,7 @@ func (c *KubeConfig) Run() {
 		"routes":                  {"Route", client.RESTClient, latest.Codec},
 	}
 
-	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
+	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -469,6 +474,26 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 		return false
 	}
 	if err != nil {
+		glog.Fatalf("Error: %v", err)
+	}
+	return true
+}
+
+// executeBuildLogRequest retrieves the logs from builder container
+func (c *KubeConfig) executeBuildLogRequest(method string, client *osclient.Client) bool {
+	if method != "buildLogs" {
+		return false
+	}
+	if len(c.ID) == 0 {
+		glog.Fatal("Build ID required")
+	}
+	request := client.Verb("GET").Path("redirect").Path("buildLogs").Path(c.ID)
+	readCloser, err := request.Stream()
+	if err != nil {
+		glog.Fatalf("Error: %v", err)
+	}
+	defer readCloser.Close()
+	if _, err := io.Copy(os.Stdout, readCloser); err != nil {
 		glog.Fatalf("Error: %v", err)
 	}
 	return true
