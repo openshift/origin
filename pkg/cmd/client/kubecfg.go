@@ -198,6 +198,7 @@ func (c *KubeConfig) Run() {
 		// TODO: eventually apiserver should start on 443 and be secure by default
 		clientConfig.Host = "http://localhost:8080"
 	}
+	clientConfig.Host = strings.TrimRight(clientConfig.Host, "/")
 
 	if kubeclient.IsConfigTransportSecure(clientConfig) {
 		auth, err := kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
