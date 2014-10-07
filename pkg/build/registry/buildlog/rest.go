@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/openshift/origin/pkg/build/registry/build"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/openshift/origin/pkg/build/registry/build"
 )
 
 // REST is an implementation of RESTStorage for the api server.
@@ -25,13 +25,13 @@ type REST struct {
 func NewREST(b build.Registry, c client.PodInterface, p string) apiserver.RESTStorage {
 	return &REST{
 		BuildRegistry: b,
-		PodClient: c,
-		proxyPrefix: p,
+		PodClient:     c,
+		proxyPrefix:   p,
 	}
 }
 
 // Redirector implementation
-func (r *REST) ResourceLocation(id string) (string, error) {
+func (r *REST) ResourceLocation(ctx kubeapi.Context, id string) (string, error) {
 	build, err := r.BuildRegistry.GetBuild(id)
 	if err != nil {
 		return "", fmt.Errorf("No such build")
@@ -42,8 +42,8 @@ func (r *REST) ResourceLocation(id string) (string, error) {
 		return "", fmt.Errorf("No such pod")
 	}
 	buildPodID := build.PodID
-	buildHost  := pod.CurrentState.Host
-	// Build will take place only in one container 
+	buildHost := pod.CurrentState.Host
+	// Build will take place only in one container
 	buildContainerName := pod.DesiredState.Manifest.Containers[0].Name
 	location := &url.URL{
 		Path: r.proxyPrefix + "/" + buildHost + "/containerLogs/" + buildPodID + "/" + buildContainerName,
