@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -42,6 +43,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/deploy"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -96,6 +98,7 @@ func NewCommandStartAllInOne(name string) *cobra.Command {
 	flag.StringVar(&cfg.ListenAddr, "listenAddr", "127.0.0.1:8080", "The server listen address.")
 	flag.StringVar(&cfg.VolumeDir, "volumeDir", "openshift.local.volumes", "The volume storage directory.")
 	flag.StringVar(&cfg.EtcdDir, "etcdDir", "openshift.local.etcd", "The etcd data directory.")
+	flag.Var(&cfg.corsAllowedOriginList, "corsAllowedOrigins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.")
 
 	dockerHelper.InstallFlags(flag)
 
@@ -109,9 +112,10 @@ type config struct {
 	EtcdDir    string
 	Docker     docker.Helper
 
-	masterHost string
-	nodeHosts  []string
-	bindAddr   string
+	masterHost            string
+	nodeHosts             []string
+	bindAddr              string
+	corsAllowedOriginList flagtypes.StringList
 
 	networkContainerImage string
 
@@ -267,9 +271,19 @@ func (c *config) runApiserver() {
 	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, latest.SelfLinker).InstallREST(osMux, osPrefix)
 	apiserver.InstallSupport(osMux)
 
+	handler := http.Handler(osMux)
+	if len(c.corsAllowedOriginList) > 0 {
+		allowedOriginRegexps, err := util.CompileRegexps(util.StringList(c.corsAllowedOriginList))
+		if err != nil {
+			glog.Fatalf("Invalid CORS allowed origin, --corsAllowedOrigins flag was set to %v - %v", strings.Join(c.corsAllowedOriginList, ","), err)
+		}
+		handler = apiserver.CORS(handler, allowedOriginRegexps, nil, nil, "true")
+	}
+	handler = apiserver.RecoverPanics(handler)
+
 	osApi := &http.Server{
 		Addr:           osAddr,
-		Handler:        apiserver.RecoverPanics(osMux),
+		Handler:        handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
