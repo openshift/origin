@@ -317,12 +317,14 @@ func (c *Client) DeleteDeployment(id string) error {
 
 // ListRoutes takes a selector, and returns the list of routes that match that selector
 func (c *Client) ListRoutes(selector labels.Selector) (result *routeapi.RouteList, err error) {
+	result = &routeapi.RouteList{}
 	err = c.Get().Path("routes").SelectorParam("labels", selector).Do().Into(result)
 	return
 }
 
 // GetRoute takes the name of the route, and returns the corresponding Route object, and an error if it occurs
 func (c *Client) GetRoute(name string) (result *routeapi.Route, err error) {
+	result = &routeapi.Route{}
 	err = c.Get().Path("routes").Path(name).Do().Into(result)
 	return
 }
@@ -334,12 +336,14 @@ func (c *Client) DeleteRoute(name string) error {
 
 // CreateRoute takes the representation of a route.  Returns the server's representation of the route, and an error, if it occurs
 func (c *Client) CreateRoute(route *routeapi.Route) (result *routeapi.Route, err error) {
+	result = &routeapi.Route{}
 	err = c.Post().Path("routes").Body(route).Do().Into(result)
 	return
 }
 
 // UpdateRoute takes the representation of a route to update.  Returns the server's representation of the route, and an error, if it occurs
 func (c *Client) UpdateRoute(route *routeapi.Route) (result *routeapi.Route, err error) {
+	result = &routeapi.Route{}
 	err = c.Put().Path("routes").Path(route.ID).Body(route).Do().Into(result)
 	return
 }
