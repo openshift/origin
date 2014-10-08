@@ -164,7 +164,8 @@ FAQ
     into the `openshift` command for all-in-one management of a cluster.
 
 
-Contributing ------------
+Contributing 
+------------
 
 Contributions are welcome - a more formal process is coming soon.  In the meantime, open issues as
 necessary, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved
