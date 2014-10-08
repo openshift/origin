@@ -13,6 +13,8 @@ rm -rf openshift.local.etcd
 # OPTIONAL: kill all Docker containers before starting
 # docker kill `docker ps --no-trunc -q`
 
+echo "Pre-pulling images"
+./pullimages.sh
 
 # Start the OpenShift all-in-one server
 # (starts a kubernetes master and minion as well as providing the origin REST api)
