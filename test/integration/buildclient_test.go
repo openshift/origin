@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -30,6 +31,7 @@ func init() {
 }
 
 func TestBuildClient(t *testing.T) {
+	ctx := kapi.NewContext()
 	etcdClient := newEtcdClient()
 	helper, _ := master.NewEtcdHelper(etcdClient.GetCluster(), klatest.Version)
 	m := master.New(&master.Config{
@@ -59,7 +61,7 @@ func TestBuildClient(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", e, a)
 	}
 
-	builds, err := osClient.ListBuilds(labels.Everything())
+	builds, err := osClient.ListBuilds(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -80,14 +82,14 @@ func TestBuildClient(t *testing.T) {
 			BuilderImage: "anImage",
 		},
 	}
-	got, err := osClient.CreateBuild(build)
+	got, err := osClient.CreateBuild(ctx, build)
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 
 	// get a created build
 	build.Input.BuilderImage = ""
-	got, err = osClient.CreateBuild(build)
+	got, err = osClient.CreateBuild(ctx, build)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,7 +98,7 @@ func TestBuildClient(t *testing.T) {
 	}
 
 	// get a list of builds
-	builds, err = osClient.ListBuilds(labels.Everything())
+	builds, err = osClient.ListBuilds(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -112,11 +114,11 @@ func TestBuildClient(t *testing.T) {
 	}
 
 	// delete a build
-	err = osClient.DeleteBuild(got.ID)
+	err = osClient.DeleteBuild(ctx, got.ID)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	builds, err = osClient.ListBuilds(labels.Everything())
+	builds, err = osClient.ListBuilds(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}

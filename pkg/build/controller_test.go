@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/build/api"
@@ -13,56 +13,56 @@ import (
 
 type okOsClient struct{}
 
-func (_ *okOsClient) ListBuilds(selector labels.Selector) (*api.BuildList, error) {
+func (_ *okOsClient) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.BuildList, error) {
 	return &api.BuildList{}, nil
 }
 
-func (_ *okOsClient) UpdateBuild(*api.Build) (*api.Build, error) {
+func (_ *okOsClient) UpdateBuild(kapi.Context, *api.Build) (*api.Build, error) {
 	return &api.Build{}, nil
 }
 
 type errOsClient struct{}
 
-func (_ *errOsClient) ListBuilds(selector labels.Selector) (*api.BuildList, error) {
+func (_ *errOsClient) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.BuildList, error) {
 	return &api.BuildList{}, errors.New("ListBuild error!")
 }
 
-func (_ *errOsClient) UpdateBuild(build *api.Build) (*api.Build, error) {
+func (_ *errOsClient) UpdateBuild(ctx kapi.Context, build *api.Build) (*api.Build, error) {
 	return &api.Build{}, errors.New("UpdateBuild error!")
 }
 
 type okStrategy struct{}
 
-func (_ *okStrategy) CreateBuildPod(build *api.Build) (*kubeapi.Pod, error) {
-	return &kubeapi.Pod{}, nil
+func (_ *okStrategy) CreateBuildPod(build *api.Build) (*kapi.Pod, error) {
+	return &kapi.Pod{}, nil
 }
 
 type errKubeClient struct {
 	kubeclient.Fake
 }
 
-func (_ *errKubeClient) CreatePod(ctx kubeapi.Context, pod *kubeapi.Pod) (*kubeapi.Pod, error) {
-	return &kubeapi.Pod{}, errors.New("CreatePod error!")
+func (_ *errKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
+	return &kapi.Pod{}, errors.New("CreatePod error!")
 }
 
-func (_ *errKubeClient) GetPod(ctx kubeapi.Context, name string) (*kubeapi.Pod, error) {
-	return &kubeapi.Pod{}, errors.New("GedPod error!")
+func (_ *errKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) {
+	return &kapi.Pod{}, errors.New("GedPod error!")
 }
 
 type okKubeClient struct {
 	kubeclient.Fake
 }
 
-func (_ *okKubeClient) GetPod(ctx kubeapi.Context, name string) (*kubeapi.Pod, error) {
-	return &kubeapi.Pod{
-		CurrentState: kubeapi.PodState{Status: kubeapi.PodTerminated},
+func (_ *okKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) {
+	return &kapi.Pod{
+		CurrentState: kapi.PodState{Status: kapi.PodTerminated},
 	}, nil
 }
 
 func TestSynchronizeBuildNew(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildNew
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err != nil {
 		t.Errorf("Unexpected error: %s!", err.Error())
 	}
@@ -72,10 +72,10 @@ func TestSynchronizeBuildNew(t *testing.T) {
 }
 
 func TestSynchronizeBuildPendingUnknownStrategy(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildPending
 	build.Input.Type = "unknownStrategy"
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err == nil {
 		t.Error("Expected error, but none happened!")
 	}
@@ -85,10 +85,10 @@ func TestSynchronizeBuildPendingUnknownStrategy(t *testing.T) {
 }
 
 func TestSynchronizeBuildPendingFailedCreatePod(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	ctrl.kubeClient = &errKubeClient{}
 	build.Status = api.BuildPending
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err == nil {
 		t.Error("Expected error, but none happened!")
 	}
@@ -98,9 +98,9 @@ func TestSynchronizeBuildPendingFailedCreatePod(t *testing.T) {
 }
 
 func TestSynchronizeBuildPending(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildPending
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err != nil {
 		t.Errorf("Unexpected error: %s!", err.Error())
 	}
@@ -110,10 +110,10 @@ func TestSynchronizeBuildPending(t *testing.T) {
 }
 
 func TestSynchronizeBuildRunningTimedOut(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildRunning
 	build.CreationTimestamp.Time = time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err == nil {
 		t.Error("Expected error, but none happened!")
 	}
@@ -123,11 +123,11 @@ func TestSynchronizeBuildRunningTimedOut(t *testing.T) {
 }
 
 func TestSynchronizeBuildRunningFailedGetPod(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	ctrl.kubeClient = &errKubeClient{}
 	build.Status = api.BuildRunning
 	build.CreationTimestamp.Time = time.Now()
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err == nil {
 		t.Error("Expected error, but none happened!")
 	}
@@ -137,10 +137,10 @@ func TestSynchronizeBuildRunningFailedGetPod(t *testing.T) {
 }
 
 func TestSynchronizeBuildRunningPodRunning(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildRunning
 	build.CreationTimestamp.Time = time.Now()
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err != nil {
 		t.Errorf("Unexpected error, got %s!", err.Error())
 	}
@@ -150,11 +150,11 @@ func TestSynchronizeBuildRunningPodRunning(t *testing.T) {
 }
 
 func TestSynchronizeBuildRunningPodTerminated(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	ctrl.kubeClient = &okKubeClient{}
 	build.Status = api.BuildRunning
 	build.CreationTimestamp.Time = time.Now()
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err != nil {
 		t.Errorf("Unexpected error, got %s!", err.Error())
 	}
@@ -164,9 +164,9 @@ func TestSynchronizeBuildRunningPodTerminated(t *testing.T) {
 }
 
 func TestSynchronizeBuildComplete(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildComplete
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err != nil {
 		t.Errorf("Unexpected error, got %s!", err.Error())
 	}
@@ -176,9 +176,9 @@ func TestSynchronizeBuildComplete(t *testing.T) {
 }
 
 func TestSynchronizeBuildFailed(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildFailed
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err != nil {
 		t.Errorf("Unexpected error, got %s!", err.Error())
 	}
@@ -188,9 +188,9 @@ func TestSynchronizeBuildFailed(t *testing.T) {
 }
 
 func TestSynchronizeBuildError(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = api.BuildError
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err != nil {
 		t.Errorf("Unexpected error, got %s!", err.Error())
 	}
@@ -200,9 +200,9 @@ func TestSynchronizeBuildError(t *testing.T) {
 }
 
 func TestSynchronizeBuildUnknownStatus(t *testing.T) {
-	ctrl, build := setup()
+	ctrl, build, ctx := setup()
 	build.Status = "unknownBuildStatus"
-	status, err := ctrl.synchronize(build)
+	status, err := ctrl.synchronize(ctx, build)
 	if err == nil {
 		t.Error("Expected error, but none happened!")
 	}
@@ -211,7 +211,7 @@ func TestSynchronizeBuildUnknownStatus(t *testing.T) {
 	}
 }
 
-func setup() (buildController *BuildController, build *api.Build) {
+func setup() (buildController *BuildController, build *api.Build, ctx kapi.Context) {
 	buildController = &BuildController{
 		buildStrategies: map[api.BuildType]BuildJobStrategy{
 			"okStrategy": &okStrategy{},
@@ -220,7 +220,7 @@ func setup() (buildController *BuildController, build *api.Build) {
 		timeout:    1000,
 	}
 	build = &api.Build{
-		JSONBase: kubeapi.JSONBase{
+		JSONBase: kapi.JSONBase{
 			ID: "dataBuild",
 		},
 		Input: api.BuildInput{
@@ -234,5 +234,6 @@ func setup() (buildController *BuildController, build *api.Build) {
 			"name": "dataBuild",
 		},
 	}
+	ctx = kapi.NewDefaultContext()
 	return
 }

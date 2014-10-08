@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -30,6 +31,7 @@ func init() {
 }
 
 func TestBuildConfigClient(t *testing.T) {
+	ctx := kapi.NewContext()
 	etcdClient := newEtcdClient()
 	helper, _ := master.NewEtcdHelper(etcdClient.GetCluster(), klatest.Version)
 	m := master.New(&master.Config{
@@ -59,7 +61,7 @@ func TestBuildConfigClient(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", e, a)
 	}
 
-	buildConfigs, err := osClient.ListBuildConfigs(labels.Everything())
+	buildConfigs, err := osClient.ListBuildConfigs(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -80,14 +82,14 @@ func TestBuildConfigClient(t *testing.T) {
 			BuilderImage: "anImage",
 		},
 	}
-	got, err := osClient.CreateBuildConfig(buildConfig)
+	got, err := osClient.CreateBuildConfig(ctx, buildConfig)
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 
 	// get a created buildConfig
 	buildConfig.DesiredInput.BuilderImage = ""
-	got, err = osClient.CreateBuildConfig(buildConfig)
+	got, err = osClient.CreateBuildConfig(ctx, buildConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,7 +98,7 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// get a list of buildConfigs
-	buildConfigs, err = osClient.ListBuildConfigs(labels.Everything())
+	buildConfigs, err = osClient.ListBuildConfigs(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -109,11 +111,11 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// delete a buildConfig
-	err = osClient.DeleteBuildConfig(got.ID)
+	err = osClient.DeleteBuildConfig(ctx, got.ID)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	buildConfigs, err = osClient.ListBuildConfigs(labels.Everything())
+	buildConfigs, err = osClient.ListBuildConfigs(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}

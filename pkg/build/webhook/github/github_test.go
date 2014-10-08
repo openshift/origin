@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/client"
@@ -17,7 +18,7 @@ type osClient struct {
 	client.Fake
 }
 
-func (_ *osClient) GetBuildConfig(id string) (result *api.BuildConfig, err error) {
+func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
 	return &api.BuildConfig{Secret: "secret101"}, nil
 }
 

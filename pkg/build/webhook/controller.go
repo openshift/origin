@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 )
@@ -47,7 +48,9 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	buildCfg, err := c.osClient.GetBuildConfig(uv.buildId)
+	ctx := kapi.NewContext()
+
+	buildCfg, err := c.osClient.GetBuildConfig(ctx, uv.buildId)
 	if err != nil {
 		badRequest(w, err.Error())
 		return
@@ -76,7 +79,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if _, err := c.osClient.CreateBuild(build); err != nil {
+	if _, err := c.osClient.CreateBuild(ctx, build); err != nil {
 		badRequest(w, err.Error())
 	}
 }

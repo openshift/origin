@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -35,11 +35,12 @@ func init() {
 }
 
 func TestWebhookGithubPush(t *testing.T) {
+	ctx := kapi.NewContext()
 	osClient, url := setup(t)
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{
-		JSONBase: kubeapi.JSONBase{
+		JSONBase: kapi.JSONBase{
 			ID: "pushbuild",
 		},
 		DesiredInput: buildapi.BuildInput{
@@ -49,7 +50,7 @@ func TestWebhookGithubPush(t *testing.T) {
 		},
 		Secret: "secret101",
 	}
-	if _, err := osClient.CreateBuildConfig(buildConfig); err != nil {
+	if _, err := osClient.CreateBuildConfig(ctx, buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -57,7 +58,7 @@ func TestWebhookGithubPush(t *testing.T) {
 	postFile("push", "pushevent.json", url+"pushbuild/secret101/github", http.StatusOK, t)
 
 	// get a list of builds
-	builds, err := osClient.ListBuilds(labels.Everything())
+	builds, err := osClient.ListBuilds(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -72,15 +73,16 @@ func TestWebhookGithubPush(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", buildConfig.DesiredInput, actual.Input)
 	}
 
-	cleanup(osClient, t)
+	cleanup(osClient, ctx, t)
 }
 
 func TestWebhookGithubPing(t *testing.T) {
+	ctx := kapi.NewContext()
 	osClient, url := setup(t)
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{
-		JSONBase: kubeapi.JSONBase{
+		JSONBase: kapi.JSONBase{
 			ID: "pingbuild",
 		},
 		DesiredInput: buildapi.BuildInput{
@@ -90,7 +92,7 @@ func TestWebhookGithubPing(t *testing.T) {
 		},
 		Secret: "secret101",
 	}
-	if _, err := osClient.CreateBuildConfig(buildConfig); err != nil {
+	if _, err := osClient.CreateBuildConfig(ctx, buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -98,7 +100,7 @@ func TestWebhookGithubPing(t *testing.T) {
 	postFile("ping", "pingevent.json", url+"pingbuild/secret101/github", http.StatusOK, t)
 
 	// get a list of builds
-	builds, err := osClient.ListBuilds(labels.Everything())
+	builds, err := osClient.ListBuilds(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -106,7 +108,7 @@ func TestWebhookGithubPing(t *testing.T) {
 		t.Fatalf("Unexpected build appeared, got %#v", builds)
 	}
 
-	cleanup(osClient, t)
+	cleanup(osClient, ctx, t)
 }
 
 func setup(t *testing.T) (*osclient.Client, string) {
@@ -149,22 +151,22 @@ func setup(t *testing.T) (*osclient.Client, string) {
 	return osClient, s.URL + whPrefix
 }
 
-func cleanup(osClient *osclient.Client, t *testing.T) {
-	builds, err := osClient.ListBuilds(labels.Everything())
+func cleanup(osClient *osclient.Client, ctx kapi.Context, t *testing.T) {
+	builds, err := osClient.ListBuilds(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	for _, build := range builds.Items {
-		if err := osClient.DeleteBuild(build.ID); err != nil {
+		if err := osClient.DeleteBuild(ctx, build.ID); err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
-	buildConfigs, err := osClient.ListBuildConfigs(labels.Everything())
+	buildConfigs, err := osClient.ListBuildConfigs(ctx, labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	for _, bc := range buildConfigs.Items {
-		if err := osClient.DeleteBuildConfig(bc.ID); err != nil {
+		if err := osClient.DeleteBuildConfig(ctx, bc.ID); err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}

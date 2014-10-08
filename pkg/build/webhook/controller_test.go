@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 )
@@ -16,7 +17,7 @@ type osClient struct {
 	client.Fake
 }
 
-func (_ *osClient) GetBuildConfig(id string) (result *api.BuildConfig, err error) {
+func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
 	return &api.BuildConfig{Secret: "secret101"}, nil
 }
 
@@ -24,7 +25,7 @@ type buildErrorClient struct {
 	osClient
 }
 
-func (_ *buildErrorClient) CreateBuild(build *api.Build) (result *api.Build, err error) {
+func (_ *buildErrorClient) CreateBuild(ctx kapi.Context, build *api.Build) (result *api.Build, err error) {
 	return &api.Build{}, errors.New("Build error!")
 }
 
@@ -32,7 +33,7 @@ type configErrorClient struct {
 	osClient
 }
 
-func (_ *configErrorClient) GetBuildConfig(id string) (result *api.BuildConfig, err error) {
+func (_ *configErrorClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
 	return &api.BuildConfig{}, errors.New("BuildConfig error!")
 }
 
