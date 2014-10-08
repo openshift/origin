@@ -1,5 +1,4 @@
 /_output
-/third_party
 /openshift.local.*
 /.project
 /.vagrant
