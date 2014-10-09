@@ -28,6 +28,6 @@ fi
 
 docker build --rm -t $TAG $DOCKER_CONTEXT_URL
 
-if [ -n "$DOCKER_REGISTRY" ] || [ -s "/.dockercfg" ]; then
+if [ -n "$DOCKER_REGISTRY" ] || [ -s "/root/.dockercfg" ]; then
   docker push $TAG
 fi

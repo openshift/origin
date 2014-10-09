@@ -20,6 +20,6 @@ fi
 BUILD_TEMP_DIR=${TEMP_DIR-$TMPDIR}
 TMPDIR=$BUILD_TEMP_DIR sti build $SOURCE_URI $BUILDER_IMAGE $TAG $REF_OPTION
 
-if [ -n "$DOCKER_REGISTRY" ] || [ -s "/.dockercfg" ]; then
+if [ -n "$DOCKER_REGISTRY" ] || [ -s "/root/.dockercfg" ]; then
   docker push $TAG
 fi

@@ -48,7 +48,7 @@ func setupDockerConfig(podSpec *api.Pod) {
 	dockerConfigVolumeMount := api.VolumeMount{
 		Name:      "docker-cfg",
 		ReadOnly:  true,
-		MountPath: "/.dockercfg",
+		MountPath: "/root/.dockercfg",
 	}
 
 	podSpec.DesiredState.Manifest.Volumes = append(podSpec.DesiredState.Manifest.Volumes,
