@@ -19,6 +19,11 @@ func NewDockerBuildStrategy(dockerBuilderImage string, useLocalImage bool) *Dock
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
 func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, error) {
+	contextDir := ""
+	if build.Input.DockerInput != nil {
+		contextDir = build.Input.DockerInput.ContextDir
+	}
+
 	pod := &api.Pod{
 		JSONBase: api.JSONBase{
 			ID: build.PodID,
@@ -32,8 +37,10 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, 
 						Image: bs.dockerBuilderImage,
 						Env: []api.EnvVar{
 							{Name: "BUILD_TAG", Value: build.Input.ImageTag},
-							{Name: "DOCKER_CONTEXT_URL", Value: build.Input.SourceURI},
-							{Name: "DOCKER_REGISTRY", Value: build.Input.Registry},
+							{Name: "SOURCE_URI", Value: build.Input.SourceURI},
+							{Name: "SOURCE_REF", Value: build.Input.SourceRef},
+							{Name: "REGISTRY", Value: build.Input.Registry},
+							{Name: "CONTEXT_DIR", Value: contextDir},
 						},
 					},
 				},

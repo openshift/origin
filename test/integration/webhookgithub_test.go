@@ -44,7 +44,6 @@ func TestWebhookGithubPush(t *testing.T) {
 			ID: "pushbuild",
 		},
 		DesiredInput: buildapi.BuildInput{
-			Type:      buildapi.DockerBuildType,
 			SourceURI: "http://my.docker/build",
 			ImageTag:  "namespace/builtimage",
 		},
@@ -86,7 +85,6 @@ func TestWebhookGithubPing(t *testing.T) {
 			ID: "pingbuild",
 		},
 		DesiredInput: buildapi.BuildInput{
-			Type:      buildapi.DockerBuildType,
 			SourceURI: "http://my.docker/build",
 			ImageTag:  "namespace/builtimage",
 		},

@@ -94,16 +94,20 @@ func hasTimeoutElapsed(build *api.Build, timeout int) bool {
 func (bc *BuildController) synchronize(ctx kapi.Context, build *api.Build) (api.BuildStatus, error) {
 	glog.Infof("Syncing build %s", build.ID)
 
+	buildType := api.DockerBuildType
+	if build.Input.STIInput != nil {
+		buildType = api.STIBuildType
+	}
+
 	switch build.Status {
 	case api.BuildNew:
-		build.PodID = "build-" + string(build.Input.Type) + "-" + build.ID // TODO: better naming
+		build.PodID = fmt.Sprintf("build-%v-%s", buildType, build.ID) // TODO: better naming
 		return api.BuildPending, nil
 	case api.BuildPending:
-		buildStrategy, ok := bc.buildStrategies[build.Input.Type]
+		buildStrategy, ok := bc.buildStrategies[buildType]
 		if !ok {
-			return api.BuildError, fmt.Errorf("No build type for %s", build.Input.Type)
+			return api.BuildError, fmt.Errorf("No build strategy for build %s", buildType)
 		}
-
 		podSpec, err := buildStrategy.CreateBuildPod(build)
 		if err != nil {
 			glog.Errorf("Unable to create build pod: %v", err)

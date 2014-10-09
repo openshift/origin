@@ -77,20 +77,13 @@ func TestBuildConfigClient(t *testing.T) {
 			"label2": "value2",
 		},
 		DesiredInput: api.BuildInput{
-			Type:         api.DockerBuildType,
-			SourceURI:    "http://my.docker/build",
-			ImageTag:     "namespace/builtimage",
-			BuilderImage: "anImage",
+			SourceURI: "http://my.docker/build",
+			ImageTag:  "namespace/builtimage",
 		},
-	}
-	got, err := osClient.CreateBuildConfig(ctx, buildConfig)
-	if err == nil {
-		t.Fatalf("unexpected non-error: %v", err)
 	}
 
 	// get a created buildConfig
-	buildConfig.DesiredInput.BuilderImage = ""
-	got, err = osClient.CreateBuildConfig(ctx, buildConfig)
+	got, err := osClient.CreateBuildConfig(ctx, buildConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

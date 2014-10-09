@@ -37,6 +37,12 @@ func (_ *okStrategy) CreateBuildPod(build *api.Build) (*kapi.Pod, error) {
 	return &kapi.Pod{}, nil
 }
 
+type errStrategy struct{}
+
+func (_ *errStrategy) CreateBuildPod(build *api.Build) (*kapi.Pod, error) {
+	return nil, errors.New("CreateBuildPod error!")
+}
+
 type errKubeClient struct {
 	kubeclient.Fake
 }
@@ -46,7 +52,15 @@ func (_ *errKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, e
 }
 
 func (_ *errKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) {
-	return &kapi.Pod{}, errors.New("GedPod error!")
+	return &kapi.Pod{}, errors.New("GetPod error!")
+}
+
+type errExistsKubeClient struct {
+	kubeclient.Fake
+}
+
+func (_ *errExistsKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
+	return &kapi.Pod{}, errors.New("CreatePod already exists error!")
 }
 
 type okKubeClient struct {
@@ -56,6 +70,25 @@ type okKubeClient struct {
 func (_ *okKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) {
 	return &kapi.Pod{
 		CurrentState: kapi.PodState{Status: kapi.PodTerminated},
+	}, nil
+}
+
+type termKubeClient struct {
+	kubeclient.Fake
+}
+
+func (_ *termKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) {
+	return &kapi.Pod{
+		CurrentState: kapi.PodState{
+			Status: kapi.PodTerminated,
+			Info: kapi.PodInfo{
+				"container1": kapi.ContainerStatus{
+					State: kapi.ContainerState{
+						Termination: &kapi.ContainerStateTerminated{ExitCode: 1},
+					},
+				},
+			},
+		},
 	}, nil
 }
 
@@ -71,16 +104,16 @@ func TestSynchronizeBuildNew(t *testing.T) {
 	}
 }
 
-func TestSynchronizeBuildPendingUnknownStrategy(t *testing.T) {
+func TestSynchronizeBuildPendingFailedCreateBuildPod(t *testing.T) {
 	ctrl, build, ctx := setup()
+	ctrl.buildStrategies[api.DockerBuildType] = &errStrategy{}
 	build.Status = api.BuildPending
-	build.Input.Type = "unknownStrategy"
 	status, err := ctrl.synchronize(ctx, build)
 	if err == nil {
 		t.Error("Expected error, but none happened!")
 	}
-	if status != api.BuildError {
-		t.Errorf("Expected BuildError, got %s!", status)
+	if status != api.BuildFailed {
+		t.Errorf("Expected BuildFailed, got %s!", status)
 	}
 }
 
@@ -94,6 +127,20 @@ func TestSynchronizeBuildPendingFailedCreatePod(t *testing.T) {
 	}
 	if status != api.BuildFailed {
 		t.Errorf("Expected BuildFailed, got %s!", status)
+	}
+}
+
+func TestSynchronizeBuildPendingFailedCreatePodAlreadyExists(t *testing.T) {
+	ctrl, build, ctx := setup()
+	ctrl.kubeClient = &errExistsKubeClient{}
+	build.Status = api.BuildPending
+	build.CreationTimestamp.Time = time.Now()
+	status, err := ctrl.synchronize(ctx, build)
+	if err == nil {
+		t.Error("Expected error, but none happened!")
+	}
+	if status != api.BuildPending {
+		t.Errorf("Expected BuildPending, got %s!", status)
 	}
 }
 
@@ -149,6 +196,20 @@ func TestSynchronizeBuildRunningPodRunning(t *testing.T) {
 	}
 }
 
+func TestSynchronizeBuildRunningPodTerminationExitCode(t *testing.T) {
+	ctrl, build, ctx := setup()
+	ctrl.kubeClient = &termKubeClient{}
+	build.Status = api.BuildRunning
+	build.CreationTimestamp.Time = time.Now()
+	status, err := ctrl.synchronize(ctx, build)
+	if err != nil {
+		t.Errorf("Unexpected error, got %s!", err.Error())
+	}
+	if status != api.BuildFailed {
+		t.Errorf("Expected BuildFailed, got %s!", status)
+	}
+}
+
 func TestSynchronizeBuildRunningPodTerminated(t *testing.T) {
 	ctrl, build, ctx := setup()
 	ctrl.kubeClient = &okKubeClient{}
@@ -159,7 +220,7 @@ func TestSynchronizeBuildRunningPodTerminated(t *testing.T) {
 		t.Errorf("Unexpected error, got %s!", err.Error())
 	}
 	if status != api.BuildComplete {
-		t.Errorf("Expected BuildRunning, got %s!", status)
+		t.Errorf("Expected BuildComplete, got %s!", status)
 	}
 }
 
@@ -214,7 +275,7 @@ func TestSynchronizeBuildUnknownStatus(t *testing.T) {
 func setup() (buildController *BuildController, build *api.Build, ctx kapi.Context) {
 	buildController = &BuildController{
 		buildStrategies: map[api.BuildType]BuildJobStrategy{
-			"okStrategy": &okStrategy{},
+			api.DockerBuildType: &okStrategy{},
 		},
 		kubeClient: &kubeclient.Fake{},
 		timeout:    1000,
@@ -224,7 +285,6 @@ func setup() (buildController *BuildController, build *api.Build, ctx kapi.Conte
 			ID: "dataBuild",
 		},
 		Input: api.BuildInput{
-			Type:      "okStrategy",
 			SourceURI: "http://my.build.com/the/build/Dockerfile",
 			ImageTag:  "repository/dataBuild",
 		},

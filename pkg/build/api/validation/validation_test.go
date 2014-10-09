@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/build/api"
 )
 
 func TestBuildValdationSuccess(t *testing.T) {
 	build := &api.Build{
-		JSONBase: kubeapi.JSONBase{ID: "buildId"},
+		JSONBase: kubeapi.JSONBase{ID: "buildID"},
 		Input: api.BuildInput{
-			Type:      api.DockerBuildType,
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
 		},
@@ -26,7 +26,6 @@ func TestBuildValidationFailure(t *testing.T) {
 	build := &api.Build{
 		JSONBase: kubeapi.JSONBase{ID: ""},
 		Input: api.BuildInput{
-			Type:      api.DockerBuildType,
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
 		},
@@ -39,9 +38,8 @@ func TestBuildValidationFailure(t *testing.T) {
 
 func TestBuildConfigValidationSuccess(t *testing.T) {
 	buildConfig := &api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{ID: "configId"},
+		JSONBase: kubeapi.JSONBase{ID: "configID"},
 		DesiredInput: api.BuildInput{
-			Type:      api.DockerBuildType,
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
 		},
@@ -55,7 +53,6 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 	buildConfig := &api.BuildConfig{
 		JSONBase: kubeapi.JSONBase{ID: ""},
 		DesiredInput: api.BuildInput{
-			Type:      api.DockerBuildType,
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
 		},
@@ -67,32 +64,24 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 
 func TestValidateBuildInput(t *testing.T) {
 	errorCases := map[string]*api.BuildInput{
-		"No source URI": &api.BuildInput{
-			Type:      api.DockerBuildType,
+		string(errs.ValidationErrorTypeRequired) + "sourceURI": &api.BuildInput{
 			SourceURI: "",
 			ImageTag:  "repository/data",
 		},
-		"Invalid source URI": &api.BuildInput{
-			Type:      api.DockerBuildType,
+		string(errs.ValidationErrorTypeInvalid) + "sourceURI": &api.BuildInput{
 			SourceURI: "::",
 			ImageTag:  "repository/data",
 		},
-		"No image tag": &api.BuildInput{
-			Type:      api.DockerBuildType,
+		string(errs.ValidationErrorTypeRequired) + "imageTag": &api.BuildInput{
 			SourceURI: "http://github.com/test/uri",
 			ImageTag:  "",
 		},
-		"No builder image with STIBuildType": &api.BuildInput{
-			Type:         api.STIBuildType,
-			SourceURI:    "http://github.com/test/uri",
-			ImageTag:     "repository/data",
-			BuilderImage: "",
-		},
-		"Builder image with DockerBuildType": &api.BuildInput{
-			Type:         api.DockerBuildType,
-			SourceURI:    "http://github.com/test/uri",
-			ImageTag:     "repository/data",
-			BuilderImage: "builder/image",
+		string(errs.ValidationErrorTypeRequired) + "stiBuild.builderImage": &api.BuildInput{
+			SourceURI: "http://github.com/test/uri",
+			ImageTag:  "repository/data",
+			STIInput: &api.STIBuildInput{
+				BuilderImage: "",
+			},
 		},
 	}
 
@@ -101,6 +90,10 @@ func TestValidateBuildInput(t *testing.T) {
 		if len(errors) != 1 {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}
-		// TODO: Verify we got the right type of validation error.
+		err := errors[0].(errs.ValidationError)
+		errDesc := string(err.Type) + err.Field
+		if desc != errDesc {
+			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
+		}
 	}
 }
