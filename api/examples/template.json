@@ -8,19 +8,18 @@
     {
       "name": "DB_PASSWORD",
       "description": "PostgreSQL admin user password",
-      "type": "string",
-      "expression": "[a-zA-Z0-9]{8}"
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
     },
     {
       "name": "DB_USER",
       "description": "PostgreSQL username",
-      "type": "string",
-      "expression": "admin[a-zA-Z0-9]{4}"
+      "generate": "expression",
+      "from": "admin[a-zA-Z0-9]{4}"
     },
     {
       "name": "DB_NAME",
       "description": "PostgreSQL database name",
-      "type": "string",
       "value": "mydb"
     }
   ],

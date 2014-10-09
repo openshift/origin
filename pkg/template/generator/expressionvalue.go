@@ -10,14 +10,17 @@ import (
 
 // ExpressionValueGenerator implements Generator interface. It generates
 // random string based on the input expression. The input expression is
-// a string, which may contain "[a-zA-Z0-9]{length}" expression constructs,
+// a string, which may contain "[a-zA-Z0-9]{length}" constructs,
 // defining range and length of the result random characters.
 //
 // Examples:
-//   - "test[0-9]{1}x" => "test7x"
-//   - "[0-1]{8}" => "01001100"
-//   - "0x[A-F0-9]{4}" => "0xB3AF"
-//   - "[a-zA-Z0-9]{8}" => "hW4yQU5i"
+//
+// from             | value
+// -----------------------------
+// "test[0-9]{1}x"  | "test7x"
+// "[0-1]{8}"       | "01001100"
+// "0x[A-F0-9]{4}"  | "0xB3AF"
+// "[a-zA-Z0-9]{8}" | "hW4yQU5i"
 //
 // TODO: Support more regexp constructs.
 type ExpressionValueGenerator struct {

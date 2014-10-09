@@ -426,58 +426,58 @@ documentation:
         Example #1 - static paramater:
 
           {
-
             "name": "DB_NAME",
-
             "description": "PostgreSQL database name",
-
-            "type": "string",
-
             "value": "mydb"
-
           }
 
         The above parameter can be referenced in the rest of the template
         as ${DB_NAME} expression, which is to be substituted by its value
-        (the "mydb" string) during the transformation.
+        (the "mydb" string) during the template to config transformation.
 
         Example #2 - parameter with generator:
 
           {
-
             "name": "DB_PASSWORD",
-
             "description": "PostgreSQL admin user password",
-
-            "type": "string",
-
-            "expression": "[a-zA-Z0-9]{8}"
-
+            "generate": "expression",
+            "from": "[a-zA-Z0-9]{8}"
           }
 
         The above parameter can be referenced in the rest of the template
-        as ${DB_PASSWORD} expression, which is to be substituted by its
-        newly generated value during the transformation.
+        as ${DB_PASSWORD} expression, which is to be substituted with its
+        newly generated value by expression value generator during the
+        template to config transformation.
 
       Generators:
 
-        Generators generate random values based on the input. OpenShift 3
-        currently support expression value generator only.
+        The value of "generate" field specifies the generator to be used.
+        The selected generator then generates random value based on the
+        "from" input value. OpenShift 3 currently supports expression value
+        generator only.
 
-        Expression value generator generates random string based on the
-        input expression. The input expression is a string, which may contain
-        "[a-zA-Z0-9]{length}" expression constructs, defining range and length
+      Expression value generator:
+
+        Expression value generator is used when generate field matches
+        "expression" value. It generates random string based on the "from"
+        input value. The input value is a string expression, which may
+        contain "[a-zA-Z0-9]{length}" constructs, defining range and length
         of the result random characters.
 
-        Examples ("expression" => "value"):
+          {
+            "name": "PARAM",
+            "generate": "expression",
+            "from": "input expression"
+          }
 
-          "test[0-9]{1}x" => "test7x"
+        Examples:
 
-          "[0-1]{8}" => "01001100"
-
-          "0x[A-F0-9]{4}" => "0xB3AF"
-
-          "[a-zA-Z0-9]{8}" => "hW4yQU5i"
+          from             | value
+          -----------------------------
+          "test[0-9]{1}x"  | "test7x"
+          "[0-1]{8}"       | "01001100"
+          "0x[A-F0-9]{4}"  | "0xB3AF"
+          "[a-zA-Z0-9]{8}" | "hW4yQU5i"
 
   post:
     description: Create a new template.

@@ -96,7 +96,7 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 			p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
 			t.Items[i] = runtime.EmbeddedObject{Object: obj}
 		default:
-			glog.V(1).Infof("Parameter substitution not implemented for resource '%T'.", obj)
+			glog.V(1).Infof("template.items[%v]: Parameter substitution not implemented for resource '%T'.", i, obj)
 		}
 	}
 
@@ -124,29 +124,34 @@ func (p *TemplateProcessor) substituteParametersInManifest(manifest *kubeapi.Con
 }
 
 // GenerateParameterValues generates Value for each Parameter of the given
-// Template that has Expression field specified and doesn't have any
-// Value yet.
+// Template that has Generate field specified.
 //
-// Examples (Expression => Value):
-//   - "test[0-9]{1}x" => "test7x"
-//   - "[0-1]{8}" => "01001100"
-//   - "0x[A-F0-9]{4}" => "0xB3AF"
-//   - "[a-zA-Z0-9]{8}" => "hW4yQU5i"
+// Examples:
+//
+// from             | value
+// -----------------------------
+// "test[0-9]{1}x"  | "test7x"
+// "[0-1]{8}"       | "01001100"
+// "0x[A-F0-9]{4}"  | "0xB3AF"
+// "[a-zA-Z0-9]{8}" | "hW4yQU5i"
 func (p *TemplateProcessor) GenerateParameterValues(t *api.Template) error {
 	for i, _ := range t.Parameters {
 		param := &t.Parameters[i]
-		if param.Expression != "" && param.Value == "" {
-			generator, ok := p.Generators["expression"]
+		if param.Generate != "" {
+			generator, ok := p.Generators[param.Generate]
 			if !ok {
-				return fmt.Errorf("Can't find expression generator.")
+				return fmt.Errorf("template.parameters[%v]: Unable to find the '%v' generator.", i, param.Generate)
 			}
-			value, err := generator.GenerateValue(param.Expression)
+			if generator == nil {
+				return fmt.Errorf("template.parameters[%v]: Invalid '%v' generator.", i, param.Generate)
+			}
+			value, err := generator.GenerateValue(param.From)
 			if err != nil {
 				return err
 			}
 			param.Value, ok = value.(string)
 			if !ok {
-				return fmt.Errorf("Can't convert the generated value %v to string.", value)
+				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string.", i, value)
 			}
 		}
 	}
