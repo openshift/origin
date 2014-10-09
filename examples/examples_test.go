@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	configapi "github.com/openshift/origin/pkg/config/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -20,6 +21,7 @@ func TestExamples(t *testing.T) {
 	expected := map[string]runtime.Object{
 		"guestbook/template.json":                    &templateapi.Template{},
 		"hello-openshift/hello-pod.json":             &kubeapi.Pod{},
+		"hello-openshift/hello-project.json":         &projectapi.Project{},
 		"simple-ruby-app/buildcfg/buildcfg.json":     &buildapi.BuildConfig{},
 		"simple-ruby-app/buildinvoke/pushevent.json": nil, // Skip.
 		"simple-ruby-app/registry-config.json":       &configapi.Config{},
