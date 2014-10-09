@@ -1,8 +1,9 @@
-Hacking on OpenShift ====================
+Hacking on OpenShift
+====================
 
 ## Test Suites
 
-OpenShift uses three levels of testing - unit tests, integration test, and end- to-end tests (much
+OpenShift uses three levels of testing - unit tests, integration test, and end-to-end tests (much
 like Kubernetes).
 
 ### Unit tests
@@ -14,17 +15,17 @@ code. A unit test should focus on testing that branches and error conditions are
 and that the interface and code flows work as described. Unit tests can depend on other packages but
 should not depend on other components (an API test should not be writing to etcd).
 
-The unit tests for an entire package should not take more than 0.5s to run, and if they do are
+The unit tests for an entire package should not take more than 0.5s to run, and if they do, are
 probably not really unit tests or need to be rewritten to avoid sleeps or pauses. Coverage on a unit
 test should be above 70% unless the units are a special case.
 
 See `pkg/template/generator` for examples of unit tests. Unit tests should follow Go conventions.
 
-Run the unit tests with
+Run the unit tests with:
 
     $ hack/test-go.sh
 
-or an individual package unit test with
+or an individual package unit test with:
 
     $ hack/test-go.sh pkg/build
 
@@ -44,6 +45,14 @@ To view line coverage, run a single package unit test to generate the coverage r
 the `go tool cover` command:
 
     $ hack/test-go.sh pkg/build go tool cover -html=_output/go/tmp.out
+
+To turn off or change the coverage mode, which is `-cover -covermode=atomic` by default, use:
+
+    $ KUBE_COVER="" hack/test-go.sh
+
+To run tests without the go race detector, which is on by default, use:
+
+    $ KUBE_RACE="" hack/test-go.sh
 
 ### Integration tests
 
