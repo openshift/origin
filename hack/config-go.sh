@@ -46,15 +46,21 @@ if [[ "${TRAVIS:-}" != "true" ]]; then
 fi
 
 OS_REPO_ROOT=$(dirname "${BASH_SOURCE:-$0}")/..
-if [[ "${OSTYPE:-}" == *darwin* ]]; then
-  # Make the path absolute if it is not.
-  if [[ "${OS_REPO_ROOT}" != /* ]]; then
-    OS_REPO_ROOT=${PWD}/${OS_REPO_ROOT}
-  fi
-else
-  # Resolve symlinks.
-  OS_REPO_ROOT=$(readlink -f "${OS_REPO_ROOT}")
-fi
+case "$(uname)" in
+  Darwin)
+    # Make the path absolute if it is not.
+    if [[ "${OS_REPO_ROOT}" != /* ]]; then
+      OS_REPO_ROOT=${PWD}/${OS_REPO_ROOT}
+    fi
+    ;;
+  Linux)
+    # Resolve symlinks.
+    OS_REPO_ROOT=$(readlink -f "${OS_REPO_ROOT}")
+    ;;
+  *)
+    echo "Unsupported operating system: \"$(uname)\"" >&2
+    exit 1
+esac
 
 OS_TARGET="${OS_REPO_ROOT}/_output/go"
 mkdir -p "${OS_TARGET}"
