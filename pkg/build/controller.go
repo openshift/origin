@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -18,7 +18,7 @@ import (
 // BuildJobStrategy represents a strategy for executing a build by
 // creating a pod definition that will execute the build
 type BuildJobStrategy interface {
-	CreateBuildPod(build *api.Build) (*kubeapi.Pod, error)
+	CreateBuildPod(build *api.Build) (*kapi.Pod, error)
 }
 
 // BuildController watches build resources and manages their state
@@ -49,29 +49,30 @@ func NewBuildController(kc kubeclient.Interface,
 
 // Run begins watching and syncing build jobs onto the cluster.
 func (bc *BuildController) Run(period time.Duration) {
+	ctx := kapi.NewContext()
 	syncTime := time.Tick(period)
-	go util.Forever(func() { bc.watchBuilds(syncTime) }, period)
+	go util.Forever(func() { bc.watchBuilds(ctx, syncTime) }, period)
 }
 
 // The main sync loop. Iterates over current builds and delegates syncing.
-func (bc *BuildController) watchBuilds(syncTime <-chan time.Time) {
+func (bc *BuildController) watchBuilds(ctx kapi.Context, syncTime <-chan time.Time) {
 	for {
 		select {
 		case <-syncTime:
-			builds, err := bc.osClient.ListBuilds(labels.Everything())
+			builds, err := bc.osClient.ListBuilds(ctx, labels.Everything())
 			if err != nil {
 				glog.Errorf("Error listing builds: %v (%#v)", err, err)
 				return
 			}
 			for _, build := range builds.Items {
-				nextStatus, err := bc.synchronize(&build)
+				nextStatus, err := bc.synchronize(ctx, &build)
 				if err != nil {
 					glog.Errorf("Error synchronizing build ID %v: %#v", build.ID, err)
 				}
 
 				if nextStatus != build.Status {
 					build.Status = nextStatus
-					if _, err := bc.osClient.UpdateBuild(&build); err != nil {
+					if _, err := bc.osClient.UpdateBuild(ctx, &build); err != nil {
 						glog.Errorf("Error updating build ID %v to status %v: %#v", build.ID, nextStatus, err)
 					}
 				}
@@ -90,7 +91,7 @@ func hasTimeoutElapsed(build *api.Build, timeout int) bool {
 // Determine the next status of a build given its current state and the state
 // of its associated pod.
 // TODO: improve handling of illegal state transitions
-func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error) {
+func (bc *BuildController) synchronize(ctx kapi.Context, build *api.Build) (api.BuildStatus, error) {
 	glog.Infof("Syncing build %s", build.ID)
 
 	switch build.Status {
@@ -110,7 +111,7 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 		}
 
 		glog.Infof("Attempting to create pod: %#v", podSpec)
-		_, err = bc.kubeClient.CreatePod(kubeapi.NewContext(), podSpec)
+		_, err = bc.kubeClient.CreatePod(ctx, podSpec)
 
 		// TODO: strongly typed error checking
 		if err != nil {
@@ -127,13 +128,13 @@ func (bc *BuildController) synchronize(build *api.Build) (api.BuildStatus, error
 			return api.BuildFailed, fmt.Errorf("Build timed out")
 		}
 
-		pod, err := bc.kubeClient.GetPod(kubeapi.NewContext(), build.PodID)
+		pod, err := bc.kubeClient.GetPod(ctx, build.PodID)
 		if err != nil {
 			return build.Status, fmt.Errorf("Error retrieving pod for build ID %v: %#v", build.ID, err)
 		}
 
 		// pod is still running
-		if pod.CurrentState.Status != kubeapi.PodTerminated {
+		if pod.CurrentState.Status != kapi.PodTerminated {
 			return build.Status, nil
 		}
 
