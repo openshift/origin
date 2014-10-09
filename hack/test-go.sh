@@ -8,11 +8,9 @@ find_test_dirs() {
   cd src/${OS_GO_PACKAGE}
   find . -not \( \
       \( \
-        -wholename './third_party' \
         -wholename './Godeps' \
         -o -wholename './release' \
         -o -wholename './target' \
-        -o -wholename '*/third_party/*' \
         -o -wholename '*/Godeps/*' \
         -o -wholename '*/_output/*' \
       \) -prune \

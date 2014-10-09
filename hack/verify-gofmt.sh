@@ -26,7 +26,7 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/../" && pwd -P)"
 
-files="$(find ${REPO_ROOT} -type f | grep "[.]go$" | grep -v "third_party/\|release/\|_output/\|target/\|Godeps/")"
+files="$(find ${REPO_ROOT} -type f | grep "[.]go$" | grep -v "release/\|_output/\|target/\|Godeps/")"
 bad=$(gofmt -s -l ${files})
 if [[ -n "${bad}" ]]; then
   echo "$bad"

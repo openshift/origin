@@ -27,7 +27,7 @@ install:
 script:
   - ./hack/test-go.sh
   - ./hack/test-cmd.sh
-  - PATH=$HOME/gopath/bin:./third_party/etcd/bin:$PATH ./hack/test-integration.sh
+  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH ./hack/test-integration.sh
   - ./hack/test-assets.sh
 
 notifications:
