@@ -14,15 +14,19 @@ Note:  If you just want to quickly validate your environment or see the expected
 
 All commands assume the `openshift` binary is in your path:
 
-1. Launch `openshift`
+1. Pre-pull the docker images used in this sample.  This is not strictly necessary as OpenShift will pull the images as it needs them, but by doing it up front it will prevent lengthy operations during build and deployment which might otherwise lead you to believe the process has failed or hung.
+
+        $ ./pullimages.sh
+        
+2. Launch `openshift`
 
         $ openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
 
-2. Deploy the private docker registry within OpenShift:
+3. Deploy the private docker registry within OpenShift:
 
         $ openshift kube apply -c registry_config/registry_config.json
 
-3. Confirm the registry is started (this can take a few mins):
+4. Confirm the registry is started (this can take a few mins):
 
         $ openshift kube list pods
         
@@ -33,17 +37,17 @@ All commands assume the `openshift` binary is in your path:
         05929ee5-3fb2-11e4-a043-3c970e3bf0b7                registry                   127.0.0.1/          name=frontendPod,replicationController=frontendController   Running
 
                  
-4. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+5. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
 
-5. *Optional:* Add the following webhook to your new github repository:
+6. *Optional:* Add the following webhook to your new github repository:
 
         $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
   * Note: Using the webhook requires your OpenShift server be publicly accessible so github can reach it to invoke the hook.
 
-6. Edit buildcfg/buildcfg.json
+7. Edit buildcfg/buildcfg.json
  * Update the sourceURI to point to your forked repository.
 
-7. Create a build configuration for your application.  This configuration is used by OpenShift to rebuild your application's Docker image (e.g. when you push changes to the application source).
+8. Create a build configuration for your application.  This configuration is used by OpenShift to rebuild your application's Docker image (e.g. when you push changes to the application source).
 
         $ openshift kube create buildConfigs -c buildcfg/buildcfg.json
 
@@ -53,8 +57,8 @@ All commands assume the `openshift` binary is in your path:
         ----------          ----------          ----------
         build100            docker              git://github.com/openshift/ruby-hello-world.git
 
-8. Trigger an initial build of your application
- * If you setup the github webhook in step 3, push a change to app.rb in your ruby sample repository from step 2.
+9. Trigger an initial build of your application
+ * If you setup the github webhook in step 6, push a change to app.rb in your ruby sample repository from step 5.
  * Otherwise you can simulate the webhook invocation by running:
  
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
@@ -65,7 +69,7 @@ All commands assume the `openshift` binary is in your path:
                 
     which confirms the webhook was triggered.
                 
-9. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
+10. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
  
         $ openshift kube list builds
         
@@ -79,11 +83,11 @@ All commands assume the `openshift` binary is in your path:
      in the buildcfg.json.  Note that the private docker registry is using ephemeral storage, so when it is stopped, the image will
      be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
      
-10. Submit the application template for processing and create the application using the processed template:
+11. Submit the application template for processing and create the application using the processed template:
 
         $ openshift kube process -c template/template.json | openshift kube apply -c -
         
-11. Wait for the application's frontend pod to be started (this can take a few mins):
+12. Wait for the application's frontend pod to be started (this can take a few mins):
 
         $ openshift kube list pods
 
@@ -93,7 +97,7 @@ All commands assume the `openshift` binary is in your path:
         ----------                                          ----------                     ----------          ----------                                               ----------
         fc66bffd-3dcc-11e4-984b-3c970e3bf0b7                openshift/origin-ruby-sample   127.0.0.1/          name=frontend,replicationController=frontendController   Running
 
-12. Confirm the application is now accessible via the frontend service on port 5432:
+13. Confirm the application is now accessible via the frontend service on port 5432:
 
         $ curl 127.0.0.1:5432
 
@@ -105,18 +109,18 @@ All commands assume the `openshift` binary is in your path:
         DB password is dQfUlnTG
 
                         
-13. Make an additional change to your ruby sample app.rb file and push it.
+14. Make an additional change to your ruby sample app.rb file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
-14. Repeat steps 8-9
+15. Repeat steps 9-10
 
-15. Locate the container running the ruby application and kill it:
+16. Locate the container running the ruby application and kill it:
  
-        $ docker kill `docker ps | grep /usr/bin/ruby | awk '{print $1}'`
+        $ docker kill `docker ps | grep origin-ruby-sample | awk '{print $1}'`
 
-16. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
+17. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
 
         $ curl 127.0.0.1:5432
 

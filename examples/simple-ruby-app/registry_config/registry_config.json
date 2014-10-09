@@ -12,7 +12,7 @@
             "creationTimestamp": null,
             "id": "registryservice",
             "kind": "Service",
-            "port": 5000,
+            "port": 5001,
             "selector": {
                 "name": "registryPod"
             }
@@ -26,7 +26,7 @@
                         "manifest": {
                             "containers": [
                                 {
-                                    "image": "registry",
+                                    "image": "openshift/docker-registry",
                                     "name": "registry-container",
                                     "ports": [
                                         {
