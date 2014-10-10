@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/openshift/origin/pkg/cmd/auth"
 	"github.com/openshift/origin/pkg/cmd/deployment"
 	"github.com/openshift/origin/pkg/cmd/pod"
 	"github.com/openshift/origin/pkg/cmd/setup"
@@ -47,6 +48,8 @@ func NewCmdOpenShiftClient(name string) *cobra.Command {
 	cmd.AddCommand(deployment.NewCmdDeployment("deployment"))
 	cmd.AddCommand(pod.NewCmdPod("pod"))
 	cmd.AddCommand(setup.NewCmdSetup("setup"))
+	cmd.AddCommand(auth.NewCmdLogin("login"))
+	cmd.AddCommand(auth.NewCmdLogout("logout"))
 
 	return cmd
 }

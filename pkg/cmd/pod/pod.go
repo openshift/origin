@@ -1,6 +1,7 @@
 package pod
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/cmd/config"
 	r "github.com/openshift/origin/pkg/cmd/resource"
@@ -25,6 +26,7 @@ func NewCmdPodList(resource string, name string) *cobra.Command {
 
 func ListPods() (interface{}, error) {
 	cli := config.NewKubeClient()
-	pods, err := cli.ListPods(labels.Everything())
+	ctx := api.NewContext()
+	pods, err := cli.ListPods(ctx, labels.Everything())
 	return pods.Items, err
 }

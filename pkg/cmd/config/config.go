@@ -9,7 +9,12 @@ import (
 )
 
 func NewOpenShiftClient() *oclient.Client {
-	cli, err := oclient.New(GetHost(), GetVersion(), GetAuthInfo())
+	config := &kclient.Config{
+		Host:     GetHost(),
+		Username: "",
+		Password: "",
+	}
+	cli, err := oclient.New(config)
 	if err != nil {
 		fmt.Errorf("Error: %s", err)
 		os.Exit(1)
@@ -18,7 +23,12 @@ func NewOpenShiftClient() *oclient.Client {
 }
 
 func NewKubeClient() *kclient.Client {
-	cli, err := kclient.New(GetHost(), GetVersion(), GetAuthInfo())
+	config := &kclient.Config{
+		Host:     GetHost(),
+		Username: "",
+		Password: "",
+	}
+	cli, err := kclient.New(config)
 	if err != nil {
 		fmt.Errorf("Error: %s", err)
 		os.Exit(1)
@@ -32,12 +42,4 @@ func GetHost() string {
 	} else {
 		return "http://localhost:8080"
 	}
-}
-
-func GetVersion() string {
-	return ""
-}
-
-func GetAuthInfo() *kclient.AuthInfo {
-	return nil
 }
