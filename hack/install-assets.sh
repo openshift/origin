@@ -10,6 +10,11 @@ if [[ "${TRAVIS}" == "true" && "${TEST_ASSETS}" == "false" ]]; then
   exit
 fi
 
+# Lock version of npm to work around https://github.com/npm/npm/issues/6309
+if [[ "${TRAVIS}" == "true" ]]; then
+  npm install npm@2.1.1 -g
+fi
+
 # Install bower if needed
 if ! which bower > /dev/null 2>&1 ; then
   if [[ "${TRAVIS}" == "true" ]]; then
