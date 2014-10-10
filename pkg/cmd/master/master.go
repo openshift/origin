@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -330,7 +331,11 @@ func (c *config) runAssetServer() {
 }
 
 func (c *config) runKubelet() {
-	rootDirectory := path.Clean(c.VolumeDir)
+	rootDirectory, err := filepath.Abs(c.VolumeDir)
+	if err != nil {
+		glog.Errorf("Error converting volume directory to an absolute path: %v", err)
+		rootDirectory = path.Clean(c.VolumeDir)
+	}
 	minionHost := c.bindAddr
 	minionPort := 10250
 
