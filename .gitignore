@@ -5,3 +5,4 @@
 /examples/simple-ruby-app/openshift.local.etcd/
 /examples/simple-ruby-app/logs/openshift.log
 *.swp
+.vimrc
