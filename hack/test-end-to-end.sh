@@ -107,11 +107,20 @@ $openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FI
 echo "[INFO] Applying application config"
 $openshift kube --host=http://127.0.0.1:8080 apply -c $CONFIG_FILE
 
+echo "[INFO] Waiting for database pod to start"
+wait_for_command "$openshift kube list pods | grep database | grep Running" $((30*TIME_SEC))
+
+echo "[INFO] Waiting for database service to start"
+wait_for_command "$openshift kube list services | grep database" $((20*TIME_SEC))
+
 echo "[INFO] Waiting for frontend pod to start"
 wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((120*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))
+
+echo "[INFO] Waiting for database to start..."
+wait_for_url_timed "http://172.17.17.3:5434" "[INFO] Database says: " $((2*TIME_MIN))
 
 echo "[INFO] Waiting for app to start..."
 wait_for_url_timed "http://172.17.17.2:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
