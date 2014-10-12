@@ -17,26 +17,26 @@ All commands assume the `openshift` binary is in your path:
 1. Pre-pull the docker images used in this sample.  This is not strictly necessary as OpenShift will pull the images as it needs them, but by doing it up front it will prevent lengthy operations during build and deployment which might otherwise lead you to believe the process has failed or hung.
 
         $ ./pullimages.sh
-        
+
 2. Launch `openshift`
 
         $ openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
 
 3. Deploy the private docker registry within OpenShift:
 
-        $ openshift kube apply -c registry_config/registry_config.json
+        $ openshift kube apply -c registry-config.json
 
 4. Confirm the registry is started (this can take a few mins):
 
         $ openshift kube list pods
-        
+
     You should see:
-            
+
         ID                                                  Image(s)                   Host                Labels                                                      Status
         ----------                                          ----------                 ----------          ----------                                                  ----------
         05929ee5-3fb2-11e4-a043-3c970e3bf0b7                registry                   127.0.0.1/          name=frontendPod,replicationController=frontendController   Running
 
-                 
+
 5. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
 
 6. *Optional:* Add the following webhook to your new github repository:
@@ -60,19 +60,19 @@ All commands assume the `openshift` binary is in your path:
 9. Trigger an initial build of your application
  * If you setup the github webhook in step 6, push a change to app.rb in your ruby sample repository from step 5.
  * Otherwise you can simulate the webhook invocation by running:
- 
+
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
     In the OpenShift logs (logs/openshift.log) you should see something like:
 
         I0916 13:50:22.479529 21375 log.go:134] POST /osapi/v1beta1/buildConfigHooks/build100/secret101/github
-                
+
     which confirms the webhook was triggered.
-                
+
 10. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
- 
+
         $ openshift kube list builds
-        
+
     Sample output:
 
         ID                                     Status              Pod ID
@@ -82,11 +82,11 @@ All commands assume the `openshift` binary is in your path:
      The build will be automatically pushed to the private docker registry running in OpenShift and tagged with the imageTag listed
      in the buildcfg.json.  Note that the private docker registry is using ephemeral storage, so when it is stopped, the image will
      be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
-     
+
 11. Submit the application template for processing and create the application using the processed template:
 
         $ openshift kube process -c template/template.json | openshift kube apply -c -
-        
+
 12. Wait for the application's frontend pod to be started (this can take a few mins):
 
         $ openshift kube list pods
@@ -108,7 +108,7 @@ All commands assume the `openshift` binary is in your path:
         Password is qgRpLNGO
         DB password is dQfUlnTG
 
-                        
+
 14. Make an additional change to your ruby sample app.rb file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
@@ -117,7 +117,7 @@ All commands assume the `openshift` binary is in your path:
 15. Repeat steps 9-10
 
 16. Locate the container running the ruby application and kill it:
- 
+
         $ docker kill `docker ps | grep origin-ruby-sample | awk '{print $1}'`
 
 17. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
@@ -125,8 +125,8 @@ All commands assume the `openshift` binary is in your path:
         $ curl 127.0.0.1:5432
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.  To clean up your environment, you can run:
-        
+
         $ ./cleanup.sh
 
 This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
-        
+
