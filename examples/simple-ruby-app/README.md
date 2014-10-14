@@ -7,7 +7,8 @@ This example assumes you have successfully built the `openshift` binary executab
 
 
 Application Build, Deploy, and Update Flow
---------------
+------------------------------------------
+
 This section covers how to perform all the steps of building, deploying, and updating an application on the OpenShift platform.
 
 Note:  If you just want to quickly validate your environment or see the expected results, you can run the quickstart script described [here](QUICKSTART.md)
@@ -20,7 +21,7 @@ All commands assume the `openshift` binary is in your path:
 
 2. Launch `openshift`
 
-        $ openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
+        $ openshift start &> logs/openshift.log &
 
 3. Deploy the private docker registry within OpenShift:
 

@@ -6,7 +6,7 @@ import (
 
 	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/openshift/origin/pkg/cmd/client"
-	"github.com/openshift/origin/pkg/cmd/master"
+	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ OpenShift helps you build, deploy, and manage your applications. To start an all
 
     $ openshift start &
 
-OpenShift is built around Docker and the Kubernetes container orchestration service.  You must have
+OpenShift is built around Docker and the Kubernetes cluster container manager.  You must have
 Docker installed on this machine to start your server.
 
 Note: This is an alpha release of OpenShift and will change significantly.  See
@@ -39,7 +39,7 @@ func main() {
 		},
 	}
 
-	openshiftCmd.AddCommand(master.NewCommandStartAllInOne("start"))
+	openshiftCmd.AddCommand(server.NewCommandStartServer("start"))
 	openshiftCmd.AddCommand(client.NewCommandKubecfg("kube"))
 
 	// version information

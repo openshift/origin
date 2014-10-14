@@ -33,8 +33,7 @@ func (_ *Helper) GetClient() (*docker.Client, string, error) {
 }
 
 // GetClientOrExit returns a valid Docker client and the address of the client,
-// or prints an error and exits. If Docker can't be reached via a ping it prints a
-// warning.
+// or prints an error and exits.
 func (h *Helper) GetClientOrExit() (*docker.Client, string) {
 	client, addr, err := h.GetClient()
 	if err != nil {

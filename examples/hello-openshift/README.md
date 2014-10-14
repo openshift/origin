@@ -3,8 +3,7 @@ Hello, OpenShift!
 
 This example will serve an http response of "Hello Openshift!" to [http://localhost:6061](http://localhost:6061).  To create the pod run:
 
-        $ cd $GOPATH/src/github.com/openshift/origin
-        $ output/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
+        $ openshift kube create pods -c examples/hello-openshift/hello-pod.json
 
 Contribute
 ----------

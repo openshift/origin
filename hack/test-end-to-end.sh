@@ -58,7 +58,7 @@ setup
 
 # Start All-in-one server and wait for health
 echo "[INFO] Starting OpenShift server"
-$openshift start --volumeDir=${VOLUME_DIR} --etcdDir=${ETCD_DATA_DIR} &> ${LOG_DIR}/openshift.log &
+$openshift start --volume-dir=${VOLUME_DIR} --etcd-dir=${ETCD_DATA_DIR} &> ${LOG_DIR}/openshift.log &
 
 wait_for_url "http://127.0.0.1:10250/healthz" "[INFO] kubelet: " 0.2 30
 wait_for_url "http://127.0.0.1:8080/healthz" "[INFO] apiserver: "
