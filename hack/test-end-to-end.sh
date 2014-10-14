@@ -65,7 +65,7 @@ wait_for_url "http://127.0.0.1:8080/healthz" "[INFO] apiserver: "
 
 # Deploy private docker registry
 echo "[INFO] Deploying private Docker registry"
-$openshift kube apply -c ${FIXTURE_DIR}/registry_config/registry_config.json
+$openshift kube apply -c ${FIXTURE_DIR}/registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_command "$openshift kube list pods | grep registryPod | grep Running" $((5*TIME_MIN))

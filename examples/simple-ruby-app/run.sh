@@ -24,7 +24,7 @@ $openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
 sleep 5
 
 # Deploy the private Docker registry config
-$openshift kube apply -c registry_config/registry_config.json
+$openshift kube apply -c registry-config.json
 
 # Wait for the app container to start up
 rc=1
