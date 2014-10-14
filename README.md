@@ -58,25 +58,19 @@ don't even need clone the source.
 
 ### Docker registry
 
-OpenShift builds allow pushing built images into docker registry, for details see [our API](#API).
-You can use either private [docker registry](https://github.com/docker/docker-registry) or the
-[official docker hub](https://hub.docker.com/). If the two are available private will be favored.
+In order to use an image built from an OpenShift build, you'll need to push that image into a Docker registry.
+You can use a private [Docker registry](https://github.com/docker/docker-registry) or the [DockerHub](https://hub.docker.com/).
 
-**Private docker registry
+#### Private docker registry
 
-To setup private docker registry you can either follow the steps [here](https://github.com/docker/docker-registry#quick-start) 
-or use [simple-ruby-app example](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app) to host one
-inside OpenShift. Now all you need to do is to specify your repository in `buildConfig`.
+To setup private docker registry you can either follow the [registry quick-start](https://github.com/docker/docker-registry#quick-start) 
+or use [simple-ruby-app example](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app) to host a registry on OpenShift. In your `buildConfig` you should pass the fully qualified registry name of the image you want to push `myregistry.com:8080/username/imagename`.
 
-**Docker Hub
+#### DockerHub
 
-To access the [official docker hub](https://hub.docker.com/) you need to login using `docker login`
-command. In result a file named `.dockercfg` is created in your home directory. It contains
-credentials used when accessing the hub. Now when running OpenShift, the binary will pick up these
-credentials and use them inside build pods to push your result images to the hub.
+To push images to the DockerHub you need to login using `docker login` command. This command will create a file named `.dockercfg` in your home directory containing your Hub credentials. If you're running the OpenShift all-in-one as a different user, you'll need to copy this file into that other user's home directory. When the build completes this file will be read by Docker, and the credentials inside of it will be used to push your image.
 
-NOTE: Make sure to tag your build appropriately to match hub requirements, meaning
-`username/imagename`.
+NOTE: You must tag your built image as `<username-for-credentials>/<imagename>` when using the DockerHub.
 
 Design Documents
 ----------------
