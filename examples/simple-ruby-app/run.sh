@@ -19,7 +19,7 @@ echo "Pre-pulling images"
 # Start the OpenShift all-in-one server
 # (starts a kubernetes master and minion as well as providing the origin REST api)
 echo "Launching openshift all-in-one server"
-$openshift start --listenAddr="0.0.0.0:8080" &> logs/openshift.log &
+$openshift start &> logs/openshift.log &
 
 sleep 5
 
@@ -89,7 +89,7 @@ done
 
 # Convert template to config
 echo "Submitting application template json for processing..."
-$openshift kube process -c template/template.json | $openshift kube -h http://$OSHOST:8080 apply -c -
+$openshift kube process -c template/template.json | $openshift kube apply -c -
 
 # Wait for the app container to start up
 rc=1
