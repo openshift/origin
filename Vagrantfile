@@ -33,7 +33,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
     config.vm.provision "shell", path: "hack/vm-provision.sh"
-    config.vm.synced_folder '.', "/home/vagrant/go/src/github.com/openshift/origin"
+    config.vm.synced_folder ENV["VAGRANT_SYNC_FROM"] || '.', ENV["VAGRANT_SYNC_TO"] || "/home/vagrant/go/src/github.com/openshift/origin"
   end
 
 end
