@@ -130,12 +130,11 @@ func TestCreateRegistrySaveError(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
-			t.Errorf("Expected failure status, got %#V", status)
+		if status.Status != kubeapi.StatusFailure || status.Message != "test error" {
+			t.Errorf("Expected failure status, got %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
 
@@ -165,7 +164,6 @@ func TestCreateImageOK(t *testing.T) {
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
 
@@ -239,6 +237,5 @@ func TestDeleteImage(t *testing.T) {
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
