@@ -32,10 +32,19 @@ func TestApplyInvalidConfig(t *testing.T) {
 		`{ "items": [ { "kind": "UnknownResource", "apiVersion": "v1beta1" } ] }`,
 		`{ "items": [ { "kind": "InvalidClientResource", "apiVersion": "v1beta1" } ] }`,
 	}
-	for _, invalidConfig := range invalidConfigs {
-		errs := Apply([]byte(invalidConfig), clients)
-		if len(errs) == 0 {
-			t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig)
+	for i, invalidConfig := range invalidConfigs {
+		result, _ := Apply([]byte(invalidConfig), clients)
+
+		if result != nil {
+			t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])
+		}
+		for _, itemResult := range result {
+			if itemResult.Error == nil {
+			  t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])  
+			}
+			if _, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+			  t.Errorf("Unexpected conversion of %T into kubeclient.APIStatus", itemResult.Error)
+			}
 		}
 	}
 }
@@ -66,11 +75,22 @@ func TestApplySendsData(t *testing.T) {
 	clients := clientapi.ClientMappings{
 		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
-	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1" } ] }`
+	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "id": "FakeID" } ] }`
+	result, err := Apply([]byte(config), clients)
 
-	errs := Apply([]byte(config), clients)
-	if len(errs) != 0 {
-		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, errs)
+	if err != nil || result == nil {
+		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, err)
+	}
+	for _, itemResult := range result {
+		if itemResult.Error == nil {
+			continue
+		}
+
+		if _, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+			t.Errorf("Unexpected error while applying valid Config '%v': %v", config, itemResult.Error)
+		} else {
+			t.Errorf("Cannot convert %T into kubeclient.APIStatus", itemResult.Error)
+		}
 	}
 
 	<-received

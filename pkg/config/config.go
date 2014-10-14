@@ -6,73 +6,84 @@ import (
 	"reflect"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
 )
 
-// Apply creates and manages resources defined in the Config. It wont stop on
-// error, but it will finish the job and then return list of errors.
-//
-// TODO: Return the output for each resource on success, so the client can
-//       print it out.
-func Apply(data []byte, storage clientapi.ClientMappings) (errs errors.ErrorList) {
+type ApplyResult struct {
+	Error   error
+	Message string
+}
 
+// Apply creates and manages resources defined in the Config. The create process wont
+// stop on error, but it will finish the job and then return error and for each item
+// in the config a error and status message string.
+func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult, err error) {
 	// Unmarshal the Config JSON manually instead of using runtime.Decode()
 	conf := struct {
 		Items []json.RawMessage `json:"items" yaml:"items"`
 	}{}
+
 	if err := json.Unmarshal(data, &conf); err != nil {
-		return append(errs, fmt.Errorf("Unable to parse Config: %v", err))
+		return nil, fmt.Errorf("Unable to parse Config: %v", err)
 	}
 
 	if len(conf.Items) == 0 {
-		return append(errs, fmt.Errorf("Config.items is empty"))
+		return nil, fmt.Errorf("Config.items is empty")
 	}
 
 	for i, item := range conf.Items {
+		itemResult := ApplyResult{}
+
 		if item == nil || (len(item) == 4 && string(item) == "null") {
-			errs = append(errs, fmt.Errorf("Config.items[%v] is null", i))
+			itemResult.Error = fmt.Errorf("Config.items[%v] is null", i)
 			continue
 		}
 
-		_, kind, err := runtime.VersionAndKind(item)
+		itemBase := kubeapi.JSONBase{}
+
+		err = json.Unmarshal(item, &itemBase)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("Config.items[%v]: %v", i, err))
+			itemResult.Error = fmt.Errorf("Unable to parse Config item: %v", err)
 			continue
 		}
 
-		if kind == "" {
-			errs = append(errs, fmt.Errorf("Config.items[%v] has an empty 'kind'", i))
+		if itemBase.Kind == "" {
+			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'kind'", i)
 			continue
 		}
 
-		client, path, err := getClientAndPath(kind, storage)
+		if itemBase.ID == "" {
+			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'id'", i)
+			continue
+		}
+
+		client, path, err := getClientAndPath(itemBase.Kind, storage)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("Config.items[%v]: %v", i, err))
+			itemResult.Error = fmt.Errorf("Config.items[%v]: %v", i, err)
 			continue
 		}
 		if client == nil {
-			errs = append(errs, fmt.Errorf("Config.items[%v]: Invalid client for 'kind=%v'", i, kind))
+			itemResult.Error = fmt.Errorf("Config.items[%v]: Unknown client for 'kind=%v'", i, itemBase.Kind)
 			continue
 		}
 
 		jsonResource, err := item.MarshalJSON()
 		if err != nil {
-			errs = append(errs, err)
+			itemResult.Error = fmt.Errorf("%v", err)
 			continue
 		}
 
 		request := client.Verb("POST").Path(path).Body(jsonResource)
-		_, err = request.Do().Get()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("Failed to create Config.items[%v] of 'kind=%v': %v", i, kind, err))
+		if err = request.Do().Error(); err != nil {
+			itemResult.Error = err
+		} else {
+			itemResult.Message = fmt.Sprintf("Creation succeeded for %v with 'id=%v'", itemBase.Kind, itemBase.ID)
 		}
+		result = append(result, itemResult)
 	}
-
 	return
 }
 
