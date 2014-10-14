@@ -28,4 +28,5 @@ func (c *Config) Run() {
 		server.Run()
 		glog.Fatalf("etcd died, exiting.")
 	}, 0)
+	<-server.ReadyNotify()
 }
