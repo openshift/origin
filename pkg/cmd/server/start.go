@@ -115,19 +115,19 @@ func NewCommandStartServer(name string) *cobra.Command {
 				startNode = true
 				defaultMasterAddress(cfg)
 
-				// ensure the node and the hostname are the same
+				glog.Infof("Starting an OpenShift all-in-one, reachable at %s (etcd: %s)", cfg.MasterAddr.String(), cfg.EtcdAddr.String())
+			}
+
+			if startMaster {
+				// update the node list to include the default node
 				if len(cfg.Hostname) == 0 {
-					cfg.Hostname = cfg.MasterAddr.Host
+					cfg.Hostname = defaultHostname()
 				}
 				if len(cfg.NodeList) == 1 && cfg.NodeList[0] == "127.0.0.1" {
 					cfg.NodeList[0] = cfg.Hostname
 				}
-
-				glog.Infof("Starting an OpenShift all-in-one, reachable at %s (etcd: %s)", cfg.MasterAddr.String(), cfg.EtcdAddr.String())
 				glog.Infof("Expecting %d nodes: %v", len(cfg.NodeList), cfg.NodeList)
-			}
 
-			if startMaster {
 				if startEtcd {
 					etcdConfig := &etcd.Config{
 						BindAddr:   cfg.EtcdAddr.URL.Host,

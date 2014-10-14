@@ -36,9 +36,9 @@ ${GO_OUT}/openshift start --master="${API_HOST}:${API_PORT}" --volume-dir="${VOL
 OS_PID=$!
 
 wait_for_url "http://127.0.0.1:${KUBELET_PORT}/healthz" "kubelet: "
-wait_for_url "http://127.0.0.1:${API_PORT}/healthz" "apiserver: "
+wait_for_url "http://${API_HOST}:${API_PORT}/healthz" "apiserver: "
 
-KUBE_CMD="${GO_OUT}/openshift kube -h http://127.0.0.1:${API_PORT} --expect_version_match"
+KUBE_CMD="${GO_OUT}/openshift kube -h http://${API_HOST}:${API_PORT} --expect_version_match"
 
 ${KUBE_CMD} list pods
 ${KUBE_CMD} -c examples/hello-openshift/hello-pod.json create pods
@@ -51,7 +51,7 @@ ${KUBE_CMD} delete services/frontend
 echo "kube(services): ok"
 
 ${KUBE_CMD} list minions
-${KUBE_CMD} get minions/127.0.0.1
+${KUBE_CMD} get minions/$(hostname -f)
 echo "kube(minions): ok"
 
 ${KUBE_CMD} list images
