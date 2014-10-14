@@ -37,3 +37,7 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (api.UserInfo, bool
 		Scope: scope.Join(token.AuthorizeToken.Scopes),
 	}, true, nil
 }
+
+func (a *TokenAuthenticator) String() string {
+	return "EtcdTokenValidator"
+}

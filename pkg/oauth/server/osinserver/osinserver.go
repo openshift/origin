@@ -1,6 +1,7 @@
 package osinserver
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -87,4 +88,8 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 		s.server.FinishInfoRequest(resp, r, ir)
 	}
 	osin.OutputJSON(resp, w, r)
+}
+
+func (s *Server) String() string {
+	return fmt.Sprintf("OsinServer{AuthorizeHandler:%v, AccessHandler:%v}", s.authorize, s.access)
 }

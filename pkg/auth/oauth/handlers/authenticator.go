@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/RangelReale/osin"
@@ -105,4 +106,8 @@ func (denyAuthenticator) AuthenticateAssertion(assertionType, data string) (api.
 
 func (denyAuthenticator) AuthenticateClient(client api.Client) (api.UserInfo, bool, error) {
 	return nil, false, nil
+}
+
+func (h *AuthorizeAuthenticator) String() string {
+	return fmt.Sprintf("AuthorizationAuthenticator{AuthenticationHandler:%v, RequestAuthenticator:%v}", h.handler, h.request)
 }

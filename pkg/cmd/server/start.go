@@ -77,7 +77,8 @@ type config struct {
 
 	NodeList flagtypes.StringList
 
-	CORSAllowedOrigins flagtypes.StringList
+	CORSAllowedOrigins    flagtypes.StringList
+	RequireAuthentication bool
 }
 
 func NewCommandStartServer(name string) *cobra.Command {
@@ -167,10 +168,11 @@ func NewCommandStartServer(name string) *cobra.Command {
 				assetAddr := net.JoinHostPort(cfg.MasterAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
 
 				osmaster := &origin.MasterConfig{
-					BindAddr:   cfg.BindAddr.URL.Host,
-					MasterAddr: cfg.MasterAddr.URL.String(),
-					AssetAddr:  assetAddr,
-					EtcdHelper: etcdHelper,
+					BindAddr:              cfg.BindAddr.URL.Host,
+					MasterAddr:            cfg.MasterAddr.URL.String(),
+					AssetAddr:             assetAddr,
+					EtcdHelper:            etcdHelper,
+					RequireAuthentication: cfg.RequireAuthentication,
 				}
 
 				// pick an appropriate Kube client
@@ -264,6 +266,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.")
+	flag.BoolVar(&cfg.RequireAuthentication, "require-authentication", false, "Require authentication token for API access.")
 
 	cfg.Docker.InstallFlags(flag)
 

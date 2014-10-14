@@ -2,6 +2,7 @@ package session
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openshift/origin/pkg/auth/api"
@@ -60,4 +61,8 @@ func (a *SessionAuthenticator) InvalidateAuthentication(context api.UserInfo, w 
 	}
 	session.Values()[UserNameKey] = ""
 	return a.store.Save(w, req)
+}
+
+func (a *SessionAuthenticator) String() string {
+	return fmt.Sprintf("SessionAuthenticator{name=%v}", a.name)
 }
