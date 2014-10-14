@@ -1,4 +1,4 @@
-FROM centos:centos7
+FROM fedora:20
 RUN yum -y install docker-io golang golang-src golang-pkg-bin-linux-amd64 golang-pkg-linux-amd64 git && \
     yum clean all
 
