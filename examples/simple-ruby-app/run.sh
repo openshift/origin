@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# OpenShift server host
-OSHOST=localhost
-
 # OpenShift binary
 openshift="../../_output/go/bin/openshift"
 
@@ -48,6 +45,11 @@ do
   rc=$?
 done
 
+# poke the docker registry to make sure it's alive
+echo "Probing docker registry"
+curl http://localhost:5001 >& /dev/null
+curl http://localhost:5001
+
 # show build cfgs
 echo "Initially no build configurations:"
 $openshift kube list buildConfigs
@@ -68,7 +70,7 @@ $openshift kube list builds
 
 #Requesting new build
 echo "Triggering new build"
-curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://$OSHOST:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
 #show build running
 echo "Build now running: "
@@ -119,5 +121,4 @@ sleep 20
 
 # Confirm the app is running/responsive.
 echo "Frontend is available, sending request.  Frontend says:"
-curl localhost:5432
-
+curl http://localhost:5432

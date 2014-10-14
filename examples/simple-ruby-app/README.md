@@ -33,9 +33,9 @@ All commands assume the `openshift` binary is in your path:
 
     You should see:
 
-        ID                                                  Image(s)                   Host                Labels                                                      Status
-        ----------                                          ----------                 ----------          ----------                                                  ----------
-        05929ee5-3fb2-11e4-a043-3c970e3bf0b7                registry                   127.0.0.1/          name=frontendPod,replicationController=frontendController   Running
+        ID                                     Image(s)                    Host                     Labels                                                                                                   Status
+        ----------                             ----------                  ----------               ----------                                                                                               ----------
+        94679170-54dc-11e4-88cc-3c970e3bf0b7   openshift/docker-registry   localhost.localdomain/   deployment=registry-config,name=registryPod,replicationController=946583f6-54dc-11e4-88cc-3c970e3bf0b7   Running
 
 
 5. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
@@ -100,7 +100,7 @@ All commands assume the `openshift` binary is in your path:
 
 13. Confirm the application is now accessible via the frontend service on port 5432:
 
-        $ curl 127.0.0.1:5432
+        $ curl http://localhost:5432
 
     Sample output:
 
@@ -123,11 +123,10 @@ All commands assume the `openshift` binary is in your path:
 
 17. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
 
-        $ curl 127.0.0.1:5432
+        $ curl http://localhost:5432
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.  To clean up your environment, you can run:
 
         $ ./cleanup.sh
 
 This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
-

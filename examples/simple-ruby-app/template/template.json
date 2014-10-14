@@ -30,17 +30,28 @@
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 5432,
+      "containerPort": 8080,
       "selector": {
         "name": "frontend"
       }
     },
     {
-      "id": "frontendController",
-      "kind": "ReplicationController",
+      "id": "frontend-deploy",
+      "kind": "Deployment",
       "apiVersion": "v1beta1",
-      "desiredState": {
+      "triggerPolicy": "manual",
+      "configId": "frontend-config",
+      "strategy": {
+        "type": "customPod",
+        "customPod": {
+          "image": "openshift/kube-deploy"
+        }
+      },
+      "controllerTemplate": {
         "replicas": 1,
-        "replicaSelector": {"name": "frontend"},
+        "replicaSelector": {
+          "name": "frontend"
+        },
         "podTemplate": {
           "desiredState": {
             "manifest": {
@@ -68,8 +79,8 @@
             }
           },
           "labels": {"name": "frontend"}
-        }},
-        "labels": {"name": "frontend"}
+        }
+      }
     }
   ]
 }
