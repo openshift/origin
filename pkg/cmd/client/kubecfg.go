@@ -14,7 +14,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
@@ -103,10 +103,10 @@ func usage(name string) string {
 }
 
 var parser = kubecfg.NewParser(map[string]runtime.Object{
-	"pods":                    &api.Pod{},
-	"services":                &api.Service{},
-	"replicationControllers":  &api.ReplicationController{},
-	"minions":                 &api.Minion{},
+	"pods":                    &kubeapi.Pod{},
+	"services":                &kubeapi.Service{},
+	"replicationControllers":  &kubeapi.ReplicationController{},
+	"minions":                 &kubeapi.Minion{},
 	"builds":                  &buildapi.Build{},
 	"buildConfigs":            &buildapi.BuildConfig{},
 	"images":                  &imageapi.Image{},
@@ -373,14 +373,19 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 			r.Body(c.readConfig(storage, client.Codec))
 		}
 	}
-	result := r.Do()
-	obj, err := result.Get()
+
+	obj, err := r.Do().Get()
 	if err != nil {
 		glog.Fatalf("Got request error: %v", err)
 		return false
 	}
 
+	return c.print(obj)
+}
+
+func (c *KubeConfig) print(obj runtime.Object) bool {
 	var printer kubecfg.ResourcePrinter
+
 	switch {
 	case c.JSON:
 		printer = &kubecfg.IdentityPrinter{}
@@ -410,9 +415,8 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		printer = humanReadablePrinter()
 	}
 
-	if err = printer.PrintObj(obj, os.Stdout); err != nil {
-		body, _ := result.Raw()
-		glog.Fatalf("Failed to print: %v\nRaw received object:\n%#v\n\nBody received: %v", err, obj, string(body))
+	if err := printer.PrintObj(obj, os.Stdout); err != nil {
+		glog.Fatalf("Failed to print runtime object.")
 	}
 	fmt.Print("\n")
 
@@ -427,7 +431,7 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 		return c.Arg(1)
 	}
 
-	ctx := api.NewContext()
+	ctx := kubeapi.NewContext()
 	var err error
 	switch method {
 	case "stop":
@@ -489,9 +493,6 @@ func (c *KubeConfig) executeBuildLogRequest(method string, client *osclient.Clie
 
 // executeTemplateRequest transform the JSON file with Config template into a
 // valid Config JSON.
-//
-// TODO: Print the output for each resource on success, as "create" method
-//       does in the executeAPIRequest().
 func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Client) bool {
 	if method != "process" {
 		return false
@@ -517,27 +518,87 @@ func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Clie
 }
 
 func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings) bool {
-	if method != "apply" {
-		return false
-	}
-	if len(c.Config) == 0 {
-		glog.Fatal("Need to pass valid configuration file (-c config.json)")
-	}
-	result, err := config.Apply(c.readConfig("config", latest.Codec), clients)
-	if err != nil {
-		glog.Fatalf("Error applying the config: %v", err)
-	}
-	for _, itemResult := range result {
-		if itemResult.Error == nil {
-			fmt.Println(itemResult.Message)
-			continue
+	switch method {
+	case "apply":
+		if len(c.Config) == 0 {
+			glog.Fatal("Need to pass valid configuration file (-c config.json)")
+		}
+		result, err := config.Apply(c.readConfig("config", latest.Codec), clients)
+		if err != nil {
+			glog.Fatalf("Error applying the config: %v", err)
+		}
+		for _, itemResult := range result {
+			if itemResult.Error == nil {
+				fmt.Println(itemResult.Message)
+				continue
+			}
+
+			if statusErr, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+				fmt.Printf("Error: %v\n", statusErr.Status().Message)
+			} else {
+				fmt.Printf("Error: %v\n", itemResult.Error)
+			}
+		}
+	case "list-config":
+		if len(c.Config) == 0 {
+			glog.Fatal("Need to pass valid configuration file (-c config.json)")
+		}
+		result, err := config.List(c.readConfig("config", latest.Codec), clients)
+		if err != nil {
+			glog.Fatalf("Unable to list config: %v", err)
 		}
 
-		if statusErr, ok := itemResult.Error.(kubeclient.APIStatus); ok {
-			fmt.Printf("Error: %v\n", statusErr.Status().Message)
-		} else {
-			fmt.Printf("Error: %v\n", itemResult.Error)
+		var services []kubeapi.Service
+		var pods []kubeapi.Pod
+		var replicationControllers []kubeapi.ReplicationController
+		var otherKinds []runtime.Object
+
+		for i, itemResult := range result {
+			if statusErr, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+				fmt.Printf("Error: %v\n", statusErr.Status().Message)
+				continue
+			}
+			if itemResult.Error == nil {
+				obj, err := itemResult.Result.Get()
+				if err != nil {
+					glog.Errorf("config.item[%v]: Got request error: %v", i, err)
+					continue
+				}
+
+				switch obj.(type) {
+				case *kubeapi.Service:
+					services = append(services, *obj.(*kubeapi.Service))
+				case *kubeapi.Pod:
+					pods = append(pods, *obj.(*kubeapi.Pod))
+				case *kubeapi.ReplicationController:
+					replicationControllers = append(replicationControllers, *obj.(*kubeapi.ReplicationController))
+				default:
+					otherKinds = append(otherKinds, obj)
+				}
+			}
 		}
+
+		if len(services) > 0 {
+			list := &kubeapi.ServiceList{Items: services}
+			c.print(list)
+		}
+
+		if len(pods) > 0 {
+			list := &kubeapi.PodList{Items: pods}
+			c.print(list)
+		}
+
+		if len(replicationControllers) > 0 {
+			list := &kubeapi.ReplicationControllerList{Items: replicationControllers}
+			c.print(list)
+		}
+
+		for _, obj := range otherKinds {
+			c.print(obj)
+		}
+
+	default:
+		return false
 	}
 	return true
 }

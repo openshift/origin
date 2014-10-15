@@ -6,7 +6,9 @@ import (
 	"reflect"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	//"github.com/golang/glog"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
@@ -15,6 +17,7 @@ import (
 
 type ApplyResult struct {
 	Error   error
+	Result  kubeclient.Result
 	Message string
 }
 
@@ -47,7 +50,7 @@ func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult,
 
 		err = json.Unmarshal(item, &itemBase)
 		if err != nil {
-			itemResult.Error = fmt.Errorf("Unable to parse Config item: %v", err)
+			itemResult.Error = fmt.Errorf("Config.items[%v]: Unable to parse object: %v", err)
 			continue
 		}
 
@@ -78,11 +81,76 @@ func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult,
 		}
 
 		request := client.Verb("POST").Path(path).Body(jsonResource)
-		if err = request.Do().Error(); err != nil {
+		itemResult.Result = request.Do()
+		if err = itemResult.Result.Error(); err != nil {
 			itemResult.Error = err
 		} else {
 			itemResult.Message = fmt.Sprintf("Creation succeeded for %v with 'id=%v'", itemBase.Kind, itemBase.ID)
 		}
+		result = append(result, itemResult)
+	}
+	return
+}
+
+type ListResult struct {
+	Error  error
+	Result kubeclient.Result
+}
+
+// List ...
+func List(data []byte, storage clientapi.ClientMappings) (result []ListResult, err error) {
+	// Unmarshal the Config JSON manually instead of using runtime.Decode()
+	conf := struct {
+		Items []json.RawMessage `json:"items" yaml:"items"`
+	}{}
+
+	if err := json.Unmarshal(data, &conf); err != nil {
+		return nil, fmt.Errorf("Unable to parse Config: %v", err)
+	}
+
+	if len(conf.Items) == 0 {
+		return nil, fmt.Errorf("Config.items is empty")
+	}
+
+	for i, item := range conf.Items {
+		itemResult := ListResult{}
+
+		if item == nil || (len(item) == 4 && string(item) == "null") {
+			itemResult.Error = fmt.Errorf("Config.items[%v] is null", i)
+			continue
+		}
+
+		itemBase := kubeapi.JSONBase{}
+
+		err = json.Unmarshal(item, &itemBase)
+		if err != nil {
+			itemResult.Error = fmt.Errorf("Config.items[%v]: Unable to parse object: %v", err)
+			continue
+		}
+
+		if itemBase.Kind == "" {
+			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'kind'", i)
+			continue
+		}
+
+		if itemBase.ID == "" {
+			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'id'", i)
+			continue
+		}
+
+		client, path, err := getClientAndPath(itemBase.Kind, storage)
+		if err != nil {
+			itemResult.Error = fmt.Errorf("Config.items[%v]: %v", i, err)
+			continue
+		}
+		if client == nil {
+			itemResult.Error = fmt.Errorf("Config.items[%v]: Unknown client for 'kind=%v'", i, itemBase.Kind)
+			continue
+		}
+
+		request := client.Verb("GET").Path(path).Path(itemBase.ID)
+		itemResult.Result = request.Do()
+		itemResult.Error = itemResult.Result.Error()
 		result = append(result, itemResult)
 	}
 	return
