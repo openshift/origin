@@ -19,6 +19,7 @@ func (sl *StringList) String() string {
 
 // Set takes a string, splits it on commas, ensures there are no empty parts of the split, and appends them to the receiver.
 func (sl *StringList) Set(value string) error {
+	*sl = []string{}
 	for _, s := range strings.Split(value, ",") {
 		if len(s) == 0 {
 			return fmt.Errorf("value should not be an empty string")
