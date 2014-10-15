@@ -167,6 +167,10 @@ func NewCommandStartServer(name string) *cobra.Command {
 				}
 
 				osmaster.RunAPI(kmaster)
+				osmaster.RunAssetServer()
+				osmaster.RunBuildController()
+				osmaster.RunDeploymentController()
+
 				kmaster.RunScheduler()
 				kmaster.RunReplicationController()
 			}
