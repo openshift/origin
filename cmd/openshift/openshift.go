@@ -5,10 +5,12 @@ import (
 	"os"
 
 	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
+	"github.com/spf13/cobra"
+
 	"github.com/openshift/origin/pkg/cmd/client"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
-	"github.com/spf13/cobra"
 )
 
 const longDescription = `
@@ -41,6 +43,7 @@ func main() {
 
 	openshiftCmd.AddCommand(server.NewCommandStartServer("start"))
 	openshiftCmd.AddCommand(client.NewCommandKubecfg("kube"))
+	flagtypes.GLog(openshiftCmd.PersistentFlags())
 
 	// version information
 	versionCmd := &cobra.Command{
