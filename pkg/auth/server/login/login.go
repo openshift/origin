@@ -3,6 +3,7 @@ package login
 import (
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -43,6 +44,15 @@ func NewLogin(csrf CSRF, auth PasswordAuthenticator, render LoginFormRenderer) *
 		csrf:   csrf,
 		auth:   auth,
 		render: render,
+	}
+}
+
+// Install registers the login handler into a mux. It is expected that the
+// provided prefix will serve all operations. Path MUST NOT end in a slash.
+func (l *Login) Install(mux Mux, paths ...string) {
+	for _, path := range paths {
+		path = strings.TrimRight(path, "/")
+		mux.HandleFunc(path, l.ServeHTTP)
 	}
 }
 
@@ -118,6 +128,8 @@ var DefaultLoginFormRenderer = loginTemplateRenderer{}
 type loginTemplateRenderer struct{}
 
 func (r loginTemplateRenderer) Render(form LoginForm, w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
 	if err := loginTemplate.Execute(w, form); err != nil {
 		glog.Errorf("Unable to render login template: %v", err)
 	}
@@ -130,6 +142,6 @@ var loginTemplate = template.Must(template.New("loginForm").Parse(`
   <input type="hidden" name="csrf" value="{{ .Values.CSRF }}">
   <label>Login: <input type="text" name="username" value="{{ .Values.Username }}"></label>
   <label>Password: <input type="password" name="password" value=""></label>
-  <input type="submit" name="Login">
+  <input type="submit" value="Login">
 </form>
 `))

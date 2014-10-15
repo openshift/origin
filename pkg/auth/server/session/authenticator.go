@@ -42,3 +42,13 @@ func (a *SessionAuthenticator) AuthenticateRequest(req *http.Request) (api.UserI
 		Name: name,
 	}, true, nil
 }
+
+func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, w http.ResponseWriter, req *http.Request) error {
+	session, err := a.store.Get(req, a.name)
+	if err != nil {
+		return err
+	}
+	values := session.Values()
+	values[UserNameKey] = user.GetName()
+	return a.store.Save(w, req)
+}

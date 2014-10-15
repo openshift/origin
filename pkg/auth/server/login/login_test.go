@@ -142,20 +142,21 @@ func TestLogin(t *testing.T) {
 
 		var resp *http.Response
 		if testCase.PostValues != nil {
-			r, err := http.PostForm(server.URL+testCase.Path, testCase.PostValues)
+			r, err := postForm(server.URL+testCase.Path, testCase.PostValues)
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", k, err)
 				continue
 			}
 			resp = r
 		} else {
-			r, err := http.Get(server.URL + testCase.Path)
+			r, err := getUrl(server.URL + testCase.Path)
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", k, err)
 				continue
 			}
 			resp = r
 		}
+		defer resp.Body.Close()
 
 		if testCase.ExpectStatusCode != 0 && testCase.ExpectStatusCode != resp.StatusCode {
 			t.Errorf("%s: unexpected response: %#v", k, resp)

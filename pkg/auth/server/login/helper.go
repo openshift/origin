@@ -3,12 +3,13 @@ package login
 import (
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func failed(reason string, w http.ResponseWriter, req *http.Request) {
 	uri, err := getBaseURL(req)
 	if err != nil {
-		http.Redirect(w, req, req.URL.Path, http.StatusTemporaryRedirect)
+		http.Redirect(w, req, req.URL.Path, http.StatusFound)
 		return
 	}
 	query := url.Values{}
@@ -17,7 +18,7 @@ func failed(reason string, w http.ResponseWriter, req *http.Request) {
 		query.Set("then", req.URL.Query().Get("then"))
 	}
 	uri.RawQuery = query.Encode()
-	http.Redirect(w, req, uri.String(), http.StatusTemporaryRedirect)
+	http.Redirect(w, req, uri.String(), http.StatusFound)
 }
 
 func getBaseURL(req *http.Request) (*url.URL, error) {
@@ -27,4 +28,23 @@ func getBaseURL(req *http.Request) (*url.URL, error) {
 	}
 	uri.Scheme, uri.Host, uri.RawQuery, uri.Fragment = req.URL.Scheme, req.URL.Host, "", ""
 	return uri, nil
+}
+
+func postForm(url string, body url.Values) (resp *http.Response, err error) {
+	tr := &http.Transport{}
+	req, err := http.NewRequest("POST", url, strings.NewReader(body.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return tr.RoundTrip(req)
+}
+
+func getUrl(url string) (resp *http.Response, err error) {
+	tr := &http.Transport{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return tr.RoundTrip(req)
 }

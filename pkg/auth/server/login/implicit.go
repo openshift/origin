@@ -123,6 +123,8 @@ var DefaultConfirmFormRenderer = confirmTemplateRenderer{}
 type confirmTemplateRenderer struct{}
 
 func (r confirmTemplateRenderer) Render(form ConfirmForm, w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
 	if err := confirmTemplate.Execute(w, form); err != nil {
 		glog.Errorf("Unable render confirm template: %v", err)
 	}
