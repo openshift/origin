@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -53,4 +54,8 @@ func (r *DeploymentRegistry) DeleteDeployment(id string) error {
 	defer r.Unlock()
 
 	return r.Err
+}
+
+func (r *DeploymentRegistry) WatchDeployments(resourceVersion uint64, filter func(repo *api.Deployment) bool) (watch.Interface, error) {
+	return nil, r.Err
 }
