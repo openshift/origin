@@ -222,7 +222,7 @@ func (c *MasterConfig) RunBuildController() {
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
 	env := []api.EnvVar{
-		api.EnvVar{Name: "KUBERNETES_MASTER", Value: "http://" + c.MasterAddr},
+		api.EnvVar{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 	}
 
 	deployController := deploy.NewDeploymentController(c.KubeClient, c.OSClient, env)

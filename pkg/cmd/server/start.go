@@ -37,6 +37,10 @@ will start OpenShift listening on all interfaces, launch an etcd server to store
 data, and launch the Kubernetes system components. The server will run in the foreground until
 you terminate the process.
 
+Note: starting OpenShift without passing the --master address will attempt to find the IP
+address that will be visible inside running Docker containers. This is not always successful,
+so if you have problems tell OpenShift what public address it will be via --master=<ip>.
+
 You may also pass an optional argument to the start command to start OpenShift in one of the
 following roles:
 
@@ -126,7 +130,9 @@ func NewCommandStartServer(name string) *cobra.Command {
 				if len(cfg.NodeList) == 1 && cfg.NodeList[0] == "127.0.0.1" {
 					cfg.NodeList[0] = cfg.Hostname
 				}
-				glog.Infof("Expecting %d nodes: %v", len(cfg.NodeList), cfg.NodeList)
+				for _, s := range cfg.NodeList {
+					glog.Infof("  Node: %s", s)
+				}
 
 				if startEtcd {
 					etcdConfig := &etcd.Config{
@@ -209,9 +215,9 @@ func NewCommandStartServer(name string) *cobra.Command {
 
 	flag := cmd.Flags()
 
-	flag.Var(&cfg.BindAddr, "listen", "The address to listen for connections on (host port or URL).")
-	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host port or URL).")
-	flag.Var(&cfg.EtcdAddr, "etcd", "The address of the etcd server (host port or URL).")
+	flag.Var(&cfg.BindAddr, "listen", "The address to listen for connections on (host, host:port, or URL).")
+	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
+	flag.Var(&cfg.EtcdAddr, "etcd", "The address of the etcd server (host, host:port, or URL).")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	flag.StringVar(&cfg.EtcdDir, "etcd-dir", "openshift.local.etcd", "The etcd data directory.")
