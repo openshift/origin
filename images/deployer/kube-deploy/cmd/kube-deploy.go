@@ -61,23 +61,28 @@ func deployTarget(ctx api.Context, client *kubeclient.Client, osClient osclient.
 		return
 	}
 
-	selector, _ := labels.ParseSelector("deployment=" + deployment.ConfigID)
-	replicationControllers, err := client.ListReplicationControllers(ctx, selector)
-	if err != nil {
-		glog.Fatalf("Unable to get list of replication controllers %v\n", err)
-		return
+	var replicationControllers *api.ReplicationControllerList
+	configID, hasConfigID := deployment.Labels[deployapi.DeploymentConfigIDLabel]
+	if hasConfigID {
+		selector, _ := labels.ParseSelector(deployapi.DeploymentConfigIDLabel + "=" + configID)
+		replicationControllers, err = client.ListReplicationControllers(ctx, selector)
+		if err != nil {
+			glog.Fatalf("Unable to get list of replication controllers: %v\n", err)
+			return
+		}
 	}
 
 	controller := &api.ReplicationController{
 		DesiredState: deployment.ControllerTemplate,
-		Labels:       map[string]string{"deployment": deployment.ConfigID},
+		Labels:       map[string]string{deployapi.DeploymentConfigIDLabel: configID, "deploymentID": deploymentID},
 	}
 	if controller.DesiredState.PodTemplate.Labels == nil {
 		controller.DesiredState.PodTemplate.Labels = make(map[string]string)
 	}
-	controller.DesiredState.PodTemplate.Labels["deployment"] = deployment.ConfigID
+	controller.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigIDLabel] = configID
+	controller.DesiredState.PodTemplate.Labels["deploymentID"] = deploymentID
 
-	glog.Info("Creating replication controller: ")
+	glog.Info("Creating replication controller")
 	obj, _ := yaml.Marshal(controller)
 	glog.Info(string(obj))
 
@@ -86,11 +91,11 @@ func deployTarget(ctx api.Context, client *kubeclient.Client, osClient osclient.
 		return
 	}
 
-	glog.Info("Create replication controller")
+	glog.Info("Created replication controller")
 
 	// For this simple deploy, remove previous replication controllers
 	for _, rc := range replicationControllers.Items {
-		glog.Info("Stopping replication controller: ")
+		glog.Infof("Stopping replication controller: %v", rc.ID)
 		obj, _ := yaml.Marshal(rc)
 		glog.Info(string(obj))
 		rcObj, err1 := client.GetReplicationController(ctx, rc.ID)

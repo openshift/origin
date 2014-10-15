@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -69,7 +70,7 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	if len(deployment.ID) == 0 {
 		deployment.ID = uuid.NewUUID().String()
 	}
-	deployment.State = deployapi.DeploymentNew
+	deployment.State = deployapi.DeploymentStateNew
 
 	if errs := validation.ValidateDeployment(deployment); len(errs) > 0 {
 		return nil, kubeerrors.NewInvalid("deployment", deployment.ID, errs)
@@ -100,4 +101,14 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 		}
 		return deployment, nil
 	}), nil
+}
+
+// Watch begins watching for new, changed, or deleted Deployments.
+func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return s.registry.WatchDeployments(resourceVersion, func(deployment *deployapi.Deployment) bool {
+		fields := labels.Set{
+			"ID": deployment.ID,
+		}
+		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
+	})
 }

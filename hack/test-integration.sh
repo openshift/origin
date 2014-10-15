@@ -19,4 +19,4 @@ trap cleanup EXIT SIGINT
 echo
 echo Integration test cases ...
 echo
-$(dirname $0)/../hack/test-go.sh test/integration -tags 'integration no-docker'
+$(dirname $0)/../hack/test-go.sh test/integration -tags 'integration no-docker' "${@:1}"

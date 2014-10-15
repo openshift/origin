@@ -101,19 +101,20 @@ func usage(name string) string {
 }
 
 var parser = kubecfg.NewParser(map[string]runtime.Object{
-	"pods":                    &api.Pod{},
-	"services":                &api.Service{},
-	"replicationControllers":  &api.ReplicationController{},
-	"minions":                 &api.Minion{},
-	"builds":                  &buildapi.Build{},
-	"buildConfigs":            &buildapi.BuildConfig{},
-	"images":                  &imageapi.Image{},
-	"imageRepositories":       &imageapi.ImageRepository{},
-	"imageRepositoryMappings": &imageapi.ImageRepositoryMapping{},
-	"config":                  &configapi.Config{},
-	"deployments":             &deployapi.Deployment{},
-	"deploymentConfigs":       &deployapi.DeploymentConfig{},
-	"routes":                  &routeapi.Route{},
+	"pods":                      &api.Pod{},
+	"services":                  &api.Service{},
+	"replicationControllers":    &api.ReplicationController{},
+	"minions":                   &api.Minion{},
+	"builds":                    &buildapi.Build{},
+	"buildConfigs":              &buildapi.BuildConfig{},
+	"images":                    &imageapi.Image{},
+	"imageRepositories":         &imageapi.ImageRepository{},
+	"imageRepositoryMappings":   &imageapi.ImageRepositoryMapping{},
+	"config":                    &configapi.Config{},
+	"deployments":               &deployapi.Deployment{},
+	"deploymentConfigs":         &deployapi.DeploymentConfig{},
+	"generateDeploymentConfigs": &deployapi.DeploymentConfig{},
+	"routes":                    &routeapi.Route{},
 })
 
 func prettyWireStorage() string {
@@ -252,18 +253,19 @@ func (c *KubeConfig) Run() {
 
 	method := c.Arg(0)
 	clients := ClientMappings{
-		"minions":                 {"Minion", kubeClient.RESTClient, klatest.Codec},
-		"pods":                    {"Pod", kubeClient.RESTClient, klatest.Codec},
-		"services":                {"Service", kubeClient.RESTClient, klatest.Codec},
-		"replicationControllers":  {"ReplicationController", kubeClient.RESTClient, klatest.Codec},
-		"builds":                  {"Build", client.RESTClient, latest.Codec},
-		"buildConfigs":            {"BuildConfig", client.RESTClient, latest.Codec},
-		"images":                  {"Image", client.RESTClient, latest.Codec},
-		"imageRepositories":       {"ImageRepository", client.RESTClient, latest.Codec},
-		"imageRepositoryMappings": {"ImageRepositoryMapping", client.RESTClient, latest.Codec},
-		"deployments":             {"Deployment", client.RESTClient, latest.Codec},
-		"deploymentConfigs":       {"DeploymentConfig", client.RESTClient, latest.Codec},
-		"routes":                  {"Route", client.RESTClient, latest.Codec},
+		"minions":                   {"Minion", kubeClient.RESTClient, klatest.Codec},
+		"pods":                      {"Pod", kubeClient.RESTClient, klatest.Codec},
+		"services":                  {"Service", kubeClient.RESTClient, klatest.Codec},
+		"replicationControllers":    {"ReplicationController", kubeClient.RESTClient, klatest.Codec},
+		"builds":                    {"Build", client.RESTClient, latest.Codec},
+		"buildConfigs":              {"BuildConfig", client.RESTClient, latest.Codec},
+		"images":                    {"Image", client.RESTClient, latest.Codec},
+		"imageRepositories":         {"ImageRepository", client.RESTClient, latest.Codec},
+		"imageRepositoryMappings":   {"ImageRepositoryMapping", client.RESTClient, latest.Codec},
+		"deployments":               {"Deployment", client.RESTClient, latest.Codec},
+		"deploymentConfigs":         {"DeploymentConfig", client.RESTClient, latest.Codec},
+		"generateDeploymentConfigs": {"DeploymentConfig", client.RESTClient, latest.Codec},
+		"routes":                    {"Route", client.RESTClient, latest.Codec},
 	}
 
 	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)

@@ -8,7 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -36,6 +36,16 @@ func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 	}
 
 	return deploymentConfigs, nil
+}
+
+// Watch begins watching for new, changed, or deleted ImageRepositories.
+func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return s.registry.WatchDeploymentConfigs(resourceVersion, func(config *deployapi.DeploymentConfig) bool {
+		fields := labels.Set{
+			"ID": config.ID,
+		}
+		return label.Matches(labels.Set(config.Labels)) && field.Matches(fields)
+	})
 }
 
 // Get obtains the DeploymentConfig specified by its id.
