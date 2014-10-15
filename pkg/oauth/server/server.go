@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	goetcd "github.com/coreos/go-etcd/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	"github.com/openshift/origin/pkg/oauth/registry/accesstoken"
 	"github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
@@ -16,8 +16,8 @@ type Server struct {
 	storage map[string]apiserver.RESTStorage
 }
 
-func NewServer(etcdClient *goetcd.Client) *Server {
-	registry := etcd.New(etcdClient)
+func NewServer(helper tools.EtcdHelper) *Server {
+	registry := etcd.New(helper)
 	s := &Server{
 		storage: map[string]apiserver.RESTStorage{
 			"accessTokens":         accesstoken.NewREST(registry),

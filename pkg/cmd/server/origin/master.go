@@ -40,11 +40,20 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
+	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/accesstoken"
+	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
+	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
+	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	projectetcd "github.com/openshift/origin/pkg/project/registry/etcd"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/template"
+	"github.com/openshift/origin/pkg/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 	"github.com/openshift/origin/pkg/version"
 
 	// Register versioned api types
@@ -111,30 +120,41 @@ func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
 
 // RunAPI launches the OpenShift master. It takes an optional API installer that
 // may install additional endpoints into the server.
-func (c *MasterConfig) RunAPI(m APIInstaller) {
-	buildRegistry := buildetcd.New(c.EtcdHelper)
-	imageRegistry := imageetcd.New(c.EtcdHelper)
+func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
+	buildEtcd := buildetcd.New(c.EtcdHelper)
+	imageEtcd := imageetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	projectEtcd := projectetcd.New(c.EtcdHelper)
+	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
+	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
-		"builds":       buildregistry.NewREST(buildRegistry),
-		"buildConfigs": buildconfigregistry.NewREST(buildRegistry),
-		"buildLogs":    buildlogregistry.NewREST(buildRegistry, c.KubeClient, "/proxy/minion"),
+		"builds":       buildregistry.NewREST(buildEtcd),
+		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
+		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.KubeClient, "/proxy/minion"),
 
-		"images":                  image.NewREST(imageRegistry),
-		"imageRepositories":       imagerepository.NewREST(imageRegistry),
-		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRegistry),
+		"images":                  image.NewREST(imageEtcd),
+		"imageRepositories":       imagerepository.NewREST(imageEtcd),
+		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 
 		"deployments":       deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs": deployconfigregistry.NewREST(deployEtcd),
 
 		"templateConfigs": template.NewStorage(),
 
-		"routes":   routeregistry.NewREST(routeEtcd),
+		"routes": routeregistry.NewREST(routeEtcd),
+
 		"projects": projectregistry.NewREST(projectEtcd),
+
+		"userIdentityMappings": useridentitymapping.NewREST(userEtcd),
+		"users":                userregistry.NewREST(userEtcd),
+
+		"authorizeTokens":      authorizetokenregistry.NewREST(oauthEtcd),
+		"accessTokens":         accesstokenregistry.NewREST(oauthEtcd),
+		"clients":              clientregistry.NewREST(oauthEtcd),
+		"clientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 	}
 
 	osMux := http.NewServeMux()
@@ -146,8 +166,8 @@ func (c *MasterConfig) RunAPI(m APIInstaller) {
 		})))
 
 	var extra []string
-	if m != nil {
-		extra = m.InstallAPI(osMux)
+	for _, i := range installers {
+		extra = append(extra, i.InstallAPI(osMux)...)
 	}
 	apiserver.NewAPIGroup(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(osMux, OpenShiftAPIPrefixV1Beta1)
 	apiserver.InstallSupport(osMux)

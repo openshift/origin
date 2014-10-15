@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	etcderrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -28,14 +28,14 @@ func makeAccessTokenKey(id string) string {
 
 func (r *Etcd) GetAccessToken(name string) (token *api.AccessToken, err error) {
 	token = &api.AccessToken{}
-	err = r.ExtractObj(makeAccessTokenKey(name), token, false)
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeAccessTokenKey(name), token, false), "accessToken", name)
 	return
 }
 
 func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.AccessTokenList, error) {
 	list := api.AccessTokenList{}
 	err := r.ExtractList("/accessTokens", &list.Items, &list.ResourceVersion)
-	if err != nil {
+	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
 	filtered := []api.AccessToken{}
@@ -49,10 +49,7 @@ func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.AccessTokenList,
 }
 
 func (r *Etcd) CreateAccessToken(token *api.AccessToken) error {
-	err := r.CreateObj(makeAccessTokenKey(token.Name), token, 0)
-	if tools.IsEtcdNodeExist(err) {
-		return apierrors.NewAlreadyExists("accessToken", token.Name)
-	}
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeAccessTokenKey(token.Name), token, 0), "accessToken", token.Name)
 	return err
 }
 
@@ -62,10 +59,7 @@ func (r *Etcd) UpdateAccessToken(*api.AccessToken) error {
 
 func (r *Etcd) DeleteAccessToken(name string) error {
 	key := makeAccessTokenKey(name)
-	err := r.Delete(key, false)
-	if tools.IsEtcdNotFound(err) {
-		return apierrors.NewNotFound("accessToken", name)
-	}
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "accessToken", name)
 	return err
 }
 
@@ -75,34 +69,31 @@ func makeAuthorizeTokenKey(id string) string {
 
 func (r *Etcd) GetAuthorizeToken(name string) (token *api.AuthorizeToken, err error) {
 	token = &api.AuthorizeToken{}
-	err = r.ExtractObj(makeAuthorizeTokenKey(name), token, false)
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeAuthorizeTokenKey(name), token, false), "authorizeToken", name)
 	return
 }
 
 func (r *Etcd) ListAuthorizeTokens(selector labels.Selector) (*api.AuthorizeTokenList, error) {
 	list := api.AuthorizeTokenList{}
 	err := r.ExtractList("/authorizeTokens", &list.Items, &list.ResourceVersion)
-	return &list, err
+	if err != nil && !tools.IsEtcdNotFound(err) {
+		return nil, err
+	}
+	return &list, nil
 }
 
 func (r *Etcd) CreateAuthorizeToken(token *api.AuthorizeToken) error {
-	err := r.CreateObj(makeAuthorizeTokenKey(token.Name), token, 0)
-	if tools.IsEtcdNodeExist(err) {
-		return apierrors.NewAlreadyExists("authorizeToken", token.Name)
-	}
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeAuthorizeTokenKey(token.Name), token, 0), "authorizeToken", token.Name)
 	return err
 }
 
-func (r *Etcd) UpdateAuthorizeToken(_ *api.AuthorizeToken) error {
+func (r *Etcd) UpdateAuthorizeToken(*api.AuthorizeToken) error {
 	return errors.New("not supported")
 }
 
 func (r *Etcd) DeleteAuthorizeToken(name string) error {
 	key := makeAuthorizeTokenKey(name)
-	err := r.Delete(key, false)
-	if tools.IsEtcdNotFound(err) {
-		return apierrors.NewNotFound("authorizeToken", name)
-	}
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "authorizeToken", name)
 	return err
 }
 
@@ -112,14 +103,14 @@ func makeClientKey(id string) string {
 
 func (r *Etcd) GetClient(name string) (client *api.Client, err error) {
 	client = &api.Client{}
-	err = r.ExtractObj(makeClientKey(name), client, false)
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeClientKey(name), client, false), "client", name)
 	return
 }
 
 func (r *Etcd) ListClients(selector labels.Selector) (*api.ClientList, error) {
 	list := api.ClientList{}
 	err := r.ExtractList("/clients", &list.Items, &list.ResourceVersion)
-	if err != nil {
+	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
 	filtered := []api.Client{}
@@ -133,10 +124,7 @@ func (r *Etcd) ListClients(selector labels.Selector) (*api.ClientList, error) {
 }
 
 func (r *Etcd) CreateClient(client *api.Client) error {
-	err := r.CreateObj(makeClientKey(client.Name), client, 0)
-	if tools.IsEtcdNodeExist(err) {
-		return apierrors.NewAlreadyExists("client", client.Name)
-	}
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientKey(client.Name), client, 0), "client", client.Name)
 	return err
 }
 
@@ -146,10 +134,7 @@ func (r *Etcd) UpdateClient(_ *api.Client) error {
 
 func (r *Etcd) DeleteClient(name string) error {
 	key := makeClientKey(name)
-	err := r.Delete(key, false)
-	if tools.IsEtcdNotFound(err) {
-		return apierrors.NewNotFound("client", name)
-	}
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "client", name)
 	return err
 }
 
@@ -163,36 +148,30 @@ func (r *Etcd) ClientAuthorizationID(userName, clientName string) string {
 
 func (r *Etcd) GetClientAuthorization(name string) (client *api.ClientAuthorization, err error) {
 	client = &api.ClientAuthorization{}
-	err = r.ExtractObj(makeClientAuthorizationKey(name), client, false)
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeClientAuthorizationKey(name), client, false), "clientAuthorization", name)
 	return
 }
 
 func (r *Etcd) ListClientAuthorizations(label, field labels.Selector) (*api.ClientAuthorizationList, error) {
 	list := api.ClientAuthorizationList{}
 	err := r.ExtractList("/clients", &list.Items, &list.ResourceVersion)
-	if err != nil {
+	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
 	return &list, nil
 }
 
 func (r *Etcd) CreateClientAuthorization(client *api.ClientAuthorization) error {
-	err := r.CreateObj(makeClientAuthorizationKey(client.ID), client, 0)
-	if tools.IsEtcdNodeExist(err) {
-		return apierrors.NewAlreadyExists("clientAuthorization", client.ID)
-	}
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientAuthorizationKey(client.ID), client, 0), "clientAuthorization", client.ID)
 	return err
 }
 
-func (r *Etcd) UpdateClientAuthorization(_ *api.ClientAuthorization) error {
+func (r *Etcd) UpdateClientAuthorization(*api.ClientAuthorization) error {
 	return errors.New("not supported")
 }
 
 func (r *Etcd) DeleteClientAuthorization(name string) error {
 	key := makeClientAuthorizationKey(name)
-	err := r.Delete(key, false)
-	if tools.IsEtcdNotFound(err) {
-		return apierrors.NewNotFound("clientAuthorization", name)
-	}
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "clientAuthorization", name)
 	return err
 }

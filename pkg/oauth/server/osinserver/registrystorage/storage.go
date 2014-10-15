@@ -2,8 +2,10 @@ package registrystorage
 
 import (
 	"errors"
+	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osin"
 
@@ -54,7 +56,7 @@ func (w *clientWrapper) GetRedirectUri() string {
 	if len(w.client.RedirectURIs) == 0 {
 		return ""
 	}
-	return w.client.RedirectURIs[0]
+	return strings.Join(w.client.RedirectURIs, ",")
 }
 
 func (w *clientWrapper) GetUserData() interface{} {
@@ -69,7 +71,7 @@ func (s *storage) Clone() osin.Storage {
 	return s
 }
 
-// Close the resources the Storate potentially holds (using Clone for example)
+// Close the resources the Storage potentially holds (using Clone for example)
 func (s *storage) Close() {
 }
 
@@ -77,6 +79,9 @@ func (s *storage) Close() {
 func (s *storage) GetClient(id string) (osin.Client, error) {
 	c, err := s.client.GetClient(id)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &clientWrapper{id, c}, nil
