@@ -9,9 +9,10 @@ import (
 
 // Config is an object that can run an etcd server
 type Config struct {
-	BindAddr   string
-	MasterAddr string
-	EtcdDir    string
+	BindAddr     string
+	PeerBindAddr string
+	MasterAddr   string
+	EtcdDir      string
 }
 
 // Run starts an etcd server and runs it forever
@@ -19,6 +20,7 @@ func (c *Config) Run() {
 	config := etcdconfig.New()
 	config.Addr = c.MasterAddr
 	config.BindAddr = c.BindAddr
+	config.Peer.BindAddr = c.PeerBindAddr
 	config.DataDir = c.EtcdDir
 	config.Name = "openshift.local"
 

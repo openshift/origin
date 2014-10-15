@@ -130,9 +130,10 @@ func NewCommandStartServer(name string) *cobra.Command {
 
 				if startEtcd {
 					etcdConfig := &etcd.Config{
-						BindAddr:   cfg.EtcdAddr.URL.Host,
-						MasterAddr: cfg.EtcdAddr.URL.Host,
-						EtcdDir:    cfg.EtcdDir,
+						BindAddr:     cfg.BindAddr.Host,
+						PeerBindAddr: cfg.BindAddr.Host,
+						MasterAddr:   cfg.EtcdAddr.URL.Host,
+						EtcdDir:      cfg.EtcdDir,
 					}
 					etcdConfig.Run()
 				}
