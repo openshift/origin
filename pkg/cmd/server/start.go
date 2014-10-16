@@ -230,8 +230,9 @@ func NewCommandStartServer(name string) *cobra.Command {
 	return cmd
 }
 
-// getEtcdClient creates an etcd client based on the provided config and waits until
-// it is reachable.  If the server cannot be
+// getEtcdClient creates an etcd client based on the provided config and waits
+// until etcd server is reachable. It errors out and exits if the server cannot
+// be reached for a certain amount of time.
 func getEtcdClient(cfg *config) *etcdclient.Client {
 	etcdServers := []string{cfg.EtcdAddr.URL.String()}
 	etcdClient := etcdclient.NewClient(etcdServers)
