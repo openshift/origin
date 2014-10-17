@@ -29,11 +29,13 @@ type FakeDockerClient struct {
 	sync.Mutex
 	ContainerList []docker.APIContainers
 	Container     *docker.Container
+	Image         *docker.Image
 	Err           error
 	called        []string
 	Stopped       []string
 	pulled        []string
 	Created       []string
+	VersionInfo   docker.Env
 }
 
 func (f *FakeDockerClient) clearCalls() {
@@ -67,8 +69,17 @@ func (f *FakeDockerClient) ListContainers(options docker.ListContainersOptions) 
 func (f *FakeDockerClient) InspectContainer(id string) (*docker.Container, error) {
 	f.Lock()
 	defer f.Unlock()
-	f.called = append(f.called, "inspect")
+	f.called = append(f.called, "inspect_container")
 	return f.Container, f.Err
+}
+
+// InspectImage is a test-spy implementation of DockerInterface.InspectImage.
+// It adds an entry "inspect" to the internal method call record.
+func (f *FakeDockerClient) InspectImage(name string) (*docker.Image, error) {
+	f.Lock()
+	defer f.Unlock()
+	f.called = append(f.called, "inspect_image")
+	return f.Image, f.Err
 }
 
 // CreateContainer is a test-spy implementation of DockerInterface.CreateContainer.
@@ -130,8 +141,15 @@ func (f *FakeDockerClient) PullImage(opts docker.PullImageOptions, auth docker.A
 	return f.Err
 }
 
-func (f *FakeDockerClient) InspectImage(name string) (*docker.Image, error) {
-	return nil, f.Err
+func (f *FakeDockerClient) Version() (*docker.Env, error) {
+	return &f.VersionInfo, nil
+}
+
+func (f *FakeDockerClient) CreateExec(_ docker.CreateExecOptions) (*docker.Exec, error) {
+	return &docker.Exec{"12345678"}, nil
+}
+func (f *FakeDockerClient) StartExec(_ string, _ docker.StartExecOptions) error {
+	return nil
 }
 
 // FakeDockerPuller is a stub implementation of DockerPuller.

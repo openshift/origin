@@ -17,14 +17,71 @@ limitations under the License.
 package scheduler
 
 import (
+	"fmt"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resources"
 	"github.com/golang/glog"
 )
 
 type NodeInfo interface {
-	GetNodeInfo(nodeName string) (api.Minion, error)
+	GetNodeInfo(nodeID string) (*api.Minion, error)
+}
+
+type StaticNodeInfo struct {
+	*api.MinionList
+}
+
+func (nodes StaticNodeInfo) GetNodeInfo(nodeID string) (*api.Minion, error) {
+	for ix := range nodes.Items {
+		if nodes.Items[ix].ID == nodeID {
+			return &nodes.Items[ix], nil
+		}
+	}
+	return nil, fmt.Errorf("failed to find node: %s, %#v", nodeID, nodes)
+}
+
+type ClientNodeInfo struct {
+	*client.Client
+}
+
+func (nodes ClientNodeInfo) GetNodeInfo(nodeID string) (*api.Minion, error) {
+	return nodes.GetMinion(nodeID)
+}
+
+func isVolumeConflict(volume api.Volume, pod *api.Pod) bool {
+	if volume.Source.GCEPersistentDisk == nil {
+		return false
+	}
+	pdName := volume.Source.GCEPersistentDisk.PDName
+
+	manifest := &(pod.DesiredState.Manifest)
+	for ix := range manifest.Volumes {
+		if manifest.Volumes[ix].Source.GCEPersistentDisk != nil &&
+			manifest.Volumes[ix].Source.GCEPersistentDisk.PDName == pdName {
+			return true
+		}
+	}
+	return false
+}
+
+// NoDiskConflict evaluates if a pod can fit due to the volumes it requests, and those that
+// are already mounted. Some times of volumes are mounted onto node machines.  For now, these mounts
+// are exclusive so if there is already a volume mounted on that node, another pod can't schedule
+// there. This is GCE specific for now.
+// TODO: migrate this into some per-volume specific code?
+func NoDiskConflict(pod api.Pod, existingPods []api.Pod, node string) (bool, error) {
+	manifest := &(pod.DesiredState.Manifest)
+	for ix := range manifest.Volumes {
+		for podIx := range existingPods {
+			if isVolumeConflict(manifest.Volumes[ix], &existingPods[podIx]) {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }
 
 type ResourceFit struct {
@@ -75,6 +132,13 @@ func (r *ResourceFit) PodFitsResources(pod api.Pod, existingPods []api.Pod, node
 	return fitsCPU && fitsMemory, nil
 }
 
+func NewResourceFitPredicate(info NodeInfo) FitPredicate {
+	fit := &ResourceFit{
+		info: info,
+	}
+	return fit.PodFitsResources
+}
+
 func PodFitsPorts(pod api.Pod, existingPods []api.Pod, node string) (bool, error) {
 	for _, scheduledPod := range existingPods {
 		for _, container := range pod.DesiredState.Manifest.Containers {
@@ -112,7 +176,7 @@ func MapPodsToMachines(lister PodLister) (map[string][]api.Pod, error) {
 		return map[string][]api.Pod{}, err
 	}
 	for _, scheduledPod := range pods {
-		host := scheduledPod.CurrentState.Host
+		host := scheduledPod.DesiredState.Host
 		machineToPods[host] = append(machineToPods[host], scheduledPod)
 	}
 	return machineToPods, nil

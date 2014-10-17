@@ -17,6 +17,7 @@ limitations under the License.
 package validation
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -33,10 +34,13 @@ func validateVolumes(volumes []api.Volume) (util.StringSet, errs.ErrorList) {
 	for i := range volumes {
 		vol := &volumes[i] // so we can set default values
 		el := errs.ErrorList{}
-		// TODO(thockin) enforce that a source is set once we deprecate the implied form.
-		if vol.Source != nil {
-			el = validateSource(vol.Source).Prefix("source")
+		if vol.Source == nil {
+			// TODO: Enforce that a source is set once we deprecate the implied form.
+			vol.Source = &api.VolumeSource{
+				EmptyDir: &api.EmptyDir{},
+			}
 		}
+		el = validateSource(vol.Source).Prefix("source")
 		if len(vol.Name) == 0 {
 			el = append(el, errs.NewFieldRequired("name", vol.Name))
 		} else if !util.IsDNSLabel(vol.Name) {
@@ -64,6 +68,10 @@ func validateSource(source *api.VolumeSource) errs.ErrorList {
 		numVolumes++
 		//EmptyDirs have nothing to validate
 	}
+	if source.GCEPersistentDisk != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateGCEPersistentDisk(source.GCEPersistentDisk)...)
+	}
 	if numVolumes != 1 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("", source))
 	}
@@ -79,6 +87,20 @@ func validateHostDir(hostDir *api.HostDir) errs.ErrorList {
 }
 
 var supportedPortProtocols = util.NewStringSet(string(api.ProtocolTCP), string(api.ProtocolUDP))
+
+func validateGCEPersistentDisk(PD *api.GCEPersistentDisk) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	if PD.PDName == "" {
+		allErrs = append(allErrs, errs.NewFieldInvalid("PD.PDName", PD.PDName))
+	}
+	if PD.FSType == "" {
+		allErrs = append(allErrs, errs.NewFieldInvalid("PD.FSType", PD.FSType))
+	}
+	if PD.Partition < 0 || PD.Partition > 255 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("PD.Partition", PD.Partition))
+	}
+	return allErrs
+}
 
 func validatePorts(ports []api.Port) errs.ErrorList {
 	allErrs := errs.ErrorList{}
@@ -235,7 +257,7 @@ func validateContainers(containers []api.Container, volumes util.StringSet) errs
 		} else if allNames.Has(ctr.Name) {
 			cErrs = append(cErrs, errs.NewFieldDuplicate("name", ctr.Name))
 		} else if ctr.Privileged && !capabilities.AllowPrivileged {
-			cErrs = append(cErrs, errs.NewFieldInvalid("privileged", ctr.Privileged))
+			cErrs = append(cErrs, errs.NewFieldForbidden("privileged", ctr.Privileged))
 		} else {
 			allNames.Insert(ctr.Name)
 		}
@@ -320,6 +342,34 @@ func ValidatePod(pod *api.Pod) errs.ErrorList {
 	return allErrs
 }
 
+// ValidatePodUpdate tests to see if the update is legal
+func ValidatePodUpdate(newPod, oldPod *api.Pod) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+
+	if newPod.ID != oldPod.ID {
+		allErrs = append(allErrs, errs.NewFieldInvalid("ID", newPod.ID))
+	}
+
+	if len(newPod.DesiredState.Manifest.Containers) != len(oldPod.DesiredState.Manifest.Containers) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("DesiredState.Manifest.Containers", newPod.DesiredState.Manifest.Containers))
+		return allErrs
+	}
+	pod := *newPod
+	pod.Labels = oldPod.Labels
+	pod.TypeMeta.ResourceVersion = oldPod.TypeMeta.ResourceVersion
+	// Tricky, we need to copy the container list so that we don't overwrite the update
+	var newContainers []api.Container
+	for ix, container := range pod.DesiredState.Manifest.Containers {
+		container.Image = oldPod.DesiredState.Manifest.Containers[ix].Image
+		newContainers = append(newContainers, container)
+	}
+	pod.DesiredState.Manifest.Containers = newContainers
+	if !reflect.DeepEqual(pod.DesiredState.Manifest, oldPod.DesiredState.Manifest) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("DesiredState.Manifest.Containers", newPod.DesiredState.Manifest.Containers))
+	}
+	return allErrs
+}
+
 // ValidateService tests if required fields in the service are set.
 func ValidateService(service *api.Service) errs.ErrorList {
 	allErrs := errs.ErrorList{}
@@ -373,5 +423,39 @@ func ValidateReplicationControllerState(state *api.ReplicationControllerState) e
 		allErrs = append(allErrs, errs.NewFieldInvalid("replicas", state.Replicas))
 	}
 	allErrs = append(allErrs, ValidateManifest(&state.PodTemplate.DesiredState.Manifest).Prefix("podTemplate.desiredState.manifest")...)
+	allErrs = append(allErrs, ValidateReadOnlyPersistentDisks(state.PodTemplate.DesiredState.Manifest.Volumes).Prefix("podTemplate.desiredState.manifest")...)
 	return allErrs
+}
+func ValidateReadOnlyPersistentDisks(volumes []api.Volume) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	for _, vol := range volumes {
+		if vol.Source.GCEPersistentDisk != nil {
+			if vol.Source.GCEPersistentDisk.ReadOnly == false {
+				allErrs = append(allErrs, errs.NewFieldInvalid("GCEPersistentDisk.ReadOnly", false))
+			}
+		}
+	}
+	return allErrs
+}
+
+// ValidateBoundPod tests if required fields on a bound pod are set.
+func ValidateBoundPod(pod *api.BoundPod) (errors []error) {
+	if !util.IsDNSSubdomain(pod.ID) {
+		errors = append(errors, errs.NewFieldInvalid("id", pod.ID))
+	}
+	if !util.IsDNSSubdomain(pod.Namespace) {
+		errors = append(errors, errs.NewFieldInvalid("namespace", pod.Namespace))
+	}
+	containerManifest := &api.ContainerManifest{
+		Version:       "v1beta2",
+		ID:            pod.ID,
+		UUID:          pod.UID,
+		Containers:    pod.Spec.Containers,
+		Volumes:       pod.Spec.Volumes,
+		RestartPolicy: pod.Spec.RestartPolicy,
+	}
+	if errs := ValidateManifest(containerManifest); len(errs) != 0 {
+		errors = append(errors, errs...)
+	}
+	return errors
 }

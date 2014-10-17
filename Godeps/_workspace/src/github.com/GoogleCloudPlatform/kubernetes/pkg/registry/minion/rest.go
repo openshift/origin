@@ -17,11 +17,15 @@ limitations under the License.
 package minion
 
 import (
+	"errors"
 	"fmt"
+	"net"
+	"strconv"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -38,6 +42,9 @@ func NewREST(m Registry) *REST {
 	}
 }
 
+var ErrDoesNotExist = errors.New("The requested resource does not exist.")
+var ErrNotHealty = errors.New("The requested minion is not healthy.")
+
 func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	minion, ok := obj.(*api.Minion)
 	if !ok {
@@ -50,55 +57,47 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Obje
 	minion.CreationTimestamp = util.Now()
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := rs.registry.Insert(minion.ID)
+		err := rs.registry.CreateMinion(ctx, minion)
 		if err != nil {
 			return nil, err
 		}
-		contains, err := rs.registry.Contains(minion.ID)
+		minion, err := rs.registry.GetMinion(ctx, minion.ID)
+		if minion == nil {
+			return nil, ErrDoesNotExist
+		}
 		if err != nil {
 			return nil, err
 		}
-		if contains {
-			return rs.toApiMinion(minion.ID), nil
-		}
-		return nil, fmt.Errorf("unable to add minion %#v", minion)
+		return minion, nil
 	}), nil
 }
 
 func (rs *REST) Delete(ctx api.Context, id string) (<-chan runtime.Object, error) {
-	exists, err := rs.registry.Contains(id)
-	if !exists {
+	minion, err := rs.registry.GetMinion(ctx, id)
+	if minion == nil {
 		return nil, ErrDoesNotExist
 	}
 	if err != nil {
 		return nil, err
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &api.Status{Status: api.StatusSuccess}, rs.registry.Delete(id)
+		return &api.Status{Status: api.StatusSuccess}, rs.registry.DeleteMinion(ctx, id)
 	}), nil
 }
 
 func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
-	exists, err := rs.registry.Contains(id)
-	if !exists {
+	minion, err := rs.registry.GetMinion(ctx, id)
+	if minion == nil {
 		return nil, ErrDoesNotExist
 	}
-	return rs.toApiMinion(id), err
+	return minion, err
 }
 
 func (rs *REST) List(ctx api.Context, label, field labels.Selector) (runtime.Object, error) {
-	nameList, err := rs.registry.List()
-	if err != nil {
-		return nil, err
-	}
-	var list api.MinionList
-	for _, name := range nameList {
-		list.Items = append(list.Items, *rs.toApiMinion(name))
-	}
-	return &list, nil
+	return rs.registry.ListMinions(ctx)
 }
 
-func (*REST) New() runtime.Object {
+func (rs *REST) New() runtime.Object {
 	return &api.Minion{}
 }
 
@@ -107,5 +106,19 @@ func (rs *REST) Update(ctx api.Context, minion runtime.Object) (<-chan runtime.O
 }
 
 func (rs *REST) toApiMinion(name string) *api.Minion {
-	return &api.Minion{JSONBase: api.JSONBase{ID: name}}
+	return &api.Minion{TypeMeta: api.TypeMeta{ID: name}}
+}
+
+// ResourceLocation returns a URL to which one can send traffic for the specified minion.
+func (rs *REST) ResourceLocation(ctx api.Context, id string) (string, error) {
+	minion, err := rs.registry.GetMinion(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	host := minion.HostIP
+	if host == "" {
+		host = minion.ID
+	}
+	// TODO: Minion webservers should be secure!
+	return "http://" + net.JoinHostPort(host, strconv.Itoa(ports.KubeletPort)), nil
 }

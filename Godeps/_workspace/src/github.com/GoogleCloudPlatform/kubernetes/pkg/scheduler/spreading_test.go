@@ -100,7 +100,7 @@ func TestSpreadPriority(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		list, err := CalculateSpreadPriority(test.pod, FakePodLister(test.pods), FakeMinionLister(test.nodes))
+		list, err := CalculateSpreadPriority(test.pod, FakePodLister(test.pods), FakeMinionLister(makeMinionList(test.nodes)))
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}

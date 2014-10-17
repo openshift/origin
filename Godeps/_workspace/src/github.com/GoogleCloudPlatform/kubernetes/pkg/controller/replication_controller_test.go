@@ -89,7 +89,7 @@ func newPodList(count int) *api.PodList {
 	pods := []api.Pod{}
 	for i := 0; i < count; i++ {
 		pods = append(pods, api.Pod{
-			JSONBase: api.JSONBase{
+			TypeMeta: api.TypeMeta{
 				ID: fmt.Sprintf("pod%d", i),
 			},
 		})
@@ -149,7 +149,7 @@ func TestSyncReplicationControllerDeletes(t *testing.T) {
 }
 
 func TestSyncReplicationControllerCreates(t *testing.T) {
-	body := runtime.EncodeOrDie(testapi.CodecForVersionOrDie(), newPodList(0))
+	body := runtime.EncodeOrDie(testapi.Codec(), newPodList(0))
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
 		ResponseBody: string(body),
@@ -170,7 +170,7 @@ func TestSyncReplicationControllerCreates(t *testing.T) {
 
 func TestCreateReplica(t *testing.T) {
 	ctx := api.NewDefaultContext()
-	body := runtime.EncodeOrDie(testapi.CodecForVersionOrDie(), &api.Pod{})
+	body := runtime.EncodeOrDie(testapi.Codec(), &api.Pod{})
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
 		ResponseBody: string(body),
@@ -183,7 +183,7 @@ func TestCreateReplica(t *testing.T) {
 	}
 
 	controllerSpec := api.ReplicationController{
-		JSONBase: api.JSONBase{
+		TypeMeta: api.TypeMeta{
 			Kind: "ReplicationController",
 		},
 		DesiredState: api.ReplicationControllerState{
@@ -208,14 +208,14 @@ func TestCreateReplica(t *testing.T) {
 	podControl.createReplica(ctx, controllerSpec)
 
 	expectedPod := api.Pod{
-		JSONBase: api.JSONBase{
+		TypeMeta: api.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: testapi.Version(),
 		},
 		Labels:       controllerSpec.DesiredState.PodTemplate.Labels,
 		DesiredState: controllerSpec.DesiredState.PodTemplate.DesiredState,
 	}
-	fakeHandler.ValidateRequest(t, makeURL("/pods"), "POST", nil)
+	fakeHandler.ValidateRequest(t, makeURL("/pods?namespace=default"), "POST", nil)
 	actualPod := api.Pod{}
 	if err := json.Unmarshal([]byte(fakeHandler.RequestBody), &actualPod); err != nil {
 		t.Errorf("Unexpected error: %#v", err)
@@ -228,7 +228,7 @@ func TestCreateReplica(t *testing.T) {
 
 func TestSynchonize(t *testing.T) {
 	controllerSpec1 := api.ReplicationController{
-		JSONBase: api.JSONBase{APIVersion: testapi.Version()},
+		TypeMeta: api.TypeMeta{APIVersion: testapi.Version()},
 		DesiredState: api.ReplicationControllerState{
 			Replicas: 4,
 			PodTemplate: api.PodTemplate{
@@ -249,7 +249,7 @@ func TestSynchonize(t *testing.T) {
 		},
 	}
 	controllerSpec2 := api.ReplicationController{
-		JSONBase: api.JSONBase{APIVersion: testapi.Version()},
+		TypeMeta: api.TypeMeta{APIVersion: testapi.Version()},
 		DesiredState: api.ReplicationControllerState{
 			Replicas: 3,
 			PodTemplate: api.PodTemplate{
@@ -324,7 +324,7 @@ type FakeWatcher struct {
 	*client.Fake
 }
 
-func (fw FakeWatcher) WatchReplicationControllers(ctx api.Context, l, f labels.Selector, rv uint64) (watch.Interface, error) {
+func (fw FakeWatcher) WatchReplicationControllers(ctx api.Context, l, f labels.Selector, rv string) (watch.Interface, error) {
 	return fw.w, nil
 }
 
@@ -341,7 +341,7 @@ func TestWatchControllers(t *testing.T) {
 		return nil
 	}
 
-	resourceVersion := uint64(0)
+	resourceVersion := ""
 	go manager.watchControllers(&resourceVersion)
 
 	// Test normal case

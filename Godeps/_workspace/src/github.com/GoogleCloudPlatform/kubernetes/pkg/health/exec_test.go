@@ -18,7 +18,6 @@ package health
 
 import (
 	"fmt"
-	"os/exec"
 	"reflect"
 	"testing"
 
@@ -60,17 +59,15 @@ func TestExec(t *testing.T) {
 				Command: []string{"ls", "-l"},
 			},
 		}, true, []byte("OK, NOT"), fmt.Errorf("test error")},
-		// Command error
+		// Unhealthy
 		{Unhealthy, &api.LivenessProbe{
-			Exec: &api.ExecAction{
-				Command: []string{"ls", "-l"},
-			},
-		}, false, []byte{}, &exec.ExitError{}},
+			Exec: &api.ExecAction{Command: []string{"ls", "-l"}},
+		}, false, []byte("Fail"), nil},
 	}
 	for _, test := range tests {
 		fake.out = test.output
 		fake.err = test.err
-		status, err := checker.HealthCheck("test", api.PodState{}, api.Container{LivenessProbe: test.probe})
+		status, err := checker.HealthCheck("test", "", api.PodState{}, api.Container{LivenessProbe: test.probe})
 		if status != test.expectedStatus {
 			t.Errorf("expected %v, got %v", test.expectedStatus, status)
 		}

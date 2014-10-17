@@ -26,7 +26,6 @@ import (
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -35,7 +34,7 @@ func newPodList(count int) api.PodList {
 	pods := []api.Pod{}
 	for i := 0; i < count; i++ {
 		pods = append(pods, api.Pod{
-			JSONBase: api.JSONBase{
+			TypeMeta: api.TypeMeta{
 				ID:         fmt.Sprintf("pod%d", i),
 				APIVersion: testapi.Version(),
 			},
@@ -58,7 +57,7 @@ func newPodList(count int) api.PodList {
 		})
 	}
 	return api.PodList{
-		JSONBase: api.JSONBase{APIVersion: testapi.Version(), Kind: "PodList"},
+		TypeMeta: api.TypeMeta{APIVersion: testapi.Version(), Kind: "PodList"},
 		Items:    pods,
 	}
 }
@@ -160,8 +159,7 @@ func TestSyncEndpointsEmpty(t *testing.T) {
 		serverResponse{http.StatusOK, api.ServiceList{}},
 		serverResponse{http.StatusOK, api.Endpoints{}})
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
-	serviceRegistry := registrytest.ServiceRegistry{}
-	endpoints := NewEndpointController(&serviceRegistry, client)
+	endpoints := NewEndpointController(client)
 	if err := endpoints.SyncServiceEndpoints(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -173,10 +171,7 @@ func TestSyncEndpointsError(t *testing.T) {
 		serverResponse{http.StatusInternalServerError, api.ServiceList{}},
 		serverResponse{http.StatusOK, api.Endpoints{}})
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
-	serviceRegistry := registrytest.ServiceRegistry{
-		Err: fmt.Errorf("test error"),
-	}
-	endpoints := NewEndpointController(&serviceRegistry, client)
+	endpoints := NewEndpointController(client)
 	if err := endpoints.SyncServiceEndpoints(); err == nil {
 		t.Errorf("unexpected non-error")
 	}
@@ -186,7 +181,7 @@ func TestSyncEndpointsItemsPreexisting(t *testing.T) {
 	serviceList := api.ServiceList{
 		Items: []api.Service{
 			{
-				JSONBase: api.JSONBase{ID: "foo"},
+				TypeMeta: api.TypeMeta{ID: "foo"},
 				Selector: map[string]string{
 					"foo": "bar",
 				},
@@ -197,22 +192,21 @@ func TestSyncEndpointsItemsPreexisting(t *testing.T) {
 		serverResponse{http.StatusOK, newPodList(1)},
 		serverResponse{http.StatusOK, serviceList},
 		serverResponse{http.StatusOK, api.Endpoints{
-			JSONBase: api.JSONBase{
+			TypeMeta: api.TypeMeta{
 				ID:              "foo",
-				ResourceVersion: 1,
+				ResourceVersion: "1",
 			},
 			Endpoints: []string{"6.7.8.9:1000"},
 		}})
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
-	serviceRegistry := registrytest.ServiceRegistry{}
-	endpoints := NewEndpointController(&serviceRegistry, client)
+	endpoints := NewEndpointController(client)
 	if err := endpoints.SyncServiceEndpoints(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	data := runtime.EncodeOrDie(testapi.CodecForVersionOrDie(), &api.Endpoints{
-		JSONBase: api.JSONBase{
+	data := runtime.EncodeOrDie(testapi.Codec(), &api.Endpoints{
+		TypeMeta: api.TypeMeta{
 			ID:              "foo",
-			ResourceVersion: 1,
+			ResourceVersion: "1",
 		},
 		Endpoints: []string{"1.2.3.4:8080"},
 	})
@@ -223,7 +217,7 @@ func TestSyncEndpointsItemsPreexistingIdentical(t *testing.T) {
 	serviceList := api.ServiceList{
 		Items: []api.Service{
 			{
-				JSONBase: api.JSONBase{ID: "foo"},
+				TypeMeta: api.TypeMeta{ID: "foo"},
 				Selector: map[string]string{
 					"foo": "bar",
 				},
@@ -234,14 +228,13 @@ func TestSyncEndpointsItemsPreexistingIdentical(t *testing.T) {
 		serverResponse{http.StatusOK, newPodList(1)},
 		serverResponse{http.StatusOK, serviceList},
 		serverResponse{http.StatusOK, api.Endpoints{
-			JSONBase: api.JSONBase{
-				ResourceVersion: 1,
+			TypeMeta: api.TypeMeta{
+				ResourceVersion: "1",
 			},
 			Endpoints: []string{"1.2.3.4:8080"},
 		}})
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
-	serviceRegistry := registrytest.ServiceRegistry{}
-	endpoints := NewEndpointController(&serviceRegistry, client)
+	endpoints := NewEndpointController(client)
 	if err := endpoints.SyncServiceEndpoints(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -252,7 +245,7 @@ func TestSyncEndpointsItems(t *testing.T) {
 	serviceList := api.ServiceList{
 		Items: []api.Service{
 			{
-				JSONBase: api.JSONBase{ID: "foo"},
+				TypeMeta: api.TypeMeta{ID: "foo"},
 				Selector: map[string]string{
 					"foo": "bar",
 				},
@@ -264,14 +257,13 @@ func TestSyncEndpointsItems(t *testing.T) {
 		serverResponse{http.StatusOK, serviceList},
 		serverResponse{http.StatusOK, api.Endpoints{}})
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
-	serviceRegistry := registrytest.ServiceRegistry{}
-	endpoints := NewEndpointController(&serviceRegistry, client)
+	endpoints := NewEndpointController(client)
 	if err := endpoints.SyncServiceEndpoints(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	data := runtime.EncodeOrDie(testapi.CodecForVersionOrDie(), &api.Endpoints{
-		JSONBase: api.JSONBase{
-			ResourceVersion: 0,
+	data := runtime.EncodeOrDie(testapi.Codec(), &api.Endpoints{
+		TypeMeta: api.TypeMeta{
+			ResourceVersion: "",
 		},
 		Endpoints: []string{"1.2.3.4:8080"},
 	})
@@ -293,18 +285,7 @@ func TestSyncEndpointsPodError(t *testing.T) {
 		serverResponse{http.StatusOK, serviceList},
 		serverResponse{http.StatusOK, api.Endpoints{}})
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
-	serviceRegistry := registrytest.ServiceRegistry{
-		List: api.ServiceList{
-			Items: []api.Service{
-				{
-					Selector: map[string]string{
-						"foo": "bar",
-					},
-				},
-			},
-		},
-	}
-	endpoints := NewEndpointController(&serviceRegistry, client)
+	endpoints := NewEndpointController(client)
 	if err := endpoints.SyncServiceEndpoints(); err == nil {
 		t.Error("Unexpected non-error")
 	}

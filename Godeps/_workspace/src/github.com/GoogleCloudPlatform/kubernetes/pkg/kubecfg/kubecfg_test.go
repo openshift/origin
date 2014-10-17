@@ -38,8 +38,8 @@ func TestUpdateWithPods(t *testing.T) {
 	fakeClient := client.Fake{
 		Pods: api.PodList{
 			Items: []api.Pod{
-				{JSONBase: api.JSONBase{ID: "pod-1"}},
-				{JSONBase: api.JSONBase{ID: "pod-2"}},
+				{TypeMeta: api.TypeMeta{ID: "pod-1"}},
+				{TypeMeta: api.TypeMeta{ID: "pod-2"}},
 			},
 		},
 	}
@@ -69,8 +69,8 @@ func TestUpdateWithNewImage(t *testing.T) {
 	fakeClient := client.Fake{
 		Pods: api.PodList{
 			Items: []api.Pod{
-				{JSONBase: api.JSONBase{ID: "pod-1"}},
-				{JSONBase: api.JSONBase{ID: "pod-2"}},
+				{TypeMeta: api.TypeMeta{ID: "pod-1"}},
+				{TypeMeta: api.TypeMeta{ID: "pod-2"}},
 			},
 		},
 		Ctrl: api.ReplicationController{
@@ -109,6 +109,27 @@ func TestRunController(t *testing.T) {
 	name := "name"
 	image := "foo/bar"
 	replicas := 3
+	RunController(api.NewDefaultContext(), image, name, replicas, &fakeClient, "8080:80", -1)
+	if len(fakeClient.Actions) != 1 || fakeClient.Actions[0].Action != "create-controller" {
+		t.Errorf("Unexpected actions: %#v", fakeClient.Actions)
+	}
+	controller := fakeClient.Actions[0].Value.(*api.ReplicationController)
+	if controller.ID != name ||
+		controller.DesiredState.Replicas != replicas ||
+		controller.DesiredState.PodTemplate.DesiredState.Manifest.Containers[0].Image != image {
+		t.Errorf("Unexpected controller: %#v", controller)
+	}
+}
+
+func TestRunControllerWithWrongArgs(t *testing.T) {
+	fakeClient := client.Fake{}
+	name := "name"
+	image := "foo/bar"
+	replicas := 3
+	err := RunController(api.NewDefaultContext(), image, name, replicas, &fakeClient, "8080:", -1)
+	if err == nil {
+		t.Errorf("Unexpected non-error: %#v", fakeClient.Actions)
+	}
 	RunController(api.NewDefaultContext(), image, name, replicas, &fakeClient, "8080:80", -1)
 	if len(fakeClient.Actions) != 1 || fakeClient.Actions[0].Action != "create-controller" {
 		t.Errorf("Unexpected actions: %#v", fakeClient.Actions)
@@ -219,6 +240,58 @@ func TestCloudCfgDeleteControllerWithReplicas(t *testing.T) {
 	}
 }
 
+func TestLoadNamespaceInfo(t *testing.T) {
+	loadNamespaceInfoTests := []struct {
+		nsData string
+		nsInfo *NamespaceInfo
+	}{
+		{
+			`{"Namespace":"test"}`,
+			&NamespaceInfo{Namespace: "test"},
+		},
+		{
+			"", nil,
+		},
+		{
+			"missing",
+			&NamespaceInfo{Namespace: "default"},
+		},
+	}
+	for _, loadNamespaceInfoTest := range loadNamespaceInfoTests {
+		tt := loadNamespaceInfoTest
+		nsfile, err := ioutil.TempFile("", "testNamespaceInfo")
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if tt.nsData != "missing" {
+			defer os.Remove(nsfile.Name())
+			defer nsfile.Close()
+			_, err := nsfile.WriteString(tt.nsData)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+		} else {
+			nsfile.Close()
+			os.Remove(nsfile.Name())
+		}
+		nsInfo, err := LoadNamespaceInfo(nsfile.Name())
+		if len(tt.nsData) == 0 && tt.nsData != "missing" {
+			if err == nil {
+				t.Error("LoadNamespaceInfo didn't fail on an empty file")
+			}
+			continue
+		}
+		if tt.nsData != "missing" {
+			if err != nil {
+				t.Errorf("Unexpected error: %v, %v", tt.nsData, err)
+			}
+			if !reflect.DeepEqual(nsInfo, tt.nsInfo) {
+				t.Errorf("Expected %v, got %v", tt.nsInfo, nsInfo)
+			}
+		}
+	}
+}
+
 func TestLoadAuthInfo(t *testing.T) {
 	loadAuthInfoTests := []struct {
 		authData string
@@ -273,7 +346,7 @@ func TestLoadAuthInfo(t *testing.T) {
 }
 
 func TestMakePorts(t *testing.T) {
-	var testCases = []struct {
+	var successTestCases = []struct {
 		spec  string
 		ports []api.Port
 	}{
@@ -285,11 +358,32 @@ func TestMakePorts(t *testing.T) {
 				{HostPort: 443, ContainerPort: 444},
 			},
 		},
+		{
+			"",
+			[]api.Port{},
+		},
 	}
-	for _, tt := range testCases {
-		ports := portsFromString(tt.spec)
+	for _, tt := range successTestCases {
+		ports, err := portsFromString(tt.spec)
 		if !reflect.DeepEqual(ports, tt.ports) {
 			t.Errorf("Expected %#v, got %#v", tt.ports, ports)
+		}
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	}
+
+	var failTestCases = []struct {
+		spec string
+	}{
+		{"8080:"},
+		{":80"},
+		{":"},
+	}
+	for _, tt := range failTestCases {
+		_, err := portsFromString(tt.spec)
+		if err == nil {
+			t.Errorf("Unexpected non-error")
 		}
 	}
 }

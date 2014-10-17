@@ -55,7 +55,7 @@ type CadvisorInterface interface {
 
 // SyncHandler is an interface implemented by Kubelet, for testability
 type SyncHandler interface {
-	SyncPods([]Pod) error
+	SyncPods([]api.BoundPod) error
 }
 
 type volumeMap map[string]volume.Interface
@@ -64,7 +64,6 @@ type volumeMap map[string]volume.Interface
 func NewMainKubelet(
 	hn string,
 	dc dockertools.DockerInterface,
-	cc CadvisorInterface,
 	ec tools.EtcdClient,
 	rd string,
 	ni string,
@@ -74,7 +73,6 @@ func NewMainKubelet(
 	return &Kubelet{
 		hostname:              hn,
 		dockerClient:          dc,
-		cadvisorClient:        cc,
 		etcdClient:            ec,
 		rootDirectory:         rd,
 		resyncInterval:        ri,
@@ -89,10 +87,11 @@ func NewMainKubelet(
 
 // NewIntegrationTestKubelet creates a new Kubelet for use in integration tests.
 // TODO: add more integration tests, and expand parameter list as needed.
-func NewIntegrationTestKubelet(hn string, dc dockertools.DockerInterface) *Kubelet {
+func NewIntegrationTestKubelet(hn string, rd string, dc dockertools.DockerInterface) *Kubelet {
 	return &Kubelet{
 		hostname:              hn,
 		dockerClient:          dc,
+		rootDirectory:         rd,
 		dockerPuller:          &dockertools.FakeDockerPuller{},
 		networkContainerImage: NetworkContainerImage,
 		resyncInterval:        3 * time.Second,
@@ -110,13 +109,12 @@ type Kubelet struct {
 	dockerClient          dockertools.DockerInterface
 	rootDirectory         string
 	networkContainerImage string
-	podWorkers            podWorkers
+	podWorkers            *podWorkers
 	resyncInterval        time.Duration
+	pods                  []api.BoundPod
 
 	// Optional, no events will be sent without it
 	etcdClient tools.EtcdClient
-	// Optional, no statistics will be available if omitted
-	cadvisorClient CadvisorInterface
 	// Optional, defaults to simple implementaiton
 	healthChecker health.HealthChecker
 	// Optional, defaults to simple Docker implementation
@@ -131,6 +129,24 @@ type Kubelet struct {
 	pullQPS float32
 	// Optional, maximum burst QPS from the docker registry, must be positive if QPS is > 0.0
 	pullBurst int
+
+	// Optional, no statistics will be available if omitted
+	cadvisorClient CadvisorInterface
+	cadvisorLock   sync.RWMutex
+}
+
+// SetCadvisorClient sets the cadvisor client in a thread-safe way.
+func (kl *Kubelet) SetCadvisorClient(c CadvisorInterface) {
+	kl.cadvisorLock.Lock()
+	defer kl.cadvisorLock.Unlock()
+	kl.cadvisorClient = c
+}
+
+// GetCadvisorClient gets the cadvisor client.
+func (kl *Kubelet) GetCadvisorClient() CadvisorInterface {
+	kl.cadvisorLock.RLock()
+	defer kl.cadvisorLock.RUnlock()
+	return kl.cadvisorClient
 }
 
 // Run starts the kubelet reacting to config updates
@@ -155,8 +171,8 @@ type podWorkers struct {
 	workers util.StringSet
 }
 
-func newPodWorkers() podWorkers {
-	return podWorkers{
+func newPodWorkers() *podWorkers {
+	return &podWorkers{
 		workers: util.NewStringSet(),
 	}
 }
@@ -197,7 +213,7 @@ func makeEnvironmentVariables(container *api.Container) []string {
 	return result
 }
 
-func makeBinds(pod *Pod, container *api.Container, podVolumes volumeMap) []string {
+func makeBinds(pod *api.BoundPod, container *api.Container, podVolumes volumeMap) []string {
 	binds := []string{}
 	for _, mount := range container.VolumeMounts {
 		vol, ok := podVolumes[mount.Name]
@@ -260,10 +276,10 @@ func milliCPUToShares(milliCPU int) int {
 	return shares
 }
 
-func (kl *Kubelet) mountExternalVolumes(manifest *api.ContainerManifest) (volumeMap, error) {
+func (kl *Kubelet) mountExternalVolumes(pod *api.BoundPod) (volumeMap, error) {
 	podVolumes := make(volumeMap)
-	for _, vol := range manifest.Volumes {
-		extVolume, err := volume.CreateVolumeBuilder(&vol, manifest.ID, kl.rootDirectory)
+	for _, vol := range pod.Spec.Volumes {
+		extVolume, err := volume.CreateVolumeBuilder(&vol, pod.ID, kl.rootDirectory)
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +309,7 @@ func (kl *Kubelet) newActionHandler(handler *api.Handler) actionHandler {
 	case handler.HTTPGet != nil:
 		return &httpActionHandler{client: kl.httpClient, kubelet: kl}
 	default:
-		glog.Errorf("Invalid handler: %v")
+		glog.Errorf("Invalid handler: %v", handler)
 		return nil
 	}
 }
@@ -307,18 +323,18 @@ func (kl *Kubelet) runHandler(podFullName, uuid string, container *api.Container
 }
 
 // Run a single container from a pod. Returns the docker container ID
-func (kl *Kubelet) runContainer(pod *Pod, container *api.Container, podVolumes volumeMap, netMode string) (id dockertools.DockerID, err error) {
+func (kl *Kubelet) runContainer(pod *api.BoundPod, container *api.Container, podVolumes volumeMap, netMode string) (id dockertools.DockerID, err error) {
 	envVariables := makeEnvironmentVariables(container)
 	binds := makeBinds(pod, container, podVolumes)
 	exposedPorts, portBindings := makePortsAndBindings(container)
 
 	opts := docker.CreateContainerOptions{
-		Name: dockertools.BuildDockerName(pod.Manifest.UUID, GetPodFullName(pod), container),
+		Name: dockertools.BuildDockerName(pod.UID, GetPodFullName(pod), container),
 		Config: &docker.Config{
 			Cmd:          container.Command,
 			Env:          envVariables,
 			ExposedPorts: exposedPorts,
-			Hostname:     pod.Name,
+			Hostname:     pod.ID,
 			Image:        container.Image,
 			Memory:       int64(container.Memory),
 			CpuShares:    int64(milliCPUToShares(container.CPU)),
@@ -342,7 +358,7 @@ func (kl *Kubelet) runContainer(pod *Pod, container *api.Container, podVolumes v
 		Privileged:   privileged,
 	})
 	if err == nil && container.Lifecycle != nil && container.Lifecycle.PostStart != nil {
-		handlerErr := kl.runHandler(GetPodFullName(pod), pod.Manifest.UUID, container, container.Lifecycle.PostStart)
+		handlerErr := kl.runHandler(GetPodFullName(pod), pod.UID, container, container.Lifecycle.PostStart)
 		if handlerErr != nil {
 			kl.killContainerByID(dockerContainer.ID, "")
 			return dockertools.DockerID(""), fmt.Errorf("failed to call event handler: %v", handlerErr)
@@ -376,11 +392,11 @@ const (
 )
 
 // createNetworkContainer starts the network container for a pod. Returns the docker container ID of the newly created container.
-func (kl *Kubelet) createNetworkContainer(pod *Pod) (dockertools.DockerID, error) {
+func (kl *Kubelet) createNetworkContainer(pod *api.BoundPod) (dockertools.DockerID, error) {
 	var ports []api.Port
 	// Docker only exports ports from the network container.  Let's
 	// collect all of the relevant ports and export them.
-	for _, container := range pod.Manifest.Containers {
+	for _, container := range pod.Spec.Containers {
 		ports = append(ports, container.Ports...)
 	}
 	container := &api.Container{
@@ -403,12 +419,12 @@ func (kl *Kubelet) createNetworkContainer(pod *Pod) (dockertools.DockerID, error
 
 // Delete all containers in a pod (except the network container) returns the number of containers deleted
 // and an error if one occurs.
-func (kl *Kubelet) deleteAllContainers(pod *Pod, podFullName string, dockerContainers dockertools.DockerContainers) (int, error) {
+func (kl *Kubelet) deleteAllContainers(pod *api.BoundPod, podFullName string, dockerContainers dockertools.DockerContainers) (int, error) {
 	count := 0
-	errs := make(chan error, len(pod.Manifest.Containers))
+	errs := make(chan error, len(pod.Spec.Containers))
 	wg := sync.WaitGroup{}
-	for _, container := range pod.Manifest.Containers {
-		if dockerContainer, found, _ := dockerContainers.FindPodContainer(podFullName, pod.Manifest.UUID, container.Name); found {
+	for _, container := range pod.Spec.Containers {
+		if dockerContainer, found, _ := dockerContainers.FindPodContainer(podFullName, pod.UID, container.Name); found {
 			count++
 			wg.Add(1)
 			go func() {
@@ -435,9 +451,9 @@ func (kl *Kubelet) deleteAllContainers(pod *Pod, podFullName string, dockerConta
 
 type empty struct{}
 
-func (kl *Kubelet) syncPod(pod *Pod, dockerContainers dockertools.DockerContainers) error {
+func (kl *Kubelet) syncPod(pod *api.BoundPod, dockerContainers dockertools.DockerContainers) error {
 	podFullName := GetPodFullName(pod)
-	uuid := pod.Manifest.UUID
+	uuid := pod.UID
 	containersToKeep := make(map[dockertools.DockerID]empty)
 	killedContainers := make(map[dockertools.DockerID]empty)
 
@@ -468,24 +484,24 @@ func (kl *Kubelet) syncPod(pod *Pod, dockerContainers dockertools.DockerContaine
 	}
 	containersToKeep[netID] = empty{}
 
-	podVolumes, err := kl.mountExternalVolumes(&pod.Manifest)
+	podVolumes, err := kl.mountExternalVolumes(pod)
 	if err != nil {
 		glog.Errorf("Unable to mount volumes for pod %s: (%v) Skipping pod.", podFullName, err)
 		return err
 	}
 
-	podState := api.PodState{Manifest: api.ContainerManifest{UUID: uuid}}
+	podState := api.PodState{}
 	info, err := kl.GetPodInfo(podFullName, uuid)
 	if err != nil {
 		glog.Errorf("Unable to get pod with name %s and uuid %s info, health checks may be invalid.",
 			podFullName, uuid)
 	}
 	netInfo, found := info[networkContainerName]
-	if found && netInfo.DetailInfo.NetworkSettings != nil {
-		podState.PodIP = netInfo.DetailInfo.NetworkSettings.IPAddress
+	if found {
+		podState.PodIP = netInfo.PodIP
 	}
 
-	for _, container := range pod.Manifest.Containers {
+	for _, container := range pod.Spec.Containers {
 		expectedHash := dockertools.HashContainer(&container)
 		if dockerContainer, found, hash := dockerContainers.FindPodContainer(podFullName, uuid, container.Name); found {
 			containerID := dockertools.DockerID(dockerContainer.ID)
@@ -494,7 +510,7 @@ func (kl *Kubelet) syncPod(pod *Pod, dockerContainers dockertools.DockerContaine
 			// look for changes in the container.
 			if hash == 0 || hash == expectedHash {
 				// TODO: This should probably be separated out into a separate goroutine.
-				healthy, err := kl.healthy(podFullName, podState, container, dockerContainer)
+				healthy, err := kl.healthy(podFullName, uuid, podState, container, dockerContainer)
 				if err != nil {
 					glog.V(1).Infof("health check errored: %v", err)
 					containersToKeep[containerID] = empty{}
@@ -522,13 +538,13 @@ func (kl *Kubelet) syncPod(pod *Pod, dockerContainers dockertools.DockerContaine
 			// TODO(dawnchen): error handling here?
 		}
 
-		if len(recentContainers) > 0 && pod.Manifest.RestartPolicy.Always == nil {
-			if pod.Manifest.RestartPolicy.Never != nil {
+		if len(recentContainers) > 0 && pod.Spec.RestartPolicy.Always == nil {
+			if pod.Spec.RestartPolicy.Never != nil {
 				glog.V(3).Infof("Already ran container with name %s--%s--%s, do nothing",
 					podFullName, uuid, container.Name)
 				continue
 			}
-			if pod.Manifest.RestartPolicy.OnFailure != nil {
+			if pod.Spec.RestartPolicy.OnFailure != nil {
 				// Check the exit code of last run
 				if recentContainers[0].State.ExitCode == 0 {
 					glog.V(3).Infof("Already successfully ran container with name %s--%s--%s, do nothing",
@@ -589,11 +605,11 @@ type podContainer struct {
 
 // Stores all volumes defined by the set of pods into a map.
 // Keys for each entry are in the format (POD_ID)/(VOLUME_NAME)
-func getDesiredVolumes(pods []Pod) map[string]api.Volume {
+func getDesiredVolumes(pods []api.BoundPod) map[string]api.Volume {
 	desiredVolumes := make(map[string]api.Volume)
 	for _, pod := range pods {
-		for _, volume := range pod.Manifest.Volumes {
-			identifier := path.Join(pod.Manifest.ID, volume.Name)
+		for _, volume := range pod.Spec.Volumes {
+			identifier := path.Join(pod.ID, volume.Name)
 			desiredVolumes[identifier] = volume
 		}
 	}
@@ -602,7 +618,7 @@ func getDesiredVolumes(pods []Pod) map[string]api.Volume {
 
 // Compares the map of current volumes to the map of desired volumes.
 // If an active volume does not have a respective desired volume, clean it up.
-func (kl *Kubelet) reconcileVolumes(pods []Pod) error {
+func (kl *Kubelet) reconcileVolumes(pods []api.BoundPod) error {
 	desiredVolumes := getDesiredVolumes(pods)
 	currentVolumes := volume.GetCurrentVolumes(kl.rootDirectory)
 	for name, vol := range currentVolumes {
@@ -621,7 +637,7 @@ func (kl *Kubelet) reconcileVolumes(pods []Pod) error {
 }
 
 // SyncPods synchronizes the configured list of pods (desired state) with the host current state.
-func (kl *Kubelet) SyncPods(pods []Pod) error {
+func (kl *Kubelet) SyncPods(pods []api.BoundPod) error {
 	glog.V(4).Infof("Desired [%s]: %+v", kl.hostname, pods)
 	var err error
 	desiredContainers := make(map[podContainer]empty)
@@ -633,14 +649,14 @@ func (kl *Kubelet) SyncPods(pods []Pod) error {
 	}
 
 	// Check for any containers that need starting
-	for i := range pods {
-		pod := &pods[i]
+	for ix := range pods {
+		pod := &pods[ix]
 		podFullName := GetPodFullName(pod)
-		uuid := pod.Manifest.UUID
+		uuid := pod.UID
 
 		// Add all containers (including net) to the map.
 		desiredContainers[podContainer{podFullName, uuid, networkContainerName}] = empty{}
-		for _, cont := range pod.Manifest.Containers {
+		for _, cont := range pod.Spec.Containers {
 			desiredContainers[podContainer{podFullName, uuid, cont.Name}] = empty{}
 		}
 
@@ -677,13 +693,13 @@ func (kl *Kubelet) SyncPods(pods []Pod) error {
 }
 
 // filterHostPortConflicts removes pods that conflict on Port.HostPort values
-func filterHostPortConflicts(pods []Pod) []Pod {
-	filtered := []Pod{}
+func filterHostPortConflicts(pods []api.BoundPod) []api.BoundPod {
+	filtered := []api.BoundPod{}
 	ports := map[int]bool{}
 	extract := func(p *api.Port) int { return p.HostPort }
 	for i := range pods {
 		pod := &pods[i]
-		if errs := validation.AccumulateUniquePorts(pod.Manifest.Containers, ports, extract); len(errs) != 0 {
+		if errs := validation.AccumulateUniquePorts(pod.Spec.Containers, ports, extract); len(errs) != 0 {
 			glog.Warningf("Pod %s has conflicting ports, ignoring: %v", GetPodFullName(pod), errs)
 			continue
 		}
@@ -699,31 +715,25 @@ func filterHostPortConflicts(pods []Pod) []Pod {
 // no changes are seen to the configuration, will synchronize the last known desired
 // state every sync_frequency seconds. Never returns.
 func (kl *Kubelet) syncLoop(updates <-chan PodUpdate, handler SyncHandler) {
-	var pods []Pod
 	for {
 		select {
 		case u := <-updates:
 			switch u.Op {
-			case SET:
+			case SET, UPDATE:
 				glog.V(3).Infof("Containers changed [%s]", kl.hostname)
-				pods = u.Pods
-				pods = filterHostPortConflicts(pods)
-
-			case UPDATE:
-				//TODO: implement updates of containers
-				glog.Warningf("Containers updated, not implemented [%s]", kl.hostname)
-				continue
+				kl.pods = u.Pods
+				kl.pods = filterHostPortConflicts(kl.pods)
 
 			default:
 				panic("syncLoop does not support incremental changes")
 			}
 		case <-time.After(kl.resyncInterval):
-			if pods == nil {
+			if kl.pods == nil {
 				continue
 			}
 		}
 
-		err := handler.SyncPods(pods)
+		err := handler.SyncPods(kl.pods)
 		if err != nil {
 			glog.Errorf("Couldn't sync containers : %v", err)
 		}
@@ -741,8 +751,8 @@ func getCadvisorContainerInfoRequest(req *info.ContainerInfoRequest) *info.Conta
 // container.  The container's absolute path refers to its hierarchy in the
 // cgroup file system. e.g. The root container, which represents the whole
 // machine, has path "/"; all docker containers have path "/docker/<docker id>"
-func (kl *Kubelet) statsFromContainerPath(containerPath string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
-	cinfo, err := kl.cadvisorClient.ContainerInfo(containerPath, getCadvisorContainerInfoRequest(req))
+func (kl *Kubelet) statsFromContainerPath(cc CadvisorInterface, containerPath string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	cinfo, err := cc.ContainerInfo(containerPath, getCadvisorContainerInfoRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -769,12 +779,20 @@ func (kl *Kubelet) GetKubeletContainerLogs(podFullName, containerName, tail stri
 
 // GetPodInfo returns information from Docker about the containers in a pod
 func (kl *Kubelet) GetPodInfo(podFullName, uuid string) (api.PodInfo, error) {
-	return dockertools.GetDockerPodInfo(kl.dockerClient, podFullName, uuid)
+	var manifest api.PodSpec
+	for _, pod := range kl.pods {
+		if GetPodFullName(&pod) == podFullName {
+			manifest = pod.Spec
+			break
+		}
+	}
+	return dockertools.GetDockerPodInfo(kl.dockerClient, manifest, podFullName, uuid)
 }
 
 // GetContainerInfo returns stats (from Cadvisor) for a container.
 func (kl *Kubelet) GetContainerInfo(podFullName, uuid, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
-	if kl.cadvisorClient == nil {
+	cc := kl.GetCadvisorClient()
+	if cc == nil {
 		return nil, nil
 	}
 	dockerContainers, err := dockertools.GetKubeletDockerContainers(kl.dockerClient, false)
@@ -785,19 +803,27 @@ func (kl *Kubelet) GetContainerInfo(podFullName, uuid, containerName string, req
 	if !found {
 		return nil, errors.New("couldn't find container")
 	}
-	return kl.statsFromContainerPath(fmt.Sprintf("/docker/%s", dockerContainer.ID), req)
+	return kl.statsFromContainerPath(cc, fmt.Sprintf("/docker/%s", dockerContainer.ID), req)
 }
 
 // GetRootInfo returns stats (from Cadvisor) of current machine (root container).
 func (kl *Kubelet) GetRootInfo(req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
-	return kl.statsFromContainerPath("/", req)
+	cc := kl.GetCadvisorClient()
+	if cc == nil {
+		return nil, fmt.Errorf("no cadvisor connection")
+	}
+	return kl.statsFromContainerPath(cc, "/", req)
 }
 
 func (kl *Kubelet) GetMachineInfo() (*info.MachineInfo, error) {
-	return kl.cadvisorClient.MachineInfo()
+	cc := kl.GetCadvisorClient()
+	if cc == nil {
+		return nil, fmt.Errorf("no cadvisor connection")
+	}
+	return cc.MachineInfo()
 }
 
-func (kl *Kubelet) healthy(podFullName string, currentState api.PodState, container api.Container, dockerContainer *docker.APIContainers) (health.Status, error) {
+func (kl *Kubelet) healthy(podFullName, podUUID string, currentState api.PodState, container api.Container, dockerContainer *docker.APIContainers) (health.Status, error) {
 	// Give the container 60 seconds to start up.
 	if container.LivenessProbe == nil {
 		return health.Healthy, nil
@@ -808,7 +834,7 @@ func (kl *Kubelet) healthy(podFullName string, currentState api.PodState, contai
 	if kl.healthChecker == nil {
 		return health.Healthy, nil
 	}
-	return kl.healthChecker.HealthCheck(podFullName, currentState, container)
+	return kl.healthChecker.HealthCheck(podFullName, podUUID, currentState, container)
 }
 
 // Returns logs of current machine.

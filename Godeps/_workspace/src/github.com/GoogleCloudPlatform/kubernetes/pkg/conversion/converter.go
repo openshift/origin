@@ -244,7 +244,7 @@ func (c *Converter) convert(sv, dv reflect.Value, scope *scope) error {
 		}
 		args := []reflect.Value{sv.Addr(), dv.Addr(), reflect.ValueOf(scope)}
 		ret := fv.Call(args)[0].Interface()
-		// This convolution is necssary because nil interfaces won't convert
+		// This convolution is necessary because nil interfaces won't convert
 		// to errors.
 		if ret == nil {
 			return nil
@@ -253,7 +253,7 @@ func (c *Converter) convert(sv, dv reflect.Value, scope *scope) error {
 	}
 
 	if !scope.flags.IsSet(AllowDifferentFieldTypeNames) && c.NameFunc(dt) != c.NameFunc(st) {
-		return fmt.Errorf("Can't convert %v to %v because type names don't match.", st, dt)
+		return fmt.Errorf("Can't convert %v to %v because type names don't match (%v, %v).", st, dt, c.NameFunc(st), c.NameFunc(dt))
 	}
 
 	// This should handle all simple types.
