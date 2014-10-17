@@ -8,8 +8,9 @@ import (
 	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/deploy/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/project/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
 )
 
 // Codec encodes internal objects to the v1beta1 scheme

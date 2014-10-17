@@ -40,6 +40,8 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
+	projectetcd "github.com/openshift/origin/pkg/project/registry/etcd"
+	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/template"
@@ -48,6 +50,7 @@ import (
 	// Register versioned api types
 	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/project/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
 )
@@ -113,6 +116,7 @@ func (c *MasterConfig) RunAPI(m APIInstaller) {
 	imageRegistry := imageetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
+	projectEtcd := projectetcd.New(c.EtcdHelper)
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
@@ -129,7 +133,8 @@ func (c *MasterConfig) RunAPI(m APIInstaller) {
 
 		"templateConfigs": template.NewStorage(),
 
-		"routes": routeregistry.NewREST(routeEtcd),
+		"routes":   routeregistry.NewREST(routeEtcd),
+		"projects": projectregistry.NewREST(projectEtcd),
 	}
 
 	osMux := http.NewServeMux()
