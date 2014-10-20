@@ -18,6 +18,7 @@ cd "${OS_REPO_ROOT}"
 version=$(gitcommit)
 kube_version=$(go run ${hackdir}/version.go ${hackdir}/../Godeps/Godeps.json github.com/GoogleCloudPlatform/kubernetes/pkg/api)
 
+docker build -t openshift/base-builder images/builder/docker/base
 docker build -t openshift/docker-builder images/builder/docker/docker-builder
 docker build -t openshift/sti-builder images/builder/docker/sti-builder
 docker build -t openshift/hello-openshift examples/hello-openshift
