@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script tests the high level end-to-end functionality demonstrated
-# as part of the examples/simple-ruby-app
+# as part of the examples/sample-app
 
 set -o errexit
 set -o nounset
@@ -17,7 +17,7 @@ ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d ${TMPDIR}/openshift.local.volumes.XXXX)
 LOG_DIR=${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}
 CONFIG_FILE=${LOG_DIR}/appConfig.json
-FIXTURE_DIR=${HACKDIR}/../examples/simple-ruby-app
+FIXTURE_DIR=${HACKDIR}/../examples/sample-app
 GO_OUT=${HACKDIR}/../_output/go/bin
 openshift=$GO_OUT/openshift
 

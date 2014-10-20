@@ -19,13 +19,13 @@ import (
 
 func TestExamples(t *testing.T) {
 	expected := map[string]runtime.Object{
-		"guestbook/template.json":                    &templateapi.Template{},
-		"hello-openshift/hello-pod.json":             &kubeapi.Pod{},
+		"guestbook/template.json":               &templateapi.Template{},
+		"hello-openshift/hello-pod.json":        &kubeapi.Pod{},
 		"hello-openshift/hello-project.json":         &projectapi.Project{},
-		"simple-ruby-app/buildcfg/buildcfg.json":     &buildapi.BuildConfig{},
-		"simple-ruby-app/buildinvoke/pushevent.json": nil, // Skip.
-		"simple-ruby-app/registry-config.json":       &configapi.Config{},
-		"simple-ruby-app/template/template.json":     &templateapi.Template{},
+		"sample-app/buildcfg/buildcfg.json":     &buildapi.BuildConfig{},
+		"sample-app/buildinvoke/pushevent.json": nil, // Skip.
+		"sample-app/registry-config.json":       &configapi.Config{},
+		"sample-app/template/template.json":     &templateapi.Template{},
 	}
 
 	files := []string{}

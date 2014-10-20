@@ -47,7 +47,7 @@ This example is simply running the ['openshift/hello-openshift' Docker image](ht
 
 ### Other Examples
 
-* [OpenShift full walkthrough](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app/README.md)
+* [OpenShift full walkthrough](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md)
 * [Kubernetes walkthrough](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/walkthrough)
 * [Kubernetes guestbook](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/guestbook)
 * [OpenShift guestbook template](https://github.com/openshift/origin/blob/master/examples/guestbook) takes the previous example and templatizes it
@@ -64,7 +64,7 @@ You can use a private [Docker registry](https://github.com/docker/docker-registr
 #### Private docker registry
 
 To setup private docker registry you can either follow the [registry quick-start](https://github.com/docker/docker-registry#quick-start) 
-or use [simple-ruby-app example](https://github.com/openshift/origin/blob/master/examples/simple-ruby-app) to host a registry on OpenShift. In your `buildConfig` you should pass the fully qualified registry name of the image you want to push `myregistry.com:8080/username/imagename`.
+or use [sample-app example](https://github.com/openshift/origin/blob/master/examples/sample-app) to host a registry on OpenShift. In your `buildConfig` you should pass the fully qualified registry name of the image you want to push `myregistry.com:8080/username/imagename`.
 
 #### DockerHub
 
