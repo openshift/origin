@@ -9,7 +9,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
 	"github.com/openshift/origin/pkg/build/registry/build"
+	"github.com/openshift/origin/pkg/build/api"
 )
 
 // REST is an implementation of RESTStorage for the api server.
@@ -47,6 +49,10 @@ func (r *REST) ResourceLocation(ctx kubeapi.Context, id string) (string, error) 
 	buildContainerName := pod.DesiredState.Manifest.Containers[0].Name
 	location := &url.URL{
 		Path: r.proxyPrefix + "/" + buildHost + "/containerLogs/" + buildPodID + "/" + buildContainerName,
+	}
+	if build.Status == api.BuildRunning {
+		params := url.Values{"follow": []string{"1"}}
+		location.RawQuery = params.Encode()
 	}
 	if err != nil {
 		return "", err
