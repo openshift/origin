@@ -141,18 +141,18 @@ func (emptyPasswordAuth) AuthenticatePassword(user, password string) (api.UserIn
 // Saves the username of any successful password authentication in the session
 //
 type sessionPasswordAuthenticator struct {
-	passwordAuthenticator authenticator.Password
-	sessionAuthenticator  *session.SessionAuthenticator
+	password authenticator.Password
+	success  handlers.AuthenticationSucceeded
 }
 
 // for login.PasswordAuthenticator
 func (auth *sessionPasswordAuthenticator) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
-	return auth.passwordAuthenticator.AuthenticatePassword(user, password)
+	return auth.password.AuthenticatePassword(user, password)
 }
 
 // for login.PasswordAuthenticator
 func (auth *sessionPasswordAuthenticator) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) {
-	err := auth.sessionAuthenticator.AuthenticationSucceeded(user, w, req)
+	err := auth.success.AuthenticationSucceeded(user, w, req)
 	if err != nil {
 		fmt.Fprintf(w, "<body>Could not save session, err=%#v</body>", err)
 		return

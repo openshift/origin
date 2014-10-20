@@ -52,3 +52,12 @@ func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, w http
 	values[UserNameKey] = user.GetName()
 	return a.store.Save(w, req)
 }
+
+func (a *SessionAuthenticator) InvalidateAuthentication(context api.UserInfo, w http.ResponseWriter, req *http.Request) error {
+	session, err := a.store.Get(req, a.name)
+	if err != nil {
+		return err
+	}
+	session.Values()[UserNameKey] = ""
+	return a.store.Save(w, req)
+}
