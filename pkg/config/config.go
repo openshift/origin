@@ -10,6 +10,7 @@ import (
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 type ApplyResult struct {
@@ -105,6 +106,13 @@ func AddConfigLabels(c *api.Config, labels labels.Set) error {
 			}
 			if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.DesiredState.PodTemplate.Labels: %v", i, err)
+			}
+		case *deployapi.Deployment:
+			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] Deployment.Labels: %v", i, err)
+			}
+			if err := mergeMaps(&t.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] ControllerTemplate.PodTemplate.Labels: %v", i, err)
 			}
 		default:
 			// Unknown generic object. Try to find "Labels" field in it.

@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	config "github.com/openshift/origin/pkg/config/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
 )
@@ -94,6 +95,9 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 			t.Items[i] = runtime.EmbeddedObject{Object: obj}
 		case *kubeapi.Pod:
 			p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
+			t.Items[i] = runtime.EmbeddedObject{Object: obj}
+		case *deployapi.Deployment:
+			p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
 			t.Items[i] = runtime.EmbeddedObject{Object: obj}
 		default:
 			glog.V(1).Infof("template.items[%v]: Parameter substitution not implemented for resource '%T'.", i, obj)

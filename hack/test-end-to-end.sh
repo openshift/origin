@@ -9,7 +9,7 @@ set -o pipefail
 
 echo "[INFO] Starting end-to-end test"
 
-HACKDIR=$(CDPATH="" cd $(dirname $0); pwd) 
+HACKDIR=$(CDPATH="" cd $(dirname $0); pwd)
 source ${HACKDIR}/util.sh
 
 TMPDIR=${TMPDIR:-"/tmp"}
@@ -60,8 +60,8 @@ setup
 echo "[INFO] Starting OpenShift server"
 $openshift start --volume-dir=${VOLUME_DIR} --etcd-dir=${ETCD_DATA_DIR} &> ${LOG_DIR}/openshift.log &
 
-wait_for_url "http://127.0.0.1:10250/healthz" "[INFO] kubelet: " 0.2 30
-wait_for_url "http://127.0.0.1:8080/healthz" "[INFO] apiserver: "
+wait_for_url "http://localhost:10250/healthz" "[INFO] kubelet: " 1 30
+wait_for_url "http://localhost:8080/healthz" "[INFO] apiserver: "
 
 # Deploy private docker registry
 echo "[INFO] Deploying private Docker registry"
@@ -71,7 +71,7 @@ echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_command "$openshift kube list pods | grep registryPod | grep Running" $((5*TIME_MIN))
 
 echo "[INFO] Waiting for Docker registry service to start"
-wait_for_command "$openshift kube list services | grep registryPod" 
+wait_for_command "$openshift kube list services | grep registryPod"
 
 # Define a build configuration
 echo "[INFO] Create a build config"
@@ -79,7 +79,7 @@ wait_for_command "$openshift kube create buildConfigs -c ${FIXTURE_DIR}/buildcfg
 
 # Trigger build
 echo "[INFO] Simulating github hook to trigger new build using curl"
-curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/buildinvoke/pushevent.json http://127.0.0.1:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
@@ -91,10 +91,10 @@ echo "[INFO] Submitting application template json for processing..."
 $openshift kube process -c ${FIXTURE_DIR}/template/template.json > $CONFIG_FILE
 
 echo "[INFO] Applying application config"
-$openshift kube -h http://127.0.0.1:8080 apply -c $CONFIG_FILE
+$openshift kube  apply -c $CONFIG_FILE
 
 echo "[INFO] Waiting for frontend pod to start"
-wait_for_command "$openshift kube list pods | grep frontend | grep Running"
+wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((30*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))

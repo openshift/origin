@@ -15,6 +15,7 @@ import (
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 func TestApplyInvalidConfig(t *testing.T) {
@@ -40,10 +41,10 @@ func TestApplyInvalidConfig(t *testing.T) {
 		}
 		for _, itemResult := range result {
 			if itemResult.Error == nil {
-			  t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])  
+				t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])
 			}
 			if _, ok := itemResult.Error.(kubeclient.APIStatus); ok {
-			  t.Errorf("Unexpected conversion of %T into kubeclient.APIStatus", itemResult.Error)
+				t.Errorf("Unexpected conversion of %T into kubeclient.APIStatus", itemResult.Error)
 			}
 		}
 	}
@@ -197,6 +198,19 @@ func TestAddConfigLabels(t *testing.T) {
 			false,
 			map[string]string{"foo": "first value"},
 		},
+		{ // Test merging into deployment object
+			&deployapi.Deployment{
+				Labels: map[string]string{"foo": "first value"},
+				ControllerTemplate: kubeapi.ReplicationControllerState{
+					PodTemplate: kubeapi.PodTemplate{
+						Labels: map[string]string{"foo": "first value"},
+					},
+				},
+			},
+			map[string]string{"bar": "second value"},
+			true,
+			map[string]string{"foo": "first value", "bar": "second value"},
+		},
 		{ // Test unknown Generic Object with Labels field
 			&FakeLabelsResource{Labels: map[string]string{"baz": ""}},
 			map[string]string{"foo": "bar"},
@@ -232,6 +246,14 @@ func TestAddConfigLabels(t *testing.T) {
 		if obj.Type().Name() == "ReplicationController" {
 			// Test Items[i].DesiredState.PodTemplate.Labels.
 			nestedLabels := obj.FieldByName("DesiredState").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
+			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
+				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
+			}
+		}
+		// Test Deployment's nested labels.
+		if obj.Type().Name() == "Deployment" {
+			// Test Items[i].ControllerTemplate.PodTemplate.Labels.
+			nestedLabels := obj.FieldByName("ControllerTemplate").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
 			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
 				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
 			}

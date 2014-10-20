@@ -8,54 +8,58 @@
     "items": [
         {
             "apiVersion": "v1beta1",
-            "containerPort": 0,
             "creationTimestamp": null,
             "id": "registryservice",
             "kind": "Service",
             "port": 5001,
+            "containerPort": 5000,
             "selector": {
                 "name": "registryPod"
             }
         },
         {
+            "id": "registry-deploy",
+            "kind": "Deployment",
             "apiVersion": "v1beta1",
-            "creationTimestamp": null,
-            "desiredState": {
-                "podTemplate": {
-                    "desiredState": {
-                        "manifest": {
-                            "containers": [
-                                {
-                                    "image": "openshift/docker-registry",
-                                    "name": "registry-container",
-                                    "ports": [
-                                        {
-                                            "containerPort": 5000,
-                                            "protocol": "TCP"
-                                        }
-                                    ]
-                                }
-                            ],
-                            "id": "registryPod",
-                            "version": "v1beta1",
-                            "volumes": null
-                        },
-                        "restartpolicy": {}
-                    },
-                    "labels": {
-                        "name": "registryPod"
-                    }
-                },
-                "replicaSelector": {
-                    "name": "registryPod"
-                },
-                "replicas": 1
+            "triggerPolicy": "manual",
+            "configId": "registry-config",
+            "strategy": {
+              "type": "customPod",
+              "customPod": {
+                "image": "openshift/kube-deploy"
+              }
             },
-            "id": "registryController",
-            "kind": "ReplicationController",
-            "labels": {
-                "name": "registryController"
+            "controllerTemplate": {
+              "replicas": 1,
+              "replicaSelector": {
+                "name": "registryPod"
+              },
+              "podTemplate": {
+              "desiredState": {
+                    "manifest": {
+                        "containers": [
+                            {
+                                "image": "openshift/docker-registry",
+                                "name": "registry-container",
+                                "ports": [
+                                    {
+                                        "containerPort": 5000,
+                                        "protocol": "TCP"
+                                    }
+                                ]
+                            }
+                        ],
+                        "id": "registryPod",
+                        "version": "v1beta1",
+                        "volumes": null
+                    },
+                    "restartpolicy": {}
+                },
+                "labels": {
+                    "name": "registryPod"
+                }
             }
+          }
         }
     ]
 }
