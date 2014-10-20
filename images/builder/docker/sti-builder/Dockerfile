@@ -9,5 +9,6 @@ RUN export GOPATH=/tmp/go && \
     ./contrib/build -n && \
     cp /tmp/go/bin/sti /usr/bin/sti
 
+ENV HOME /root
 ADD ./build.sh /opt/build.sh
 CMD ["/opt/build.sh"]
