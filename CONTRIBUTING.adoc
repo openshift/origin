@@ -15,11 +15,12 @@ There are multiple ways to start coding OpenShift.
 
 == Download from GitHub
 
-The OpenShift team periodically publishes binaries to Github on https://github.com/openshift/origin/releases[the Releases page].  These are precompiled Linux 64bit binaries and will not work on other platforms. You'll need Docker installed on your local system (see https://docs.docker.com/installation/#installation[the installation page] if you've never installed Docker before).
+The OpenShift team periodically publishes binaries to Github on https://github.com/openshift/origin/releases[the Releases page].  These are Linux, Windows, or Mac OS X 64bit binaries (note that Mac and Windows are client only). You'll need Docker installed on your local system (see https://docs.docker.com/installation/#installation[the installation page] if you've never installed Docker before).
 
-The tar file contains a single binary `openshift` which is the all-in-one OpenShift installation.
+The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
 
 * Use `openshift start` to launch the server
+* Use `openshift kube -h <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
 == Develop locally on your host
