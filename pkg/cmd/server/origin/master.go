@@ -234,10 +234,12 @@ func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
 	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/docker-builder")
 	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/sti-builder")
+	useLocalImages := env("USE_LOCAL_IMAGES", "false") == "true"
 
 	buildStrategies := map[buildapi.BuildType]build.BuildJobStrategy{
-		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage),
-		buildapi.STIBuildType:    strategy.NewSTIBuildStrategy(stiBuilderImage, strategy.STITempDirectoryCreator),
+		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage, useLocalImages),
+		buildapi.STIBuildType: strategy.NewSTIBuildStrategy(stiBuilderImage,
+			strategy.STITempDirectoryCreator, useLocalImages),
 	}
 
 	buildController := build.NewBuildController(c.KubeClient, c.OSClient, buildStrategies, 1200)

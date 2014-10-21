@@ -8,7 +8,7 @@ import (
 )
 
 func TestDockerCreateBuildPod(t *testing.T) {
-	strategy := NewDockerBuildStrategy("docker-test-image")
+	strategy := NewDockerBuildStrategy("docker-test-image", true)
 	expected := mockDockerBuild()
 	actual, _ := strategy.CreateBuildPod(expected)
 
@@ -23,8 +23,10 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected docker-build, but got %s!", container.Name)
 	}
 	if container.Image != strategy.dockerBuilderImage {
-		t.Errorf("Expected %s image, got %s!", container.Image,
-			strategy.dockerBuilderImage)
+		t.Errorf("Expected %s image, got %s!", container.Image, strategy.dockerBuilderImage)
+	}
+	if container.ImagePullPolicy != kubeapi.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", kubeapi.PullIfNotPresent, container.ImagePullPolicy)
 	}
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)

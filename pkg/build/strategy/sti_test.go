@@ -14,7 +14,7 @@ func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
 }
 
 func TestSTICreateBuildPod(t *testing.T) {
-	strategy := NewSTIBuildStrategy("sti-test-image", &FakeTempDirCreator{})
+	strategy := NewSTIBuildStrategy("sti-test-image", &FakeTempDirCreator{}, true)
 	expected := mockSTIBuild()
 	actual, _ := strategy.CreateBuildPod(expected)
 
@@ -29,8 +29,10 @@ func TestSTICreateBuildPod(t *testing.T) {
 		t.Errorf("Expected sti-build, but got %s!", container.Name)
 	}
 	if container.Image != strategy.stiBuilderImage {
-		t.Errorf("Expected %s image, got %s!", container.Image,
-			strategy.stiBuilderImage)
+		t.Errorf("Expected %s image, got %s!", container.Image, strategy.stiBuilderImage)
+	}
+	if container.ImagePullPolicy != kubeapi.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", kubeapi.PullIfNotPresent, container.ImagePullPolicy)
 	}
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
