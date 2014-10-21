@@ -10,6 +10,7 @@ import (
 	"time"
 
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -61,9 +62,10 @@ instance.
 type config struct {
 	Docker *docker.Helper
 
-	MasterAddr flagtypes.Addr
-	BindAddr   flagtypes.Addr
-	EtcdAddr   flagtypes.Addr
+	MasterAddr     flagtypes.Addr
+	BindAddr       flagtypes.Addr
+	EtcdAddr       flagtypes.Addr
+	KubernetesAddr flagtypes.Addr
 
 	Hostname  string
 	VolumeDir string
@@ -79,11 +81,14 @@ type config struct {
 
 func NewCommandStartServer(name string) *cobra.Command {
 	cfg := &config{
-		Docker:     docker.NewHelper(),
-		MasterAddr: flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
-		BindAddr:   flagtypes.Addr{Value: "0.0.0.0:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
-		EtcdAddr:   flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
-		NodeList:   flagtypes.StringList{"127.0.0.1"},
+		Docker: docker.NewHelper(),
+
+		MasterAddr:     flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
+		BindAddr:       flagtypes.Addr{Value: "0.0.0.0:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
+		EtcdAddr:       flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
+		KubernetesAddr: flagtypes.Addr{DefaultScheme: "http", DefaultPort: 8080}.Default(),
+
+		NodeList: flagtypes.StringList{"127.0.0.1"},
 	}
 
 	cmd := &cobra.Command{
@@ -122,6 +127,8 @@ func NewCommandStartServer(name string) *cobra.Command {
 				glog.Infof("Starting an OpenShift all-in-one, reachable at %s (etcd: %s)", cfg.MasterAddr.String(), cfg.EtcdAddr.String())
 			}
 
+			startKube := !cfg.KubernetesAddr.Provided
+
 			if startMaster {
 				// update the node list to include the default node
 				if len(cfg.Hostname) == 0 {
@@ -155,7 +162,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 					glog.Errorf("Error setting up Kubernetes server storage: %v", err)
 				}
 
-				assetAddr := net.JoinHostPort(cfg.MasterAddr.Host, "8091")
+				assetAddr := net.JoinHostPort(cfg.MasterAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
 
 				osmaster := &origin.MasterConfig{
 					BindAddr:   cfg.BindAddr.URL.Host,
@@ -163,7 +170,18 @@ func NewCommandStartServer(name string) *cobra.Command {
 					AssetAddr:  assetAddr,
 					EtcdHelper: etcdHelper,
 				}
-				osmaster.EnsureKubernetesClient()
+
+				// pick an appropriate Kube client
+				if startKube {
+					kubeClient, err := kubeclient.New(&kubeclient.Config{Host: cfg.KubernetesAddr.URL.String(), Version: klatest.Version})
+					if err != nil {
+						glog.Fatalf("Unable to configure Kubernetes client: %v", err)
+					}
+					osmaster.KubeClient = kubeClient
+				} else {
+					osmaster.EnsureKubernetesClient()
+				}
+
 				osmaster.EnsureOpenShiftClient()
 				osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
@@ -172,20 +190,25 @@ func NewCommandStartServer(name string) *cobra.Command {
 					EtcdHelper:     etcdHelper,
 				}
 
-				kmaster := &kubernetes.MasterConfig{
-					NodeHosts:  cfg.NodeList,
-					EtcdHelper: ketcdHelper,
-					KubeClient: osmaster.KubeClient,
-				}
+				if startKube {
+					kmaster := &kubernetes.MasterConfig{
+						NodeHosts:  cfg.NodeList,
+						EtcdHelper: ketcdHelper,
+						KubeClient: osmaster.KubeClient,
+					}
 
-				osmaster.RunAPI(kmaster, auth)
+					osmaster.RunAPI(kmaster, auth)
+
+					kmaster.RunScheduler()
+					kmaster.RunReplicationController()
+
+				} else {
+					osmaster.RunAPI(auth)
+				}
 
 				osmaster.RunAssetServer()
 				osmaster.RunBuildController()
 				osmaster.RunDeploymentController()
-
-				kmaster.RunScheduler()
-				kmaster.RunReplicationController()
 			}
 
 			if startNode {
@@ -224,6 +247,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.BindAddr, "listen", "The address to listen for connections on (host, host:port, or URL).")
 	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
 	flag.Var(&cfg.EtcdAddr, "etcd", "The address of the etcd server (host, host:port, or URL).")
+	flag.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified no Kubernetes components will be started.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	flag.StringVar(&cfg.EtcdDir, "etcd-dir", "openshift.local.etcd", "The etcd data directory.")
