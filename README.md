@@ -17,7 +17,7 @@ concepts.
 
 Getting Started
 ---------------
-You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux 64bit pre-built binary](CONTRIBUTING.adoc#download-from-github).
+You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binary](CONTRIBUTING.adoc#download-from-github).
 
 First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
 
