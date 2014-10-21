@@ -1,23 +1,13 @@
-<div class="simple-controller">
-
-  <div class="row-fluid">
-    <div class="span6 offset3">
-      <h2>OpenShift 3.x Demo</h2>
-    </div>
-  </div>
-  <div class="row-fluid">
-    <div class="span6 offset3">
-      <h3>Pods:</h3>
-      <ul>
-        <li ng-repeat="pod in pods">
-          <a href="#/pods/{{pod.id}}">{{pod.id}}</a> - containers:
-          <ul>
-            <li ng-repeat="container in pod.desiredState.manifest.containers">
-            {{container.image}} - ports: <span ng-repeat="port in container.ports">{{port.hostPort}}:{{port.containerPort}}</span>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </div>
+<div>
+  <div>
+    <h3>Pods by label:</h3>
+    <div class="row" style="margin-bottom: 10px;" ng-repeat="(label_key, label_values) in podsByLabel">
+      <div class="col-md-6 animate-repeat" ng-repeat="(label_value, label_pods) in label_values" style="padding: 10px; border: 1px solid #CCC;">
+        <h4>{{label_key}}: {{label_value}}</h4>
+        <span class="animate-repeat pod-{{pod.desiredState.status.toLowerCase()}}" ng-repeat="pod in label_pods" style="width: 40px; height: 40px; margin-right: 5px; margin-bottom: 5px; display: inline-block;">
+        </span>
+        </div>
+      </div>
+    </div>      
   </div>
 </div>
