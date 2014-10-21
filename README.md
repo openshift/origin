@@ -87,25 +87,37 @@ API
 
 The OpenShift APIs are exposed at `http://localhost:8080/osapi/v1beta1/*`.
 
-* coming soon
+* Builds
+ * `http://localhost:8080/osapi/v1beta1/buildConfigs`
+ * `http://localhost:8080/osapi/v1beta1/builds`
+* Deployments
+ * `http://localhost:8080/osapi/v1beta1/deploymentConfigs`
+ * `http://localhost:8080/osapi/v1beta1/deployments`
+* Images
+ * `http://localhost:8080/osapi/v1beta1/imageRepositories`
+ * `http://localhost:8080/osapi/v1beta1/imageRepositoryMappings`
+ * `http://localhost:8080/osapi/v1beta1/images`
+* Templates
+ * `http://localhost:8080/osapi/v1beta1/templateConfigs`
+* Routes
+ * `http://localhost:8080/osapi/v1beta1/routes`
+* Projects
+ * `http://localhost:8080/osapi/v1beta1/projects`
+* Users
+ * `http://localhost:8080/osapi/v1beta1/users`
+ * `http://localhost:8080/osapi/v1beta1/userIdentityMappings`
+* OAuth
+ * `http://localhost:8080/osapi/v1beta1/accessTokens`
+ * `http://localhost:8080/osapi/v1beta1/authorizeTokens`
+ * `http://localhost:8080/osapi/v1beta1/clients`
+ * `http://localhost:8080/osapi/v1beta1/clientAuthorizations`
 
-The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
+The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta2/*`:
 
-* `http://localhost:8080/api/v1beta1/pods`
-* `http://localhost:8080/api/v1beta1/services`
-* `http://localhost:8080/api/v1beta1/replicationControllers`
-* `http://localhost:8080/api/v1beta1/operations`
-
-Several experimental API objects are being prototyped, and should be available soon at:
-
-* `http://localhost:8080/osapi/v1beta1/buildConfigs`
-* `http://localhost:8080/osapi/v1beta1/builds`
-* `http://localhost:8080/osapi/v1beta1/deploymentConfigs`
-* `http://localhost:8080/osapi/v1beta1/deployments`
-* `http://localhost:8080/osapi/v1beta1/imageRepositories`
-* `http://localhost:8080/osapi/v1beta1/imageRepositoryMappings`
-* `http://localhost:8080/osapi/v1beta1/images`
-* `http://localhost:8080/osapi/v1beta1/templateConfigs`
+* `http://localhost:8080/api/v1beta2/pods`
+* `http://localhost:8080/api/v1beta2/services`
+* `http://localhost:8080/api/v1beta2/replicationControllers`
+* `http://localhost:8080/api/v1beta2/operations`
 
 A draft of the proposed API is available at http://rawgit.com/openshift/origin/master/api/openshift3.html and is developed under the [api](./api) directory.  Expect significant changes.
 
