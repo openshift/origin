@@ -88,15 +88,17 @@ API
 The OpenShift APIs are exposed at `http://localhost:8080/osapi/v1beta1/*`.
 
 * Builds
- * `http://localhost:8080/osapi/v1beta1/buildConfigs`
  * `http://localhost:8080/osapi/v1beta1/builds`
+ * `http://localhost:8080/osapi/v1beta1/buildConfigs`
+ * `http://localhost:8080/osapi/v1beta1/buildLogs`
+ * `http://localhost:8080/osapi/v1beta1/buildConfigHooks`
 * Deployments
- * `http://localhost:8080/osapi/v1beta1/deploymentConfigs`
  * `http://localhost:8080/osapi/v1beta1/deployments`
+ * `http://localhost:8080/osapi/v1beta1/deploymentConfigs`
 * Images
+ * `http://localhost:8080/osapi/v1beta1/images`
  * `http://localhost:8080/osapi/v1beta1/imageRepositories`
  * `http://localhost:8080/osapi/v1beta1/imageRepositoryMappings`
- * `http://localhost:8080/osapi/v1beta1/images`
 * Templates
  * `http://localhost:8080/osapi/v1beta1/templateConfigs`
 * Routes
