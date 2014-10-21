@@ -1,6 +1,7 @@
 package buildconfig
 
 import (
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/build/api"
 )
@@ -8,13 +9,13 @@ import (
 // Registry is an interface for things that know how to store BuildConfigs.
 type Registry interface {
 	// ListBuildConfigs obtains list of buildConfigs that match a selector.
-	ListBuildConfigs(labels labels.Selector) (*api.BuildConfigList, error)
+	ListBuildConfigs(ctx kubeapi.Context, labels labels.Selector) (*api.BuildConfigList, error)
 	// GetBuildConfig retrieves a specific buildConfig.
-	GetBuildConfig(id string) (*api.BuildConfig, error)
+	GetBuildConfig(ctx kubeapi.Context, id string) (*api.BuildConfig, error)
 	// CreateBuildConfig creates a new buildConfig.
-	CreateBuildConfig(buildConfig *api.BuildConfig) error
+	CreateBuildConfig(ctx kubeapi.Context, buildConfig *api.BuildConfig) error
 	// UpdateBuildConfig updates a buildConfig.
-	UpdateBuildConfig(buildConfig *api.BuildConfig) error
+	UpdateBuildConfig(ctx kubeapi.Context, buildConfig *api.BuildConfig) error
 	// DeleteBuildConfig deletes a buildConfig.
-	DeleteBuildConfig(id string) error
+	DeleteBuildConfig(ctx kubeapi.Context, id string) error
 }

@@ -33,7 +33,7 @@ func (r *REST) New() runtime.Object {
 
 // List obtains a list of Builds that match selector.
 func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	builds, err := r.registry.ListBuilds(selector)
+	builds, err := r.registry.ListBuilds(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 
 // Get obtains the build specified by its id.
 func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	build, err := r.registry.GetBuild(id)
+	build, err := r.registry.GetBuild(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 // Delete asynchronously deletes the Build specified by its id.
 func (r *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuild(id)
+		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuild(ctx, id)
 	}), nil
 }
 
@@ -63,6 +63,10 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 	if !ok {
 		return nil, fmt.Errorf("not a build: %#v", obj)
 	}
+	if !kapi.ValidNamespace(ctx, &build.TypeMeta) {
+		return nil, errors.NewConflict("build", build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
+	}
+
 	if len(build.ID) == 0 {
 		build.ID = uuid.NewUUID().String()
 	}
@@ -74,7 +78,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		return nil, errors.NewInvalid("build", build.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.CreateBuild(build)
+		err := r.registry.CreateBuild(ctx, build)
 		if err != nil {
 			return nil, err
 		}
@@ -91,8 +95,12 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 	if errs := validation.ValidateBuild(build); len(errs) > 0 {
 		return nil, errors.NewInvalid("build", build.ID, errs)
 	}
+	if !kapi.ValidNamespace(ctx, &build.TypeMeta) {
+		return nil, errors.NewConflict("build", build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
+	}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.UpdateBuild(build)
+		err := r.registry.UpdateBuild(ctx, build)
 		if err != nil {
 			return nil, err
 		}

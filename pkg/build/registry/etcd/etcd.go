@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/build/api"
 )
 
@@ -35,17 +36,17 @@ func New(helper tools.EtcdHelper) *Etcd {
 }
 
 func makeBuildListKey(ctx kapi.Context) string {
-	return BuildPath
+	return kubeetcd.MakeEtcdListKey(ctx, BuildPath)
 }
 
-func makeBuildKey(id string) string {
-	return "/registry/builds/" + id
+func makeBuildKey(ctx kapi.Context, id string) (string, error) {
+	return kubeetcd.MakeEtcdItemKey(ctx, BuildPath, id)
 }
 
 // ListBuilds obtains a list of Builds.
-func (r *Etcd) ListBuilds(selector labels.Selector) (*api.BuildList, error) {
+func (r *Etcd) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.BuildList, error) {
 	allBuilds := api.BuildList{}
-	err := r.ExtractToList("/registry/builds", &allBuilds)
+	err := r.ExtractToList(makeBuildListKey(ctx), &allBuilds)
 	if err != nil {
 		return nil, err
 	}
@@ -98,9 +99,13 @@ func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
 }
 
 // GetBuild gets a specific Build specified by its ID.
-func (r *Etcd) GetBuild(id string) (*api.Build, error) {
+func (r *Etcd) GetBuild(ctx kapi.Context, id string) (*api.Build, error) {
 	var build api.Build
-	err := r.ExtractObj(makeBuildKey(id), &build, false)
+	key, err := makeBuildKey(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	err = r.ExtractObj(key, &build, false)
 	if err != nil {
 		return nil, etcderr.InterpretGetError(err, "build", id)
 	}
@@ -108,32 +113,47 @@ func (r *Etcd) GetBuild(id string) (*api.Build, error) {
 }
 
 // CreateBuild creates a new Build.
-func (r *Etcd) CreateBuild(build *api.Build) error {
-	err := r.CreateObj(makeBuildKey(build.ID), build, 0)
+func (r *Etcd) CreateBuild(ctx kapi.Context, build *api.Build) error {
+	key, err := makeBuildKey(ctx, build.ID)
+	if err != nil {
+		return err
+	}
+	err = r.CreateObj(key, build, 0)
 	return etcderr.InterpretCreateError(err, "build", build.ID)
 }
 
 // UpdateBuild replaces an existing Build.
-func (r *Etcd) UpdateBuild(build *api.Build) error {
-	err := r.SetObj(makeBuildKey(build.ID), build)
+func (r *Etcd) UpdateBuild(ctx kapi.Context, build *api.Build) error {
+	key, err := makeBuildKey(ctx, build.ID)
+	if err != nil {
+		return err
+	}
+	err = r.SetObj(key, build)
 	return etcderr.InterpretUpdateError(err, "build", build.ID)
 }
 
 // DeleteBuild deletes a Build specified by its ID.
-func (r *Etcd) DeleteBuild(id string) error {
-	key := makeBuildKey(id)
-	err := r.Delete(key, true)
+func (r *Etcd) DeleteBuild(ctx kapi.Context, id string) error {
+	key, err := makeBuildKey(ctx, id)
+	if err != nil {
+		return err
+	}
+	err = r.Delete(key, true)
 	return etcderr.InterpretDeleteError(err, "build", id)
 }
 
-func makeBuildConfigKey(id string) string {
-	return "/registry/build-configs/" + id
+func makeBuildConfigListKey(ctx kapi.Context) string {
+	return kubeetcd.MakeEtcdListKey(ctx, BuildConfigPath)
+}
+
+func makeBuildConfigKey(ctx kapi.Context, id string) (string, error) {
+	return kubeetcd.MakeEtcdItemKey(ctx, BuildConfigPath, id)
 }
 
 // ListBuildConfigs obtains a list of BuildConfigs.
-func (r *Etcd) ListBuildConfigs(selector labels.Selector) (*api.BuildConfigList, error) {
+func (r *Etcd) ListBuildConfigs(ctx kapi.Context, selector labels.Selector) (*api.BuildConfigList, error) {
 	allConfigs := api.BuildConfigList{}
-	err := r.ExtractToList("/registry/build-configs", &allConfigs)
+	err := r.ExtractToList(makeBuildConfigListKey(ctx), &allConfigs)
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +168,13 @@ func (r *Etcd) ListBuildConfigs(selector labels.Selector) (*api.BuildConfigList,
 }
 
 // GetBuildConfig gets a specific BuildConfig specified by its ID.
-func (r *Etcd) GetBuildConfig(id string) (*api.BuildConfig, error) {
+func (r *Etcd) GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error) {
 	var config api.BuildConfig
-	err := r.ExtractObj(makeBuildConfigKey(id), &config, false)
+	key, err := makeBuildConfigKey(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	err = r.ExtractObj(key, &config, false)
 	if err != nil {
 		return nil, etcderr.InterpretGetError(err, "buildConfig", id)
 	}
@@ -158,20 +182,31 @@ func (r *Etcd) GetBuildConfig(id string) (*api.BuildConfig, error) {
 }
 
 // CreateBuildConfig creates a new BuildConfig.
-func (r *Etcd) CreateBuildConfig(config *api.BuildConfig) error {
-	err := r.CreateObj(makeBuildConfigKey(config.ID), config, 0)
+func (r *Etcd) CreateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
+	key, err := makeBuildConfigKey(ctx, config.ID)
+	if err != nil {
+		return err
+	}
+	err = r.CreateObj(key, config, 0)
 	return etcderr.InterpretCreateError(err, "buildConfig", config.ID)
 }
 
 // UpdateBuildConfig replaces an existing BuildConfig.
-func (r *Etcd) UpdateBuildConfig(config *api.BuildConfig) error {
-	err := r.SetObj(makeBuildConfigKey(config.ID), config)
+func (r *Etcd) UpdateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
+	key, err := makeBuildConfigKey(ctx, config.ID)
+	if err != nil {
+		return err
+	}
+	err = r.SetObj(key, config)
 	return etcderr.InterpretUpdateError(err, "buildConfig", config.ID)
 }
 
 // DeleteBuildConfig deletes a BuildConfig specified by its ID.
-func (r *Etcd) DeleteBuildConfig(id string) error {
-	key := makeBuildConfigKey(id)
-	err := r.Delete(key, true)
+func (r *Etcd) DeleteBuildConfig(ctx kapi.Context, id string) error {
+	key, err := makeBuildConfigKey(ctx, id)
+	if err != nil {
+		return err
+	}
+	err = r.Delete(key, true)
 	return etcderr.InterpretDeleteError(err, "buildConfig", id)
 }

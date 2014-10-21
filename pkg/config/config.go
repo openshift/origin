@@ -21,7 +21,7 @@ type ApplyResult struct {
 // Apply creates and manages resources defined in the Config. The create process wont
 // stop on error, but it will finish the job and then return error and for each item
 // in the config a error and status message string.
-func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult, err error) {
+func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (result []ApplyResult, err error) {
 	// Unmarshal the Config JSON manually instead of using runtime.Decode()
 	conf := struct {
 		Items []json.RawMessage `json:"items" yaml:"items"`
@@ -77,7 +77,7 @@ func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult,
 			continue
 		}
 
-		request := client.Verb("POST").Path(path).Body(jsonResource)
+		request := client.Verb("POST").Namespace(namespace).Path(path).Body(jsonResource)
 		if err = request.Do().Error(); err != nil {
 			itemResult.Error = err
 		} else {

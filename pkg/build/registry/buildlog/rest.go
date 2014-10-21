@@ -34,12 +34,12 @@ func NewREST(b build.Registry, c client.PodInterface, p string) apiserver.RESTSt
 
 // Redirector implementation
 func (r *REST) ResourceLocation(ctx kubeapi.Context, id string) (string, error) {
-	build, err := r.BuildRegistry.GetBuild(id)
+	build, err := r.BuildRegistry.GetBuild(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("No such build")
 	}
 
-	pod, err := r.PodClient.GetPod(kubeapi.NewContext(), build.PodID)
+	pod, err := r.PodClient.GetPod(ctx, build.PodID)
 	if err != nil {
 		return "", fmt.Errorf("No such pod")
 	}

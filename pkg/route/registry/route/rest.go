@@ -33,7 +33,7 @@ func (rs *REST) New() runtime.Object {
 
 // List obtains a list of Routes that match selector.
 func (rs *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	list, err := rs.registry.ListRoutes(selector)
+	list, err := rs.registry.ListRoutes(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (rs *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (run
 
 // Get obtains the route specified by its id.
 func (rs *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
-	route, err := rs.registry.GetRoute(id)
+	route, err := rs.registry.GetRoute(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -51,12 +51,12 @@ func (rs *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 
 // Delete asynchronously deletes the Route specified by its id.
 func (rs *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
-	_, err := rs.registry.GetRoute(id)
+	_, err := rs.registry.GetRoute(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, rs.registry.DeleteRoute(id)
+		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, rs.registry.DeleteRoute(ctx, id)
 	}), nil
 }
 
@@ -65,6 +65,9 @@ func (rs *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.
 	route, ok := obj.(*api.Route)
 	if !ok {
 		return nil, fmt.Errorf("not a route: %#v", obj)
+	}
+	if !kubeapi.ValidNamespace(ctx, &route.TypeMeta) {
+		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
@@ -77,11 +80,11 @@ func (rs *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.
 	route.CreationTimestamp = util.Now()
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := rs.registry.CreateRoute(route)
+		err := rs.registry.CreateRoute(ctx, route)
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetRoute(route.ID)
+		return rs.registry.GetRoute(ctx, route.ID)
 	}), nil
 }
 
@@ -94,21 +97,24 @@ func (rs *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.
 	if len(route.ID) == 0 {
 		return nil, fmt.Errorf("id is unspecified: %#v", route)
 	}
+	if !kubeapi.ValidNamespace(ctx, &route.TypeMeta) {
+		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
+	}
 
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
 		return nil, errors.NewInvalid("route", route.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := rs.registry.UpdateRoute(route)
+		err := rs.registry.UpdateRoute(ctx, route)
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetRoute(route.ID)
+		return rs.registry.GetRoute(ctx, route.ID)
 	}), nil
 }
 
 // Watch returns Routes events via a watch.Interface.
 // It implements apiserver.ResourceWatcher.
 func (rs *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
-	return rs.registry.WatchRoutes(label, field, resourceVersion)
+	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
 }

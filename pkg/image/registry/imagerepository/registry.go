@@ -1,6 +1,8 @@
 package imagerepository
 
 import (
+	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/image/api"
@@ -9,15 +11,15 @@ import (
 // Registry is an interface for things that know how to store ImageRepository objects.
 type Registry interface {
 	// ListImageRepositories obtains a list of image repositories that match a selector.
-	ListImageRepositories(selector labels.Selector) (*api.ImageRepositoryList, error)
+	ListImageRepositories(ctx kubeapi.Context, selector labels.Selector) (*api.ImageRepositoryList, error)
 	// GetImageRepository retrieves a specific image repository.
-	GetImageRepository(id string) (*api.ImageRepository, error)
+	GetImageRepository(ctx kubeapi.Context, id string) (*api.ImageRepository, error)
 	// WatchImageRepositories watches for new/changed/deleted image repositories.
-	WatchImageRepositories(resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error)
+	WatchImageRepositories(ctx kubeapi.Context, resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error)
 	// CreateImageRepository creates a new image repository.
-	CreateImageRepository(repo *api.ImageRepository) error
+	CreateImageRepository(ctx kubeapi.Context, repo *api.ImageRepository) error
 	// UpdateImageRepository updates an image repository.
-	UpdateImageRepository(repo *api.ImageRepository) error
+	UpdateImageRepository(ctx kubeapi.Context, repo *api.ImageRepository) error
 	// DeleteImageRepository deletes an image repository.
-	DeleteImageRepository(id string) error
+	DeleteImageRepository(ctx kubeapi.Context, id string) error
 }

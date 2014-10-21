@@ -34,7 +34,7 @@ func TestApplyInvalidConfig(t *testing.T) {
 		`{ "items": [ { "kind": "InvalidClientResource", "apiVersion": "v1beta1" } ] }`,
 	}
 	for i, invalidConfig := range invalidConfigs {
-		result, _ := Apply([]byte(invalidConfig), clients)
+		result, _ := Apply(kubeapi.NamespaceDefault, []byte(invalidConfig), clients)
 
 		if result != nil {
 			t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])
@@ -66,7 +66,7 @@ func TestApplySendsData(t *testing.T) {
 	received := make(chan bool, 1)
 	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		received <- true
-		if r.RequestURI != "/api/v1beta1/FakeMapping" {
+		if r.RequestURI != "/api/v1beta1/FakeMapping?namespace="+kubeapi.NamespaceDefault {
 			t.Errorf("Unexpected RESTClient RequestURI. Expected: %v, got: %v.", "/api/v1beta1/FakeMapping", r.RequestURI)
 		}
 	}))
@@ -77,7 +77,7 @@ func TestApplySendsData(t *testing.T) {
 		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
 	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "id": "FakeID" } ] }`
-	result, err := Apply([]byte(config), clients)
+	result, err := Apply(kubeapi.NamespaceDefault, []byte(config), clients)
 
 	if err != nil || result == nil {
 		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, err)
@@ -119,7 +119,7 @@ func ExampleApply() {
 		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
 	}
 	data, _ := ioutil.ReadFile("config_test.json")
-	Apply(data, testClientMappings)
+	Apply(kubeapi.NamespaceDefault, data, testClientMappings)
 }
 
 type FakeLabelsResource struct {

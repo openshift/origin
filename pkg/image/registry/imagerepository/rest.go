@@ -6,6 +6,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -32,7 +33,7 @@ func (s *REST) New() runtime.Object {
 
 // List retrieves a list of ImageRepositories that match selector.
 func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	imageRepositories, err := s.registry.ListImageRepositories(selector)
+	imageRepositories, err := s.registry.ListImageRepositories(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 
 // Get retrieves an ImageRepository by id.
 func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
-	repo, err := s.registry.GetImageRepository(id)
+	repo, err := s.registry.GetImageRepository(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 
 // Watch begins watching for new, changed, or deleted ImageRepositories.
 func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.registry.WatchImageRepositories(resourceVersion, func(repo *api.ImageRepository) bool {
+	return s.registry.WatchImageRepositories(ctx, resourceVersion, func(repo *api.ImageRepository) bool {
 		fields := labels.Set{
 			"ID": repo.ID,
 			"DockerImageRepository": repo.DockerImageRepository,
@@ -65,6 +66,9 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	if !ok {
 		return nil, fmt.Errorf("not an image repository: %#v", obj)
 	}
+	if !kubeapi.ValidNamespace(ctx, &repo.TypeMeta) {
+		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
+	}
 
 	if len(repo.ID) == 0 {
 		repo.ID = uuid.NewUUID().String()
@@ -77,7 +81,7 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	repo.CreationTimestamp = util.Now()
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.CreateImageRepository(repo); err != nil {
+		if err := s.registry.CreateImageRepository(ctx, repo); err != nil {
 			return nil, err
 		}
 		return s.Get(ctx, repo.ID)
@@ -93,9 +97,12 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	if len(repo.ID) == 0 {
 		return nil, fmt.Errorf("id is unspecified: %#v", repo)
 	}
+	if !kubeapi.ValidNamespace(ctx, &repo.TypeMeta) {
+		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
+	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := s.registry.UpdateImageRepository(repo)
+		err := s.registry.UpdateImageRepository(ctx, repo)
 		if err != nil {
 			return nil, err
 		}
@@ -106,6 +113,6 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 // Delete asynchronously deletes an ImageRepository specified by its id.
 func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteImageRepository(id)
+		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteImageRepository(ctx, id)
 	}), nil
 }

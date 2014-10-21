@@ -25,23 +25,23 @@ type DeploymentConfigGenerator struct {
 }
 
 type deploymentInterface interface {
-	GetDeployment(id string) (*deployapi.Deployment, error)
+	GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error)
 }
 
 type deploymentConfigInterface interface {
-	GetDeploymentConfig(id string) (*deployapi.DeploymentConfig, error)
+	GetDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error)
 }
 
 type imageRepositoryInterface interface {
-	ListImageRepositories(labels labels.Selector) (*imageapi.ImageRepositoryList, error)
+	ListImageRepositories(ctx kapi.Context, labels labels.Selector) (*imageapi.ImageRepositoryList, error)
 }
 
 // Generate returns a potential future DeploymentConfig based on the DeploymentConfig specified
 // by deploymentConfigID.
-func (g *DeploymentConfigGenerator) Generate(deploymentConfigID string) (*deployapi.DeploymentConfig, error) {
+func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigID string) (*deployapi.DeploymentConfig, error) {
 	glog.V(4).Infof("Generating new deployment config from deploymentConfig %v", deploymentConfigID)
 
-	deploymentConfig, err := g.DeploymentConfigInterface.GetDeploymentConfig(deploymentConfigID)
+	deploymentConfig, err := g.DeploymentConfigInterface.GetDeploymentConfig(ctx, deploymentConfigID)
 	if err != nil {
 		glog.V(4).Infof("Error getting deploymentConfig for id %v", deploymentConfigID)
 		return nil, err
@@ -49,7 +49,7 @@ func (g *DeploymentConfigGenerator) Generate(deploymentConfigID string) (*deploy
 
 	deploymentID := deployutil.LatestDeploymentIDForConfig(deploymentConfig)
 
-	deployment, err := g.DeploymentInterface.GetDeployment(deploymentID)
+	deployment, err := g.DeploymentInterface.GetDeployment(ctx, deploymentID)
 	if err != nil && !errors.IsNotFound(err) {
 		glog.V(2).Infof("Error getting deployment: %#v", err)
 		return nil, err
@@ -58,7 +58,7 @@ func (g *DeploymentConfigGenerator) Generate(deploymentConfigID string) (*deploy
 	configPodTemplate := deploymentConfig.Template.ControllerTemplate.PodTemplate
 
 	referencedRepoNames := referencedRepoNames(deploymentConfig)
-	referencedRepos := imageReposByDockerImageRepo(g.ImageRepositoryInterface, referencedRepoNames)
+	referencedRepos := imageReposByDockerImageRepo(ctx, g.ImageRepositoryInterface, referencedRepoNames)
 
 	for _, repoName := range referencedRepoNames.List() {
 		params := deployutil.ParamsForImageChangeTrigger(deploymentConfig, repoName)
@@ -104,10 +104,10 @@ func updateContainers(template *kapi.PodTemplate, containers util.StringSet, new
 	}
 }
 
-func imageReposByDockerImageRepo(imageRepoInterface imageRepositoryInterface, filter *util.StringSet) map[string]imageapi.ImageRepository {
+func imageReposByDockerImageRepo(ctx kapi.Context, imageRepoInterface imageRepositoryInterface, filter *util.StringSet) map[string]imageapi.ImageRepository {
 	repos := make(map[string]imageapi.ImageRepository)
 
-	imageRepos, err := imageRepoInterface.ListImageRepositories(labels.Everything())
+	imageRepos, err := imageRepoInterface.ListImageRepositories(ctx, labels.Everything())
 	if err != nil {
 		glog.V(2).Infof("Error listing imageRepositories: %#v", err)
 		return repos

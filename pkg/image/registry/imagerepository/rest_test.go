@@ -2,11 +2,13 @@ package imagerepository
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/test"
@@ -17,7 +19,7 @@ func TestGetImageRepositoryError(t *testing.T) {
 	mockRepositoryRegistry.Err = fmt.Errorf("test error")
 	storage := REST{registry: mockRepositoryRegistry}
 
-	image, err := storage.Get(nil, "image1")
+	image, err := storage.Get(kubeapi.NewDefaultContext(), "image1")
 	if image != nil {
 		t.Errorf("Unexpected non-nil image: %#v", image)
 	}
@@ -34,7 +36,7 @@ func TestGetImageRepositoryOK(t *testing.T) {
 	}
 	storage := REST{registry: mockRepositoryRegistry}
 
-	repo, err := storage.Get(nil, "foo")
+	repo, err := storage.Get(kubeapi.NewDefaultContext(), "foo")
 	if repo == nil {
 		t.Errorf("Unexpected nil repo: %#v", repo)
 	}
@@ -54,7 +56,7 @@ func TestListImageRepositoriesError(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	imageRepositories, err := storage.List(nil, nil, nil)
+	imageRepositories, err := storage.List(kubeapi.NewDefaultContext(), nil, nil)
 	if err != mockRepositoryRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRepositoryRegistry.Err, err)
 	}
@@ -74,7 +76,7 @@ func TestListImageRepositoriesEmptyList(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	imageRepositories, err := storage.List(nil, labels.Everything(), labels.Everything())
+	imageRepositories, err := storage.List(kubeapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -105,7 +107,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	list, err := storage.List(nil, labels.Everything(), labels.Everything())
+	list, err := storage.List(kubeapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -120,7 +122,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 func TestCreateImageRepositoryBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(nil, &api.ImageList{})
+	channel, err := storage.Create(kubeapi.NewDefaultContext(), &api.ImageList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -133,7 +135,7 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Create(nil, &api.ImageRepository{})
+	channel, err := storage.Create(kubeapi.NewDefaultContext(), &api.ImageRepository{})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -156,7 +158,7 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Create(nil, &api.ImageRepository{})
+	channel, err := storage.Create(kubeapi.NewDefaultContext(), &api.ImageRepository{})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -173,7 +175,7 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 func TestUpdateImageRepositoryBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(nil, &api.ImageList{})
+	channel, err := storage.Update(kubeapi.NewDefaultContext(), &api.ImageList{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -185,7 +187,7 @@ func TestUpdateImageRepositoryBadObject(t *testing.T) {
 func TestUpdateImageRepositoryMissingID(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(nil, &api.ImageRepository{})
+	channel, err := storage.Update(kubeapi.NewDefaultContext(), &api.ImageRepository{})
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
@@ -199,7 +201,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(nil, &api.ImageRepository{
+	channel, err := storage.Update(kubeapi.NewDefaultContext(), &api.ImageRepository{
 		TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
@@ -219,7 +221,7 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Update(nil, &api.ImageRepository{
+	channel, err := storage.Update(kubeapi.NewDefaultContext(), &api.ImageRepository{
 		TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
@@ -239,7 +241,7 @@ func TestDeleteImageRepository(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
-	channel, err := storage.Delete(nil, "foo")
+	channel, err := storage.Delete(kubeapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -251,4 +253,52 @@ func TestDeleteImageRepository(t *testing.T) {
 	if status.Status != kubeapi.StatusSuccess {
 		t.Errorf("Expected status=success, got %#v", status)
 	}
+}
+
+func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
+	storage := REST{}
+
+	channel, err := storage.Create(kubeapi.WithNamespace(kubeapi.NewContext(), "legal-name"), &api.ImageRepository{
+		TypeMeta: kubeapi.TypeMeta{ID: "bar", Namespace: "some-value"},
+	})
+
+	if channel != nil {
+		t.Error("Expected a nil channel, but we got a value")
+	}
+
+	checkExpectedNamespaceError(t, err)
+}
+
+func TestUpdateImageRepositoryConflictingNamespace(t *testing.T) {
+	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
+	storage := REST{registry: mockRepositoryRegistry}
+
+	channel, err := storage.Update(kubeapi.WithNamespace(kubeapi.NewContext(), "legal-name"), &api.ImageRepository{
+		TypeMeta: kubeapi.TypeMeta{ID: "bar", Namespace: "some-value"},
+	})
+
+	if channel != nil {
+		t.Error("Expected a nil channel, but we got a value")
+	}
+
+	checkExpectedNamespaceError(t, err)
+}
+
+func checkExpectedNamespaceError(t *testing.T, err error) {
+	expectedError := "ImageRepository.Namespace does not match the provided context"
+	if err == nil {
+		t.Errorf("Expected '" + expectedError + "', but we didn't get one")
+	} else {
+		e, ok := err.(kubeclient.APIStatus)
+		if !ok {
+			t.Errorf("error was not a statusError: %v", err)
+		}
+		if e.Status().Code != http.StatusConflict {
+			t.Errorf("Unexpected failure status: %v", e.Status())
+		}
+		if strings.Index(err.Error(), expectedError) == -1 {
+			t.Errorf("Expected '"+expectedError+"' error, got '%v'", err.Error())
+		}
+	}
+
 }

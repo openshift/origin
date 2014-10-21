@@ -25,8 +25,10 @@ LOG_DIR=${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}
 API_PORT=${API_PORT:-8080}
 API_HOST=${API_HOST:-127.0.0.1}
 KUBELET_PORT=${KUBELET_PORT:-10250}
+NAMESPACE=${NAMESPACE:-hotel}
 
 CONFIG_FILE=${LOG_DIR}/appConfig.json
+BUILD_CONFIG_FILE=${LOG_DIR}/buildConfig.json
 FIXTURE_DIR=${HACKDIR}/../examples/sample-app
 GO_OUT=${HACKDIR}/../_output/go/bin
 openshift=$GO_OUT/openshift
@@ -70,7 +72,7 @@ trap teardown EXIT SIGINT
 setup
 
 # Start All-in-one server and wait for health
-echo "[INFO] Starting OpenShift server"
+echo "[INFO] Starting OpenShift server: logging to ${LOG_DIR}"
 start_openshift_server ${VOLUME_DIR} ${ETCD_DATA_DIR} ${LOG_DIR}
 
 wait_for_url "http://localhost:10250/healthz" "[INFO] kubelet: " 1 30
@@ -78,15 +80,16 @@ wait_for_url "http://localhost:8080/healthz" "[INFO] apiserver: "
 
 # Deploy private docker registry
 echo "[INFO] Deploying private Docker registry"
-$openshift kube apply -c ${FIXTURE_DIR}/docker-registry-config.json
+$openshift kube apply --ns=${NAMESPACE} -c ${FIXTURE_DIR}/docker-registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
-wait_for_command "$openshift kube list pods | grep registrypod | grep Running" $((5*TIME_MIN))
+wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep registrypod | grep Running" $((5*TIME_MIN))
+
 
 echo "[INFO] Waiting for Docker registry service to start"
-wait_for_command "$openshift kube list services | grep registrypod"
+wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep registrypod"
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY_IP=`$openshift kube get --yaml services/docker-registry | grep "portalIP" | awk '{print $2}'`
+DOCKER_REGISTRY_IP=`$openshift kube get --ns=${NAMESPACE} --yaml services/docker-registry | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Probing the docker-registry"
 wait_for_url_timed "http://${DOCKER_REGISTRY_IP}:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
@@ -98,16 +101,16 @@ $openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FI
 sed -i "s,172.121.17.1,${DOCKER_REGISTRY_IP},g" $CONFIG_FILE
 
 echo "[INFO] Applying application config"
-$openshift kube apply -c $CONFIG_FILE
+$openshift kube apply --ns=${NAMESPACE} -c $CONFIG_FILE
 
 # Trigger build
 echo "[INFO] Simulating github hook to trigger new build using curl"
-curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/github-webhook-example.json "http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github?namespace=${NAMESPACE}"
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
-BUILD_ID=`$openshift kube list builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
-wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((30*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
+BUILD_ID=`$openshift kube list --ns=${NAMESPACE} builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
+wait_for_command "$openshift kube get --ns=${NAMESPACE} builds/$BUILD_ID | grep complete" $((30*TIME_MIN)) "$openshift kube get --ns=${NAMESPACE} builds/$BUILD_ID | grep failed"
 
 echo "[INFO] Waiting for database pod to start"
 wait_for_command "$openshift kube list pods | grep database | grep Running" $((30*TIME_SEC))
@@ -117,11 +120,11 @@ wait_for_command "$openshift kube list services | grep database" $((20*TIME_SEC)
 DB_IP=`$openshift kube get --yaml services/database | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Waiting for frontend pod to start"
-wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((120*TIME_SEC))
+wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep frontend | grep Running" $((120*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
-wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))
-FRONTEND_IP=`$openshift kube get --yaml services/frontend | grep "portalIP" | awk '{print $2}'`
+wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep frontend" $((20*TIME_SEC))
+FRONTEND_IP=`$openshift kube get --ns=${NAMESPACE} --yaml services/frontend | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Waiting for database to start..."
 wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))

@@ -49,8 +49,11 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	if !ok {
 		return nil, fmt.Errorf("not an image repository mapping: %#v", obj)
 	}
+	if !kubeapi.ValidNamespace(ctx, &mapping.TypeMeta) {
+		return nil, errors.NewConflict("imageRepositoryMapping", mapping.Namespace, fmt.Errorf("ImageRepositoryMapping.Namespace does not match the provided context"))
+	}
 
-	repo, err := s.findImageRepository(mapping.DockerImageRepository)
+	repo, err := s.findImageRepository(ctx, mapping.DockerImageRepository)
 	if err != nil {
 		return nil, err
 	}
@@ -76,12 +79,12 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	repo.Tags[mapping.Tag] = image.ID
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err = s.imageRegistry.CreateImage(&image)
+		err = s.imageRegistry.CreateImage(ctx, &image)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return nil, err
 		}
 
-		err = s.imageRepositoryRegistry.UpdateImageRepository(repo)
+		err = s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo)
 		if err != nil {
 			return nil, err
 		}
@@ -91,9 +94,9 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 }
 
 // findImageRepository retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
-func (s *REST) findImageRepository(dockerRepo string) (*api.ImageRepository, error) {
+func (s *REST) findImageRepository(ctx kubeapi.Context, dockerRepo string) (*api.ImageRepository, error) {
 	//TODO make this more efficient
-	list, err := s.imageRepositoryRegistry.ListImageRepositories(labels.Everything())
+	list, err := s.imageRepositoryRegistry.ListImageRepositories(ctx, labels.Everything())
 	if err != nil {
 		return nil, err
 	}

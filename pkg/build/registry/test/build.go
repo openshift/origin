@@ -15,23 +15,23 @@ type BuildRegistry struct {
 	DeletedBuildId string
 }
 
-func (r *BuildRegistry) ListBuilds(labels labels.Selector) (*buildapi.BuildList, error) {
+func (r *BuildRegistry) ListBuilds(ctx kapi.Context, labels labels.Selector) (*buildapi.BuildList, error) {
 	return r.Builds, r.Err
 }
 
-func (r *BuildRegistry) GetBuild(id string) (*buildapi.Build, error) {
+func (r *BuildRegistry) GetBuild(ctx kapi.Context, id string) (*buildapi.Build, error) {
 	return r.Build, r.Err
 }
 
-func (r *BuildRegistry) CreateBuild(build *buildapi.Build) error {
+func (r *BuildRegistry) CreateBuild(ctx kapi.Context, build *buildapi.Build) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) UpdateBuild(build *buildapi.Build) error {
+func (r *BuildRegistry) UpdateBuild(ctx kapi.Context, build *buildapi.Build) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) DeleteBuild(id string) error {
+func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
 	r.DeletedBuildId = id
 	return r.Err
 }

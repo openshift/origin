@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -32,7 +35,7 @@ func TestGetConfig(t *testing.T) {
 	expectedConfig := mockBuildConfig()
 	mockRegistry := test.BuildConfigRegistry{BuildConfig: expectedConfig}
 	storage := REST{&mockRegistry}
-	configObj, err := storage.Get(nil, "foo")
+	configObj, err := storage.Get(kubeapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	}
@@ -48,7 +51,7 @@ func TestGetConfig(t *testing.T) {
 func TestGetConfigError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("get error")}
 	storage := REST{&mockRegistry}
-	buildObj, err := storage.Get(nil, "foo")
+	buildObj, err := storage.Get(kubeapi.NewDefaultContext(), "foo")
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -61,7 +64,7 @@ func TestDeleteBuild(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	configId := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, err := storage.Delete(nil, configId)
+	channel, err := storage.Delete(kubeapi.NewDefaultContext(), configId)
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
 	}
@@ -87,7 +90,7 @@ func TestDeleteBuildError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Delete error")}
 	configId := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, _ := storage.Delete(nil, configId)
+	channel, _ := storage.Delete(kubeapi.NewDefaultContext(), configId)
 	select {
 	case result := <-channel:
 		status, ok := result.(*kubeapi.Status)
@@ -107,7 +110,7 @@ func TestListConfigsError(t *testing.T) {
 		Err: fmt.Errorf("test error"),
 	}
 	storage := REST{&mockRegistry}
-	configs, err := storage.List(nil, nil, nil)
+	configs, err := storage.List(kubeapi.NewDefaultContext(), nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -119,7 +122,7 @@ func TestListConfigsError(t *testing.T) {
 func TestListEmptyConfigList(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{TypeMeta: kubeapi.TypeMeta{ResourceVersion: "1"}}}
 	storage := REST{&mockRegistry}
-	buildConfigs, err := storage.List(nil, labels.Everything(), labels.Everything())
+	buildConfigs, err := storage.List(kubeapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -150,7 +153,7 @@ func TestListConfigs(t *testing.T) {
 		},
 	}
 	storage := REST{&mockRegistry}
-	configsObj, err := storage.List(nil, labels.Everything(), labels.Everything())
+	configsObj, err := storage.List(kubeapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	configs := configsObj.(*api.BuildConfigList)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -232,7 +235,7 @@ func TestCreateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Create(nil, buildConfig)
+	channel, err := storage.Create(kubeapi.NewDefaultContext(), buildConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -251,7 +254,8 @@ func TestCreateBuildConfig(t *testing.T) {
 func mockBuildConfig() *api.BuildConfig {
 	return &api.BuildConfig{
 		TypeMeta: kubeapi.TypeMeta{
-			ID: "dataBuild",
+			ID:        "dataBuild",
+			Namespace: kubeapi.NamespaceDefault,
 		},
 		DesiredInput: api.BuildInput{
 			SourceURI: "http://my.build.com/the/buildConfig/Dockerfile",
@@ -267,7 +271,7 @@ func TestUpdateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Update(nil, buildConfig)
+	channel, err := storage.Update(kubeapi.NewDefaultContext(), buildConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -294,7 +298,7 @@ func TestUpdateBuildConfigError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Update error")}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Update(nil, buildConfig)
+	channel, err := storage.Update(kubeapi.NewDefaultContext(), buildConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -346,7 +350,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Create(nil, &failureCase)
+		c, err := storage.Create(kubeapi.NewDefaultContext(), &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}
@@ -396,7 +400,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Update(nil, &failureCase)
+		c, err := storage.Update(kubeapi.NewDefaultContext(), &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}
@@ -404,4 +408,51 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 			t.Errorf("%s: Expected to get an invalid resource error, got %v", desc, err)
 		}
 	}
+}
+
+func TestCreateBuildConfigConflictingNamespace(t *testing.T) {
+	storage := REST{}
+
+	channel, err := storage.Create(kubeapi.WithNamespace(kubeapi.NewContext(), "legal-name"), &api.BuildConfig{
+		TypeMeta: kubeapi.TypeMeta{ID: "foo", Namespace: "some-value"},
+	})
+
+	if channel != nil {
+		t.Error("Expected a nil channel, but we got a value")
+	}
+
+	checkExpectedNamespaceError(t, err)
+}
+
+func TestUpdateBuildConfigConflictingNamespace(t *testing.T) {
+	mockRegistry := test.BuildConfigRegistry{}
+	storage := REST{&mockRegistry}
+
+	buildConfig := mockBuildConfig()
+	channel, err := storage.Update(kubeapi.WithNamespace(kubeapi.NewContext(), "legal-name"), buildConfig)
+
+	if channel != nil {
+		t.Error("Expected a nil channel, but we got a value")
+	}
+
+	checkExpectedNamespaceError(t, err)
+}
+
+func checkExpectedNamespaceError(t *testing.T, err error) {
+	expectedError := "BuildConfig.Namespace does not match the provided context"
+	if err == nil {
+		t.Errorf("Expected '" + expectedError + "', but we didn't get one")
+	} else {
+		e, ok := err.(kubeclient.APIStatus)
+		if !ok {
+			t.Errorf("error was not a statusError: %v", err)
+		}
+		if e.Status().Code != http.StatusConflict {
+			t.Errorf("Unexpected failure status: %v", e.Status())
+		}
+		if strings.Index(err.Error(), expectedError) == -1 {
+			t.Errorf("Expected '"+expectedError+"' error, got '%v'", err.Error())
+		}
+	}
+
 }

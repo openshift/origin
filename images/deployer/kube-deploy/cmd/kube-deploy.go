@@ -43,16 +43,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	deployTarget(api.NewContext(), client, osClient)
+	deployTarget(client, osClient)
 }
 
-func deployTarget(ctx api.Context, client *kubeclient.Client, osClient osclient.Interface) {
+func deployTarget(client *kubeclient.Client, osClient osclient.Interface) {
+	namespace := os.Getenv("KUBERNETES_NAMESPACE")
+	if len(namespace) == 0 {
+		glog.Fatal("No namespace was specified. Expected KUBERNETES_NAMESPACE variable.")
+		return
+	}
+	ctx := api.WithNamespace(api.NewContext(), namespace)
+
 	deploymentID := os.Getenv("KUBERNETES_DEPLOYMENT_ID")
 	if len(deploymentID) == 0 {
 		glog.Fatal("No deployment id was specified. Expected KUBERNETES_DEPLOYMENT_ID variable.")
 		return
 	}
-	glog.Infof("Retrieving deployment id: %v", deploymentID)
+	glog.Infof("Retrieving deployment id: %v:%v", api.Namespace(ctx), deploymentID)
 
 	var deployment *deployapi.Deployment
 	var err error

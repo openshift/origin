@@ -31,7 +31,7 @@ func (s *REST) New() runtime.Object {
 
 // List retrieves a list of Images that match selector.
 func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	images, err := s.registry.ListImages(selector)
+	images, err := s.registry.ListImages(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 
 // Get retrieves an Image by id.
 func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
-	image, err := s.registry.GetImage(id)
+	image, err := s.registry.GetImage(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +54,9 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	if !ok {
 		return nil, fmt.Errorf("not an image: %#v", obj)
 	}
+	if !kubeapi.ValidNamespace(ctx, &image.TypeMeta) {
+		return nil, errors.NewConflict("image", image.Namespace, fmt.Errorf("Image.Namespace does not match the provided context"))
+	}
 
 	image.CreationTimestamp = util.Now()
 
@@ -62,7 +65,7 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.CreateImage(image); err != nil {
+		if err := s.registry.CreateImage(ctx, image); err != nil {
 			return nil, err
 		}
 		return s.Get(ctx, image.ID)
@@ -77,6 +80,6 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 // Delete asynchronously deletes an Image specified by its id.
 func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteImage(id)
+		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteImage(ctx, id)
 	}), nil
 }

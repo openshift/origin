@@ -16,13 +16,33 @@ import (
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
 )
 
+// This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we
+// expect it to. If someone changes the location of these resources by say moving all the resources to
+// "/origin/resources" (which is a really good idea), then they've made a breaking change and something should
+// fail to let them know they've change some significant change and that other dependent pieces may break.
+func makeTestRouteListKey(namespace string) string {
+	if len(namespace) != 0 {
+		return "/routes/" + namespace
+	}
+	return "/routes"
+}
+func makeTestRouteKey(namespace, id string) string {
+	return "/routes/" + namespace + "/" + id
+}
+func makeTestDefaultRouteKey(id string) string {
+	return makeTestRouteKey(kubeapi.NamespaceDefault, id)
+}
+func makeTestDefaultRouteListKey() string {
+	return makeTestRouteListKey(kubeapi.NamespaceDefault)
+}
+
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
 	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
 }
 
 func TestEtcdListEmptyRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	key := "/routes"
+	key := makeTestDefaultRouteListKey()
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
@@ -32,7 +52,7 @@ func TestEtcdListEmptyRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(labels.Everything())
+	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -44,7 +64,7 @@ func TestEtcdListEmptyRoutes(t *testing.T) {
 
 func TestEtcdListErrorRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	key := "/routes"
+	key := makeTestDefaultRouteListKey()
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: nil,
@@ -52,7 +72,7 @@ func TestEtcdListErrorRoutes(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(labels.Everything())
+	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -64,7 +84,7 @@ func TestEtcdListErrorRoutes(t *testing.T) {
 
 func TestEtcdListEverythingRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	key := "/routes"
+	key := makeTestDefaultRouteListKey()
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
@@ -81,7 +101,7 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(labels.Everything())
+	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -93,7 +113,7 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 
 func TestEtcdListFilteredRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	key := "/routes"
+	key := makeTestDefaultRouteListKey()
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
@@ -116,7 +136,7 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(labels.SelectorFromSet(labels.Set{"env": "dev"}))
+	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -128,9 +148,9 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 
 func TestEtcdGetRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/routes/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultRouteKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
-	route, err := registry.GetRoute("foo")
+	route, err := registry.GetRoute(kubeapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -142,14 +162,14 @@ func TestEtcdGetRoutes(t *testing.T) {
 
 func TestEtcdGetNotFoundRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Data["/routes/foo"] = tools.EtcdResponseWithError{
+	fakeClient.Data[makeTestDefaultRouteKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: nil,
 		},
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	route, err := registry.GetRoute("foo")
+	route, err := registry.GetRoute(kubeapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
 	}
@@ -161,14 +181,14 @@ func TestEtcdGetNotFoundRoutes(t *testing.T) {
 func TestEtcdCreateRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
-	fakeClient.Data["/routes/foo"] = tools.EtcdResponseWithError{
+	fakeClient.Data[makeTestDefaultRouteKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: nil,
 		},
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateRoute(&api.Route{
+	err := registry.CreateRoute(kubeapi.NewDefaultContext(), &api.Route{
 		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
@@ -177,7 +197,7 @@ func TestEtcdCreateRoutes(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	resp, err := fakeClient.Get("/routes/foo", false, false)
+	resp, err := fakeClient.Get(makeTestDefaultRouteKey("foo"), false, false)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -194,7 +214,7 @@ func TestEtcdCreateRoutes(t *testing.T) {
 
 func TestEtcdCreateAlreadyExistsRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Data["/routes/foo"] = tools.EtcdResponseWithError{
+	fakeClient.Data[makeTestDefaultRouteKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
@@ -203,7 +223,7 @@ func TestEtcdCreateAlreadyExistsRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateRoute(&api.Route{
+	err := registry.CreateRoute(kubeapi.NewDefaultContext(), &api.Route{
 		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
@@ -219,9 +239,13 @@ func TestEtcdCreateAlreadyExistsRoutes(t *testing.T) {
 func TestEtcdUpdateOkRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	err := registry.UpdateRoute(&api.Route{})
+	err := registry.UpdateRoute(kubeapi.NewDefaultContext(), &api.Route{
+		TypeMeta: kubeapi.TypeMeta{
+			ID: "foo",
+		},
+	})
 	if err != nil {
-		t.Error("Unexpected error")
+		t.Errorf("Unexpected error %#v", err)
 	}
 }
 
@@ -229,7 +253,7 @@ func TestEtcdDeleteNotFoundRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = tools.EtcdErrorNotFound
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteRoute("foo")
+	err := registry.DeleteRoute(kubeapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -242,7 +266,7 @@ func TestEtcdDeleteErrorRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = fmt.Errorf("Some error")
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteRoute("foo")
+	err := registry.DeleteRoute(kubeapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -251,8 +275,8 @@ func TestEtcdDeleteErrorRoutes(t *testing.T) {
 func TestEtcdDeleteOkRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	key := "/routes/foo"
-	err := registry.DeleteRoute("foo")
+	key := makeTestDefaultRouteListKey() + "/foo"
+	err := registry.DeleteRoute(kubeapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
@@ -260,5 +284,95 @@ func TestEtcdDeleteOkRoutes(t *testing.T) {
 		t.Errorf("Expected 1 delete, found %#v", fakeClient.DeletedKeys)
 	} else if fakeClient.DeletedKeys[0] != key {
 		t.Errorf("Unexpected key: %s, expected %s", fakeClient.DeletedKeys[0], key)
+	}
+}
+
+func TestEtcdCreateRouteFailsWithoutNamespace(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.TestIndex = true
+	registry := NewTestEtcd(fakeClient)
+	err := registry.CreateRoute(kubeapi.NewContext(), &api.Route{
+		TypeMeta: kubeapi.TypeMeta{
+			ID: "foo",
+		},
+	})
+
+	if err == nil {
+		t.Errorf("expected error that namespace was missing from context")
+	}
+}
+
+func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
+	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
+	fakeClient.Data["/routes/alfa"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Nodes: []*etcd.Node{
+					{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo1"}}),
+					},
+				},
+			},
+		},
+		E: nil,
+	}
+	fakeClient.Data["/routes/bravo"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Nodes: []*etcd.Node{
+					{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo2"}}),
+					},
+					{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "bar2"}}),
+					},
+				},
+			},
+		},
+		E: nil,
+	}
+	registry := NewTestEtcd(fakeClient)
+
+	routesAlfa, err := registry.ListRoutes(namespaceAlfa, labels.Everything())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(routesAlfa.Items) != 1 || routesAlfa.Items[0].ID != "foo1" {
+		t.Errorf("Unexpected builds list: %#v", routesAlfa)
+	}
+
+	routesBravo, err := registry.ListRoutes(namespaceBravo, labels.Everything())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(routesBravo.Items) != 2 || routesBravo.Items[0].ID != "foo2" || routesBravo.Items[1].ID != "bar2" {
+		t.Errorf("Unexpected builds list: %#v", routesBravo)
+	}
+}
+
+func TestEtcdGetRouteInDifferentNamespaces(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
+	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
+	fakeClient.Set("/routes/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/routes/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	registry := NewTestEtcd(fakeClient)
+
+	alfaFoo, err := registry.GetRoute(namespaceAlfa, "foo")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if alfaFoo == nil || alfaFoo.ID != "foo" {
+		t.Errorf("Unexpected deployment: %#v", alfaFoo)
+	}
+
+	bravoFoo, err := registry.GetRoute(namespaceBravo, "foo")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if bravoFoo == nil || bravoFoo.ID != "foo" {
+		t.Errorf("Unexpected deployment: %#v", bravoFoo)
 	}
 }
