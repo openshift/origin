@@ -15,12 +15,14 @@ angular.module('openshiftConsole')
     this._openConnections = {};
   }
 
-  DataService.prototype.getList = function(type, callback, context, opts) {
+  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
+  // for various things in the future
+  DataService.prototype.getList = function(type, callback, context, opts) { // jshint ignore:line
     // TODO where do we track resourceVersion
     // TODO how do we handle failures
     // Check if the project deferred exists on the context, if it does then don't
     // request the data till the project is known
-    if (context.project && type != "projects") {
+    if (context.project && type !== "projects") {
       context.project.done($.proxy(this, function(project) {
         $.ajax({
           url: this._urlForType(type, null, context, false, {namespace: project.namespace}),
@@ -36,10 +38,12 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype.getObject = function(type, id, callback, context, opts) {
+  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
+  // for various things in the future
+  DataService.prototype.getObject = function(type, id, callback, context, opts) { // jshint ignore:line
     // TODO where do we track resourceVersion
     // TODO how do we handle failures
-    if (context.project && type != "projects") {
+    if (context.project && type !== "projects") {
       context.project.done($.proxy(this, function(project) {
         $.ajax({
           url: this._urlForType(type, id, context, false, {namespace: project.namespace}),
@@ -57,7 +61,9 @@ angular.module('openshiftConsole')
 
   // returns the object needed for unsubscribing, currently
   // this is the callback itself
-  DataService.prototype.subscribe = function(type, callback, context, opts) {
+  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
+  // for various things in the future  
+  DataService.prototype.subscribe = function(type, callback, context, opts) { // jshint ignore:line
     if (!this._subscriptions[type]) {
       this._subscriptions[type] = $.Callbacks();
       this._subscriptions[type].add(callback);
@@ -98,7 +104,7 @@ angular.module('openshiftConsole')
       if (resourceVersion) {
         params.resourceVersion = resourceVersion;
       }
-      if (context.project) {
+      if (context.project && type !== "projects") {
         context.project.done($.proxy(function(project) {
           params.namespace = project.namespace;
           var wsUrl = this._urlForType(type, null, context, true, params);
@@ -117,14 +123,14 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._onSocketClose = function(type, event) {
+  DataService.prototype._onSocketClose = function(type, context, event) {
     // Attempt to re-establish the connection in cases
     // where the socket close was unexpected, i.e. the event's
     // wasClean attribute is false
     if (!event.wasClean) {
       // TODO should track latest resourceVersion we know about
       // for a type so we only reload what we need
-      this._listenForUpdates(type);
+      this._listenForUpdates(type, context);
     }
   };
 
@@ -141,30 +147,41 @@ angular.module('openshiftConsole')
     }
   };
 
+  var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}/{apiRoot}/{apiVersion}/";
+  var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}";
+  var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}";
+  var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}";
+
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
-    // TODO where do we specify what the server URL should be    
-    var serverUrl = "localhost:8080";
-    // TODO where do we specify what API version
-    var apiVersion = "v1beta1";
     var protocol;
     if (isWebsocket) {
-      protocol = window.location.protocol === "http:" ? "ws://" : "wss://";
+      protocol = window.location.protocol === "http:" ? "ws" : "wss";
     }
     else {
-      protocol = window.location.protocol === "http:" ? "http://" : "https://"; 
+      protocol = window.location.protocol === "http:" ? "http" : "https"; 
     }
-    var url = protocol + serverUrl + "/" + TYPE_MAP[type] + "/" + apiVersion + "/";
+
+    var template;
     if (isWebsocket) {
-      url += "watch/";
+      template = URL_WATCH_LIST;
     }
-    url += type;
-    if (id) {
-      url += "/" + id;
+    else if (id) {
+      template = URL_GET_OBJECT;
     }
-    if (params && !$.isEmptyObject(params)) {
-      url += "?" + $.param(params);
+    else {
+      template = URL_GET_LIST;
     }
-    return url;
+
+    // TODO where do we specify what the server URL and api version should be
+    return URI.expand(template, {
+      protocol: protocol,
+      serverUrl: "localhost:8080",
+      apiRoot: TYPE_MAP[type],
+      apiVersion: "v1beta1",
+      type: type,
+      id: id,
+      q: params
+    });
   };
 
   return new DataService();
