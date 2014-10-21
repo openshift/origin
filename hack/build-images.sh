@@ -15,7 +15,7 @@ hackdir=$(CDPATH="" cd $(dirname $0); pwd)
 cd "${OS_REPO_ROOT}"
 
 # Fetch the version.
-version=$(gitcommit)
+version=$(os::build::gitcommit)
 kube_version=$(go run ${hackdir}/version.go ${hackdir}/../Godeps/Godeps.json github.com/GoogleCloudPlatform/kubernetes/pkg/api)
 
 docker build -t openshift/base-builder images/builder/docker/base

@@ -14,10 +14,6 @@ hackdir=$(CDPATH="" cd $(dirname $0); pwd)
 # Go to the top of the tree.
 cd "${OS_REPO_ROOT}"
 
-# Fetch the version.
-version=$(gitcommit)
-kube_version=$(go run ${hackdir}/version.go ${hackdir}/../Godeps/Godeps.json github.com/GoogleCloudPlatform/kubernetes/pkg/api)
-
 if [[ $# == 0 ]]; then
   # Update $@ with the default list of targets to build.
   set -- cmd/openshift
@@ -33,5 +29,4 @@ if [[ ! -z "$OS_BUILD_TAGS" ]]; then
   build_tags="-tags \"$OS_BUILD_TAGS\""
 fi
 
-
-go install $build_tags -ldflags "-X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit '${kube_version}' -X github.com/openshift/origin/pkg/version.commitFromGit '${version}'" "${binaries[@]}"
+go install $build_tags -ldflags "$(os::build::ldflags)" "${binaries[@]}"
