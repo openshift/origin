@@ -30,7 +30,7 @@ func makeRouteKey(id string) string {
 // ListRoutes obtains a list of Routes.
 func (registry *Etcd) ListRoutes(selector labels.Selector) (*api.RouteList, error) {
 	allRoutes := api.RouteList{}
-	err := registry.ExtractList("/routes", &allRoutes.Items, &allRoutes.ResourceVersion)
+	err := registry.ExtractToList("/routes", &allRoutes)
 	if err != nil {
 		return nil, err
 	}

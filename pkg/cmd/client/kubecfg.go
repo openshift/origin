@@ -309,7 +309,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 
 	verb := ""
 	setBody := false
-	var version uint64
+	var version string
 	switch method {
 	case "get":
 		verb = "GET"
@@ -337,11 +337,11 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		if err != nil {
 			glog.Fatalf("error obtaining resource version for update: %v", err)
 		}
-		jsonBase, err := runtime.FindJSONBase(obj)
+		typeMeta, err := runtime.FindTypeMeta(obj)
 		if err != nil {
 			glog.Fatalf("error finding json base for update: %v", err)
 		}
-		version = jsonBase.ResourceVersion()
+		version = typeMeta.ResourceVersion()
 		verb = "PUT"
 		setBody = true
 		if !validStorage || !hasSuffix {
@@ -355,17 +355,17 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		Path(path).
 		ParseSelectorParam("labels", c.Selector)
 	if setBody {
-		if version != 0 {
+		if len(version) != 0 {
 			data := c.readConfig(storage, client.Codec)
 			obj, err := latest.Codec.Decode(data)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
-			jsonBase, err := runtime.FindJSONBase(obj)
+			typeMeta, err := runtime.FindTypeMeta(obj)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
-			jsonBase.SetResourceVersion(version)
+			typeMeta.SetResourceVersion(version)
 			data, err = client.Codec.Encode(obj)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)

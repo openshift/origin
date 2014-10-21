@@ -7,7 +7,7 @@ import (
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the operation and a reference to the Pod which runs the build.
 type Build struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Input is the set of inputs used to configure the build
@@ -57,7 +57,7 @@ type STIBuildInput struct {
 
 // BuildConfig contains the inputs needed to produce a new deployable image
 type BuildConfig struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// DesiredInput is the input used to create builds from this configuration
@@ -108,12 +108,12 @@ const (
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []Build `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }

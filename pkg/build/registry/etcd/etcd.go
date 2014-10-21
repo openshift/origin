@@ -27,7 +27,7 @@ func makeBuildKey(id string) string {
 // ListBuilds obtains a list of Builds.
 func (r *Etcd) ListBuilds(selector labels.Selector) (*api.BuildList, error) {
 	allBuilds := api.BuildList{}
-	err := r.ExtractList("/registry/builds", &allBuilds.Items, &allBuilds.ResourceVersion)
+	err := r.ExtractToList("/registry/builds", &allBuilds)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func makeBuildConfigKey(id string) string {
 // ListBuildConfigs obtains a list of BuildConfigs.
 func (r *Etcd) ListBuildConfigs(selector labels.Selector) (*api.BuildConfigList, error) {
 	allConfigs := api.BuildConfigList{}
-	err := r.ExtractList("/registry/build-configs", &allConfigs.Items, &allConfigs.ResourceVersion)
+	err := r.ExtractToList("/registry/build-configs", &allConfigs)
 	if err != nil {
 		return nil, err
 	}

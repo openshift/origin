@@ -56,12 +56,12 @@ func TestListDeploymentsPopulatedList(t *testing.T) {
 	mockRegistry.Deployments = &api.DeploymentList{
 		Items: []api.Deployment{
 			{
-				JSONBase: kapi.JSONBase{
+				TypeMeta: kapi.TypeMeta{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kapi.JSONBase{
+				TypeMeta: kapi.TypeMeta{
 					ID: "bar",
 				},
 			},
@@ -102,7 +102,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Deployment{
-		JSONBase:           kapi.JSONBase{ID: "foo"},
+		TypeMeta:           kapi.TypeMeta{ID: "foo"},
 		Strategy:           deploytest.OkStrategy(),
 		ControllerTemplate: deploytest.OkControllerTemplate(),
 	})
@@ -133,7 +133,7 @@ func TestCreateDeploymentOk(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Deployment{
-		JSONBase:           kapi.JSONBase{ID: "foo"},
+		TypeMeta:           kapi.TypeMeta{ID: "foo"},
 		Strategy:           deploytest.OkStrategy(),
 		ControllerTemplate: deploytest.OkControllerTemplate(),
 	})
@@ -176,7 +176,7 @@ func TestGetDeploymentError(t *testing.T) {
 func TestGetDeploymentOk(t *testing.T) {
 	mockRegistry := test.NewDeploymentRegistry()
 	mockRegistry.Deployment = &api.Deployment{
-		JSONBase: kapi.JSONBase{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 
@@ -222,7 +222,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.Deployment{
-		JSONBase: kapi.JSONBase{ID: "bar"},
+		TypeMeta: kapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
@@ -242,7 +242,7 @@ func TestUpdateDeploymentOk(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.Deployment{
-		JSONBase: kapi.JSONBase{ID: "bar"},
+		TypeMeta: kapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)

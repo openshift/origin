@@ -10,7 +10,7 @@ import (
 
 func TestBuildValdationSuccess(t *testing.T) {
 	build := &api.Build{
-		JSONBase: kubeapi.JSONBase{ID: "buildID"},
+		TypeMeta: kubeapi.TypeMeta{ID: "buildId"},
 		Input: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
@@ -24,7 +24,7 @@ func TestBuildValdationSuccess(t *testing.T) {
 
 func TestBuildValidationFailure(t *testing.T) {
 	build := &api.Build{
-		JSONBase: kubeapi.JSONBase{ID: ""},
+		TypeMeta: kubeapi.TypeMeta{ID: ""},
 		Input: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
@@ -38,7 +38,7 @@ func TestBuildValidationFailure(t *testing.T) {
 
 func TestBuildConfigValidationSuccess(t *testing.T) {
 	buildConfig := &api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{ID: "configID"},
+		TypeMeta: kubeapi.TypeMeta{ID: "configId"},
 		DesiredInput: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
@@ -51,7 +51,7 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 
 func TestBuildConfigValidationFailure(t *testing.T) {
 	buildConfig := &api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{ID: ""},
+		TypeMeta: kubeapi.TypeMeta{ID: ""},
 		DesiredInput: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",

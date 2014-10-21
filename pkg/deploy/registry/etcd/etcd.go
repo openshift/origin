@@ -1,6 +1,8 @@
 package etcd
 
 import (
+	"strconv"
+
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -25,7 +27,7 @@ func New(helper tools.EtcdHelper) *Etcd {
 // ListDeployments obtains a list of Deployments.
 func (r *Etcd) ListDeployments(selector labels.Selector) (*api.DeploymentList, error) {
 	deployments := api.DeploymentList{}
-	err := r.ExtractList("/deployments", &deployments.Items, &deployments.ResourceVersion)
+	err := r.ExtractToList("/deployments", &deployments)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +77,13 @@ func (r *Etcd) DeleteDeployment(id string) error {
 }
 
 // WatchDeployments begins watching for new, changed, or deleted Deployments.
-func (r *Etcd) WatchDeployments(resourceVersion uint64, filter func(deployment *api.Deployment) bool) (watch.Interface, error) {
-	return r.WatchList("/deployments", resourceVersion, func(obj runtime.Object) bool {
+func (r *Etcd) WatchDeployments(resourceVersion string, filter func(deployment *api.Deployment) bool) (watch.Interface, error) {
+	version, err := parseWatchResourceVersion(resourceVersion, "deployment")
+	if err != nil {
+		return nil, err
+	}
+
+	return r.WatchList("/deployments", version, func(obj runtime.Object) bool {
 		deployment, ok := obj.(*api.Deployment)
 		if !ok {
 			glog.Errorf("Unexpected object during deployment watch: %#v", obj)
@@ -89,7 +96,7 @@ func (r *Etcd) WatchDeployments(resourceVersion uint64, filter func(deployment *
 // ListDeploymentConfigs obtains a list of DeploymentConfigs.
 func (r *Etcd) ListDeploymentConfigs(selector labels.Selector) (*api.DeploymentConfigList, error) {
 	deploymentConfigs := api.DeploymentConfigList{}
-	err := r.ExtractList("/deploymentConfigs", &deploymentConfigs.Items, &deploymentConfigs.ResourceVersion)
+	err := r.ExtractToList("/deploymentConfigs", &deploymentConfigs)
 	if err != nil {
 		return nil, err
 	}
@@ -104,9 +111,30 @@ func (r *Etcd) ListDeploymentConfigs(selector labels.Selector) (*api.DeploymentC
 	return &deploymentConfigs, err
 }
 
+// TODO expose this from kubernetes.  I will do that, but I don't want this merge stuck on kubernetes refactoring
+// parseWatchResourceVersion takes a resource version argument and converts it to
+// the etcd version we should pass to helper.Watch(). Because resourceVersion is
+// an opaque value, the default watch behavior for non-zero watch is to watch
+// the next value (if you pass "1", you will see updates from "2" onwards).
+func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
+	if resourceVersion == "" || resourceVersion == "0" {
+		return 0, nil
+	}
+	version, err := strconv.ParseUint(resourceVersion, 10, 64)
+	if err != nil {
+		return 0, etcderr.InterpretResourceVersionError(err, kind, resourceVersion)
+	}
+	return version + 1, nil
+}
+
 // WatchDeploymentConfigs begins watching for new, changed, or deleted DeploymentConfigs.
-func (r *Etcd) WatchDeploymentConfigs(resourceVersion uint64, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error) {
-	return r.WatchList("/deploymentConfigs", resourceVersion, func(obj runtime.Object) bool {
+func (r *Etcd) WatchDeploymentConfigs(resourceVersion string, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error) {
+	version, err := parseWatchResourceVersion(resourceVersion, "deploymentConfig")
+	if err != nil {
+		return nil, err
+	}
+
+	return r.WatchList("/deploymentConfigs", version, func(obj runtime.Object) bool {
 		config, ok := obj.(*api.DeploymentConfig)
 		if !ok {
 			glog.Errorf("Unexpected object during deploymentConfig watch: %#v", obj)

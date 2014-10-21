@@ -69,7 +69,7 @@ func (c *Fake) DeleteBuildConfig(ctx api.Context, id string) error {
 	return nil
 }
 
-func (c *Fake) WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Fake) WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-deploymentconfig"})
 	return nil, nil
 }
@@ -99,7 +99,7 @@ func (c *Fake) GetImageRepository(ctx api.Context, id string) (*imageapi.ImageRe
 	return &imageapi.ImageRepository{}, nil
 }
 
-func (c *Fake) WatchImageRepositories(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Fake) WatchImageRepositories(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-imagerepositories"})
 	return nil, nil
 }
@@ -174,7 +174,7 @@ func (c *Fake) DeleteDeployment(ctx api.Context, id string) error {
 	return nil
 }
 
-func (c *Fake) WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Fake) WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-deployments"})
 	return nil, nil
 }
@@ -204,7 +204,7 @@ func (c *Fake) DeleteRoute(ctx api.Context, id string) error {
 	return nil
 }
 
-func (c *Fake) WatchRoutes(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Fake) WatchRoutes(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-routes"})
 	return nil, nil
 }

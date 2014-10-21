@@ -54,7 +54,7 @@
               "version": "v1beta1",
               "containers": [{
                 "name": "ruby-helloworld",
-                "image": "127.0.0.1:5001/openshift/origin-ruby-sample",
+                "image": "172.17.17.1:5001/openshift/origin-ruby-sample",
                 "env": [
                   {
                     "name": "ADMIN_USERNAME",

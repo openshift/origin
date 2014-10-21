@@ -131,7 +131,7 @@ func TestHandleConfigChangeWithPodTemplateDiff(t *testing.T) {
 
 func manualDeploymentConfig() *deployapi.DeploymentConfig {
   return &deployapi.DeploymentConfig{
-    JSONBase: kapi.JSONBase{ID: "manual-deploy-config"},
+    TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config"},
     Triggers: []deployapi.DeploymentTriggerPolicy{
       {
         Type: deployapi.DeploymentTriggerManual,
@@ -172,7 +172,7 @@ func manualDeploymentConfig() *deployapi.DeploymentConfig {
 
 func matchingDeployment() *deployapi.Deployment {
   return &deployapi.Deployment{
-    JSONBase: kapi.JSONBase{ID: "manual-deploy-config-1"},
+    TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config-1"},
     Status:   deployapi.DeploymentStatusNew,
     Strategy: deployapi.DeploymentStrategy{
       Type: deployapi.DeploymentStrategyTypeCustomPod,

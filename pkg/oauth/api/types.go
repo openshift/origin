@@ -5,7 +5,7 @@ import (
 )
 
 type AccessToken struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is the unique value for an access token - also known as its secret
@@ -20,7 +20,7 @@ type AccessToken struct {
 }
 
 type AuthorizeToken struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 
 	// Name is the unique value for an authorization token - also known as its secret
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
@@ -49,7 +49,7 @@ type AuthorizeToken struct {
 }
 
 type Client struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is the unique identifier of the client
@@ -63,7 +63,7 @@ type Client struct {
 }
 
 type ClientAuthorization struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 
 	// ClientName references the client that created this authorization
 	ClientName string `json:"clientName,omitempty" yaml:"clientName,omitempty"`
@@ -80,22 +80,22 @@ type ClientAuthorization struct {
 }
 
 type AccessTokenList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []AccessToken `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type AuthorizeTokenList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []AuthorizeToken `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type ClientList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []Client `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type ClientAuthorizationList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []ClientAuthorization `json:"items,omitempty" yaml:"items,omitempty"`
 }
 

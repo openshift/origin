@@ -147,13 +147,13 @@ func (lw *podLW) List() (runtime.Object, error) {
 }
 
 // Watch watches all pods with the given selector.
-func (lw *podLW) Watch(resourceVersion uint64) (watch.Interface, error) {
+func (lw *podLW) Watch(resourceVersion string) (watch.Interface, error) {
   return lw.client.
     Get().
     Path("watch").
     Path("pods").
     SelectorParam("labels", lw.labelSelector).
-    UintParam("resourceVersion", resourceVersion).
+    Param("resourceVersion", resourceVersion).
     Watch()
 }
 
@@ -190,8 +190,8 @@ func (lw *deploymentLW) List() (runtime.Object, error) {
 }
 
 // Watch watches all Deployments matching the given field selector.
-func (lw *deploymentLW) Watch(resourceVersion uint64) (watch.Interface, error) {
-  return lw.client.WatchDeployments(kapi.NewContext(), lw.field, labels.Everything(), 0)
+func (lw *deploymentLW) Watch(resourceVersion string) (watch.Interface, error) {
+  return lw.client.WatchDeployments(kapi.NewContext(), lw.field, labels.Everything(), "0")
 }
 
 // deploymentConfigLW is a ListWatcher implementation for DeploymentConfigs.
@@ -205,8 +205,8 @@ func (lw *deploymentConfigLW) List() (runtime.Object, error) {
 }
 
 // Watch watches all DeploymentConfigs.
-func (lw *deploymentConfigLW) Watch(resourceVersion uint64) (watch.Interface, error) {
-  return lw.client.WatchDeploymentConfigs(kapi.NewContext(), labels.Everything(), labels.Everything(), 0)
+func (lw *deploymentConfigLW) Watch(resourceVersion string) (watch.Interface, error) {
+  return lw.client.WatchDeploymentConfigs(kapi.NewContext(), labels.Everything(), labels.Everything(), "0")
 }
 
 // imageRepositoryLW is a ListWatcher for ImageRepositories.
@@ -220,6 +220,6 @@ func (lw *imageRepositoryLW) List() (runtime.Object, error) {
 }
 
 // Watch watches all ImageRepositories.
-func (lw *imageRepositoryLW) Watch(resourceVersion uint64) (watch.Interface, error) {
-  return lw.client.WatchImageRepositories(kapi.NewContext(), labels.Everything(), labels.Everything(), 0)
+func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, error) {
+  return lw.client.WatchImageRepositories(kapi.NewContext(), labels.Everything(), labels.Everything(), "0")
 }

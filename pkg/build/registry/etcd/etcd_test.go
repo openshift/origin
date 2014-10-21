@@ -16,12 +16,12 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
+	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
 }
 
 func TestEtcdGetBuild(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/registry/builds/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/registry/builds/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	build, err := registry.GetBuild("foo")
 	if err != nil {
@@ -57,7 +57,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(&api.Build{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 		Input: api.BuildInput{
@@ -94,14 +94,14 @@ func TestEtcdCreateBuildAlreadyExisting(t *testing.T) {
 	fakeClient.Data["/registry/builds/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Build{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(&api.Build{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -116,7 +116,7 @@ func TestEtcdDeleteBuild(t *testing.T) {
 
 	key := "/registry/builds/foo"
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Build{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuild("foo")
@@ -162,12 +162,12 @@ func TestEtcdListBuilds(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 						}),
 					},
 				},
@@ -188,7 +188,7 @@ func TestEtcdListBuilds(t *testing.T) {
 
 func TestEtcdGetBuildConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/registry/build-configs/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/registry/build-configs/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	buildConfig, err := registry.GetBuildConfig("foo")
 	if err != nil {
@@ -224,7 +224,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(&api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 		DesiredInput: api.BuildInput{
@@ -259,14 +259,14 @@ func TestEtcdCreateBuildConfigAlreadyExisting(t *testing.T) {
 	fakeClient.Data["/registry/build-configs/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(&api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -281,7 +281,7 @@ func TestEtcdDeleteBuildConfig(t *testing.T) {
 
 	key := "/registry/build-configs/foo"
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuildConfig("foo")
@@ -327,12 +327,12 @@ func TestEtcdListBuildConfigs(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 						}),
 					},
 				},

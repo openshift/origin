@@ -9,7 +9,7 @@ import (
 // Registry is an interface for things that know how to store DeploymentConfigs.
 type Registry interface {
 	ListDeploymentConfigs(selector labels.Selector) (*api.DeploymentConfigList, error)
-	WatchDeploymentConfigs(resourceVersion uint64, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error)
+	WatchDeploymentConfigs(resourceVersion string, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error)
 	GetDeploymentConfig(id string) (*api.DeploymentConfig, error)
 	CreateDeploymentConfig(deploymentConfig *api.DeploymentConfig) error
 	UpdateDeploymentConfig(deploymentConfig *api.DeploymentConfig) error

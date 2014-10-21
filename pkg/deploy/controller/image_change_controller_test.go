@@ -113,7 +113,7 @@ func TestImageChange(t *testing.T) {
 
 func originalImageRepo() *imageapi.ImageRepository {
   return &imageapi.ImageRepository{
-    JSONBase:              kapi.JSONBase{ID: "test-image-repo"},
+    TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
     DockerImageRepository: "registry:8080/openshift/test-image",
     Tags: map[string]string{
       "test-tag": "ref-1",
@@ -123,7 +123,7 @@ func originalImageRepo() *imageapi.ImageRepository {
 
 func unregisteredTagUpdate() *imageapi.ImageRepository {
   return &imageapi.ImageRepository{
-    JSONBase:              kapi.JSONBase{ID: "test-image-repo"},
+    TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
     DockerImageRepository: "registry:8080/openshift/test-image",
     Tags: map[string]string{
       "test-tag":       "ref-1",
@@ -134,7 +134,7 @@ func unregisteredTagUpdate() *imageapi.ImageRepository {
 
 func tagUpdate() *imageapi.ImageRepository {
   return &imageapi.ImageRepository{
-    JSONBase:              kapi.JSONBase{ID: "test-image-repo"},
+    TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
     DockerImageRepository: "registry:8080/openshift/test-image",
     Tags: map[string]string{
       "test-tag": "ref-2",
@@ -144,7 +144,7 @@ func tagUpdate() *imageapi.ImageRepository {
 
 func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
   return &deployapi.DeploymentConfig{
-    JSONBase: kapi.JSONBase{ID: "image-change-deploy-config"},
+    TypeMeta: kapi.TypeMeta{ID: "image-change-deploy-config"},
     Triggers: []deployapi.DeploymentTriggerPolicy{
       {
         Type: deployapi.DeploymentTriggerOnImageChange,
@@ -191,7 +191,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 
 func regeneratedConfig() *deployapi.DeploymentConfig {
   return &deployapi.DeploymentConfig{
-    JSONBase: kapi.JSONBase{ID: "image-change-deploy-config"},
+    TypeMeta: kapi.TypeMeta{ID: "image-change-deploy-config"},
     Triggers: []deployapi.DeploymentTriggerPolicy{
       {
         Type: deployapi.DeploymentTriggerOnImageChange,

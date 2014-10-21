@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -9,9 +10,9 @@ import (
 	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	// done to force the service package into godeps
-	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/service"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 	"github.com/golang/glog"
@@ -27,9 +28,17 @@ const (
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
 	NodeHosts []string
+	PortalNet *net.IPNet
 
 	EtcdHelper tools.EtcdHelper
 	KubeClient *kubeclient.Client
+}
+
+// TODO: Longer term we should read this from some config store, rather than a flag.
+func (c *MasterConfig) EnsurePortalFlags() {
+	if c.PortalNet == nil {
+		glog.Fatal("No --portal-net specified")
+	}
 }
 
 // InstallAPI starts a Kubernetes master and registers the supported REST APIs
@@ -48,6 +57,7 @@ func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
 		HealthCheckMinions: true,
 		Minions:            c.NodeHosts,
 		PodInfoGetter:      podInfoGetter,
+		PortalNet:          c.PortalNet,
 	}
 	m := master.New(masterConfig)
 
@@ -67,7 +77,15 @@ func (c *MasterConfig) RunReplicationController() {
 	glog.Infof("Started Kubernetes Replication Manager")
 }
 
-// RunReplicationController starts the Kubernetes scheduler
+// RunEndpointController starts the Kubernetes replication controller sync loop
+func (c *MasterConfig) RunEndpointController() {
+	endpoints := service.NewEndpointController(c.KubeClient)
+	go kubeutil.Forever(func() { endpoints.SyncServiceEndpoints() }, time.Second*10)
+
+	glog.Infof("Started Kubernetes Replication Manager")
+}
+
+// RunScheduler starts the Kubernetes scheduler
 func (c *MasterConfig) RunScheduler() {
 	configFactory := &factory.ConfigFactory{Client: c.KubeClient}
 	config := configFactory.Create()

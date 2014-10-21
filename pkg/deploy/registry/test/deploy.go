@@ -56,6 +56,6 @@ func (r *DeploymentRegistry) DeleteDeployment(id string) error {
 	return r.Err
 }
 
-func (r *DeploymentRegistry) WatchDeployments(resourceVersion uint64, filter func(repo *api.Deployment) bool) (watch.Interface, error) {
+func (r *DeploymentRegistry) WatchDeployments(resourceVersion string, filter func(repo *api.Deployment) bool) (watch.Interface, error) {
 	return nil, r.Err
 }

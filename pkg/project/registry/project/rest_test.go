@@ -56,12 +56,12 @@ func TestListProjectsPopulatedList(t *testing.T) {
 	mockRegistry.Projects = &api.ProjectList{
 		Items: []api.Project{
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "bar",
 				},
 			},
@@ -114,7 +114,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Project{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -143,7 +143,7 @@ func TestCreateProjectOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Project{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -184,7 +184,7 @@ func TestGetProjectError(t *testing.T) {
 func TestGetProjectOK(t *testing.T) {
 	mockRegistry := test.NewProjectRegistry()
 	mockRegistry.Project = &api.Project{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 

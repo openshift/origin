@@ -117,7 +117,7 @@ func TestListBuildsError(t *testing.T) {
 }
 
 func TestListEmptyBuildList(t *testing.T) {
-	mockRegistry := test.BuildRegistry{Builds: &api.BuildList{JSONBase: kubeapi.JSONBase{ResourceVersion: 1}}}
+	mockRegistry := test.BuildRegistry{Builds: &api.BuildList{TypeMeta: kubeapi.TypeMeta{ResourceVersion: "1"}}}
 	storage := REST{&mockRegistry}
 	builds, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
@@ -127,7 +127,7 @@ func TestListEmptyBuildList(t *testing.T) {
 	if len(builds.(*api.BuildList).Items) != 0 {
 		t.Errorf("Unexpected non-zero ctrl list: %#v", builds)
 	}
-	if builds.(*api.BuildList).ResourceVersion != 1 {
+	if builds.(*api.BuildList).ResourceVersion != "1" {
 		t.Errorf("Unexpected resource version: %#v", builds)
 	}
 }
@@ -137,12 +137,12 @@ func TestListBuilds(t *testing.T) {
 		Builds: &api.BuildList{
 			Items: []api.Build{
 				{
-					JSONBase: kubeapi.JSONBase{
+					TypeMeta: kubeapi.TypeMeta{
 						ID: "foo",
 					},
 				},
 				{
-					JSONBase: kubeapi.JSONBase{
+					TypeMeta: kubeapi.TypeMeta{
 						ID: "bar",
 					},
 				},
@@ -171,7 +171,7 @@ func TestBuildDecode(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	storage := REST{&mockRegistry}
 	build := &api.Build{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	}
@@ -311,7 +311,7 @@ func TestBuildRESTValidatesCreate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.Build{
 		"empty input": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			Input:    api.BuildInput{},
 		},
 	}
@@ -331,14 +331,14 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.Build{
 		"empty ID": {
-			JSONBase: kubeapi.JSONBase{ID: ""},
+			TypeMeta: kubeapi.TypeMeta{ID: ""},
 			Input: api.BuildInput{
 				SourceURI: "http://my.build.com/the/build/Dockerfile",
 				ImageTag:  "repository/dataBuild",
 			},
 		},
 		"empty build input": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			Input:    api.BuildInput{},
 		},
 	}
@@ -355,7 +355,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 
 func mockBuild() *api.Build {
 	return &api.Build{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "dataBuild",
 		},
 		Input: api.BuildInput{

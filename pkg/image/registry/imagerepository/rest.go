@@ -49,7 +49,7 @@ func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 }
 
 // Watch begins watching for new, changed, or deleted ImageRepositories.
-func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return s.registry.WatchImageRepositories(resourceVersion, func(repo *api.ImageRepository) bool {
 		fields := labels.Set{
 			"ID": repo.ID,

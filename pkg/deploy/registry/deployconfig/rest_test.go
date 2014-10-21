@@ -56,12 +56,12 @@ func TestListDeploymentConfigsPopulatedList(t *testing.T) {
 	mockRegistry.DeploymentConfigs = &api.DeploymentConfigList{
 		Items: []api.DeploymentConfig{
 			{
-				JSONBase: kapi.JSONBase{
+				TypeMeta: kapi.TypeMeta{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kapi.JSONBase{
+				TypeMeta: kapi.TypeMeta{
 					ID: "bar",
 				},
 			},
@@ -102,9 +102,9 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 		Template: api.DeploymentTemplate{
-			Strategy: deploytest.OkStrategy(),
+			Strategy:           deploytest.OkStrategy(),
 			ControllerTemplate: deploytest.OkControllerTemplate(),
 		},
 	})
@@ -135,9 +135,9 @@ func TestCreateDeploymentConfigOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 		Template: api.DeploymentTemplate{
-			Strategy: deploytest.OkStrategy(),
+			Strategy:           deploytest.OkStrategy(),
 			ControllerTemplate: deploytest.OkControllerTemplate(),
 		},
 	})
@@ -180,7 +180,7 @@ func TestGetDeploymentConfigError(t *testing.T) {
 func TestGetDeploymentConfigOK(t *testing.T) {
 	mockRegistry := test.NewDeploymentConfigRegistry()
 	mockRegistry.DeploymentConfig = &api.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 
@@ -226,7 +226,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "bar"},
+		TypeMeta: kapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
@@ -246,7 +246,7 @@ func TestUpdateDeploymentConfigOK(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "bar"},
+		TypeMeta: kapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)

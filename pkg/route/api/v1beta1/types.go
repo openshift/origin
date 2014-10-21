@@ -6,7 +6,7 @@ import (
 
 // Route encapsulates the inputs needed to connect a DNS/alias to a service proxy.
 type Route struct {
-	v1beta1.JSONBase         `json:",inline" yaml:",inline"`
+	v1beta1.TypeMeta         `json:",inline" yaml:",inline"`
 
 	// Required: Alias/DNS that points to the service
 	// Can be host or host:port
@@ -22,6 +22,6 @@ type Route struct {
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	v1beta1.JSONBase `json:",inline" yaml:",inline"`
+	v1beta1.TypeMeta `json:",inline" yaml:",inline"`
 	Items []Route    `json:"items,omitempty" yaml:"items,omitempty"`
 }

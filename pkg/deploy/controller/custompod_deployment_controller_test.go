@@ -195,7 +195,7 @@ func TestHandlePodTerminatedNotOk(t *testing.T) {
 
 func basicDeployment() *deployapi.Deployment {
   return &deployapi.Deployment{
-    JSONBase: kapi.JSONBase{ID: "deploy1"},
+    TypeMeta: kapi.TypeMeta{ID: "deploy1"},
     Status:   deployapi.DeploymentStatusNew,
     Strategy: deployapi.DeploymentStrategy{
       Type: deployapi.DeploymentStrategyTypeBasic,

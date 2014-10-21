@@ -10,7 +10,7 @@ import (
 
 func TestValidateImageOK(t *testing.T) {
 	errs := ValidateImage(&api.Image{
-		JSONBase:             kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:             kubeapi.TypeMeta{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 	if len(errs) > 0 {
@@ -25,7 +25,7 @@ func TestValidateImageMissingFields(t *testing.T) {
 		F string
 	}{
 		"missing ID":                   {api.Image{DockerImageReference: "ref"}, errors.ValidationErrorTypeRequired, "ID"},
-		"missing DockerImageReference": {api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}, errors.ValidationErrorTypeRequired, "DockerImageReference"},
+		"missing DockerImageReference": {api.Image{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}, errors.ValidationErrorTypeRequired, "DockerImageReference"},
 	}
 
 	for k, v := range errorCases {
@@ -55,7 +55,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			api.ImageRepositoryMapping{
 				Tag: "latest",
 				Image: api.Image{
-					JSONBase: kubeapi.JSONBase{
+					TypeMeta: kubeapi.TypeMeta{
 						ID: "foo",
 					},
 					DockerImageReference: "openshift/ruby-19-centos",
@@ -68,7 +68,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			api.ImageRepositoryMapping{
 				DockerImageRepository: "openshift/ruby-19-centos",
 				Image: api.Image{
-					JSONBase: kubeapi.JSONBase{
+					TypeMeta: kubeapi.TypeMeta{
 						ID: "foo",
 					},
 					DockerImageReference: "openshift/ruby-19-centos",

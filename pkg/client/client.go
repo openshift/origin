@@ -56,7 +56,7 @@ type ImageInterface interface {
 type ImageRepositoryInterface interface {
 	ListImageRepositories(ctx api.Context, labels labels.Selector) (*imageapi.ImageRepositoryList, error)
 	GetImageRepository(ctx api.Context, id string) (*imageapi.ImageRepository, error)
-	WatchImageRepositories(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error)
+	WatchImageRepositories(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
 	CreateImageRepository(ctx api.Context, repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 	UpdateImageRepository(ctx api.Context, repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 }
@@ -69,7 +69,7 @@ type ImageRepositoryMappingInterface interface {
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
 	ListDeploymentConfigs(ctx api.Context, selector labels.Selector) (*deployapi.DeploymentConfigList, error)
-	WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error)
+	WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
 	GetDeploymentConfig(ctx api.Context, id string) (*deployapi.DeploymentConfig, error)
 	CreateDeploymentConfig(ctx api.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	UpdateDeploymentConfig(ctx api.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
@@ -84,7 +84,7 @@ type DeploymentInterface interface {
 	CreateDeployment(ctx api.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	UpdateDeployment(ctx api.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	DeleteDeployment(ctx api.Context, id string) error
-	WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error)
+	WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // RouteInterface exposes methods on Route resources
@@ -94,7 +94,7 @@ type RouteInterface interface {
 	CreateRoute(ctx api.Context, route *routeapi.Route) (*routeapi.Route, error)
 	UpdateRoute(ctx api.Context, route *routeapi.Route) (*routeapi.Route, error)
 	DeleteRoute(ctx api.Context, id string) error
-	WatchRoutes(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error)
+	WatchRoutes(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // Client is an OpenShift client object
@@ -227,11 +227,11 @@ func (c *Client) GetImageRepository(ctx api.Context, id string) (result *imageap
 }
 
 // WatchImageRepositories returns a watch.Interface that watches the requested imagerepositories.
-func (c *Client) WatchImageRepositories(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Client) WatchImageRepositories(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Path("watch").
 		Path("imageRepositories").
-		UintParam("resourceVersion", resourceVersion).
+		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Watch()
@@ -263,11 +263,11 @@ func (c *Client) ListDeploymentConfigs(ctx api.Context, selector labels.Selector
 	return
 }
 
-func (c *Client) WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Client) WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Path("watch").
 		Path("deploymentConfigs").
-		UintParam("resourceVersion", resourceVersion).
+		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Watch()
@@ -340,11 +340,11 @@ func (c *Client) DeleteDeployment(ctx api.Context, id string) error {
 }
 
 // WatchDeployments returns a watch.Interface that watches the requested deployments.
-func (c *Client) WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Client) WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Path("watch").
 		Path("deployments").
-		UintParam("resourceVersion", resourceVersion).
+		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Watch()
@@ -384,11 +384,11 @@ func (c *Client) UpdateRoute(ctx api.Context, route *routeapi.Route) (result *ro
 }
 
 // WatchRoutes returns a watch.Interface that watches the requested routes.
-func (c *Client) WatchRoutes(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Client) WatchRoutes(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Path("watch").
 		Path("routes").
-		UintParam("resourceVersion", resourceVersion).
+		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Watch()

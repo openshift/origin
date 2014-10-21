@@ -123,7 +123,7 @@ func (i *testChangeStrategy) UpdateDeploymentConfig(ctx kapi.Context, config *de
 
 func initialConfig() *deployapi.DeploymentConfig {
   return &deployapi.DeploymentConfig{
-    JSONBase: kapi.JSONBase{ID: "test-deploy-config"},
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
     Triggers: []deployapi.DeploymentTriggerPolicy{
       {
         Type: deployapi.DeploymentTriggerOnConfigChange,
@@ -165,7 +165,7 @@ func initialConfig() *deployapi.DeploymentConfig {
 
 func diffedConfig() *deployapi.DeploymentConfig {
   return &deployapi.DeploymentConfig{
-    JSONBase: kapi.JSONBase{ID: "test-deploy-config"},
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
     Triggers: []deployapi.DeploymentTriggerPolicy{
       {
         Type: deployapi.DeploymentTriggerOnConfigChange,
@@ -207,7 +207,7 @@ func diffedConfig() *deployapi.DeploymentConfig {
 
 func generatedConfig() *deployapi.DeploymentConfig {
   return &deployapi.DeploymentConfig{
-    JSONBase: kapi.JSONBase{ID: "test-deploy-config"},
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
     Triggers: []deployapi.DeploymentTriggerPolicy{
       {
         Type: deployapi.DeploymentTriggerOnConfigChange,
@@ -249,7 +249,7 @@ func generatedConfig() *deployapi.DeploymentConfig {
 
 func matchingInitialDeployment() *deployapi.Deployment {
   return &deployapi.Deployment{
-    JSONBase: kapi.JSONBase{ID: "test-deploy-config-1"},
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config-1"},
     Status:   deployapi.DeploymentStatusNew,
     Strategy: deployapi.DeploymentStrategy{
       Type: deployapi.DeploymentStrategyTypeCustomPod,

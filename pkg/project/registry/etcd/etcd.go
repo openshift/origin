@@ -41,7 +41,7 @@ func makeProjectKey(ctx kubeapi.Context, id string) string {
 // ListProjects retrieves a list of projects that match selector.
 func (r *Etcd) ListProjects(ctx kubeapi.Context, selector labels.Selector) (*api.ProjectList, error) {
 	list := api.ProjectList{}
-	err := r.ExtractList(makeProjectListKey(ctx), &list.Items, &list.ResourceVersion)
+	err := r.ExtractToList(makeProjectListKey(ctx), &list)
 	if err != nil {
 		return nil, err
 	}

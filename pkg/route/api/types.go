@@ -6,7 +6,7 @@ import (
 
 // Route encapsulates the inputs needed to connect a DNS/alias to a service proxy.
 type Route struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta         `json:",inline" yaml:",inline"`
 
 	// Required: Alias/DNS that points to the service
 	// Can be host or host:port
@@ -22,6 +22,6 @@ type Route struct {
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
-	Items            []Route `json:"items,omitempty" yaml:"items,omitempty"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	Items []Route    `json:"items,omitempty" yaml:"items,omitempty"`
 }

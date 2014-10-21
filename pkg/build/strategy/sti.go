@@ -36,7 +36,7 @@ func NewSTIBuildStrategy(stiBuilderImage string, tc TempDirectoryCreator, useLoc
 // TODO: Make the Pod definition configurable
 func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, error) {
 	pod := &api.Pod{
-		JSONBase: api.JSONBase{
+		TypeMeta: api.TypeMeta{
 			ID: build.PodID,
 		},
 		DesiredState: api.PodState{
