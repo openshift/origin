@@ -29,6 +29,15 @@ import (
 	"github.com/golang/glog"
 )
 
+// CreateOrUpdate may be returned by a handler to distingush between a PUT
+// that creates an object and a PUT that updates an object.
+type CreateOrUpdate struct {
+	Created bool
+	Object  runtime.Object
+}
+
+func (*CreateOrUpdate) IsAnAPIObject() {}
+
 type RESTHandler struct {
 	storage         map[string]RESTStorage
 	codec           runtime.Codec
@@ -231,6 +240,9 @@ func (h *RESTHandler) finishReq(op *Operation, req *http.Request, w http.Respons
 			if stat.Code != 0 {
 				status = stat.Code
 			}
+		case *CreateOrUpdate:
+			obj = stat.Object
+			status = http.StatusCreated
 		}
 		writeJSON(status, h.codec, obj, w)
 	} else {

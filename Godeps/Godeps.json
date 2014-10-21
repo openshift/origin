@@ -228,6 +228,14 @@
 			"Rev": "a713d26df274e999ec10e9bbc7e73a1c4791053c"
 		},
 		{
+			"ImportPath": "github.com/RangelReale/osin",
+			"Rev": "1f4e9754a8931fbd9834ab11592f358418efc9ff"
+		},
+		{
+			"ImportPath": "github.com/RangelReale/osincli",
+			"Rev": "325fd800be65f8133ddbe73aef3cbe6780266a47"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/config",
 			"Comment": "v0.4.3-7-gfc2afe1",
 			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
@@ -403,6 +411,18 @@
 		{
 			"ImportPath": "github.com/google/gofuzz",
 			"Rev": "aef70dacbc78771e35beb261bb3a72986adf7906"
+	 	},
+                {
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "a8662172a384296ff59d28f837e151643c662985"
+		},
+		{
+			"ImportPath": "github.com/gorilla/securecookie",
+			"Rev": "1b0c7f6e9ab3d7f500fd7d50c7ad835ff428139b"
+		},
+		{
+			"ImportPath": "github.com/gorilla/sessions",
+			"Rev": "aa5e036e6c44aec69a32eb41097001978b29ad31"
 		},
 		{
 			"ImportPath": "github.com/influxdb/influxdb/client",

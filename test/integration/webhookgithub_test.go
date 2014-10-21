@@ -112,6 +112,7 @@ func TestWebhookGithubPing(t *testing.T) {
 }
 
 func setup(t *testing.T) (*osclient.Client, string) {
+	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
 	helper, _ := master.NewEtcdHelper(etcdClient.GetCluster(), klatest.Version)
 	m := master.New(&master.Config{

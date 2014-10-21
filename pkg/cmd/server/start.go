@@ -167,13 +167,19 @@ func NewCommandStartServer(name string) *cobra.Command {
 				osmaster.EnsureOpenShiftClient()
 				osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
+				auth := &origin.AuthConfig{
+					SessionSecrets: []string{"secret"},
+					EtcdHelper:     etcdHelper,
+				}
+
 				kmaster := &kubernetes.MasterConfig{
 					NodeHosts:  cfg.NodeList,
 					EtcdHelper: ketcdHelper,
 					KubeClient: osmaster.KubeClient,
 				}
 
-				osmaster.RunAPI(kmaster)
+				osmaster.RunAPI(kmaster, auth)
+
 				osmaster.RunAssetServer()
 				osmaster.RunBuildController()
 				osmaster.RunDeploymentController()
