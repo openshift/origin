@@ -24,7 +24,7 @@ openshift=$GO_OUT/openshift
 # setup()
 function setup()
 {
-  cleanup_openshift_server
+  stop_openshift_server
   echo "[INFO] `$openshift version`"
 }
 
@@ -34,8 +34,9 @@ function teardown()
   if [ $? -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
 	echo "[INFO] Server logs: $LOG_DIR/openshift.log"
+  cat $LOG_DIR/openshift.log
 	set +u
-    if [ ! -z $BUILD_ID ]; then
+  if [ ! -z $BUILD_ID ]; then
 	 $openshift kube buildLogs --id=$BUILD_ID > $LOG_DIR/build.log && echo "[INFO] Build logs: $LOG_DIR/build.log"
 	fi
 	set -u
@@ -44,7 +45,7 @@ function teardown()
   if [ "$SKIP_TEARDOWN" != "1" ]; then
     set +e
     echo "[INFO] Tearing down test"
-    cleanup_openshift_server
+    stop_openshift_server
     echo "[INFO] Stopping docker containers"; docker stop $(docker ps -a -q)
     echo "[INFO] Removing docker containers"; docker rm $(docker ps -a -q)
     set -e
@@ -58,7 +59,7 @@ setup
 
 # Start All-in-one server and wait for health
 echo "[INFO] Starting OpenShift server"
-$openshift start --volume-dir=${VOLUME_DIR} --etcd-dir=${ETCD_DATA_DIR} &> ${LOG_DIR}/openshift.log &
+start_openshift_server ${VOLUME_DIR} ${ETCD_DATA_DIR} ${LOG_DIR}
 
 wait_for_url "http://localhost:10250/healthz" "[INFO] kubelet: " 1 30
 wait_for_url "http://localhost:8080/healthz" "[INFO] apiserver: "
@@ -72,6 +73,8 @@ wait_for_command "$openshift kube list pods | grep registryPod | grep Running" $
 
 echo "[INFO] Waiting for Docker registry service to start"
 wait_for_command "$openshift kube list services | grep registryPod"
+echo "[INFO] Probing the docker-registry"
+wait_for_url_timed "http://localhost:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 # Define a build configuration
 echo "[INFO] Create a build config"
