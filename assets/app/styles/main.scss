@@ -70,10 +70,6 @@ body {
 
 /* Responsive: Portrait tablets and up */
 @media screen and (min-width: 768px) {
-  .container {
-    max-width: 730px;
-  }
-
   /* Remove the padding we set earlier */
   .header,
   .marketing,
@@ -90,3 +86,36 @@ body {
     border-bottom: 0;
   }
 }
+
+
+
+/* -------------------------------------------------------
+ * TODO Pull these styles out, there are for the prototype
+ */
+
+ .pod-running {
+   color: $brand-success;
+   font-weight: bold;
+   background-color: $brand-success;
+   border: 1px solid #317831;
+ }
+
+.animate-repeat.ng-move,
+.animate-repeat.ng-enter,
+.animate-repeat.ng-leave {
+  -webkit-transition:all 1s;
+  transition:all 1s;
+}
+
+.animate-repeat.ng-leave.ng-leave-active,
+.animate-repeat.ng-move,
+.animate-repeat.ng-enter {
+  opacity:0;
+}
+
+.animate-repeat.ng-leave,
+.animate-repeat.ng-move.ng-move-active,
+.animate-repeat.ng-enter.ng-enter-active {
+  opacity:1;
+}
+

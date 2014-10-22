@@ -166,7 +166,15 @@ module.exports = function (grunt) {
     wiredep: {
       app: {
         src: ['<%= yeoman.app %>/index.html'],
-        ignorePath:  /\.\.\//
+        ignorePath:  /\.\.\//,
+        exclude: [
+          'bower_components/uri.js/src/IPv6.js',
+          'bower_components/uri.js/src/SecondLevelDomains.js',
+          'bower_components/uri.js/src/punycode.js',
+          'bower_components/uri.js/src/URI.min.js',
+          'bower_components/uri.js/src/jquery.URI.min.js',
+          'bower_components/uri.js/src/URI.fragmentQuery.js'
+        ]
       },
       sass: {
         src: ['<%= yeoman.app %>/styles/{,*/}*.{scss,sass}'],
