@@ -7,13 +7,13 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 )
 
 type PasswordAuthenticator interface {
 	authenticator.Password
-	AuthenticationSucceeded(context api.UserInfo, then string, w http.ResponseWriter, req *http.Request)
+	handlers.AuthenticationSuccessHandler
 }
 
 type LoginFormRenderer interface {

@@ -190,6 +190,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 				osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
 				auth := &origin.AuthConfig{
+					MasterAddr:     cfg.MasterAddr.URL.String(),
 					SessionSecrets: []string{"secret"},
 					EtcdHelper:     etcdHelper,
 				}

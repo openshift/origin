@@ -16,11 +16,8 @@ func NewRequestAuthenticator(context RequestContext, auth authenticator.Request,
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		user, ok, err := auth.AuthenticateRequest(req)
 		if err != nil || !ok {
-			// TODO make this actually fail.  For now, just let us know and continue on your merry way
-			glog.V(2).Infof("Token authentication failed when accessing: %v", req.URL)
-
-			// failed.ServeHTTP(w, req)
-			// return
+			failed.ServeHTTP(w, req)
+			return
 		} else {
 			glog.V(1).Infof("Found user, %v, when accessing %v", user, req.URL)
 

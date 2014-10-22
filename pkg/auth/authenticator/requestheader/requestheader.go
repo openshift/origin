@@ -1,7 +1,6 @@
 package requestheader
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/openshift/origin/pkg/auth/api"
@@ -34,8 +33,4 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bo
 		Name: name,
 	}
 	return user, true, nil
-}
-
-func (h *Authenticator) String() string {
-	return fmt.Sprintf("RequestHeaderAuthenticator{userHeaderName:%v}", h.config.UserNameHeader)
 }

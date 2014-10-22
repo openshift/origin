@@ -2,7 +2,6 @@ package session
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/openshift/origin/pkg/auth/api"
@@ -44,7 +43,7 @@ func (a *SessionAuthenticator) AuthenticateRequest(req *http.Request) (api.UserI
 	}, true, nil
 }
 
-func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, w http.ResponseWriter, req *http.Request) error {
+func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) error {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
 		return err
@@ -61,8 +60,4 @@ func (a *SessionAuthenticator) InvalidateAuthentication(context api.UserInfo, w 
 	}
 	session.Values()[UserNameKey] = ""
 	return a.store.Save(w, req)
-}
-
-func (a *SessionAuthenticator) String() string {
-	return fmt.Sprintf("SessionAuthenticator{name=%v}", a.name)
 }

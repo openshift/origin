@@ -1,7 +1,6 @@
 package bearertoken
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -29,8 +28,4 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bo
 
 	token := parts[1]
 	return a.auth.AuthenticateToken(token)
-}
-
-func (a *Authenticator) String() string {
-	return fmt.Sprintf("TokenBearerAuthenticator{tokenValidator:%v}", a.auth)
 }

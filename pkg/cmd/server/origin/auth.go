@@ -14,13 +14,15 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authfile "github.com/openshift/origin/pkg/auth/authenticator/file"
 	"github.com/openshift/origin/pkg/auth/authenticator/requestheader"
+	"github.com/openshift/origin/pkg/auth/oauth/external"
+	"github.com/openshift/origin/pkg/auth/oauth/external/github"
+	"github.com/openshift/origin/pkg/auth/oauth/external/google"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/session"
 
-	"github.com/openshift/origin/pkg/auth/oauth/callbackhandlers/googlecallback"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
@@ -34,16 +36,9 @@ const (
 )
 
 type AuthConfig struct {
+	MasterAddr     string
 	SessionSecrets []string
 	EtcdHelper     tools.EtcdHelper
-}
-
-func getGoogleClientId() string {
-	return env("ORIGIN_GOOGLE_CLIENT_ID", "")
-}
-
-func getGoogleClientSecret() string {
-	return env("ORIGIN_GOOGLE_CLIENT_SECRET", "")
 }
 
 // InstallAPI starts an OAuth2 server and registers the supported REST APIs
@@ -54,10 +49,19 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
 	authRequestHandler := c.getAuthenticationRequestHandler()
-	authHandler := c.getAuthenticationHandler()
+
+	// Check if the authentication handler wants to be told when we authenticated
+	success, ok := authRequestHandler.(handlers.AuthenticationSuccessHandler)
+	if !ok {
+		success = emptySuccess{}
+	}
+	authHandler := c.getAuthenticationHandler(mux, success, emptyError{})
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
+
+	grantChecker := registry.NewClientAuthorizationGrantChecker(oauthEtcd)
+	grantHandler := emptyGrant{}
 
 	server := osinserver.New(
 		config,
@@ -68,8 +72,8 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 				authRequestHandler,
 			),
 			handlers.NewGrantCheck(
-				registry.NewClientAuthorizationGrantChecker(oauthEtcd),
-				emptyGrant{},
+				grantChecker,
+				grantHandler,
 			),
 		},
 		osinserver.AccessHandlers{
@@ -77,14 +81,11 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 		},
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
-	glog.Infof("oauth server configured as: %v", server)
-
-	mux.Handle(OpenShiftOAuthCallbackPrefix+"/google", &googlecallback.OauthCallbackHandler{oauthetcd.New(c.EtcdHelper), getGoogleClientId(), getGoogleClientSecret()})
-
-	// Check if the authentication handler wants to be told when we authenticated
-	successHandler, _ := authRequestHandler.(handlers.AuthenticationSucceeded)
-	login := login.NewLogin(emptyCsrf{}, &callbackPasswordAuthenticator{emptyPasswordAuth{}, successHandler}, login.DefaultLoginFormRenderer)
-	login.Install(mux, OpenShiftLoginPrefix)
+	// glog.Infof("oauth server configured as: %#v", server)
+	// glog.Infof("auth handler: %#v", authHandler)
+	// glog.Infof("auth request handler: %#v", authRequestHandler)
+	// glog.Infof("grant checker: %#v", grantChecker)
+	// glog.Infof("grant handler: %#v", grantHandler)
 
 	return []string{
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
@@ -92,16 +93,38 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	}
 }
 
-func (c *AuthConfig) getAuthenticationHandler() handlers.AuthenticationHandler {
+func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.AuthenticationSuccessHandler, error handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authHandler handlers.AuthenticationHandler
 	authHandlerType := env("ORIGIN_AUTH_HANDLER", "empty")
 	switch authHandlerType {
-	case "google":
-		authHandler = &googlecallback.GoogleAuthenticationHandler{"http://localhost:8080" + OpenShiftOAuthCallbackPrefix + "/google", getGoogleClientId()}
+	case "google", "github":
+		callbackPath := OpenShiftOAuthCallbackPrefix + "/" + authHandlerType
+
+		var oauthProvider external.Provider
+		if authHandlerType == "google" {
+			oauthProvider = google.NewProvider(env("ORIGIN_GOOGLE_CLIENT_ID", ""), env("ORIGIN_GOOGLE_CLIENT_SECRET", ""))
+		} else if authHandlerType == "github" {
+			oauthProvider = github.NewProvider(env("ORIGIN_GITHUB_CLIENT_ID", ""), env("ORIGIN_GITHUB_CLIENT_SECRET", ""))
+		}
+
+		state := external.DefaultState()
+		success := handlers.AuthenticationSuccessHandlers{success, state.(handlers.AuthenticationSuccessHandler)}
+		oauthHandler, err := external.NewHandler(oauthProvider, state, c.MasterAddr+callbackPath, success, error)
+		if err != nil {
+			glog.Fatalf("unexpected error: %v", err)
+		}
+
+		mux.Handle(callbackPath, oauthHandler)
+		authHandler = oauthHandler
 	case "password":
 		authHandler = &redirectAuthHandler{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
+
+		success := handlers.AuthenticationSuccessHandlers{success, redirectSuccessHandler{}}
+
+		login := login.NewLogin(emptyCsrf{}, &callbackPasswordAuthenticator{emptyPasswordAuth{}, success}, login.DefaultLoginFormRenderer)
+		login.Install(mux, OpenShiftLoginPrefix)
 	case "empty":
 		authHandler = emptyAuth{}
 	default:
@@ -120,7 +143,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
 	case "bearer":
 		tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
 		if err != nil {
-			glog.Fatalf("Error creating TokenAutenticator: %v.  The oauth server cannot start!", err)
+			glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
 		}
 		authRequestHandler = bearertoken.New(tokenAuthenticator)
 	case "requestheader":
@@ -144,7 +167,7 @@ func GetTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, er
 	case "file":
 		return authfile.NewTokenAuthenticator(env("ORIGIN_AUTH_FILE_TOKEN_AUTHENTICATOR_PATH", "authorizedTokens.csv"))
 	default:
-		return nil, errors.New(fmt.Sprintf("No TokenAutenticator found that matches %v.  The oauth server cannot start!", tokenAuthenticatorType))
+		return nil, errors.New(fmt.Sprintf("No TokenAuthenticator found that matches %v.  The oauth server cannot start!", tokenAuthenticatorType))
 	}
 }
 
@@ -192,8 +215,8 @@ func (auth *redirectAuthHandler) String() string {
 
 type emptyGrant struct{}
 
-func (emptyGrant) GrantNeeded(grant *api.Grant, w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "<body>GrantNeeded - not implemented<pre>%#v</pre></body>", grant)
+func (emptyGrant) GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "<body>GrantNeeded - not implemented<pre>%#v\n%#v\n%#v</pre></body>", client, user, grant)
 }
 
 func (emptyGrant) GrantError(err error, w http.ResponseWriter, req *http.Request) {
@@ -228,28 +251,31 @@ func (emptyPasswordAuth) AuthenticatePassword(user, password string) (api.UserIn
 // Combines password auth, successful login callback, and "then" param redirection
 //
 type callbackPasswordAuthenticator struct {
-	password authenticator.Password
-	success  handlers.AuthenticationSucceeded
+	authenticator.Password
+	handlers.AuthenticationSuccessHandler
 }
 
-// for login.PasswordAuthenticator
-func (auth *callbackPasswordAuthenticator) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
-	return auth.password.AuthenticatePassword(user, password)
+// Redirects to the then param on successful authentication
+type redirectSuccessHandler struct{}
+
+func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) error {
+	if len(then) == 0 {
+		return fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)
+	}
+
+	http.Redirect(w, req, then, http.StatusFound)
+	return nil
 }
 
-// for login.PasswordAuthenticator
-func (auth *callbackPasswordAuthenticator) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) {
-	if auth.success != nil {
-		err := auth.success.AuthenticationSucceeded(user, w, req)
-		if err != nil {
-			fmt.Fprintf(w, "<body>Could not save session, err=%#v</body>", err)
-			return
-		}
-	}
+type emptySuccess struct{}
 
-	if len(then) != 0 {
-		http.Redirect(w, req, then, http.StatusFound)
-	} else {
-		fmt.Fprintf(w, "<body>PasswordAuthenticationSucceeded - user=%#v</body>", user)
-	}
+func (emptySuccess) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) error {
+	glog.V(4).Infof("AuthenticationSucceeded: %v (state=%s)", user, state)
+	return nil
+}
+
+type emptyError struct{}
+
+func (emptyError) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
+	glog.V(4).Infof("AuthenticationError: %v", err)
 }

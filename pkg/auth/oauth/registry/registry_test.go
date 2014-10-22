@@ -38,7 +38,7 @@ func (h *testHandlers) AuthenticateRequest(req *http.Request) (api.UserInfo, boo
 	return h.User, h.Authenticate, h.Err
 }
 
-func (h *testHandlers) GrantNeeded(grant *api.Grant, w http.ResponseWriter, req *http.Request) {
+func (h *testHandlers) GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) {
 	h.GrantNeed = true
 }
 

@@ -8,11 +8,12 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 )
 
 type RequestAuthenticator interface {
 	authenticator.Request
-	AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request)
+	handlers.AuthenticationSuccessHandler
 }
 
 type ConfirmFormRenderer interface {

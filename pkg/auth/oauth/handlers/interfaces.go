@@ -11,16 +11,12 @@ type AuthenticationHandler interface {
 	AuthenticationError(err error, w http.ResponseWriter, req *http.Request)
 }
 
-// AuthenticationSucceeded is called when a user was successfully authenticated
-// The user object may not be nil
-type AuthenticationSucceeded interface {
-	AuthenticationSucceeded(user api.UserInfo, w http.ResponseWriter, req *http.Request) error
+type AuthenticationSuccessHandler interface {
+	AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) error
 }
 
-// InvalidateAuthentication is called when an authentication is being invalidated (e.g. session timeout or log out)
-// The user parameter may be nil if unknown
-type AuthenticationInvalidator interface {
-	InvalidateAuthentication(user api.UserInfo, w http.ResponseWriter, req *http.Request) error
+type AuthenticationErrorHandler interface {
+	AuthenticationError(err error, w http.ResponseWriter, req *http.Request)
 }
 
 type GrantChecker interface {
@@ -28,6 +24,19 @@ type GrantChecker interface {
 }
 
 type GrantHandler interface {
-	GrantNeeded(grant *api.Grant, w http.ResponseWriter, req *http.Request)
+	GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request)
 	GrantError(err error, w http.ResponseWriter, req *http.Request)
+}
+
+// AuthenticationSuccessHandlers combines multiple AuthenticationSuccessHandler objects into a chain.
+// On success, each handler is called. If any handler returns an error, the chain is aborted.
+type AuthenticationSuccessHandlers []AuthenticationSuccessHandler
+
+func (all AuthenticationSuccessHandlers) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) error {
+	for _, h := range all {
+		if err := h.AuthenticationSucceeded(user, state, w, req); err != nil {
+			return err
+		}
+	}
+	return nil
 }

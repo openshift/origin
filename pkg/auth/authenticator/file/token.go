@@ -2,7 +2,6 @@ package file
 
 import (
 	"encoding/csv"
-	"fmt"
 	"io"
 	"os"
 
@@ -56,8 +55,4 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (api.UserInfo, bool
 		return nil, false, nil
 	}
 	return user, true, nil
-}
-
-func (a *TokenAuthenticator) String() string {
-	return fmt.Sprintf("CsvTokenValidator{csvLocation:%v}", a.path)
 }
