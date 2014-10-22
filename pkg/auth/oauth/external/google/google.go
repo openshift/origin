@@ -80,20 +80,27 @@ func decodeJWT(jwt string) (map[string]interface{}, error) {
 	}
 
 	encodedPayload := jwtParts[1]
-	glog.Infof("encodedPayload: %s\n", encodedPayload)
+	glog.V(4).Infof("got encodedPayload")
+
+	// Re-pad, if needed
+	if l := len(encodedPayload) % 4; l != 0 {
+		padding := strings.Repeat("=", 4-l)
+		encodedPayload += padding
+		glog.V(4).Infof("added padding: %s\n", padding)
+	}
 
 	decodedPayload, err := base64.StdEncoding.DecodeString(encodedPayload)
 	if err != nil {
 		return nil, fmt.Errorf("Error decoding payload: %v\n", err)
 	}
-	glog.Infof("decodedPayload: %s\n", decodedPayload)
+	glog.V(4).Infof("got decodedPayload")
 
 	var data map[string]interface{}
 	err = json.Unmarshal([]byte(decodedPayload), &data)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing token: %v\n", err)
 	}
-	glog.Infof("data: %#v\n", data)
+	glog.V(4).Infof("got id_token data")
 
 	return data, nil
 }

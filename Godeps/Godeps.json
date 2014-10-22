@@ -226,7 +226,7 @@
 		},
 		{
 			"ImportPath": "github.com/RangelReale/osincli",
-			"Rev": "325fd800be65f8133ddbe73aef3cbe6780266a47"
+			"Rev": "23618ea0fc3faa3f43954ce8ff48e31f5c784212"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/config",
