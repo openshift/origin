@@ -1,7 +1,9 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
+	"html"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -481,10 +483,30 @@ func (c *KubeConfig) executeBuildLogRequest(method string, client *osclient.Clie
 		glog.Fatalf("Error: %v", err)
 	}
 	defer readCloser.Close()
-	if _, err := io.Copy(os.Stdout, readCloser); err != nil {
+	ur := UnescapeReader{Reader: readCloser}
+	if _, err := io.Copy(os.Stdout, ur); err != nil {
 		glog.Fatalf("Error: %v", err)
 	}
 	return true
+}
+
+type UnescapeReader struct {
+	Reader io.Reader
+}
+
+func (w UnescapeReader) Read(p []byte) (n int, err error) {
+	bufReader := bufio.NewReader(w.Reader)
+	for {
+		line, _, err := bufReader.ReadLine()
+		if err == io.EOF {
+			return 0, err
+		}
+		lineString := string(line)
+		unescapedString := html.UnescapeString(lineString)
+		if unescapedString != "" {
+			fmt.Println(unescapedString[2:len(unescapedString)])
+		}
+	}
 }
 
 // executeTemplateRequest transform the JSON file with Config template into a
