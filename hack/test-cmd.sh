@@ -35,7 +35,7 @@ echo openshift: $out
 ${GO_OUT}/openshift start --master="${API_HOST}:${API_PORT}" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" 1>&2 &
 OS_PID=$!
 
-wait_for_url "http://127.0.0.1:${KUBELET_PORT}/healthz" "kubelet: "
+wait_for_url "http://localhost:${KUBELET_PORT}/healthz" "kubelet: " 1 30
 wait_for_url "http://${API_HOST}:${API_PORT}/healthz" "apiserver: "
 
 KUBE_CMD="${GO_OUT}/openshift kube -h http://${API_HOST}:${API_PORT} --expect_version_match"
