@@ -69,10 +69,12 @@ type ImageRepositoryMappingInterface interface {
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
 	ListDeploymentConfigs(ctx api.Context, selector labels.Selector) (*deployapi.DeploymentConfigList, error)
+	WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error)
 	GetDeploymentConfig(ctx api.Context, id string) (*deployapi.DeploymentConfig, error)
 	CreateDeploymentConfig(ctx api.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	UpdateDeploymentConfig(ctx api.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	DeleteDeploymentConfig(ctx api.Context, id string) error
+	GenerateDeploymentConfig(ctx api.Context, id string) (*deployapi.DeploymentConfig, error)
 }
 
 // DeploymentInterface contains methods for working with Deployments
@@ -82,6 +84,7 @@ type DeploymentInterface interface {
 	CreateDeployment(ctx api.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	UpdateDeployment(ctx api.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	DeleteDeployment(ctx api.Context, id string) error
+	WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error)
 }
 
 // RouteInterface exposes methods on Route resources
@@ -260,6 +263,16 @@ func (c *Client) ListDeploymentConfigs(ctx api.Context, selector labels.Selector
 	return
 }
 
+func (c *Client) WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return c.Get().
+		Path("watch").
+		Path("deploymentConfigs").
+		UintParam("resourceVersion", resourceVersion).
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Watch()
+}
+
 // GetDeploymentConfig returns information about a particular deploymentConfig
 func (c *Client) GetDeploymentConfig(ctx api.Context, id string) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
@@ -284,6 +297,13 @@ func (c *Client) UpdateDeploymentConfig(ctx api.Context, deploymentConfig *deplo
 // DeleteDeploymentConfig deletes an existing deploymentConfig.
 func (c *Client) DeleteDeploymentConfig(ctx api.Context, id string) error {
 	return c.Delete().Path("deploymentConfigs").Path(id).Do().Error()
+}
+
+// GenerateDeploymentConfig generates a new deploymentConfig for the given ID.
+func (c *Client) GenerateDeploymentConfig(ctx api.Context, id string) (result *deployapi.DeploymentConfig, err error) {
+	result = &deployapi.DeploymentConfig{}
+	err = c.Get().Path("generateDeploymentConfigs").Path(id).Do().Into(result)
+	return
 }
 
 // ListDeployments takes a selector, and returns the list of deployments that match that selector
@@ -317,6 +337,17 @@ func (c *Client) UpdateDeployment(ctx api.Context, deployment *deployapi.Deploym
 // DeleteDeployment deletes an existing replication deployment.
 func (c *Client) DeleteDeployment(ctx api.Context, id string) error {
 	return c.Delete().Path("deployments").Path(id).Do().Error()
+}
+
+// WatchDeployments returns a watch.Interface that watches the requested deployments.
+func (c *Client) WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return c.Get().
+		Path("watch").
+		Path("deployments").
+		UintParam("resourceVersion", resourceVersion).
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Watch()
 }
 
 // ListRoutes takes a selector, and returns the list of routes that match that selector

@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -20,13 +21,14 @@ type REST struct {
 	registry Registry
 }
 
+// NewREST creates a new REST backed by the given registry.
 func NewREST(registry Registry) apiserver.RESTStorage {
 	return &REST{
 		registry: registry,
 	}
 }
 
-// New creates a new Deployment for use with Create and Update
+// New creates a new Deployment for use with Create and Update.
 func (s *REST) New() runtime.Object {
 	return &deployapi.Deployment{}
 }
@@ -69,7 +71,7 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	if len(deployment.ID) == 0 {
 		deployment.ID = uuid.NewUUID().String()
 	}
-	deployment.State = deployapi.DeploymentNew
+	deployment.Status = deployapi.DeploymentStatusNew
 
 	if errs := validation.ValidateDeployment(deployment); len(errs) > 0 {
 		return nil, kubeerrors.NewInvalid("deployment", deployment.ID, errs)
@@ -100,4 +102,15 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 		}
 		return deployment, nil
 	}), nil
+}
+
+// Watch begins watching for new, changed, or deleted Deployments.
+func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return s.registry.WatchDeployments(resourceVersion, func(deployment *deployapi.Deployment) bool {
+		fields := labels.Set{
+			"ID":       deployment.ID,
+			"Strategy": string(deployment.Strategy.Type),
+		}
+		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
+	})
 }

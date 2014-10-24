@@ -2,6 +2,7 @@ package validation
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -10,9 +11,9 @@ import (
 //       upstream and fix when it goes in.
 
 func ValidateDeployment(deployment *deployapi.Deployment) errors.ErrorList {
-	result := validateDeploymentStrategy(&deployment.Strategy).Prefix("Strategy")
-
-	// TODO: validate ReplicationControllerState
+	result := validateDeploymentStrategy(&deployment.Strategy).Prefix("strategy")
+	controllerStateErrors := validation.ValidateReplicationControllerState(&deployment.ControllerTemplate)
+	result = append(result, controllerStateErrors.Prefix("controllerTemplate")...)
 
 	return result
 }
@@ -21,25 +22,57 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.E
 	result := errors.ErrorList{}
 
 	if len(strategy.Type) == 0 {
-		result = append(result, errors.NewFieldRequired("Type", ""))
+		result = append(result, errors.NewFieldRequired("type", ""))
 	}
 
-	if strategy.CustomPod == nil {
-		result = append(result, errors.NewFieldRequired("CustomPod", nil))
-	} else {
-		if len(strategy.CustomPod.Image) == 0 {
-			result = append(result, errors.NewFieldRequired("CustomPod.Image", ""))
+	if strategy.Type == deployapi.DeploymentStrategyTypeCustomPod {
+		if strategy.CustomPod == nil {
+			result = append(result, errors.NewFieldRequired("customPod", nil))
+		} else {
+			result = append(result, validateCustomPodStrategy(strategy.CustomPod).Prefix("customPod")...)
 		}
 	}
 
 	return result
 }
 
-func validateTriggerPolicy(policy *deployapi.DeploymentTriggerPolicy) errors.ErrorList {
+func validateCustomPodStrategy(customPod *deployapi.CustomPodDeploymentStrategy) errors.ErrorList {
 	result := errors.ErrorList{}
 
-	if len(policy.Type) == 0 {
-		result = append(result, errors.NewFieldRequired("Type", ""))
+	if len(customPod.Image) == 0 {
+		result = append(result, errors.NewFieldRequired("image", ""))
+	}
+
+	return result
+}
+
+func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) errors.ErrorList {
+	result := errors.ErrorList{}
+
+	if len(trigger.Type) == 0 {
+		result = append(result, errors.NewFieldRequired("type", ""))
+	}
+
+	if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+		if trigger.ImageChangeParams == nil {
+			result = append(result, errors.NewFieldRequired("imageChangeParams", nil))
+		} else {
+			result = append(result, validateImageChangeParams(trigger.ImageChangeParams).Prefix("imageChangeParams")...)
+		}
+	}
+
+	return result
+}
+
+func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams) errors.ErrorList {
+	result := errors.ErrorList{}
+
+	if len(params.RepositoryName) == 0 {
+		result = append(result, errors.NewFieldRequired("repositoryName", ""))
+	}
+
+	if len(params.ContainerNames) == 0 {
+		result = append(result, errors.NewFieldRequired("containerNames", ""))
 	}
 
 	return result
@@ -47,10 +80,14 @@ func validateTriggerPolicy(policy *deployapi.DeploymentTriggerPolicy) errors.Err
 
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ErrorList {
 	result := errors.ErrorList{}
-	result = append(result, validateTriggerPolicy(&config.TriggerPolicy).Prefix("TriggerPolicy")...)
-	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("Template.Strategy")...)
 
-	// TODO: validate ReplicationControllerState
+	for i, _ := range config.Triggers {
+		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	}
+
+	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
+	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
+	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
 
 	return result
 }
