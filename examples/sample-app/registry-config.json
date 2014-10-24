@@ -24,7 +24,7 @@
             "triggerPolicy": "manual",
             "configId": "registry-config",
             "strategy": {
-              "type": "customPod",
+              "type": "CustomPod",
               "customPod": {
                 "image": "openshift/kube-deploy"
               }
