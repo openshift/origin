@@ -5,13 +5,21 @@ package integration
 import (
 	"fmt"
 	"math/rand"
+	"os"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 )
 
 func newEtcdClient() *etcd.Client {
-	return etcd.NewClient([]string{"http://127.0.0.1:4001"})
+	etcdServers := []string{"http://127.0.0.1:4001"}
+
+	etcdFromEnv := os.Getenv("ETCD_SERVER")
+	if len(etcdFromEnv) > 0 {
+		etcdServers = []string{etcdFromEnv}
+	}
+
+	return etcd.NewClient(etcdServers)
 }
 
 func requireEtcd() {

@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/deploy/api"
+	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	"github.com/openshift/origin/pkg/deploy/registry/test"
 )
 
@@ -55,12 +56,12 @@ func TestListDeploymentConfigsPopulatedList(t *testing.T) {
 	mockRegistry.DeploymentConfigs = &api.DeploymentConfigList{
 		Items: []api.DeploymentConfig{
 			{
-				JSONBase: kubeapi.JSONBase{
+				JSONBase: kapi.JSONBase{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kubeapi.JSONBase{
+				JSONBase: kapi.JSONBase{
 					ID: "bar",
 				},
 			},
@@ -101,7 +102,11 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.DeploymentConfig{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		JSONBase: kapi.JSONBase{ID: "foo"},
+		Template: api.DeploymentTemplate{
+			Strategy: deploytest.OkStrategy(),
+			ControllerTemplate: deploytest.OkControllerTemplate(),
+		},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -112,12 +117,12 @@ func TestCreateRegistrySaveError(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
-			t.Errorf("Expected failure status, got %#V", status)
+		if status.Status != kapi.StatusFailure || status.Message != "foo" {
+			t.Errorf("Expected failure status, got %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
@@ -130,7 +135,11 @@ func TestCreateDeploymentConfigOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.DeploymentConfig{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		JSONBase: kapi.JSONBase{ID: "foo"},
+		Template: api.DeploymentTemplate{
+			Strategy: deploytest.OkStrategy(),
+			ControllerTemplate: deploytest.OkControllerTemplate(),
+		},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -171,7 +180,7 @@ func TestGetDeploymentConfigError(t *testing.T) {
 func TestGetDeploymentConfigOK(t *testing.T) {
 	mockRegistry := test.NewDeploymentConfigRegistry()
 	mockRegistry.DeploymentConfig = &api.DeploymentConfig{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		JSONBase: kapi.JSONBase{ID: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 
@@ -217,17 +226,17 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.DeploymentConfig{
-		JSONBase: kubeapi.JSONBase{ID: "bar"},
+		JSONBase: kapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 	result := <-channel
-	status, ok := result.(*kubeapi.Status)
+	status, ok := result.(*kapi.Status)
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
-	if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
+	if status.Status != kapi.StatusFailure || status.Message != "foo" {
 		t.Errorf("Expected status=failure, message=foo, got %#v", status)
 	}
 }
@@ -237,7 +246,7 @@ func TestUpdateDeploymentConfigOK(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.DeploymentConfig{
-		JSONBase: kubeapi.JSONBase{ID: "bar"},
+		JSONBase: kapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
@@ -265,11 +274,11 @@ func TestDeleteDeploymentConfig(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != kubeapi.StatusSuccess {
+		if status.Status != kapi.StatusSuccess {
 			t.Errorf("Expected status=success, got: %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):

@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/deploy/api"
+	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	"github.com/openshift/origin/pkg/deploy/registry/test"
 )
 
@@ -55,12 +56,12 @@ func TestListDeploymentsPopulatedList(t *testing.T) {
 	mockRegistry.Deployments = &api.DeploymentList{
 		Items: []api.Deployment{
 			{
-				JSONBase: kubeapi.JSONBase{
+				JSONBase: kapi.JSONBase{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kubeapi.JSONBase{
+				JSONBase: kapi.JSONBase{
 					ID: "bar",
 				},
 			},
@@ -95,27 +96,15 @@ func TestCreateDeploymentBadObject(t *testing.T) {
 	}
 }
 
-func okStrategy() api.DeploymentStrategy {
-	return api.DeploymentStrategy{
-		Type:      "customPod",
-		CustomPod: okCustomPod(),
-	}
-}
-
-func okCustomPod() *api.CustomPodDeploymentStrategy {
-	return &api.CustomPodDeploymentStrategy{
-		Image: "openshift/kube-deploy",
-	}
-}
-
 func TestCreateRegistrySaveError(t *testing.T) {
 	mockRegistry := test.NewDeploymentRegistry()
 	mockRegistry.Err = fmt.Errorf("test error")
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Deployment{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
-		Strategy: okStrategy(),
+		JSONBase:           kapi.JSONBase{ID: "foo"},
+		Strategy:           deploytest.OkStrategy(),
+		ControllerTemplate: deploytest.OkControllerTemplate(),
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -126,12 +115,12 @@ func TestCreateRegistrySaveError(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
-			t.Errorf("Expected failure status, got %#V", status)
+		if status.Status != "failure" || status.Message != "foo" {
+			t.Errorf("Expected failure status, got %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
@@ -139,13 +128,14 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	}
 }
 
-func TestCreateDeploymentOK(t *testing.T) {
+func TestCreateDeploymentOk(t *testing.T) {
 	mockRegistry := test.NewDeploymentRegistry()
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Deployment{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
-		Strategy: okStrategy(),
+		JSONBase:           kapi.JSONBase{ID: "foo"},
+		Strategy:           deploytest.OkStrategy(),
+		ControllerTemplate: deploytest.OkControllerTemplate(),
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -183,10 +173,10 @@ func TestGetDeploymentError(t *testing.T) {
 	}
 }
 
-func TestGetDeploymentOK(t *testing.T) {
+func TestGetDeploymentOk(t *testing.T) {
 	mockRegistry := test.NewDeploymentRegistry()
 	mockRegistry.Deployment = &api.Deployment{
-		JSONBase: kubeapi.JSONBase{ID: "foo"},
+		JSONBase: kapi.JSONBase{ID: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 
@@ -232,27 +222,27 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.Deployment{
-		JSONBase: kubeapi.JSONBase{ID: "bar"},
+		JSONBase: kapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 	result := <-channel
-	status, ok := result.(*kubeapi.Status)
+	status, ok := result.(*kapi.Status)
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
-	if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
+	if status.Status != kapi.StatusFailure || status.Message != "foo" {
 		t.Errorf("Expected status=failure, message=foo, got %#v", status)
 	}
 }
 
-func TestUpdateDeploymentOK(t *testing.T) {
+func TestUpdateDeploymentOk(t *testing.T) {
 	mockRepositoryRegistry := test.NewDeploymentRegistry()
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.Deployment{
-		JSONBase: kubeapi.JSONBase{ID: "bar"},
+		JSONBase: kapi.JSONBase{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
@@ -280,11 +270,11 @@ func TestDeleteDeployment(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != kubeapi.StatusSuccess {
+		if status.Status != kapi.StatusSuccess {
 			t.Errorf("Expected status=success, got: %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):

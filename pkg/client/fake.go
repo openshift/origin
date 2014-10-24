@@ -69,6 +69,11 @@ func (c *Fake) DeleteBuildConfig(ctx api.Context, id string) error {
 	return nil
 }
 
+func (c *Fake) WatchDeploymentConfigs(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "watch-deploymentconfig"})
+	return nil, nil
+}
+
 func (c *Fake) ListImages(ctx api.Context, selector labels.Selector) (*imageapi.ImageList, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "list-images"})
 	return &imageapi.ImageList{}, nil
@@ -139,6 +144,11 @@ func (c *Fake) DeleteDeploymentConfig(ctx api.Context, id string) error {
 	return nil
 }
 
+func (c *Fake) GenerateDeploymentConfig(ctx api.Context, id string) (*deployapi.DeploymentConfig, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "generate-deploymentconfig"})
+	return nil, nil
+}
+
 func (c *Fake) ListDeployments(ctx api.Context, selector labels.Selector) (*deployapi.DeploymentList, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "list-deployment"})
 	return &deployapi.DeploymentList{}, nil
@@ -155,13 +165,18 @@ func (c *Fake) CreateDeployment(ctx api.Context, deployment *deployapi.Deploymen
 }
 
 func (c *Fake) UpdateDeployment(ctx api.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	c.Actions = append(c.Actions, FakeAction{Action: "update-deployment"})
+	c.Actions = append(c.Actions, FakeAction{Action: "update-deployment", Value: deployment})
 	return &deployapi.Deployment{}, nil
 }
 
 func (c *Fake) DeleteDeployment(ctx api.Context, id string) error {
 	c.Actions = append(c.Actions, FakeAction{Action: "delete-deployment"})
 	return nil
+}
+
+func (c *Fake) WatchDeployments(ctx api.Context, field, label labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "watch-deployments"})
+	return nil, nil
 }
 
 func (c *Fake) ListRoutes(ctx api.Context, selector labels.Selector) (*routeapi.RouteList, error) {

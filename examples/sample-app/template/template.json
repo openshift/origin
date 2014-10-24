@@ -42,7 +42,7 @@
       "triggerPolicy": "manual",
       "configId": "frontend-config",
       "strategy": {
-        "type": "customPod",
+        "type": "CustomPod",
         "customPod": {
           "image": "openshift/kube-deploy"
         }

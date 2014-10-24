@@ -32,7 +32,8 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/deploy"
+	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
+	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
@@ -129,6 +130,12 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
+	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
+		DeploymentInterface:       deployEtcd,
+		DeploymentConfigInterface: deployEtcd,
+		ImageRepositoryInterface:  imageEtcd,
+	}
+
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildEtcd),
@@ -139,8 +146,9 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		"imageRepositories":       imagerepository.NewREST(imageEtcd),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 
-		"deployments":       deployregistry.NewREST(deployEtcd),
-		"deploymentConfigs": deployconfigregistry.NewREST(deployEtcd),
+		"deployments":               deployregistry.NewREST(deployEtcd),
+		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
 
 		"templateConfigs": template.NewStorage(),
 
@@ -245,13 +253,45 @@ func (c *MasterConfig) RunBuildController() {
 }
 
 // RunDeploymentController starts the deployment controller process.
-func (c *MasterConfig) RunDeploymentController() {
-	env := []api.EnvVar{
-		api.EnvVar{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
+func (c *MasterConfig) RunCustomPodDeploymentController() {
+	factory := deploycontrollerfactory.CustomPodDeploymentControllerFactory{
+		Client:     c.OSClient,
+		KubeClient: c.KubeClient,
+		Environment: []api.EnvVar{
+			api.EnvVar{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
+		},
 	}
 
-	deployController := deploy.NewDeploymentController(c.KubeClient, c.OSClient, env)
-	deployController.Run(10 * time.Second)
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunBasicDeploymentController() {
+	factory := deploycontrollerfactory.BasicDeploymentControllerFactory{
+		Client:     c.OSClient,
+		KubeClient: c.KubeClient,
+	}
+
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunDeploymentConfigController() {
+	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{c.OSClient}
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunDeploymentConfigChangeController() {
+	factory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{c.OSClient}
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
+	factory := deploycontrollerfactory.ImageChangeControllerFactory{c.OSClient}
+	controller := factory.Create()
+	controller.Run()
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version

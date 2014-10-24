@@ -1,0 +1,114 @@
+package controller
+
+import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/golang/glog"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
+)
+
+// DeploymentConfigController is responsible for creating a Deployment when a DeploymentConfig is
+// updated with a new LatestVersion. Any deployment created is correlated to a DeploymentConfig
+// by setting the DeploymentConfigLabel on the deployment.
+type DeploymentConfigController struct {
+	DeploymentInterface deploymentInterface
+
+	// Blocks until the next DeploymentConfig is available
+	NextDeploymentConfig func() *deployapi.DeploymentConfig
+}
+
+type deploymentInterface interface {
+	GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error)
+	CreateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
+}
+
+// Process DeploymentConfig events one at a time.
+func (c *DeploymentConfigController) Run() {
+	go util.Forever(c.HandleDeploymentConfig, 0)
+}
+
+// Process a single DeploymentConfig event.
+func (c *DeploymentConfigController) HandleDeploymentConfig() {
+	config := c.NextDeploymentConfig()
+	ctx := kapi.WithNamespace(kapi.NewContext(), config.Namespace)
+	deploy, err := c.shouldDeploy(ctx, config)
+	if err != nil {
+		// TODO: better error handling
+		glog.V(2).Infof("Error determining whether to redeploy deploymentConfig %v: %#v", config.ID, err)
+		return
+	}
+
+	if !deploy {
+		glog.V(4).Infof("Won't deploy from config %s", config.ID)
+		return
+	}
+
+	err = c.deploy(ctx, config)
+	if err != nil {
+		glog.V(2).Infof("Error deploying config %s: %v", config.ID, err)
+	}
+}
+
+// shouldDeploy returns true if the DeploymentConfig should have a new Deployment created.
+func (c *DeploymentConfigController) shouldDeploy(ctx kapi.Context, config *deployapi.DeploymentConfig) (bool, error) {
+	if config.LatestVersion == 0 {
+		glog.V(4).Infof("Shouldn't deploy config %s with LatestVersion=0", config.ID)
+		return false, nil
+	}
+
+	deployment, err := c.latestDeploymentForConfig(ctx, config)
+	if deployment != nil {
+		glog.V(4).Infof("Shouldn't deploy because a deployment '%s' already exists for latest config %s", deployment.ID, config.ID)
+		return false, nil
+	}
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			glog.V(4).Infof("Should deploy config %s because there's no latest deployment", config.ID)
+			return true, nil
+		} else {
+			glog.V(4).Infof("Shouldn't deploy config %s because of an error looking up latest deployment", config.ID)
+			return false, err
+		}
+	}
+
+	// TODO: what state would this represent?
+	return false, nil
+}
+
+// TODO: reduce code duplication between trigger and config controllers
+func (c *DeploymentConfigController) latestDeploymentForConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.Deployment, error) {
+	latestDeploymentId := deployutil.LatestDeploymentIDForConfig(config)
+	deployment, err := c.DeploymentInterface.GetDeployment(ctx, latestDeploymentId)
+	if err != nil {
+		// TODO: probably some error / race handling to do here
+		return nil, err
+	}
+
+	return deployment, nil
+}
+
+// deploy performs the work of actually creating a Deployment from the given DeploymentConfig.
+func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.DeploymentConfig) error {
+	labels := make(map[string]string)
+	for k, v := range config.Labels {
+		labels[k] = v
+	}
+	labels[deployapi.DeploymentConfigLabel] = config.ID
+
+	deployment := &deployapi.Deployment{
+		JSONBase: kapi.JSONBase{
+			ID: deployutil.LatestDeploymentIDForConfig(config),
+		},
+		Labels:             labels,
+		Strategy:           config.Template.Strategy,
+		ControllerTemplate: config.Template.ControllerTemplate,
+	}
+
+	glog.V(4).Infof("Creating new deployment from config %s", config.ID)
+	_, err := c.DeploymentInterface.CreateDeployment(ctx, deployment)
+
+	return err
+}

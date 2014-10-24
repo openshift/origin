@@ -5,11 +5,13 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubeerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	validation "github.com/openshift/origin/pkg/deploy/api/validation"
 )
 
 // REST is an implementation of RESTStorage for the api server.
@@ -17,13 +19,14 @@ type REST struct {
 	registry Registry
 }
 
+// NewREST creates a new REST backed by the given registry.
 func NewREST(registry Registry) apiserver.RESTStorage {
 	return &REST{
 		registry: registry,
 	}
 }
 
-// New creates a new DeploymentConfig for use with Create and Update
+// New creates a new DeploymentConfig for use with Create and Update.
 func (s *REST) New() runtime.Object {
 	return &deployapi.DeploymentConfig{}
 }
@@ -36,6 +39,16 @@ func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 	}
 
 	return deploymentConfigs, nil
+}
+
+// Watch begins watching for new, changed, or deleted ImageRepositories.
+func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+	return s.registry.WatchDeploymentConfigs(resourceVersion, func(config *deployapi.DeploymentConfig) bool {
+		fields := labels.Set{
+			"ID": config.ID,
+		}
+		return label.Matches(labels.Set(config.Labels)) && field.Matches(fields)
+	})
 }
 
 // Get obtains the DeploymentConfig specified by its id.
@@ -64,7 +77,9 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 		deploymentConfig.ID = uuid.NewUUID().String()
 	}
 
-	//TODO: Add validation
+	if errs := validation.ValidateDeploymentConfig(deploymentConfig); len(errs) > 0 {
+		return nil, kubeerrors.NewInvalid("deploymentConfig", deploymentConfig.ID, errs)
+	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := s.registry.CreateDeploymentConfig(deploymentConfig)
