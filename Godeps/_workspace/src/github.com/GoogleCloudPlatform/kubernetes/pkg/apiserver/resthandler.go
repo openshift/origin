@@ -233,17 +233,21 @@ func (h *RESTHandler) createOperation(out <-chan runtime.Object, sync bool, time
 // Operation to receive the result and returning its ID down the writer.
 func (h *RESTHandler) finishReq(op *Operation, req *http.Request, w http.ResponseWriter) {
 	obj, complete := op.StatusOrResult()
-	if complete {
-		status := http.StatusOK
-		switch stat := obj.(type) {
-		case *api.Status:
-			if stat.Code != 0 {
-				status = stat.Code
-			}
-		case *CreateOrUpdate:
-			obj = stat.Object
+
+	status := http.StatusOK
+	switch stat := obj.(type) {
+	case *api.Status:
+		if stat.Code != 0 {
+			status = stat.Code
+		}
+	case *CreateOrUpdate:
+		obj = stat.Object
+		if stat.Created {
 			status = http.StatusCreated
 		}
+	}
+
+	if complete {
 		writeJSON(status, h.codec, obj, w)
 	} else {
 		writeJSON(http.StatusAccepted, h.codec, obj, w)
