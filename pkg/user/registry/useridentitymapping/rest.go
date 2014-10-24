@@ -49,8 +49,10 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		obj, created, err := s.registry.CreateOrUpdateUserIdentityMapping(mapping)
-		return &apiserver.CreateOrUpdate{Created: created, Object: obj}, err
+		obj, _, err := s.registry.CreateOrUpdateUserIdentityMapping(mapping)
+		// TODO: return created status
+		// return &apiserver.CreateOrUpdate{Created: created, Object: obj}, err
+		return obj, err
 	}), nil
 }
 
