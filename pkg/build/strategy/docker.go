@@ -8,11 +8,12 @@ import (
 // DockerBuildStrategy creates Docker build using a docker builder image
 type DockerBuildStrategy struct {
 	dockerBuilderImage string
+	useLocalImage      bool
 }
 
 // NewDockerBuildStrategy creates a new DockerBuildStrategy
-func NewDockerBuildStrategy(dockerBuilderImage string) *DockerBuildStrategy {
-	return &DockerBuildStrategy{dockerBuilderImage}
+func NewDockerBuildStrategy(dockerBuilderImage string, useLocalImage bool) *DockerBuildStrategy {
+	return &DockerBuildStrategy{dockerBuilderImage, useLocalImage}
 }
 
 // CreateBuildPod creates the pod to be used for the Docker build
@@ -41,6 +42,9 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, 
 				},
 			},
 		},
+	}
+	if bs.useLocalImage {
+		pod.DesiredState.Manifest.Containers[0].ImagePullPolicy = api.PullIfNotPresent
 	}
 
 	setupDockerSocket(pod)

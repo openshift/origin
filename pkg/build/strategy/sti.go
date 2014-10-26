@@ -11,6 +11,7 @@ import (
 type STIBuildStrategy struct {
 	stiBuilderImage      string
 	tempDirectoryCreator TempDirectoryCreator
+	useLocalImage        bool
 }
 
 type TempDirectoryCreator interface {
@@ -27,8 +28,8 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 
 // NewSTIBuildStrategy creates a new STIBuildStrategy with the given
 // builder image
-func NewSTIBuildStrategy(stiBuilderImage string, tc TempDirectoryCreator) *STIBuildStrategy {
-	return &STIBuildStrategy{stiBuilderImage, tc}
+func NewSTIBuildStrategy(stiBuilderImage string, tc TempDirectoryCreator, useLocalImage bool) *STIBuildStrategy {
+	return &STIBuildStrategy{stiBuilderImage, tc, useLocalImage}
 }
 
 // CreateBuildPod creates a pod that will execute the STI build
@@ -59,6 +60,9 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, err
 				},
 			},
 		},
+	}
+	if bs.useLocalImage {
+		pod.DesiredState.Manifest.Containers[0].ImagePullPolicy = api.PullIfNotPresent
 	}
 
 	if err := bs.setupTempVolume(pod); err != nil {
