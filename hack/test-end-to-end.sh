@@ -33,13 +33,14 @@ function teardown()
 {
   if [ $? -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
-	echo "[INFO] Server logs: $LOG_DIR/openshift.log"
+  echo "[INFO] Server logs: $LOG_DIR/openshift.log"
   cat $LOG_DIR/openshift.log
-	set +u
+  set +u
   if [ ! -z $BUILD_ID ]; then
-	 $openshift kube buildLogs --id=$BUILD_ID > $LOG_DIR/build.log && echo "[INFO] Build logs: $LOG_DIR/build.log"
-	fi
-	set -u
+    $openshift kube buildLogs --id=$BUILD_ID > $LOG_DIR/build.log && echo "[INFO] Build logs: $LOG_DIR/build.log"
+    cat $LOG_DIR/build.log
+  fi
+  set -u
   fi
   set +u
   if [ "$SKIP_TEARDOWN" != "1" ]; then
@@ -87,7 +88,7 @@ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Git
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
 BUILD_ID=`$openshift kube list builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
-wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((20*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
+wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((30*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
 
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
@@ -97,7 +98,7 @@ echo "[INFO] Applying application config"
 $openshift kube  apply -c $CONFIG_FILE
 
 echo "[INFO] Waiting for frontend pod to start"
-wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((30*TIME_SEC))
+wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((60*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))

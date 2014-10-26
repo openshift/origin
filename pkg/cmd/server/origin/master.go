@@ -248,7 +248,7 @@ func (c *MasterConfig) RunBuildController() {
 		buildapi.STIBuildType:    strategy.NewSTIBuildStrategy(stiBuilderImage, strategy.STITempDirectoryCreator),
 	}
 
-	buildController := build.NewBuildController(c.KubeClient, c.OSClient, buildStrategies, 1200)
+	buildController := build.NewBuildController(c.KubeClient, c.OSClient, buildStrategies, 2400)
 	buildController.Run(10 * time.Second)
 }
 
