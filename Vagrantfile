@@ -56,8 +56,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Single VM dev environment
     # Set VirtualBox provider settings
     config.vm.provider "virtualbox" do |v, override|
-      override.vm.box = "fedora20-virtualbox"
-      override.vm.box_url = "http://opscode-vm-bento.s3.amazonaws.com/vagrant/virtualbox/opscode_fedora-20_chef-provisionerless.box"
+      override.vm.box = "origin-dev-fedora-20-vbox"
+      override.vm.box_url = "https://mirror.openshift.com/pub/vagrant/boxes/origin-dev-fedora-20-vbox.box"
+      override.vm.provision "shell", path: "hack/vm-provision-directlvm.sh", id: "setup"
       v.memory = 1024
       v.cpus = 2
       v.customize ["modifyvm", :id, "--cpus", "2"]
@@ -78,7 +79,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       if ENV['REBUILD_YUM_CACHE'] && ENV['REBUILD_YUM_CACHE'] != ""
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
-      config.vm.provision "shell", path: "hack/vm-provision.sh"
+      config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
       config.vm.synced_folder ENV["VAGRANT_SYNC_FROM"] || '.', ENV["VAGRANT_SYNC_TO"] || "/home/vagrant/go/src/github.com/openshift/origin"
     end
   end
