@@ -148,9 +148,9 @@ angular.module('openshiftConsole')
   };
 
   var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}/{apiRoot}/{apiVersion}/";
-  var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}";
-  var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}";
-  var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}";
+  var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
+  var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
+  var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
     var protocol;
