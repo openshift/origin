@@ -1,5 +1,5 @@
 {
-  "id": "ruby-helloworld-sample-template",
+  "id": "ruby-helloworld-sample",
   "kind": "Template",
   "apiVersion": "v1beta1",
   "name": "ruby-hello-world-template",
@@ -36,16 +36,12 @@
       }
     },
     {
-      "id": "frontend-deploy",
+      "id": "frontend",
       "kind": "Deployment",
       "apiVersion": "v1beta1",
       "triggerPolicy": "manual",
-      "configId": "frontend-config",
       "strategy": {
-        "type": "CustomPod",
-        "customPod": {
-          "image": "openshift/kube-deploy"
-        }
+        "type": "Basic"
       },
       "controllerTemplate": {
         "replicas": 1,
@@ -56,7 +52,6 @@
           "desiredState": {
             "manifest": {
               "version": "v1beta1",
-              "id": "frontendController",
               "containers": [{
                 "name": "ruby-helloworld",
                 "image": "127.0.0.1:5001/openshift/origin-ruby-sample",
@@ -80,6 +75,9 @@
           },
           "labels": {"name": "frontend"}
         }
+      },
+      "labels": {
+        "deploymentConfig": "application-config"
       }
     }
   ]

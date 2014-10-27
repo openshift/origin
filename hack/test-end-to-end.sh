@@ -67,23 +67,23 @@ wait_for_url "http://localhost:8080/healthz" "[INFO] apiserver: "
 
 # Deploy private docker registry
 echo "[INFO] Deploying private Docker registry"
-$openshift kube apply -c ${FIXTURE_DIR}/registry-config.json
+$openshift kube apply -c ${FIXTURE_DIR}/docker-registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
-wait_for_command "$openshift kube list pods | grep registryPod | grep Running" $((5*TIME_MIN))
+wait_for_command "$openshift kube list pods | grep registrypod | grep Running" $((5*TIME_MIN))
 
 echo "[INFO] Waiting for Docker registry service to start"
-wait_for_command "$openshift kube list services | grep registryPod"
+wait_for_command "$openshift kube list services | grep registrypod"
 echo "[INFO] Probing the docker-registry"
 wait_for_url_timed "http://localhost:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 # Define a build configuration
 echo "[INFO] Create a build config"
-wait_for_command "$openshift kube create buildConfigs -c ${FIXTURE_DIR}/buildcfg/buildcfg.json"
+wait_for_command "$openshift kube create buildConfigs -c ${FIXTURE_DIR}/application-buildconfig.json"
 
 # Trigger build
 echo "[INFO] Simulating github hook to trigger new build using curl"
-curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
@@ -92,7 +92,7 @@ wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((30*TI
 
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
-$openshift kube process -c ${FIXTURE_DIR}/template/template.json > $CONFIG_FILE
+$openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FILE
 
 echo "[INFO] Applying application config"
 $openshift kube  apply -c $CONFIG_FILE

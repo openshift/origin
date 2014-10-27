@@ -11,8 +11,6 @@ Application Build, Deploy, and Update Flow
 
 This section covers how to perform all the steps of building, deploying, and updating an application on the OpenShift platform.
 
-Note:  If you just want to quickly validate your environment or see the expected results, you can run the quickstart script described [here](QUICKSTART.md)
-
 All commands assume the `openshift` binary is in your path:
 
 1. Pre-pull the docker images used in this sample.  This is not strictly necessary as OpenShift will pull the images as it needs them, but by doing it up front it will prevent lengthy operations during build and deployment which might otherwise lead you to believe the process has failed or hung.
@@ -25,7 +23,7 @@ All commands assume the `openshift` binary is in your path:
 
 3. Deploy the private docker registry within OpenShift:
 
-        $ openshift kube apply -c registry-config.json
+        $ openshift kube apply -c docker-registry-config.json
 
 4. Confirm the registry is started (this can take a few mins):
 
@@ -35,7 +33,7 @@ All commands assume the `openshift` binary is in your path:
 
         ID                                     Image(s)                    Host                     Labels                                                                                                   Status
         ----------                             ----------                  ----------               ----------                                                                                               ----------
-        94679170-54dc-11e4-88cc-3c970e3bf0b7   openshift/docker-registry   localhost.localdomain/   deployment=registry-config,name=registryPod,replicationController=946583f6-54dc-11e4-88cc-3c970e3bf0b7   Running
+        94679170-54dc-11e4-88cc-3c970e3bf0b7   openshift/docker-registry   localhost.localdomain/   deployment=registry-config,name=registrypod,replicationController=946583f6-54dc-11e4-88cc-3c970e3bf0b7   Running
 
 
 5. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
@@ -45,12 +43,12 @@ All commands assume the `openshift` binary is in your path:
         $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
   * Note: Using the webhook requires your OpenShift server be publicly accessible so github can reach it to invoke the hook.
 
-7. Edit buildcfg/buildcfg.json
+7. Edit application-buildconfig.json
  * Update the sourceURI to point to your forked repository.
 
 8. Create a build configuration for your application.  This configuration is used by OpenShift to rebuild your application's Docker image (e.g. when you push changes to the application source).
 
-        $ openshift kube create buildConfigs -c buildcfg/buildcfg.json
+        $ openshift kube create buildConfigs -c application-buildconfig.json
 
     You should see the build configuration returned as output (SourceURI will depend on your repo name):
 
@@ -62,7 +60,7 @@ All commands assume the `openshift` binary is in your path:
  * If you setup the github webhook in step 6, push a change to app.rb in your ruby sample repository from step 5.
  * Otherwise you can simulate the webhook invocation by running:
 
-            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
     In the OpenShift logs (logs/openshift.log) you should see something like:
 
@@ -86,7 +84,7 @@ All commands assume the `openshift` binary is in your path:
 
 11. Submit the application template for processing and create the application using the processed template:
 
-        $ openshift kube process -c template/template.json | openshift kube apply -c -
+        $ openshift kube process -c application-template.json | openshift kube apply -c -
 
 12. Wait for the application's frontend pod to be started (this can take a few mins):
 

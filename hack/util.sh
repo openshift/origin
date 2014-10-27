@@ -13,6 +13,7 @@ TIME_MIN=$((60 * $TIME_SEC))
 # $3 - Optional alternate command to determine if the wait should
 #      exit before the max_wait
 function wait_for_command {
+  STARTTIME=$(date +%s)
   cmd=$1
   msg="Waiting for command to finish: '${cmd}'..."
   max_wait=${2:-10*TIME_SEC}
@@ -26,7 +27,8 @@ function wait_for_command {
     eval $cmd
     if [ $? -eq 0 ]; then
       set -e
-      echo "[INFO] Success running command: '$cmd'"
+      ENDTIME=$(date +%s)
+      echo "[INFO] Success running command: '$cmd' after $(($ENDTIME - $STARTTIME)) seconds"
       return 0
     fi
     #check a failure condition where the success
@@ -54,6 +56,7 @@ function wait_for_command {
 # $2 - Optional prefix to use when echoing a successful result
 # $3 - Optional maximum time to wait before giving up (Default: 10s)
 function wait_for_url_timed {
+  STARTTIME=$(date +%s)
   url=$1
   prefix=${2:-}
   max_wait=${3:-10*TIME_SEC}
@@ -65,6 +68,8 @@ function wait_for_url_timed {
     if [ $? -eq 0 ]; then
       set -e
       echo ${prefix}${out}
+      ENDTIME=$(date +%s)
+      echo "[INFO] Success accessing '$url' after $(($ENDTIME - $STARTTIME)) seconds"
       return 0
     fi
     sleep $wait
