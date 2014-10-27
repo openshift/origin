@@ -8,8 +8,10 @@ if [ ! -e "${DOCKER_SOCKET}" ]; then
 fi
 
 TAG="${BUILD_TAG}"
-if [ -n "$REGISTRY" ]; then
-  TAG=$REGISTRY/$BUILD_TAG
+if [ -n "${REGISTRY}" ]; then
+  TAG="${REGISTRY}/${BUILD_TAG}"
+elif [ -n "${DOCKER_REGISTRY}" ]; then
+  TAG="${DOCKER_REGISTRY}/${BUILD_TAG}"
 fi
 
 REF_OPTION=""
@@ -20,6 +22,6 @@ fi
 BUILD_TEMP_DIR="${TEMP_DIR-$TMPDIR}"
 TMPDIR="${BUILD_TEMP_DIR}" sti build "${SOURCE_URI}" "${BUILDER_IMAGE}" "${TAG}" "${REF_OPTION}"
 
-if [ -n "${REGISTRY}" ] || [ -s "/root/.dockercfg" ]; then
+if [ -n "${REGISTRY}" ] || [ -n "${DOCKER_REGISTRY}" ] || [ -s "/root/.dockercfg" ]; then
   docker push "${TAG}"
 fi
