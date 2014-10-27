@@ -1,0 +1,82 @@
+// Open Sans
+
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 300;
+  src: font-url('OpenSans-Light-webfont.eot');
+  src: font-url('OpenSans-Light-webfont.eot?#iefix') format('embedded-opentype'),
+       font-url('OpenSans-Light-webfont.woff') format('woff'),
+       font-url('OpenSans-Light-webfont.ttf') format('truetype'),
+       font-url('OpenSans-Light-webfont.svg#OpenSansLight') format('svg');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: font-url('OpenSans-Regular-webfont.eot');
+  src: font-url('OpenSans-Regular-webfont.eot?#iefix') format('embedded-opentype'),
+       font-url('OpenSans-Regular-webfont.woff') format('woff'),
+       font-url('OpenSans-Regular-webfont.ttf') format('truetype'),
+       font-url('OpenSans-Regular-webfont.svg#OpenSansRegular') format('svg');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 600;
+  src: font-url('OpenSans-Semibold-webfont.eot');
+  src: font-url('OpenSans-Semibold-webfont.eot?#iefix') format('embedded-opentype'),
+       font-url('OpenSans-Semibold-webfont.woff') format('woff'),
+       font-url('OpenSans-Semibold-webfont.ttf') format('truetype'),
+       font-url('OpenSans-Semibold-webfont.svg#OpenSansSemibold') format('svg');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: font-url('OpenSans-Bold-webfont.eot');
+  src: font-url('OpenSans-Bold-webfont.eot?#iefix') format('embedded-opentype'),
+       font-url('OpenSans-Bold-webfont.woff') format('woff'),
+       font-url('OpenSans-Bold-webfont.ttf') format('truetype'),
+       font-url('OpenSans-Bold-webfont.svg#OpenSansBold') format('svg');
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 800;
+  src: font-url('OpenSans-ExtraBold-webfont.eot');
+  src: font-url('OpenSans-ExtraBold-webfont.eot?#iefix') format('embedded-opentype'),
+       font-url('OpenSans-ExtraBold-webfont.woff') format('woff'),
+       font-url('OpenSans-ExtraBold-webfont.ttf') format('truetype'),
+       font-url('OpenSans-ExtraBold-webfont.svg#OpenSansExtrabold') format('svg');
+}
+
+// Overpass 
+
+@font-face {
+  font-family: 'Overpass';
+  src: font-url('overpass_bold-webfont.eot');
+  src: font-url('overpass_bold-webfont.eot?#iefix') format('embedded-opentype'),
+       font-url('overpass_bold-webfont.woff') format('woff'),
+       font-url('overpass_bold-webfont.svg#overpassbold') format('svg');
+  font-weight: 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Overpass';
+  src: font-url('overpass_regular-webfont.eot');
+  src: font-url('overpass_regular-webfont.eot?#iefix') format('embedded-opentype'), 
+       font-url('overpass_regular-webfont.woff') format('woff'),
+       font-url('overpass_regular-webfont.svg#overpassregular') format('svg');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Overpass';
+  src: font-url('overpass_light-webfont.eot');
+  src: font-url('overpass_light-webfont.eot?#iefix') format('embedded-opentype'), 
+       font-url('overpass_light-webfont.woff') format('woff'), 
+       font-url('overpass_light-webfont.svg#overpasslight') format('svg');
+  font-weight: 400;
+  font-style: normal;
+}

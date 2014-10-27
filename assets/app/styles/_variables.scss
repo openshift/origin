@@ -1,0 +1,213 @@
+$font-family-base:                                                  "Open Sans", Helvetica, Arial, sans-serif;
+$headings-font-family:                                              $font-family-base;
+
+// TODO need to convert the font size variables to bootstrap 3
+
+$baseFontFamily:     "Open Sans", "Helvetica Neue", Helvetica, "Liberation Sans", Arial, sans-serif !default;
+$headerFontFamily:   "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif !default;
+$monoFontFamily:      Menlo, Monaco, "Liberation Mono", Consolas, monospace !default;
+
+// Needed because FF on Mac sets line-height based on font-family, ignoring form field explicit line-height, 
+// causing inputs next to span.input-append and/or span.input-prepend to have different heights when set to Open Sans.
+// Assigning "Lucida Grande" because it most closely resembles "Open Sans" and has wide use on mac, but not on IE and Lunix.
+$inputFontFamily:     "Lucida Grande", "Open Sans", "Lucida Sans Unicode", "Liberation Sans", Arial, sans-serif !default;	
+
+$baseLineHeight:          	20px;
+$baseFontSize:				14px;
+$leadLineHeight:          	$baseLineHeight * 1.5;
+$leadFontSize:            	18px;
+$largeLineHeight:         	$baseLineHeight * 1.2;
+$largeFontSize:           	$baseFontSize + 2;
+$smallFontSize:           	$baseFontSize - 1;
+$tinyFontSize:            	$baseFontSize - 2;
+$extraTinyFontSize:       	$baseFontSize - 3.25;
+
+// For matching header sizes exactly
+$h1FontSize:              $baseFontSize * 1.7;
+$h2FontSize:              $baseFontSize * 1.38;
+$h3FontSize:              $baseFontSize * 1.24;
+$h4FontSize:              $baseFontSize * 1.10;
+$h5FontSize:              $baseFontSize;
+$h6FontSize:              $baseFontSize * .9;
+
+$h1LineHeight:              $baseLineHeight * 2;
+$h2LineHeight:              $baseLineHeight * 1.75;
+$h3LineHeight:              $baseLineHeight * 1.5;
+$h4LineHeight:              $baseLineHeight;
+$h5LineHeight:              $baseLineHeight;
+$h6LineHeight:              $baseLineHeight;
+
+$h1MarginBottom:              $baseLineHeight - 8;
+$h2MarginBottom:              $baseLineHeight / 3.5;
+$h3MarginBottom:              $baseLineHeight / 3.5;
+$h4MarginBottom:              $baseLineHeight / 3;
+$h5MarginBottom:              $baseLineHeight / 3;
+
+$tileHeadingIconFontSize:			33px;
+$tileLargeHeadingIconFontSize:		46px;
+
+$bodyBackground:          #fff !default;
+
+$responsivePhone:         480px;
+$responsiveTablet:        768px;
+$responsiveDefault:       980px;
+$responsiveLarge:         1200px;
+
+$gridGutterWidth:         25px;
+$gridColumnWidth:         55px; // 80 * 12 = 960
+
+$gridGutterWidthPhone:    20px; // replaces padding
+
+$gridGutterWidthTablet:   20px;
+$gridColumnWidthTablet:   42px; // 62 * 12 = 744 and 20px gutters
+
+$gridGutterWidthLarge:    40px;
+$gridColumnWidthLarge:    58.5px;
+
+$openshiftRed:                  #CD202C; /* From style guide */
+$openshiftBrightRed:            #EA0011;
+$openshiftLightRed:             rgba(205, 32, 44, 0.08);
+$openshiftDarkRed:              #a1000c; /* action-call dark */
+$openshiftMediumBackgroundGray: #343434; /* From screenshots, for nav */
+$openshiftDarkBackgroundGray:   #333; /* From screenshots, background of sign in link */
+$openshiftAlmostBlack:          #030303;
+$openshiftSeriouslyAlmostBlack: #010101;
+$openshiftLinkGray:             #909090; /* Used on the signup link */
+$openshiftBorderGray:           #eee;
+$genericLightGreen:             #d4e16b;
+
+$preBackground:                 #eff1f1;
+$preBorder:                     rgba(120, 120, 120, 0.35);
+$preColor:                      #484848;
+$codeColor:                     #3B3B3B;
+
+$consolePreBackground:          #fefefe;
+
+$breadcrumbDividerColor:        $openshiftDarkRed;
+$breadcrumbTextColor:           $openshiftMediumBackgroundGray; 
+
+$topBarBackgroundColor:         $openshiftSeriouslyAlmostBlack;
+$navBackgroundColor:            $openshiftMediumBackgroundGray;
+$navColumnBackgroundColor:      $openshiftAlmostBlack;
+$belowNavColumnBackgroundColor: #f2f2f2; /* From Hylke's screenshot additions */
+$contentColumnBackgroundColor:  white;
+
+$loginBackgroundColor:          $openshiftDarkBackgroundGray;
+$loginColor:                    white;
+
+$signupLinkColor:               $openshiftLinkGray;
+$textDarkBackground:            #777;
+$subtleTextDarkBackground:			#434343;
+$linkTextDarkBackground:				#fff;
+$darkBackground:                $openshiftAlmostBlack;
+$textLightBackground:           white;
+$lightBackground:               white;
+
+$linkColor:                     $openshiftRed;
+$linkColorHover:                $openshiftDarkRed;
+
+$linkColorBlue:                 #069;
+$linkColorBlueHover:            $openshiftBrightRed;
+$linkColorBlueOnDark:           #42a0bf;
+$buttonBlueHover:               #B1E5F2;
+$highlightBlue:					#E7F6F9;
+
+$textColor:                     #404040;
+
+$ribbonColor:                   $openshiftBrightRed;
+$ribbonTextColor:               white;
+$ribbonFoldColor:               #A1000C;
+
+$takeActionBackground:          $openshiftBrightRed;
+$takeActionHighlightBackground: #a1000c;
+
+$grayLighter:										#ededed;
+$grayLight:                     #999;
+$grayMedium:                    #505050;
+$grayDark:                      #2f2f2f;
+$grayDarker:                    #202020;
+$primaryButtonBackground:       #B1E5F2;
+$orange:                        #DB880B;
+$linkColor:                     #069;
+$white:                         #fff;
+
+$activeButtonDarkColor:					rgba(0,0,0,0.5);
+$activeButtonLightColor:				rgba(255,255,255,0.5);
+
+$smallText:											11px;
+
+/* FIXME: Need to resolve these colors with _custom.scss */
+$warningText:             #222;
+$warningBackground:       #ffd24e;
+$warningBorder:           darken(adjust-hue($warningBackground, -10), 3%);
+
+$errorText:               white;
+$errorBackground:         $openshiftRed;
+$errorBorder:             darken(adjust-hue($errorBackground, -3), 7%);
+
+$successText:             #222;
+$successBackground:       #B9E0BB;
+$successBorder:           darken(adjust-hue($successBackground, -10), 10%);
+
+$infoText:                #222;
+$infoBackground:          #bfd9f5;
+$infoBorder:              darken(adjust-hue($infoBackground, 3), 7%);
+/* END */
+
+$hrBorder:                $openshiftBorderGray;
+
+$darkNoiseBackgroundColor:      black; /* Was going to call this $openshiftNoneMoreBlack */
+
+$lightStripesColor:             #e6e6e6;
+$lightStripesAltColor:          #e4e4e4;
+$lightStripesBackground:        #e5e5e5;
+$stripesText:                   $openshiftMediumBackgroundGray;
+$stripesHover:                  #ccc;
+
+$pollBarColor:                  $openshiftDarkRed;
+
+$inputBackground:               #fff !default;
+$inputBorder:                   #ccc !default;
+$inputBorderRadius:             3px;
+
+$inputDisabledBackground:       #eee !default;
+$inputDisabledBorder:           #ccc !default;
+$inputAddOnBackground:          #efefef !default;
+
+$horizontalComponentOffset:     180px !default; /* Horizontal forms & lists */
+
+// Input placeholder text color
+// -------------------------
+$placeholderText:         $grayLight !default;
+
+// Console
+// -------------------------
+
+$consoleBody:					#f2f2f2;
+
+$consoleTableBorderColor:        #d8d8d8;
+$consoleTableStriped:            rgba(255,255,255,0.02);
+$consoleTableStripedHover:       rgba(255,255,255,0.04);
+
+$consoleHeaderColor:             #fafbfc;
+$consoleTextColorDefault:		 #303030;
+
+$consolePanelColor:				#fefefe;
+$consolePanelColorDisabled:		rgba(255, 255, 255, 0.45);
+$consolePanelBorderColor:		#ddd;
+
+
+// Navbar
+// -------------------------
+$navbarCollapseWidth:                     979px !default;
+
+$navbarText:                              #e0e0e0 !default;
+$navbarLinkColor:                         $navbarText !default;
+
+$navbarBrandColor:                        $navbarLinkColor !default;
+
+// Popover
+// -------
+$popoverColor:      			$consolePanelColor;
+
+

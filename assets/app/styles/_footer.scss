@@ -1,0 +1,68 @@
+#footer-nav {
+  padding: 35px 0;
+
+  h3, a {
+    color: #666;    
+  }
+}
+#copyright {
+  background-color: #292929;
+  color: #777;
+  padding: 14px 0 8px;
+  font-size: $tinyFontSize;
+  > .container {
+  	> a {
+      .ie6 &, .ie7 &, .ie8 & {
+        background: image-url('redhat.png') no-repeat;
+        height: 47px;
+        width: 128px;
+        img {
+          display: none;
+        }
+      }
+  	}
+  	> div {
+  		margin-top: 14px;
+  	}
+  }
+}
+  
+
+
+@media (max-width:479px) {
+	#copyright {
+		text-align:center;
+	
+		> .container { 
+			> div {
+				float: none;
+	  			font-size: $tinyFontSize;
+				margin-top: 5px;
+			}
+		}
+	}
+	
+	#footer-nav {
+  	nav header h3 {
+    	display: block;
+    	text-align: center;
+  	}
+  	nav ul {
+  	 display: block;
+    	text-align: center;
+  	}
+	}
+}
+
+@media (max-width:767px) {
+	footer nav {margin-bottom: 15px !important;}
+	footer nav > header { display: inline; }
+	footer nav ul { margin-bottom: 5px; }
+	footer nav h3,
+	footer nav h4,
+	footer nav h5 { display: inline; font-size: 14px; } // responsive
+	footer nav ul { margin: 0; padding: 0; display: inline; }
+	footer nav li { margin: 0; padding: 0; display: inline-block; list-style-image: none; list-style: none; }
+	footer nav a { margin-left: 5px; white-space: nowrap}
+	footer nav > header a { margin-left: 0; }
+}

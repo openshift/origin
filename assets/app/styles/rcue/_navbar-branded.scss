@@ -1,0 +1,13 @@
+/* RCUE navbar branded styles
+Do not edit!
+Edit ../_navbar.scss instead */
+
+.header.rcue {
+  .brand {
+    padding: 15px 0;
+  }
+  .navbar.utility .nav > li > a {
+      border-left: 0;
+      padding: 10px;
+  }
+}

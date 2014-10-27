@@ -1,0 +1,222 @@
+.label-tags {
+  a.label {
+    color: $openshiftLinkGray;
+    background-color: transparent;
+    text-decoration: none;
+    margin-right: 10px;
+    margin-top: -5px;
+    margin-left: -4px;
+    text-shadow: none;
+    &:hover {
+      color: #111;
+      background-color: #eee !important;
+    }
+  }
+}
+ 
+.tile {
+  background: $consolePanelColor;
+  @include panel_default_boxshadow();
+  color: $consoleTextColorDefault;
+  padding: 10px 20px; 
+  margin-bottom: 20px;
+  width: 100%;
+  @include box-sizing(border-box);
+  &.cartridge_type .warning {
+    color: $orange;
+  }
+  .tile-table {
+    display: table;
+    width: 100%;
+    height: 48px;
+    @include box-sizing(border-box);
+    .tile-table-cell {
+      display: table-cell;
+      vertical-align: middle;
+      &:last-child {
+        width: 50px;
+        text-align: right;
+        span {
+          font-size: 13px;
+          cursor: help;
+          margin-right: 5px;
+          &:last-child {
+            margin-right: 0;
+          }
+        }
+        .label-premium {
+          @include usage_rate_indicator()
+        }
+      }
+    }
+    .font-icon.logo, .font-icon {
+      font-size: $tileHeadingIconFontSize;
+      text-shadow: 0 0 4px #FFFFFF;
+      opacity: .38;
+      vertical-align: bottom;
+      &[title="Quickstart"],
+      &[title="Cartridge"] {
+        @include iconfont-adjust()
+      }
+    }
+    + p {
+      margin-top: 3px;
+      font-size: inherit;
+    }
+  }
+  .tile-meta {
+    font-size: $smallFontSize;
+    margin-bottom: $baseLineHeight / 2;
+  }
+  .tiles-featured & {
+    padding: 15px 20px;
+    .tile-table {
+      margin-bottom: $baseLineHeight / 2;
+      .tile-table-cell {
+        &:last-child {
+          vertical-align: middle;
+        }
+        &:first-child {
+          width: 60px;
+          .font-icon {
+            font-size: $tileLargeHeadingIconFontSize;
+            opacity: 0.30;
+            &[title="Quickstart"],
+            &[title="Cartridge"] {
+              @include iconfont-adjust()
+            }
+          }
+        }
+      }
+    }
+    &:hover .tile-table .tile-table-cell .font-icon {
+      opacity: .7;
+    }
+    .tile-meta {
+      font-size: $smallFontSize;
+      margin-bottom: $baseLineHeight / 2;
+    }
+  }
+  &.application_type, &.cartridge_type {
+    .tile-table-cell {
+      &:first-child {
+        width:55px;
+      }
+    }
+  }
+  &.cartridge_type {
+    .tile-table-cell {
+      &:first-child {
+        width:50px;
+      }
+      &:last-child {
+        width: auto;
+        text-align: left;
+      }
+      h3 {
+        line-height: 1.2;
+      }
+    }
+    p {
+      font-size: $smallFontSize;
+    }
+  }
+  &.cartridge_type {
+    padding: 10px 20px 15px 20px;
+  }
+  > p {
+    margin-bottom: $baseLineHeight / 1.5;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  > ul.meta > li > label {
+    display: inline;
+  }
+  &.inactive {
+    background-color: #f2f2f2;
+    opacity: .75;
+  }
+  .flow {
+    > .flow-block.right {
+      white-space: nowrap;
+      .count, .restart {
+        margin-left: 20px;
+      }
+      .gear-icon, {
+        font-size: 20px;
+      }
+      .restart {
+        &.confirm-container {
+          display: inline-block;
+          position: relative; 
+          text-align: left !important;
+          white-space: normal;
+          strong {
+            font-weight: 400;
+          }
+        }
+        .font-icon {
+          font-size: 20px;
+        }
+      }
+    }
+    + .created {
+      color: #888;
+      font-size: $tinyFontSize;
+      font-weight: 300;
+      margin-top: -6px;
+    }
+  }
+  h1.flow {
+    margin-bottom: 0;
+  }
+  h2 {
+    @include clearfix();
+  }
+  .gear-icon {
+    color: #ccc;
+  }
+  h3 {
+    margin-bottom: 0;
+    line-height: 1.2;
+  }
+  a.label {
+    display: inline-block;
+    vertical-align: middle;
+    margin-top: 0;
+    line-height: 1.5;
+  }
+} 
+
+
+
+.tile-click {
+  cursor: pointer;
+  position: relative;
+  &:hover {
+    background: #fff !important;
+    @include panel_default_boxshadow_hover();
+    .btn {
+      color: #000 !important;
+    }
+    .tile-target {
+      color: $openshiftBrightRed;
+      &:hover {
+        text-decoration: none;
+      }
+    }
+    .tile-table-cell > .font-icon, .font-icon.logo {
+      opacity: .75;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .section-body .row > .tile-click {
+    @include expand_for_phone();
+  }
+  .tile h1.flow {
+    font-size: $h2FontSize;
+  }
+}

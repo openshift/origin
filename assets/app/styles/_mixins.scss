@@ -1,0 +1,334 @@
+// If an element has a background and should stretch across the 
+// width of the page on a phone, include this mixin.
+@mixin expand_for_phone($padding:true) {
+  margin-left: -$gridGutterWidthPhone;
+  margin-right: -$gridGutterWidthPhone;
+  @if $padding {
+    padding-left: $gridGutterWidthPhone;
+    padding-right: $gridGutterWidthPhone;
+  }
+}
+
+@mixin font-family-monospace() {
+  font-family: Menlo, Monaco, "Liberation Mono", Consolas, monospace;
+}
+
+
+// Override Mixin for generating button backgrounds
+// ---------------------------------------
+@mixin buttonBackground($startColor, $endColor) {
+  // gradientBar will set the background to a pleasing blend of these, to support IE<=9
+  @include gradientBar($startColor, $endColor);
+  @include reset-filter();
+
+  &:hover, &:focus {
+    background-color: $endColor;
+  }
+  
+   &:active, &.active, &.disabled, &[disabled] {
+    background-color: $startColor;
+  }
+ 
+}
+
+@mixin buttonBackgroundConsole($startColor, $endColor) {
+  // gradientBar will set the background to a pleasing blend of these, to support IE<=9
+  @include gradientBar($startColor, $endColor);
+  @include reset-filter();
+
+  &:hover, &:focus {
+    background-color: $startColor;
+    color: #fff;
+  }
+  
+   &:active, &.active, &.disabled, &[disabled] {
+    background-color: $startColor;
+    color: #ccc;
+    border-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.1) rgba(255, 255, 255, 0.1);
+  }
+
+}
+
+
+// IE7 inline-block
+// ----------------
+@mixin ie7-inline-block() {
+  *display: inline; /* IE7 inline-block hack */
+  *zoom: 1;
+}
+
+
+// Block-level 
+// -----------
+@mixin block-level() {
+  display: block;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+  @include box-sizing(border-box);
+} 
+.block-level {
+  @include block-level();
+}
+// Vertically space out multiple blocks
+.block-level + .block-level {
+  margin-top: 8px;
+}
+
+
+// POPOVER ARROWS
+// -------------------------
+// For tipsies and popovers
+@mixin popoverArrow-top($arrowWidth: 5px) {
+  bottom: -$arrowWidth;
+  left: 50%;
+  margin-left: -$arrowWidth;
+  border-left: $arrowWidth solid transparent;
+  border-right: $arrowWidth solid transparent;
+  border-top: $arrowWidth solid $popoverColor;
+}
+@mixin popoverArrow-left($arrowWidth: 5px) {
+  top: 50%;
+  right: -$arrowWidth;
+  margin-top: -$arrowWidth;
+  border-top: $arrowWidth solid transparent;
+  border-bottom: $arrowWidth solid transparent;
+  border-left: $arrowWidth solid $popoverColor;
+}
+@mixin popoverArrow-bottom($arrowWidth: 5px) {
+  top: -$arrowWidth;
+  left: 50%;
+  margin-left: -$arrowWidth;
+  border-left: $arrowWidth solid transparent;
+  border-right: $arrowWidth solid transparent;
+  border-bottom: $arrowWidth solid $popoverColor;
+}
+@mixin popoverArrow-right($arrowWidth: 5px) {
+  top: 50%;
+  left: -$arrowWidth;
+  margin-top: -$arrowWidth;
+  border-top: $arrowWidth solid transparent;
+  border-bottom: $arrowWidth solid transparent;
+  border-right: $arrowWidth solid $popoverColor;
+}
+
+@mixin tab-focus() {
+  // Default
+  outline: thin dotted currentColor;
+  // Webkit
+  outline: 5px auto -webkit-focus-ring-color;
+  outline-offset: -2px;
+}
+
+
+@mixin icon-text-shadow($color: rgba(255, 255, 255, 0.5)) {
+  text-shadow: 0 0 3px $color;
+}
+
+// Requires inline-block or block
+@mixin truncate() {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.truncate {
+  @include truncate();
+}
+
+@mixin iconfont-left() {
+  position: absolute;
+  left: 15px;
+  font-family: openshift-icon;
+}
+
+@mixin usage_rate_indicator() {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+@mixin iconfont-adjust($size-offset: 6, $left: 0, $margin-right: 0) {
+  font-size: $tileHeadingIconFontSize - $size-offset;
+  left: $left;
+  margin-right: $margin-right;
+  position: relative;
+}
+
+// Horizontal dividers
+// -------------------------
+// Dividers (basically an hr) within dropdowns and nav lists
+@mixin nav-divider($top: #e5e5e5, $bottom: $white) {
+  // IE7 needs a set width since we gave a height. Restricting just
+  // to IE7 to keep the 1px left/right space in other browsers.
+  // It is unclear where IE is getting the extra space that we need
+  // to negative-margin away, but so it goes.
+  *width: 100%;
+  height: 1px;
+  margin: (($baseLineHeight / 2) - 1) 1px; // 8px 1px
+  *margin: -5px 0 5px;
+  overflow: hidden;
+  background-color: $top;
+  border-bottom: 1px solid $bottom;
+}
+
+// Form field states (used in forms.scss)
+// Overrides formFieldState to style fields based on a class name
+// --------------------------------------------------
+// Mixin for form field states
+@mixin formFieldState($textColor, $borderColor, $backgroundColor, $className) {
+  // Set the text color
+  > label,
+  ul.help-block,
+  .help-inline {
+    color: $textColor;
+  }
+
+  // Style inputs accordingly
+  input.#{$className},
+  select.#{$className},
+  textarea.#{$className} {
+    color: $textColor;
+    border-color: $borderColor;
+    &:focus {
+      border-color: darken($borderColor, 10%);
+      @include box-shadow(0 0 6px lighten($borderColor, 20%));
+    }
+  }
+  // Give a small background color for input-prepend/-append
+  .input-prepend .add-on,
+  .input-append .add-on {
+    color: $textColor;
+    background-color: $backgroundColor;
+    border-color: $textColor;
+  }
+}
+
+// FORMS - from bootstrap v2.0.2
+// --------------------------------------------------
+
+// Block level inputs
+// This is also a class, defined at the bottom of the file
+@mixin input-block-level() {
+  display: block;
+  width: 100%;
+  min-height: 30px; // Make inputs at least the height of their button counterpart
+  @include box-sizing(border-box); // Makes inputs behave like true block-level elements
+}
+
+// Navbar vertical align - from bootstrap v2.0.2
+// -------------------------
+// Vertically center elements in the navbar.
+// Example: an element has a height of 30px, so write out `.navbarVerticalAlign(30px);` to calculate the appropriate top margin.
+@mixin navbarVerticalAlign($elementHeight) {
+  margin-top: ($navbarHeight - $elementHeight) / 2;
+}
+
+.input-block-level {
+  @include input-block-level;
+}
+
+// Transitions
+// Bug 970147 - fixes collapse in IE (Bootstrap bug)
+@mixin transition($transition) {
+  -webkit-transition: $transition;
+     -moz-transition: $transition;
+       -o-transition: $transition;
+          transition: $transition;
+}
+
+
+@mixin flex {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -moz-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+@mixin align-items($align: stretch) {
+  @if $align == flex-start {
+    -webkit-box-align: start;
+    -ms-flex-align: start;
+  } @else if $align == flex-end {
+    -webkit-box-align: end;
+    -ms-flex-align: end;
+  } @else {
+    -webkit-box-align: $align;
+    -ms-flex-align: $align;
+  }
+  -webkit-align-items: $align;
+  -moz-align-items: $align;
+  align-items: $align;
+}
+
+@mixin align-self($value: auto) {
+  -webkit-align-self: $value;
+  -moz-align-self: $value;
+  @if $value == flex-start {
+    -ms-flex-item-align: start;
+  } @else if $value == flex-end {
+    -ms-flex-item-align: end;
+  } @else {
+    -ms-flex-item-align: $value;
+  }
+  align-self: $value;
+}
+
+@mixin flex-basis($basis: auto) {
+  -webkit-flex-basis: $basis;
+  -moz-flex-basis: $basis;
+  -ms-flex-preferred-size: $basis;
+  flex-basis: $basis;
+}
+
+@mixin flex-grow($amount: 0) {
+  -webkit-box-flex: $amount;
+  -webkit-flex-grow: $amount;
+  -moz-flex-grow: $amount;
+  -ms-flex-positive: $amount;
+  flex-grow: $amount;
+}
+
+@mixin flex-direction($direction: row) {
+  @if $direction == row-reverse {
+    -webkit-box-direction: reverse;
+    -webkit-box-orient: horizontal;
+  } @else if $direction == column {
+    -webkit-box-direction: normal;
+    -webkit-box-orient: vertical;
+  } @else if $direction == column-reverse {
+    -webkit-box-direction: reverse;
+    -webkit-box-orient: vertical;
+  } @else {
+    -webkit-box-direction: normal;
+    -webkit-box-orient: horizontal;
+  }
+  -webkit-flex-direction: $direction;
+  -moz-flex-direction: $direction;
+  -ms-flex-direction: $direction;
+  flex-direction: $direction;
+}
+
+@mixin header_border {
+}
+
+@mixin brand {
+  position: relative;
+  top: 10px;
+}
+
+@mixin brand_hover {
+}
+
+@mixin brand_ie {
+  background: image-url('logo-origin.png') no-repeat 0 50%;
+  height: 55px;
+  width: 133px;
+}
+
+@mixin panel_default_boxshadow {
+  @include box-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
+}
+
+@mixin panel_default_boxshadow_hover {
+  @include box-shadow(0 1px 3px rgba(0,0,0,.35));
+}
