@@ -16,6 +16,11 @@ elif [ -n "${DOCKER_REGISTRY}" ]; then
   TAG="${DOCKER_REGISTRY}/${BUILD_TAG}"
 fi
 
+# backwards compatibility for older openshift versions that passed docker context instead of source_uri
+if [ -n "${DOCKER_CONTEXT_URL}" ]; then
+  SOURCE_URI=${DOCKER_CONTEXT_URL}
+fi
+
 if [[ "${SOURCE_URI}" != "git://"* ]] && [[ "${SOURCE_URI}" != "git@"* ]]; then
   URL="${SOURCE_URI}"
   if [[ "${URL}" != "http://"* ]] && [[ "${URL}" != "https://"* ]]; then
