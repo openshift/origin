@@ -12,6 +12,8 @@ fi
 TAG="${BUILD_TAG}"
 if [ -n "${REGISTRY}" ]; then
   TAG="${REGISTRY}/${BUILD_TAG}"
+elif [ -n "${DOCKER_REGISTRY}" ]; then
+  TAG="${DOCKER_REGISTRY}/${BUILD_TAG}"
 fi
 
 if [[ "${SOURCE_URI}" != "git://"* ]] && [[ "${SOURCE_URI}" != "git@"* ]]; then
@@ -51,6 +53,6 @@ else
   docker build --rm -t "${TAG}" "${SOURCE_URI}"
 fi
 
-if [ -n "${REGISTRY}" ] || [ -s "/root/.dockercfg" ]; then
+if [ -n "${REGISTRY}" ] || [ -n "${DOCKER_REGISTRY}" ] || [ -s "/root/.dockercfg" ]; then
   docker push "${TAG}"
 fi
