@@ -98,7 +98,7 @@ echo "[INFO] Applying application config"
 $openshift kube  apply -c $CONFIG_FILE
 
 echo "[INFO] Waiting for frontend pod to start"
-wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((60*TIME_SEC))
+wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((120*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))

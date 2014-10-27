@@ -7,6 +7,9 @@ source $(dirname $0)/util.sh
 
 function cleanup()
 {
+    if [ $? -ne 0 ]; then
+      echo "[FAIL] !!!!! Test Failed !!!!"
+    fi
     set +e
     kill ${OS_PID} 1>&2 2>/dev/null
     echo
