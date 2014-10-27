@@ -22,7 +22,3 @@ docker build -t openshift/base-builder images/builder/docker/base
 docker build -t openshift/docker-builder images/builder/docker/docker-builder
 docker build -t openshift/sti-builder images/builder/docker/sti-builder
 docker build -t openshift/hello-openshift examples/hello-openshift
-
-images/deployer/kube-deploy/build.sh
-docker build -t openshift/kube-deploy images/deployer/kube-deploy
-rm -f images/deployer/kube-deploy/kube-deploy

@@ -4,6 +4,7 @@
     "apiVersion": "v1beta1",
     "desiredInput":
     {
+        "type": "docker",
         "sourceURI": "git://github.com/openshift/ruby-hello-world.git",
         "imageTag":  "openshift/origin-ruby-sample",
         "registry":  "127.0.0.1:5001"
