@@ -3,7 +3,7 @@ Building the haproxy router image
 
 The openshift-router is supposed be run as a container. To build the image,
 
-	$ cd images/router/haproxy
+	$ cd images/routers/haproxy
 	$ ./build.sh
 	$ docker build -t openshift-router .
 

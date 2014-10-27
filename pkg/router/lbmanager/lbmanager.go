@@ -141,6 +141,8 @@ func (lm *LBManager) syncRoutes(event watch.EventType, app routeapi.Route) {
 	if event == watch.Added || event == watch.Modified {
 		glog.V(4).Infof("Modifying routes for %s\n", app.ServiceName)
 		lm.routes.AddAlias(app.Host, app.ServiceName)
+	} else if event == watch.Deleted {
+		lm.routes.DeleteFrontend(app.ServiceName)
 	}
 	lm.routes.WriteConfig()
 	lm.routes.ReloadRouter()
