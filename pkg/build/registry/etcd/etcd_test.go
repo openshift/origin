@@ -61,7 +61,6 @@ func TestEtcdCreateBuild(t *testing.T) {
 			ID: "foo",
 		},
 		Input: api.BuildInput{
-			Type:      api.DockerBuildType,
 			SourceURI: "http://my.build.com/the/build/Dockerfile",
 			ImageTag:  "repository/dataBuild",
 		},
@@ -229,7 +228,6 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 			ID: "foo",
 		},
 		DesiredInput: api.BuildInput{
-			Type:      api.DockerBuildType,
 			SourceURI: "http://my.build.com/the/build/Dockerfile",
 			ImageTag:  "repository/dataBuild",
 		},

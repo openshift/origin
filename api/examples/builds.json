@@ -8,7 +8,6 @@
             "input": {
                 "imageTag": "test/dockerbuild",
                 "sourceURI": "git://github.com/test/dockerbuild",
-                "type": "docker"
             },
             "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",
             "resourceVersion": 114,

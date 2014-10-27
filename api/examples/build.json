@@ -5,7 +5,6 @@
     "input": {
         "imageTag": "test/dockerBuild",
         "sourceURI": "github.com/test/dockerBuild",
-        "type": "docker"
     },
     "kind": "Build",
     "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",

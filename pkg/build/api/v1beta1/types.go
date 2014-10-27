@@ -20,11 +20,8 @@ type Build struct {
 	PodID string `json:"podID,omitempty" yaml:"podID,omitempty"`
 }
 
-// BuildInput defines the type of build and input parameters for a given build
+// BuildInput defines input parameters for a given build
 type BuildInput struct {
-	// Type is the type of build to execute
-	Type BuildType `json:"type,omitempty" yaml:"type,omitempty"`
-
 	// SourceURI points to the source that will be built. The structure of the source
 	// will depend on the type of build to run
 	SourceURI string `json:"sourceURI,omitempty" yaml:"sourceURI,omitempty"`
@@ -36,9 +33,25 @@ type BuildInput struct {
 	ImageTag string `json:"imageTag,omitempty" yaml:"imageTag,omitempty"`
 
 	// Registry to push the result image to
-	Registry string `json:"registry",omitempty" yaml:"registry,omitempty"`
+	Registry string `json:"registry,omitempty" yaml:"registry,omitempty"`
 
-	// BuilderImage is the image used to execute the build when running STI builds
+	// DockerBuild represents build parameters specific to docker build
+	DockerInput *DockerBuildInput `json:"dockerInput,omitempty" yaml:"dockerInput,omitempty"`
+
+	// STIBuild represents build parameters specific to STI build
+	STIInput *STIBuildInput `json:"stiInput,omitempty" yaml:"stiInput,omitempty"`
+}
+
+// DockerBuildInput defines input parameters specific to docker build
+type DockerBuildInput struct {
+	// ContextDir is a directory inside the SourceURI structure which should be used as a docker
+	// context when building
+	ContextDir string `json:"contextDir,omitempty" yaml:"contextDir,omitempty"`
+}
+
+// STIBuildInput defines input parameters specific to sti build
+type STIBuildInput struct {
+	// BuilderImage is the image used to execute the build
 	BuilderImage string `json:"builderImage,omitempty" yaml:"builderImage,omitempty"`
 }
 

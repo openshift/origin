@@ -24,6 +24,7 @@ func printBuild(build *api.Build, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", build.ID, build.Status, build.PodID)
 	return err
 }
+
 func printBuildList(buildList *api.BuildList, w io.Writer) error {
 	for _, build := range buildList.Items {
 		if err := printBuild(&build, w); err != nil {
@@ -34,9 +35,15 @@ func printBuildList(buildList *api.BuildList, w io.Writer) error {
 }
 
 func printBuildConfig(bc *api.BuildConfig, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", bc.ID, bc.DesiredInput.Type, bc.DesiredInput.SourceURI)
+	buildType := api.DockerBuildType
+	if bc.DesiredInput.STIInput != nil {
+		buildType = api.STIBuildType
+	}
+
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.ID, buildType, bc.DesiredInput.SourceURI)
 	return err
 }
+
 func printBuildConfigList(buildList *api.BuildConfigList, w io.Writer) error {
 	for _, buildConfig := range buildList.Items {
 		if err := printBuildConfig(&buildConfig, w); err != nil {

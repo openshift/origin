@@ -254,7 +254,6 @@ func mockBuildConfig() *api.BuildConfig {
 			ID: "dataBuild",
 		},
 		DesiredInput: api.BuildInput{
-			Type:      api.DockerBuildType,
 			SourceURI: "http://my.build.com/the/buildConfig/Dockerfile",
 			ImageTag:  "repository/dataBuild",
 		},
@@ -321,10 +320,11 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 		"blank sourceURI": {
 			JSONBase: kubeapi.JSONBase{ID: "abc"},
 			DesiredInput: api.BuildInput{
-				SourceURI:    "",
-				ImageTag:     "data/image",
-				Type:         api.STIBuildType,
-				BuilderImage: "builder/image",
+				SourceURI: "",
+				ImageTag:  "data/image",
+				STIInput: &api.STIBuildInput{
+					BuilderImage: "builder/image",
+				},
 			},
 		},
 		"blank ImageTag": {
@@ -332,16 +332,16 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "",
-				Type:      api.DockerBuildType,
 			},
 		},
 		"blank BuilderImage": {
 			JSONBase: kubeapi.JSONBase{ID: "abc"},
 			DesiredInput: api.BuildInput{
-				SourceURI:    "http://github.com/test/source",
-				ImageTag:     "data/image",
-				Type:         api.STIBuildType,
-				BuilderImage: "",
+				SourceURI: "http://github.com/test/source",
+				ImageTag:  "data/image",
+				STIInput: &api.STIBuildInput{
+					BuilderImage: "",
+				},
 			},
 		},
 	}
@@ -365,16 +365,16 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "data/image",
-				Type:      api.DockerBuildType,
 			},
 		},
 		"blank sourceURI": {
 			JSONBase: kubeapi.JSONBase{ID: "abc"},
 			DesiredInput: api.BuildInput{
-				SourceURI:    "",
-				ImageTag:     "data/image",
-				Type:         api.STIBuildType,
-				BuilderImage: "builder/image",
+				SourceURI: "",
+				ImageTag:  "data/image",
+				STIInput: &api.STIBuildInput{
+					BuilderImage: "builder/image",
+				},
 			},
 		},
 		"blank ImageTag": {
@@ -382,25 +382,16 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "",
-				Type:      api.DockerBuildType,
 			},
 		},
 		"blank BuilderImage on STIBuildType": {
 			JSONBase: kubeapi.JSONBase{ID: "abc"},
 			DesiredInput: api.BuildInput{
-				SourceURI:    "http://github.com/test/source",
-				ImageTag:     "data/image",
-				Type:         api.STIBuildType,
-				BuilderImage: "",
-			},
-		},
-		"non-blank BuilderImage on DockerBuildType": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
-			DesiredInput: api.BuildInput{
-				SourceURI:    "http://github.com/test/source",
-				ImageTag:     "data/image",
-				Type:         api.DockerBuildType,
-				BuilderImage: "builder/image",
+				SourceURI: "http://github.com/test/source",
+				ImageTag:  "data/image",
+				STIInput: &api.STIBuildInput{
+					BuilderImage: "",
+				},
 			},
 		},
 	}

@@ -10,7 +10,7 @@ import (
 type FakeTempDirCreator struct{}
 
 func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
-	return "", nil
+	return "test_temp", nil
 }
 
 func TestSTICreateBuildPod(t *testing.T) {
@@ -37,20 +37,21 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
 	}
-	if e := container.Env[0]; e.Name != "BUILD_TAG" || e.Value != expected.Input.ImageTag {
-		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)
+	if len(container.Env) != 6 {
+		t.Fatalf("Expected 6 elements in Env table, got %d", len(container.Env))
 	}
-	if e := container.Env[1]; e.Name != "DOCKER_REGISTRY" || e.Value != expected.Input.Registry {
-		t.Errorf("Expected %s got %s:%s!", expected.Input.Registry, e.Name, e.Value)
+	errorCases := map[int][]string{
+		0: {"BUILD_TAG", expected.Input.ImageTag},
+		1: {"SOURCE_URI", expected.Input.SourceURI},
+		2: {"SOURCE_REF", expected.Input.SourceRef},
+		3: {"REGISTRY", expected.Input.Registry},
+		4: {"BUILDER_IMAGE", expected.Input.STIInput.BuilderImage},
+		5: {"TEMP_DIR", "test_temp"},
 	}
-	if e := container.Env[2]; e.Name != "SOURCE_URI" || e.Value != expected.Input.SourceURI {
-		t.Errorf("Expected %s got %s:%s!", expected.Input.SourceURI, e.Name, e.Value)
-	}
-	if e := container.Env[3]; e.Name != "SOURCE_REF" || e.Value != expected.Input.SourceRef {
-		t.Errorf("Expected %s got %s:%s!", expected.Input.SourceRef, e.Name, e.Value)
-	}
-	if e := container.Env[4]; e.Name != "BUILDER_IMAGE" || e.Value != expected.Input.BuilderImage {
-		t.Errorf("Expected %s, got %s:%s!", expected.Input.BuilderImage, e.Name, e.Value)
+	for index, exp := range errorCases {
+		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
+			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)
+		}
 	}
 }
 
@@ -60,10 +61,10 @@ func mockSTIBuild() *api.Build {
 			ID: "stiBuild",
 		},
 		Input: api.BuildInput{
-			Type:      api.STIBuildType,
 			SourceURI: "http://my.build.com/the/stibuild/Dockerfile",
 			ImageTag:  "repository/stiBuild",
 			Registry:  "docker-registry",
+			STIInput:  &api.STIBuildInput{BuilderImage: "repository/sti-builder"},
 		},
 		Status: api.BuildNew,
 		PodID:  "-the-pod-id",

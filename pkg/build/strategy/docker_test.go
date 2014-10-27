@@ -31,14 +31,20 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
 	}
-	if e := container.Env[0]; e.Name != "BUILD_TAG" && e.Value != expected.Input.ImageTag {
-		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)
+	if len(container.Env) != 5 {
+		t.Fatalf("Expected 5 elements in Env table, got %d", len(container.Env))
 	}
-	if e := container.Env[1]; e.Name != "DOCKER_CONTEXT_URL" && e.Value != expected.Input.SourceURI {
-		t.Errorf("Expected %s, got %s:%s!", expected.Input.ImageTag, e.Name, e.Value)
+	errorCases := map[int][]string{
+		0: {"BUILD_TAG", expected.Input.ImageTag},
+		1: {"SOURCE_URI", expected.Input.SourceURI},
+		2: {"SOURCE_REF", expected.Input.SourceRef},
+		3: {"REGISTRY", expected.Input.Registry},
+		4: {"CONTEXT_DIR", expected.Input.DockerInput.ContextDir},
 	}
-	if e := container.Env[2]; e.Name != "DOCKER_REGISTRY" && e.Value != expected.Input.Registry {
-		t.Errorf("Expected %s got %s:%s!", expected.Input.Registry, e.Name, e.Value)
+	for index, exp := range errorCases {
+		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
+			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)
+		}
 	}
 }
 
@@ -48,10 +54,10 @@ func mockDockerBuild() *api.Build {
 			ID: "dockerBuild",
 		},
 		Input: api.BuildInput{
-			Type:      api.DockerBuildType,
-			SourceURI: "http://my.build.com/the/dockerbuild/Dockerfile",
-			ImageTag:  "repository/dockerBuild",
-			Registry:  "docker-registry",
+			SourceURI:   "http://my.build.com/the/dockerbuild/Dockerfile",
+			ImageTag:    "repository/dockerBuild",
+			Registry:    "docker-registry",
+			DockerInput: &api.DockerBuildInput{ContextDir: "my/test/dir"},
 		},
 		Status: api.BuildNew,
 		PodID:  "-the-pod-id",

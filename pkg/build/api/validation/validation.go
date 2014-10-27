@@ -37,14 +37,16 @@ func validateBuildInput(input *api.BuildInput) errs.ErrorList {
 	if len(input.ImageTag) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("imageTag", input.ImageTag))
 	}
-	if input.Type == api.STIBuildType {
-		if len(input.BuilderImage) == 0 {
-			allErrs = append(allErrs, errs.NewFieldRequired("builderImage", input.BuilderImage))
-		}
-	} else {
-		if len(input.BuilderImage) != 0 {
-			allErrs = append(allErrs, errs.NewFieldInvalid("builderImage", input.BuilderImage))
-		}
+	if input.STIInput != nil {
+		allErrs = append(allErrs, validateSTIBuild(input.STIInput).Prefix("stiBuild")...)
+	}
+	return allErrs
+}
+
+func validateSTIBuild(sti *api.STIBuildInput) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	if len(sti.BuilderImage) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("builderImage", sti.BuilderImage))
 	}
 	return allErrs
 }
