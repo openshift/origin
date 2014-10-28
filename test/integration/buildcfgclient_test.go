@@ -76,9 +76,14 @@ func TestBuildConfigClient(t *testing.T) {
 			"label1": "value1",
 			"label2": "value2",
 		},
+		Source: api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "http://my.docker/build",
+			},
+		},
 		DesiredInput: api.BuildInput{
-			SourceURI: "http://my.docker/build",
-			ImageTag:  "namespace/builtimage",
+			ImageTag: "namespace/builtimage",
 		},
 	}
 

@@ -11,9 +11,14 @@ import (
 func TestBuildValdationSuccess(t *testing.T) {
 	build := &api.Build{
 		TypeMeta: kapi.TypeMeta{ID: "buildId"},
+		Source: api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "http://github.com/my/repository",
+			},
+		},
 		Input: api.BuildInput{
-			SourceURI: "http://github.com/my/repository",
-			ImageTag:  "repository/data",
+			ImageTag: "repository/data",
 		},
 		Status: api.BuildNew,
 	}
@@ -25,9 +30,14 @@ func TestBuildValdationSuccess(t *testing.T) {
 func TestBuildValidationFailure(t *testing.T) {
 	build := &api.Build{
 		TypeMeta: kapi.TypeMeta{ID: ""},
+		Source: api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "http://github.com/my/repository",
+			},
+		},
 		Input: api.BuildInput{
-			SourceURI: "http://github.com/my/repository",
-			ImageTag:  "repository/data",
+			ImageTag: "repository/data",
 		},
 		Status: api.BuildNew,
 	}
@@ -39,9 +49,14 @@ func TestBuildValidationFailure(t *testing.T) {
 func TestBuildConfigValidationSuccess(t *testing.T) {
 	buildConfig := &api.BuildConfig{
 		TypeMeta: kapi.TypeMeta{ID: "configId"},
+		Source: api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "http://github.com/my/repository",
+			},
+		},
 		DesiredInput: api.BuildInput{
-			SourceURI: "http://github.com/my/repository",
-			ImageTag:  "repository/data",
+			ImageTag: "repository/data",
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) > 0 {
@@ -52,9 +67,14 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 func TestBuildConfigValidationFailure(t *testing.T) {
 	buildConfig := &api.BuildConfig{
 		TypeMeta: kapi.TypeMeta{ID: ""},
+		Source: api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "http://github.com/my/repository",
+			},
+		},
 		DesiredInput: api.BuildInput{
-			SourceURI: "http://github.com/my/repository",
-			ImageTag:  "repository/data",
+			ImageTag: "repository/data",
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) != 1 {
@@ -62,23 +82,41 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 	}
 }
 
+func TestValidateSource(t *testing.T) {
+	errorCases := map[string]*api.BuildSource{
+		string(errs.ValidationErrorTypeRequired) + "Git.URI": &api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "",
+			},
+		},
+		string(errs.ValidationErrorTypeInvalid) + "Git.URI": &api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "::",
+			},
+		},
+	}
+	for desc, config := range errorCases {
+		errors := validateBuildSource(config)
+		if len(errors) != 1 {
+			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
+		}
+		err := errors[0].(errs.ValidationError)
+		errDesc := string(err.Type) + err.Field
+		if desc != errDesc {
+			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
+		}
+	}
+}
+
 func TestValidateBuildInput(t *testing.T) {
 	errorCases := map[string]*api.BuildInput{
-		string(errs.ValidationErrorTypeRequired) + "sourceURI": &api.BuildInput{
-			SourceURI: "",
-			ImageTag:  "repository/data",
-		},
-		string(errs.ValidationErrorTypeInvalid) + "sourceURI": &api.BuildInput{
-			SourceURI: "::",
-			ImageTag:  "repository/data",
-		},
 		string(errs.ValidationErrorTypeRequired) + "imageTag": &api.BuildInput{
-			SourceURI: "http://github.com/test/uri",
-			ImageTag:  "",
+			ImageTag: "",
 		},
 		string(errs.ValidationErrorTypeRequired) + "stiBuild.builderImage": &api.BuildInput{
-			SourceURI: "http://github.com/test/uri",
-			ImageTag:  "repository/data",
+			ImageTag: "repository/data",
 			STIInput: &api.STIBuildInput{
 				BuilderImage: "",
 			},

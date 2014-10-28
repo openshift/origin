@@ -335,9 +335,13 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	failureCases := map[string]api.Build{
 		"empty ID": {
 			TypeMeta: kapi.TypeMeta{ID: ""},
+			Source: api.BuildSource{
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
+			},
 			Input: api.BuildInput{
-				SourceURI: "http://my.build.com/the/build/Dockerfile",
-				ImageTag:  "repository/dataBuild",
+				ImageTag: "repository/dataBuild",
 			},
 		},
 		"empty build input": {
@@ -362,9 +366,14 @@ func mockBuild() *api.Build {
 			ID:        "dataBuild",
 			Namespace: kapi.NamespaceDefault,
 		},
+		Source: api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "http://my.build.com/the/build/Dockerfile",
+			},
+		},
 		Input: api.BuildInput{
-			SourceURI: "http://my.build.com/the/build/Dockerfile",
-			ImageTag:  "repository/dataBuild",
+			ImageTag: "repository/dataBuild",
 		},
 		Status: api.BuildPending,
 		PodID:  "-the-pod-id",

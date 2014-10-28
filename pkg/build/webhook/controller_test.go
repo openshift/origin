@@ -202,8 +202,41 @@ func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	}
 }
 
+type mockOsClient struct {
+	testBuildInterface
+}
+
+type testBuildInterface struct {
+	CreateBuildFunc    func(ctx kapi.Context, build *api.Build) (*api.Build, error)
+	GetBuildConfigFunc func(ctx kapi.Context, id string) (*api.BuildConfig, error)
+}
+
+func (i *testBuildInterface) CreateBuild(ctx kapi.Context, build *api.Build) (*api.Build, error) {
+	return i.CreateBuildFunc(ctx, build)
+}
+func (i *testBuildInterface) GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error) {
+	return i.GetBuildConfigFunc(ctx, id)
+}
+
 func TestInvokeWebhookOk(t *testing.T) {
-	server := httptest.NewServer(NewController(&osClient{}, map[string]Plugin{
+	var buildRequest *api.Build
+	buildConfig := &api.BuildConfig{
+		DesiredInput: api.BuildInput{},
+		Secret:       "secret101",
+	}
+
+	server := httptest.NewServer(NewController(&mockOsClient{
+		testBuildInterface: testBuildInterface{
+			CreateBuildFunc: func(ctx kapi.Context, build *api.Build) (*api.Build, error) {
+				buildRequest = build
+				return build, nil
+			},
+			GetBuildConfigFunc: func(ctx kapi.Context, id string) (*api.BuildConfig, error) {
+				buildConfig.ID = id
+				return buildConfig, nil
+			},
+		},
+	}, map[string]Plugin{
 		"okPlugin": &pathPlugin{},
 	}))
 	defer server.Close()
@@ -217,5 +250,8 @@ func TestInvokeWebhookOk(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Wrong response code, expecting 200, got %s: %s!", resp.Status,
 			string(body))
+	}
+	if e, a := buildConfig.ID, buildRequest.Labels[api.BuildConfigLabel]; e != a {
+		t.Fatalf("expected build with label '%s', got '%s'", e, a)
 	}
 }

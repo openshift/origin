@@ -43,9 +43,14 @@ func TestWebhookGithubPush(t *testing.T) {
 		TypeMeta: kapi.TypeMeta{
 			ID: "pushbuild",
 		},
+		Source: buildapi.BuildSource{
+			Type: buildapi.BuildSourceGit,
+			Git: &buildapi.GitBuildSource{
+				URI: "http://my.docker/build",
+			},
+		},
 		DesiredInput: buildapi.BuildInput{
-			SourceURI: "http://my.docker/build",
-			ImageTag:  "namespace/builtimage",
+			ImageTag: "namespace/builtimage",
 		},
 		Secret: "secret101",
 	}
@@ -84,9 +89,14 @@ func TestWebhookGithubPing(t *testing.T) {
 		TypeMeta: kapi.TypeMeta{
 			ID: "pingbuild",
 		},
+		Source: buildapi.BuildSource{
+			Type: buildapi.BuildSourceGit,
+			Git: &buildapi.GitBuildSource{
+				URI: "http://my.docker/build",
+			},
+		},
 		DesiredInput: buildapi.BuildInput{
-			SourceURI: "http://my.docker/build",
-			ImageTag:  "namespace/builtimage",
+			ImageTag: "namespace/builtimage",
 		},
 		Secret: "secret101",
 	}
