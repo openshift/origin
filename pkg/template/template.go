@@ -99,6 +99,9 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 		case *deployapi.Deployment:
 			p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
 			t.Items[i] = runtime.EmbeddedObject{Object: obj}
+		case *deployapi.DeploymentConfig:
+			p.substituteParametersInManifest(&obj.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
+			t.Items[i] = runtime.EmbeddedObject{Object: obj}
 		default:
 			glog.V(1).Infof("template.items[%v]: Parameter substitution not implemented for resource '%T'.", i, obj)
 		}

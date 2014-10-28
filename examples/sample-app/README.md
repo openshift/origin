@@ -48,15 +48,9 @@ All commands assume the `openshift` binary is in your path:
 7. Edit application-buildconfig.json
  * Update the sourceURI to point to your forked repository.
 
-8. Create a build configuration for your application.  This configuration is used by OpenShift to rebuild your application's Docker image (e.g. when you push changes to the application source).
+8. Submit the application template for processing and create the application using the processed template:
 
-        $ openshift kube create buildConfigs -c application-buildconfig.json
-
-    You should see the build configuration returned as output (SourceURI will depend on your repo name):
-
-        ID                  Type                SourceURI
-        ----------          ----------          ----------
-        build100            docker              git://github.com/openshift/ruby-hello-world.git
+        $ openshift kube process -c application-template.json | openshift kube apply -c -
 
 9. Trigger an initial build of your application
  * If you setup the github webhook in step 6, push a change to app.rb in your ruby sample repository from step 5.
@@ -84,11 +78,7 @@ All commands assume the `openshift` binary is in your path:
      in the buildcfg.json.  Note that the private docker registry is using ephemeral storage, so when it is stopped, the image will
      be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
 
-11. Submit the application template for processing and create the application using the processed template:
-
-        $ openshift kube process -c application-template.json | openshift kube apply -c -
-
-12. Wait for the application's frontend pod to be started (this can take a few mins):
+11. Wait for the application's frontend pod to be started (this can take a few mins):
 
         $ openshift kube list pods
 
@@ -98,7 +88,7 @@ All commands assume the `openshift` binary is in your path:
         ----------                                          ----------                     ----------          ----------                                               ----------
         fc66bffd-3dcc-11e4-984b-3c970e3bf0b7                openshift/origin-ruby-sample   127.0.0.1/          name=frontend,replicationController=frontendController   Running
 
-13. Determine the IP for the frontend service:
+12. Determine the IP for the frontend service:
 
         $ openshift kube list services
 
@@ -111,7 +101,7 @@ All commands assume the `openshift` binary is in your path:
 
     In this case, the IP for frontend is 172.17.17.2.
 
-14. Confirm the application is now accessible via the frontend service on port 5432:
+13. Confirm the application is now accessible via the frontend service on port 5432:
 
         $ curl http://172.17.17.2:5432
 
@@ -122,18 +112,18 @@ All commands assume the `openshift` binary is in your path:
         Password is qgRpLNGO
         DB password is dQfUlnTG
 
-15. Make an additional change to your ruby sample app.rb file and push it.
+14. Make an additional change to your ruby sample app.rb file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
-16. Repeat steps 9-10
+15. Repeat steps 9-10
 
-17. Locate the container running the ruby application and kill it:
+16. Locate the container running the ruby application and kill it:
 
         $ docker kill `docker ps | grep origin-ruby-sample | awk '{print $1}'`
 
-18. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 15.
+17. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 15.
 
         $ curl http://172.17.17.2:5432
 
