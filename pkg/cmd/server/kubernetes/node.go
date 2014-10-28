@@ -1,8 +1,10 @@
 package kubernetes
 
 import (
+	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
@@ -10,12 +12,16 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+
+	"github.com/openshift/origin/pkg/service"
 )
 
 // NodePort is the default Kubelet port for serving information about the node.
@@ -74,19 +80,12 @@ func (c *NodeConfig) EnsureVolumeDir() {
 
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
-	// cAdvisor should be running on the local machine
-	cadvisorClient, err := cadvisor.NewClient("http://" + c.NodeHost + ":4194")
-	if err != nil {
-		glog.Errorf("Error on creating cadvisor client: %v", err)
-	}
-
 	// initialize Kubelet
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
 	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(c.NodeHost), c.EtcdClient, cfg.Channel("etcd"))
 	k := kubelet.NewMainKubelet(
 		c.NodeHost,
 		c.DockerClient,
-		cadvisorClient,
 		c.EtcdClient,
 		c.VolumeDir,
 		c.NetworkContainerImage,
@@ -94,10 +93,31 @@ func (c *NodeConfig) RunKubelet() {
 		0.0,
 		10)
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
+
+	// TODO expose this as a command line parameter
+	enableDebuggingHandlers := false
 	go util.Forever(func() {
 		glog.Infof("Started Kubelet for node %s, server at %s:%d", c.NodeHost, c.BindHost, NodePort)
-		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), c.BindHost, uint(NodePort))
+		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), net.ParseIP(c.BindHost), uint(NodePort), enableDebuggingHandlers)
 	}, 0)
+
+	// this mirrors 1fc92bef53fdd1bc70f623c0693736c763cff45f
+	// I don't fully understand what a cadvisor is, but it seems that we're supposed to run it separately from the rest of the kubelet
+	go func() {
+		defer util.HandleCrash()
+		// TODO: Monitor this connection, reconnect if needed?
+		glog.V(1).Infof("Trying to create cadvisor client.")
+		// cAdvisor should be running on the local machine
+		cadvisorClient, err := cadvisor.NewClient("http://" + c.NodeHost + ":4194")
+		if err != nil {
+			glog.Errorf("Error on creating cadvisor client: %v", err)
+			return
+		}
+		glog.V(1).Infof("Successfully created cadvisor client.")
+		// this binds the cadvisor to the kubelet for later references
+		k.SetCadvisorClient(cadvisorClient)
+	}()
+
 }
 
 // RunProxy starts the proxy
@@ -109,8 +129,15 @@ func (c *NodeConfig) RunProxy() {
 		serviceConfig.Channel("etcd"),
 		endpointsConfig.Channel("etcd"))
 	loadBalancer := proxy.NewLoadBalancerRR()
-	proxier := proxy.NewProxier(loadBalancer, c.BindHost)
-	serviceConfig.RegisterHandler(proxier)
 	endpointsConfig.RegisterHandler(loadBalancer)
+
+	var proxier pconfig.ServiceConfigHandler
+	proxier = proxy.NewProxier(loadBalancer, net.ParseIP(c.BindHost), iptables.New(exec.New()))
+	if proxier == nil || reflect.ValueOf(proxier).IsNil() { // explicitly declared interfaces aren't plain nil, you must reflect inside to see if it's really nil or not
+		glog.Errorf("WARNING: Could not modify iptables.  iptables must be mutable by this process to use services.  Do you have root permissions?")
+		proxier = &service.FailingServiceConfigProxy{}
+	}
+	serviceConfig.RegisterHandler(proxier)
+
 	glog.Infof("Started Kubernetes Proxy on %s", c.BindHost)
 }

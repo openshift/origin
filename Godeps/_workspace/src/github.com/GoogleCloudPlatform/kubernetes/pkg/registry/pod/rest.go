@@ -36,6 +36,23 @@ import (
 	"github.com/golang/glog"
 )
 
+type ipCacheEntry struct {
+	ip         string
+	lastUpdate time.Time
+}
+
+type ipCache map[string]ipCacheEntry
+
+type clock interface {
+	Now() time.Time
+}
+
+type realClock struct{}
+
+func (r realClock) Now() time.Time {
+	return time.Now()
+}
+
 // REST implements the RESTStorage interface in terms of a PodRegistry.
 type REST struct {
 	cloudProvider cloudprovider.Interface
@@ -45,6 +62,8 @@ type REST struct {
 	podPollPeriod time.Duration
 	registry      Registry
 	minions       client.MinionInterface
+	ipCache       ipCache
+	clock         clock
 }
 
 type RESTConfig struct {
@@ -64,12 +83,14 @@ func NewREST(config *RESTConfig) *REST {
 		podPollPeriod: time.Second * 10,
 		registry:      config.Registry,
 		minions:       config.Minions,
+		ipCache:       ipCache{},
+		clock:         realClock{},
 	}
 }
 
 func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	pod := obj.(*api.Pod)
-	if !api.ValidNamespace(ctx, &pod.JSONBase) {
+	if !api.ValidNamespace(ctx, &pod.TypeMeta) {
 		return nil, errors.NewConflict("pod", pod.Namespace, fmt.Errorf("Pod.Namespace does not match the provided context"))
 	}
 	pod.DesiredState.Manifest.UUID = uuid.NewUUID().String()
@@ -112,7 +133,9 @@ func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
 		}
 		pod.CurrentState.Status = status
 	}
-	pod.CurrentState.HostIP = getInstanceIP(rs.cloudProvider, pod.CurrentState.Host)
+	if pod.CurrentState.Host != "" {
+		pod.CurrentState.HostIP = rs.getInstanceIP(pod.CurrentState.Host)
+	}
 	return pod, err
 }
 
@@ -144,14 +167,16 @@ func (rs *REST) List(ctx api.Context, label, field labels.Selector) (runtime.Obj
 				return pod, err
 			}
 			pod.CurrentState.Status = status
-			pod.CurrentState.HostIP = getInstanceIP(rs.cloudProvider, pod.CurrentState.Host)
+			if pod.CurrentState.Host != "" {
+				pod.CurrentState.HostIP = rs.getInstanceIP(pod.CurrentState.Host)
+			}
 		}
 	}
 	return pods, err
 }
 
 // Watch begins watching for new, changed, or deleted pods.
-func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchPods(ctx, resourceVersion, rs.filterFunc(label, field))
 }
 
@@ -161,7 +186,7 @@ func (*REST) New() runtime.Object {
 
 func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	pod := obj.(*api.Pod)
-	if !api.ValidNamespace(ctx, &pod.JSONBase) {
+	if !api.ValidNamespace(ctx, &pod.TypeMeta) {
 		return nil, errors.NewConflict("pod", pod.Namespace, fmt.Errorf("Pod.Namespace does not match the provided context"))
 	}
 	if errs := validation.ValidatePod(pod); len(errs) > 0 {
@@ -183,13 +208,13 @@ func (rs *REST) fillPodInfo(pod *api.Pod) {
 	// Get cached info for the list currently.
 	// TODO: Optionally use fresh info
 	if rs.podCache != nil {
-		info, err := rs.podCache.GetPodInfo(pod.CurrentState.Host, pod.ID)
+		info, err := rs.podCache.GetPodInfo(pod.CurrentState.Host, pod.Namespace, pod.ID)
 		if err != nil {
 			if err != client.ErrPodInfoNotAvailable {
 				glog.Errorf("Error getting container info from cache: %#v", err)
 			}
 			if rs.podInfoGetter != nil {
-				info, err = rs.podInfoGetter.GetPodInfo(pod.CurrentState.Host, pod.ID)
+				info, err = rs.podInfoGetter.GetPodInfo(pod.CurrentState.Host, pod.Namespace, pod.ID)
 			}
 			if err != nil {
 				if err != client.ErrPodInfoNotAvailable {
@@ -201,8 +226,8 @@ func (rs *REST) fillPodInfo(pod *api.Pod) {
 		pod.CurrentState.Info = info
 		netContainerInfo, ok := info["net"]
 		if ok {
-			if netContainerInfo.DetailInfo.NetworkSettings != nil {
-				pod.CurrentState.PodIP = netContainerInfo.DetailInfo.NetworkSettings.IPAddress
+			if netContainerInfo.PodIP != "" {
+				pod.CurrentState.PodIP = netContainerInfo.PodIP
 			} else {
 				glog.Warningf("No network settings: %#v", netContainerInfo)
 			}
@@ -212,7 +237,22 @@ func (rs *REST) fillPodInfo(pod *api.Pod) {
 	}
 }
 
-func getInstanceIP(cloud cloudprovider.Interface, host string) string {
+func (rs *REST) getInstanceIP(host string) string {
+	data, ok := rs.ipCache[host]
+	now := rs.clock.Now()
+
+	if !ok || now.Sub(data.lastUpdate) > (30*time.Second) {
+		ip := getInstanceIPFromCloud(rs.cloudProvider, host)
+		data = ipCacheEntry{
+			ip:         ip,
+			lastUpdate: now,
+		}
+		rs.ipCache[host] = data
+	}
+	return data.ip
+}
+
+func getInstanceIPFromCloud(cloud cloudprovider.Interface, host string) string {
 	if cloud == nil {
 		return ""
 	}
@@ -222,7 +262,7 @@ func getInstanceIP(cloud cloudprovider.Interface, host string) string {
 	}
 	addr, err := instances.IPAddress(host)
 	if err != nil {
-		glog.Errorf("Error getting instance IP: %#v", err)
+		glog.Errorf("Error getting instance IP for %q: %#v", host, err)
 		return ""
 	}
 	return addr.String()
@@ -271,7 +311,7 @@ func getPodStatus(pod *api.Pod, minions client.MinionInterface) (api.PodStatus, 
 		}
 	}
 	switch {
-	case running > 0 && stopped == 0 && unknown == 0:
+	case running > 0 && unknown == 0:
 		return api.PodRunning, nil
 	case running == 0 && stopped > 0 && unknown == 0:
 		return api.PodTerminated, nil
@@ -280,25 +320,4 @@ func getPodStatus(pod *api.Pod, minions client.MinionInterface) (api.PodStatus, 
 	default:
 		return api.PodWaiting, nil
 	}
-}
-
-func (rs *REST) waitForPodRunning(ctx api.Context, pod *api.Pod) (runtime.Object, error) {
-	for {
-		podObj, err := rs.Get(ctx, pod.ID)
-		if err != nil || podObj == nil {
-			return nil, err
-		}
-		podPtr, ok := podObj.(*api.Pod)
-		if !ok {
-			// This should really never happen.
-			return nil, fmt.Errorf("Error %#v is not an api.Pod!", podObj)
-		}
-		switch podPtr.CurrentState.Status {
-		case api.PodRunning, api.PodTerminated:
-			return pod, nil
-		default:
-			time.Sleep(rs.podPollPeriod)
-		}
-	}
-	return pod, nil
 }

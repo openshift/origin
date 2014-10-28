@@ -9,5 +9,5 @@
 // use:
 //     http.Handle("/",
 //        http.FileServer(
-//        &assetfs.AssetFS{Asset, AssetDir, "data"}))
+//        &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "data"}))
 package assetfs

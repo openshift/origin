@@ -36,12 +36,12 @@ func TestListRoutesPopulatedList(t *testing.T) {
 	mockRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "bar",
 				},
 			},
@@ -81,7 +81,7 @@ func TestCreateRouteOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Route{
-		JSONBase:    kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:    kubeapi.TypeMeta{ID: "foo"},
 		Host:        "www.frontend.com",
 		ServiceName: "myrubyservice",
 	})
@@ -126,7 +126,7 @@ func TestGetRouteOK(t *testing.T) {
 	mockRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				JSONBase: kubeapi.JSONBase{ID: "foo"},
+				TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 			},
 		},
 	}
@@ -173,7 +173,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.Route{
-		JSONBase:    kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:    kubeapi.TypeMeta{ID: "foo"},
 		Host:        "www.frontend.com",
 		ServiceName: "rubyservice",
 	})
@@ -195,7 +195,7 @@ func TestUpdateRouteOK(t *testing.T) {
 	mockRepositoryRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				JSONBase:    kubeapi.JSONBase{ID: "bar"},
+				TypeMeta:    kubeapi.TypeMeta{ID: "bar"},
 				Host:        "www.frontend.com",
 				ServiceName: "rubyservice",
 			},
@@ -205,7 +205,7 @@ func TestUpdateRouteOK(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.Route{
-		JSONBase:    kubeapi.JSONBase{ID: "bar"},
+		TypeMeta:    kubeapi.TypeMeta{ID: "bar"},
 		Host:        "www.newfrontend.com",
 		ServiceName: "newrubyservice",
 	})
@@ -250,7 +250,7 @@ func TestDeleteRouteOk(t *testing.T) {
 	mockRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				JSONBase: kubeapi.JSONBase{ID: "foo"},
+				TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 			},
 		},
 	}

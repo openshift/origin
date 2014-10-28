@@ -17,10 +17,9 @@ limitations under the License.
 package api
 
 import (
-	"strings"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/fsouza/go-dockerclient"
 )
 
 // Common string formats
@@ -46,32 +45,6 @@ import (
 //     or more simply:
 //         DNS_LABEL(\.DNS_LABEL)*
 
-// ContainerManifest corresponds to the Container Manifest format, documented at:
-// https://developers.google.com/compute/docs/containers/container_vms#container_manifest
-// This is used as the representation of Kubernetes workloads.
-type ContainerManifest struct {
-	// Required: This must be a supported version string, such as "v1beta1".
-	Version string `yaml:"version" json:"version"`
-	// Required: This must be a DNS_SUBDOMAIN.
-	// TODO: ID on Manifest is deprecated and will be removed in the future.
-	ID string `yaml:"id" json:"id"`
-	// TODO: UUID on Manifest is deprecated in the future once we are done
-	// with the API refactoring. It is required for now to determine the instance
-	// of a Pod.
-	UUID          string        `yaml:"uuid,omitempty" json:"uuid,omitempty"`
-	Volumes       []Volume      `yaml:"volumes" json:"volumes"`
-	Containers    []Container   `yaml:"containers" json:"containers"`
-	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" yaml:"restartPolicy,omitempty"`
-}
-
-// ContainerManifestList is used to communicate container manifests to kubelet.
-type ContainerManifestList struct {
-	JSONBase `json:",inline" yaml:",inline"`
-	Items    []ContainerManifest `json:"items,omitempty" yaml:"items,omitempty"`
-}
-
-func (*ContainerManifestList) IsAnAPIObject() {}
-
 // Volume represents a named volume in a pod that may be accessed by any containers in the pod.
 type Volume struct {
 	// Required: This must be a DNS_LABEL.  Each volume in a pod must have
@@ -93,6 +66,9 @@ type VolumeSource struct {
 	HostDir *HostDir `yaml:"hostDir" json:"hostDir"`
 	// EmptyDir represents a temporary directory that shares a pod's lifetime.
 	EmptyDir *EmptyDir `yaml:"emptyDir" json:"emptyDir"`
+	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	GCEPersistentDisk *GCEPersistentDisk `yaml:"persistentDisk" json:"persistentDisk"`
 }
 
 // HostDir represents bare host directory volume.
@@ -112,7 +88,28 @@ const (
 	ProtocolUDP Protocol = "UDP"
 )
 
-// Port represents a network port in a single container.
+// GCEPersistent Disk resource.
+// A GCE PD must exist and be formatted before mounting to a container.
+// The disk must also be in the same GCE project and zone as the kubelet.
+// A GCE PD can only be mounted as read/write once.
+type GCEPersistentDisk struct {
+	// Unique name of the PD resource. Used to identify the disk in GCE
+	PDName string `yaml:"pdName" json:"pdName"`
+	// Required: Filesystem type to mount.
+	// Must be a filesystem type supported by the host operating system.
+	// Ex. "ext4", "xfs", "ntfs"
+	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	FSType string `yaml:"fsType,omitempty" json:"fsType,omitempty"`
+	// Optional: Partition on the disk to mount.
+	// If omitted, kubelet will attempt to mount the device name.
+	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
+	Partition int `yaml:"partition,omitempty" json:"partition,omitempty"`
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the ReadOnly setting in VolumeMounts.
+	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly,omitempty"`
+}
+
+// Port represents a network port in a single container
 type Port struct {
 	// Optional: If specified, this must be a DNS_LABEL.  Each named port
 	// in a pod must have a unique name.
@@ -195,26 +192,6 @@ const (
 	PullIfNotPresent PullPolicy = "PullIfNotPresent"
 )
 
-func IsPullAlways(p PullPolicy) bool {
-	// Default to pull always
-	if len(p) == 0 {
-		return true
-	}
-	return pullPoliciesEqual(p, PullAlways)
-}
-
-func IsPullNever(p PullPolicy) bool {
-	return pullPoliciesEqual(p, PullNever)
-}
-
-func IsPullIfNotPresent(p PullPolicy) bool {
-	return pullPoliciesEqual(p, PullIfNotPresent)
-}
-
-func pullPoliciesEqual(p1, p2 PullPolicy) bool {
-	return strings.ToLower(string(p1)) == strings.ToLower(string(p2))
-}
-
 // Container represents a single container that is expected to be run on the host.
 type Container struct {
 	// Required: This must be a DNS_LABEL.  Each container in a pod must
@@ -265,15 +242,21 @@ type Lifecycle struct {
 
 // The below types are used by kube_client and api_server.
 
-// JSONBase is shared by all objects sent to, or returned from the client.
-type JSONBase struct {
+// TypeMeta is shared by all objects sent to, or returned from the client.
+type TypeMeta struct {
 	Kind              string    `json:"kind,omitempty" yaml:"kind,omitempty"`
 	ID                string    `json:"id,omitempty" yaml:"id,omitempty"`
 	CreationTimestamp util.Time `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
 	SelfLink          string    `json:"selfLink,omitempty" yaml:"selfLink,omitempty"`
-	ResourceVersion   uint64    `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
+	ResourceVersion   string    `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
 	APIVersion        string    `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
-	Namespace         string    `json:"namespace",omitempty" yaml:"namespace,omitempty"`
+	Namespace         string    `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	UID               string    `json:"uid,omitempty" yaml:"uid,omitempty"`
+
+	// Annotations are unstructured key value data stored with a resource that may be set by
+	// external tooling. They are not queryable and should be preserved when modifying
+	// objects.
+	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 }
 
 const (
@@ -302,12 +285,15 @@ type ContainerStateWaiting struct {
 }
 
 type ContainerStateRunning struct {
+	StartedAt time.Time `json:"startedAt,omitempty" yaml:"startedAt,omitempty"`
 }
 
 type ContainerStateTerminated struct {
-	ExitCode int    `json:"exitCode,omitempty" yaml:"exitCode,omitempty"`
-	Signal   int    `json:"signal,omitempty" yaml:"signal,omitempty"`
-	Reason   string `json:"reason,omitempty" yaml:"reason,omitempty"`
+	ExitCode   int       `json:"exitCode" yaml:"exitCode"`
+	Signal     int       `json:"signal,omitempty" yaml:"signal,omitempty"`
+	Reason     string    `json:"reason,omitempty" yaml:"reason,omitempty"`
+	StartedAt  time.Time `json:"startedAt,omitempty" yaml:"startedAt,omitempty"`
+	FinishedAt time.Time `json:"finishedAt,omitempty" yaml:"finishedAt,omitempty"`
 }
 
 type ContainerState struct {
@@ -323,12 +309,13 @@ type ContainerStatus struct {
 	// defined for container?
 	State        ContainerState `json:"state,omitempty" yaml:"state,omitempty"`
 	RestartCount int            `json:"restartCount" yaml:"restartCount"`
-	// TODO(dchen1107): Introduce our own NetworkSettings struct here?
+	// TODO(dchen1107): Deprecated this soon once we pull entire PodStatus from node,
+	// not just PodInfo. Now we need this to remove docker.Container from API
+	PodIP string `json:"podIP,omitempty" yaml:"podIP,omitempty"`
+	// TODO(dchen1107): Need to decide how to represent this in v1beta3
+	Image string `yaml:"image" json:"image"`
 	// TODO(dchen1107): Once we have done with integration with cadvisor, resource
 	// usage should be included.
-	// TODO(dchen1107):  In long run, I think we should replace this with our own struct to remove
-	// the dependency on docker.
-	DetailInfo docker.Container `json:"detailInfo,omitempty" yaml:"detailInfo,omitempty"`
 }
 
 // PodInfo contains one entry for every container with available info.
@@ -370,21 +357,17 @@ type PodState struct {
 
 // PodList is a list of Pods.
 type PodList struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	Items    []Pod `json:"items" yaml:"items,omitempty"`
 }
 
-func (*PodList) IsAnAPIObject() {}
-
 // Pod is a collection of containers, used as either input (create, update) or as output (list, get).
 type Pod struct {
-	JSONBase     `json:",inline" yaml:",inline"`
+	TypeMeta     `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	DesiredState PodState          `json:"desiredState,omitempty" yaml:"desiredState,omitempty"`
 	CurrentState PodState          `json:"currentState,omitempty" yaml:"currentState,omitempty"`
 }
-
-func (*Pod) IsAnAPIObject() {}
 
 // ReplicationControllerState is the state of a replication controller, either input (create, update) or as output (list, get).
 type ReplicationControllerState struct {
@@ -395,21 +378,17 @@ type ReplicationControllerState struct {
 
 // ReplicationControllerList is a collection of replication controllers.
 type ReplicationControllerList struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	Items    []ReplicationController `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
-func (*ReplicationControllerList) IsAnAPIObject() {}
-
 // ReplicationController represents the configuration of a replication controller.
 type ReplicationController struct {
-	JSONBase     `json:",inline" yaml:",inline"`
+	TypeMeta     `json:",inline" yaml:",inline"`
 	DesiredState ReplicationControllerState `json:"desiredState,omitempty" yaml:"desiredState,omitempty"`
 	CurrentState ReplicationControllerState `json:"currentState,omitempty" yaml:"currentState,omitempty"`
 	Labels       map[string]string          `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
-
-func (*ReplicationController) IsAnAPIObject() {}
 
 // PodTemplate holds the information used for creating pods.
 type PodTemplate struct {
@@ -419,17 +398,15 @@ type PodTemplate struct {
 
 // ServiceList holds a list of services.
 type ServiceList struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	Items    []Service `json:"items" yaml:"items"`
 }
-
-func (*ServiceList) IsAnAPIObject() {}
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
 // (for example 3306) that the proxy listens on, and the selector that determines which pods
 // will answer requests sent through the proxy.
 type Service struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 
 	// Required.
 	Port int `json:"port" yaml:"port"`
@@ -446,26 +423,27 @@ type Service struct {
 	// ContainerPort is the name of the port on the container to direct traffic to.
 	// Optional, if unspecified use the first port on the container.
 	ContainerPort util.IntOrString `json:"containerPort,omitempty" yaml:"containerPort,omitempty"`
-}
 
-func (*Service) IsAnAPIObject() {}
+	// PortalIP is assigned by the master.  If specified by the user it will be ignored.
+	// TODO: This is awkward - if we had a BoundService, it would be better factored.
+	PortalIP string `json:"portalIP,omitempty" yaml:"portalIP,omitempty"`
+
+	// ProxyPort is assigned by the master.  If specified by the user it will be ignored.
+	ProxyPort int `json:"proxyPort,omitempty" yaml:"proxyPort,omitempty"`
+}
 
 // Endpoints is a collection of endpoints that implement the actual service, for example:
 // Name: "mysql", Endpoints: ["10.10.1.1:1909", "10.10.2.2:8834"]
 type Endpoints struct {
-	JSONBase  `json:",inline" yaml:",inline"`
+	TypeMeta  `json:",inline" yaml:",inline"`
 	Endpoints []string `json:"endpoints,omitempty" yaml:"endpoints,omitempty"`
 }
 
-func (*Endpoints) IsAnAPIObject() {}
-
 // EndpointsList is a list of endpoints.
 type EndpointsList struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	Items    []Endpoints `json:"items,omitempty" yaml:"items,omitempty"`
 }
-
-func (*EndpointsList) IsAnAPIObject() {}
 
 // NodeResources represents resources on a Kubernetes system node
 // see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md for more details.
@@ -480,39 +458,33 @@ type ResourceName string
 type ResourceList map[ResourceName]util.IntOrString
 
 // Minion is a worker node in Kubernetenes.
-// The name of the minion according to etcd is in JSONBase.ID.
+// The name of the minion according to etcd is in TypeMeta.ID.
 type Minion struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	// Queried from cloud provider, if available.
 	HostIP string `json:"hostIP,omitempty" yaml:"hostIP,omitempty"`
 	// Resources available on the node
 	NodeResources NodeResources `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
-func (*Minion) IsAnAPIObject() {}
-
 // MinionList is a list of minions.
 type MinionList struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	Items    []Minion `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
-func (*MinionList) IsAnAPIObject() {}
-
 // Binding is written by a scheduler to cause a pod to be bound to a host.
 type Binding struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	PodID    string `json:"podID" yaml:"podID"`
 	Host     string `json:"host" yaml:"host"`
 }
-
-func (*Binding) IsAnAPIObject() {}
 
 // Status is a return value for calls that don't return other objects.
 // TODO: this could go in apiserver, but I'm including it here so clients needn't
 // import both.
 type Status struct {
-	JSONBase `json:",inline" yaml:",inline"`
+	TypeMeta `json:",inline" yaml:",inline"`
 	// One of: "Success", "Failure", "Working" (for operations not yet completed)
 	Status string `json:"status,omitempty" yaml:"status,omitempty"`
 	// A human-readable description of the status of this operation.
@@ -530,8 +502,6 @@ type Status struct {
 	// Suggested HTTP return code for this status, 0 if not set.
 	Code int `json:"code,omitempty" yaml:"code,omitempty"`
 }
-
-func (*Status) IsAnAPIObject() {}
 
 // StatusDetails is a set of additional properties that MAY be set by the
 // server to provide additional information about a response. The Reason
@@ -666,26 +636,23 @@ const (
 
 // ServerOp is an operation delivered to API clients.
 type ServerOp struct {
-	JSONBase `yaml:",inline" json:",inline"`
+	TypeMeta `yaml:",inline" json:",inline"`
 }
-
-func (*ServerOp) IsAnAPIObject() {}
 
 // ServerOpList is a list of operations, as delivered to API clients.
 type ServerOpList struct {
-	JSONBase `yaml:",inline" json:",inline"`
+	TypeMeta `yaml:",inline" json:",inline"`
 	Items    []ServerOp `yaml:"items,omitempty" json:"items,omitempty"`
 }
-
-func (*ServerOpList) IsAnAPIObject() {}
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
 type ObjectReference struct {
 	Kind            string `json:"kind,omitempty" yaml:"kind,omitempty"`
+	Namespace       string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	Name            string `json:"name,omitempty" yaml:"name,omitempty"`
 	UID             string `json:"uid,omitempty" yaml:"uid,omitempty"`
 	APIVersion      string `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
-	ResourceVersion uint64 `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
+	ResourceVersion string `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
 
 	// Optional. If referring to a piece of an object instead of an entire object, this string
 	// should contain a valid field access statement. For example,
@@ -700,7 +667,7 @@ type ObjectReference struct {
 // Event is a report of an event somewhere in the cluster.
 // TODO: Decide whether to store these separately or with the object they apply to.
 type Event struct {
-	JSONBase `yaml:",inline" json:",inline"`
+	TypeMeta `yaml:",inline" json:",inline"`
 
 	// Required. The object that this event is about.
 	InvolvedObject ObjectReference `json:"involvedObject,omitempty" yaml:"involvedObject,omitempty"`
@@ -729,12 +696,65 @@ type Event struct {
 	Source string `json:"source,omitempty" yaml:"source,omitempty"`
 }
 
-func (*Event) IsAnAPIObject() {}
-
 // EventList is a list of events.
 type EventList struct {
-	JSONBase `yaml:",inline" json:",inline"`
+	TypeMeta `yaml:",inline" json:",inline"`
 	Items    []Event `yaml:"items,omitempty" json:"items,omitempty"`
 }
 
-func (*EventList) IsAnAPIObject() {}
+// ContainerManifest corresponds to the Container Manifest format, documented at:
+// https://developers.google.com/compute/docs/containers/container_vms#container_manifest
+// This is used as the representation of Kubernetes workloads.
+// DEPRECATED: Replaced with BoundPod
+type ContainerManifest struct {
+	// Required: This must be a supported version string, such as "v1beta1".
+	Version string `yaml:"version" json:"version"`
+	// Required: This must be a DNS_SUBDOMAIN.
+	// TODO: ID on Manifest is deprecated and will be removed in the future.
+	ID string `yaml:"id" json:"id"`
+	// TODO: UUID on Manifest is deprecated in the future once we are done
+	// with the API refactoring. It is required for now to determine the instance
+	// of a Pod.
+	UUID          string        `yaml:"uuid,omitempty" json:"uuid,omitempty"`
+	Volumes       []Volume      `yaml:"volumes" json:"volumes"`
+	Containers    []Container   `yaml:"containers" json:"containers"`
+	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" yaml:"restartPolicy,omitempty"`
+}
+
+// ContainerManifestList is used to communicate container manifests to kubelet.
+// DEPRECATED: Replaced with BoundPods
+type ContainerManifestList struct {
+	TypeMeta `json:",inline" yaml:",inline"`
+	Items    []ContainerManifest `json:"items,omitempty" yaml:"items,omitempty"`
+}
+
+// Included in partial form from v1beta3 to replace ContainerManifest
+
+// PodSpec is a description of a pod
+type PodSpec struct {
+	Volumes       []Volume      `json:"volumes" yaml:"volumes"`
+	Containers    []Container   `json:"containers" yaml:"containers"`
+	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" yaml:"restartPolicy,omitempty"`
+}
+
+// BoundPod is a collection of containers that should be run on a host. A BoundPod
+// defines how a Pod may change after a Binding is created. A Pod is a request to
+// execute a pod, whereas a BoundPod is the specification that would be run on a server.
+type BoundPod struct {
+	TypeMeta `json:",inline" yaml:",inline"`
+
+	// Spec defines the behavior of a pod.
+	Spec PodSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
+}
+
+// BoundPods is a list of Pods bound to a common server. The resource version of
+// the pod list is guaranteed to only change when the list of bound pods changes.
+type BoundPods struct {
+	TypeMeta `json:",inline" yaml:",inline"`
+
+	// Host is the name of a node that these pods were bound to.
+	Host string `json:"host" yaml:"host"`
+
+	// Items is the list of all pods bound to a given host.
+	Items []BoundPod `json:"items" yaml:"items"`
+}

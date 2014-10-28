@@ -281,7 +281,7 @@ func setup() (buildController *BuildController, build *api.Build, ctx kapi.Conte
 		timeout:    1000,
 	}
 	build = &api.Build{
-		JSONBase: kapi.JSONBase{
+		TypeMeta: kapi.TypeMeta{
 			ID: "dataBuild",
 		},
 		Input: api.BuildInput{

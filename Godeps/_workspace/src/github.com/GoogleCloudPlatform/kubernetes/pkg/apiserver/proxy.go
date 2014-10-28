@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
@@ -77,7 +78,14 @@ type ProxyHandler struct {
 }
 
 func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := api.NewContext()
+	// use the default namespace to address the service
+	ctx := api.NewDefaultContext()
+	// if not in default namespace, provide the query parameter
+	// TODO this will need to go in the path in the future and not as a query parameter
+	namespace := req.URL.Query().Get("namespace")
+	if len(namespace) > 0 {
+		ctx = api.WithNamespace(ctx, namespace)
+	}
 	parts := strings.SplitN(req.URL.Path, "/", 3)
 	if len(parts) < 2 {
 		notFound(w, req)
@@ -130,6 +138,7 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		proxyHost:        req.URL.Host,
 		proxyPathPrepend: path.Join(r.prefix, resourceName, id),
 	}
+	proxy.FlushInterval = 200 * time.Millisecond
 	proxy.ServeHTTP(w, newReq)
 }
 

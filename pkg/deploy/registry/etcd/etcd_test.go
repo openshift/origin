@@ -16,7 +16,7 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
+	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
 }
 
 func TestEtcdListEmptyDeployments(t *testing.T) {
@@ -69,10 +69,10 @@ func TestEtcdListEverythingDeployments(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -99,13 +99,13 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -127,7 +127,7 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 
 func TestEtcdGetDeployments(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/deployments/foo", runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/deployments/foo", runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	deployment, err := registry.GetDeployment("foo")
 	if err != nil {
@@ -168,7 +168,7 @@ func TestEtcdCreateDeployments(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateDeployment(&api.Deployment{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -196,14 +196,14 @@ func TestEtcdCreateAlreadyExistsDeployments(t *testing.T) {
 	fakeClient.Data["/deployments/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateDeployment(&api.Deployment{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -312,10 +312,10 @@ func TestEtcdListEverythingDeploymentConfig(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -342,13 +342,13 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -370,7 +370,7 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 
 func TestEtcdGetDeploymentConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/deploymentConfigs/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/deploymentConfigs/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	deployment, err := registry.GetDeploymentConfig("foo")
 	if err != nil {
@@ -411,7 +411,7 @@ func TestEtcdCreateDeploymentConfig(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateDeploymentConfig(&api.DeploymentConfig{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -439,14 +439,14 @@ func TestEtcdCreateAlreadyExistsDeploymentConfig(t *testing.T) {
 	fakeClient.Data["/deploymentConfigs/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateDeploymentConfig(&api.DeploymentConfig{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})

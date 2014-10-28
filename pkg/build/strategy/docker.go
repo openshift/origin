@@ -25,7 +25,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, 
 	}
 
 	pod := &api.Pod{
-		JSONBase: api.JSONBase{
+		TypeMeta: api.TypeMeta{
 			ID: build.PodID,
 		},
 		DesiredState: api.PodState{

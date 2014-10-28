@@ -47,27 +47,27 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with ID, should pass
 			&api.Template{
-				JSONBase: kubeapi.JSONBase{ID: "templateId"},
+				TypeMeta: kubeapi.TypeMeta{ID: "templateId"},
 			},
 			true,
 		},
 		{ // Template with invalid Parameter, should fail on Parameter name
 			&api.Template{
-				JSONBase:   kubeapi.JSONBase{ID: "templateId"},
+				TypeMeta:   kubeapi.TypeMeta{ID: "templateId"},
 				Parameters: []api.Parameter{{Name: "", Value: "1"}},
 			},
 			false,
 		},
 		{ // Template with valid Parameter, should pass
 			&api.Template{
-				JSONBase:   kubeapi.JSONBase{ID: "templateId"},
+				TypeMeta:   kubeapi.TypeMeta{ID: "templateId"},
 				Parameters: []api.Parameter{{Name: "VALID_NAME", Value: "1"}},
 			},
 			true,
 		},
 		{ // Template with Item of unknown Kind, should pass
 			&api.Template{
-				JSONBase:   kubeapi.JSONBase{ID: "templateId"},
+				TypeMeta:   kubeapi.TypeMeta{ID: "templateId"},
 				Parameters: []api.Parameter{{Name: "VALID_NAME", Value: "1"}},
 				Items:      []runtime.EmbeddedObject{{}},
 			},

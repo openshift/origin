@@ -7,7 +7,7 @@ import (
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 
 	// Required: Name identifies the Template.
 	Name string `json:"name" yaml:"name"`

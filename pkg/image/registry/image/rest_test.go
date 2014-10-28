@@ -56,12 +56,12 @@ func TestListImagesPopulatedList(t *testing.T) {
 	mockRegistry.Images = &api.ImageList{
 		Items: []api.Image{
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "bar",
 				},
 			},
@@ -114,7 +114,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Image{
-		JSONBase:             kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:             kubeapi.TypeMeta{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 	if channel == nil {
@@ -143,7 +143,7 @@ func TestCreateImageOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Image{
-		JSONBase:             kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:             kubeapi.TypeMeta{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 	if channel == nil {
@@ -184,7 +184,7 @@ func TestGetImageError(t *testing.T) {
 func TestGetImageOK(t *testing.T) {
 	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Image = &api.Image{
-		JSONBase:             kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:             kubeapi.TypeMeta{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	}
 	storage := REST{registry: mockRegistry}

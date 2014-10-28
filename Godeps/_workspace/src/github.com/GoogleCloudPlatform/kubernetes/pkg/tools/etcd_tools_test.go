@@ -36,7 +36,7 @@ type fakeClientGetSet struct {
 }
 
 type TestResource struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Value        int `json:"value" yaml:"value,omitempty"`
 }
 
@@ -44,7 +44,7 @@ func (*TestResource) IsAnAPIObject() {}
 
 var scheme *runtime.Scheme
 var codec runtime.Codec
-var versioner = runtime.NewJSONBaseResourceVersioner()
+var versioner = RuntimeVersionAdapter{runtime.NewTypeMetaResourceVersioner()}
 
 func init() {
 	scheme = runtime.NewScheme()
@@ -89,11 +89,109 @@ func TestExtractToList(t *testing.T) {
 		},
 	}
 	expect := api.PodList{
-		JSONBase: api.JSONBase{ResourceVersion: 10},
+		TypeMeta: api.TypeMeta{ResourceVersion: "10"},
 		Items: []api.Pod{
-			{JSONBase: api.JSONBase{ID: "foo", ResourceVersion: 1}},
-			{JSONBase: api.JSONBase{ID: "bar", ResourceVersion: 2}},
-			{JSONBase: api.JSONBase{ID: "baz", ResourceVersion: 3}},
+			{TypeMeta: api.TypeMeta{ID: "foo", ResourceVersion: "1"}},
+			{TypeMeta: api.TypeMeta{ID: "bar", ResourceVersion: "2"}},
+			{TypeMeta: api.TypeMeta{ID: "baz", ResourceVersion: "3"}},
+		},
+	}
+
+	var got api.PodList
+	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
+	err := helper.ExtractToList("/some/key", &got)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if e, a := expect, got; !reflect.DeepEqual(e, a) {
+		t.Errorf("Expected %#v, got %#v", e, a)
+	}
+}
+
+// TestExtractToListAcrossDirectories ensures that the client excludes directories and flattens tree-response - simulates cross-namespace query
+func TestExtractToListAcrossDirectories(t *testing.T) {
+	fakeClient := NewFakeEtcdClient(t)
+	fakeClient.Data["/some/key"] = EtcdResponseWithError{
+		R: &etcd.Response{
+			EtcdIndex: 10,
+			Node: &etcd.Node{
+				Nodes: []*etcd.Node{
+					{
+						Value: `{"id": "directory1"}`,
+						Dir:   true,
+						Nodes: []*etcd.Node{
+							{
+								Value:         `{"id":"foo"}`,
+								ModifiedIndex: 1,
+							},
+						},
+					},
+					{
+						Value: `{"id": "directory2"}`,
+						Dir:   true,
+						Nodes: []*etcd.Node{
+							{
+								Value:         `{"id":"bar"}`,
+								ModifiedIndex: 2,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	expect := api.PodList{
+		TypeMeta: api.TypeMeta{ResourceVersion: "10"},
+		Items: []api.Pod{
+			{TypeMeta: api.TypeMeta{ID: "foo", ResourceVersion: "1"}},
+			{TypeMeta: api.TypeMeta{ID: "bar", ResourceVersion: "2"}},
+		},
+	}
+
+	var got api.PodList
+	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
+	err := helper.ExtractToList("/some/key", &got)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if e, a := expect, got; !reflect.DeepEqual(e, a) {
+		t.Errorf("Expected %#v, got %#v", e, a)
+	}
+}
+
+func TestExtractToListExcludesDirectories(t *testing.T) {
+	fakeClient := NewFakeEtcdClient(t)
+	fakeClient.Data["/some/key"] = EtcdResponseWithError{
+		R: &etcd.Response{
+			EtcdIndex: 10,
+			Node: &etcd.Node{
+				Nodes: []*etcd.Node{
+					{
+						Value:         `{"id":"foo"}`,
+						ModifiedIndex: 1,
+					},
+					{
+						Value:         `{"id":"bar"}`,
+						ModifiedIndex: 2,
+					},
+					{
+						Value:         `{"id":"baz"}`,
+						ModifiedIndex: 3,
+					},
+					{
+						Value: `{"id": "directory"}`,
+						Dir:   true,
+					},
+				},
+			},
+		},
+	}
+	expect := api.PodList{
+		TypeMeta: api.TypeMeta{ResourceVersion: "10"},
+		Items: []api.Pod{
+			{TypeMeta: api.TypeMeta{ID: "foo", ResourceVersion: "1"}},
+			{TypeMeta: api.TypeMeta{ID: "bar", ResourceVersion: "2"}},
+			{TypeMeta: api.TypeMeta{ID: "baz", ResourceVersion: "3"}},
 		},
 	}
 
@@ -110,7 +208,7 @@ func TestExtractToList(t *testing.T) {
 
 func TestExtractObj(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
-	expect := api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
+	expect := api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
 	fakeClient.Set("/some/key", util.EncodeJSON(expect), 0)
 	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
 	var got api.Pod
@@ -164,7 +262,7 @@ func TestExtractObjNotFoundErr(t *testing.T) {
 }
 
 func TestCreateObj(t *testing.T) {
-	obj := &api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
+	obj := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
 	fakeClient := NewFakeEtcdClient(t)
 	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
 	err := helper.CreateObj("/some/key", obj, 5)
@@ -185,7 +283,7 @@ func TestCreateObj(t *testing.T) {
 }
 
 func TestSetObj(t *testing.T) {
-	obj := &api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
+	obj := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
 	fakeClient := NewFakeEtcdClient(t)
 	helper := EtcdHelper{fakeClient, latest.Codec, versioner}
 	err := helper.SetObj("/some/key", obj)
@@ -204,7 +302,7 @@ func TestSetObj(t *testing.T) {
 }
 
 func TestSetObjWithVersion(t *testing.T) {
-	obj := &api.Pod{JSONBase: api.JSONBase{ID: "foo", ResourceVersion: 1}}
+	obj := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo", ResourceVersion: "1"}}
 	fakeClient := NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 	fakeClient.Data["/some/key"] = EtcdResponseWithError{
@@ -233,7 +331,7 @@ func TestSetObjWithVersion(t *testing.T) {
 }
 
 func TestSetObjWithoutResourceVersioner(t *testing.T) {
-	obj := &api.Pod{JSONBase: api.JSONBase{ID: "foo"}}
+	obj := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
 	fakeClient := NewFakeEtcdClient(t)
 	helper := EtcdHelper{fakeClient, latest.Codec, nil}
 	err := helper.SetObj("/some/key", obj)
@@ -254,11 +352,11 @@ func TestSetObjWithoutResourceVersioner(t *testing.T) {
 func TestAtomicUpdate(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
-	helper := EtcdHelper{fakeClient, codec, runtime.NewJSONBaseResourceVersioner()}
+	helper := EtcdHelper{fakeClient, codec, versioner}
 
 	// Create a new node.
 	fakeClient.ExpectNotFoundGet("/some/key")
-	obj := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 1}
+	obj := &TestResource{TypeMeta: api.TypeMeta{ID: "foo"}, Value: 1}
 	err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		return obj, nil
 	})
@@ -277,7 +375,7 @@ func TestAtomicUpdate(t *testing.T) {
 
 	// Update an existing node.
 	callbackCalled := false
-	objUpdate := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 2}
+	objUpdate := &TestResource{TypeMeta: api.TypeMeta{ID: "foo"}, Value: 2}
 	err = helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		callbackCalled = true
 
@@ -308,11 +406,11 @@ func TestAtomicUpdate(t *testing.T) {
 func TestAtomicUpdateNoChange(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
-	helper := EtcdHelper{fakeClient, codec, runtime.NewJSONBaseResourceVersioner()}
+	helper := EtcdHelper{fakeClient, codec, versioner}
 
 	// Create a new node.
 	fakeClient.ExpectNotFoundGet("/some/key")
-	obj := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 1}
+	obj := &TestResource{TypeMeta: api.TypeMeta{ID: "foo"}, Value: 1}
 	err := helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		return obj, nil
 	})
@@ -322,7 +420,7 @@ func TestAtomicUpdateNoChange(t *testing.T) {
 
 	// Update an existing node with the same data
 	callbackCalled := false
-	objUpdate := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: 1}
+	objUpdate := &TestResource{TypeMeta: api.TypeMeta{ID: "foo"}, Value: 1}
 	fakeClient.Err = errors.New("should not be called")
 	err = helper.AtomicUpdate("/some/key", &TestResource{}, func(in runtime.Object) (runtime.Object, error) {
 		callbackCalled = true
@@ -339,7 +437,7 @@ func TestAtomicUpdateNoChange(t *testing.T) {
 func TestAtomicUpdate_CreateCollision(t *testing.T) {
 	fakeClient := NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
-	helper := EtcdHelper{fakeClient, codec, runtime.NewJSONBaseResourceVersioner()}
+	helper := EtcdHelper{fakeClient, codec, versioner}
 
 	fakeClient.ExpectNotFoundGet("/some/key")
 
@@ -365,7 +463,7 @@ func TestAtomicUpdate_CreateCollision(t *testing.T) {
 				}
 
 				currValue := in.(*TestResource).Value
-				obj := &TestResource{JSONBase: api.JSONBase{ID: "foo"}, Value: currValue + 1}
+				obj := &TestResource{TypeMeta: api.TypeMeta{ID: "foo"}, Value: currValue + 1}
 				return obj, nil
 			})
 			if err != nil {

@@ -52,12 +52,17 @@ func promptForString(field string, r io.Reader) string {
 }
 
 type AuthInfo struct {
-	User     string
-	Password string
-	CAFile   string
-	CertFile string
-	KeyFile  string
-	Insecure *bool
+	User        string
+	Password    string
+	CAFile      string
+	CertFile    string
+	KeyFile     string
+	BearerToken string
+	Insecure    *bool
+}
+
+type NamespaceInfo struct {
+	Namespace string
 }
 
 // LoadAuthInfo parses an AuthInfo object from a file path. It prompts user and creates file if it doesn't exist.
@@ -82,6 +87,35 @@ func LoadAuthInfo(path string, r io.Reader) (*AuthInfo, error) {
 		return nil, err
 	}
 	return &auth, err
+}
+
+// LoadNamespaceInfo parses a NamespaceInfo object from a file path. It creates a file at the specified path if it doesn't exist with the default namespace.
+func LoadNamespaceInfo(path string) (*NamespaceInfo, error) {
+	var ns NamespaceInfo
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		ns.Namespace = api.NamespaceDefault
+		err = SaveNamespaceInfo(path, &ns)
+		return &ns, err
+	}
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(data, &ns)
+	if err != nil {
+		return nil, err
+	}
+	return &ns, err
+}
+
+// SaveNamespaceInfo saves a NamespaceInfo object at the specified file path.
+func SaveNamespaceInfo(path string, ns *NamespaceInfo) error {
+	if !util.IsDNSLabel(ns.Namespace) {
+		return fmt.Errorf("Namespace %s is not a valid DNS Label", ns.Namespace)
+	}
+	data, err := json.Marshal(ns)
+	err = ioutil.WriteFile(path, data, 0600)
+	return err
 }
 
 // Update performs a rolling update of a collection of pods.
@@ -158,14 +192,17 @@ func ResizeController(ctx api.Context, name string, replicas int, client client.
 	return nil
 }
 
-func portsFromString(spec string) []api.Port {
+func portsFromString(spec string) ([]api.Port, error) {
+	if spec == "" {
+		return []api.Port{}, nil
+	}
 	parts := strings.Split(spec, ",")
 	var result []api.Port
 	for _, part := range parts {
 		pieces := strings.Split(part, ":")
 		if len(pieces) < 1 || len(pieces) > 2 {
 			glog.Infof("Bad port spec: %s", part)
-			continue
+			return nil, fmt.Errorf("Bad port spec: %s", part)
 		}
 		host := 0
 		container := 0
@@ -174,28 +211,28 @@ func portsFromString(spec string) []api.Port {
 			container, err = strconv.Atoi(pieces[0])
 			if err != nil {
 				glog.Errorf("Container port is not integer: %s %v", pieces[0], err)
-				continue
+				return nil, err
 			}
 		} else {
 			host, err = strconv.Atoi(pieces[0])
 			if err != nil {
 				glog.Errorf("Host port is not integer: %s %v", pieces[0], err)
-				continue
+				return nil, err
 			}
 			container, err = strconv.Atoi(pieces[1])
 			if err != nil {
 				glog.Errorf("Container port is not integer: %s %v", pieces[1], err)
-				continue
+				return nil, err
 			}
 		}
 		if container < 1 {
 			glog.Errorf("Container port is not valid: %d", container)
-			continue
+			return nil, err
 		}
 
 		result = append(result, api.Port{ContainerPort: container, HostPort: host})
 	}
-	return result
+	return result, nil
 }
 
 // RunController creates a new replication controller named 'name' which creates 'replicas' pods running 'image'.
@@ -203,8 +240,12 @@ func RunController(ctx api.Context, image, name string, replicas int, client cli
 	if servicePort > 0 && !util.IsDNSLabel(name) {
 		return fmt.Errorf("Service creation requested, but an invalid name for a service was provided (%s). Service names must be valid DNS labels.", name)
 	}
+	ports, err := portsFromString(portSpec)
+	if err != nil {
+		return err
+	}
 	controller := &api.ReplicationController{
-		JSONBase: api.JSONBase{
+		TypeMeta: api.TypeMeta{
 			ID: name,
 		},
 		DesiredState: api.ReplicationControllerState{
@@ -220,7 +261,7 @@ func RunController(ctx api.Context, image, name string, replicas int, client cli
 							{
 								Name:  strings.ToLower(name),
 								Image: image,
-								Ports: portsFromString(portSpec),
+								Ports: ports,
 							},
 						},
 					},
@@ -258,7 +299,7 @@ func RunController(ctx api.Context, image, name string, replicas int, client cli
 
 func createService(ctx api.Context, name string, port int, client client.Interface) (*api.Service, error) {
 	svc := &api.Service{
-		JSONBase: api.JSONBase{ID: name},
+		TypeMeta: api.TypeMeta{ID: name},
 		Port:     port,
 		Labels: map[string]string{
 			"simpleService": name,

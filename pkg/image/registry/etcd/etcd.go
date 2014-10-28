@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"errors"
+	"strconv"
 
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -28,7 +29,7 @@ func New(helper tools.EtcdHelper) *Etcd {
 // ListImages retrieves a list of images that match selector.
 func (r *Etcd) ListImages(selector labels.Selector) (*api.ImageList, error) {
 	list := api.ImageList{}
-	err := r.ExtractList("/images", &list.Items, &list.ResourceVersion)
+	err := r.ExtractToList("/images", &list)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +77,7 @@ func (r *Etcd) DeleteImage(id string) error {
 // ListImageRepositories retrieves a list of ImageRepositories that match selector.
 func (r *Etcd) ListImageRepositories(selector labels.Selector) (*api.ImageRepositoryList, error) {
 	list := api.ImageRepositoryList{}
-	err := r.ExtractList("/imageRepositories", &list.Items, &list.ResourceVersion)
+	err := r.ExtractToList("/imageRepositories", &list)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +104,30 @@ func (r *Etcd) GetImageRepository(id string) (*api.ImageRepository, error) {
 	return &repo, nil
 }
 
+// TODO expose this from kubernetes.  I will do that, but I don't want this merge stuck on kubernetes refactoring
+// parseWatchResourceVersion takes a resource version argument and converts it to
+// the etcd version we should pass to helper.Watch(). Because resourceVersion is
+// an opaque value, the default watch behavior for non-zero watch is to watch
+// the next value (if you pass "1", you will see updates from "2" onwards).
+func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
+	if resourceVersion == "" || resourceVersion == "0" {
+		return 0, nil
+	}
+	version, err := strconv.ParseUint(resourceVersion, 10, 64)
+	if err != nil {
+		return 0, etcderr.InterpretResourceVersionError(err, kind, resourceVersion)
+	}
+	return version + 1, nil
+}
+
 // WatchImageRepositories begins watching for new, changed, or deleted ImageRepositories.
-func (r *Etcd) WatchImageRepositories(resourceVersion uint64, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
-	return r.WatchList("/imageRepositories", resourceVersion, func(obj runtime.Object) bool {
+func (r *Etcd) WatchImageRepositories(resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
+	version, err := parseWatchResourceVersion(resourceVersion, "imageRepository")
+	if err != nil {
+		return nil, err
+	}
+
+	return r.WatchList("/imageRepositories", version, func(obj runtime.Object) bool {
 		repo, ok := obj.(*api.ImageRepository)
 		if !ok {
 			glog.Errorf("Unexpected object during image repository watch: %#v", obj)

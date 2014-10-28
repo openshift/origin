@@ -29,7 +29,7 @@ func TestGetImageRepositoryError(t *testing.T) {
 func TestGetImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.ImageRepository = &api.ImageRepository{
-		JSONBase:              kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:              kubeapi.TypeMeta{ID: "foo"},
 		DockerImageRepository: "openshift/ruby-19-centos",
 	}
 	storage := REST{registry: mockRepositoryRegistry}
@@ -89,12 +89,12 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 	mockRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "foo",
 				},
 			},
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "bar",
 				},
 			},
@@ -200,7 +200,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.ImageRepository{
-		JSONBase: kubeapi.JSONBase{ID: "bar"},
+		TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
@@ -220,7 +220,7 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(nil, &api.ImageRepository{
-		JSONBase: kubeapi.JSONBase{ID: "bar"},
+		TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)

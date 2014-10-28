@@ -13,7 +13,7 @@ type Registry interface {
 	// GetImageRepository retrieves a specific image repository.
 	GetImageRepository(id string) (*api.ImageRepository, error)
 	// WatchImageRepositories watches for new/changed/deleted image repositories.
-	WatchImageRepositories(resourceVersion uint64, filter func(repo *api.ImageRepository) bool) (watch.Interface, error)
+	WatchImageRepositories(resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error)
 	// CreateImageRepository creates a new image repository.
 	CreateImageRepository(repo *api.ImageRepository) error
 	// UpdateImageRepository updates an image repository.

@@ -66,6 +66,7 @@ type config struct {
 	BindAddr       flagtypes.Addr
 	EtcdAddr       flagtypes.Addr
 	KubernetesAddr flagtypes.Addr
+	PortalNet      flagtypes.IPNet
 
 	Hostname  string
 	VolumeDir string
@@ -87,6 +88,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 		BindAddr:       flagtypes.Addr{Value: "0.0.0.0:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
 		EtcdAddr:       flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
 		KubernetesAddr: flagtypes.Addr{DefaultScheme: "http", DefaultPort: 8080}.Default(),
+		PortalNet:      flagtypes.DefaultIPNet("172.17.17.0/24"),
 
 		NodeList: flagtypes.StringList{"127.0.0.1"},
 	}
@@ -157,7 +159,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 				if err != nil {
 					glog.Errorf("Error setting up server storage: %v", err)
 				}
-				ketcdHelper, err := kmaster.NewEtcdHelper(etcdClient.GetCluster(), klatest.Version)
+				ketcdHelper, err := kmaster.NewEtcdHelper(etcdClient, klatest.Version)
 				if err != nil {
 					glog.Errorf("Error setting up Kubernetes server storage: %v", err)
 				}
@@ -191,16 +193,20 @@ func NewCommandStartServer(name string) *cobra.Command {
 				}
 
 				if startKube {
+					portalNet := net.IPNet(cfg.PortalNet)
 					kmaster := &kubernetes.MasterConfig{
 						NodeHosts:  cfg.NodeList,
+						PortalNet:  &portalNet,
 						EtcdHelper: ketcdHelper,
 						KubeClient: osmaster.KubeClient,
 					}
+					kmaster.EnsurePortalFlags()
 
 					osmaster.RunAPI(kmaster, auth)
 
 					kmaster.RunScheduler()
 					kmaster.RunReplicationController()
+					kmaster.RunEndpointController()
 
 				} else {
 					osmaster.RunAPI(auth)
@@ -251,6 +257,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
 	flag.Var(&cfg.EtcdAddr, "etcd", "The address of the etcd server (host, host:port, or URL).")
 	flag.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified no Kubernetes components will be started.")
+	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	flag.StringVar(&cfg.EtcdDir, "etcd-dir", "openshift.local.etcd", "The etcd data directory.")

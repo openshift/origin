@@ -41,7 +41,7 @@ OS_PID=$!
 wait_for_url "http://localhost:${KUBELET_PORT}/healthz" "kubelet: " 1 30
 wait_for_url "http://${API_HOST}:${API_PORT}/healthz" "apiserver: "
 
-KUBE_CMD="${GO_OUT}/openshift kube -h http://${API_HOST}:${API_PORT} --expect_version_match"
+KUBE_CMD="${GO_OUT}/openshift kube --host=http://${API_HOST}:${API_PORT} --expect_version_match"
 
 ${KUBE_CMD} list pods
 ${KUBE_CMD} -c examples/hello-openshift/hello-pod.json create pods

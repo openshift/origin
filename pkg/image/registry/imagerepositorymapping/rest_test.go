@@ -109,7 +109,7 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
-			JSONBase: kubeapi.JSONBase{
+			TypeMeta: kubeapi.TypeMeta{
 				ID: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
@@ -135,7 +135,7 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "repo1",
 				},
 				DockerImageRepository: "localhost:5000/test/repo",
@@ -147,7 +147,7 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
-			JSONBase: kubeapi.JSONBase{
+			TypeMeta: kubeapi.TypeMeta{
 				ID: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
@@ -173,7 +173,7 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
-				JSONBase: kubeapi.JSONBase{
+				TypeMeta: kubeapi.TypeMeta{
 					ID: "repo1",
 				},
 				DockerImageRepository: "localhost:5000/someproject/somerepo",
@@ -185,7 +185,7 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
-			JSONBase: kubeapi.JSONBase{
+			TypeMeta: kubeapi.TypeMeta{
 				ID: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",

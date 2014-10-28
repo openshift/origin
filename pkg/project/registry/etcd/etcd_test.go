@@ -16,7 +16,7 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
+	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
 }
 
 func TestEtcdListProjectsEmpty(t *testing.T) {
@@ -72,10 +72,10 @@ func TestEtcdListProjectsEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -103,13 +103,13 @@ func TestEtcdListProjectsFiltered(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -132,7 +132,7 @@ func TestEtcdListProjectsFiltered(t *testing.T) {
 func TestEtcdGetProject(t *testing.T) {
 	ctx := kubeapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeProjectKey(ctx, "foo"), runtime.EncodeOrDie(latest.Codec, &api.Project{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set(makeProjectKey(ctx, "foo"), runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	project, err := registry.GetProject(ctx, "foo")
 	if err != nil {
@@ -175,7 +175,7 @@ func TestEtcdCreateProject(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateProject(ctx, &api.Project{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -204,14 +204,14 @@ func TestEtcdCreateProjectAlreadyExists(t *testing.T) {
 	fakeClient.Data[makeProjectKey(ctx, "foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Project{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateProject(ctx, &api.Project{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})

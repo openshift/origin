@@ -40,7 +40,7 @@ func TestWebhookGithubPush(t *testing.T) {
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{
-		JSONBase: kapi.JSONBase{
+		TypeMeta: kapi.TypeMeta{
 			ID: "pushbuild",
 		},
 		DesiredInput: buildapi.BuildInput{
@@ -81,7 +81,7 @@ func TestWebhookGithubPing(t *testing.T) {
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{
-		JSONBase: kapi.JSONBase{
+		TypeMeta: kapi.TypeMeta{
 			ID: "pingbuild",
 		},
 		DesiredInput: buildapi.BuildInput{
@@ -112,12 +112,12 @@ func TestWebhookGithubPing(t *testing.T) {
 func setup(t *testing.T) (*osclient.Client, string) {
 	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
-	helper, _ := master.NewEtcdHelper(etcdClient.GetCluster(), klatest.Version)
+	helper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 	m := master.New(&master.Config{
 		EtcdHelper: helper,
 	})
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	buildRegistry := buildetcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, interfaces.ResourceVersioner})
+	buildRegistry := buildetcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.ResourceVersioner}})
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildRegistry),
 		"buildConfigs": buildconfigregistry.NewREST(buildRegistry),

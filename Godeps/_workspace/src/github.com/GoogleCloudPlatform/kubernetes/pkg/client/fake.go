@@ -38,6 +38,7 @@ type Fake struct {
 	ServiceList   api.ServiceList
 	EndpointsList api.EndpointsList
 	Minions       api.MinionList
+	Events        api.EventList
 	Err           error
 	Watch         watch.Interface
 }
@@ -92,7 +93,7 @@ func (c *Fake) DeleteReplicationController(ctx api.Context, controller string) e
 	return nil
 }
 
-func (c *Fake) WatchReplicationControllers(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Fake) WatchReplicationControllers(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-controllers", Value: resourceVersion})
 	return c.Watch, nil
 }
@@ -122,7 +123,7 @@ func (c *Fake) DeleteService(ctx api.Context, service string) error {
 	return nil
 }
 
-func (c *Fake) WatchServices(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Fake) WatchServices(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-services", Value: resourceVersion})
 	return c.Watch, c.Err
 }
@@ -137,7 +138,7 @@ func (c *Fake) GetEndpoints(ctx api.Context, name string) (*api.Endpoints, error
 	return &api.Endpoints{}, nil
 }
 
-func (c *Fake) WatchEndpoints(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (c *Fake) WatchEndpoints(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-endpoints", Value: resourceVersion})
 	return c.Watch, c.Err
 }
@@ -151,4 +152,28 @@ func (c *Fake) ServerVersion() (*version.Info, error) {
 func (c *Fake) ListMinions() (*api.MinionList, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "list-minions", Value: nil})
 	return &c.Minions, nil
+}
+
+// CreateEvent makes a new event. Returns the copy of the event the server returns, or an error.
+func (c *Fake) CreateEvent(event *api.Event) (*api.Event, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-event", Value: event.ID})
+	return &api.Event{}, nil
+}
+
+// ListEvents returns a list of events matching the selectors.
+func (c *Fake) ListEvents(label, field labels.Selector) (*api.EventList, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "list-events"})
+	return &c.Events, nil
+}
+
+// GetEvent returns the given event, or an error.
+func (c *Fake) GetEvent(id string) (*api.Event, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-event", Value: id})
+	return &api.Event{}, nil
+}
+
+// WatchEvents starts watching for events matching the given selectors.
+func (c *Fake) WatchEvents(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "watch-events", Value: resourceVersion})
+	return c.Watch, c.Err
 }

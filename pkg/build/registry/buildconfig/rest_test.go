@@ -117,7 +117,7 @@ func TestListConfigsError(t *testing.T) {
 }
 
 func TestListEmptyConfigList(t *testing.T) {
-	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{JSONBase: kubeapi.JSONBase{ResourceVersion: 1}}}
+	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{TypeMeta: kubeapi.TypeMeta{ResourceVersion: "1"}}}
 	storage := REST{&mockRegistry}
 	buildConfigs, err := storage.List(nil, labels.Everything(), labels.Everything())
 	if err != nil {
@@ -127,7 +127,7 @@ func TestListEmptyConfigList(t *testing.T) {
 	if len(buildConfigs.(*api.BuildConfigList).Items) != 0 {
 		t.Errorf("Unexpected non-zero ctrl list: %#v", buildConfigs)
 	}
-	if buildConfigs.(*api.BuildConfigList).ResourceVersion != 1 {
+	if buildConfigs.(*api.BuildConfigList).ResourceVersion != "1" {
 		t.Errorf("Unexpected resource version: %#v", buildConfigs)
 	}
 }
@@ -137,12 +137,12 @@ func TestListConfigs(t *testing.T) {
 		BuildConfigs: &api.BuildConfigList{
 			Items: []api.BuildConfig{
 				{
-					JSONBase: kubeapi.JSONBase{
+					TypeMeta: kubeapi.TypeMeta{
 						ID: "foo",
 					},
 				},
 				{
-					JSONBase: kubeapi.JSONBase{
+					TypeMeta: kubeapi.TypeMeta{
 						ID: "bar",
 					},
 				},
@@ -170,7 +170,7 @@ func TestBuildConfigDecode(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{registry: &mockRegistry}
 	buildConfig := &api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	}
@@ -250,7 +250,7 @@ func TestCreateBuildConfig(t *testing.T) {
 
 func mockBuildConfig() *api.BuildConfig {
 	return &api.BuildConfig{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "dataBuild",
 		},
 		DesiredInput: api.BuildInput{
@@ -318,7 +318,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.BuildConfig{
 		"blank sourceURI": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			DesiredInput: api.BuildInput{
 				SourceURI: "",
 				ImageTag:  "data/image",
@@ -328,14 +328,14 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 			},
 		},
 		"blank ImageTag": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "",
 			},
 		},
 		"blank BuilderImage": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "data/image",
@@ -361,14 +361,14 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.BuildConfig{
 		"empty ID": {
-			JSONBase: kubeapi.JSONBase{ID: ""},
+			TypeMeta: kubeapi.TypeMeta{ID: ""},
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "data/image",
 			},
 		},
 		"blank sourceURI": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			DesiredInput: api.BuildInput{
 				SourceURI: "",
 				ImageTag:  "data/image",
@@ -378,14 +378,14 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 			},
 		},
 		"blank ImageTag": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "",
 			},
 		},
 		"blank BuilderImage on STIBuildType": {
-			JSONBase: kubeapi.JSONBase{ID: "abc"},
+			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
 			DesiredInput: api.BuildInput{
 				SourceURI: "http://github.com/test/source",
 				ImageTag:  "data/image",

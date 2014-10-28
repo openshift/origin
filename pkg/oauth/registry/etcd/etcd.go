@@ -34,7 +34,7 @@ func (r *Etcd) GetAccessToken(name string) (token *api.AccessToken, err error) {
 
 func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.AccessTokenList, error) {
 	list := api.AccessTokenList{}
-	err := r.ExtractList("/accessTokens", &list.Items, &list.ResourceVersion)
+	err := r.ExtractToList("/accessTokens", &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (r *Etcd) GetAuthorizeToken(name string) (token *api.AuthorizeToken, err er
 
 func (r *Etcd) ListAuthorizeTokens(selector labels.Selector) (*api.AuthorizeTokenList, error) {
 	list := api.AuthorizeTokenList{}
-	err := r.ExtractList("/authorizeTokens", &list.Items, &list.ResourceVersion)
+	err := r.ExtractToList("/authorizeTokens", &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (r *Etcd) GetClient(name string) (client *api.Client, err error) {
 
 func (r *Etcd) ListClients(selector labels.Selector) (*api.ClientList, error) {
 	list := api.ClientList{}
-	err := r.ExtractList("/clients", &list.Items, &list.ResourceVersion)
+	err := r.ExtractToList("/clients", &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (r *Etcd) GetClientAuthorization(name string) (client *api.ClientAuthorizat
 
 func (r *Etcd) ListClientAuthorizations(label, field labels.Selector) (*api.ClientAuthorizationList, error) {
 	list := api.ClientAuthorizationList{}
-	err := r.ExtractList("/clients", &list.Items, &list.ResourceVersion)
+	err := r.ExtractToList("/clients", &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}

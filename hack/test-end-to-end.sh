@@ -16,6 +16,10 @@ TMPDIR=${TMPDIR:-"/tmp"}
 ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d ${TMPDIR}/openshift.local.volumes.XXXX)
 LOG_DIR=${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}
+API_PORT=${API_PORT:-8080}
+API_HOST=${API_HOST:-127.0.0.1}
+KUBELET_PORT=${KUBELET_PORT:-10250}
+
 CONFIG_FILE=${LOG_DIR}/appConfig.json
 FIXTURE_DIR=${HACKDIR}/../examples/sample-app
 GO_OUT=${HACKDIR}/../_output/go/bin
@@ -75,7 +79,7 @@ wait_for_command "$openshift kube list pods | grep registrypod | grep Running" $
 echo "[INFO] Waiting for Docker registry service to start"
 wait_for_command "$openshift kube list services | grep registrypod"
 echo "[INFO] Probing the docker-registry"
-wait_for_url_timed "http://localhost:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://172.17.17.1:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 # Define a build configuration
 echo "[INFO] Create a build config"
@@ -95,7 +99,7 @@ echo "[INFO] Submitting application template json for processing..."
 $openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FILE
 
 echo "[INFO] Applying application config"
-$openshift kube  apply -c $CONFIG_FILE
+$openshift kube --host=http://127.0.0.1:8080 apply -c $CONFIG_FILE
 
 echo "[INFO] Waiting for frontend pod to start"
 wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((120*TIME_SEC))
@@ -104,4 +108,4 @@ echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))
 
 echo "[INFO] Waiting for app to start..."
-wait_for_url_timed "http://localhost:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
+wait_for_url_timed "http://172.17.17.2:5432" "[INFO] Frontend says: " $((2*TIME_MIN))

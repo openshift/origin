@@ -18,8 +18,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	expected := mockSTIBuild()
 	actual, _ := strategy.CreateBuildPod(expected)
 
-	if actual.JSONBase.ID != expected.PodID {
-		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.JSONBase.ID)
+	if actual.TypeMeta.ID != expected.PodID {
+		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.TypeMeta.ID)
 	}
 	if actual.DesiredState.Manifest.Version != "v1beta1" {
 		t.Error("Expected v1beta1, but got %s!, actual.DesiredState.Manifest.Version")
@@ -57,7 +57,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 
 func mockSTIBuild() *api.Build {
 	return &api.Build{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "stiBuild",
 		},
 		Input: api.BuildInput{

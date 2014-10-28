@@ -8,25 +8,25 @@ import (
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
 type User struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 	Labels           map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is a human readable string uniquely representing this user at any time.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
 	// UID is a unique in time and space value which uniquely identifies this user.
-	UID string `json:"uid,omitempty" yaml:"uid,omitempty"`
+	UserUID string `json:"useruid,omitempty" yaml:"useruid,omitempty"`
 
 	FullName string `json:"fullName,omitempty" yaml:"fullName,omitempty"`
 }
 
 type UserList struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 	Items            []User `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type Identity struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 	Labels           map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is the unique identifier of a user within a given provider
@@ -39,7 +39,7 @@ type Identity struct {
 }
 
 type UserIdentityMapping struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 
 	Identity Identity `json:"identity,omitempty" yaml:"identity,omitempty"`
 	User     User     `json:"user,omitempty" yaml:"user,omitempty"`

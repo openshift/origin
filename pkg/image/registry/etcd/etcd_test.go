@@ -3,6 +3,7 @@ package etcd
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 
 	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -19,7 +20,7 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
+	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
 }
 
 func TestEtcdListImagesEmpty(t *testing.T) {
@@ -72,10 +73,10 @@ func TestEtcdListImagesEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -102,13 +103,13 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -130,7 +131,7 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 
 func TestEtcdGetImage(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/images/foo", runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/images/foo", runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	image, err := registry.GetImage("foo")
 	if err != nil {
@@ -171,7 +172,7 @@ func TestEtcdCreateImage(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImage(&api.Image{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 		DockerImageReference: "openshift/ruby-19-centos",
@@ -211,14 +212,14 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 	fakeClient.Data["/images/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImage(&api.Image{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -327,10 +328,10 @@ func TestEtcdListImageRepositoriesEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -357,13 +358,13 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -385,7 +386,7 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 
 func TestEtcdGetImageRepository(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	repo, err := registry.GetImageRepository("foo")
 	if err != nil {
@@ -426,7 +427,7 @@ func TestEtcdCreateImageRepository(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImageRepository(&api.ImageRepository{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 		Labels:                map[string]string{"a": "b"},
@@ -469,14 +470,14 @@ func TestEtcdCreateImageRepositoryAlreadyExists(t *testing.T) {
 	fakeClient.Data["/imageRepositories/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImageRepository(&api.ImageRepository{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -492,10 +493,10 @@ func TestEtcdUpdateImageRepository(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 
-	resp, _ := fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	resp, _ := fakeClient.Set("/imageRepositories/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateImageRepository(&api.ImageRepository{
-		JSONBase:              kubeapi.JSONBase{ID: "foo", ResourceVersion: resp.Node.ModifiedIndex},
+		TypeMeta:              kubeapi.TypeMeta{ID: "foo", ResourceVersion: strconv.FormatUint(resp.Node.ModifiedIndex, 10)},
 		DockerImageRepository: "some/repo",
 	})
 	if err != nil {
@@ -551,7 +552,7 @@ func TestEtcdWatchImageRepositories(t *testing.T) {
 	registry := NewTestEtcd(fakeClient)
 	filterFields := labels.SelectorFromSet(labels.Set{"ID": "foo"})
 
-	watching, err := registry.WatchImageRepositories(1, func(repo *api.ImageRepository) bool {
+	watching, err := registry.WatchImageRepositories("1", func(repo *api.ImageRepository) bool {
 		fields := labels.Set{
 			"ID": repo.ID,
 		}
@@ -562,7 +563,7 @@ func TestEtcdWatchImageRepositories(t *testing.T) {
 	}
 	fakeClient.WaitForWatchCompletion()
 
-	repo := &api.ImageRepository{JSONBase: kubeapi.JSONBase{ID: "foo"}}
+	repo := &api.ImageRepository{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}
 	repoBytes, _ := latest.Codec.Encode(repo)
 	fakeClient.WatchResponse <- &etcd.Response{
 		Action: "set",

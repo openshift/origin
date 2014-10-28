@@ -59,7 +59,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	}
 
 	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(),
-		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), 0)
+		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	openshift := NewTestOpenshift(t)
 
 	imageRepo := &imageapi.ImageRepository{
-		JSONBase:              kapi.JSONBase{ID: "test-image-repo"},
+		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"latest": "ref-1",
@@ -105,7 +105,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 
 	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(),
-		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), 0)
+		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -158,7 +158,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	}
 
 	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(),
-		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), 0)
+		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -207,7 +207,7 @@ type podInfoGetter struct {
 	Error   error
 }
 
-func (p *podInfoGetter) GetPodInfo(host, podID string) (kapi.PodInfo, error) {
+func (p *podInfoGetter) GetPodInfo(host, namespace, podID string) (kapi.PodInfo, error) {
 	return p.PodInfo, p.Error
 }
 
@@ -222,7 +222,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	openshift := &testOpenshift{}
 
 	etcdClient := newEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient.GetCluster(), klatest.Version)
+	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
@@ -286,7 +286,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "image-deploy-config"},
+		TypeMeta: kapi.TypeMeta{ID: "image-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnImageChange,
@@ -339,7 +339,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 
 func manualDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "manual-deploy-config"},
+		TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerManual,
@@ -380,7 +380,7 @@ func manualDeploymentConfig() *deployapi.DeploymentConfig {
 
 func changeDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		JSONBase: kapi.JSONBase{ID: "change-deploy-config"},
+		TypeMeta: kapi.TypeMeta{ID: "change-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerManual,

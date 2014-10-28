@@ -17,7 +17,7 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, latest.ResourceVersioner})
+	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
 }
 
 func TestEtcdListEmptyRoutes(t *testing.T) {
@@ -70,10 +70,10 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{JSONBase: kubeapi.JSONBase{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -100,13 +100,13 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{
-							JSONBase: kubeapi.JSONBase{ID: "foo"},
+							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{
-							JSONBase: kubeapi.JSONBase{ID: "bar"},
+							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -128,7 +128,7 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 
 func TestEtcdGetRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/routes/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{JSONBase: kubeapi.JSONBase{ID: "foo"}}), 0)
+	fakeClient.Set("/routes/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	route, err := registry.GetRoute("foo")
 	if err != nil {
@@ -169,7 +169,7 @@ func TestEtcdCreateRoutes(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateRoute(&api.Route{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -197,14 +197,14 @@ func TestEtcdCreateAlreadyExistsRoutes(t *testing.T) {
 	fakeClient.Data["/routes/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Route{JSONBase: kubeapi.JSONBase{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateRoute(&api.Route{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo",
 		},
 	})

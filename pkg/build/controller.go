@@ -92,7 +92,7 @@ func hasTimeoutElapsed(build *api.Build, timeout int) bool {
 // of its associated pod.
 // TODO: improve handling of illegal state transitions
 func (bc *BuildController) synchronize(ctx kapi.Context, build *api.Build) (api.BuildStatus, error) {
-	glog.Infof("Syncing build %s", build.ID)
+	glog.Infof("Syncing build %s: %v", build.ID, build.Status)
 
 	buildType := api.DockerBuildType
 	if build.Input.STIInput != nil {

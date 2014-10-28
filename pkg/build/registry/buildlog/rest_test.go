@@ -20,7 +20,7 @@ func (p *podClient) ListPods(ctx kubeapi.Context, selector labels.Selector) (*ku
 
 func (p *podClient) GetPod(ctx kubeapi.Context, id string) (*kubeapi.Pod, error) {
 	pod := &kubeapi.Pod{
-		JSONBase:     kubeapi.JSONBase{ID: "foo"},
+		TypeMeta:     kubeapi.TypeMeta{ID: "foo"},
 		DesiredState: kubeapi.PodState{
 			Manifest: kubeapi.ContainerManifest{
 				Version: "v1beta1",
@@ -76,7 +76,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 
 func mockBuild(buildStatus api.BuildStatus) *api.Build {
 	return &api.Build{
-		JSONBase: kubeapi.JSONBase{
+		TypeMeta: kubeapi.TypeMeta{
 			ID: "foo-build",
 		},
 		Status: buildStatus,

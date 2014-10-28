@@ -155,7 +155,7 @@ func (dc *CustomPodDeploymentController) makeDeploymentPod(deployment *deployapi
 	}
 
 	return &kapi.Pod{
-		JSONBase: kapi.JSONBase{
+		TypeMeta: kapi.TypeMeta{
 			ID: podID,
 		},
 		DesiredState: kapi.PodState{

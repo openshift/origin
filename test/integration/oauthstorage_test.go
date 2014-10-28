@@ -54,7 +54,7 @@ func TestOAuthStorage(t *testing.T) {
 	deleteAllEtcdKeys()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	etcdClient := newEtcdClient()
-	etcdHelper := tools.EtcdHelper{etcdClient, interfaces.Codec, interfaces.ResourceVersioner}
+	etcdHelper := tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.ResourceVersioner}}
 	registry := etcd.New(etcdHelper)
 
 	user := &testUser{UserName: "test", UserUID: "1"}

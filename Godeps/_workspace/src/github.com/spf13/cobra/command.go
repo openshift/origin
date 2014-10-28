@@ -35,6 +35,8 @@ type Command struct {
 	name string
 	// The one-line usage message.
 	Use string
+	// An array of aliases that can be used instead of the first word in Use.
+	Aliases []string
 	// The short description shown in the 'help' output.
 	Short string
 	// The long message shown in the 'help <this-command>' output.
@@ -139,7 +141,7 @@ func (c *Command) HelpFunc() func(*Command, []string) {
 		return func(c *Command, args []string) {
 			if len(args) == 0 {
 				// Help called without any topic, calling on root
-				c.Root().Usage()
+				c.Root().Help()
 				return
 			}
 
@@ -189,7 +191,10 @@ func (c *Command) UsageTemplate() string {
 		return `{{ $cmd := . }}
 Usage: {{if .Runnable}}
   {{.UseLine}}{{if .HasFlags}} [flags]{{end}}{{end}}{{if .HasSubCommands}}
-  {{ .CommandPath}} [command]{{end}}
+  {{ .CommandPath}} [command]{{end}}{{if gt .Aliases 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}
 {{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}
   {{rpad .Use .UsagePadding }} {{.Short}}{{end}}{{end}}
@@ -213,7 +218,7 @@ func (c *Command) HelpTemplate() string {
 		return c.parent.HelpTemplate()
 	} else {
 		return `{{.Long | trim}}
-{{if .Runnable}}{{.UsageString}}{{end}}
+{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}
 `
 	}
 }
@@ -283,10 +288,17 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 			if len(argsWOflags) > 0 {
 				matches := make([]*Command, 0)
 				for _, cmd := range c.commands {
-					if cmd.Name() == argsWOflags[0] { // exact name match
-						return innerfind(cmd, argsMinusX(args, cmd.Name()))
-					} else if strings.HasPrefix(cmd.Name(), argsWOflags[0]) { // prefix match
-						matches = append(matches, cmd)
+					if cmd.Name() == argsWOflags[0] || cmd.HasAlias(argsWOflags[0]) { // exact name or alias match
+						return innerfind(cmd, argsMinusX(args, argsWOflags[0]))
+					} else if EnablePrefixMatching {
+						if strings.HasPrefix(cmd.Name(), argsWOflags[0]) { // prefix match
+							matches = append(matches, cmd)
+						}
+						for _, x := range cmd.Aliases {
+							if strings.HasPrefix(x, argsWOflags[0]) {
+								matches = append(matches, cmd)
+							}
+						}
 					}
 				}
 
@@ -302,8 +314,9 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 
 	commandFound, a := innerfind(c, arrs)
 
-	// if commander returned and not appropriately matched return nil & error
-	if commandFound.Name() == c.Name() && !strings.HasPrefix(commandFound.Name(), arrs[0]) {
+	// if commander returned and the first argument (if it exists) doesn't
+	// match the command name, return nil & error
+	if commandFound.Name() == c.Name() && len(arrs[0]) > 0 && commandFound.Name() != arrs[0] {
 		return nil, a, fmt.Errorf("unknown command %q\nRun 'help' for usage.\n", a[0])
 	}
 
@@ -402,7 +415,7 @@ func (c *Command) Execute() (err error) {
 		if c.Runnable() {
 			err = c.execute([]string(nil))
 		} else {
-			c.Usage()
+			c.Help()
 		}
 	} else {
 		err = c.findAndExecute(args)
@@ -614,6 +627,20 @@ func (c *Command) Name() string {
 	return name
 }
 
+// Determine if a given string is an alias of the command.
+func (c *Command) HasAlias(s string) bool {
+	for _, a := range c.Aliases {
+		if a == s {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Command) NameAndAliases() string {
+	return strings.Join(append([]string{c.Name()}, c.Aliases...), ", ")
+}
+
 // Determine if the command is itself runnable
 func (c *Command) Runnable() bool {
 	return c.Run != nil
@@ -637,7 +664,7 @@ func (c *Command) Flags() *flag.FlagSet {
 			c.flagErrorBuf = new(bytes.Buffer)
 		}
 		c.flags.SetOutput(c.flagErrorBuf)
-		c.flags.BoolVar(&c.helpFlagVal, "help", false, "help for "+c.Name())
+		c.PersistentFlags().BoolVarP(&c.helpFlagVal, "help", "h", false, "help for "+c.Name())
 	}
 	return c.flags
 }

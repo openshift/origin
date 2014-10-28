@@ -191,7 +191,7 @@ func basicPodTemplate() kapi.PodTemplate {
 }
 func basicDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		JSONBase:      kapi.JSONBase{ID: "deploy1"},
+		TypeMeta:      kapi.TypeMeta{ID: "deploy1"},
 		LatestVersion: 1,
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
@@ -217,7 +217,7 @@ func basicImageRepo() *imageapi.ImageRepositoryList {
 	return &imageapi.ImageRepositoryList{
 		Items: []imageapi.ImageRepository{
 			{
-				JSONBase:              kapi.JSONBase{ID: "imageRepo1"},
+				TypeMeta:              kapi.TypeMeta{ID: "imageRepo1"},
 				DockerImageRepository: "registry:8080/repo1",
 				Tags: map[string]string{
 					"tag1": "ref1",
@@ -231,7 +231,7 @@ func updatedImageRepo() *imageapi.ImageRepositoryList {
 	return &imageapi.ImageRepositoryList{
 		Items: []imageapi.ImageRepository{
 			{
-				JSONBase:              kapi.JSONBase{ID: "imageRepo1"},
+				TypeMeta:              kapi.TypeMeta{ID: "imageRepo1"},
 				DockerImageRepository: "registry:8080/repo1",
 				Tags: map[string]string{
 					"tag1": "ref2",

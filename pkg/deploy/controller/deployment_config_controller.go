@@ -99,7 +99,7 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 	labels[deployapi.DeploymentConfigLabel] = config.ID
 
 	deployment := &deployapi.Deployment{
-		JSONBase: kapi.JSONBase{
+		TypeMeta: kapi.TypeMeta{
 			ID: deployutil.LatestDeploymentIDForConfig(config),
 		},
 		Labels:             labels,

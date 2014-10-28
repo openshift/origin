@@ -51,7 +51,7 @@ func TestApplyInvalidConfig(t *testing.T) {
 }
 
 type FakeResource struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 }
 
 func (*FakeResource) IsAnAPIObject() {}
@@ -123,7 +123,7 @@ func ExampleApply() {
 }
 
 type FakeLabelsResource struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 	Labels           map[string]string `json:"labels" yaml:"labels"`
 }
 

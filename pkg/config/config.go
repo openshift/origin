@@ -43,7 +43,7 @@ func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult,
 			continue
 		}
 
-		itemBase := kubeapi.JSONBase{}
+		itemBase := kubeapi.TypeMeta{}
 
 		err = json.Unmarshal(item, &itemBase)
 		if err != nil {

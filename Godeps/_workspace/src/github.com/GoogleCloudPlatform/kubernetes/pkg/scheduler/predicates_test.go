@@ -26,8 +26,9 @@ import (
 
 type FakeNodeInfo api.Minion
 
-func (n FakeNodeInfo) GetNodeInfo(nodeName string) (api.Minion, error) {
-	return api.Minion(n), nil
+func (n FakeNodeInfo) GetNodeInfo(nodeName string) (*api.Minion, error) {
+	node := api.Minion(n)
+	return &node, nil
 }
 
 func makeResources(milliCPU int, memory int) api.NodeResources {
@@ -173,10 +174,63 @@ func TestPodFitsPorts(t *testing.T) {
 	for _, test := range tests {
 		fits, err := PodFitsPorts(test.pod, test.existingPods, "machine")
 		if err != nil {
-			t.Errorf("unexpected error: %v")
+			t.Errorf("unexpected error: %v", err)
 		}
 		if test.fits != fits {
 			t.Errorf("%s: expected %v, saw %v", test.test, test.fits, fits)
+		}
+	}
+}
+
+func TestDiskConflicts(t *testing.T) {
+	volState := api.PodState{
+		Manifest: api.ContainerManifest{
+			Volumes: []api.Volume{
+				{
+					Source: &api.VolumeSource{
+						GCEPersistentDisk: &api.GCEPersistentDisk{
+							PDName: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+	volState2 := api.PodState{
+		Manifest: api.ContainerManifest{
+			Volumes: []api.Volume{
+				{
+					Source: &api.VolumeSource{
+						GCEPersistentDisk: &api.GCEPersistentDisk{
+							PDName: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	tests := []struct {
+		pod          api.Pod
+		existingPods []api.Pod
+		isOk         bool
+		test         string
+	}{
+		{api.Pod{}, []api.Pod{}, true, "nothing"},
+		{api.Pod{}, []api.Pod{{DesiredState: volState}}, true, "one state"},
+		{api.Pod{DesiredState: volState}, []api.Pod{{DesiredState: volState}}, false, "same state"},
+		{api.Pod{DesiredState: volState2}, []api.Pod{{DesiredState: volState}}, true, "different state"},
+	}
+
+	for _, test := range tests {
+		ok, err := NoDiskConflict(test.pod, test.existingPods, "machine")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if test.isOk && !ok {
+			t.Errorf("expected ok, got none.  %v %v %s", test.pod, test.existingPods, test.test)
+		}
+		if !test.isOk && ok {
+			t.Errorf("expected no ok, got one.  %v %v %s", test.pod, test.existingPods, test.test)
 		}
 	}
 }

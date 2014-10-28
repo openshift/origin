@@ -35,7 +35,7 @@ func TestUserInitialization(t *testing.T) {
 	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, interfaces.ResourceVersioner}, user.NewDefaultUserInitStrategy())
+	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.ResourceVersioner}}, user.NewDefaultUserInitStrategy())
 	storage := map[string]apiserver.RESTStorage{
 		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
 		"users":                userregistry.NewREST(userRegistry),
@@ -68,14 +68,14 @@ func TestUserInitialization(t *testing.T) {
 
 	expectedUser := api.User{
 		Name:     ":test",
-		UID:      actual.User.UID,
+		UserUID:  actual.User.UserUID,
 		FullName: "Mr. Test",
 	}
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,
 		User:     expectedUser,
 	}
-	actual.JSONBase = kapi.JSONBase{}
+	actual.TypeMeta = kapi.TypeMeta{}
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("expected %#v, got %#v", expected, actual)
 	}
@@ -84,7 +84,7 @@ func TestUserInitialization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	user.JSONBase = kapi.JSONBase{}
+	user.TypeMeta = kapi.TypeMeta{}
 	if !reflect.DeepEqual(&expected.User, user) {
 		t.Errorf("expected %#v, got %#v", expected.User, user)
 	}
@@ -93,7 +93,7 @@ func TestUserInitialization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	actualUser.JSONBase = kapi.JSONBase{}
+	actualUser.TypeMeta = kapi.TypeMeta{}
 	if !reflect.DeepEqual(&expected.User, actualUser) {
 		t.Errorf("expected %#v, got %#v", expected.User, actualUser)
 	}
@@ -112,7 +112,7 @@ func TestUserLookup(t *testing.T) {
 	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, interfaces.ResourceVersioner}, user.NewDefaultUserInitStrategy())
+	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.ResourceVersioner}}, user.NewDefaultUserInitStrategy())
 	userInfo := &authapi.DefaultUserInfo{
 		Name: ":test",
 	}
@@ -161,14 +161,14 @@ func TestUserLookup(t *testing.T) {
 	}
 	expectedUser := api.User{
 		Name:     ":test",
-		UID:      actual.User.UID,
+		UserUID:  actual.User.UserUID,
 		FullName: "Mr. Test",
 	}
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,
 		User:     expectedUser,
 	}
-	actual.JSONBase = kapi.JSONBase{}
+	actual.TypeMeta = kapi.TypeMeta{}
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("expected\n %#v,\n got\n %#v", expected, actual)
 	}
@@ -178,7 +178,7 @@ func TestUserLookup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	user.JSONBase = kapi.JSONBase{}
+	user.TypeMeta = kapi.TypeMeta{}
 	if !reflect.DeepEqual(&expected.User, user) {
 		t.Errorf("expected\n %#v,\n got\n %#v", &expected.User, user)
 	}
@@ -188,7 +188,7 @@ func TestUserLookup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	actualUser.JSONBase = kapi.JSONBase{}
+	actualUser.TypeMeta = kapi.TypeMeta{}
 	if !reflect.DeepEqual(&expected.User, actualUser) {
 		t.Errorf("expected\n %#v,\n got\n %#v", &expected.User, actualUser)
 	}
@@ -198,7 +198,7 @@ func TestUserLookup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	currentUser.JSONBase = kapi.JSONBase{}
+	currentUser.TypeMeta = kapi.TypeMeta{}
 	if !reflect.DeepEqual(&expected.User, currentUser) {
 		t.Errorf("expected %#v, got %#v", expected.User, currentUser)
 	}

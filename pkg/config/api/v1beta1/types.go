@@ -9,7 +9,7 @@ import (
 // TODO: Unify with Kubernetes Config
 //       https://github.com/GoogleCloudPlatform/kubernetes/pull/1007
 type Config struct {
-	kubeapi.JSONBase `json:",inline" yaml:",inline"`
+	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
 
 	// Required: Name identifies the Config.
 	Name string `json:"name" yaml:"name"`

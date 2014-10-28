@@ -53,14 +53,14 @@ func init() {
 }
 
 type Simple struct {
-	api.JSONBase `yaml:",inline" json:",inline"`
+	api.TypeMeta `yaml:",inline" json:",inline"`
 	Name         string `yaml:"name,omitempty" json:"name,omitempty"`
 }
 
 func (*Simple) IsAnAPIObject() {}
 
 type SimpleList struct {
-	api.JSONBase `yaml:",inline" json:",inline"`
+	api.TypeMeta `yaml:",inline" json:",inline"`
 	Items        []Simple `yaml:"items,omitempty" json:"items,omitempty"`
 }
 
@@ -78,11 +78,12 @@ type SimpleRESTStorage struct {
 	fakeWatch                *watch.FakeWatcher
 	requestedLabelSelector   labels.Selector
 	requestedFieldSelector   labels.Selector
-	requestedResourceVersion uint64
+	requestedResourceVersion string
 
 	// The id requested, and location to return for ResourceLocation
 	requestedResourceLocationID string
 	resourceLocation            string
+	expectedResourceNamespace   string
 
 	// If non-nil, called inside the WorkFunc when answering update, delete, create.
 	// obj receives the original input to the update, delete, or create call.
@@ -107,7 +108,7 @@ func (storage *SimpleRESTStorage) Delete(ctx api.Context, id string) (<-chan run
 	}
 	return MakeAsync(func() (runtime.Object, error) {
 		if storage.injectedFunction != nil {
-			return storage.injectedFunction(&Simple{JSONBase: api.JSONBase{ID: id}})
+			return storage.injectedFunction(&Simple{TypeMeta: api.TypeMeta{ID: id}})
 		}
 		return &api.Status{Status: api.StatusSuccess}, nil
 	}), nil
@@ -144,7 +145,7 @@ func (storage *SimpleRESTStorage) Update(ctx api.Context, obj runtime.Object) (<
 }
 
 // Implement ResourceWatcher.
-func (storage *SimpleRESTStorage) Watch(ctx api.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (storage *SimpleRESTStorage) Watch(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	storage.requestedLabelSelector = label
 	storage.requestedFieldSelector = field
 	storage.requestedResourceVersion = resourceVersion
@@ -157,6 +158,11 @@ func (storage *SimpleRESTStorage) Watch(ctx api.Context, label, field labels.Sel
 
 // Implement Redirector.
 func (storage *SimpleRESTStorage) ResourceLocation(ctx api.Context, id string) (string, error) {
+	// validate that the namespace context on the request matches the expected input
+	requestedResourceNamespace := api.Namespace(ctx)
+	if storage.expectedResourceNamespace != requestedResourceNamespace {
+		return "", fmt.Errorf("Expected request namespace %s, but got namespace %s", storage.expectedResourceNamespace, requestedResourceNamespace)
+	}
 	storage.requestedResourceLocationID = id
 	if err := storage.errors["resourceLocation"]; err != nil {
 		return "", err
@@ -200,7 +206,7 @@ func TestNotFound(t *testing.T) {
 	for k, v := range cases {
 		request, err := http.NewRequest(v.Method, server.URL+v.Path, nil)
 		if err != nil {
-			t.Errorf("unexpected error: %v", err)
+			t.Fatalf("unexpected error: %v", err)
 		}
 
 		response, err := client.Do(request)
@@ -288,7 +294,7 @@ func TestNonEmptyList(t *testing.T) {
 	simpleStorage := SimpleRESTStorage{
 		list: []Simple{
 			{
-				JSONBase: api.JSONBase{Kind: "Simple"},
+				TypeMeta: api.TypeMeta{Kind: "Simple"},
 				Name:     "foo",
 			},
 		},

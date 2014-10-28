@@ -17,11 +17,14 @@ limitations under the License.
 package dockertools
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"hash/adler32"
 	"io"
 	"math/rand"
+	"os"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -50,6 +53,9 @@ type DockerInterface interface {
 	InspectImage(image string) (*docker.Image, error)
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
 	Logs(opts docker.LogsOptions) error
+	Version() (*docker.Env, error)
+	CreateExec(docker.CreateExecOptions) (*docker.Exec, error)
+	StartExec(string, docker.StartExecOptions) error
 }
 
 // DockerID is an ID of docker container. It is a type to make it clear when we're working with docker container Ids
@@ -82,8 +88,8 @@ func NewDockerPuller(client DockerInterface, qps float32, burst int) DockerPulle
 	cfg, err := readDockerConfigFile()
 	if err == nil {
 		cfg.addToKeyring(dp.keyring)
-	} else {
-		glog.Errorf("Unable to parse Docker config file: %v", err)
+	} else if !os.IsNotExist(err) {
+		glog.V(1).Infof("Unable to parse Docker config file: %v", err)
 	}
 
 	if dp.keyring.count() == 0 {
@@ -98,7 +104,51 @@ func NewDockerPuller(client DockerInterface, qps float32, burst int) DockerPulle
 	}
 }
 
-type dockerContainerCommandRunner struct{}
+type dockerContainerCommandRunner struct {
+	client DockerInterface
+}
+
+// The first version of docker that supports exec natively is 1.1.3
+var dockerVersionWithExec = []uint{1, 1, 3}
+
+// Returns the major and minor version numbers of docker server.
+func (d *dockerContainerCommandRunner) getDockerServerVersion() ([]uint, error) {
+	env, err := d.client.Version()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docker server version - %s", err)
+	}
+	version := []uint{}
+	for _, entry := range *env {
+		if strings.Contains(strings.ToLower(entry), "server version") {
+			elems := strings.Split(strings.Split(entry, "=")[1], ".")
+			for _, elem := range elems {
+				val, err := strconv.ParseUint(elem, 10, 32)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse docker server version (%s) - %s", entry, err)
+				}
+				version = append(version, uint(val))
+			}
+			return version, nil
+		}
+	}
+	return nil, fmt.Errorf("docker server version missing from server version output - %+v", env)
+}
+
+func (d *dockerContainerCommandRunner) nativeExecSupportExists() (bool, error) {
+	version, err := d.getDockerServerVersion()
+	if err != nil {
+		return false, err
+	}
+	if len(dockerVersionWithExec) != len(version) {
+		return false, fmt.Errorf("unexpected docker version format. Expecting %v format, got %v", dockerVersionWithExec, version)
+	}
+	for idx, val := range dockerVersionWithExec {
+		if version[idx] < val {
+			return false, nil
+		}
+	}
+	return true, nil
+}
 
 func (d *dockerContainerCommandRunner) getRunInContainerCommand(containerID string, cmd []string) (*exec.Cmd, error) {
 	args := append([]string{"exec"}, cmd...)
@@ -107,13 +157,51 @@ func (d *dockerContainerCommandRunner) getRunInContainerCommand(containerID stri
 	return command, nil
 }
 
-// RunInContainer uses nsinit to run the command inside the container identified by containerID
-func (d *dockerContainerCommandRunner) RunInContainer(containerID string, cmd []string) ([]byte, error) {
+func (d *dockerContainerCommandRunner) runInContainerUsingNsinit(containerID string, cmd []string) ([]byte, error) {
 	c, err := d.getRunInContainerCommand(containerID, cmd)
 	if err != nil {
 		return nil, err
 	}
 	return c.CombinedOutput()
+}
+
+// RunInContainer uses nsinit to run the command inside the container identified by containerID
+func (d *dockerContainerCommandRunner) RunInContainer(containerID string, cmd []string) ([]byte, error) {
+	// If native exec support does not exist in the local docker daemon use nsinit.
+	useNativeExec, err := d.nativeExecSupportExists()
+	if err != nil {
+		return nil, err
+	}
+	if !useNativeExec {
+		return d.runInContainerUsingNsinit(containerID, cmd)
+	}
+	createOpts := docker.CreateExecOptions{
+		Container:    containerID,
+		Cmd:          cmd,
+		AttachStdin:  false,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          false,
+	}
+	execObj, err := d.client.CreateExec(createOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run in container - Exec setup failed - %s", err)
+	}
+	var buf bytes.Buffer
+	wrBuf := bufio.NewWriter(&buf)
+	startOpts := docker.StartExecOptions{
+		Detach:       false,
+		Tty:          false,
+		OutputStream: wrBuf,
+		ErrorStream:  wrBuf,
+		RawTerminal:  false,
+	}
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.client.StartExec(execObj.Id, startOpts)
+	}()
+	wrBuf.Flush()
+	return buf.Bytes(), <-errChan
 }
 
 // NewDockerContainerCommandRunner creates a ContainerCommandRunner which uses nsinit to run a command
@@ -173,6 +261,7 @@ type DockerContainers map[DockerID]*docker.APIContainers
 
 func (c DockerContainers) FindPodContainer(podFullName, uuid, containerName string) (*docker.APIContainers, bool, uint64) {
 	for _, dockerContainer := range c {
+		// TODO(proppy): build the docker container name and do a map lookup instead?
 		dockerManifestID, dockerUUID, dockerContainerName, hash := ParseDockerName(dockerContainer.Names[0])
 		if dockerManifestID == podFullName &&
 			(uuid == "" || dockerUUID == uuid) &&
@@ -211,7 +300,7 @@ func GetKubeletDockerContainers(client DockerInterface, allContainers bool) (Doc
 		// TODO(dchen1107): Remove the old separator "--" by end of Oct
 		if !strings.HasPrefix(container.Names[0], "/"+containerNamePrefix+"_") &&
 			!strings.HasPrefix(container.Names[0], "/"+containerNamePrefix+"--") {
-			glog.Infof("Docker Container:%s is not managed by kubelet.", container.Names[0])
+			glog.Infof("Docker Container: %s is not managed by kubelet.", container.Names[0])
 			continue
 		}
 		result[DockerID(container.ID)] = container
@@ -270,30 +359,66 @@ func GetKubeletDockerContainerLogs(client DockerInterface, containerID, tail str
 	return
 }
 
-func generateContainerStatus(inspectResult *docker.Container) api.ContainerStatus {
+var (
+	// ErrNoContainersInPod is returned when there are no containers for a given pod
+	ErrNoContainersInPod = errors.New("no containers exist for this pod")
+
+	// ErrNoNetworkContainerInPod is returned when there is no network container for a given pod
+	ErrNoNetworkContainerInPod = errors.New("No network container exists for this pod")
+
+	// ErrContainerCannotRun is returned when a container is created, but cannot run properly
+	ErrContainerCannotRun = errors.New("Container cannot run")
+)
+
+func inspectContainer(client DockerInterface, dockerID, containerName string) (*api.ContainerStatus, error) {
+	inspectResult, err := client.InspectContainer(dockerID)
+	if err != nil {
+		return nil, err
+	}
 	if inspectResult == nil {
 		// Why did we not get an error?
-		return api.ContainerStatus{}
+		return &api.ContainerStatus{}, nil
 	}
 
-	var containerStatus api.ContainerStatus
+	glog.V(3).Infof("Container: %s [%s] inspect result %+v", *inspectResult)
+	containerStatus := api.ContainerStatus{
+		Image: inspectResult.Config.Image,
+	}
 
+	waiting := true
 	if inspectResult.State.Running {
-		containerStatus.State.Running = &api.ContainerStateRunning{}
-	} else {
+		containerStatus.State.Running = &api.ContainerStateRunning{
+			StartedAt: inspectResult.State.StartedAt,
+		}
+		if containerName == "net" && inspectResult.NetworkSettings != nil {
+			containerStatus.PodIP = inspectResult.NetworkSettings.IPAddress
+		}
+		waiting = false
+	} else if !inspectResult.State.FinishedAt.IsZero() {
+		// TODO(dchen1107): Integrate with event to provide a better reason
 		containerStatus.State.Termination = &api.ContainerStateTerminated{
-			ExitCode: inspectResult.State.ExitCode,
+			ExitCode:   inspectResult.State.ExitCode,
+			Reason:     "",
+			StartedAt:  inspectResult.State.StartedAt,
+			FinishedAt: inspectResult.State.FinishedAt,
+		}
+		waiting = false
+	}
+
+	if waiting {
+		// TODO(dchen1107): Separate issue docker/docker#8294 was filed
+		// TODO(dchen1107): Need to figure out why we are still waiting
+		// Check any issue to run container
+		containerStatus.State.Waiting = &api.ContainerStateWaiting{
+			Reason: ErrContainerCannotRun.Error(),
 		}
 	}
-	containerStatus.DetailInfo = *inspectResult
-	return containerStatus
+
+	return &containerStatus, nil
 }
 
-// ErrNoContainersInPod is returned when there are no containers for a given pod
-var ErrNoContainersInPod = errors.New("no containers exist for this pod")
-
 // GetDockerPodInfo returns docker info for all containers in the pod/manifest.
-func GetDockerPodInfo(client DockerInterface, podFullName, uuid string) (api.PodInfo, error) {
+func GetDockerPodInfo(client DockerInterface, manifest api.PodSpec, podFullName, uuid string) (api.PodInfo, error) {
 	info := api.PodInfo{}
 
 	containers, err := client.ListContainers(docker.ListContainersOptions{All: true})
@@ -316,14 +441,51 @@ func GetDockerPodInfo(client DockerInterface, podFullName, uuid string) (api.Pod
 			continue
 		}
 
-		inspectResult, err := client.InspectContainer(value.ID)
+		containerStatus, err := inspectContainer(client, value.ID, dockerContainerName)
 		if err != nil {
 			return nil, err
 		}
-		info[dockerContainerName] = generateContainerStatus(inspectResult)
+		info[dockerContainerName] = *containerStatus
 	}
+
 	if len(info) == 0 {
 		return nil, ErrNoContainersInPod
+	}
+
+	// First make sure we are not missing network container
+	if _, found := info["net"]; !found {
+		return nil, ErrNoNetworkContainerInPod
+	}
+
+	if len(info) < (len(manifest.Containers) + 1) {
+		var containerStatus api.ContainerStatus
+		// Not all containers expected are created, verify if there are
+		// image related issues
+		for _, container := range manifest.Containers {
+			if _, found := info[container.Name]; found {
+				continue
+			}
+
+			image := container.Image
+			// Check image is ready on the node or not
+			// TODO(dchen1107): docker/docker/issues/8365 to figure out if the image exists
+			_, err := client.InspectImage(image)
+			if err == nil {
+				containerStatus.State.Waiting = &api.ContainerStateWaiting{
+					Reason: fmt.Sprintf("Image: %s is ready, container is creating", image),
+				}
+			} else if err == docker.ErrNoSuchImage {
+				containerStatus.State.Waiting = &api.ContainerStateWaiting{
+					Reason: fmt.Sprintf("Image: %s is not ready on the node", image),
+				}
+			} else {
+				containerStatus.State.Waiting = &api.ContainerStateWaiting{
+					Reason: err.Error(),
+				}
+			}
+
+			info[container.Name] = containerStatus
+		}
 	}
 
 	return info, nil

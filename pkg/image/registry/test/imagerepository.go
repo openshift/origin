@@ -33,7 +33,7 @@ func (r *ImageRepositoryRegistry) GetImageRepository(id string) (*api.ImageRepos
 	return r.ImageRepository, r.Err
 }
 
-func (r *ImageRepositoryRegistry) WatchImageRepositories(resourceVersion uint64, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
+func (r *ImageRepositoryRegistry) WatchImageRepositories(resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
 	return nil, r.Err
 }
 

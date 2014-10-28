@@ -7,7 +7,7 @@ import (
 // A deployment represents a single configuration of a pod deployed into the cluster, and may
 // represent both a current deployment or a historical deployment.
 type Deployment struct {
-	api.JSONBase       `json:",inline" yaml:",inline"`
+	api.TypeMeta       `json:",inline" yaml:",inline"`
 	Labels             map[string]string              `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Strategy           DeploymentStrategy             `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	ControllerTemplate api.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
@@ -16,7 +16,7 @@ type Deployment struct {
 
 // A DeploymentList is a collection of deployments.
 type DeploymentList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []Deployment `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
@@ -71,7 +71,7 @@ type CustomPodDeploymentStrategy struct {
 // what the template is for the deployment, how new deployments are triggered, what the desired
 // deployment state is.
 type DeploymentConfig struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	// Triggers determine how updates to a DeploymentConfig result in new deployments.
 	Triggers []DeploymentTriggerPolicy `json:"triggers,omitempty" yaml:"triggers,omitempty"`
@@ -84,7 +84,7 @@ type DeploymentConfig struct {
 
 // A DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	api.JSONBase `json:",inline" yaml:",inline"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
 	Items        []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }
 

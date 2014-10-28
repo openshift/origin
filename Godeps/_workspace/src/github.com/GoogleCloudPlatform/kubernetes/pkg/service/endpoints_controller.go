@@ -20,12 +20,11 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
@@ -33,15 +32,13 @@ import (
 
 // EndpointController manages service endpoints.
 type EndpointController struct {
-	client          *client.Client
-	serviceRegistry service.Registry
+	client *client.Client
 }
 
 // NewEndpointController returns a new *EndpointController.
-func NewEndpointController(serviceRegistry service.Registry, client *client.Client) *EndpointController {
+func NewEndpointController(client *client.Client) *EndpointController {
 	return &EndpointController{
-		serviceRegistry: serviceRegistry,
-		client:          client,
+		client: client,
 	}
 }
 
@@ -62,8 +59,8 @@ func (e *EndpointController) SyncServiceEndpoints() error {
 			resultErr = err
 			continue
 		}
-		endpoints := make([]string, len(pods.Items))
-		for ix, pod := range pods.Items {
+		endpoints := []string{}
+		for _, pod := range pods.Items {
 			port, err := findPort(&pod.DesiredState.Manifest, service.ContainerPort)
 			if err != nil {
 				glog.Errorf("Failed to find port for service: %v, %v", service, err)
@@ -73,14 +70,14 @@ func (e *EndpointController) SyncServiceEndpoints() error {
 				glog.Errorf("Failed to find an IP for pod: %v", pod)
 				continue
 			}
-			endpoints[ix] = net.JoinHostPort(pod.CurrentState.PodIP, strconv.Itoa(port))
+			endpoints = append(endpoints, net.JoinHostPort(pod.CurrentState.PodIP, strconv.Itoa(port)))
 		}
 		currentEndpoints, err := e.client.GetEndpoints(nsCtx, service.ID)
 		if err != nil {
 			// TODO this is brittle as all get out, refactor the client libraries to return a structured error.
-			if strings.Contains(err.Error(), "not found") {
+			if errors.IsNotFound(err) {
 				currentEndpoints = &api.Endpoints{
-					JSONBase: api.JSONBase{
+					TypeMeta: api.TypeMeta{
 						ID: service.ID,
 					},
 				}
@@ -93,7 +90,7 @@ func (e *EndpointController) SyncServiceEndpoints() error {
 		*newEndpoints = *currentEndpoints
 		newEndpoints.Endpoints = endpoints
 
-		if currentEndpoints.ResourceVersion == 0 {
+		if len(currentEndpoints.ResourceVersion) == 0 {
 			// No previous endpoints, create them
 			_, err = e.client.CreateEndpoints(nsCtx, newEndpoints)
 		} else {
