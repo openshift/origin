@@ -14,9 +14,6 @@ type User struct {
 	// Name is a human readable string uniquely representing this user at any time.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
-	// UID is a unique in time and space value which uniquely identifies this user.
-	UserUID string `json:"useruid,omitempty" yaml:"useruid,omitempty"`
-
 	FullName string `json:"fullName,omitempty" yaml:"fullName,omitempty"`
 }
 

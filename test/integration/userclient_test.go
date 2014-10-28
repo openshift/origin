@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -68,35 +68,26 @@ func TestUserInitialization(t *testing.T) {
 
 	expectedUser := api.User{
 		Name:     ":test",
-		UserUID:  actual.User.UserUID,
 		FullName: "Mr. Test",
 	}
+	expectedUser.UID = actual.User.UID
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,
 		User:     expectedUser,
 	}
-	actual.TypeMeta = kapi.TypeMeta{}
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("expected %#v, got %#v", expected, actual)
-	}
+	compareIgnoringSelfLinkAndVersion(t, expected, actual)
 
 	user, err := userRegistry.GetUser(expected.User.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	user.TypeMeta = kapi.TypeMeta{}
-	if !reflect.DeepEqual(&expected.User, user) {
-		t.Errorf("expected %#v, got %#v", expected.User, user)
-	}
+	compareIgnoringSelfLinkAndVersion(t, &expected.User, user)
 
 	actualUser, err := client.GetUser(expectedUser.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	actualUser.TypeMeta = kapi.TypeMeta{}
-	if !reflect.DeepEqual(&expected.User, actualUser) {
-		t.Errorf("expected %#v, got %#v", expected.User, actualUser)
-	}
+	compareIgnoringSelfLinkAndVersion(t, &expected.User, actualUser)
 }
 
 type testTokenSource struct {
@@ -161,47 +152,35 @@ func TestUserLookup(t *testing.T) {
 	}
 	expectedUser := api.User{
 		Name:     ":test",
-		UserUID:  actual.User.UserUID,
 		FullName: "Mr. Test",
 	}
+	expectedUser.UID = actual.User.UID
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,
 		User:     expectedUser,
 	}
-	actual.TypeMeta = kapi.TypeMeta{}
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("expected\n %#v,\n got\n %#v", expected, actual)
-	}
+	compareIgnoringSelfLinkAndVersion(t, expected, actual)
 
 	// check the user returned by the registry
 	user, err := userRegistry.GetUser(expected.User.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	user.TypeMeta = kapi.TypeMeta{}
-	if !reflect.DeepEqual(&expected.User, user) {
-		t.Errorf("expected\n %#v,\n got\n %#v", &expected.User, user)
-	}
+	compareIgnoringSelfLinkAndVersion(t, &expected.User, user)
 
 	// check the user returned by the client
 	actualUser, err := client.GetUser(expectedUser.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	actualUser.TypeMeta = kapi.TypeMeta{}
-	if !reflect.DeepEqual(&expected.User, actualUser) {
-		t.Errorf("expected\n %#v,\n got\n %#v", &expected.User, actualUser)
-	}
+	compareIgnoringSelfLinkAndVersion(t, &expected.User, actualUser)
 
 	// check the current user
 	currentUser, err := client.GetUser("~")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	currentUser.TypeMeta = kapi.TypeMeta{}
-	if !reflect.DeepEqual(&expected.User, currentUser) {
-		t.Errorf("expected %#v, got %#v", expected.User, currentUser)
-	}
+	compareIgnoringSelfLinkAndVersion(t, &expected.User, currentUser)
 
 	// test retrieving user info from a token
 	authorizer := oapauth.New(&testTokenSource{Token: "token"}, server.URL, nil)
@@ -214,5 +193,16 @@ func TestUserLookup(t *testing.T) {
 	}
 	if user.Name != info.GetName() || user.UID != info.GetUID() {
 		t.Errorf("unexpected user info", info)
+	}
+}
+
+func compareIgnoringSelfLinkAndVersion(t *testing.T, expected runtime.Object, actual runtime.Object) {
+	if actualTypeMeta, _ := runtime.FindTypeMeta(actual); actualTypeMeta != nil {
+		actualTypeMeta.SetSelfLink("")
+		actualTypeMeta.SetResourceVersion("")
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("expected\n %#v,\n got\n %#v", expected, actual)
 	}
 }
