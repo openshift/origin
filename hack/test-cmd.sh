@@ -78,5 +78,10 @@ ${KUBE_CMD} -c test/integration/fixtures/test-route.json create routes
 ${KUBE_CMD} delete routes/testroute
 echo "kube(routes): ok"
 
+${KUBE_CMD} list deploymentConfigs
+${KUBE_CMD} -c test/integration/fixtures/test-deployment-config.json create deploymentConfigs
+${KUBE_CMD} delete deploymentConfigs/test-deployment-config
+echo "kube(deploymentConfigs): ok"
+
 ${KUBE_CMD} process -c examples/guestbook/template.json | ${KUBE_CMD} apply -c -
 echo "kube(template+config): ok"
