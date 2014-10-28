@@ -3,6 +3,12 @@
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
 
+iptables --list > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "You do not have iptables privileges.  Kubernetes services will not work without iptables access.  See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.  Try 'sudo hack/test-end-to-end.sh'."
+  exit 1
+fi
+
 set -o errexit
 set -o nounset
 set -o pipefail
