@@ -39,19 +39,19 @@ func NewLBManager(routes router.Router, endpointWatcher kubeclient.EndpointsInte
 
 // Run begins watching and syncing.
 func (lm *LBManager) Run(period time.Duration) {
-	resourceVersion := uint64(0)
-	go util.Forever(func() { lm.watchEndpoints(&resourceVersion) }, period)
-	go util.Forever(func() { lm.watchRoutes(&resourceVersion) }, period)
+	resourceVersion := "0"
+	go util.Forever(func() { lm.watchEndpoints(resourceVersion) }, period)
+	go util.Forever(func() { lm.watchRoutes(resourceVersion) }, period)
 }
 
 // resourceVersion is a pointer to the resource version to use/update.
-func (lm *LBManager) watchRoutes(resourceVersion *uint64) {
+func (lm *LBManager) watchRoutes(resourceVersion string) {
 	ctx := kapi.NewContext()
 	watching, err := lm.routeWatcher.WatchRoutes(
 		ctx,
 		labels.Everything(),
 		labels.Everything(),
-		*resourceVersion,
+		resourceVersion,
 	)
 	if err != nil {
 		glog.Errorf("Unexpected failure to watch: %v", err)
@@ -74,7 +74,6 @@ func (lm *LBManager) watchRoutes(resourceVersion *uint64) {
 				glog.Errorf("unexpected object: %#v", event.Object)
 				continue
 			}
-			*resourceVersion = rc.ResourceVersion + 1
 			// Sync even if this is a deletion event, to ensure that we leave
 			// it in the desired state.
 			//glog.Infof("About to sync from watch: %v", *rc)
@@ -84,13 +83,13 @@ func (lm *LBManager) watchRoutes(resourceVersion *uint64) {
 }
 
 // resourceVersion is a pointer to the resource version to use/update.
-func (lm *LBManager) watchEndpoints(resourceVersion *uint64) {
+func (lm *LBManager) watchEndpoints(resourceVersion string) {
 	ctx := kapi.NewContext()
 	watching, err := lm.endpointWatcher.WatchEndpoints(
 		ctx,
 		labels.Everything(),
 		labels.Everything(),
-		*resourceVersion,
+		resourceVersion,
 	)
 	if err != nil {
 		glog.Errorf("Unexpected failure to watch: %v", err)
@@ -113,7 +112,6 @@ func (lm *LBManager) watchEndpoints(resourceVersion *uint64) {
 				glog.Errorf("unexpected object: %#v", event.Object)
 				continue
 			}
-			*resourceVersion = rc.ResourceVersion + 1
 			// Sync even if this is a deletion event, to ensure that we leave
 			// it in the desired state.
 			//glog.Infof("About to sync from watch: %v", *rc)

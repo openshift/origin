@@ -16,7 +16,7 @@ cd "${OS_REPO_ROOT}"
 
 if [[ $# == 0 ]]; then
   # Update $@ with the default list of targets to build.
-  set -- cmd/openshift
+  set -- cmd/openshift cmd/openshift-router
 fi
 
 binaries=()
