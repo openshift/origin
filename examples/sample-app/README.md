@@ -19,7 +19,9 @@ All commands assume the `openshift` binary is in your path:
 
 2. Launch `openshift`
 
-        $ openshift start &> logs/openshift.log &
+        $ sudo openshift start &> logs/openshift.log &
+
+    Note: sudo is required so the kubernetenes proxy can manipulate iptables rules to expose service ports.
 
 3. Deploy the private docker registry within OpenShift:
 
@@ -96,9 +98,22 @@ All commands assume the `openshift` binary is in your path:
         ----------                                          ----------                     ----------          ----------                                               ----------
         fc66bffd-3dcc-11e4-984b-3c970e3bf0b7                openshift/origin-ruby-sample   127.0.0.1/          name=frontend,replicationController=frontendController   Running
 
-13. Confirm the application is now accessible via the frontend service on port 5432:
+13. Determine the IP for the frontend service:
 
-        $ curl http://localhost:5432
+        $ openshift kube list services
+
+    Sample output:
+
+        ID                  Labels                            Selector            IP                  Port
+        ----------          ----------                        ----------          ----------          ----------
+        docker-registry                                       name=registrypod    172.17.17.1         5001
+        frontend            template=ruby-helloworld-sample   name=frontend       172.17.17.2         5432
+
+    In this case, the IP for frontend is 172.17.17.2.
+
+14. Confirm the application is now accessible via the frontend service on port 5432:
+
+        $ curl http://172.17.17.2:5432
 
     Sample output:
 
@@ -107,24 +122,23 @@ All commands assume the `openshift` binary is in your path:
         Password is qgRpLNGO
         DB password is dQfUlnTG
 
-
-14. Make an additional change to your ruby sample app.rb file and push it.
+15. Make an additional change to your ruby sample app.rb file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
-15. Repeat steps 9-10
+16. Repeat steps 9-10
 
-16. Locate the container running the ruby application and kill it:
+17. Locate the container running the ruby application and kill it:
 
         $ docker kill `docker ps | grep origin-ruby-sample | awk '{print $1}'`
 
-17. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 14.
+18. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 15.
 
-        $ curl http://localhost:5432
+        $ curl http://172.17.17.2:5432
 
-Congratulations, you've successfully deployed and updated an application on OpenShift.  To clean up your environment, you can run:
+Congratulations, you've successfully deployed and updated an application on OpenShift.  To clean up all of your environment, you can run the script:
 
-        $ ./cleanup.sh
+        $ sudo ./cleanup.sh
 
-This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
+This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  The cleanup script needs root privileges to be able to remove all the directories openshift created.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
