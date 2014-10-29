@@ -36,6 +36,7 @@ function setup()
 {
   stop_openshift_server
   echo "[INFO] `$openshift version`"
+  echo "[INFO] Server logs: $LOG_DIR/openshift.log"
 }
 
 # teardown
