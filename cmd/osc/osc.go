@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/openshift/origin/pkg/cmd/auth"
+	"github.com/openshift/origin/pkg/cmd/create"
 	"github.com/openshift/origin/pkg/cmd/deployment"
 	"github.com/openshift/origin/pkg/cmd/pod"
 	"github.com/openshift/origin/pkg/cmd/setup"
@@ -12,6 +13,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const longDescription = `
+End-user client tool for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat.
+
+Note: This is an alpha release of OpenShift and will change significantly.  See
+
+    https://github.com/openshift/origin
+
+for the latest information on OpenShift.
+
+`
+
+// TODO: rebase kubectl and refactor to the new commands structures
 func main() {
 	// Root command
 	oscCmd := NewCmdOpenShiftClient("osc")
@@ -38,13 +51,14 @@ func NewCmdOpenShiftClient(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Client tools for OpenShift",
-		Long:  "Client tools for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat",
+		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
 			c.Help()
 		},
 	}
 
 	// Subcommands
+	cmd.AddCommand(create.NewCmdCreate("create"))
 	cmd.AddCommand(deployment.NewCmdDeployment("deployment"))
 	cmd.AddCommand(pod.NewCmdPod("pod"))
 	cmd.AddCommand(setup.NewCmdSetup("setup"))
