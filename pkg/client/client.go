@@ -34,6 +34,7 @@ type BuildInterface interface {
 	CreateBuild(ctx api.Context, build *buildapi.Build) (*buildapi.Build, error)
 	UpdateBuild(ctx api.Context, build *buildapi.Build) (*buildapi.Build, error)
 	DeleteBuild(ctx api.Context, id string) error
+	WatchBuilds(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // BuildConfigInterface exposes methods on BuildConfig resources
@@ -156,6 +157,17 @@ func (c *Client) UpdateBuild(ctx api.Context, build *buildapi.Build) (result *bu
 func (c *Client) DeleteBuild(ctx api.Context, id string) (err error) {
 	err = c.Delete().Path("builds").Path(id).Do().Error()
 	return
+}
+
+func (c *Client) WatchBuilds(ctx api.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return c.Get().
+		Namespace(api.Namespace(ctx)).
+		Path("watch").
+		Path("builds").
+		Param("resourceVersion", resourceVersion).
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Watch()
 }
 
 // CreateBuildConfig creates a new buildconfig. Returns the server's representation of the buildconfig and error if one occurs.

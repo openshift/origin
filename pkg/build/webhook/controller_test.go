@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 )
@@ -19,6 +21,10 @@ type osClient struct {
 
 func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
 	return &api.BuildConfig{Secret: "secret101"}, nil
+}
+
+func (_ *osClient) WatchBuilds(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return nil, nil
 }
 
 type buildErrorClient struct {
