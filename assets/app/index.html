@@ -16,17 +16,30 @@
   </head>
   <body ng-app="openshiftConsole">
     <!-- Add your site or application content here -->
-    <div class="container">
-      <div class="header">
-        <h3><img src="images/openshift-logo222.png"></h3>
-      </div>
-
-      <div ng-view=""></div>
-
-      <div class="footer">
-        <p><img src="images/redhat.png"></p>
-      </div>
+    <div class="header rcue">
+        <div class="navbar utility">
+            <div class="navbar-inner">
+                <div class="container">
+                    <a class="brand" href="/"><img src="images/logo-origin.svg" alt="OpenShift Origin"></a>
+                </div>
+            </div>
+        </div>
     </div>
+    <div class="container">
+      <div ng-view=""></div>
+    </div>
+
+    <footer>
+        <section id="copyright">
+            <div class="container">
+                <a href="https://www.redhat.com/">
+                    <img src="images/redhat.svg" alt="Red Hat">
+                </a>
+                <div class="pull-right">Copyright &copy; 2014 Red Hat, Inc.</div>
+            </div>
+        </section>
+    </footer>
+
 
     <!-- build:js(.) scripts/oldieshim.js -->
     <!--[if lt IE 9]>

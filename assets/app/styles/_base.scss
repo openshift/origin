@@ -1,0 +1,61 @@
+//
+// MANAGEMENT CONSOLE
+// ----------------------------------
+
+/*
+Color palette
+--------------------------------------------
+  0   0   0    000000     Black
+177 229 242    b1e5f2			Primary Blue
+ 54  53  52    363634     Primary Dark Gray
+ 77  79  83    4d4f53     Cool Gray 11
+154 155 156    9a9b9c     Cool Gray 7
+188 189 188    bcbdbc     Cool Gray 4
+224 225 221    e0e1dd     Cool Gray 1
+255 255 255    ffffff     White
+234   0  17    ea0011     Bright Red
+205  32  44    cd202c     Primary Red
+161   0  12    a1000c     Dark Red
+*/
+
+html {
+  background: $consoleBody;
+  height: 100%;
+  &.highlight {
+    background: darken( $consoleBody, 5%);
+  }
+}
+
+body {
+		font-weight: normal;
+    height: 100%;
+		position: relative;
+		background-color: transparent;
+    }
+
+dl {
+  dt {
+    font-size: $baseFontSize + 1;
+    margin-bottom: $baseLineHeight / 3;
+  }
+  dd {
+    margin: 0 0 $baseLineHeight + 7 $baseLineHeight;
+    font-size: $baseFontSize;
+  }
+}
+
+label {color: inherit;}
+
+::-moz-selection {background: #f0f392;color: black;}
+::-selection {background: #f0f392;color: black;}
+
+
+// Code
+// ----------------------------------------
+
+code, pre {
+	background-color: $consolePreBackground;
+  }
+  .popover code {
+    background-color: #f5f5f5;
+  }

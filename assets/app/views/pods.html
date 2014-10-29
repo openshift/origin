@@ -2,10 +2,11 @@
   <div>
     <h3>Pods by label:</h3>
     <div class="row" style="margin-bottom: 10px;" ng-repeat="(label_key, label_values) in podsByLabel">
-      <div class="col-md-6 animate-repeat" ng-repeat="(label_value, label_pods) in label_values" style="padding: 10px; border: 1px solid #CCC;">
-        <h4>{{label_key}}: {{label_value}}</h4>
-        <span class="animate-repeat pod-{{pod.desiredState.status.toLowerCase()}}" ng-repeat="pod in label_pods" style="width: 40px; height: 40px; margin-right: 5px; margin-bottom: 5px; display: inline-block;">
-        </span>
+      <div class="col-md-6 animate-repeat" ng-repeat="(label_value, label_pods) in label_values">
+        <div class="tile">
+          <h4>{{label_key}}: {{label_value}}</h4>
+          <span class="animate-repeat pod-{{pod.desiredState.status.toLowerCase()}}" ng-repeat="pod in label_pods" style="width: 40px; height: 40px; margin-right: 5px; margin-bottom: 5px; display: inline-block;">
+          </span>
         </div>
       </div>
     </div>      
