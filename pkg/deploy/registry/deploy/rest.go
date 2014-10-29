@@ -9,8 +9,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	"github.com/golang/glog"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
@@ -66,7 +66,7 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 		return nil, fmt.Errorf("not a deployment: %#v", obj)
 	}
 
-	glog.Infof("Creating deployment with ID: %v", deployment.ID)
+	deployment.CreationTimestamp = util.Now()
 
 	if len(deployment.ID) == 0 {
 		deployment.ID = uuid.NewUUID().String()
