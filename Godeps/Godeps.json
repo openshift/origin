@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "code.google.com/p/gcfg",
+			"Rev": "c2d3050044d05357eaf6c3547249ba57c5e235cb"
+		},
+		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
 			"Comment": "null-12",
 			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
@@ -34,6 +38,15 @@
 			"ImportPath": "code.google.com/p/goauth2/oauth",
 			"Comment": "weekly-50",
 			"Rev": "7fc9d958c83464bd7650240569bf93a102266e6a"
+		},
+		{
+			"ImportPath": "code.google.com/p/gomock/gomock",
+			"Rev": "ae48011f41cd01e8e4e77d501502d2e734816da2"
+		},
+		{
+			"ImportPath": "code.google.com/p/google-api-go-client/bigquery/v2",
+			"Comment": "release-96",
+			"Rev": "0923cdda5b82a7dd0dd5c689f824ca5e7d9b60de"
 		},
 		{
 			"ImportPath": "code.google.com/p/google-api-go-client/compute/v1",
@@ -229,6 +242,10 @@
 			"Rev": "23618ea0fc3faa3f43954ce8ff48e31f5c784212"
 		},
 		{
+			"ImportPath": "github.com/SeanDolphin/bqschema",
+			"Rev": "a713d26df274e999ec10e9bbc7e73a1c4791053c"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/config",
 			"Comment": "v0.4.3-7-gfc2afe1",
 			"Rev": "fc2afe1ed2510d3c8c9ff41fc36d0da2c929a1c7"
@@ -354,6 +371,26 @@
 			"Rev": "23142f6773a676cc2cae8dd0cb90b2ea761c853f"
 		},
 		{
+			"ImportPath": "github.com/coreos/go-systemd/dbus",
+			"Comment": "0-4-g2fb21b3",
+			"Rev": "2fb21b34171f083d46d66195caa7ec121d941ec5"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/mount",
+			"Comment": "v1.1.1-402-g487a417",
+			"Rev": "487a417d9fd074d0e78876072c7d1ebfd398ea7a"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/symlink",
+			"Comment": "v1.1.1-402-g487a417",
+			"Rev": "487a417d9fd074d0e78876072c7d1ebfd398ea7a"
+		},
+		{
+			"ImportPath": "github.com/docker/libcontainer",
+			"Comment": "v1.0.0-2-g8f74c29",
+			"Rev": "8f74c29bc59d7f0b4fc6cfd6fa59f01532be9f9f"
+		},
+		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
 			"Rev": "ae4665cf2d188c65764c73fe4af5378acc549510"
 		},
@@ -361,6 +398,11 @@
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Comment": "0.2.1-267-g15d2c6e",
 			"Rev": "15d2c6e3eb670c545d0af0604d7f9aff3871af04"
+		},
+		{
+			"ImportPath": "github.com/godbus/dbus",
+			"Comment": "0-11-gcfab99a",
+			"Rev": "cfab99a9500db4ba03067996059d2fc425090bf3"
 		},
 		{
 			"ImportPath": "github.com/golang/glog",
@@ -377,6 +419,10 @@
 			"Rev": "5a6d06c02600b1e57e55a9d9f71dbac1bfc9fe6c"
 		},
 		{
+			"ImportPath": "github.com/google/gofuzz",
+			"Rev": "aef70dacbc78771e35beb261bb3a72986adf7906"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "a8662172a384296ff59d28f837e151643c662985"
 		},
@@ -389,9 +435,49 @@
 			"Rev": "aa5e036e6c44aec69a32eb41097001978b29ad31"
 		},
 		{
+			"ImportPath": "github.com/influxdb/influxdb/client",
+			"Comment": "v0.8.0-1-g262d116",
+			"Rev": "262d116c059935fdcdc2350bd56d70a09ad71640"
+		},
+		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",
 			"Comment": "v3.0.6",
 			"Rev": "1743f47c0112eff669b0199889670d61384b4730"
+		},
+		{
+			"ImportPath": "github.com/kr/pretty",
+			"Comment": "go.weekly.2011-12-22-24-gf31442d",
+			"Rev": "f31442d60e51465c69811e2107ae978868dbea5c"
+		},
+		{
+			"ImportPath": "github.com/kr/text",
+			"Rev": "6807e777504f54ad073ecef66747de158294b639"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/goamz/aws",
+			"Rev": "9cad7da945e699385c1a3e115aa255211921c9bb"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/goamz/ec2",
+			"Rev": "9cad7da945e699385c1a3e115aa255211921c9bb"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "740c764bc6149d3f1806231418adb9f52c11bcbf"
+		},
+		{
+			"ImportPath": "github.com/racker/perigee",
+			"Comment": "v0.0.0-18-g0c00cb0",
+			"Rev": "0c00cb0a026b71034ebc8205263c77dad3577db5"
+		},
+		{
+			"ImportPath": "github.com/rackspace/gophercloud",
+			"Comment": "v0.1.0-31-ge13cda2",
+			"Rev": "e13cda260ce48d63ce816f4fa72b6c6cd096596d"
+		},
+		{
+			"ImportPath": "github.com/skratchdot/open-golang/open",
+			"Rev": "ba570a111973b539baf23c918213059543b5bb6e"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
@@ -400,6 +486,27 @@
 		{
 			"ImportPath": "github.com/spf13/pflag",
 			"Rev": "463bdc838f2b35e9307e91d480878bda5fff7232"
+		},
+		{
+			"ImportPath": "github.com/stretchr/objx",
+			"Rev": "d40df0cc104c06eae2dfe03d7dddb83802d52f9a"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "37614ac27794505bf7867ca93aac883cadb6a5f7"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/mock",
+			"Rev": "37614ac27794505bf7867ca93aac883cadb6a5f7"
+		},
+		{
+			"ImportPath": "github.com/tonnerre/golang-pretty",
+			"Comment": "debian/0.0_git20130613-1-1-ge7fccc0",
+			"Rev": "e7fccc03e91bad289b96c21aa3312a220689bdd7"
+		},
+		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
 		},
 		{
 			"ImportPath": "gopkg.in/v1/yaml",
