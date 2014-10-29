@@ -43,7 +43,7 @@ func printDeploymentConfig(dc *api.DeploymentConfig, w io.Writer) error {
 	}
 	tStr := strings.Join(triggers.List(), ", ")
 
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", dc.ID, tStr, dc.LatestVersion)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.ID, tStr, dc.LatestVersion)
 	return err
 }
 
