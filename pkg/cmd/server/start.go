@@ -175,13 +175,13 @@ func NewCommandStartServer(name string) *cobra.Command {
 
 				// pick an appropriate Kube client
 				if startKube {
+					osmaster.EnsureKubernetesClient()
+				} else {
 					kubeClient, err := kubeclient.New(&kubeclient.Config{Host: cfg.KubernetesAddr.URL.String(), Version: klatest.Version})
 					if err != nil {
 						glog.Fatalf("Unable to configure Kubernetes client: %v", err)
 					}
 					osmaster.KubeClient = kubeClient
-				} else {
-					osmaster.EnsureKubernetesClient()
 				}
 
 				osmaster.EnsureOpenShiftClient()
