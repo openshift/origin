@@ -9,6 +9,7 @@ import (
 )
 
 type TokenAuthenticator struct {
+	path   string
 	tokens map[string]*api.DefaultUserInfo
 }
 
@@ -43,6 +44,7 @@ func NewTokenAuthenticator(path string) (*TokenAuthenticator, error) {
 	}
 
 	return &TokenAuthenticator{
+		path:   file.Name(),
 		tokens: tokens,
 	}, nil
 }

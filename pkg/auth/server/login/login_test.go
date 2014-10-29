@@ -41,10 +41,11 @@ func (t *testAuth) AuthenticatePassword(user, password string) (api.UserInfo, bo
 	return t.User, t.Success, t.Err
 }
 
-func (t *testAuth) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) {
+func (t *testAuth) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) error {
 	t.Called = true
 	t.User = user
 	t.Then = then
+	return nil
 }
 
 func TestLogin(t *testing.T) {

@@ -21,6 +21,9 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
+	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
+	authcontext "github.com/openshift/origin/pkg/auth/context"
+	authfilter "github.com/openshift/origin/pkg/auth/handlers"
 	"github.com/openshift/origin/pkg/build"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -75,7 +78,8 @@ type MasterConfig struct {
 	MasterAddr string
 	AssetAddr  string
 
-	CORSAllowedOrigins []*regexp.Regexp
+	CORSAllowedOrigins    []*regexp.Regexp
+	RequireAuthentication bool
 
 	EtcdHelper tools.EtcdHelper
 
@@ -181,6 +185,9 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	apiserver.InstallSupport(osMux)
 
 	handler := http.Handler(osMux)
+	if c.RequireAuthentication {
+		handler = c.wrapHandlerWithAuthentication(handler)
+	}
 	if len(c.CORSAllowedOrigins) > 0 {
 		handler = apiserver.CORS(handler, c.CORSAllowedOrigins, nil, nil, "true")
 	}
@@ -202,6 +209,28 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		glog.Infof("Started OpenShift API at %s%s", c.MasterAddr, OpenShiftAPIPrefixV1Beta1)
 		glog.Fatal(server.ListenAndServe())
 	}, 0)
+}
+
+func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler) http.Handler {
+	// wrap with authenticated token check
+	requestsToUsers := authcontext.NewRequestContextMap() // this tracks requests back to users for authorization
+	tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
+	if err != nil {
+		glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
+	}
+	return authfilter.NewRequestAuthenticator(
+		requestsToUsers,
+		bearertoken.New(tokenAuthenticator),
+		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			// TODO: make this failure handler actually fail once internal components can get auth tokens to do their job
+			// w.WriteHeader(http.StatusUnauthorized)
+			// return
+
+			// For now, just let us know and continue on your merry way
+			glog.V(2).Infof("Token authentication failed when accessing: %v", req.URL)
+			handler.ServeHTTP(w, req)
+		}),
+		handler)
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.

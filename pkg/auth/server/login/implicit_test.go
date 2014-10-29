@@ -26,10 +26,11 @@ func (t *testImplicit) AuthenticateRequest(req *http.Request) (api.UserInfo, boo
 	return t.User, t.Success, t.Err
 }
 
-func (t *testImplicit) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) {
+func (t *testImplicit) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) error {
 	t.Called = true
 	t.User = user
 	t.Then = then
+	return nil
 }
 
 func TestImplicit(t *testing.T) {

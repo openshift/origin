@@ -45,6 +45,9 @@ func downloadData(method string, u *url.URL, auth *BasicAuth, transport http.Rou
 		preq.Header.Set("Content-Type", contenttype)
 	}
 
+	// Explicitly set accept header to JSON
+	preq.Header.Set("Accept", "application/json")
+
 	// do request
 	client := &http.Client{}
 	if transport != nil {

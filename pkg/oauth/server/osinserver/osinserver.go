@@ -88,3 +88,7 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	osin.OutputJSON(resp, w, r)
 }
+
+// func (s *Server) String() string {
+// 	return fmt.Sprintf("osinserver.Server{config:%#v, authorize:%v, access:%v}", s.config, s.authorize, s.access)
+// }

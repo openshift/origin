@@ -1,5 +1,6 @@
 package api
 
+// TODO: Add display name to common meta?
 type UserInfo interface {
 	GetName() string
 	GetUID() string

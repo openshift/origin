@@ -42,7 +42,7 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseW
 		return true
 	}
 	if !ok {
-		h.handler.GrantNeeded(grant, w, req)
+		h.handler.GrantNeeded(ar.Client, user, grant, w, req)
 		return true
 	}
 
