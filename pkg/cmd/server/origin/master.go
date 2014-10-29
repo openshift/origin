@@ -59,13 +59,6 @@ import (
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 	"github.com/openshift/origin/pkg/version"
-
-	// Register versioned api types
-	_ "github.com/openshift/origin/pkg/config/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/image/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/project/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
 )
 
 const (
