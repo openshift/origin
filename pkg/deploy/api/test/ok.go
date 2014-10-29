@@ -5,9 +5,8 @@ import (
 	"github.com/openshift/origin/pkg/deploy/api"
 )
 
-func OkStrategy() api.DeploymentStrategy {
-	return api.DeploymentStrategy{
-		Type:      api.DeploymentStrategyTypeCustomPod,
+func OkStrategy() *api.DeploymentStrategy {
+	return &api.DeploymentStrategy{
 		CustomPod: OkCustomPod(),
 	}
 }
@@ -37,5 +36,12 @@ func OkPodTemplate() kapi.PodTemplate {
 			},
 		},
 		Labels: OkSelector(),
+	}
+}
+
+func OkDeploymentTemplate() api.DeploymentTemplate {
+	return api.DeploymentTemplate{
+		Strategy:           OkStrategy(),
+		ControllerTemplate: OkControllerTemplate(),
 	}
 }

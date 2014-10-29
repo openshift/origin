@@ -40,9 +40,9 @@ type BasicDeploymentControllerFactory struct {
 }
 
 func (factory *BasicDeploymentControllerFactory) Create() *controller.BasicDeploymentController {
-  field := labels.SelectorFromSet(labels.Set{"Strategy": string(deployapi.DeploymentStrategyTypeBasic)})
+  fields, _ := labels.ParseSelector("Strategy.CustomPod==nil")
   queue := cache.NewFIFO()
-  cache.NewReflector(&deploymentLW{client: factory.Client, field: field}, &deployapi.Deployment{}, queue).Run()
+  cache.NewReflector(&deploymentLW{client: factory.Client, field: fields}, &deployapi.Deployment{}, queue).Run()
 
   return &controller.BasicDeploymentController{
     DeploymentUpdater:           factory.Client,
@@ -63,7 +63,7 @@ type CustomPodDeploymentControllerFactory struct {
 }
 
 func (factory *CustomPodDeploymentControllerFactory) Create() *controller.CustomPodDeploymentController {
-  deploymentFieldSelector := labels.SelectorFromSet(labels.Set{"Strategy": string(deployapi.DeploymentStrategyTypeCustomPod)})
+  deploymentFieldSelector, _ := labels.ParseSelector("Strategy.CustomPod!=nil")
   dQueue := cache.NewFIFO()
   cache.NewReflector(&deploymentLW{client: factory.Client, field: deploymentFieldSelector}, &deployapi.Deployment{}, dQueue).Run()
   dStore := cache.NewStore()
@@ -176,9 +176,15 @@ func (lw *deploymentLW) List() (runtime.Object, error) {
   }
 
   for _, deployment := range deployments.Items {
+    // SMELL: this is the same code as in the REST implementation for deployments...
+    customPodValue := "set"
+    if deployment.Strategy.CustomPod == nil {
+      customPodValue = "unset"
+    }
+
     fields := labels.Set{
-      "ID":       deployment.ID,
-      "Strategy": string(deployment.Strategy.Type),
+      "ID":                 deployment.ID,
+      "Strategy.CustomPod": customPodValue,
     }
     if lw.field.Matches(fields) {
       filtered = append(filtered, deployment)

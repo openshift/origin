@@ -107,10 +107,15 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 // Watch begins watching for new, changed, or deleted Deployments.
 func (s *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return s.registry.WatchDeployments(resourceVersion, func(deployment *deployapi.Deployment) bool {
-		fields := labels.Set{
-			"ID":       deployment.ID,
-			"Strategy": string(deployment.Strategy.Type),
+		customPodValue := "set"
+		if deployment.Strategy.CustomPod == nil {
+			customPodValue = "nil"
 		}
+		fields := labels.Set{
+			"ID":                 deployment.ID,
+			"Strategy.CustomPod": customPodValue,
+		}
+
 		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
 	})
 }

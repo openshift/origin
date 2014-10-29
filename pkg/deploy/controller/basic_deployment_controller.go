@@ -40,7 +40,7 @@ func (dc *BasicDeploymentController) Run() {
 func (dc *BasicDeploymentController) HandleDeployment() error {
   deployment := dc.NextDeployment()
 
-  if deployment.Strategy.Type != deployapi.DeploymentStrategyTypeBasic {
+  if deployment.Strategy.CustomPod != nil {
     glog.V(4).Infof("Ignoring deployment %s due to incompatible strategy type %s", deployment.ID, deployment.Strategy)
     return nil
   }
