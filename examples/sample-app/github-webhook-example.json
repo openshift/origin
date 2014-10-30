@@ -33,7 +33,7 @@
       }
    ],
    "head_commit":{
-      "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "id":"",
       "distinct":true,
       "message":"Added license",
       "timestamp":"2014-08-28T16:55:36+02:00",

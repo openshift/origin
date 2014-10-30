@@ -47,12 +47,6 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 						Name:  "sti-build",
 						Image: bs.BuilderImage,
 						Env: []kapi.EnvVar{
-							{Name: "SOURCE_URI", Value: build.Parameters.Source.Git.URI},
-							{Name: "SOURCE_REF", Value: build.Parameters.Source.Git.Ref},
-							{Name: "SOURCE_ID", Value: build.Parameters.Revision.Git.Commit},
-							{Name: "BUILDER_IMAGE", Value: build.Parameters.Strategy.STIStrategy.BuilderImage},
-							{Name: "BUILD_TAG", Value: build.Parameters.Output.ImageTag},
-							{Name: "REGISTRY", Value: build.Parameters.Output.Registry},
 							{Name: "BUILD", Value: string(buildJson)},
 						},
 					},
@@ -68,35 +62,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 		pod.DesiredState.Manifest.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 	}
 
-	if err := bs.setupTempVolume(pod); err != nil {
-		return nil, err
-	}
-
 	setupDockerSocket(pod)
 	setupDockerConfig(pod)
 	return pod, nil
-}
-
-func (bs *STIBuildStrategy) setupTempVolume(pod *kapi.Pod) error {
-	tempDir, err := bs.TempDirectoryCreator.CreateTempDirectory()
-	if err != nil {
-		return err
-	}
-	tmpVolume := kapi.Volume{
-		Name: "tmp",
-		Source: &kapi.VolumeSource{
-			HostDir: &kapi.HostDir{
-				Path: tempDir,
-			},
-		},
-	}
-	tmpMount := kapi.VolumeMount{Name: "tmp", ReadOnly: false, MountPath: tempDir}
-	pod.DesiredState.Manifest.Volumes = append(pod.DesiredState.Manifest.Volumes, tmpVolume)
-	pod.DesiredState.Manifest.Containers[0].VolumeMounts =
-		append(pod.DesiredState.Manifest.Containers[0].VolumeMounts, tmpMount)
-	pod.DesiredState.Manifest.Containers[0].Env =
-		append(pod.DesiredState.Manifest.Containers[0].Env, kapi.EnvVar{
-			Name: "TEMP_DIR", Value: tempDir})
-
-	return nil
 }

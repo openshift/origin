@@ -37,18 +37,12 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
 	}
-	if len(container.Env) != 7 {
-		t.Fatalf("Expected 7 elements in Env table, got %d", len(container.Env))
+	if len(container.Env) != 1 {
+		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))
 	}
 	buildJson, _ := json.Marshal(expected)
 	errorCases := map[int][]string{
-		0: {"SOURCE_URI", expected.Parameters.Source.Git.URI},
-		1: {"SOURCE_REF", expected.Parameters.Source.Git.Ref},
-		2: {"SOURCE_ID", expected.Parameters.Revision.Git.Commit},
-		3: {"CONTEXT_DIR", expected.Parameters.Strategy.DockerStrategy.ContextDir},
-		4: {"BUILD_TAG", expected.Parameters.Output.ImageTag},
-		5: {"REGISTRY", expected.Parameters.Output.Registry},
-		6: {"BUILD", string(buildJson)},
+		0: {"BUILD", string(buildJson)},
 	}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
