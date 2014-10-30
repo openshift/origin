@@ -50,7 +50,7 @@
                     },
                     {
                       "name": "REGISTRY_URL",
-                      "value": "172.17.17.1:5001"
+                      "value": "172.121.17.1:5001"
                     }
                   ],
                   "volumeMounts": [
