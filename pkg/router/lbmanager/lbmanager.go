@@ -39,19 +39,20 @@ func NewLBManager(routes router.Router, endpointWatcher kubeclient.EndpointsInte
 
 // Run begins watching and syncing.
 func (lm *LBManager) Run(period time.Duration) {
-	resourceVersion := "0"
-	go util.Forever(func() { lm.watchEndpoints(resourceVersion) }, period)
-	go util.Forever(func() { lm.watchRoutes(resourceVersion) }, period)
+	routeResourceVersion := ""
+	endpointResourceVersion := ""
+	go util.Forever(func() { lm.watchEndpoints(&endpointResourceVersion) }, period)
+	go util.Forever(func() { lm.watchRoutes(&routeResourceVersion) }, period)
 }
 
 // resourceVersion is a pointer to the resource version to use/update.
-func (lm *LBManager) watchRoutes(resourceVersion string) {
+func (lm *LBManager) watchRoutes(resourceVersion *string) {
 	ctx := kapi.NewContext()
 	watching, err := lm.routeWatcher.WatchRoutes(
 		ctx,
 		labels.Everything(),
 		labels.Everything(),
-		resourceVersion,
+		*resourceVersion,
 	)
 	if err != nil {
 		glog.Errorf("Unexpected failure to watch: %v", err)
@@ -74,22 +75,23 @@ func (lm *LBManager) watchRoutes(resourceVersion string) {
 				glog.Errorf("unexpected object: %#v", event.Object)
 				continue
 			}
+			*resourceVersion = rc.ResourceVersion
 			// Sync even if this is a deletion event, to ensure that we leave
 			// it in the desired state.
-			//glog.Infof("About to sync from watch: %v", *rc)
+			glog.Infof("About to sync from route watch: %v, %s\n", *rc, event.Type)
 			lm.syncRoutes(event.Type, *rc)
 		}
 	}
 }
 
 // resourceVersion is a pointer to the resource version to use/update.
-func (lm *LBManager) watchEndpoints(resourceVersion string) {
+func (lm *LBManager) watchEndpoints(resourceVersion *string) {
 	ctx := kapi.NewContext()
 	watching, err := lm.endpointWatcher.WatchEndpoints(
 		ctx,
 		labels.Everything(),
 		labels.Everything(),
-		resourceVersion,
+		*resourceVersion,
 	)
 	if err != nil {
 		glog.Errorf("Unexpected failure to watch: %v", err)
@@ -112,9 +114,10 @@ func (lm *LBManager) watchEndpoints(resourceVersion string) {
 				glog.Errorf("unexpected object: %#v", event.Object)
 				continue
 			}
+			*resourceVersion = rc.ResourceVersion
 			// Sync even if this is a deletion event, to ensure that we leave
 			// it in the desired state.
-			//glog.Infof("About to sync from watch: %v", *rc)
+			glog.Infof("About to sync from ep watch: %v, %s\n", *rc, event.Type)
 			if event.Type != watch.Error {
 				lm.syncEndpoints(event.Type, *rc)
 			} else {
@@ -140,7 +143,7 @@ func (lm *LBManager) syncRoutes(event watch.EventType, app routeapi.Route) {
 		glog.V(4).Infof("Modifying routes for %s\n", app.ServiceName)
 		lm.routes.AddAlias(app.Host, app.ServiceName)
 	} else if event == watch.Deleted {
-		lm.routes.DeleteFrontend(app.ServiceName)
+		lm.routes.RemoveAlias(app.Host, app.ServiceName)
 	}
 	lm.routes.WriteConfig()
 	lm.routes.ReloadRouter()
