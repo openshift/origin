@@ -1,8 +1,11 @@
 #!/bin/bash
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
 
-source $(dirname $0)/util.sh
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/util.sh"
 
 function cleanup()
 {
@@ -19,4 +22,4 @@ trap cleanup EXIT SIGINT
 echo
 echo Integration test cases ...
 echo
-$(dirname $0)/../hack/test-go.sh test/integration -tags 'integration no-docker' "${@:1}"
+"${OS_ROOT}/hack/test-go.sh" test/integration -tags 'integration no-docker' "${@:1}"

@@ -21,6 +21,8 @@ type CustomPodDeploymentController struct {
 	NextDeployment      func() *deployapi.Deployment
 	NextPod             func() *kapi.Pod
 	DeploymentStore     cache.Store
+	DefaultImage        string
+	UseLocalImages      bool
 }
 
 type dcDeploymentInterface interface {
@@ -154,7 +156,12 @@ func (dc *CustomPodDeploymentController) makeDeploymentPod(deployment *deployapi
 		envVars = append(envVars, env)
 	}
 
-	return &kapi.Pod{
+	image := deployment.Strategy.CustomPod.Image
+	if len(image) == 0 {
+		image = dc.DefaultImage
+	}
+
+	pod := &kapi.Pod{
 		TypeMeta: kapi.TypeMeta{
 			ID: podID,
 		},
@@ -164,7 +171,7 @@ func (dc *CustomPodDeploymentController) makeDeploymentPod(deployment *deployapi
 				Containers: []kapi.Container{
 					{
 						Name:  "deployment",
-						Image: deployment.Strategy.CustomPod.Image,
+						Image: image,
 						Env:   envVars,
 					},
 				},
@@ -177,4 +184,9 @@ func (dc *CustomPodDeploymentController) makeDeploymentPod(deployment *deployapi
 			"deployment": deployment.ID,
 		},
 	}
+	if dc.UseLocalImages {
+		pod.DesiredState.Manifest.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	}
+
+	return pod
 }

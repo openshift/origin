@@ -1,24 +1,56 @@
 #!/bin/bash
 
-# This script builds all images locally (requires Docker)
+# This script builds all images locally except the base and release images,
+# which are handled by hack/build-base-images.sh.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-hackdir=$(CDPATH="" cd $(dirname $0); pwd)
-
-# Set the environment variables required by the build.
-. "${hackdir}/config-go.sh"
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/common.sh"
 
 # Go to the top of the tree.
-cd "${OS_REPO_ROOT}"
+cd "${OS_ROOT}"
 
-# Fetch the version.
-version=$(os::build::gitcommit)
-kube_version=$(go run ${hackdir}/version.go ${hackdir}/../Godeps/Godeps.json github.com/GoogleCloudPlatform/kubernetes/pkg/api)
+# Get the latest Linux release
+if [[ ! -d _output/local/releases ]]; then
+  echo "No release has been built. Run hack/build-release.sh"
+  exit 1
+fi
+releases=$(find _output/local/releases/ -print | grep 'openshift-origin-.*-linux-' --color=never)
+if [[ $(echo $releases | wc -l) -ne 1 ]]; then
+  echo "There must be exactly one Linux release tar in _output/local/releases"
+  exit 1
+fi
+echo "Building images from ${releases}"
 
-docker build -t openshift/base-builder images/builder/docker/base
-docker build -t openshift/docker-builder images/builder/docker/docker-builder
-docker build -t openshift/sti-builder images/builder/docker/sti-builder
-docker build -t openshift/hello-openshift examples/hello-openshift
+imagedir="_output/imagecontext"
+rm -rf "${imagedir}"
+mkdir -p "${imagedir}"
+tar xzf "${releases}" -C "${imagedir}"
+
+# copy build artifacts to the appropriate locations
+cp -f "${imagedir}/openshift"        images/origin/bin
+cp -f "${imagedir}/openshift-deploy" images/origin/bin
+cp -f "${imagedir}/openshift-router" images/origin/bin
+cp -f "${imagedir}/openshift-router" images/router/haproxy/bin
+
+# build hello-openshift binary
+"${OS_ROOT}/hack/build-go.sh" examples/hello-openshift
+
+# images that depend on openshift/origin-base
+echo "--- openshift/origin ---"
+docker build -t openshift/origin                images/origin
+echo "--- openshift/origin-haproxy-router ---"
+docker build -t openshift/origin-haproxy-router images/router/haproxy
+echo "--- openshift/hello-openshift ---"
+docker build -t openshift/hello-openshift       examples/hello-openshift
+
+# images that depend on openshift/origin
+echo "--- openshift/origin-deployer ---"
+docker build -t openshift/origin-deployer       images/deploy/customimage
+echo "--- openshift/origin-docker-builder ---"
+docker build -t openshift/origin-docker-builder images/builder/docker/docker-builder
+echo "--- openshift/origin-sti-builder ---"
+docker build -t openshift/origin-sti-builder    images/builder/docker/sti-builder

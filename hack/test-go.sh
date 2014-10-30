@@ -1,11 +1,19 @@
 #!/bin/bash
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
 
-source $(dirname $0)/config-go.sh
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/common.sh"
+
+# Go to the top of the tree.
+cd "${OS_ROOT}"
+
+os::build::setup_env
 
 find_test_dirs() {
-  cd src/${OS_GO_PACKAGE}
+  cd "${OS_ROOT}"
   find . -not \( \
       \( \
         -wholename './Godeps' \
@@ -19,7 +27,7 @@ find_test_dirs() {
 
 # there is currently a race in the coverage code in tip.  Remove this when it is fixed
 # see https://code.google.com/p/go/issues/detail?id=8630 for details.
-if [ "${TRAVIS_GO_VERSION}" == "tip" ]; then
+if [ "${TRAVIS_GO_VERSION-}" == "tip" ]; then
   KUBE_COVER=""
 else
   # -covermode=atomic becomes default with -race in Go >=1.3
@@ -33,9 +41,7 @@ if [ -z ${KUBE_RACE+x} ]; then
   KUBE_RACE="-race"
 fi
 
-cd "${OS_TARGET}"
-
-if [ "$1" != "" ]; then
+if [ "${1-}" != "" ]; then
   if [ -n "${KUBE_COVER}" ]; then
     KUBE_COVER="${KUBE_COVER} -coverprofile=tmp.out"
   fi
