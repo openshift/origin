@@ -12,6 +12,13 @@ type Deployment struct {
 	Strategy           DeploymentStrategy             `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	ControllerTemplate api.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 	Status             DeploymentStatus               `json:"status,omitempty" yaml:"status,omitempty"`
+	// Details captures the causes for the creation of this deployment resource.
+	// This could be based on a change made by the user to the deployment config
+	// or caused by an automatic trigger that was specified in the deployment config.
+	// Multiple triggers could have caused this deployment.
+	// If no trigger is specified here, then the deployment was likely created as a result of an
+	// explicit client request to create a new deployment resource.
+	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
 }
 
 // A DeploymentList is a collection of deployments.
@@ -80,6 +87,9 @@ type DeploymentConfig struct {
 	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
 	// is out of sync.
 	LatestVersion int `json:"latestVersion,omitempty" yaml:"latestVersion,omitempty"`
+	// The reasons for the update to this deployment config.
+	// This could be based on a change made by the user or caused by an automatic trigger
+	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
 }
 
 // A DeploymentConfigList is a collection of deployment configs.
@@ -127,3 +137,26 @@ const (
 	// the ControllerTemplate of a DeploymentConfig.
 	DeploymentTriggerOnConfigChange DeploymentTriggerType = "ConfigChange"
 )
+
+// DeploymentDetails captures information about the causes of a deployment.
+type DeploymentDetails struct {
+	// The user specified change message, if this deployment was triggered manually by the user
+	Message string `json:"message,omitempty" yaml:"message,omitempty"`
+	// Extended data associated with all the causes for creating a new deployment
+	Causes []*DeploymentCause `json:"causes,omitempty" yaml:"causes,omitempty"`
+}
+
+// DeploymentCause captures information about a particular cause of a deployment.
+type DeploymentCause struct {
+	// The type of the trigger that resulted in the creation of a new deployment
+	Type DeploymentTriggerType `json:"type" yaml:"type"`
+	// The image trigger details, if this trigger was fired based on an image change
+	ImageTrigger *DeploymentCauseImageTrigger `json:"imageTrigger,omitempty" yaml:"imageTrigger,omitempty"`
+}
+
+type DeploymentCauseImageTrigger struct {
+	// RepositoryName is the identifier for a Docker image repository that was updated.
+	RepositoryName string `json:"repositoryName,omitempty" yaml:"repositoryName,omitempty"`
+	// Tag is the name of an image repository tag that is now pointing to a new image.
+	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+}

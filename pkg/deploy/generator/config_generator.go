@@ -82,9 +82,13 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 		if deploymentConfig.LatestVersion == 0 {
 			// If the latest version is zero, and the generation's being called, bump it.
 			deploymentConfig.LatestVersion = 1
+			// reset the details of the deployment trigger for this deploymentConfig
+			deploymentConfig.Details = nil
 		}
 	} else if !deployutil.PodTemplatesEqual(configPodTemplate, deployment.ControllerTemplate.PodTemplate) {
 		deploymentConfig.LatestVersion += 1
+		// reset the details of the deployment trigger for this deploymentConfig
+		deploymentConfig.Details = nil
 	}
 
 	return deploymentConfig, nil

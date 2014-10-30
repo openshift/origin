@@ -105,6 +105,7 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 		Labels:             labels,
 		Strategy:           config.Template.Strategy,
 		ControllerTemplate: config.Template.ControllerTemplate,
+		Details:            config.Details,
 	}
 
 	glog.V(4).Infof("Creating new deployment from config %s", config.ID)

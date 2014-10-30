@@ -36,6 +36,7 @@ func (c *ImageChangeController) Run() {
 func (c *ImageChangeController) HandleImageRepo() {
 	imageRepo := c.NextImageRepository()
 	configIDs := []string{}
+	firedTriggersForConfig := make(map[string][]deployapi.DeploymentTriggerImageChangeParams)
 
 	for _, c := range c.DeploymentConfigStore.List() {
 		config := c.(*deployapi.DeploymentConfig)
@@ -62,6 +63,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 				_, tag := parseImage(container.Image)
 				if tag != imageRepo.Tags[params.Tag] {
 					configIDs = append(configIDs, config.ID)
+					firedTriggersForConfig[config.ID] = append(firedTriggersForConfig[config.ID], params)
 				}
 			}
 		}
@@ -69,19 +71,22 @@ func (c *ImageChangeController) HandleImageRepo() {
 
 	for _, configID := range configIDs {
 		glog.V(4).Infof("Regenerating deploymentConfig %s", configID)
-		err := c.regenerate(kapi.NewContext(), configID)
+		err := c.regenerate(kapi.NewContext(), configID, firedTriggersForConfig[configID])
 		if err != nil {
 			glog.V(2).Infof("Error regenerating deploymentConfig %v: %v", configID, err)
 		}
 	}
 }
 
-func (c *ImageChangeController) regenerate(ctx kapi.Context, configID string) error {
+func (c *ImageChangeController) regenerate(ctx kapi.Context, configID string, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
 	newConfig, err := c.DeploymentConfigInterface.GenerateDeploymentConfig(ctx, configID)
 	if err != nil {
 		glog.V(2).Infof("Error generating new version of deploymentConfig %v", configID)
 		return err
 	}
+
+	// update the deployment config with the trigger that resulted in the new config being generated
+	newConfig.Details = generateTriggerDetails(triggers)
 
 	ctx = kapi.WithNamespace(ctx, newConfig.Namespace)
 	_, err = c.DeploymentConfigInterface.UpdateDeploymentConfig(ctx, newConfig)
@@ -100,4 +105,23 @@ func parseImage(name string) (string, string) {
 	}
 
 	return name[:index], name[index+1:]
+}
+
+func generateTriggerDetails(triggers []deployapi.DeploymentTriggerImageChangeParams) *deployapi.DeploymentDetails {
+	// Generate the DeploymentCause objects from each DeploymentTriggerImageChangeParams object
+	// Using separate structs to ensure flexibility in the future if these structs need to diverge
+	causes := []*deployapi.DeploymentCause{}
+	for _, trigger := range triggers {
+		causes = append(causes,
+			&deployapi.DeploymentCause{
+				Type: deployapi.DeploymentTriggerOnImageChange,
+				ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
+					RepositoryName: trigger.RepositoryName,
+					Tag:            trigger.Tag,
+				},
+			})
+	}
+	return &deployapi.DeploymentDetails{
+		Causes: causes,
+	}
 }
