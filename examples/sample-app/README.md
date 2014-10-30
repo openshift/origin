@@ -84,6 +84,10 @@ All commands assume the `openshift` binary is in your path:
      in the buildcfg.json.  Note that the private docker registry is using ephemeral storage, so when it is stopped, the image will
      be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
 
+     If you want to see the build logs of a complete build, use the command (substituting your build id from the "openshift kube list builds" output):
+
+        $ openshift kube buildLogs --id=20f54507-3dcd-11e4-984b-3c970e3bf0b7
+
 11. Submit the application template for processing and create the application using the processed template:
 
         $ openshift kube process -c application-template.json | openshift kube apply -c -
@@ -118,26 +122,83 @@ All commands assume the `openshift` binary is in your path:
     Sample output:
 
         Hello World!
-        User is adminM5K
-        Password is qgRpLNGO
-        DB password is dQfUlnTG
+        All the environment variables are:
+            ADMIN_USERNAME=adminNNC
+            ADMIN_PASSWORD=OmjgNWCT
+            MYSQL_ROOT_PASSWORD=root
+            ....(truncated)
+            DATABASE_SERVICE_IP_ADDR = 172.17.42.3
+            DATABASE_SERVICE_PORT = 5434
 
-15. Make an additional change to your ruby sample app.rb file and push it.
- * If you do not have the webhook enabled, you'll have to manually trigger another build:
+Congratulations, you've successfully deployed and updated an application on OpenShift.
 
-            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @buildinvoke/pushevent.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+You can delete resources based on IDs. For example, if you want to remove only the containers or services created during the demo:
 
-16. Repeat steps 9-10
+  - List the existing services:
 
-17. Locate the container running the ruby application and kill it:
+        $ openshift kube list services
 
-        $ docker kill `docker ps | grep origin-ruby-sample | awk '{print $1}'`
+    Sample output:
 
-18. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 15.
+        ID                  Labels                                     Selector            Port
+        ----------          ----------                                 ----------          ----------
+        registryservice                                                name=registryPod    5001
+        frontend            template=ruby-helloworld-sample-template   name=frontend       5432
+
+  - To remove the **frontend** service use the command:
+
+        $ openshift kube delete service/frontend
+
+    Sample output:
+
+        Status
+        ----------
+        Success
+
+  - Check the service was removed:
+
+        $ openshift kube list services
+
+    Sample output:
+
+        ID                  Labels                                     Selector            Port
+        ----------          ----------                                 ----------          ----------
+        registryservice                                                name=registryPod    5001
+
+  - You can also curl the application to check the service has terminated:
 
         $ curl http://172.17.17.2:5432
 
-Congratulations, you've successfully deployed and updated an application on OpenShift.  To clean up all of your environment, you can run the script:
+    Sample output:
+
+        curl: (7) Failed connect to 172.17.17.2:5432; Connection refused
+
+Another interesting example is deleting a pod.
+
+  - List available pods:
+
+        $ openshift kube list pods
+
+    Sample output:
+
+        ID                                                  Image(s)                       Host                Labels                                                   Status
+        ----------                                          ----------                     ----------          ----------                                               ----------
+        fc66bffd-3dcc-11e4-984b-3c970e3bf0b7                openshift/origin-ruby-sample   127.0.0.1/          name=frontend,replicationController=frontendController   Running
+
+  - Delete the **frontend** pod by specifying its ID:
+
+        $ openshift kube delete pods/fc66bffd-3dcc-11e4-984b-3c970e3bf0b7
+
+  - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
+
+        $ docker ps -a
+
+    Sample output:
+
+        CONTAINER ID        IMAGE                                                COMMAND                CREATED              STATUS                          PORTS               NAMES
+        068ffffa9624        127.0.0.1:5001/openshift/origin-ruby-sample:latest   "ruby /tmp/app.rb"     3 minutes ago        Exited (0) About a minute ago                       k8s_ruby-helloworld
+
+To clean up all of your environment, you can run the script:
 
         $ sudo ./cleanup.sh
 
