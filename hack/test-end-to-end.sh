@@ -27,6 +27,7 @@ API_HOST=${API_HOST:-127.0.0.1}
 KUBELET_PORT=${KUBELET_PORT:-10250}
 
 CONFIG_FILE=${LOG_DIR}/appConfig.json
+BUILD_CONFIG_FILE=${LOG_DIR}/buildConfig.json
 FIXTURE_DIR=${HACKDIR}/../examples/sample-app
 GO_OUT=${HACKDIR}/../_output/go/bin
 openshift=$GO_OUT/openshift
@@ -84,12 +85,18 @@ wait_for_command "$openshift kube list pods | grep registrypod | grep Running" $
 
 echo "[INFO] Waiting for Docker registry service to start"
 wait_for_command "$openshift kube list services | grep registrypod"
+# services can end up on any IP.  Make sure we get the IP we need for the docker registry
+DOCKER_REGISTRY_IP=`$openshift kube get --yaml services/docker-registry | grep "portalIP" | awk '{print $2}'`
+
 echo "[INFO] Probing the docker-registry"
-wait_for_url_timed "http://172.17.17.1:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY_IP}:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 # Define a build configuration
+# substitute the default IP address with the address where we actually ended up
+cp -v ${FIXTURE_DIR}/application-buildconfig.json ${BUILD_CONFIG_FILE}
+sed -i "s/172.17.17.1/${DOCKER_REGISTRY_IP}/g" ${BUILD_CONFIG_FILE}
 echo "[INFO] Create a build config"
-wait_for_command "$openshift kube create buildConfigs -c ${FIXTURE_DIR}/application-buildconfig.json"
+wait_for_command "$openshift kube create buildConfigs -c ${BUILD_CONFIG_FILE}"
 
 # Trigger build
 echo "[INFO] Simulating github hook to trigger new build using curl"
@@ -103,6 +110,8 @@ wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((30*TI
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
 $openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FILE
+# substitute the default IP address with the address where we actually ended up
+sed -i "s/172.17.17.1/${DOCKER_REGISTRY_IP}/g" $CONFIG_FILE
 
 echo "[INFO] Applying application config"
 $openshift kube --host=http://127.0.0.1:8080 apply -c $CONFIG_FILE
@@ -112,6 +121,7 @@ wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((1
 
 echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))
+FRONTEND_IP=`$openshift kube get --yaml services/frontend | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Waiting for app to start..."
-wait_for_url_timed "http://172.17.17.2:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
