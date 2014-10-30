@@ -191,7 +191,11 @@ func (c *KubeConfig) Run() {
 		// TODO: eventually apiserver should start on 443 and be secure by default
 		clientConfig.Host = "http://localhost:8080"
 	}
-	clientConfig.Host = strings.TrimRight(clientConfig.Host, "/")
+	hosts := strings.SplitN(clientConfig.Host, ",", 2)
+	for i := range hosts {
+		hosts[i] = strings.TrimRight(hosts[i], "/")
+	}
+	clientConfig.Host = hosts[0]
 
 	if kubeclient.IsConfigTransportSecure(clientConfig) {
 		auth, err := kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
@@ -219,6 +223,9 @@ func (c *KubeConfig) Run() {
 		glog.Fatalf("Unable to set up the Kubernetes API client: %v", err)
 	}
 
+	if len(hosts) > 1 {
+		clientConfig.Host = hosts[1]
+	}
 	clientConfig.Version = c.OSAPIVersion
 	client, err := osclient.New(clientConfig)
 	if err != nil {
