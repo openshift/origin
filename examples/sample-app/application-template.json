@@ -36,48 +36,94 @@
       }
     },
     {
-      "id": "frontend",
-      "kind": "Deployment",
+      "id": "origin-ruby-sample",
+      "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "triggerPolicy": "manual",
-      "strategy": {
-        "type": "Basic"
-      },
-      "controllerTemplate": {
-        "replicas": 1,
-        "replicaSelector": {
-          "name": "frontend"
-        },
-        "podTemplate": {
-          "desiredState": {
-            "manifest": {
-              "version": "v1beta1",
-              "containers": [{
-                "name": "ruby-helloworld",
-                "image": "172.17.17.1:5001/openshift/origin-ruby-sample",
-                "env": [
-                  {
-                    "name": "ADMIN_USERNAME",
-                    "value": "${ADMIN_USERNAME}"
-                  },
-                  {
-                    "name": "ADMIN_PASSWORD",
-                    "value": "${ADMIN_PASSWORD}"
-                  },
-                  {
-                    "name": "DB_PASSWORD",
-                    "value": "${DB_PASSWORD}"
-                  }
-                ],
-                "ports": [{"containerPort": 8080}]
-              }]
-            }
-          },
-          "labels": {"name": "frontend"}
-        }
-      },
+      "dockerImageRepository": "172.17.17.1:5001/openshift/origin-ruby-sample",
       "labels": {
-        "deploymentConfig": "application-config"
+        "name": "origin-ruby-sample"
+      }
+    },
+    {
+      "id": "build100",
+      "kind": "BuildConfig",
+      "apiVersion": "v1beta1",
+      "desiredInput": {
+        "type": "docker",
+        "sourceURI": "git://github.com/openshift/ruby-hello-world.git",
+        "imageTag": "openshift/origin-ruby-sample:latest",
+        "registry": "172.17.17.1:5001"
+      },
+      "secret": "secret101",
+      "labels": {
+        "name": "build100"
+      }
+    },
+    {
+      "id": "frontend",
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
+      "triggers": [
+        {
+          "type": "ImageChange",
+          "imageChangeParams": {
+            "automatic": true,
+            "containerNames": [
+              "ruby-helloworld"
+            ],
+            "repositoryName": "172.17.17.1:5001/openshift/origin-ruby-sample",
+            "tag": "latest"
+          }
+        },
+        {
+          "type": "ConfigChange"
+        }
+      ],
+      "template": {
+        "strategy": {
+          "type": "Basic"
+        },
+        "controllerTemplate": {
+          "replicas": 1,
+          "replicaSelector": {
+            "name": "frontend"
+          },
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "version": "v1beta1",
+                "containers": [
+                  {
+                    "name": "ruby-helloworld",
+                    "image": "172.17.17.1:5001/openshift/origin-ruby-sample",
+                    "env": [
+                      {
+                        "name": "ADMIN_USERNAME",
+                        "value": "${ADMIN_USERNAME}"
+                      },
+                      {
+                        "name": "ADMIN_PASSWORD",
+                        "value": "${ADMIN_PASSWORD}"
+                      },
+                      {
+                        "name": "DB_PASSWORD",
+                        "value": "${DB_PASSWORD}"
+                      }
+                    ],
+                    "ports": [
+                      {
+                        "containerPort": 8080
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "labels": {
+              "name": "frontend"
+            }
+          }
+        }
       }
     }
   ]

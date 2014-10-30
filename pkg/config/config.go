@@ -114,6 +114,13 @@ func AddConfigLabels(c *api.Config, labels labels.Set) error {
 			if err := mergeMaps(&t.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] ControllerTemplate.PodTemplate.Labels: %v", i, err)
 			}
+		case *deployapi.DeploymentConfig:
+			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] DeploymentConfig.Labels: %v", i, err)
+			}
+			if err := mergeMaps(&t.Template.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items[%v] Template.ControllerTemplate.PodTemplate.Labels: %v", i, err)
+			}
 		default:
 			// Unknown generic object. Try to find "Labels" field in it.
 			obj := reflect.ValueOf(c.Items[i].Object)

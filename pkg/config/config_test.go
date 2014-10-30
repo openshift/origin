@@ -211,6 +211,21 @@ func TestAddConfigLabels(t *testing.T) {
 			true,
 			map[string]string{"foo": "first value", "bar": "second value"},
 		},
+		{ // Test merging into DeploymentConfig
+			&deployapi.DeploymentConfig{
+				Labels: map[string]string{"foo": "first value"},
+				Template: deployapi.DeploymentTemplate{
+					ControllerTemplate: kubeapi.ReplicationControllerState{
+						PodTemplate: kubeapi.PodTemplate{
+							Labels: map[string]string{"foo": "first value"},
+						},
+					},
+				},
+			},
+			map[string]string{"bar": "second value"},
+			true,
+			map[string]string{"foo": "first value", "bar": "second value"},
+		},
 		{ // Test unknown Generic Object with Labels field
 			&FakeLabelsResource{Labels: map[string]string{"baz": ""}},
 			map[string]string{"foo": "bar"},
@@ -254,6 +269,15 @@ func TestAddConfigLabels(t *testing.T) {
 		if obj.Type().Name() == "Deployment" {
 			// Test Items[i].ControllerTemplate.PodTemplate.Labels.
 			nestedLabels := obj.FieldByName("ControllerTemplate").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
+			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
+				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
+			}
+		}
+
+		// Test DeploymentConfig's nested labels.
+		if obj.Type().Name() == "DeploymentConfig" {
+			// Test Items[i].ControllerTemplate.PodTemplate.Labels.
+			nestedLabels := obj.FieldByName("Template").FieldByName("ControllerTemplate").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
 			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
 				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
 			}

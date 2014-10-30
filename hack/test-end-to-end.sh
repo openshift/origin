@@ -44,7 +44,7 @@ function teardown()
   if [ $? -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
   echo "[INFO] Server logs: $LOG_DIR/openshift.log"
-  cat $LOG_DIR/openshift.log
+  cat $LOG_DIR/openshift.log | grep -v "failed to find a fit"
   set +u
   if [ ! -z $BUILD_ID ]; then
     $openshift kube buildLogs --id=$BUILD_ID > $LOG_DIR/build.log && echo "[INFO] Build logs: $LOG_DIR/build.log"
@@ -64,7 +64,7 @@ function teardown()
   set -u
 }
 
-trap teardown EXIT
+trap teardown EXIT SIGINT
 
 setup
 
@@ -87,9 +87,12 @@ wait_for_command "$openshift kube list services | grep registrypod"
 echo "[INFO] Probing the docker-registry"
 wait_for_url_timed "http://172.17.17.1:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
-# Define a build configuration
-echo "[INFO] Create a build config"
-wait_for_command "$openshift kube create buildConfigs -c ${FIXTURE_DIR}/application-buildconfig.json"
+# Process template and apply
+echo "[INFO] Submitting application template json for processing..."
+$openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FILE
+
+echo "[INFO] Applying application config"
+$openshift kube apply -c $CONFIG_FILE
 
 # Trigger build
 echo "[INFO] Simulating github hook to trigger new build using curl"
@@ -99,13 +102,6 @@ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Git
 echo "[INFO] Waiting for build to complete"
 BUILD_ID=`$openshift kube list builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
 wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((30*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
-
-# Process template and apply
-echo "[INFO] Submitting application template json for processing..."
-$openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FILE
-
-echo "[INFO] Applying application config"
-$openshift kube --host=http://127.0.0.1:8080 apply -c $CONFIG_FILE
 
 echo "[INFO] Waiting for frontend pod to start"
 wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((120*TIME_SEC))
