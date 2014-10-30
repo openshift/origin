@@ -54,6 +54,7 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	}
 
 	repo, err := s.findImageRepository(ctx, mapping.DockerImageRepository)
+
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +63,9 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 			errors.NewFieldNotFound("DockerImageRepository", mapping.DockerImageRepository),
 		})
 	}
+
+	// you should not do this, but we have a bug right now that prevents us from trusting the ctx passed in
+	imageRepoCtx := kapi.WithNamespace(kapi.NewContext(), repo.Namespace)
 
 	if errs := validation.ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
 		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.ID, errs)
@@ -72,19 +76,18 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	image.CreationTimestamp = util.Now()
 
 	//TODO apply metadata overrides
-
 	if repo.Tags == nil {
 		repo.Tags = make(map[string]string)
 	}
 	repo.Tags[mapping.Tag] = image.ID
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err = s.imageRegistry.CreateImage(ctx, &image)
+		err = s.imageRegistry.CreateImage(imageRepoCtx, &image)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return nil, err
 		}
 
-		err = s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo)
+		err = s.imageRepositoryRegistry.UpdateImageRepository(imageRepoCtx, repo)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +99,9 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 // findImageRepository retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
 func (s *REST) findImageRepository(ctx kubeapi.Context, dockerRepo string) (*api.ImageRepository, error) {
 	//TODO make this more efficient
-	list, err := s.imageRepositoryRegistry.ListImageRepositories(ctx, labels.Everything())
+	// you should not do this, but we have a bug right now that prevents us from trusting the ctx passed in
+	allNamespaces := kapi.NewContext()
+	list, err := s.imageRepositoryRegistry.ListImageRepositories(allNamespaces, labels.Everything())
 	if err != nil {
 		return nil, err
 	}
