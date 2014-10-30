@@ -9,10 +9,32 @@ Vagrant.require_version ">= 1.6.2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  if ENV['OPENSHIFT_DEV_CLUSTER']
+  if File.exist?('.vagrant-openshift.json')
+    json = File.read('.vagrant-openshift.json')
+    vagrant_openshift_config = JSON.parse(json)
+  else
+    vagrant_openshift_config = {
+      "instance_name" => "origin-dev",
+      "os" => "fedora",
+      "dev_cluster" => false,
+      "num_minions" => 2,
+      "rebuild_yum_cache" => false,
+      "virtualbox" => {
+        "box_name" => "fedora_inst",
+        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_virtualbox_inst.box"
+      },
+      "vmware" => {
+        "box_name" => "fedora_inst",
+        "box_url" => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_fedora-20_chef-provisionerless.box"
+      }
+    }
+  end
+
+
+  if vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
     # Start an OpenShift cluster
     # The number of minions to provision
-    num_minion = (ENV['OPENSHIFT_NUM_MINIONS'] || 2).to_i
+    num_minion = (vagrant_openshift_config['num_minions'] || ENV['OPENSHIFT_NUM_MINIONS'] || 2).to_i
 
     # IP configuration
     master_ip = "10.245.1.2"
@@ -21,7 +43,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     minion_ips_str = minion_ips.join(",")
 
     # Determine the OS platform to use
-    kube_os = ENV['OPENSHIFT_OS'] || "fedora"
+    kube_os = vagrant_openshift_config['os'] || "fedora"
 
     # OS platform to box information
     kube_box = {
@@ -56,9 +78,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Single VM dev environment
     # Set VirtualBox provider settings
     config.vm.provider "virtualbox" do |v, override|
-      override.vm.box = "origin-dev-fedora-20-vbox"
-      override.vm.box_url = "https://mirror.openshift.com/pub/vagrant/boxes/origin-dev-fedora-20-vbox.box"
-      override.vm.provision "shell", path: "hack/vm-provision-directlvm.sh", id: "setup"
+      override.vm.box = vagrant_openshift_config['virtualbox']['box_name']
+      override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url']
       v.memory = 1024
       v.cpus = 2
       v.customize ["modifyvm", :id, "--cpus", "2"]
@@ -66,21 +87,62 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # Set VMware Fusion provider settings
     config.vm.provider "vmware_fusion" do |v, override|
-      override.vm.box = "fedora20-vmware"
-      override.vm.box_url = "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_fedora-20_chef-provisionerless.box"
+      override.vm.box = vagrant_openshift_config['vmware']['box_name']
+      override.vm.box_url = vagrant_openshift_config['vmware']['box_url']
+      override.vm.provision "shell", path: "hack/vm-provision-vmware.sh", id: "setup"
       v.vmx["memsize"] = "1024"
       v.vmx["numvcpus"] = "2"
       v.gui = false
     end
 
+    # Set AWS provider settings
+    config.vm.provider :aws do |aws, override|
+      creds_file = ENV['AWS_CREDS'].nil? || ENV['AWS_CREDS'] == '' ? "~/.awscred" : ENV['AWS_CREDS']
+      if File.exist?(creds_file)
+        aws_creds_file = Pathname.new(File.expand_path(creds_file))
+        aws_creds      = aws_creds_file.exist? ? Hash[*(File.open(aws_creds_file.to_s).readlines.map{ |l| l.split('=') }.flatten.map{ |i| i.strip })] : {}
+
+        override.vm.box               = "dummy"
+        override.vm.box_url           = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
+        override.ssh.username         = vagrant_openshift_config['aws']['ssh_user']
+        override.ssh.private_key_path = aws_creds["AWSPrivateKeyPath"] || "PATH TO AWS KEYPAIR PRIVATE KEY"
+
+        aws.access_key_id     = aws_creds["AWSAccessKeyId"] || "AWS ACCESS KEY"
+        aws.secret_access_key = aws_creds["AWSSecretKey"]   || "AWS SECRET KEY"
+        aws.keypair_name      = aws_creds["AWSKeyPairName"] || "AWS KEYPAIR NAME"
+        aws.ami               = vagrant_openshift_config['aws']['ami']
+        aws.region            = vagrant_openshift_config['aws']['ami_region']
+        aws.instance_type     = "m3.large"
+        aws.instance_ready_timeout = 240
+        aws.tags              = { "Name" => vagrant_openshift_config['instance_name'] }
+        aws.user_data         = %{
+#cloud-config
+
+growpart:
+  mode: auto
+  devices: ['/']
+runcmd:
+- [ sh, -xc, "echo 'Defaults:#{vagrant_openshift_config['aws']['ssh_user']} \!requiretty' >> /etc/sudoers"]
+        }
+        aws.block_device_mapping = [
+          {
+             "DeviceName" => "/dev/sda1",
+             "Ebs.VolumeSize" => 25,
+             "Ebs.VolumeType" => "standard"
+          }
+        ]
+        end
+    end
+
     config.vm.define "openshiftdev", primary: true do |config|
       config.vm.hostname = "openshiftdev.local"
 
-      if ENV['REBUILD_YUM_CACHE'] && ENV['REBUILD_YUM_CACHE'] != ""
+      if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
       config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
-      config.vm.synced_folder ENV["VAGRANT_SYNC_FROM"] || '.', ENV["VAGRANT_SYNC_TO"] || "/home/vagrant/go/src/github.com/openshift/origin"
+      config.vm.synced_folder ".", "/vagrant", disabled: true
+      config.vm.synced_folder vagrant_openshift_config['sync_from'] || ENV["VAGRANT_SYNC_FROM"] || '.', vagrant_openshift_config['sync_to'] || ENV["VAGRANT_SYNC_TO"] || "/data/src/github.com/openshift/origin"
     end
   end
 
