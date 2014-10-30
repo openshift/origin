@@ -85,6 +85,12 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 	switch req.URL.Query().Get("reason") {
 	case "":
 		break
+	case "user required":
+		form.Error = "Login is required. Please try again."
+	case "token expired":
+		form.Error = "Could not check CSRF token. Please try again."
+	case "access denied":
+		form.Error = "Invalid login or password. Please try again."
 	default:
 		form.Error = "An unknown error has occured. Please try again."
 	}

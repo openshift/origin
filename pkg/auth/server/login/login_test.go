@@ -126,6 +126,17 @@ func TestLogin(t *testing.T) {
 			},
 			ExpectRedirect: "/login?reason=unknown+error",
 		},
+		"redirect preserving then param": {
+			CSRF: &testCSRF{Token: "test"},
+			Auth: &testAuth{Err: errors.New("failed")},
+			Path: "/login",
+			PostValues: url.Values{
+				"csrf":     []string{"test"},
+				"username": []string{"user"},
+				"then":     []string{"anotherurl"},
+			},
+			ExpectRedirect: "/login?reason=unknown+error&then=anotherurl",
+		},
 		"login successful": {
 			CSRF: &testCSRF{Token: "test"},
 			Auth: &testAuth{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
