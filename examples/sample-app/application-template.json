@@ -18,10 +18,15 @@
       "from": "[a-zA-Z0-9]{8}"
     },
     {
-      "name": "DB_PASSWORD",
+      "name": "MYSQL_ROOT_PASSWORD",
       "description": "database password",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root"
     }
   ],
   "items": [
@@ -106,8 +111,12 @@
                         "value": "${ADMIN_PASSWORD}"
                       },
                       {
-                        "name": "DB_PASSWORD",
-                        "value": "${DB_PASSWORD}"
+                        "name": "MYSQL_ROOT_PASSWORD",
+                        "value": "${MYSQL_ROOT_PASSWORD}"
+                      },
+                      {
+                        "name": "MYSQL_DATABASE",
+                        "value": "${MYSQL_DATABASE}"
                       }
                     ],
                     "ports": [
@@ -122,6 +131,62 @@
             "labels": {
               "name": "frontend"
             }
+          }
+        }
+      }
+    },
+    {
+      "id": "database",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 5434,
+      "containerPort": 3306,
+      "selector": {
+        "name": "database"
+      }
+    },
+    {
+      "id": "database",
+      "kind": "Deployment",
+      "apiVersion": "v1beta1",
+      "triggerPolicy": "manual",
+      "strategy": {
+        "type": "Basic"
+      },
+      "controllerTemplate": {
+        "replicas": 1,
+        "replicaSelector": {
+          "name": "database"
+      },
+      "podTemplate": {
+        "desiredState": {
+          "manifest": {
+            "version": "v1beta1",
+            "containers": [
+              {
+                 "name": "ruby-helloworld-database",
+                 "image": "mysql",
+                  "env": [
+                    {
+                      "name": "MYSQL_ROOT_PASSWORD",
+                      "value": "${MYSQL_ROOT_PASSWORD}"
+                    },
+                    {
+                      "name": "MYSQL_DATABASE",
+                      "value": "${MYSQL_DATABASE}"
+                    }
+                  ],
+                  "ports": [
+                    {
+                      "containerPort": 3306
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "labels": {
+            "name": "database"
           }
         }
       }

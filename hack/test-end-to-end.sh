@@ -108,12 +108,22 @@ echo "[INFO] Waiting for build to complete"
 BUILD_ID=`$openshift kube list builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
 wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((30*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
 
+echo "[INFO] Waiting for database pod to start"
+wait_for_command "$openshift kube list pods | grep database | grep Running" $((30*TIME_SEC))
+
+echo "[INFO] Waiting for database service to start"
+wait_for_command "$openshift kube list services | grep database" $((20*TIME_SEC))
+DB_IP=`$openshift kube get --yaml services/database | grep "portalIP" | awk '{print $2}'`
+
 echo "[INFO] Waiting for frontend pod to start"
 wait_for_command "$openshift kube list pods | grep frontend | grep Running" $((120*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list services | grep frontend" $((20*TIME_SEC))
 FRONTEND_IP=`$openshift kube get --yaml services/frontend | grep "portalIP" | awk '{print $2}'`
+
+echo "[INFO] Waiting for database to start..."
+wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
 
 echo "[INFO] Waiting for app to start..."
 wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
