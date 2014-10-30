@@ -1,0 +1,156 @@
+.font-icon-block {
+  display: inline-block;
+  position: relative;
+  .font-icon:nth-child(n+2) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    text-shadow: none;
+  }
+}
+
+.font-icon {
+  display: inline-block;
+  top: 0;
+  &.font-icon-inline  {
+    position: relative;
+  }
+}
+
+.font-icon-shadow {
+  @include icon-text-shadow();
+}
+
+.font-icon
+.font-icon-link {
+  color: inherit !important;
+}
+
+.gear-number { 
+  color: white;
+  position: absolute;
+}
+
+.gear-number.gear-lg {
+  left: 67%;
+  top: 51%;
+  font-size: 0.36em;
+  line-height: 1.35em;
+}
+
+.gear-number.gear-sm {
+  left: 67%;
+  top: 50%;
+  font-size: 0.36em;
+  line-height: 1.45em;
+}
+
+.font-icon-red          {color: #ea0011;}
+.font-icon-green        {color: #73D216;}
+.font-icon-orange       {color: #ffc10a;}
+.font-icon-blue         {color: #6DB3C7;}
+.font-icon-grey         {color: #8a8b8c;}
+.font-icon-white        {color: #fefefe;}
+
+// Use sparingly
+.font-icon-size-10      {font-size: 10px !important;}
+.font-icon-size-12      {font-size: 12px !important;}
+.font-icon-size-16      {font-size: 16px !important;}
+.font-icon-size-18      {font-size: 18px !important;}
+.font-icon-size-24      {font-size: 24px !important;}
+.font-icon-size-34      {font-size: 34px !important;}
+.font-icon-size-44      {font-size: 44px !important;}
+
+
+h1.icon-heading .font-icon {
+  margin-right: 4px;
+  color: #aaa;
+  @include icon-text-shadow($color: rgba(255, 255, 255, 1));
+}
+h1.icon-heading .font-icon {
+  font-size: $h1FontSize - 3; 
+}
+
+h1, h2, h3, h4, h5, h6 {
+  .font-icon-block {
+  }
+}
+
+.alert {
+  .alert-heading {
+    .font-icon-block {
+      bottom: 0;
+    }
+  }
+}
+
+h1.alert-heading {
+  .font-icon-block {
+    .font-icon {
+      font-size: $baseFontSize + 27;
+    }
+  }
+}
+
+h2.alert-heading {
+  .font-icon-block {
+    .font-icon {
+      font-size: $baseFontSize + 21;
+    }
+  }
+}
+
+h3.alert-heading {
+  .font-icon-block {
+    .font-icon {
+      font-size: $baseFontSize + 15;
+    }
+  }
+}
+
+h4.alert-heading {
+  .font-icon-block {
+    .font-icon {
+      font-size: $baseFontSize + 10;
+    }
+  }
+}
+
+h5.alert-heading {
+  .font-icon-block {
+    .font-icon {
+      font-size: $baseFontSize + 5;
+    }
+  }
+}
+
+dl.font-icon-legend {
+  margin: 0;
+  position: relative;
+  dd {
+    margin: 0 0 3px 23px;
+    font-size: $smallFontSize;
+    b {
+      font-weight: 600;
+    }
+  }
+  dt {
+    position: absolute;
+    text-align: center;
+    width: 15px;
+    font-size: $smallFontSize;
+    color: $grayMedium;
+    .label-premium {
+      @include usage_rate_indicator()
+    }
+  }
+  &.font-icon-legend-large {
+    dd {
+      margin: 0 0 10px 28px;
+      font-size: $baseFontSize;
+    }
+    dt {
+      font-size: $baseFontSize;
+    }
+  }
+}

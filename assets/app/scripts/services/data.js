@@ -6,12 +6,18 @@ angular.module('openshiftConsole')
   // an introspection endpoint that would give us this mapping
   // https://github.com/openshift/origin/issues/230
   var TYPE_MAP = {
+    builds : "osapi",    
+    deployments : "osapi",
+    deploymentConfigs : "osapi",
+    images : "osapi",
     projects : "osapi",
-    pods : "api"
+    pods : "api",
+    services : "api"
   };
 
   function DataService() {
     this._subscriptions = {};
+    this._subscriptionsPolling = {};
     this._openConnections = {};
   }
 
@@ -22,13 +28,23 @@ angular.module('openshiftConsole')
     // TODO how do we handle failures
     // Check if the project deferred exists on the context, if it does then don't
     // request the data till the project is known
-    if (context.project && type !== "projects") {
-      context.project.done($.proxy(this, function(project) {
+    if (callback.fire) {
+      // callback is a $.Callbacks() list
+      var callbackList = callback;
+      callback = function(data) {callbackList.fire(data);};
+    }
+    else if (callback.resolve) {
+      // callback is a $.Deferred() promise
+      var deferred = callback;
+      callback = function(data) {deferred.resolve(data);};
+    }
+    if (context.projectPromise && type !== "projects") {
+      context.projectPromise.done($.proxy(function(project) {
         $.ajax({
-          url: this._urlForType(type, null, context, false, {namespace: project.namespace}),
+          url: this._urlForType(type, null, context, false, {namespace: project.metadata.namespace}),
           success: callback
         });
-      }));
+      }, this));
     }
     else {
       $.ajax({
@@ -43,13 +59,13 @@ angular.module('openshiftConsole')
   DataService.prototype.getObject = function(type, id, callback, context, opts) { // jshint ignore:line
     // TODO where do we track resourceVersion
     // TODO how do we handle failures
-    if (context.project && type !== "projects") {
-      context.project.done($.proxy(this, function(project) {
+    if (context.projectPromise && type !== "projects") {
+      context.projectPromise.done($.proxy(function(project) {
         $.ajax({
-          url: this._urlForType(type, id, context, false, {namespace: project.namespace}),
+          url: this._urlForType(type, id, context, false, {namespace: project.metadata.namespace}),
           success: callback
         });
-      }));
+      }, this));
     }
     else {
       $.ajax({
@@ -85,6 +101,103 @@ angular.module('openshiftConsole')
     }
   };
 
+  // returns the object needed for unsubscribing, currently
+  // this is the callback itself
+  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
+  // for various things in the future  
+  DataService.prototype.subscribePolling = function(type, callback, context, opts) { // jshint ignore:line
+    if (!this._subscriptionsPolling[type]) {
+      this._subscriptionsPolling[type] = $.Callbacks();
+      this._subscriptionsPolling[type].add(callback);
+      // TODO restrict to resourceVersion that we get back from initial ajax request
+      this._listenForUpdatesPolling(type, context);
+    }
+    else {
+      this._subscriptionsPolling[type].add(callback);
+    }
+    return callback;
+  };
+
+  DataService.prototype.unsubscribePolling = function(type, callback) {
+    if (this._subscriptionsPolling[type] && this._subscriptionsPolling[type].has()){
+      this._subscriptionsPolling[type].remove(callback);
+      if (!this._subscriptionsPolling[type].has()) {
+        this._stopListeningForUpdatesPolling(type);
+      }
+    }
+  };
+
+  DataService.prototype.objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
+    for (var i = 0; i < objects.length; i++) {
+      this.objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
+    }
+  };
+
+  // Handles attr with dot notation
+  // TODO write lots of tests for this helper
+  DataService.prototype.objectByAttribute = function(obj, attr, map, action, secondaryAttr) {
+    var subAttrs = attr.split(".");
+    var attrValue = obj;
+    for (var i = 0; i < subAttrs.length; i++) {
+      attrValue = attrValue[subAttrs[i]];
+      if (!attrValue) {
+        return;
+      }
+    }
+    if ($.isArray(attrValue)) {
+      // TODO implement this when we actually need it
+    }
+    else if ($.isPlainObject(attrValue)) {
+      for (var key in attrValue) {
+        var val = attrValue[key];
+        if (!map[key]) {
+          map[key] = {};
+        }
+        if (secondaryAttr) {
+          if (action == "DELETED") {
+            delete map[key][val][secondaryAttr];
+          }
+          else {
+            if (!map[key][val]) {
+              map[key][val] = {};
+            }
+            map[key][val][obj[secondaryAttr]] = obj;
+          }
+        }
+        else {
+          if (action == "DELETED") {
+            delete map[key][val];
+          }
+          else {
+            map[key][val] = obj;
+          }
+        }
+      }
+    }
+    else {
+      if (action == "DELETED") {
+        if (secondaryAttr) {
+          delete map[attrValue][obj[secondaryAttr]];
+        }
+        else {
+          delete map[attrValue];
+        }
+      }
+      else {
+        if (secondaryAttr) {
+          if (!map[attrValue]) {
+            map[attrValue] = {};
+          }
+          map[attrValue][obj[secondaryAttr]] = obj;
+        }
+        else {
+          map[attrValue] = obj;
+        }
+      }
+    }
+  };
+
+
   DataService.prototype._stopListeningForUpdates = function(type) {
     if (this._openConnections[type]) {
      this._openConnections[type].close();
@@ -104,12 +217,12 @@ angular.module('openshiftConsole')
       if (resourceVersion) {
         params.resourceVersion = resourceVersion;
       }
-      if (context.project && type !== "projects") {
-        context.project.done($.proxy(function(project) {
-          params.namespace = project.namespace;
+      if (context.projectPromise && type !== "projects") {
+        context.projectPromise.done($.proxy(function(project) {
+          params.namespace = project.metadata.namespace;
           var wsUrl = this._urlForType(type, null, context, true, params);
           var ws = this._openConnections[type] = new WebSocket(wsUrl);
-          ws.onclose = $.proxy(this, "_onSocketClose", type);
+          ws.onclose = $.proxy(this, "_onSocketClose", type, context);
           ws.onmessage = $.proxy(this, "_onSocketMessage", type, context);
         }, this));
       }
@@ -117,10 +230,19 @@ angular.module('openshiftConsole')
         var wsUrl = this._urlForType(type, null, context, true, params);
 
         var ws = this._openConnections[type] = new WebSocket(wsUrl);
-        ws.onclose = $.proxy(this, "_onSocketClose", type);
+        ws.onclose = $.proxy(this, "_onSocketClose", type, context);
         ws.onmessage = $.proxy(this, "_onSocketMessage", type, context);
       }
     }
+  };
+
+  DataService.prototype._stopListeningForUpdatesPolling = function(type) {
+    //TODO implement this
+  };
+
+  DataService.prototype._listenForUpdatesPolling = function(type, context) {
+    this.getList(type, this._subscriptionsPolling[type], context);
+    setTimeout($.proxy(this, "_listenForUpdatesPolling", type, context), 5000);
   };
 
   DataService.prototype._onSocketClose = function(type, context, event) {
