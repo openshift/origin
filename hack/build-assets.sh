@@ -12,5 +12,5 @@ pushd "${OS_ROOT}/assets" > /dev/null
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
-  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist" -pkg "assets" -o "pkg/assets/bindata.go" assets/dist/...
+  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist" -pkg "assets" -o "pkg/assets/bindata.go" -ignore "\\.gitignore" assets/dist/...
 popd > /dev/null

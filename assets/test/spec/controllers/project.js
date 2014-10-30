@@ -18,6 +18,12 @@ describe('Controller: ProjectController', function () {
         getObject: function(type, id, callback, context, opts) {
           // TODO return mocked project data
           callback({});
+        },
+        getList: function() {
+          // TODO return mocked data for different types
+        },
+        subscribe: function() {
+          // TODO return mocked data for different types
         }
       }
     });
@@ -28,6 +34,6 @@ describe('Controller: ProjectController', function () {
   });
 
   it('should set up the promise and resolve it when project is returned', function () {
-    expect(scope.project.state()).toBe("resolved");
+    expect(scope.projectPromise.state()).toBe("resolved");
   });
 });

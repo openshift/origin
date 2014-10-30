@@ -32,7 +32,7 @@ pushd "${OS_ROOT}/assets" > /dev/null
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
-  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist" -pkg "assets" -o "_output/test/assets/bindata.go" assets/dist/...
+  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist" -pkg "assets" -o "_output/test/assets/bindata.go" -ignore "\\.gitignore" assets/dist/...
   echo "Validating checked in bindata.go is up to date..."
   if ! diff _output/test/assets/bindata.go pkg/assets/bindata.go ; then
 
