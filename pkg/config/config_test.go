@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
@@ -34,7 +34,7 @@ func TestApplyInvalidConfig(t *testing.T) {
 		`{ "items": [ { "kind": "InvalidClientResource", "apiVersion": "v1beta1" } ] }`,
 	}
 	for i, invalidConfig := range invalidConfigs {
-		result, _ := Apply(kubeapi.NamespaceDefault, []byte(invalidConfig), clients)
+		result, _ := Apply(kapi.NamespaceDefault, []byte(invalidConfig), clients)
 
 		if result != nil {
 			t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])
@@ -43,15 +43,15 @@ func TestApplyInvalidConfig(t *testing.T) {
 			if itemResult.Error == nil {
 				t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])
 			}
-			if _, ok := itemResult.Error.(kubeclient.APIStatus); ok {
-				t.Errorf("Unexpected conversion of %T into kubeclient.APIStatus", itemResult.Error)
+			if _, ok := itemResult.Error.(kclient.APIStatus); ok {
+				t.Errorf("Unexpected conversion of %T into kclient.APIStatus", itemResult.Error)
 			}
 		}
 	}
 }
 
 type FakeResource struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 }
 
 func (*FakeResource) IsAnAPIObject() {}
@@ -66,18 +66,18 @@ func TestApplySendsData(t *testing.T) {
 	received := make(chan bool, 1)
 	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		received <- true
-		if r.RequestURI != "/api/v1beta1/FakeMapping?namespace="+kubeapi.NamespaceDefault {
+		if r.RequestURI != "/api/v1beta1/FakeMapping?namespace="+kapi.NamespaceDefault {
 			t.Errorf("Unexpected RESTClient RequestURI. Expected: %v, got: %v.", "/api/v1beta1/FakeMapping", r.RequestURI)
 		}
 	}))
 
 	uri, _ := url.Parse(fakeServer.URL + "/api/v1beta1")
-	fakeClient := kubeclient.NewRESTClient(uri, fakeCodec)
+	fakeClient := kclient.NewRESTClient(uri, fakeCodec)
 	clients := clientapi.ClientMappings{
 		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
 	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "id": "FakeID" } ] }`
-	result, err := Apply(kubeapi.NamespaceDefault, []byte(config), clients)
+	result, err := Apply(kapi.NamespaceDefault, []byte(config), clients)
 
 	if err != nil || result == nil {
 		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, err)
@@ -87,10 +87,10 @@ func TestApplySendsData(t *testing.T) {
 			continue
 		}
 
-		if _, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+		if _, ok := itemResult.Error.(kclient.APIStatus); ok {
 			t.Errorf("Unexpected error while applying valid Config '%v': %v", config, itemResult.Error)
 		} else {
-			t.Errorf("Cannot convert %T into kubeclient.APIStatus", itemResult.Error)
+			t.Errorf("Cannot convert %T into kclient.APIStatus", itemResult.Error)
 		}
 	}
 
@@ -98,7 +98,7 @@ func TestApplySendsData(t *testing.T) {
 }
 
 func TestGetClientAndPath(t *testing.T) {
-	kubeClient, _ := kubeclient.New(&kubeclient.Config{Host: "127.0.0.1"})
+	kubeClient, _ := kclient.New(&kclient.Config{Host: "127.0.0.1"})
 	testClientMappings := clientapi.ClientMappings{
 		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
 		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
@@ -113,18 +113,18 @@ func TestGetClientAndPath(t *testing.T) {
 }
 
 func ExampleApply() {
-	kubeClient, _ := kubeclient.New(&kubeclient.Config{Host: "127.0.0.1"})
+	kubeClient, _ := kclient.New(&kclient.Config{Host: "127.0.0.1"})
 	testClientMappings := clientapi.ClientMappings{
 		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
 		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
 	}
 	data, _ := ioutil.ReadFile("config_test.json")
-	Apply(kubeapi.NamespaceDefault, data, testClientMappings)
+	Apply(kapi.NamespaceDefault, data, testClientMappings)
 }
 
 type FakeLabelsResource struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
-	Labels           map[string]string `json:"labels" yaml:"labels"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	Labels        map[string]string `json:"labels" yaml:"labels"`
 }
 
 func (*FakeLabelsResource) IsAnAPIObject() {}
@@ -137,46 +137,46 @@ func TestAddConfigLabels(t *testing.T) {
 		expectedLabels map[string]string
 	}{
 		{ // Test empty labels
-			&kubeapi.Pod{},
+			&kapi.Pod{},
 			map[string]string{},
 			true,
 			map[string]string{},
 		},
 		{ // Test resource labels + 0 => expected labels
-			&kubeapi.Pod{Labels: map[string]string{"foo": "bar"}},
+			&kapi.Pod{Labels: map[string]string{"foo": "bar"}},
 			map[string]string{},
 			true,
 			map[string]string{"foo": "bar"},
 		},
 		{ // Test 0 + addLabels => expected labels
-			&kubeapi.Pod{},
+			&kapi.Pod{},
 			map[string]string{"foo": "bar"},
 			true,
 			map[string]string{"foo": "bar"},
 		},
 		{ // Test resource labels + addLabels => expected labels
-			&kubeapi.Service{Labels: map[string]string{"baz": ""}},
+			&kapi.Service{Labels: map[string]string{"baz": ""}},
 			map[string]string{"foo": "bar"},
 			true,
 			map[string]string{"foo": "bar", "baz": ""},
 		},
 		{ // Test conflicting keys with the same value
-			&kubeapi.Service{Labels: map[string]string{"foo": "same value"}},
+			&kapi.Service{Labels: map[string]string{"foo": "same value"}},
 			map[string]string{"foo": "same value"},
 			true,
 			map[string]string{"foo": "same value"},
 		},
 		{ // Test conflicting keys with a different value
-			&kubeapi.Service{Labels: map[string]string{"foo": "first value"}},
+			&kapi.Service{Labels: map[string]string{"foo": "first value"}},
 			map[string]string{"foo": "second value"},
 			false,
 			map[string]string{"foo": "first value"},
 		},
 		{ // Test conflicting keys with the same value in the nested ReplicationController labels
-			&kubeapi.ReplicationController{
+			&kapi.ReplicationController{
 				Labels: map[string]string{"foo": "same value"},
-				DesiredState: kubeapi.ReplicationControllerState{
-					PodTemplate: kubeapi.PodTemplate{
+				DesiredState: kapi.ReplicationControllerState{
+					PodTemplate: kapi.PodTemplate{
 						Labels: map[string]string{"foo": "same value"},
 					},
 				},
@@ -186,10 +186,10 @@ func TestAddConfigLabels(t *testing.T) {
 			map[string]string{"foo": "same value"},
 		},
 		{ // Test conflicting keys with a different value in the nested ReplicationController labels
-			&kubeapi.ReplicationController{
+			&kapi.ReplicationController{
 				Labels: map[string]string{"foo": "first value"},
-				DesiredState: kubeapi.ReplicationControllerState{
-					PodTemplate: kubeapi.PodTemplate{
+				DesiredState: kapi.ReplicationControllerState{
+					PodTemplate: kapi.PodTemplate{
 						Labels: map[string]string{"foo": "first value"},
 					},
 				},
@@ -201,8 +201,8 @@ func TestAddConfigLabels(t *testing.T) {
 		{ // Test merging into deployment object
 			&deployapi.Deployment{
 				Labels: map[string]string{"foo": "first value"},
-				ControllerTemplate: kubeapi.ReplicationControllerState{
-					PodTemplate: kubeapi.PodTemplate{
+				ControllerTemplate: kapi.ReplicationControllerState{
+					PodTemplate: kapi.PodTemplate{
 						Labels: map[string]string{"foo": "first value"},
 					},
 				},
@@ -215,8 +215,8 @@ func TestAddConfigLabels(t *testing.T) {
 			&deployapi.DeploymentConfig{
 				Labels: map[string]string{"foo": "first value"},
 				Template: deployapi.DeploymentTemplate{
-					ControllerTemplate: kubeapi.ReplicationControllerState{
-						PodTemplate: kubeapi.PodTemplate{
+					ControllerTemplate: kapi.ReplicationControllerState{
+						PodTemplate: kapi.PodTemplate{
 							Labels: map[string]string{"foo": "first value"},
 						},
 					},

@@ -3,7 +3,7 @@ package strategy
 import (
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 )
 
@@ -25,8 +25,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if container.Image != strategy.dockerBuilderImage {
 		t.Errorf("Expected %s image, got %s!", container.Image, strategy.dockerBuilderImage)
 	}
-	if container.ImagePullPolicy != kubeapi.PullIfNotPresent {
-		t.Errorf("Expected %v, got %v", kubeapi.PullIfNotPresent, container.ImagePullPolicy)
+	if container.ImagePullPolicy != kapi.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
 	}
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
@@ -50,7 +50,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 
 func mockDockerBuild() *api.Build {
 	return &api.Build{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "dockerBuild",
 		},
 		Input: api.BuildInput{

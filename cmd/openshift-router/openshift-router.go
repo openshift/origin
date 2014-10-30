@@ -4,7 +4,7 @@ import (
 	"flag"
 	"time"
 
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version/verflag"
 	"github.com/golang/glog"
@@ -30,8 +30,8 @@ func main() {
 		glog.Fatal("usage: openshift-router -master <master>")
 	}
 
-	config := &kubeclient.Config{Host: *master}
-	kubeClient, err := kubeclient.New(config)
+	config := &kclient.Config{Host: *master}
+	kubeClient, err := kclient.New(config)
 	if err != nil {
 		glog.Fatalf("Invalid -master: %v", err)
 	}

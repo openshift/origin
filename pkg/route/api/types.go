@@ -1,12 +1,12 @@
 package api
 
 import (
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 // Route encapsulates the inputs needed to connect a DNS/alias to a service proxy.
 type Route struct {
-	kubeapi.TypeMeta         `json:",inline" yaml:",inline"`
+	kapi.TypeMeta         `json:",inline" yaml:",inline"`
 
 	// Required: Alias/DNS that points to the service
 	// Can be host or host:port
@@ -22,6 +22,6 @@ type Route struct {
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	Items []Route    `json:"items,omitempty" yaml:"items,omitempty"`
 }

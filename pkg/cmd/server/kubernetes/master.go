@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
@@ -31,7 +31,7 @@ type MasterConfig struct {
 	PortalNet *net.IPNet
 
 	EtcdHelper tools.EtcdHelper
-	KubeClient *kubeclient.Client
+	KubeClient *kclient.Client
 }
 
 // TODO: Longer term we should read this from some config store, rather than a flag.
@@ -46,7 +46,7 @@ func (c *MasterConfig) EnsurePortalFlags() {
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
 func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
-	podInfoGetter := &kubeclient.HTTPPodInfoGetter{
+	podInfoGetter := &kclient.HTTPPodInfoGetter{
 		Client: http.DefaultClient,
 		Port:   uint(NodePort),
 	}

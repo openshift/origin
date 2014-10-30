@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/deploy/api"
 )
@@ -18,8 +18,8 @@ func manualTrigger() []api.DeploymentTriggerPolicy {
 	}
 }
 
-func okControllerTemplate() kubeapi.ReplicationControllerState {
-	return kubeapi.ReplicationControllerState{
+func okControllerTemplate() kapi.ReplicationControllerState {
+	return kapi.ReplicationControllerState{
 		ReplicaSelector: okSelector(),
 		PodTemplate:     okPodTemplate(),
 	}
@@ -29,10 +29,10 @@ func okSelector() map[string]string {
 	return map[string]string{"a": "b"}
 }
 
-func okPodTemplate() kubeapi.PodTemplate {
-	return kubeapi.PodTemplate{
-		DesiredState: kubeapi.PodState{
-			Manifest: kubeapi.ContainerManifest{
+func okPodTemplate() kapi.PodTemplate {
+	return kapi.PodTemplate{
+		DesiredState: kapi.PodState{
+			Manifest: kapi.ContainerManifest{
 				Version: "v1beta1",
 			},
 		},

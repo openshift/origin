@@ -3,14 +3,14 @@ package validation
 import (
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/build/api"
 )
 
 func TestBuildValdationSuccess(t *testing.T) {
 	build := &api.Build{
-		TypeMeta: kubeapi.TypeMeta{ID: "buildId"},
+		TypeMeta: kapi.TypeMeta{ID: "buildId"},
 		Input: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
@@ -24,7 +24,7 @@ func TestBuildValdationSuccess(t *testing.T) {
 
 func TestBuildValidationFailure(t *testing.T) {
 	build := &api.Build{
-		TypeMeta: kubeapi.TypeMeta{ID: ""},
+		TypeMeta: kapi.TypeMeta{ID: ""},
 		Input: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
@@ -38,7 +38,7 @@ func TestBuildValidationFailure(t *testing.T) {
 
 func TestBuildConfigValidationSuccess(t *testing.T) {
 	buildConfig := &api.BuildConfig{
-		TypeMeta: kubeapi.TypeMeta{ID: "configId"},
+		TypeMeta: kapi.TypeMeta{ID: "configId"},
 		DesiredInput: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",
@@ -51,7 +51,7 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 
 func TestBuildConfigValidationFailure(t *testing.T) {
 	buildConfig := &api.BuildConfig{
-		TypeMeta: kubeapi.TypeMeta{ID: ""},
+		TypeMeta: kapi.TypeMeta{ID: ""},
 		DesiredInput: api.BuildInput{
 			SourceURI: "http://github.com/my/repository",
 			ImageTag:  "repository/data",

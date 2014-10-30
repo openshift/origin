@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -35,7 +35,7 @@ func TestGetBuild(t *testing.T) {
 	expectedBuild := mockBuild()
 	mockRegistry := test.BuildRegistry{Build: expectedBuild}
 	storage := REST{&mockRegistry}
-	buildObj, err := storage.Get(kubeapi.NewDefaultContext(), "foo")
+	buildObj, err := storage.Get(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestGetBuild(t *testing.T) {
 func TestGetBuildError(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Err: fmt.Errorf("get error")}
 	storage := REST{&mockRegistry}
-	buildObj, err := storage.Get(kubeapi.NewDefaultContext(), "foo")
+	buildObj, err := storage.Get(kapi.NewDefaultContext(), "foo")
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -64,17 +64,17 @@ func TestDeleteBuild(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	buildId := "test-build-id"
 	storage := REST{&mockRegistry}
-	channel, err := storage.Delete(kubeapi.NewDefaultContext(), buildId)
+	channel, err := storage.Delete(kapi.NewDefaultContext(), buildId)
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
 	}
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Unexpected operation result: %v", result)
 		}
-		if status.Status != kubeapi.StatusSuccess {
+		if status.Status != kapi.StatusSuccess {
 			t.Errorf("Unexpected failure status: %v", status)
 		}
 		if mockRegistry.DeletedBuildId != buildId {
@@ -90,10 +90,10 @@ func TestDeleteBuildError(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Err: fmt.Errorf("Delete error")}
 	buildId := "test-build-id"
 	storage := REST{&mockRegistry}
-	channel, _ := storage.Delete(kubeapi.NewDefaultContext(), buildId)
+	channel, _ := storage.Delete(kapi.NewDefaultContext(), buildId)
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Unexpected operation result: %#v", channel)
 		}
@@ -110,7 +110,7 @@ func TestListBuildsError(t *testing.T) {
 		Err: fmt.Errorf("test error"),
 	}
 	storage := REST{&mockRegistry}
-	builds, err := storage.List(kubeapi.NewDefaultContext(), nil, nil)
+	builds, err := storage.List(kapi.NewDefaultContext(), nil, nil)
 	if err != mockRegistry.Err {
 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
 	}
@@ -120,9 +120,9 @@ func TestListBuildsError(t *testing.T) {
 }
 
 func TestListEmptyBuildList(t *testing.T) {
-	mockRegistry := test.BuildRegistry{Builds: &api.BuildList{TypeMeta: kubeapi.TypeMeta{ResourceVersion: "1"}}}
+	mockRegistry := test.BuildRegistry{Builds: &api.BuildList{TypeMeta: kapi.TypeMeta{ResourceVersion: "1"}}}
 	storage := REST{&mockRegistry}
-	builds, err := storage.List(kubeapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	builds, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -140,12 +140,12 @@ func TestListBuilds(t *testing.T) {
 		Builds: &api.BuildList{
 			Items: []api.Build{
 				{
-					TypeMeta: kubeapi.TypeMeta{
+					TypeMeta: kapi.TypeMeta{
 						ID: "foo",
 					},
 				},
 				{
-					TypeMeta: kubeapi.TypeMeta{
+					TypeMeta: kapi.TypeMeta{
 						ID: "bar",
 					},
 				},
@@ -153,7 +153,7 @@ func TestListBuilds(t *testing.T) {
 		},
 	}
 	storage := REST{registry: &mockRegistry}
-	buildsObj, err := storage.List(kubeapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	buildsObj, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	builds := buildsObj.(*api.BuildList)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -174,7 +174,7 @@ func TestBuildDecode(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	storage := REST{&mockRegistry}
 	build := &api.Build{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	}
@@ -236,14 +236,14 @@ func TestCreateBuild(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	storage := REST{&mockRegistry}
 	build := mockBuild()
-	channel, err := storage.Create(kubeapi.NewDefaultContext(), build)
+	channel, err := storage.Create(kapi.NewDefaultContext(), build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	select {
 	case result := <-channel:
 		switch obj := result.(type) {
-		case *kubeapi.Status:
+		case *kapi.Status:
 			t.Errorf("Unexpected operation error: %v", obj)
 
 		case *api.Build:
@@ -263,14 +263,14 @@ func TestUpdateBuild(t *testing.T) {
 	mockRegistry := test.BuildRegistry{}
 	storage := REST{&mockRegistry}
 	build := mockBuild()
-	channel, err := storage.Update(kubeapi.NewDefaultContext(), build)
+	channel, err := storage.Update(kapi.NewDefaultContext(), build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	select {
 	case result := <-channel:
 		switch obj := result.(type) {
-		case *kubeapi.Status:
+		case *kapi.Status:
 			t.Errorf("Unexpected operation error: %v", obj)
 
 		case *api.Build:
@@ -290,14 +290,14 @@ func TestUpdateBuildError(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Err: fmt.Errorf("Update error")}
 	storage := REST{&mockRegistry}
 	build := mockBuild()
-	channel, err := storage.Update(kubeapi.NewDefaultContext(), build)
+	channel, err := storage.Update(kapi.NewDefaultContext(), build)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	select {
 	case result := <-channel:
 		switch obj := result.(type) {
-		case *kubeapi.Status:
+		case *kapi.Status:
 			if obj.Message != mockRegistry.Err.Error() {
 				t.Errorf("Unexpected error result: %v", obj)
 			}
@@ -314,12 +314,12 @@ func TestBuildRESTValidatesCreate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.Build{
 		"empty input": {
-			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
+			TypeMeta: kapi.TypeMeta{ID: "abc"},
 			Input:    api.BuildInput{},
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Create(kubeapi.NewDefaultContext(), &failureCase)
+		c, err := storage.Create(kapi.NewDefaultContext(), &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}
@@ -334,19 +334,19 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.Build{
 		"empty ID": {
-			TypeMeta: kubeapi.TypeMeta{ID: ""},
+			TypeMeta: kapi.TypeMeta{ID: ""},
 			Input: api.BuildInput{
 				SourceURI: "http://my.build.com/the/build/Dockerfile",
 				ImageTag:  "repository/dataBuild",
 			},
 		},
 		"empty build input": {
-			TypeMeta: kubeapi.TypeMeta{ID: "abc"},
+			TypeMeta: kapi.TypeMeta{ID: "abc"},
 			Input:    api.BuildInput{},
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Update(kubeapi.NewDefaultContext(), &failureCase)
+		c, err := storage.Update(kapi.NewDefaultContext(), &failureCase)
 		if c != nil {
 			t.Errorf("%s: Expected nil channel", desc)
 		}
@@ -358,9 +358,9 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 
 func mockBuild() *api.Build {
 	return &api.Build{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID:        "dataBuild",
-			Namespace: kubeapi.NamespaceDefault,
+			Namespace: kapi.NamespaceDefault,
 		},
 		Input: api.BuildInput{
 			SourceURI: "http://my.build.com/the/build/Dockerfile",
@@ -377,8 +377,8 @@ func mockBuild() *api.Build {
 func TestCreateBuildConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(kubeapi.WithNamespace(kubeapi.NewContext(), "legal-name"), &api.Build{
-		TypeMeta: kubeapi.TypeMeta{ID: "foo", Namespace: "some-value"},
+	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Build{
+		TypeMeta: kapi.TypeMeta{ID: "foo", Namespace: "some-value"},
 	})
 
 	if channel != nil {
@@ -393,7 +393,7 @@ func TestUpdateBuildConflictingNamespace(t *testing.T) {
 	storage := REST{&mockRegistry}
 
 	build := mockBuild()
-	channel, err := storage.Update(kubeapi.WithNamespace(kubeapi.NewContext(), "legal-name"), build)
+	channel, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), build)
 
 	if channel != nil {
 		t.Error("Expected a nil channel, but we got a value")
@@ -407,7 +407,7 @@ func checkExpectedNamespaceError(t *testing.T, err error) {
 	if err == nil {
 		t.Errorf("Expected '" + expectedError + "', but we didn't get one")
 	} else {
-		e, ok := err.(kubeclient.APIStatus)
+		e, ok := err.(kclient.APIStatus)
 		if !ok {
 			t.Errorf("error was not a statusError: %v", err)
 		}

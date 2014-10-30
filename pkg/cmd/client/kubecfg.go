@@ -16,7 +16,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -41,7 +41,7 @@ import (
 )
 
 type KubeConfig struct {
-	ClientConfig   kubeclient.Config
+	ClientConfig   kclient.Config
 	ServerVersion  bool
 	PreventSkew    bool
 	Config         string
@@ -222,7 +222,7 @@ func (c *KubeConfig) Run() {
 	}
 	clientConfig.Host = hosts[0]
 
-	if kubeclient.IsConfigTransportSecure(clientConfig) {
+	if kclient.IsConfigTransportSecure(clientConfig) {
 		auth, err := kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
 		if err != nil {
 			glog.Fatalf("Error loading auth: %v", err)
@@ -243,7 +243,7 @@ func (c *KubeConfig) Run() {
 		}
 	}
 	clientConfig.Version = c.APIVersion
-	kubeClient, err := kubeclient.New(clientConfig)
+	kubeClient, err := kclient.New(clientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to set up the Kubernetes API client: %v", err)
 	}
@@ -453,7 +453,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 	return true
 }
 
-func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.Client) bool {
+func (c *KubeConfig) executeControllerRequest(method string, client *kclient.Client) bool {
 	parseController := func() string {
 		if len(c.Args) != 2 {
 			glog.Fatal("usage: kubecfg [OPTIONS] stop|rm|rollingupdate|run|resize <controller>")
@@ -568,7 +568,7 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 			continue
 		}
 
-		if statusErr, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+		if statusErr, ok := itemResult.Error.(kclient.APIStatus); ok {
 			fmt.Printf("Error: %v\n", statusErr.Status().Message)
 		} else {
 			fmt.Printf("Error: %v\n", itemResult.Error)

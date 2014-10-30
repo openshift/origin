@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
@@ -90,10 +90,10 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 
 	for i, item := range t.Items {
 		switch obj := item.Object.(type) {
-		case *kubeapi.ReplicationController:
+		case *kapi.ReplicationController:
 			p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
 			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		case *kubeapi.Pod:
+		case *kapi.Pod:
 			p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
 			t.Items[i] = runtime.EmbeddedObject{Object: obj}
 		case *deployapi.Deployment:
@@ -113,7 +113,7 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 // substituteParametersInManifest is a helper function that iterates
 // over the given manifest and substitutes all Parameter expression
 // occurances with their corresponding values.
-func (p *TemplateProcessor) substituteParametersInManifest(manifest *kubeapi.ContainerManifest, paramMap map[string]string) {
+func (p *TemplateProcessor) substituteParametersInManifest(manifest *kapi.ContainerManifest, paramMap map[string]string) {
 	for i, _ := range manifest.Containers {
 		for e, _ := range manifest.Containers[i].Env {
 			envValue := &manifest.Containers[i].Env[e].Value

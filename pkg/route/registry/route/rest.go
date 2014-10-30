@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"code.google.com/p/go-uuid/uuid"
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -32,7 +32,7 @@ func (rs *REST) New() runtime.Object {
 }
 
 // List obtains a list of Routes that match selector.
-func (rs *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+func (rs *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	list, err := rs.registry.ListRoutes(ctx, selector)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (rs *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (run
 }
 
 // Get obtains the route specified by its id.
-func (rs *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+func (rs *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	route, err := rs.registry.GetRoute(ctx, id)
 	if err != nil {
 		return nil, err
@@ -50,23 +50,23 @@ func (rs *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the Route specified by its id.
-func (rs *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+func (rs *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	_, err := rs.registry.GetRoute(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, rs.registry.DeleteRoute(ctx, id)
+		return &kapi.Status{Status: kapi.StatusSuccess}, rs.registry.DeleteRoute(ctx, id)
 	}), nil
 }
 
 // Create registers a given new Route instance to rs.registry.
-func (rs *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
 		return nil, fmt.Errorf("not a route: %#v", obj)
 	}
-	if !kubeapi.ValidNamespace(ctx, &route.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &route.TypeMeta) {
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
@@ -89,7 +89,7 @@ func (rs *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.
 }
 
 // Update replaces a given Route instance with an existing instance in rs.registry.
-func (rs *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
 		return nil, fmt.Errorf("not a route: %#v", obj)
@@ -97,7 +97,7 @@ func (rs *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.
 	if len(route.ID) == 0 {
 		return nil, fmt.Errorf("id is unspecified: %#v", route)
 	}
-	if !kubeapi.ValidNamespace(ctx, &route.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &route.TypeMeta) {
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
@@ -115,6 +115,6 @@ func (rs *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.
 
 // Watch returns Routes events via a watch.Interface.
 // It implements apiserver.ResourceWatcher.
-func (rs *REST) Watch(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (rs *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
 }

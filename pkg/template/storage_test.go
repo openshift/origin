@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 func TestNewStorageInvalidType(t *testing.T) {
 	storage := NewStorage()
-	_, err := storage.Create(nil, &kubeapi.Pod{})
+	_, err := storage.Create(nil, &kapi.Pod{})
 	if err == nil {
 		t.Errorf("Expected type error.")
 	}
@@ -36,8 +36,8 @@ func TestStorageNotImplementedFunctions(t *testing.T) {
 	}
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
-		if !ok || status.Status != kubeapi.StatusFailure {
+		status, ok := result.(*kapi.Status)
+		if !ok || status.Status != kapi.StatusFailure {
 			t.Errorf("Expected not implemented error.")
 		}
 	case <-time.After(time.Millisecond * 100):

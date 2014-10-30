@@ -1,7 +1,7 @@
 package api
 
 import (
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
@@ -9,7 +9,7 @@ import (
 // TODO: Unify with Kubernetes Config
 //       https://github.com/GoogleCloudPlatform/kubernetes/pull/1007
 type Config struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 
 	// Required: Name identifies the Config.
 	Name string `json:"name" yaml:"name"`

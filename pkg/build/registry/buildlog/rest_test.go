@@ -3,7 +3,7 @@ package buildlog
 import (
 	"testing"
 
-	kubeapi	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -14,39 +14,39 @@ import (
 type podClient struct {
 }
 
-func (p *podClient) ListPods(ctx kubeapi.Context, selector labels.Selector) (*kubeapi.PodList, error) {
+func (p *podClient) ListPods(ctx kapi.Context, selector labels.Selector) (*kapi.PodList, error) {
 	return nil, nil
 }
 
-func (p *podClient) GetPod(ctx kubeapi.Context, id string) (*kubeapi.Pod, error) {
-	pod := &kubeapi.Pod{
-		TypeMeta:     kubeapi.TypeMeta{ID: "foo"},
-		DesiredState: kubeapi.PodState{
-			Manifest: kubeapi.ContainerManifest{
+func (p *podClient) GetPod(ctx kapi.Context, id string) (*kapi.Pod, error) {
+	pod := &kapi.Pod{
+		TypeMeta:     kapi.TypeMeta{ID: "foo"},
+		DesiredState: kapi.PodState{
+			Manifest: kapi.ContainerManifest{
 				Version: "v1beta1",
-				Containers: []kubeapi.Container{
+				Containers: []kapi.Container{
 					{
 						Name: "foo-container",
 					},
 				},
 			},
 		},
-		CurrentState: kubeapi.PodState{
+		CurrentState: kapi.PodState{
 			Host: "foo-host",
 		},
 	}
 	return pod, nil
 }
 
-func (p *podClient) DeletePod(ctx kubeapi.Context, id string) error {
+func (p *podClient) DeletePod(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (p *podClient) CreatePod(ctx kubeapi.Context, pod *kubeapi.Pod) (*kubeapi.Pod, error) {
+func (p *podClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
 	return nil, nil
 }
 
-func (p *podClient) UpdatePod(ctx kubeapi.Context, pod *kubeapi.Pod) (*kubeapi.Pod, error) {
+func (p *podClient) UpdatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
 	return nil, nil
 }
 
@@ -56,7 +56,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 		api.BuildRunning: "/proxy/minion/foo-host/containerLogs/foo-pod/foo-container?follow=1",
 	}
 
-	ctx := kubeapi.NewDefaultContext()
+	ctx := kapi.NewDefaultContext()
 	proxyPrefix := "/proxy/minion"
 
 	for buildStatus, expectedLocation := range expectedLocations {
@@ -76,7 +76,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 
 func mockBuild(buildStatus api.BuildStatus) *api.Build {
 	return &api.Build{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo-build",
 		},
 		Status: buildStatus,

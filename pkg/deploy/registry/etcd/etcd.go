@@ -10,7 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/deploy/api"
 )
@@ -35,7 +35,7 @@ func New(helper tools.EtcdHelper) *Etcd {
 }
 
 // ListDeployments obtains a list of Deployments.
-func (r *Etcd) ListDeployments(ctx kubeapi.Context, selector labels.Selector) (*api.DeploymentList, error) {
+func (r *Etcd) ListDeployments(ctx kapi.Context, selector labels.Selector) (*api.DeploymentList, error) {
 	deployments := api.DeploymentList{}
 	err := r.ExtractToList(makeDeploymentListKey(ctx), &deployments)
 	if err != nil {
@@ -52,16 +52,16 @@ func (r *Etcd) ListDeployments(ctx kubeapi.Context, selector labels.Selector) (*
 	return &deployments, err
 }
 
-func makeDeploymentListKey(ctx kubeapi.Context) string {
+func makeDeploymentListKey(ctx kapi.Context) string {
 	return kubeetcd.MakeEtcdListKey(ctx, DeploymentPath)
 }
 
-func makeDeploymentKey(ctx kubeapi.Context, id string) (string, error) {
+func makeDeploymentKey(ctx kapi.Context, id string) (string, error) {
 	return kubeetcd.MakeEtcdItemKey(ctx, DeploymentPath, id)
 }
 
 // GetDeployment gets a specific Deployment specified by its ID.
-func (r *Etcd) GetDeployment(ctx kubeapi.Context, id string) (*api.Deployment, error) {
+func (r *Etcd) GetDeployment(ctx kapi.Context, id string) (*api.Deployment, error) {
 	var deployment api.Deployment
 	key, err := makeDeploymentKey(ctx, id)
 	if err != nil {
@@ -75,7 +75,7 @@ func (r *Etcd) GetDeployment(ctx kubeapi.Context, id string) (*api.Deployment, e
 }
 
 // CreateDeployment creates a new Deployment.
-func (r *Etcd) CreateDeployment(ctx kubeapi.Context, deployment *api.Deployment) error {
+func (r *Etcd) CreateDeployment(ctx kapi.Context, deployment *api.Deployment) error {
 	key, err := makeDeploymentKey(ctx, deployment.ID)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (r *Etcd) CreateDeployment(ctx kubeapi.Context, deployment *api.Deployment)
 }
 
 // UpdateDeployment replaces an existing Deployment.
-func (r *Etcd) UpdateDeployment(ctx kubeapi.Context, deployment *api.Deployment) error {
+func (r *Etcd) UpdateDeployment(ctx kapi.Context, deployment *api.Deployment) error {
 	key, err := makeDeploymentKey(ctx, deployment.ID)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (r *Etcd) UpdateDeployment(ctx kubeapi.Context, deployment *api.Deployment)
 }
 
 // DeleteDeployment deletes a Deployment specified by its ID.
-func (r *Etcd) DeleteDeployment(ctx kubeapi.Context, id string) error {
+func (r *Etcd) DeleteDeployment(ctx kapi.Context, id string) error {
 	key, err := makeDeploymentKey(ctx, id)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (r *Etcd) DeleteDeployment(ctx kubeapi.Context, id string) error {
 }
 
 // WatchDeployments begins watching for new, changed, or deleted Deployments.
-func (r *Etcd) WatchDeployments(ctx kubeapi.Context, resourceVersion string, filter func(deployment *api.Deployment) bool) (watch.Interface, error) {
+func (r *Etcd) WatchDeployments(ctx kapi.Context, resourceVersion string, filter func(deployment *api.Deployment) bool) (watch.Interface, error) {
 	version, err := parseWatchResourceVersion(resourceVersion, "deployment")
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func (r *Etcd) WatchDeployments(ctx kubeapi.Context, resourceVersion string, fil
 }
 
 // ListDeploymentConfigs obtains a list of DeploymentConfigs.
-func (r *Etcd) ListDeploymentConfigs(ctx kubeapi.Context, selector labels.Selector) (*api.DeploymentConfigList, error) {
+func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, selector labels.Selector) (*api.DeploymentConfigList, error) {
 	deploymentConfigs := api.DeploymentConfigList{}
 	err := r.ExtractToList(makeDeploymentConfigListKey(ctx), &deploymentConfigs)
 	if err != nil {
@@ -156,7 +156,7 @@ func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
 }
 
 // WatchDeploymentConfigs begins watching for new, changed, or deleted DeploymentConfigs.
-func (r *Etcd) WatchDeploymentConfigs(ctx kubeapi.Context, resourceVersion string, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error) {
+func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, resourceVersion string, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error) {
 	version, err := parseWatchResourceVersion(resourceVersion, "deploymentConfig")
 	if err != nil {
 		return nil, err
@@ -172,16 +172,16 @@ func (r *Etcd) WatchDeploymentConfigs(ctx kubeapi.Context, resourceVersion strin
 	})
 }
 
-func makeDeploymentConfigListKey(ctx kubeapi.Context) string {
+func makeDeploymentConfigListKey(ctx kapi.Context) string {
 	return kubeetcd.MakeEtcdListKey(ctx, DeploymentConfigPath)
 }
 
-func makeDeploymentConfigKey(ctx kubeapi.Context, id string) (string, error) {
+func makeDeploymentConfigKey(ctx kapi.Context, id string) (string, error) {
 	return kubeetcd.MakeEtcdItemKey(ctx, DeploymentConfigPath, id)
 }
 
 // GetDeploymentConfig gets a specific DeploymentConfig specified by its ID.
-func (r *Etcd) GetDeploymentConfig(ctx kubeapi.Context, id string) (*api.DeploymentConfig, error) {
+func (r *Etcd) GetDeploymentConfig(ctx kapi.Context, id string) (*api.DeploymentConfig, error) {
 	var deploymentConfig api.DeploymentConfig
 	key, err := makeDeploymentConfigKey(ctx, id)
 	if err != nil {
@@ -196,7 +196,7 @@ func (r *Etcd) GetDeploymentConfig(ctx kubeapi.Context, id string) (*api.Deploym
 }
 
 // CreateDeploymentConfig creates a new DeploymentConfig.
-func (r *Etcd) CreateDeploymentConfig(ctx kubeapi.Context, deploymentConfig *api.DeploymentConfig) error {
+func (r *Etcd) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.DeploymentConfig) error {
 	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.ID)
 	if err != nil {
 		return err
@@ -207,7 +207,7 @@ func (r *Etcd) CreateDeploymentConfig(ctx kubeapi.Context, deploymentConfig *api
 }
 
 // UpdateDeploymentConfig replaces an existing DeploymentConfig.
-func (r *Etcd) UpdateDeploymentConfig(ctx kubeapi.Context, deploymentConfig *api.DeploymentConfig) error {
+func (r *Etcd) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.DeploymentConfig) error {
 	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.ID)
 	if err != nil {
 		return err
@@ -218,7 +218,7 @@ func (r *Etcd) UpdateDeploymentConfig(ctx kubeapi.Context, deploymentConfig *api
 }
 
 // DeleteDeploymentConfig deletes a DeploymentConfig specified by its ID.
-func (r *Etcd) DeleteDeploymentConfig(ctx kubeapi.Context, id string) error {
+func (r *Etcd) DeleteDeploymentConfig(ctx kapi.Context, id string) error {
 	key, err := makeDeploymentConfigKey(ctx, id)
 	if err != nil {
 		return err

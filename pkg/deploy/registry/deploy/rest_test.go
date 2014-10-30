@@ -8,7 +8,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -321,7 +321,7 @@ func checkExpectedNamespaceError(t *testing.T, err error) {
 	if err == nil {
 		t.Errorf("Expected '" + expectedError + "', but we didn't get one")
 	} else {
-		e, ok := err.(kubeclient.APIStatus)
+		e, ok := err.(kclient.APIStatus)
 		if !ok {
 			t.Errorf("error was not a statusError: %v", err)
 		}

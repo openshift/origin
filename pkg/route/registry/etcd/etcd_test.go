@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -30,10 +30,10 @@ func makeTestRouteKey(namespace, id string) string {
 	return "/routes/" + namespace + "/" + id
 }
 func makeTestDefaultRouteKey(id string) string {
-	return makeTestRouteKey(kubeapi.NamespaceDefault, id)
+	return makeTestRouteKey(kapi.NamespaceDefault, id)
 }
 func makeTestDefaultRouteListKey() string {
-	return makeTestRouteListKey(kubeapi.NamespaceDefault)
+	return makeTestRouteListKey(kapi.NamespaceDefault)
 }
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
@@ -52,7 +52,7 @@ func TestEtcdListEmptyRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.Everything())
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestEtcdListErrorRoutes(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.Everything())
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -90,10 +90,10 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -101,7 +101,7 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.Everything())
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -120,13 +120,13 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{
-							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+							TypeMeta: kapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{
-							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
+							TypeMeta: kapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -136,7 +136,7 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kubeapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -148,9 +148,9 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 
 func TestEtcdGetRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultRouteKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultRouteKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
-	route, err := registry.GetRoute(kubeapi.NewDefaultContext(), "foo")
+	route, err := registry.GetRoute(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestEtcdGetNotFoundRoutes(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	route, err := registry.GetRoute(kubeapi.NewDefaultContext(), "foo")
+	route, err := registry.GetRoute(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
 	}
@@ -188,8 +188,8 @@ func TestEtcdCreateRoutes(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateRoute(kubeapi.NewDefaultContext(), &api.Route{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateRoute(kapi.NewDefaultContext(), &api.Route{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -217,14 +217,14 @@ func TestEtcdCreateAlreadyExistsRoutes(t *testing.T) {
 	fakeClient.Data[makeTestDefaultRouteKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateRoute(kubeapi.NewDefaultContext(), &api.Route{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateRoute(kapi.NewDefaultContext(), &api.Route{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -239,8 +239,8 @@ func TestEtcdCreateAlreadyExistsRoutes(t *testing.T) {
 func TestEtcdUpdateOkRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	err := registry.UpdateRoute(kubeapi.NewDefaultContext(), &api.Route{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.UpdateRoute(kapi.NewDefaultContext(), &api.Route{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -253,7 +253,7 @@ func TestEtcdDeleteNotFoundRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = tools.EtcdErrorNotFound
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteRoute(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteRoute(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -266,7 +266,7 @@ func TestEtcdDeleteErrorRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = fmt.Errorf("Some error")
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteRoute(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteRoute(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -276,7 +276,7 @@ func TestEtcdDeleteOkRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 	key := makeTestDefaultRouteListKey() + "/foo"
-	err := registry.DeleteRoute(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteRoute(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
@@ -291,8 +291,8 @@ func TestEtcdCreateRouteFailsWithoutNamespace(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateRoute(kubeapi.NewContext(), &api.Route{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateRoute(kapi.NewContext(), &api.Route{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -304,14 +304,14 @@ func TestEtcdCreateRouteFailsWithoutNamespace(t *testing.T) {
 
 func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
-	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
+	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
+	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
 	fakeClient.Data["/routes/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
 					},
 				},
 			},
@@ -323,10 +323,10 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
 					},
 				},
 			},
@@ -354,10 +354,10 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 
 func TestEtcdGetRouteInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
-	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
-	fakeClient.Set("/routes/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/routes/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
+	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
+	fakeClient.Set("/routes/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/routes/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetRoute(namespaceAlfa, "foo")

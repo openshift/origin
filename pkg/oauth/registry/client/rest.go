@@ -3,7 +3,7 @@ package client
 import (
 	"fmt"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -29,7 +29,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Get retrieves an Client by id.
-func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	client, err := s.registry.GetClient(id)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 }
 
 // List retrieves a list of Clients that match selector.
-func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	clients, err := s.registry.ListClients(selector)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 }
 
 // Create registers the given Client.
-func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	client, ok := obj.(*api.Client)
 	if !ok {
 		return nil, fmt.Errorf("not an client: %#v", obj)
@@ -69,13 +69,13 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 }
 
 // Update is not supported for Clients, as they are immutable.
-func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	return nil, fmt.Errorf("Clients may not be changed.")
 }
 
 // Delete asynchronously deletes an Client specified by its id.
-func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteClient(id)
+		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteClient(id)
 	}), nil
 }

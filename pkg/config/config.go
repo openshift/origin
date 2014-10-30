@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
@@ -43,7 +43,7 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 			continue
 		}
 
-		itemBase := kubeapi.TypeMeta{}
+		itemBase := kapi.TypeMeta{}
 
 		err = json.Unmarshal(item, &itemBase)
 		if err != nil {
@@ -92,15 +92,15 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 func AddConfigLabels(c *api.Config, labels labels.Set) error {
 	for i, _ := range c.Items {
 		switch t := c.Items[i].Object.(type) {
-		case *kubeapi.Pod:
+		case *kapi.Pod:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] Pod.Labels: %v", i, err)
 			}
-		case *kubeapi.Service:
+		case *kapi.Service:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] Service.Labels: %v", i, err)
 			}
-		case *kubeapi.ReplicationController:
+		case *kapi.ReplicationController:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.Labels: %v", i, err)
 			}

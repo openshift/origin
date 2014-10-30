@@ -3,7 +3,7 @@ package test
 import (
 	"sync"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/project/api"
 )
@@ -19,21 +19,21 @@ func NewProjectRegistry() *ProjectRegistry {
 	return &ProjectRegistry{}
 }
 
-func (r *ProjectRegistry) ListProjects(ctx kubeapi.Context, selector labels.Selector) (*api.ProjectList, error) {
+func (r *ProjectRegistry) ListProjects(ctx kapi.Context, selector labels.Selector) (*api.ProjectList, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Projects, r.Err
 }
 
-func (r *ProjectRegistry) GetProject(ctx kubeapi.Context, id string) (*api.Project, error) {
+func (r *ProjectRegistry) GetProject(ctx kapi.Context, id string) (*api.Project, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Project, r.Err
 }
 
-func (r *ProjectRegistry) CreateProject(ctx kubeapi.Context, project *api.Project) error {
+func (r *ProjectRegistry) CreateProject(ctx kapi.Context, project *api.Project) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -41,7 +41,7 @@ func (r *ProjectRegistry) CreateProject(ctx kubeapi.Context, project *api.Projec
 	return r.Err
 }
 
-func (r *ProjectRegistry) UpdateProject(ctx kubeapi.Context, project *api.Project) error {
+func (r *ProjectRegistry) UpdateProject(ctx kapi.Context, project *api.Project) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -49,7 +49,7 @@ func (r *ProjectRegistry) UpdateProject(ctx kubeapi.Context, project *api.Projec
 	return r.Err
 }
 
-func (r *ProjectRegistry) DeleteProject(ctx kubeapi.Context, id string) error {
+func (r *ProjectRegistry) DeleteProject(ctx kapi.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 

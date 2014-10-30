@@ -8,7 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/route/api"
 )
@@ -30,16 +30,16 @@ func New(helper tools.EtcdHelper) *Etcd {
 	}
 }
 
-func makeRouteListKey(ctx kubeapi.Context) string {
+func makeRouteListKey(ctx kapi.Context) string {
 	return kubeetcd.MakeEtcdListKey(ctx, RoutePath)
 }
 
-func makeRouteKey(ctx kubeapi.Context, id string) (string, error) {
+func makeRouteKey(ctx kapi.Context, id string) (string, error) {
 	return kubeetcd.MakeEtcdItemKey(ctx, RoutePath, id)
 }
 
 // ListRoutes obtains a list of Routes.
-func (registry *Etcd) ListRoutes(ctx kubeapi.Context, selector labels.Selector) (*api.RouteList, error) {
+func (registry *Etcd) ListRoutes(ctx kapi.Context, selector labels.Selector) (*api.RouteList, error) {
 	allRoutes := api.RouteList{}
 	err := registry.ExtractToList(makeRouteListKey(ctx), &allRoutes)
 	if err != nil {
@@ -57,7 +57,7 @@ func (registry *Etcd) ListRoutes(ctx kubeapi.Context, selector labels.Selector) 
 }
 
 // GetRoute gets a specific Route specified by its ID.
-func (registry *Etcd) GetRoute(ctx kubeapi.Context, routeID string) (*api.Route, error) {
+func (registry *Etcd) GetRoute(ctx kapi.Context, routeID string) (*api.Route, error) {
 	route := api.Route{}
 	key, err := makeRouteKey(ctx, routeID)
 	if err != nil {
@@ -71,7 +71,7 @@ func (registry *Etcd) GetRoute(ctx kubeapi.Context, routeID string) (*api.Route,
 }
 
 // CreateRoute creates a new Route.
-func (registry *Etcd) CreateRoute(ctx kubeapi.Context, route *api.Route) error {
+func (registry *Etcd) CreateRoute(ctx kapi.Context, route *api.Route) error {
 	key, err := makeRouteKey(ctx, route.ID)
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (registry *Etcd) CreateRoute(ctx kubeapi.Context, route *api.Route) error {
 }
 
 // UpdateRoute replaces an existing Route.
-func (registry *Etcd) UpdateRoute(ctx kubeapi.Context, route *api.Route) error {
+func (registry *Etcd) UpdateRoute(ctx kapi.Context, route *api.Route) error {
 	key, err := makeRouteKey(ctx, route.ID)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func (registry *Etcd) UpdateRoute(ctx kubeapi.Context, route *api.Route) error {
 }
 
 // DeleteRoute deletes a Route specified by its ID.
-func (registry *Etcd) DeleteRoute(ctx kubeapi.Context, routeID string) error {
+func (registry *Etcd) DeleteRoute(ctx kapi.Context, routeID string) error {
 	key, err := makeRouteKey(ctx, routeID)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (registry *Etcd) DeleteRoute(ctx kubeapi.Context, routeID string) error {
 }
 
 // WatchRoutes begins watching for new, changed, or deleted route configurations.
-func (registry *Etcd) WatchRoutes(ctx kubeapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (registry *Etcd) WatchRoutes(ctx kapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
 	if !label.Empty() {
 		return nil, fmt.Errorf("label selectors are not supported on routes yet")
 	}

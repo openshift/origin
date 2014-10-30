@@ -7,7 +7,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -22,13 +22,13 @@ import (
 // in the system with actual running pods.
 type LBManager struct {
 	routes          router.Router
-	endpointWatcher kubeclient.EndpointsInterface
+	endpointWatcher kclient.EndpointsInterface
 	routeWatcher    osclient.Interface
 	lock            sync.Mutex
 }
 
 // NewLBManager creates a new LBManager.
-func NewLBManager(routes router.Router, endpointWatcher kubeclient.EndpointsInterface, routeWatcher osclient.Interface) *LBManager {
+func NewLBManager(routes router.Router, endpointWatcher kclient.EndpointsInterface, routeWatcher osclient.Interface) *LBManager {
 	lm := &LBManager{
 		routes:          routes,
 		endpointWatcher: endpointWatcher,

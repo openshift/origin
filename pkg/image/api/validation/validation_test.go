@@ -3,14 +3,14 @@ package validation
 import (
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
 func TestValidateImageOK(t *testing.T) {
 	errs := ValidateImage(&api.Image{
-		TypeMeta:             kubeapi.TypeMeta{ID: "foo"},
+		TypeMeta:             kapi.TypeMeta{ID: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 	if len(errs) > 0 {
@@ -25,7 +25,7 @@ func TestValidateImageMissingFields(t *testing.T) {
 		F string
 	}{
 		"missing ID":                   {api.Image{DockerImageReference: "ref"}, errors.ValidationErrorTypeRequired, "ID"},
-		"missing DockerImageReference": {api.Image{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}, errors.ValidationErrorTypeRequired, "DockerImageReference"},
+		"missing DockerImageReference": {api.Image{TypeMeta: kapi.TypeMeta{ID: "foo"}}, errors.ValidationErrorTypeRequired, "DockerImageReference"},
 	}
 
 	for k, v := range errorCases {
@@ -55,7 +55,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			api.ImageRepositoryMapping{
 				Tag: "latest",
 				Image: api.Image{
-					TypeMeta: kubeapi.TypeMeta{
+					TypeMeta: kapi.TypeMeta{
 						ID: "foo",
 					},
 					DockerImageReference: "openshift/ruby-19-centos",
@@ -68,7 +68,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			api.ImageRepositoryMapping{
 				DockerImageRepository: "openshift/ruby-19-centos",
 				Image: api.Image{
-					TypeMeta: kubeapi.TypeMeta{
+					TypeMeta: kapi.TypeMeta{
 						ID: "foo",
 					},
 					DockerImageReference: "openshift/ruby-19-centos",

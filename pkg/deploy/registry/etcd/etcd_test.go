@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -29,10 +29,10 @@ func makeTestDeploymentKey(namespace, id string) string {
 	return "/deployments/" + namespace + "/" + id
 }
 func makeTestDefaultDeploymentKey(id string) string {
-	return makeTestDeploymentKey(kubeapi.NamespaceDefault, id)
+	return makeTestDeploymentKey(kapi.NamespaceDefault, id)
 }
 func makeTestDefaultDeploymentListKey() string {
-	return makeTestDeploymentListKey(kubeapi.NamespaceDefault)
+	return makeTestDeploymentListKey(kapi.NamespaceDefault)
 }
 func makeTestDeploymentConfigListKey(namespace string) string {
 	if len(namespace) != 0 {
@@ -44,10 +44,10 @@ func makeTestDeploymentConfigKey(namespace, id string) string {
 	return "/deploymentConfigs/" + namespace + "/" + id
 }
 func makeTestDefaultDeploymentConfigKey(id string) string {
-	return makeTestDeploymentConfigKey(kubeapi.NamespaceDefault, id)
+	return makeTestDeploymentConfigKey(kapi.NamespaceDefault, id)
 }
 func makeTestDefaultDeploymentConfigListKey() string {
-	return makeTestDeploymentConfigListKey(kubeapi.NamespaceDefault)
+	return makeTestDeploymentConfigListKey(kapi.NamespaceDefault)
 }
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
@@ -66,7 +66,7 @@ func TestEtcdListEmptyDeployments(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kubeapi.NewDefaultContext(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestEtcdListErrorDeployments(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kubeapi.NewDefaultContext(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -104,10 +104,10 @@ func TestEtcdListEverythingDeployments(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -115,7 +115,7 @@ func TestEtcdListEverythingDeployments(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kubeapi.NewDefaultContext(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -134,13 +134,13 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
-							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+							TypeMeta: kapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
-							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
+							TypeMeta: kapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -150,7 +150,7 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kubeapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -162,9 +162,9 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 
 func TestEtcdGetDeployments(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultDeploymentKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultDeploymentKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
-	deployment, err := registry.GetDeployment(kubeapi.NewDefaultContext(), "foo")
+	deployment, err := registry.GetDeployment(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestEtcdGetNotFoundDeployments(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployment, err := registry.GetDeployment(kubeapi.NewDefaultContext(), "foo")
+	deployment, err := registry.GetDeployment(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
 	}
@@ -202,8 +202,8 @@ func TestEtcdCreateDeployments(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateDeployment(kubeapi.NewDefaultContext(), &api.Deployment{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateDeployment(kapi.NewDefaultContext(), &api.Deployment{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -231,14 +231,14 @@ func TestEtcdCreateAlreadyExistsDeployments(t *testing.T) {
 	fakeClient.Data[makeTestDefaultDeploymentKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateDeployment(kubeapi.NewDefaultContext(), &api.Deployment{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateDeployment(kapi.NewDefaultContext(), &api.Deployment{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -253,7 +253,7 @@ func TestEtcdCreateAlreadyExistsDeployments(t *testing.T) {
 func TestEtcdUpdateOkDeployments(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	err := registry.UpdateDeployment(kubeapi.NewDefaultContext(), &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}})
+	err := registry.UpdateDeployment(kapi.NewDefaultContext(), &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo"}})
 	if err != nil {
 		t.Error("Unexpected error: %#v", err)
 	}
@@ -263,7 +263,7 @@ func TestEtcdDeleteNotFoundDeployments(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = tools.EtcdErrorNotFound
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteDeployment(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteDeployment(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -276,7 +276,7 @@ func TestEtcdDeleteErrorDeployments(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = fmt.Errorf("Some error")
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteDeployment(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteDeployment(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -287,7 +287,7 @@ func TestEtcdDeleteOkDeployments(t *testing.T) {
 	registry := NewTestEtcd(fakeClient)
 	key := makeTestDefaultDeploymentListKey() + "/foo"
 
-	err := registry.DeleteDeployment(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteDeployment(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
@@ -310,7 +310,7 @@ func TestEtcdListEmptyDeploymentConfig(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kubeapi.NewDefaultContext(), labels.Everything())
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -330,7 +330,7 @@ func TestEtcdListErrorDeploymentConfig(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kubeapi.NewDefaultContext(), labels.Everything())
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -348,10 +348,10 @@ func TestEtcdListEverythingDeploymentConfig(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -359,7 +359,7 @@ func TestEtcdListEverythingDeploymentConfig(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kubeapi.NewDefaultContext(), labels.Everything())
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -378,13 +378,13 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{
-							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+							TypeMeta: kapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{
-							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
+							TypeMeta: kapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -394,7 +394,7 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kubeapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -406,9 +406,9 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 
 func TestEtcdGetDeploymentConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultDeploymentConfigKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultDeploymentConfigKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
-	deployment, err := registry.GetDeploymentConfig(kubeapi.NewDefaultContext(), "foo")
+	deployment, err := registry.GetDeploymentConfig(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -427,7 +427,7 @@ func TestEtcdGetNotFoundDeploymentConfig(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployment, err := registry.GetDeploymentConfig(kubeapi.NewDefaultContext(), "foo")
+	deployment, err := registry.GetDeploymentConfig(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Errorf("Unexpected non-error.")
 	}
@@ -447,8 +447,8 @@ func TestEtcdCreateDeploymentConfig(t *testing.T) {
 		E: tools.EtcdErrorNotFound,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateDeploymentConfig(kubeapi.NewDefaultContext(), &api.DeploymentConfig{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateDeploymentConfig(kapi.NewDefaultContext(), &api.DeploymentConfig{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -476,14 +476,14 @@ func TestEtcdCreateAlreadyExistsDeploymentConfig(t *testing.T) {
 	fakeClient.Data[makeTestDefaultDeploymentConfigKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateDeploymentConfig(kubeapi.NewDefaultContext(), &api.DeploymentConfig{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateDeploymentConfig(kapi.NewDefaultContext(), &api.DeploymentConfig{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -498,7 +498,7 @@ func TestEtcdCreateAlreadyExistsDeploymentConfig(t *testing.T) {
 func TestEtcdUpdateOkDeploymentConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	err := registry.UpdateDeploymentConfig(kubeapi.NewDefaultContext(), &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}})
+	err := registry.UpdateDeploymentConfig(kapi.NewDefaultContext(), &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}})
 	if err != nil {
 		t.Error("Unexpected error %#v", err)
 	}
@@ -508,7 +508,7 @@ func TestEtcdDeleteNotFoundDeploymentConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = tools.EtcdErrorNotFound
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteDeploymentConfig(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteDeploymentConfig(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -521,7 +521,7 @@ func TestEtcdDeleteErrorDeploymentConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = fmt.Errorf("Some error")
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteDeploymentConfig(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteDeploymentConfig(kapi.NewDefaultContext(), "foo")
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -531,7 +531,7 @@ func TestEtcdDeleteOkDeploymentConfig(t *testing.T) {
 	key := makeTestDefaultDeploymentConfigKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	err := registry.DeleteDeploymentConfig(kubeapi.NewDefaultContext(), "foo")
+	err := registry.DeleteDeploymentConfig(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
@@ -546,8 +546,8 @@ func TestEtcdCreateDeploymentConfigFailsWithoutNamespace(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateDeploymentConfig(kubeapi.NewContext(), &api.DeploymentConfig{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateDeploymentConfig(kapi.NewContext(), &api.DeploymentConfig{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -561,8 +561,8 @@ func TestEtcdCreateDeploymentFailsWithoutNamespace(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
-	err := registry.CreateDeployment(kubeapi.NewContext(), &api.Deployment{
-		TypeMeta: kubeapi.TypeMeta{
+	err := registry.CreateDeployment(kapi.NewContext(), &api.Deployment{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -574,14 +574,14 @@ func TestEtcdCreateDeploymentFailsWithoutNamespace(t *testing.T) {
 
 func TestEtcdListDeploymentsInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
-	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
+	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
+	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
 	fakeClient.Data["/deployments/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
 					},
 				},
 			},
@@ -593,10 +593,10 @@ func TestEtcdListDeploymentsInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
 					},
 				},
 			},
@@ -624,14 +624,14 @@ func TestEtcdListDeploymentsInDifferentNamespaces(t *testing.T) {
 
 func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
-	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
+	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
+	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
 	fakeClient.Data["/deploymentConfigs/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
 					},
 				},
 			},
@@ -643,10 +643,10 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
 					},
 				},
 			},
@@ -674,10 +674,10 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 
 func TestEtcdGetDeploymentConfigInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
-	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
-	fakeClient.Set("/deploymentConfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/deploymentConfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
+	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
+	fakeClient.Set("/deploymentConfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/deploymentConfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetDeploymentConfig(namespaceAlfa, "foo")
@@ -699,10 +699,10 @@ func TestEtcdGetDeploymentConfigInDifferentNamespaces(t *testing.T) {
 
 func TestEtcdGetDeploymentInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	namespaceAlfa := kubeapi.WithNamespace(kubeapi.NewContext(), "alfa")
-	namespaceBravo := kubeapi.WithNamespace(kubeapi.NewContext(), "bravo")
-	fakeClient.Set("/deployments/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/deployments/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
+	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
+	fakeClient.Set("/deployments/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/deployments/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Deployment{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetDeployment(namespaceAlfa, "foo")

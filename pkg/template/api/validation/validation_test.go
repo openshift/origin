@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/template/api"
@@ -47,27 +47,27 @@ func TestValidateTemplate(t *testing.T) {
 		},
 		{ // Template with ID, should pass
 			&api.Template{
-				TypeMeta: kubeapi.TypeMeta{ID: "templateId"},
+				TypeMeta: kapi.TypeMeta{ID: "templateId"},
 			},
 			true,
 		},
 		{ // Template with invalid Parameter, should fail on Parameter name
 			&api.Template{
-				TypeMeta:   kubeapi.TypeMeta{ID: "templateId"},
+				TypeMeta:   kapi.TypeMeta{ID: "templateId"},
 				Parameters: []api.Parameter{{Name: "", Value: "1"}},
 			},
 			false,
 		},
 		{ // Template with valid Parameter, should pass
 			&api.Template{
-				TypeMeta:   kubeapi.TypeMeta{ID: "templateId"},
+				TypeMeta:   kapi.TypeMeta{ID: "templateId"},
 				Parameters: []api.Parameter{{Name: "VALID_NAME", Value: "1"}},
 			},
 			true,
 		},
 		{ // Template with Item of unknown Kind, should pass
 			&api.Template{
-				TypeMeta:   kubeapi.TypeMeta{ID: "templateId"},
+				TypeMeta:   kapi.TypeMeta{ID: "templateId"},
 				Parameters: []api.Parameter{{Name: "VALID_NAME", Value: "1"}},
 				Items:      []runtime.EmbeddedObject{{}},
 			},

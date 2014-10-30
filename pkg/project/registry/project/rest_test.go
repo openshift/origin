@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/project/api"
@@ -56,12 +56,12 @@ func TestListProjectsPopulatedList(t *testing.T) {
 	mockRegistry.Projects = &api.ProjectList{
 		Items: []api.Project{
 			{
-				TypeMeta: kubeapi.TypeMeta{
+				TypeMeta: kapi.TypeMeta{
 					ID: "foo",
 				},
 			},
 			{
-				TypeMeta: kubeapi.TypeMeta{
+				TypeMeta: kapi.TypeMeta{
 					ID: "bar",
 				},
 			},
@@ -114,7 +114,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Project{
-		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -125,11 +125,11 @@ func TestCreateRegistrySaveError(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != kubeapi.StatusFailure || status.Message != "foo" {
+		if status.Status != kapi.StatusFailure || status.Message != "foo" {
 			t.Errorf("Expected failure status, got %#V", status)
 		}
 	case <-time.After(50 * time.Millisecond):
@@ -143,7 +143,7 @@ func TestCreateProjectOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Project{
-		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -184,7 +184,7 @@ func TestGetProjectError(t *testing.T) {
 func TestGetProjectOK(t *testing.T) {
 	mockRegistry := test.NewProjectRegistry()
 	mockRegistry.Project = &api.Project{
-		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 
@@ -227,11 +227,11 @@ func TestDeleteProject(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kubeapi.Status)
+		status, ok := result.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != kubeapi.StatusSuccess {
+		if status.Status != kapi.StatusSuccess {
 			t.Errorf("Expected status=success, got: %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):

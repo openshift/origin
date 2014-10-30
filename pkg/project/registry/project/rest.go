@@ -3,7 +3,7 @@ package project
 import (
 	"fmt"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -30,7 +30,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // List retrieves a list of Projects that match selector.
-func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	projects, err := s.registry.ListProjects(ctx, selector)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 }
 
 // Get retrieves an Project by id.
-func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	project, err := s.registry.GetProject(ctx, id)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 }
 
 // Create registers the given Project.
-func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	project, ok := obj.(*api.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
@@ -77,14 +77,14 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 }
 
 // Update is not supported for Projects, as they are immutable.
-func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	// TODO handle update of display name, labels, etc.
 	return nil, fmt.Errorf("Projects may not be changed.")
 }
 
 // Delete asynchronously deletes a Project specified by its id.
-func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteProject(ctx, id)
+		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteProject(ctx, id)
 	}), nil
 }

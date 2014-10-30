@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -24,13 +24,13 @@ type BuildJobStrategy interface {
 // BuildController watches build resources and manages their state
 type BuildController struct {
 	osClient        osclient.Interface
-	kubeClient      kubeclient.Interface
+	kubeClient      kclient.Interface
 	buildStrategies map[api.BuildType]BuildJobStrategy
 	timeout         int
 }
 
 // NewBuildController creates a new build controller
-func NewBuildController(kc kubeclient.Interface,
+func NewBuildController(kc kclient.Interface,
 	oc osclient.Interface,
 	strategies map[api.BuildType]BuildJobStrategy,
 	timeout int) *BuildController {

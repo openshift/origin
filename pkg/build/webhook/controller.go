@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 )
@@ -48,7 +48,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	buildCfg, err := c.osClient.GetBuildConfig(kubeapi.WithNamespaceDefaultIfNone(ctx), uv.buildId)
+	buildCfg, err := c.osClient.GetBuildConfig(kapi.WithNamespaceDefaultIfNone(ctx), uv.buildId)
 	if err != nil {
 		badRequest(w, err.Error())
 		return
@@ -77,7 +77,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if _, err := c.osClient.CreateBuild(kubeapi.WithNamespaceDefaultIfNone(ctx), build); err != nil {
+	if _, err := c.osClient.CreateBuild(kapi.WithNamespaceDefaultIfNone(ctx), build); err != nil {
 		badRequest(w, err.Error())
 	}
 }
@@ -85,9 +85,9 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // parseUrl retrieves the namespace from the query parameters and returns a context wrapping the namespace,
 // the parameters for the webhook call, and an error.
 // according to the docs (http://godoc.org/code.google.com/p/go.net/context) ctx is not supposed to be wrapped in another object
-func parseUrl(req *http.Request) (ctx kubeapi.Context, uv urlVars, err error) {
+func parseUrl(req *http.Request) (ctx kapi.Context, uv urlVars, err error) {
 	url := req.URL.Path
-	ctx = kubeapi.NewContext()
+	ctx = kapi.NewContext()
 
 	parts := splitPath(url)
 	if len(parts) < 3 {
@@ -105,7 +105,7 @@ func parseUrl(req *http.Request) (ctx kubeapi.Context, uv urlVars, err error) {
 	// for all other operations, if namespace is omitted, we will default to default namespace.
 	namespace := req.URL.Query().Get("namespace")
 	if len(namespace) > 0 {
-		ctx = kubeapi.WithNamespace(ctx, namespace)
+		ctx = kapi.WithNamespace(ctx, namespace)
 	}
 
 	return

@@ -1,14 +1,14 @@
 package api
 
 import (
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
 type User struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	Labels           map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is a human readable string uniquely representing this user at any time.
@@ -18,12 +18,12 @@ type User struct {
 }
 
 type UserList struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	Items            []User `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type Identity struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	Labels           map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is the unique identifier of a user within a given provider
@@ -36,7 +36,7 @@ type Identity struct {
 }
 
 type UserIdentityMapping struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 
 	Identity Identity `json:"identity,omitempty" yaml:"identity,omitempty"`
 	User     User     `json:"user,omitempty" yaml:"user,omitempty"`

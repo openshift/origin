@@ -3,7 +3,7 @@ package test
 import (
 	"sync"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -20,21 +20,21 @@ func NewDeploymentConfigRegistry() *DeploymentConfigRegistry {
 	return &DeploymentConfigRegistry{}
 }
 
-func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx kubeapi.Context, selector labels.Selector) (*api.DeploymentConfigList, error) {
+func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx kapi.Context, selector labels.Selector) (*api.DeploymentConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfigs, r.Err
 }
 
-func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx kubeapi.Context, id string) (*api.DeploymentConfig, error) {
+func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx kapi.Context, id string) (*api.DeploymentConfig, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfig, r.Err
 }
 
-func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx kubeapi.Context, image *api.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx kapi.Context, image *api.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -42,7 +42,7 @@ func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx kubeapi.Context, i
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx kubeapi.Context, image *api.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx kapi.Context, image *api.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -50,13 +50,13 @@ func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx kubeapi.Context, i
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) DeleteDeploymentConfig(ctx kubeapi.Context, id string) error {
+func (r *DeploymentConfigRegistry) DeleteDeploymentConfig(ctx kapi.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kubeapi.Context, resourceVersion string, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error) {
+func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, resourceVersion string, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error) {
 	return nil, r.Err
 }

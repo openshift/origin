@@ -3,7 +3,7 @@ package clientauthorization
 import (
 	"fmt"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -28,7 +28,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Get retrieves an ClientAuthorization by id.
-func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	authorization, err := s.registry.GetClientAuthorization(id)
 	if err != nil {
 		return nil, err
@@ -37,12 +37,12 @@ func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 }
 
 // List retrieves a list of ClientAuthorizations that match selector.
-func (s *REST) List(ctx kubeapi.Context, label, fields labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, label, fields labels.Selector) (runtime.Object, error) {
 	return s.registry.ListClientAuthorizations(label, labels.Everything())
 }
 
 // Create registers the given ClientAuthorization.
-func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	authorization, ok := obj.(*api.ClientAuthorization)
 	if !ok {
 		return nil, fmt.Errorf("not an authorization: %#v", obj)
@@ -68,13 +68,13 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 }
 
 // Update modifies an existing client authorization
-func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	return s.Create(ctx, obj)
 }
 
 // Delete asynchronously deletes an ClientAuthorization specified by its id.
-func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, s.registry.DeleteClientAuthorization(id)
+		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteClientAuthorization(id)
 	}), nil
 }
