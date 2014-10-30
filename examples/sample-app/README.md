@@ -96,14 +96,14 @@ All commands assume the `openshift` binary is in your path:
 
         ID                  Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
-        docker-registry                                       name=registrypod    172.17.17.1         5001
-        frontend            template=ruby-helloworld-sample   name=frontend       172.17.17.2         5432
+        docker-registry                                       name=registrypod    172.121.17.1         5001
+        frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.2         5432
 
-    In this case, the IP for frontend is 172.17.17.2.
+    In this case, the IP for frontend is 172.121.17.2.
 
 13. Confirm the application is now accessible via the frontend service on port 5432:
 
-        $ curl http://172.17.17.2:5432
+        $ curl http://172.121.17.2:5432
 
     Sample output:
 
@@ -125,7 +125,7 @@ All commands assume the `openshift` binary is in your path:
 
 17. Use 'docker ps' to watch as OpenShift automatically recreates the killed container using the latest version of your image.  Once the container is recreated, curl the application to see the change you made in step 15.
 
-        $ curl http://172.17.17.2:5432
+        $ curl http://172.121.17.2:5432
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.  To clean up all of your environment, you can run the script:
 
