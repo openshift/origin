@@ -42,7 +42,7 @@ func (dc *CustomPodDeploymentController) Run() {
 func (dc *CustomPodDeploymentController) HandleDeployment() error {
 	deployment := dc.NextDeployment()
 
-	if deployment.Strategy.Type != deployapi.DeploymentStrategyTypeCustomPod {
+	if deployment.Strategy == nil || deployment.Strategy.CustomPod == nil {
 		glog.V(4).Infof("Dropping deployment %s due to incompatible strategy type %s", deployment.ID, deployment.Strategy)
 		return nil
 	}
@@ -50,13 +50,6 @@ func (dc *CustomPodDeploymentController) HandleDeployment() error {
 	ctx := kapi.WithNamespace(kapi.NewContext(), deployment.Namespace)
 	glog.V(4).Infof("Synchronizing deployment id: %v status: %v resourceVersion: %v",
 		deployment.ID, deployment.Status, deployment.ResourceVersion)
-
-	// TODO: this can all be simplified because the deployment event loop only creates new pods
-	// for the pod state machine to handle
-	if deployment.Strategy.Type != deployapi.DeploymentStrategyTypeCustomPod {
-		glog.V(4).Infof("Dropping deployment %v", deployment.ID)
-		return nil
-	}
 
 	if deployment.Status != deployapi.DeploymentStatusNew {
 		glog.V(4).Infof("Dropping deployment %v", deployment.ID)

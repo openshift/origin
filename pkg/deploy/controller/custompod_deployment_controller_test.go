@@ -197,9 +197,6 @@ func basicDeployment() *deployapi.Deployment {
   return &deployapi.Deployment{
     TypeMeta: kapi.TypeMeta{ID: "deploy1"},
     Status:   deployapi.DeploymentStatusNew,
-    Strategy: deployapi.DeploymentStrategy{
-      Type: deployapi.DeploymentStrategyTypeBasic,
-    },
     ControllerTemplate: kapi.ReplicationControllerState{
       PodTemplate: kapi.PodTemplate{
         DesiredState: kapi.PodState{
@@ -219,8 +216,7 @@ func basicDeployment() *deployapi.Deployment {
 
 func customPodDeployment() *deployapi.Deployment {
   d := basicDeployment()
-  d.Strategy = deployapi.DeploymentStrategy{
-    Type: deployapi.DeploymentStrategyTypeCustomPod,
+  d.Strategy = &deployapi.DeploymentStrategy{
     CustomPod: &deployapi.CustomPodDeploymentStrategy{
       Image:       "registry:8080/repo1:ref1",
       Environment: []kapi.EnvVar{},

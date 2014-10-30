@@ -9,7 +9,7 @@ import (
 type Deployment struct {
 	api.TypeMeta       `json:",inline" yaml:",inline"`
 	Labels             map[string]string              `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Strategy           DeploymentStrategy             `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	Strategy           *DeploymentStrategy            `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	ControllerTemplate api.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 	Status             DeploymentStatus               `json:"status,omitempty" yaml:"status,omitempty"`
 }
@@ -44,20 +44,9 @@ const DeploymentConfigLabel = "deploymentConfig"
 
 // DeploymentStrategy describes how to perform a deployment.
 type DeploymentStrategy struct {
-	Type DeploymentStrategyType `json:"type,omitempty" yaml:"type,omitempty"`
 	// CustomPod represents the parameters for the CustomPod strategy.
 	CustomPod *CustomPodDeploymentStrategy `json:"customPod,omitempty" yaml:"customPod,omitempty"`
 }
-
-// DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
-type DeploymentStrategyType string
-
-const (
-	// DeploymentStrategyTypeBasic is a simple remove-and-replace deployment strategy.
-	DeploymentStrategyTypeBasic DeploymentStrategyType = "Basic"
-	// DeploymentStrategyTypeCustomPod is a custom deployment strategy carried out by a pod.
-	DeploymentStrategyTypeCustomPod DeploymentStrategyType = "CustomPod"
-)
 
 // CustomPodDeploymentStrategy represents parameters for the CustomPod strategy.
 type CustomPodDeploymentStrategy struct {
@@ -93,7 +82,7 @@ type DeploymentConfigList struct {
 // DeploymentTemplate contains all the necessary information to create a Deployment from a
 // DeploymentStrategy.
 type DeploymentTemplate struct {
-	Strategy           DeploymentStrategy             `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	Strategy           *DeploymentStrategy            `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	ControllerTemplate api.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 }
 

@@ -157,8 +157,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
       },
     },
     Template: deployapi.DeploymentTemplate{
-      Strategy: deployapi.DeploymentStrategy{
-        Type: deployapi.DeploymentStrategyTypeCustomPod,
+      Strategy: &deployapi.DeploymentStrategy{
         CustomPod: &deployapi.CustomPodDeploymentStrategy{
           Image: "registry:8080/openshift/kube-deploy",
         },
@@ -204,8 +203,7 @@ func regeneratedConfig() *deployapi.DeploymentConfig {
       },
     },
     Template: deployapi.DeploymentTemplate{
-      Strategy: deployapi.DeploymentStrategy{
-        Type: deployapi.DeploymentStrategyTypeCustomPod,
+      Strategy: &deployapi.DeploymentStrategy{
         CustomPod: &deployapi.CustomPodDeploymentStrategy{
           Image: "registry:8080/openshift/kube-deploy",
         },

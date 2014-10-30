@@ -11,7 +11,7 @@ import (
 //       upstream and fix when it goes in.
 
 func ValidateDeployment(deployment *deployapi.Deployment) errors.ErrorList {
-	result := validateDeploymentStrategy(&deployment.Strategy).Prefix("strategy")
+	result := validateDeploymentStrategy(deployment.Strategy).Prefix("strategy")
 	controllerStateErrors := validation.ValidateReplicationControllerState(&deployment.ControllerTemplate)
 	result = append(result, controllerStateErrors.Prefix("controllerTemplate")...)
 
@@ -20,17 +20,8 @@ func ValidateDeployment(deployment *deployapi.Deployment) errors.ErrorList {
 
 func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.ErrorList {
 	result := errors.ErrorList{}
-
-	if len(strategy.Type) == 0 {
-		result = append(result, errors.NewFieldRequired("type", ""))
-	}
-
-	if strategy.Type == deployapi.DeploymentStrategyTypeCustomPod {
-		if strategy.CustomPod == nil {
-			result = append(result, errors.NewFieldRequired("customPod", nil))
-		} else {
-			result = append(result, validateCustomPodStrategy(strategy.CustomPod).Prefix("customPod")...)
-		}
+	if strategy.CustomPod != nil {
+		result = append(result, validateCustomPodStrategy(strategy.CustomPod).Prefix("customPod")...)
 	}
 
 	return result
@@ -85,7 +76,7 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ErrorLi
 		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
 	}
 
-	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
+	result = append(result, validateDeploymentStrategy(config.Template.Strategy).Prefix("template.strategy")...)
 	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
 	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
 

@@ -131,8 +131,7 @@ func initialConfig() *deployapi.DeploymentConfig {
     },
     LatestVersion: 2,
     Template: deployapi.DeploymentTemplate{
-      Strategy: deployapi.DeploymentStrategy{
-        Type: deployapi.DeploymentStrategyTypeCustomPod,
+      Strategy: &deployapi.DeploymentStrategy{
         CustomPod: &deployapi.CustomPodDeploymentStrategy{
           Image: "registry:8080/openshift/kube-deploy",
         },
@@ -173,8 +172,7 @@ func diffedConfig() *deployapi.DeploymentConfig {
     },
     LatestVersion: 2,
     Template: deployapi.DeploymentTemplate{
-      Strategy: deployapi.DeploymentStrategy{
-        Type: deployapi.DeploymentStrategyTypeCustomPod,
+      Strategy: &deployapi.DeploymentStrategy{
         CustomPod: &deployapi.CustomPodDeploymentStrategy{
           Image: "registry:8080/openshift/kube-deploy",
         },
@@ -215,8 +213,7 @@ func generatedConfig() *deployapi.DeploymentConfig {
     },
     LatestVersion: 3,
     Template: deployapi.DeploymentTemplate{
-      Strategy: deployapi.DeploymentStrategy{
-        Type: deployapi.DeploymentStrategyTypeCustomPod,
+      Strategy: &deployapi.DeploymentStrategy{
         CustomPod: &deployapi.CustomPodDeploymentStrategy{
           Image: "registry:8080/openshift/kube-deploy",
         },
@@ -251,8 +248,7 @@ func matchingInitialDeployment() *deployapi.Deployment {
   return &deployapi.Deployment{
     TypeMeta: kapi.TypeMeta{ID: "test-deploy-config-1"},
     Status:   deployapi.DeploymentStatusNew,
-    Strategy: deployapi.DeploymentStrategy{
-      Type: deployapi.DeploymentStrategyTypeCustomPod,
+    Strategy: &deployapi.DeploymentStrategy{
       CustomPod: &deployapi.CustomPodDeploymentStrategy{
         Image:       "registry:8080/repo1:ref1",
         Environment: []kapi.EnvVar{},
