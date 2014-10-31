@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/api/v1beta1"
 )
 
-var fuzzIters = flag.Int("fuzz_iters", 40, "How many fuzzing iterations to do.")
+var fuzzIters = flag.Int("fuzz_iters", 30, "How many fuzzing iterations to do.")
 
 // apiObjectFuzzer can randomly populate api objects.
 var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
