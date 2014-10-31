@@ -241,6 +241,7 @@ func (c *Client) GetImageRepository(ctx kapi.Context, id string) (result *imagea
 // WatchImageRepositories returns a watch.Interface that watches the requested imagerepositories.
 func (c *Client) WatchImageRepositories(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
+		Namespace(kapi.Namespace(ctx)).
 		Path("watch").
 		Path("imageRepositories").
 		Param("resourceVersion", resourceVersion).
@@ -277,6 +278,7 @@ func (c *Client) ListDeploymentConfigs(ctx kapi.Context, selector labels.Selecto
 
 func (c *Client) WatchDeploymentConfigs(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
+		Namespace(kapi.Namespace(ctx)).
 		Path("watch").
 		Path("deploymentConfigs").
 		Param("resourceVersion", resourceVersion).
@@ -314,7 +316,7 @@ func (c *Client) DeleteDeploymentConfig(ctx kapi.Context, id string) error {
 // GenerateDeploymentConfig generates a new deploymentConfig for the given ID.
 func (c *Client) GenerateDeploymentConfig(ctx kapi.Context, id string) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.Get().Path("generateDeploymentConfigs").Path(id).Do().Into(result)
+	err = c.Get().Namespace(kapi.Namespace(ctx)).Path("generateDeploymentConfigs").Path(id).Do().Into(result)
 	return
 }
 
@@ -354,6 +356,7 @@ func (c *Client) DeleteDeployment(ctx kapi.Context, id string) error {
 // WatchDeployments returns a watch.Interface that watches the requested deployments.
 func (c *Client) WatchDeployments(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
+		Namespace(kapi.Namespace(ctx)).
 		Path("watch").
 		Path("deployments").
 		Param("resourceVersion", resourceVersion).
@@ -398,6 +401,7 @@ func (c *Client) UpdateRoute(ctx kapi.Context, route *routeapi.Route) (result *r
 // WatchRoutes returns a watch.Interface that watches the requested routes.
 func (c *Client) WatchRoutes(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
+		Namespace(kapi.Namespace(ctx)).
 		Path("watch").
 		Path("routes").
 		Param("resourceVersion", resourceVersion).

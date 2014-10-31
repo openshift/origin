@@ -10,16 +10,20 @@ import (
 )
 
 type testIcDeploymentConfigInterface struct {
-	UpdateDeploymentConfigFunc   func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
-	GenerateDeploymentConfigFunc func(id string) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfigFunc   func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	GenerateDeploymentConfigFunc func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error)
 }
 
 func (i *testIcDeploymentConfigInterface) UpdateDeploymentConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	return i.UpdateDeploymentConfigFunc(config)
+	return i.UpdateDeploymentConfigFunc(ctx, config)
 }
 func (i *testIcDeploymentConfigInterface) GenerateDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-	return i.GenerateDeploymentConfigFunc(id)
+	return i.GenerateDeploymentConfigFunc(ctx, id)
 }
+
+const (
+	nonDefaultNamespace = "nondefaultnamespace"
+)
 
 func TestUnregisteredContainer(t *testing.T) {
 	config := unregisteredConfig()
@@ -27,11 +31,11 @@ func TestUnregisteredContainer(t *testing.T) {
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
+			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
@@ -52,11 +56,11 @@ func TestImageChangeForUnregisteredTag(t *testing.T) {
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
+			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
@@ -73,18 +77,22 @@ func TestImageChangeForUnregisteredTag(t *testing.T) {
 
 func TestImageChange(t *testing.T) {
 	var (
-		generatedConfig *deployapi.DeploymentConfig
-		updatedConfig   *deployapi.DeploymentConfig
+		generatedConfig          *deployapi.DeploymentConfig
+		updatedConfig            *deployapi.DeploymentConfig
+		generatedConfigNamespace string
+		updatedConfigNamespace   string
 	)
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				updatedConfigNamespace = kapi.Namespace(ctx)
 				updatedConfig = config
 				return updatedConfig, nil
 			},
-			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
-				generatedConfig = regeneratedConfig()
+			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+				generatedConfigNamespace = kapi.Namespace(ctx)
+				generatedConfig = regeneratedConfig(ctx)
 				return generatedConfig, nil
 			},
 		},
@@ -109,6 +117,16 @@ func TestImageChange(t *testing.T) {
 	} else if updatedConfig.Details.Causes[0].Type != deployapi.DeploymentTriggerOnImageChange {
 		t.Fatalf("expected ChangeLog details to be set to image change trigger, got %s", updatedConfig.Details.Causes[0].Type)
 	}
+	if generatedConfigNamespace != nonDefaultNamespace {
+		t.Errorf("Expected generatedConfigNamespace %v, got %v", nonDefaultNamespace, generatedConfigNamespace)
+	}
+	if updatedConfigNamespace != nonDefaultNamespace {
+		t.Errorf("Expected updatedConfigNamespace %v, got %v", nonDefaultNamespace, updatedConfigNamespace)
+	}
+
+	if e, a := updatedConfig.ID, generatedConfig.ID; e != a {
+		t.Fatalf("expected updated config with id %s, got %s", e, a)
+	}
 
 	if e, a := updatedConfig.ID, generatedConfig.ID; e != a {
 		t.Fatalf("expected updated config with id %s, got %s", e, a)
@@ -119,7 +137,7 @@ func TestImageChange(t *testing.T) {
 
 func originalImageRepo() *imageapi.ImageRepository {
 	return &imageapi.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
+		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo", Namespace: nonDefaultNamespace},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"test-tag": "ref-1",
@@ -129,7 +147,7 @@ func originalImageRepo() *imageapi.ImageRepository {
 
 func unregisteredTagUpdate() *imageapi.ImageRepository {
 	return &imageapi.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
+		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo", Namespace: nonDefaultNamespace},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"test-tag":       "ref-1",
@@ -140,7 +158,7 @@ func unregisteredTagUpdate() *imageapi.ImageRepository {
 
 func tagUpdate() *imageapi.ImageRepository {
 	return &imageapi.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
+		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo", Namespace: nonDefaultNamespace},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"test-tag": "ref-2",
@@ -195,9 +213,9 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 	}
 }
 
-func regeneratedConfig() *deployapi.DeploymentConfig {
+func regeneratedConfig(ctx kapi.Context) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "image-change-deploy-config"},
+		TypeMeta: kapi.TypeMeta{ID: "image-change-deploy-config", Namespace: kapi.Namespace(ctx)},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnImageChange,
