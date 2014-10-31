@@ -19,8 +19,8 @@ package health
 import (
 	"sync"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/golang/glog"
+	api "github.com/openshift/origin/pkg/api2"
 )
 
 // Status represents the result of a single health-check operation.

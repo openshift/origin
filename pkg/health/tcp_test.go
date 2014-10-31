@@ -23,8 +23,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	api "github.com/openshift/origin/pkg/api2"
+	"github.com/openshift/origin/pkg/util"
 )
 
 func TestGetTCPAddrParts(t *testing.T) {

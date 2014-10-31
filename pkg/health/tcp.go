@@ -21,9 +21,9 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	api "github.com/openshift/origin/pkg/api2"
+	"github.com/openshift/origin/pkg/util"
 )
 
 type TCPHealthChecker struct{}

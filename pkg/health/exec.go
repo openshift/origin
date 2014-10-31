@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/golang/glog"
+	api "github.com/openshift/origin/pkg/api2"
 )
 
 const defaultHealthyOutput = "ok"

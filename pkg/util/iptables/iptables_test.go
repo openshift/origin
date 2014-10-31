@@ -19,8 +19,8 @@ package iptables
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
+	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/util/exec"
 )
 
 func TestEnsureChain(t *testing.T) {

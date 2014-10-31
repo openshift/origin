@@ -19,7 +19,7 @@ package labels
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/openshift/origin/pkg/util"
 )
 
 func TestSelectorParse(t *testing.T) {

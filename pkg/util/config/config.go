@@ -19,7 +19,7 @@ package config
 import (
 	"sync"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/openshift/origin/pkg/util"
 )
 
 type Merger interface {

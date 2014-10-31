@@ -21,9 +21,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	api "github.com/openshift/origin/pkg/api2"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // HTTPGetInterface is an abstract interface for testability. It abstracts the interface of http.Client.Get.

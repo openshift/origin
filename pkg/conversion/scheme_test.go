@@ -24,9 +24,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/openshift/origin/Godeps/_workspace/src/github.com/google/gofuzz"
+	"github.com/openshift/origin/pkg/util"
 
-	"github.com/google/gofuzz"
 	"gopkg.in/v1/yaml"
 )
 

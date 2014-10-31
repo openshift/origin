@@ -17,7 +17,7 @@ limitations under the License.
 package runtime
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // Note that the types provided in this file are not versioned and are intended to be

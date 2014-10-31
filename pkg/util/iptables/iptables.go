@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sync"
 
-	utilexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/golang/glog"
+	utilexec "github.com/openshift/origin/pkg/util/exec"
 )
 
 // An injectable interface for running iptables commands.  Implementations must be goroutine-safe.

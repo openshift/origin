@@ -19,7 +19,7 @@ package runtime
 import (
 	"reflect"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	"github.com/openshift/origin/pkg/conversion"
 )
 
 // Scheme defines methods for serializing and deserializing API objects. It
