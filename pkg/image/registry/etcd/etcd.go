@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -99,6 +100,26 @@ func (r *Etcd) DeleteImage(ctx kapi.Context, id string) error {
 
 	err = r.Delete(key, false)
 	return etcderr.InterpretDeleteError(err, "image", id)
+}
+
+// WatchImages begins watching for new or deleted Images.
+func (r *Etcd) WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	version, err := parseWatchResourceVersion(resourceVersion, "image")
+	if err != nil {
+		return nil, err
+	}
+	if !field.Empty() {
+		return nil, fmt.Errorf("field selectors are not supported on images")
+	}
+
+	return r.WatchList(makeImageListKey(ctx), version, func(obj runtime.Object) bool {
+		image, ok := obj.(*api.Image)
+		if !ok {
+			glog.Errorf("Unexpected object during image watch: %#v", obj)
+			return false
+		}
+		return label.Matches(labels.Set(image.Labels))
+	})
 }
 
 // ListImageRepositories retrieves a list of ImageRepositories that match selector.

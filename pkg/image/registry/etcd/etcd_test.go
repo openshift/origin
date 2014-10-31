@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -310,6 +311,108 @@ func TestEtcdDeleteImageOK(t *testing.T) {
 		t.Errorf("Expected 1 delete, found %#v", fakeClient.DeletedKeys)
 	} else if fakeClient.DeletedKeys[0] != key {
 		t.Errorf("Unexpected key: %s, expected %s", fakeClient.DeletedKeys[0], key)
+	}
+}
+
+func TestEtcdWatchImagesErrorWithFieldSet(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcd(fakeClient)
+
+	_, err := registry.WatchImages(kapi.NewDefaultContext(), labels.Everything(), labels.SelectorFromSet(labels.Set{"foo": "bar"}), "1")
+	if err == nil {
+		t.Fatal("unexpected nil error")
+	}
+	if err.Error() != "field selectors are not supported on images" {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+}
+
+func TestEtcdWatchImagesOK(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcd(fakeClient)
+
+	var tests = []struct {
+		label    labels.Selector
+		images   []*api.Image
+		expected []bool
+	}{
+		{
+			labels.Everything(),
+			[]*api.Image{
+				{TypeMeta: kapi.TypeMeta{ID: "a"}},
+				{TypeMeta: kapi.TypeMeta{ID: "b"}},
+				{TypeMeta: kapi.TypeMeta{ID: "c"}},
+			},
+			[]bool{
+				true,
+				true,
+				true,
+			},
+		},
+		{
+			labels.SelectorFromSet(labels.Set{"color": "blue"}),
+			[]*api.Image{
+				{TypeMeta: kapi.TypeMeta{ID: "a"}, Labels: map[string]string{"color": "blue"}},
+				{TypeMeta: kapi.TypeMeta{ID: "b"}, Labels: map[string]string{"color": "green"}},
+				{TypeMeta: kapi.TypeMeta{ID: "c"}, Labels: map[string]string{"color": "blue"}},
+			},
+			[]bool{
+				true,
+				false,
+				true,
+			},
+		},
+	}
+	for _, tt := range tests {
+		watching, err := registry.WatchImages(kapi.NewDefaultContext(), tt.label, labels.Everything(), "1")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		fakeClient.WaitForWatchCompletion()
+
+		for testIndex, image := range tt.images {
+			imageBytes, _ := latest.Codec.Encode(image)
+			fakeClient.WatchResponse <- &etcd.Response{
+				Action: "set",
+				Node: &etcd.Node{
+					Value: string(imageBytes),
+				},
+			}
+
+			select {
+			case event, ok := <-watching.ResultChan():
+				if !ok {
+					t.Errorf("watching channel should be open")
+				}
+				if !tt.expected[testIndex] {
+					t.Errorf("unexpected image returned from watch: %#v", event.Object)
+				}
+				if e, a := watch.Added, event.Type; e != a {
+					t.Errorf("Expected %v, got %v", e, a)
+				}
+				if e, a := image, event.Object; !reflect.DeepEqual(e, a) {
+					t.Errorf("Expected %v, got %v", e, a)
+				}
+			case <-time.After(50 * time.Millisecond):
+				if tt.expected[testIndex] {
+					t.Errorf("Expected image %#v to be returned from watch", image)
+				}
+			}
+		}
+
+		select {
+		case _, ok := <-watching.ResultChan():
+			if !ok {
+				t.Errorf("watching channel should be open")
+			}
+		default:
+		}
+
+		fakeClient.WatchInjectError <- nil
+		if _, ok := <-watching.ResultChan(); ok {
+			t.Errorf("watching channel should be closed")
+		}
+		watching.Stop()
 	}
 }
 

@@ -3,6 +3,7 @@ package image
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -18,4 +19,6 @@ type Registry interface {
 	UpdateImage(ctx kapi.Context, image *api.Image) error
 	// DeleteImage deletes an image.
 	DeleteImage(ctx kapi.Context, id string) error
+	// WatchImages watches for new or deleted images.
+	WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
