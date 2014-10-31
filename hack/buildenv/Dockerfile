@@ -3,9 +3,7 @@
 FROM  centos:centos7
 MAINTAINER  Clayton Coleman <ccoleman@redhat.com>
 
-RUN yum -y install epel-release && yum clean all
-
-RUN yum install -y tar git hg golang golang-pkg-darwin golang-pkg-windows && yum clean all
+RUN yum -y install epel-release && yum install -y tar git hg golang golang-pkg-darwin golang-pkg-windows && yum clean all
 
 ENV GOPATH /go
 # Get the code coverage tool and godep
