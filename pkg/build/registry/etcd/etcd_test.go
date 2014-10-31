@@ -1,13 +1,15 @@
 package etcd
 
 import (
+	"reflect"
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
@@ -21,7 +23,7 @@ func NewTestEtcd(client tools.EtcdClient) *Etcd {
 
 func TestEtcdGetBuild(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/registry/builds/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/registry/builds/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	build, err := registry.GetBuild("foo")
 	if err != nil {
@@ -57,7 +59,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(&api.Build{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 		Input: api.BuildInput{
@@ -94,14 +96,14 @@ func TestEtcdCreateBuildAlreadyExisting(t *testing.T) {
 	fakeClient.Data["/registry/builds/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(&api.Build{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -116,7 +118,7 @@ func TestEtcdDeleteBuild(t *testing.T) {
 
 	key := "/registry/builds/foo"
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Build{
-		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuild("foo")
@@ -162,12 +164,12 @@ func TestEtcdListBuilds(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+							TypeMeta: kapi.TypeMeta{ID: "foo"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
+							TypeMeta: kapi.TypeMeta{ID: "bar"},
 						}),
 					},
 				},
@@ -186,9 +188,52 @@ func TestEtcdListBuilds(t *testing.T) {
 	}
 }
 
+func TestEtcdWatchBuilds(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcd(fakeClient)
+	filterFields := labels.SelectorFromSet(labels.Set{"ID": "foo", "Status": string(api.BuildRunning), "PodID": "bar"})
+
+	watching, err := registry.WatchBuilds(kapi.NewContext(), labels.Everything(), filterFields, "1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	repo := &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}, Status: api.BuildRunning, PodID: "bar"}
+	repoBytes, _ := latest.Codec.Encode(repo)
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "set",
+		Node: &etcd.Node{
+			Value: string(repoBytes),
+		},
+	}
+
+	event := <-watching.ResultChan()
+	if e, a := watch.Added, event.Type; e != a {
+		t.Errorf("Expected %v, got %v", e, a)
+	}
+	if e, a := repo, event.Object; !reflect.DeepEqual(e, a) {
+		t.Errorf("Expected %v, got %v", e, a)
+	}
+
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	default:
+	}
+
+	fakeClient.WatchInjectError <- nil
+	if _, ok := <-watching.ResultChan(); ok {
+		t.Errorf("watching channel should be closed")
+	}
+	watching.Stop()
+}
+
 func TestEtcdGetBuildConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/registry/build-configs/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/registry/build-configs/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	buildConfig, err := registry.GetBuildConfig("foo")
 	if err != nil {
@@ -224,7 +269,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(&api.BuildConfig{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 		DesiredInput: api.BuildInput{
@@ -259,14 +304,14 @@ func TestEtcdCreateBuildConfigAlreadyExisting(t *testing.T) {
 	fakeClient.Data["/registry/build-configs/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(&api.BuildConfig{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -281,7 +326,7 @@ func TestEtcdDeleteBuildConfig(t *testing.T) {
 
 	key := "/registry/build-configs/foo"
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-		TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuildConfig("foo")
@@ -327,12 +372,12 @@ func TestEtcdListBuildConfigs(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+							TypeMeta: kapi.TypeMeta{ID: "foo"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
+							TypeMeta: kapi.TypeMeta{ID: "bar"},
 						}),
 					},
 				},
