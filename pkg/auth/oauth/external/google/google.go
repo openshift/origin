@@ -8,7 +8,8 @@ import (
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/auth/api"
+
+	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 )
 
@@ -26,6 +27,7 @@ func NewProvider(client_id, client_secret string) external.Provider {
 	return provider{client_id, client_secret}
 }
 
+// NewConfig implements external/interfaces/Provider.NewConfig
 func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{
 		ClientId:                 p.client_id,
@@ -39,12 +41,14 @@ func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	return config, nil
 }
 
+// AddCustomParameters implements external/interfaces/Provider.AddCustomParameters
 func (p provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
 	req.CustomParameters["include_granted_scopes"] = "true"
 	req.CustomParameters["access_type"] = "offline"
 }
 
-func (p provider) GetUserInfo(data *osincli.AccessData) (api.UserInfo, bool, error) {
+// GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
+func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
 	idToken, ok := data.ResponseData["id_token"].(string)
 	if !ok {
 		return nil, false, fmt.Errorf("No id_token returned in %v", data.ResponseData)
@@ -61,14 +65,16 @@ func (p provider) GetUserInfo(data *osincli.AccessData) (api.UserInfo, bool, err
 		return nil, false, fmt.Errorf("Could not retrieve Google id")
 	}
 
-	user := &api.DefaultUserInfo{
+	identity := &authapi.DefaultUserIdentityInfo{
 		Name: id,
 		Extra: map[string]string{
 			"name":  email,
 			"email": email,
 		},
 	}
-	return user, true, nil
+	glog.V(4).Infof("identity=%v", identity)
+
+	return identity, true, nil
 }
 
 // Decode JWT
