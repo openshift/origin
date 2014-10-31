@@ -1,0 +1,31 @@
+[{
+    "apiVersion": "v1beta1",
+    "creationTimestamp": "2014-09-10T19:30:36Z",
+    "desiredInput": {
+        "imageTag": "test-database",
+        "registry": "localhost:5000",
+        "sourceURI": "git://github.com/pmorie/simple-ruby",
+        "stiInput": {
+            "builderImage": "mysql"
+        }
+    },
+    "id": "9a3a5b7c-4ee9-11e4-9d75-0800279696e1",
+    "kind": "BuildConfig",
+    "resourceVersion": 116
+},
+
+{
+    "apiVersion": "v1beta1",
+    "creationTimestamp": "2014-09-16T19:33:36Z",
+    "desiredInput": {
+        "imageTag": "test-ruby-app",
+        "registry": "localhost:5000",
+        "sourceURI": "git://github.com/pmorie/simple-ruby",
+        "stiInput": {
+            "builderImage": "openshift/ruby-19-centos"
+        }
+    },
+    "id": "5a6a5b9c-3dd8-11e4-9d75-0800279696e1",
+    "kind": "BuildConfig",
+    "resourceVersion": 117
+}]
