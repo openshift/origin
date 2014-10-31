@@ -4,6 +4,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/openshift/origin/pkg/api/latest"
+	kubectl "github.com/openshift/origin/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -55,4 +57,42 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.StringVar(&cfg.nsFile, "ns_file", os.Getenv("HOME")+"/.kubernetes_ns", "Path to the namespace file")
 
 	return cmd
+}
+
+func NewCommandKubectl(name string) *cobra.Command {
+	cmds := &cobra.Command{
+		Use:   name,
+		Short: "kubectl controls the Kubernetes cluster manager",
+		Long: `kubectl controls the Kubernetes cluster manager.
+
+Find more information at https://github.com/GoogleCloudPlatform/kubernetes.`,
+		Run: func(c *cobra.Command, args []string) {
+			c.Help()
+		},
+	}
+
+	// Globally persistent flags across all subcommands.
+	// TODO Change flag names to consts to allow safer lookup from subcommands.
+	// TODO Add a verbose flag that turns on glog logging. Probably need a way
+	// to do that automatically for every subcommand.
+	cmds.PersistentFlags().StringP("server", "s", "", "Kubernetes apiserver to connect to")
+	cmds.PersistentFlags().StringP("auth-path", "a", os.Getenv("HOME")+"/.kubernetes_auth", "Path to the auth info file. If missing, prompt the user. Only used if using https.")
+	cmds.PersistentFlags().Bool("match-server-version", false, "Require server version to match client version")
+	cmds.PersistentFlags().String("api-version", latest.Version, "The version of the API to use against the server (used for viewing resources only)")
+	cmds.PersistentFlags().String("certificate-authority", "", "Path to a certificate file for the certificate authority")
+	cmds.PersistentFlags().String("client-certificate", "", "Path to a client certificate for TLS.")
+	cmds.PersistentFlags().String("client-key", "", "Path to a client key file for TLS.")
+	cmds.PersistentFlags().Bool("insecure-skip-tls-verify", false, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
+
+	f := kubectl.NewFactory()
+	out := os.Stdout
+	//cmds.AddCommand(NewCmdVersion(out))
+	//cmds.AddCommand(NewCmdProxy(out))
+	cmds.AddCommand(f.NewCmdGet(out))
+	cmds.AddCommand(f.NewCmdDescribe(out))
+	cmds.AddCommand(f.NewCmdCreate(out))
+	cmds.AddCommand(f.NewCmdUpdate(out))
+	cmds.AddCommand(f.NewCmdDelete(out))
+
+	return cmds
 }

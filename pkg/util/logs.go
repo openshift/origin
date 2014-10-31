@@ -24,8 +24,6 @@ import (
 	"github.com/golang/glog"
 )
 
-var logFlushFreq = flag.Duration("log_flush_frequency", 5*time.Second, "Maximum number of seconds between log flushes")
-
 // TODO(thockin): This is temporary until we agree on log dirs and put those into each cmd.
 func init() {
 	flag.Set("logtostderr", "true")
@@ -45,7 +43,7 @@ func InitLogs() {
 	log.SetOutput(GlogWriter{})
 	log.SetFlags(0)
 	// The default glog flush interval is 30 seconds, which is frighteningly long.
-	go Forever(glog.Flush, *logFlushFreq)
+	go Forever(glog.Flush, time.Second*5)
 }
 
 // FlushLogs flushes logs immediately.
