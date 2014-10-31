@@ -21,6 +21,7 @@ func NewDefaultServerConfig() *osin.ServerConfig {
 		osin.CLIENT_CREDENTIALS,
 		osin.ASSERTION,
 	}
+	config.AllowClientSecretInParams = true
 	config.AllowGetAccessRequest = true
 	config.RedirectUriSeparator = ","
 

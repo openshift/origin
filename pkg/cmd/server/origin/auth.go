@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
+	"code.google.com/p/go-uuid/uuid"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/auth/api"
@@ -26,9 +30,11 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/session"
+	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
@@ -43,6 +49,16 @@ const (
 	OpenShiftLoginPrefix         = "/login"
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
+)
+
+var (
+	// OSBrowserClientBase is used as a skeleton for building a Client.  We can't set the allowed redirecturis because we don't yet know the host:port of the auth server
+	OSBrowserClientBase = oauthapi.Client{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "openshift-browser-client",
+		},
+		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
+	}
 )
 
 type AuthConfig struct {
@@ -94,6 +110,14 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 		osinserver.NewDefaultErrorHandler(),
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
+
+	c.createOrUpdateDefaultOAuthClients()
+	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
+	osOAuthClientConfig.RedirectUrl = c.MasterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint
+	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(authHandler, osOAuthClient)
+	tokenRequestEndpoints.Install(mux, OpenShiftOAuthAPIPrefix)
+
 	// glog.Infof("oauth server configured as: %#v", server)
 	// glog.Infof("auth handler: %#v", authHandler)
 	// glog.Infof("auth request handler: %#v", authRequestHandler)
@@ -103,6 +127,47 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	return []string{
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
 		fmt.Sprintf("Started login server at %%s%s", OpenShiftLoginPrefix),
+	}
+}
+
+func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.Client) *osincli.ClientConfig {
+	config := &osincli.ClientConfig{
+		ClientId:                 client.Name,
+		ClientSecret:             client.Secret,
+		ErrorsInStatusCode:       true,
+		SendClientSecretInParams: true,
+		AuthorizeUrl:             c.MasterAddr + OpenShiftOAuthAPIPrefix + "/authorize",
+		TokenUrl:                 c.MasterAddr + OpenShiftOAuthAPIPrefix + "/token",
+		Scope:                    "",
+	}
+	return config
+}
+
+func (c *AuthConfig) createOrUpdateDefaultOAuthClients() {
+	clientsToEnsure := []*oauthapi.Client{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: OSBrowserClientBase.Name,
+			},
+			Secret:       OSBrowserClientBase.Secret,
+			RedirectURIs: []string{c.MasterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+		},
+	}
+
+	oauthEtcd := oauthetcd.New(c.EtcdHelper)
+
+	for _, currClient := range clientsToEnsure {
+		if existing, err := oauthEtcd.GetClient(currClient.Name); err == nil || strings.Contains(err.Error(), " not found") {
+			if existing != nil {
+				oauthEtcd.DeleteClient(currClient.Name)
+			}
+			if err = oauthEtcd.CreateClient(currClient); err != nil {
+				glog.Errorf("Error creating client: %v due to %v\n", currClient, err)
+			}
+		} else {
+			glog.Errorf("Error getting client: %v due to %v\n", currClient, err)
+
+		}
 	}
 }
 
