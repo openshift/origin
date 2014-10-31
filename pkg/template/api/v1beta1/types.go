@@ -1,13 +1,13 @@
 package v1beta1
 
 import (
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
-	kubeapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
 
 	// Required: Name identifies the Template.
 	Name string `json:"name" yaml:"name"`

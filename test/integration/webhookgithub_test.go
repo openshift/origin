@@ -130,7 +130,7 @@ func setup(t *testing.T) (*osclient.Client, string) {
 	apiserver.InstallSupport(osMux)
 	s := httptest.NewServer(osMux)
 
-	kubeclient := client.NewOrDie(&client.Config{Host: s.URL, Version: klatest.Version})
+	kclient := client.NewOrDie(&client.Config{Host: s.URL, Version: klatest.Version})
 	osClient := osclient.NewOrDie(&client.Config{Host: s.URL, Version: latest.Version})
 
 	whPrefix := osPrefix + "/buildConfigHooks/"
@@ -139,7 +139,7 @@ func setup(t *testing.T) (*osclient.Client, string) {
 			"github": github.New(),
 		})))
 
-	info, err := kubeclient.ServerVersion()
+	info, err := kclient.ServerVersion()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

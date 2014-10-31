@@ -25,8 +25,10 @@ LOG_DIR=${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}
 API_PORT=${API_PORT:-8080}
 API_HOST=${API_HOST:-127.0.0.1}
 KUBELET_PORT=${KUBELET_PORT:-10250}
+NAMESPACE=${NAMESPACE:-default}
 
 CONFIG_FILE=${LOG_DIR}/appConfig.json
+BUILD_CONFIG_FILE=${LOG_DIR}/buildConfig.json
 FIXTURE_DIR=${HACKDIR}/../examples/sample-app
 GO_OUT=${HACKDIR}/../_output/go/bin
 openshift=$GO_OUT/openshift

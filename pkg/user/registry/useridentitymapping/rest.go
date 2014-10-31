@@ -3,7 +3,7 @@ package useridentitymapping
 import (
 	"fmt"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -27,22 +27,22 @@ func (s *REST) New() runtime.Object {
 }
 
 // Get retrieves an UserIdentityMapping by id.
-func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
 // List retrieves a list of UserIdentityMappings that match selector.
-func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
 // Create is not supported for UserIdentityMappings
-func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
 // Update will create or update a UserIdentityMapping
-func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
 		return nil, fmt.Errorf("not a user identity mapping: %#v", obj)
@@ -57,6 +57,6 @@ func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 }
 
 // Delete asynchronously deletes an UserIdentityMapping specified by its id.
-func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	return nil, fmt.Errorf("not implemented")
 }

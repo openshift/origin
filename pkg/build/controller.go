@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -24,13 +24,13 @@ type BuildJobStrategy interface {
 // BuildController watches build resources and manages their state
 type BuildController struct {
 	osClient        osclient.Interface
-	kubeClient      kubeclient.Interface
+	kubeClient      kclient.Interface
 	buildStrategies map[api.BuildType]BuildJobStrategy
 	timeout         int
 }
 
 // NewBuildController creates a new build controller
-func NewBuildController(kc kubeclient.Interface,
+func NewBuildController(kc kclient.Interface,
 	oc osclient.Interface,
 	strategies map[api.BuildType]BuildJobStrategy,
 	timeout int) *BuildController {
@@ -65,14 +65,15 @@ func (bc *BuildController) watchBuilds(ctx kapi.Context, syncTime <-chan time.Ti
 				return
 			}
 			for _, build := range builds.Items {
-				nextStatus, err := bc.synchronize(ctx, &build)
+				buildCtx := kapi.WithNamespace(kapi.NewContext(), build.Namespace)
+				nextStatus, err := bc.synchronize(buildCtx, &build)
 				if err != nil {
 					glog.Errorf("Error synchronizing build ID %v: %#v", build.ID, err)
 				}
 
 				if nextStatus != build.Status {
 					build.Status = nextStatus
-					if _, err := bc.osClient.UpdateBuild(ctx, &build); err != nil {
+					if _, err := bc.osClient.UpdateBuild(buildCtx, &build); err != nil {
 						glog.Errorf("Error updating build ID %v to status %v: %#v", build.ID, nextStatus, err)
 					}
 				}
@@ -93,7 +94,6 @@ func hasTimeoutElapsed(build *api.Build, timeout int) bool {
 // TODO: improve handling of illegal state transitions
 func (bc *BuildController) synchronize(ctx kapi.Context, build *api.Build) (api.BuildStatus, error) {
 	glog.Infof("Syncing build %s: %v", build.ID, build.Status)
-
 	buildType := api.DockerBuildType
 	if build.Input.STIInput != nil {
 		buildType = api.STIBuildType

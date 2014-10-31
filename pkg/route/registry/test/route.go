@@ -2,25 +2,26 @@ package test
 
 import (
 	"errors"
-	
+
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 type RouteRegistry struct {
-	Routes         *routeapi.RouteList
+	Routes *routeapi.RouteList
 }
 
 func NewRouteRegistry() *RouteRegistry {
 	return &RouteRegistry{}
 }
 
-func (r *RouteRegistry) ListRoutes(labels labels.Selector) (*routeapi.RouteList, error) {
+func (r *RouteRegistry) ListRoutes(ctx kapi.Context, labels labels.Selector) (*routeapi.RouteList, error) {
 	return r.Routes, nil
 }
 
-func (r *RouteRegistry) GetRoute(id string) (*routeapi.Route, error) {
+func (r *RouteRegistry) GetRoute(ctx kapi.Context, id string) (*routeapi.Route, error) {
 	if r.Routes != nil {
 		for _, route := range r.Routes.Items {
 			if route.ID == id {
@@ -31,7 +32,7 @@ func (r *RouteRegistry) GetRoute(id string) (*routeapi.Route, error) {
 	return nil, errors.New("Route " + id + " not found")
 }
 
-func (r *RouteRegistry) CreateRoute(route *routeapi.Route) error {
+func (r *RouteRegistry) CreateRoute(ctx kapi.Context, route *routeapi.Route) error {
 	if r.Routes == nil {
 		r.Routes = &routeapi.RouteList{}
 	}
@@ -39,12 +40,12 @@ func (r *RouteRegistry) CreateRoute(route *routeapi.Route) error {
 	for _, curRoute := range r.Routes.Items {
 		newList = append(newList, curRoute)
 	}
-	newList = append(newList, *route)												
+	newList = append(newList, *route)
 	r.Routes.Items = newList
 	return nil
 }
 
-func (r *RouteRegistry) UpdateRoute(route *routeapi.Route) error {
+func (r *RouteRegistry) UpdateRoute(ctx kapi.Context, route *routeapi.Route) error {
 	if r.Routes == nil {
 		r.Routes = &routeapi.RouteList{}
 	}
@@ -66,7 +67,7 @@ func (r *RouteRegistry) UpdateRoute(route *routeapi.Route) error {
 	return nil
 }
 
-func (r *RouteRegistry) DeleteRoute(id string) error {
+func (r *RouteRegistry) DeleteRoute(ctx kapi.Context, id string) error {
 	if r.Routes == nil {
 		r.Routes = &routeapi.RouteList{}
 	}
@@ -80,6 +81,6 @@ func (r *RouteRegistry) DeleteRoute(id string) error {
 	return nil
 }
 
-func (r *RouteRegistry) WatchRoutes(labels, fields labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (r *RouteRegistry) WatchRoutes(ctx kapi.Context, labels, fields labels.Selector, resourceVersion uint64) (watch.Interface, error) {
 	return nil, nil
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -76,7 +76,7 @@ type MasterConfig struct {
 
 	EtcdHelper tools.EtcdHelper
 
-	KubeClient *kubeclient.Client
+	KubeClient *kclient.Client
 	OSClient   *osclient.Client
 }
 
@@ -88,7 +88,7 @@ type APIInstaller interface {
 
 // EnsureKubernetesClient creates a Kubernetes client or exits if the client cannot be created.
 func (c *MasterConfig) EnsureKubernetesClient() {
-	kubeClient, err := kubeclient.New(&kubeclient.Config{Host: c.MasterAddr, Version: klatest.Version})
+	kubeClient, err := kclient.New(&kclient.Config{Host: c.MasterAddr, Version: klatest.Version})
 	if err != nil {
 		glog.Fatalf("Unable to configure client: %v", err)
 	}
@@ -97,7 +97,7 @@ func (c *MasterConfig) EnsureKubernetesClient() {
 
 // EnsureOpenShiftClient creates an OpenShift client or exits if the client cannot be created.
 func (c *MasterConfig) EnsureOpenShiftClient() {
-	osClient, err := osclient.New(&kubeclient.Config{Host: c.MasterAddr, Version: latest.Version})
+	osClient, err := osclient.New(&kclient.Config{Host: c.MasterAddr, Version: latest.Version})
 	if err != nil {
 		glog.Fatalf("Unable to configure client: %v", err)
 	}

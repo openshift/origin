@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 
@@ -35,11 +35,11 @@ func ValidateTemplate(template *api.Template) (errs errors.ErrorList) {
 	for i, item := range template.Items {
 		err := errors.ErrorList{}
 		switch obj := item.Object.(type) {
-		case *kubeapi.ReplicationController:
+		case *kapi.ReplicationController:
 			err = validation.ValidateReplicationController(obj)
-		case *kubeapi.Pod:
+		case *kapi.Pod:
 			err = validation.ValidatePod(obj)
-		case *kubeapi.Service:
+		case *kapi.Service:
 			err = validation.ValidateService(obj)
 		case *routeapi.Route:
 			err = routevalidation.ValidateRoute(obj)

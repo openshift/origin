@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
@@ -21,7 +21,7 @@ type ApplyResult struct {
 // Apply creates and manages resources defined in the Config. The create process wont
 // stop on error, but it will finish the job and then return error and for each item
 // in the config a error and status message string.
-func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult, err error) {
+func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (result []ApplyResult, err error) {
 	// Unmarshal the Config JSON manually instead of using runtime.Decode()
 	conf := struct {
 		Items []json.RawMessage `json:"items" yaml:"items"`
@@ -43,7 +43,7 @@ func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult,
 			continue
 		}
 
-		itemBase := kubeapi.TypeMeta{}
+		itemBase := kapi.TypeMeta{}
 
 		err = json.Unmarshal(item, &itemBase)
 		if err != nil {
@@ -77,7 +77,7 @@ func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult,
 			continue
 		}
 
-		request := client.Verb("POST").Path(path).Body(jsonResource)
+		request := client.Verb("POST").Namespace(namespace).Path(path).Body(jsonResource)
 		if err = request.Do().Error(); err != nil {
 			itemResult.Error = err
 		} else {
@@ -92,15 +92,15 @@ func Apply(data []byte, storage clientapi.ClientMappings) (result []ApplyResult,
 func AddConfigLabels(c *api.Config, labels labels.Set) error {
 	for i, _ := range c.Items {
 		switch t := c.Items[i].Object.(type) {
-		case *kubeapi.Pod:
+		case *kapi.Pod:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] Pod.Labels: %v", i, err)
 			}
-		case *kubeapi.Service:
+		case *kapi.Service:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] Service.Labels: %v", i, err)
 			}
-		case *kubeapi.ReplicationController:
+		case *kapi.ReplicationController:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.Labels: %v", i, err)
 			}

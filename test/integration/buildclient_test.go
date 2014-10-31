@@ -51,10 +51,10 @@ func TestBuildClient(t *testing.T) {
 	apiserver.InstallSupport(osMux)
 	s := httptest.NewServer(osMux)
 
-	kubeclient := client.NewOrDie(&client.Config{Host: s.URL, Version: klatest.Version})
+	kclient := client.NewOrDie(&client.Config{Host: s.URL, Version: klatest.Version})
 	osClient := osclient.NewOrDie(&client.Config{Host: s.URL, Version: latest.Version})
 
-	info, err := kubeclient.ServerVersion()
+	info, err := kclient.ServerVersion()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"code.google.com/p/go-uuid/uuid"
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -31,8 +31,8 @@ func (r *REST) New() runtime.Object {
 }
 
 // List obtains a list of BuildConfigs that match selector.
-func (r *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	builds, err := r.registry.ListBuildConfigs(selector)
+func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+	builds, err := r.registry.ListBuildConfigs(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +40,8 @@ func (r *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runt
 }
 
 // Get obtains the BuildConfig specified by its id.
-func (r *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
-	buildConfig, err := r.registry.GetBuildConfig(id)
+func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
+	buildConfig, err := r.registry.GetBuildConfig(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -49,18 +49,22 @@ func (r *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the BuildConfig specified by its id.
-func (r *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+func (r *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, r.registry.DeleteBuildConfig(id)
+		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuildConfig(ctx, id)
 	}), nil
 }
 
 // Create registers a given new BuildConfig instance to r.registry.
-func (r *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	buildConfig, ok := obj.(*api.BuildConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a buildConfig: %#v", obj)
 	}
+	if !kapi.ValidNamespace(ctx, &buildConfig.TypeMeta) {
+		return nil, errors.NewConflict("buildConfig", buildConfig.Namespace, fmt.Errorf("BuildConfig.Namespace does not match the provided context"))
+	}
+
 	if len(buildConfig.ID) == 0 {
 		buildConfig.ID = uuid.NewUUID().String()
 	}
@@ -69,7 +73,7 @@ func (r *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 		return nil, errors.NewInvalid("buildConfig", buildConfig.ID, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.CreateBuildConfig(buildConfig)
+		err := r.registry.CreateBuildConfig(ctx, buildConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +82,7 @@ func (r *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 }
 
 // Update replaces a given BuildConfig instance with an existing instance in r.registry.
-func (r *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	buildConfig, ok := obj.(*api.BuildConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a buildConfig: %#v", obj)
@@ -86,8 +90,12 @@ func (r *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	if errs := validation.ValidateBuildConfig(buildConfig); len(errs) > 0 {
 		return nil, errors.NewInvalid("buildConfig", buildConfig.ID, errs)
 	}
+	if !kapi.ValidNamespace(ctx, &buildConfig.TypeMeta) {
+		return nil, errors.NewConflict("buildConfig", buildConfig.Namespace, fmt.Errorf("BuildConfig.Namespace does not match the provided context"))
+	}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.UpdateBuildConfig(buildConfig)
+		err := r.registry.UpdateBuildConfig(ctx, buildConfig)
 		if err != nil {
 			return nil, err
 		}

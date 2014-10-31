@@ -31,7 +31,7 @@ func (s *REST) List(ctx api.Context, labels, fields labels.Selector) (runtime.Ob
 }
 
 func (s *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
-	return s.generator.Generate(id)
+	return s.generator.Generate(ctx, id)
 }
 
 func (s *REST) Delete(ctx api.Context, id string) (<-chan runtime.Object, error) {

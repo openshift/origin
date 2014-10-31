@@ -4,14 +4,23 @@ import (
 	"errors"
 	"strconv"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/image/api"
+)
+
+const (
+	// ImagePath is the path to deployment image in etcd
+	ImagePath string = "/images"
+	// ImageRepositoriesPath is the path to imageRepository resources in etcd
+	ImageRepositoriesPath string = "/imageRepositories"
 )
 
 // Etcd implements ImageRegistry and ImageRepositoryRegistry backed by etcd.
@@ -27,9 +36,9 @@ func New(helper tools.EtcdHelper) *Etcd {
 }
 
 // ListImages retrieves a list of images that match selector.
-func (r *Etcd) ListImages(selector labels.Selector) (*api.ImageList, error) {
+func (r *Etcd) ListImages(ctx kapi.Context, selector labels.Selector) (*api.ImageList, error) {
 	list := api.ImageList{}
-	err := r.ExtractToList("/images", &list)
+	err := r.ExtractToList(makeImageListKey(ctx), &list)
 	if err != nil {
 		return nil, err
 	}
@@ -43,41 +52,59 @@ func (r *Etcd) ListImages(selector labels.Selector) (*api.ImageList, error) {
 	return &list, nil
 }
 
-func makeImageKey(id string) string {
-	return "/images/" + id
+func makeImageListKey(ctx kapi.Context) string {
+	return kubeetcd.MakeEtcdListKey(ctx, ImagePath)
+}
+
+func makeImageKey(ctx kapi.Context, id string) (string, error) {
+	return kubeetcd.MakeEtcdItemKey(ctx, ImagePath, id)
 }
 
 // GetImage retrieves a specific image
-func (r *Etcd) GetImage(id string) (*api.Image, error) {
+func (r *Etcd) GetImage(ctx kapi.Context, id string) (*api.Image, error) {
 	var image api.Image
-	if err := r.ExtractObj(makeImageKey(id), &image, false); err != nil {
+	key, err := makeImageKey(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = r.ExtractObj(key, &image, false); err != nil {
 		return nil, etcderr.InterpretGetError(err, "image", id)
 	}
 	return &image, nil
 }
 
 // CreateImage creates a new image
-func (r *Etcd) CreateImage(image *api.Image) error {
-	err := r.CreateObj(makeImageKey(image.ID), image, 0)
+func (r *Etcd) CreateImage(ctx kapi.Context, image *api.Image) error {
+	key, err := makeImageKey(ctx, image.ID)
+	if err != nil {
+		return err
+	}
+
+	err = r.CreateObj(key, image, 0)
 	return etcderr.InterpretCreateError(err, "image", image.ID)
 }
 
 // UpdateImage updates an existing image
-func (r *Etcd) UpdateImage(image *api.Image) error {
+func (r *Etcd) UpdateImage(ctx kapi.Context, image *api.Image) error {
 	return errors.New("not supported")
 }
 
 // DeleteImage deletes an existing image
-func (r *Etcd) DeleteImage(id string) error {
-	key := makeImageKey(id)
-	err := r.Delete(key, false)
+func (r *Etcd) DeleteImage(ctx kapi.Context, id string) error {
+	key, err := makeImageKey(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	err = r.Delete(key, false)
 	return etcderr.InterpretDeleteError(err, "image", id)
 }
 
 // ListImageRepositories retrieves a list of ImageRepositories that match selector.
-func (r *Etcd) ListImageRepositories(selector labels.Selector) (*api.ImageRepositoryList, error) {
+func (r *Etcd) ListImageRepositories(ctx kapi.Context, selector labels.Selector) (*api.ImageRepositoryList, error) {
 	list := api.ImageRepositoryList{}
-	err := r.ExtractToList("/imageRepositories", &list)
+	err := r.ExtractToList(makeImageRepositoryListKey(ctx), &list)
 	if err != nil {
 		return nil, err
 	}
@@ -91,14 +118,22 @@ func (r *Etcd) ListImageRepositories(selector labels.Selector) (*api.ImageReposi
 	return &list, nil
 }
 
-func makeImageRepositoryKey(id string) string {
-	return "/imageRepositories/" + id
+func makeImageRepositoryListKey(ctx kapi.Context) string {
+	return kubeetcd.MakeEtcdListKey(ctx, ImageRepositoriesPath)
+}
+
+func makeImageRepositoryKey(ctx kapi.Context, id string) (string, error) {
+	return kubeetcd.MakeEtcdItemKey(ctx, ImageRepositoriesPath, id)
 }
 
 // GetImageRepository retrieves an ImageRepository by id.
-func (r *Etcd) GetImageRepository(id string) (*api.ImageRepository, error) {
+func (r *Etcd) GetImageRepository(ctx kapi.Context, id string) (*api.ImageRepository, error) {
 	var repo api.ImageRepository
-	if err := r.ExtractObj(makeImageRepositoryKey(id), &repo, false); err != nil {
+	key, err := makeImageRepositoryKey(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err = r.ExtractObj(key, &repo, false); err != nil {
 		return nil, etcderr.InterpretGetError(err, "imageRepository", id)
 	}
 	return &repo, nil
@@ -121,13 +156,13 @@ func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
 }
 
 // WatchImageRepositories begins watching for new, changed, or deleted ImageRepositories.
-func (r *Etcd) WatchImageRepositories(resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
+func (r *Etcd) WatchImageRepositories(ctx kapi.Context, resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
 	version, err := parseWatchResourceVersion(resourceVersion, "imageRepository")
 	if err != nil {
 		return nil, err
 	}
 
-	return r.WatchList("/imageRepositories", version, func(obj runtime.Object) bool {
+	return r.WatchList(makeImageRepositoryListKey(ctx), version, func(obj runtime.Object) bool {
 		repo, ok := obj.(*api.ImageRepository)
 		if !ok {
 			glog.Errorf("Unexpected object during image repository watch: %#v", obj)
@@ -138,20 +173,31 @@ func (r *Etcd) WatchImageRepositories(resourceVersion string, filter func(repo *
 }
 
 // CreateImageRepository registers the given ImageRepository.
-func (r *Etcd) CreateImageRepository(repo *api.ImageRepository) error {
-	err := r.CreateObj(makeImageRepositoryKey(repo.ID), repo, 0)
+func (r *Etcd) CreateImageRepository(ctx kapi.Context, repo *api.ImageRepository) error {
+	key, err := makeImageRepositoryKey(ctx, repo.ID)
+	if err != nil {
+		return err
+	}
+	err = r.CreateObj(key, repo, 0)
 	return etcderr.InterpretCreateError(err, "imageRepository", repo.ID)
 }
 
 // UpdateImageRepository replaces an existing ImageRepository in the registry with the given ImageRepository.
-func (r *Etcd) UpdateImageRepository(repo *api.ImageRepository) error {
-	err := r.SetObj(makeImageRepositoryKey(repo.ID), repo)
+func (r *Etcd) UpdateImageRepository(ctx kapi.Context, repo *api.ImageRepository) error {
+	key, err := makeImageRepositoryKey(ctx, repo.ID)
+	if err != nil {
+		return err
+	}
+	err = r.SetObj(key, repo)
 	return etcderr.InterpretUpdateError(err, "imageRepository", repo.ID)
 }
 
 // DeleteImageRepository deletes an ImageRepository by id.
-func (r *Etcd) DeleteImageRepository(id string) error {
-	imageRepositoryKey := makeImageRepositoryKey(id)
-	err := r.Delete(imageRepositoryKey, false)
+func (r *Etcd) DeleteImageRepository(ctx kapi.Context, id string) error {
+	key, err := makeImageRepositoryKey(ctx, id)
+	if err != nil {
+		return err
+	}
+	err = r.Delete(key, false)
 	return etcderr.InterpretDeleteError(err, "imageRepository", id)
 }

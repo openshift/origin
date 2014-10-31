@@ -51,6 +51,8 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.BoolVar(&cfg.ClientConfig.Insecure, "insecure_skip_tls_verify", false, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
 	flag.StringVar(&cfg.ImageName, "image", "", "Image used when updating a replicationController.  Will apply to the first container in the pod template.")
 	flag.StringVar(&cfg.ID, "id", "", "Specifies ID of requested resource.")
+	flag.StringVar(&cfg.ns, "ns", "", "If present, the namespace scope for this request.")
+	flag.StringVar(&cfg.nsFile, "ns_file", os.Getenv("HOME")+"/.kubernetes_ns", "Path to the namespace file")
 
 	return cmd
 }

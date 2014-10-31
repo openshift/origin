@@ -3,6 +3,7 @@ package test
 import (
 	"sync"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -19,21 +20,21 @@ func NewDeploymentRegistry() *DeploymentRegistry {
 	return &DeploymentRegistry{}
 }
 
-func (r *DeploymentRegistry) ListDeployments(selector labels.Selector) (*api.DeploymentList, error) {
+func (r *DeploymentRegistry) ListDeployments(ctx kapi.Context, selector labels.Selector) (*api.DeploymentList, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Deployments, r.Err
 }
 
-func (r *DeploymentRegistry) GetDeployment(id string) (*api.Deployment, error) {
+func (r *DeploymentRegistry) GetDeployment(ctx kapi.Context, id string) (*api.Deployment, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Deployment, r.Err
 }
 
-func (r *DeploymentRegistry) CreateDeployment(deployment *api.Deployment) error {
+func (r *DeploymentRegistry) CreateDeployment(ctx kapi.Context, deployment *api.Deployment) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -41,7 +42,7 @@ func (r *DeploymentRegistry) CreateDeployment(deployment *api.Deployment) error 
 	return r.Err
 }
 
-func (r *DeploymentRegistry) UpdateDeployment(deployment *api.Deployment) error {
+func (r *DeploymentRegistry) UpdateDeployment(ctx kapi.Context, deployment *api.Deployment) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -49,13 +50,13 @@ func (r *DeploymentRegistry) UpdateDeployment(deployment *api.Deployment) error 
 	return r.Err
 }
 
-func (r *DeploymentRegistry) DeleteDeployment(id string) error {
+func (r *DeploymentRegistry) DeleteDeployment(ctx kapi.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Err
 }
 
-func (r *DeploymentRegistry) WatchDeployments(resourceVersion string, filter func(repo *api.Deployment) bool) (watch.Interface, error) {
+func (r *DeploymentRegistry) WatchDeployments(ctx kapi.Context, resourceVersion string, filter func(repo *api.Deployment) bool) (watch.Interface, error) {
 	return nil, r.Err
 }

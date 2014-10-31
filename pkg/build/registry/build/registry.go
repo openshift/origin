@@ -5,21 +5,21 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	api "github.com/openshift/origin/pkg/build/api"
 )
 
 // Registry is an interface for things that know how to store Builds.
 type Registry interface {
 	// ListBuilds obtains list of builds that match a selector.
-	ListBuilds(labels labels.Selector) (*buildapi.BuildList, error)
+	ListBuilds(ctx kapi.Context, labels labels.Selector) (*api.BuildList, error)
 	// GetBuild retrieves a specific build.
-	GetBuild(id string) (*buildapi.Build, error)
+	GetBuild(ctx kapi.Context, id string) (*api.Build, error)
 	// CreateBuild creates a new build.
-	CreateBuild(build *buildapi.Build) error
+	CreateBuild(ctx kapi.Context, build *api.Build) error
 	// UpdateBuild updates a build.
-	UpdateBuild(build *buildapi.Build) error
+	UpdateBuild(ctx kapi.Context, build *api.Build) error
 	// DeleteBuild deletes a build.
-	DeleteBuild(id string) error
+	DeleteBuild(ctx kapi.Context, id string) error
 	// WatchDeployments watches builds.
 	WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }

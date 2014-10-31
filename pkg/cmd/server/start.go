@@ -10,7 +10,7 @@ import (
 	"time"
 
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -179,7 +179,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 				if startKube {
 					osmaster.EnsureKubernetesClient()
 				} else {
-					kubeClient, err := kubeclient.New(&kubeclient.Config{Host: cfg.KubernetesAddr.URL.String(), Version: klatest.Version})
+					kubeClient, err := kclient.New(&kclient.Config{Host: cfg.KubernetesAddr.URL.String(), Version: klatest.Version})
 					if err != nil {
 						glog.Fatalf("Unable to configure Kubernetes client: %v", err)
 					}

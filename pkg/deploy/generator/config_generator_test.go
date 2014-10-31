@@ -20,7 +20,7 @@ func TestGenerateFromMissingDeploymentConfig(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate("1234")
+	config, err := generator.Generate(kapi.NewDefaultContext(), "1234")
 
 	if config != nil {
 		t.Fatalf("Unexpected deployment config generated: %#v", config)
@@ -54,7 +54,7 @@ func TestGenerateFromConfigWithoutTagChange(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate("deploy1")
+	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -88,7 +88,7 @@ func TestGenerateFromConfigWithNoDeployment(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate("deploy2")
+	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy2")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -126,7 +126,7 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate("deploy1")
+	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -151,7 +151,7 @@ type testDeploymentInterface struct {
 	GetDeploymentFunc func(id string) (*deployapi.Deployment, error)
 }
 
-func (i *testDeploymentInterface) GetDeployment(id string) (*deployapi.Deployment, error) {
+func (i *testDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error) {
 	return i.GetDeploymentFunc(id)
 }
 
@@ -159,7 +159,7 @@ type testDeploymentConfigInterface struct {
 	GetDeploymentConfigFunc func(id string) (*deployapi.DeploymentConfig, error)
 }
 
-func (i *testDeploymentConfigInterface) GetDeploymentConfig(id string) (*deployapi.DeploymentConfig, error) {
+func (i *testDeploymentConfigInterface) GetDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 	return i.GetDeploymentConfigFunc(id)
 }
 
@@ -167,7 +167,7 @@ type testImageRepositoryInterface struct {
 	ListImageRepositoriesFunc func(labels labels.Selector) (*imageapi.ImageRepositoryList, error)
 }
 
-func (i *testImageRepositoryInterface) ListImageRepositories(labels labels.Selector) (*imageapi.ImageRepositoryList, error) {
+func (i *testImageRepositoryInterface) ListImageRepositories(ctx kapi.Context, labels labels.Selector) (*imageapi.ImageRepositoryList, error) {
 	return i.ListImageRepositoriesFunc(labels)
 }
 

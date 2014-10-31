@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/build/api"
 )
@@ -44,7 +44,7 @@ func (_ *errStrategy) CreateBuildPod(build *api.Build) (*kapi.Pod, error) {
 }
 
 type errKubeClient struct {
-	kubeclient.Fake
+	kclient.Fake
 }
 
 func (_ *errKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
@@ -56,7 +56,7 @@ func (_ *errKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error)
 }
 
 type errExistsKubeClient struct {
-	kubeclient.Fake
+	kclient.Fake
 }
 
 func (_ *errExistsKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
@@ -64,7 +64,7 @@ func (_ *errExistsKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.
 }
 
 type okKubeClient struct {
-	kubeclient.Fake
+	kclient.Fake
 }
 
 func (_ *okKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) {
@@ -74,7 +74,7 @@ func (_ *okKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) 
 }
 
 type termKubeClient struct {
-	kubeclient.Fake
+	kclient.Fake
 }
 
 func (_ *termKubeClient) GetPod(ctx kapi.Context, name string) (*kapi.Pod, error) {
@@ -277,7 +277,7 @@ func setup() (buildController *BuildController, build *api.Build, ctx kapi.Conte
 		buildStrategies: map[api.BuildType]BuildJobStrategy{
 			api.DockerBuildType: &okStrategy{},
 		},
-		kubeClient: &kubeclient.Fake{},
+		kubeClient: &kclient.Fake{},
 		timeout:    1000,
 	}
 	build = &api.Build{

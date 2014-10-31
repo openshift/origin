@@ -16,7 +16,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -41,7 +41,7 @@ import (
 )
 
 type KubeConfig struct {
-	ClientConfig   kubeclient.Config
+	ClientConfig   kclient.Config
 	ServerVersion  bool
 	PreventSkew    bool
 	Config         string
@@ -59,13 +59,16 @@ type KubeConfig struct {
 	TemplateFile   string
 	TemplateStr    string
 	ID             string
+	Namespace      string
 
 	ImageName string
 
 	APIVersion   string
 	OSAPIVersion string
 
-	Args []string
+	Args   []string
+	ns     string
+	nsFile string
 }
 
 func (c *KubeConfig) Arg(index int) string {
@@ -90,6 +93,9 @@ func usage(name string) string {
   on the given image:
 
   %[1]s [OPTIONS] [-p <port spec>] run <image> <replicas> <controller>
+
+  Manage namespace:
+  %[1]s [OPTIONS] ns [<namespace>]
 
   Perform bulk operations on groups of Kubernetes resources:
   %[1]s [OPTIONS] apply -c config.json
@@ -177,6 +183,26 @@ func (c *KubeConfig) readConfig(storage string, serverCodec runtime.Codec) []byt
 	return data
 }
 
+// getNamespace returns the effective namespace for this invocation based on the first of:
+// 1.  The --ns argument
+// 2.  The contents of the nsFile
+// 3.  Uses the default namespace
+func (c *KubeConfig) getNamespace() string {
+	// Load namespace information for requests
+	nsInfo, err := kubecfg.LoadNamespaceInfo(c.nsFile)
+	if err != nil {
+		glog.Fatalf("Error loading current namespace: %v", err)
+	}
+	ret := nsInfo.Namespace
+
+	// Check if the namespace was overriden by the -ns argument
+	if len(c.ns) > 0 {
+		ret = c.ns
+	}
+
+	return ret
+}
+
 func (c *KubeConfig) Run() {
 	util.InitLogs()
 	defer util.FlushLogs()
@@ -196,7 +222,7 @@ func (c *KubeConfig) Run() {
 	}
 	clientConfig.Host = hosts[0]
 
-	if kubeclient.IsConfigTransportSecure(clientConfig) {
+	if kclient.IsConfigTransportSecure(clientConfig) {
 		auth, err := kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
 		if err != nil {
 			glog.Fatalf("Error loading auth: %v", err)
@@ -217,7 +243,7 @@ func (c *KubeConfig) Run() {
 		}
 	}
 	clientConfig.Version = c.APIVersion
-	kubeClient, err := kubeclient.New(clientConfig)
+	kubeClient, err := kclient.New(clientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to set up the Kubernetes API client: %v", err)
 	}
@@ -277,7 +303,7 @@ func (c *KubeConfig) Run() {
 		"projects":                {"Project", client.RESTClient, latest.Codec},
 	}
 
-	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
+	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeNamespaceRequest(method) || c.executeAPIRequest(method, clients)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -357,6 +383,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 	}
 
 	r := client.Client.Verb(verb).
+		Namespace(c.getNamespace()).
 		Path(path).
 		ParseSelectorParam("labels", c.Selector)
 	if setBody {
@@ -426,7 +453,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 	return true
 }
 
-func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.Client) bool {
+func (c *KubeConfig) executeControllerRequest(method string, client *kclient.Client) bool {
 	parseController := func() string {
 		if len(c.Args) != 2 {
 			glog.Fatal("usage: kubecfg [OPTIONS] stop|rm|rollingupdate|run|resize <controller>")
@@ -434,7 +461,7 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 		return c.Arg(1)
 	}
 
-	ctx := api.NewContext()
+	ctx := api.WithNamespace(api.NewContext(), c.getNamespace())
 	var err error
 	switch method {
 	case "stop":
@@ -482,7 +509,7 @@ func (c *KubeConfig) executeBuildLogRequest(method string, client *osclient.Clie
 	if len(c.ID) == 0 {
 		glog.Fatal("Build ID required")
 	}
-	request := client.Verb("GET").Path("redirect").Path("buildLogs").Path(c.ID)
+	request := client.Verb("GET").Namespace(c.getNamespace()).Path("redirect").Path("buildLogs").Path(c.ID)
 	readCloser, err := request.Stream()
 	if err != nil {
 		glog.Fatalf("Error: %v", err)
@@ -510,7 +537,7 @@ func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Clie
 	if err != nil {
 		glog.Fatalf("error reading template file: %v", err)
 	}
-	request := client.Verb("POST").Path("/templateConfigs").Body(data)
+	request := client.Verb("POST").Namespace(c.getNamespace()).Path("/templateConfigs").Body(data)
 	result := request.Do()
 	body, err := result.Raw()
 	if err != nil {
@@ -530,7 +557,8 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 	if len(c.Config) == 0 {
 		glog.Fatal("Need to pass valid configuration file (-c config.json)")
 	}
-	result, err := config.Apply(c.readConfig("config", latest.Codec), clients)
+
+	result, err := config.Apply(c.getNamespace(), c.readConfig("config", latest.Codec), clients)
 	if err != nil {
 		glog.Fatalf("Error applying the config: %v", err)
 	}
@@ -540,7 +568,7 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 			continue
 		}
 
-		if statusErr, ok := itemResult.Error.(kubeclient.APIStatus); ok {
+		if statusErr, ok := itemResult.Error.(kclient.APIStatus); ok {
 			fmt.Printf("Error: %v\n", statusErr.Status().Message)
 		} else {
 			fmt.Printf("Error: %v\n", itemResult.Error)
@@ -560,4 +588,28 @@ func humanReadablePrinter() *kubecfg.HumanReadablePrinter {
 	project.RegisterPrintHandlers(printer)
 
 	return printer
+}
+
+func (c *KubeConfig) executeNamespaceRequest(method string) bool {
+	var err error
+	var ns *kubecfg.NamespaceInfo
+	switch method {
+	case "ns":
+		switch len(c.Args) {
+		case 1:
+			ns, err = kubecfg.LoadNamespaceInfo(c.nsFile)
+		case 2:
+			ns = &kubecfg.NamespaceInfo{Namespace: c.Args[1]}
+			err = kubecfg.SaveNamespaceInfo(c.nsFile, ns)
+		default:
+			glog.Fatalf("usage: kubecfg ns [<namespace>]")
+		}
+	default:
+		return false
+	}
+	if err != nil {
+		glog.Fatalf("Error: %v", err)
+	}
+	fmt.Printf("Using namespace %s\n", ns.Namespace)
+	return true
 }

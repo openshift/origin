@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -20,7 +20,7 @@ func NewTestEtcd(client tools.EtcdClient) *Etcd {
 }
 
 func TestEtcdListProjectsEmpty(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key := makeProjectListKey(ctx)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
@@ -43,7 +43,7 @@ func TestEtcdListProjectsEmpty(t *testing.T) {
 }
 
 func TestEtcdListProjectsError(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key := makeProjectListKey(ctx)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
@@ -64,7 +64,7 @@ func TestEtcdListProjectsError(t *testing.T) {
 }
 
 func TestEtcdListProjectsEverything(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key := makeProjectListKey(ctx)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
@@ -72,10 +72,10 @@ func TestEtcdListProjectsEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
 					},
 				},
 			},
@@ -94,7 +94,7 @@ func TestEtcdListProjectsEverything(t *testing.T) {
 }
 
 func TestEtcdListProjectsFiltered(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key := makeProjectListKey(ctx)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
@@ -103,13 +103,13 @@ func TestEtcdListProjectsFiltered(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{
-							TypeMeta: kubeapi.TypeMeta{ID: "foo"},
+							TypeMeta: kapi.TypeMeta{ID: "foo"},
 							Labels:   map[string]string{"env": "prod"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{
-							TypeMeta: kubeapi.TypeMeta{ID: "bar"},
+							TypeMeta: kapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
 						}),
 					},
@@ -130,9 +130,9 @@ func TestEtcdListProjectsFiltered(t *testing.T) {
 }
 
 func TestEtcdGetProject(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeProjectKey(ctx, "foo"), runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeProjectKey(ctx, "foo"), runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	project, err := registry.GetProject(ctx, "foo")
 	if err != nil {
@@ -145,7 +145,7 @@ func TestEtcdGetProject(t *testing.T) {
 }
 
 func TestEtcdGetProjectNotFound(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Data[makeProjectKey(ctx, "foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
@@ -164,7 +164,7 @@ func TestEtcdGetProjectNotFound(t *testing.T) {
 }
 
 func TestEtcdCreateProject(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 	fakeClient.Data[makeProjectKey(ctx, "foo")] = tools.EtcdResponseWithError{
@@ -175,7 +175,7 @@ func TestEtcdCreateProject(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateProject(ctx, &api.Project{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -199,19 +199,19 @@ func TestEtcdCreateProject(t *testing.T) {
 }
 
 func TestEtcdCreateProjectAlreadyExists(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Data[makeProjectKey(ctx, "foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kubeapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateProject(ctx, &api.Project{
-		TypeMeta: kubeapi.TypeMeta{
+		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
 	})
@@ -224,7 +224,7 @@ func TestEtcdCreateProjectAlreadyExists(t *testing.T) {
 }
 
 func TestEtcdUpdateProject(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateProject(ctx, &api.Project{})
@@ -234,7 +234,7 @@ func TestEtcdUpdateProject(t *testing.T) {
 }
 
 func TestEtcdDeleteProjectNotFound(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = tools.EtcdErrorNotFound
 	registry := NewTestEtcd(fakeClient)
@@ -248,7 +248,7 @@ func TestEtcdDeleteProjectNotFound(t *testing.T) {
 }
 
 func TestEtcdDeleteProjectError(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Err = fmt.Errorf("Some error")
 	registry := NewTestEtcd(fakeClient)
@@ -259,7 +259,7 @@ func TestEtcdDeleteProjectError(t *testing.T) {
 }
 
 func TestEtcdDeleteProjectOK(t *testing.T) {
-	ctx := kubeapi.NewContext()
+	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 	key := makeProjectKey(ctx, "foo")

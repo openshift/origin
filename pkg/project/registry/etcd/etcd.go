@@ -3,7 +3,7 @@ package etcd
 import (
 	"errors"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -29,17 +29,17 @@ func New(helper tools.EtcdHelper) *Etcd {
 }
 
 // makeProjectListKey constructs etcd paths to project directories
-func makeProjectListKey(ctx kubeapi.Context) string {
+func makeProjectListKey(ctx kapi.Context) string {
 	return ProjectPath
 }
 
 // makeProjectKey constructs etcd paths to project items
-func makeProjectKey(ctx kubeapi.Context, id string) string {
+func makeProjectKey(ctx kapi.Context, id string) string {
 	return makeProjectListKey(ctx) + "/" + id
 }
 
 // ListProjects retrieves a list of projects that match selector.
-func (r *Etcd) ListProjects(ctx kubeapi.Context, selector labels.Selector) (*api.ProjectList, error) {
+func (r *Etcd) ListProjects(ctx kapi.Context, selector labels.Selector) (*api.ProjectList, error) {
 	list := api.ProjectList{}
 	err := r.ExtractToList(makeProjectListKey(ctx), &list)
 	if err != nil {
@@ -56,7 +56,7 @@ func (r *Etcd) ListProjects(ctx kubeapi.Context, selector labels.Selector) (*api
 }
 
 // GetProject retrieves a specific project
-func (r *Etcd) GetProject(ctx kubeapi.Context, id string) (*api.Project, error) {
+func (r *Etcd) GetProject(ctx kapi.Context, id string) (*api.Project, error) {
 	var project api.Project
 	if err := r.ExtractObj(makeProjectKey(ctx, id), &project, false); err != nil {
 		return nil, etcderr.InterpretGetError(err, "project", id)
@@ -65,18 +65,18 @@ func (r *Etcd) GetProject(ctx kubeapi.Context, id string) (*api.Project, error) 
 }
 
 // CreateProject creates a new project
-func (r *Etcd) CreateProject(ctx kubeapi.Context, project *api.Project) error {
+func (r *Etcd) CreateProject(ctx kapi.Context, project *api.Project) error {
 	err := r.CreateObj(makeProjectKey(ctx, project.ID), project, 0)
 	return etcderr.InterpretCreateError(err, "project", project.ID)
 }
 
 // UpdateProject updates an existing project
-func (r *Etcd) UpdateProject(ctx kubeapi.Context, project *api.Project) error {
+func (r *Etcd) UpdateProject(ctx kapi.Context, project *api.Project) error {
 	return errors.New("not supported")
 }
 
 // DeleteProject deletes an existing project
-func (r *Etcd) DeleteProject(ctx kubeapi.Context, id string) error {
+func (r *Etcd) DeleteProject(ctx kapi.Context, id string) error {
 	err := r.Delete(makeProjectKey(ctx, id), false)
 	return etcderr.InterpretDeleteError(err, "project", id)
 }

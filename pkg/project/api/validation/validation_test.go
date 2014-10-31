@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 )
 
@@ -16,7 +16,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "missing id",
 			project: api.Project{
-				TypeMeta:    kubeapi.TypeMeta{Namespace: kubeapi.NamespaceDefault},
+				TypeMeta:    kapi.TypeMeta{Namespace: kapi.NamespaceDefault},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -26,7 +26,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid id",
 			project: api.Project{
-				TypeMeta:    kubeapi.TypeMeta{ID: "141-.124.$", Namespace: kubeapi.NamespaceDefault},
+				TypeMeta:    kapi.TypeMeta{ID: "141-.124.$", Namespace: kapi.NamespaceDefault},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -36,7 +36,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "missing namespace",
 			project: api.Project{
-				TypeMeta:    kubeapi.TypeMeta{ID: "foo", Namespace: ""},
+				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: ""},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -46,7 +46,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid namespace",
 			project: api.Project{
-				TypeMeta:    kubeapi.TypeMeta{ID: "foo", Namespace: "141-.124.$"},
+				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: "141-.124.$"},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -56,7 +56,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid description",
 			project: api.Project{
-				TypeMeta:    kubeapi.TypeMeta{ID: "foo", Namespace: "foo"},
+				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: "foo"},
 				DisplayName: "hi",
 				Description: "This is a \n description",
 			},
@@ -66,7 +66,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid display name",
 			project: api.Project{
-				TypeMeta:    kubeapi.TypeMeta{ID: "foo", Namespace: "foo"},
+				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: "foo"},
 				DisplayName: "h\t\ni",
 				Description: "This is a description",
 			},
@@ -83,7 +83,7 @@ func TestValidateProject(t *testing.T) {
 	}
 
 	project := api.Project{
-		TypeMeta:    kubeapi.TypeMeta{ID: "foo", Namespace: kubeapi.NamespaceDefault},
+		TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: kapi.NamespaceDefault},
 		DisplayName: "hi",
 		Description: "This is a description",
 	}

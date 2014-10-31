@@ -3,7 +3,7 @@ package imagerepositorymapping
 import (
 	"fmt"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -34,23 +34,27 @@ func (s *REST) New() runtime.Object {
 }
 
 // List is not supported.
-func (s *REST) List(ctx kubeapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", "list")
 }
 
 // Get is not supported.
-func (s *REST) Get(ctx kubeapi.Context, id string) (runtime.Object, error) {
+func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
-func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	mapping, ok := obj.(*api.ImageRepositoryMapping)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository mapping: %#v", obj)
 	}
+	if !kapi.ValidNamespace(ctx, &mapping.TypeMeta) {
+		return nil, errors.NewConflict("imageRepositoryMapping", mapping.Namespace, fmt.Errorf("ImageRepositoryMapping.Namespace does not match the provided context"))
+	}
 
-	repo, err := s.findImageRepository(mapping.DockerImageRepository)
+	repo, err := s.findImageRepository(ctx, mapping.DockerImageRepository)
+
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +63,9 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 			errors.NewFieldNotFound("DockerImageRepository", mapping.DockerImageRepository),
 		})
 	}
+
+	// you should not do this, but we have a bug right now that prevents us from trusting the ctx passed in
+	imageRepoCtx := kapi.WithNamespace(kapi.NewContext(), repo.Namespace)
 
 	if errs := validation.ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
 		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.ID, errs)
@@ -69,31 +76,32 @@ func (s *REST) Create(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.O
 	image.CreationTimestamp = util.Now()
 
 	//TODO apply metadata overrides
-
 	if repo.Tags == nil {
 		repo.Tags = make(map[string]string)
 	}
 	repo.Tags[mapping.Tag] = image.ID
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err = s.imageRegistry.CreateImage(&image)
+		err = s.imageRegistry.CreateImage(imageRepoCtx, &image)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return nil, err
 		}
 
-		err = s.imageRepositoryRegistry.UpdateImageRepository(repo)
+		err = s.imageRepositoryRegistry.UpdateImageRepository(imageRepoCtx, repo)
 		if err != nil {
 			return nil, err
 		}
 
-		return &kubeapi.Status{Status: kubeapi.StatusSuccess}, nil
+		return &kapi.Status{Status: kapi.StatusSuccess}, nil
 	}), nil
 }
 
 // findImageRepository retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
-func (s *REST) findImageRepository(dockerRepo string) (*api.ImageRepository, error) {
+func (s *REST) findImageRepository(ctx kapi.Context, dockerRepo string) (*api.ImageRepository, error) {
 	//TODO make this more efficient
-	list, err := s.imageRepositoryRegistry.ListImageRepositories(labels.Everything())
+	// you should not do this, but we have a bug right now that prevents us from trusting the ctx passed in
+	allNamespaces := kapi.NewContext()
+	list, err := s.imageRepositoryRegistry.ListImageRepositories(allNamespaces, labels.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +118,11 @@ func (s *REST) findImageRepository(dockerRepo string) (*api.ImageRepository, err
 }
 
 // Update is not supported.
-func (s *REST) Update(ctx kubeapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
 	return nil, fmt.Errorf("ImageRepositoryMappings may not be changed.")
 }
 
 // Delete is not supported.
-func (s *REST) Delete(ctx kubeapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }

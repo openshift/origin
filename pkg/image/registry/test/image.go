@@ -3,6 +3,7 @@ package test
 import (
 	"sync"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -18,21 +19,21 @@ func NewImageRegistry() *ImageRegistry {
 	return &ImageRegistry{}
 }
 
-func (r *ImageRegistry) ListImages(selector labels.Selector) (*api.ImageList, error) {
+func (r *ImageRegistry) ListImages(ctx kapi.Context, selector labels.Selector) (*api.ImageList, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Images, r.Err
 }
 
-func (r *ImageRegistry) GetImage(id string) (*api.Image, error) {
+func (r *ImageRegistry) GetImage(ctx kapi.Context, id string) (*api.Image, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.Image, r.Err
 }
 
-func (r *ImageRegistry) CreateImage(image *api.Image) error {
+func (r *ImageRegistry) CreateImage(ctx kapi.Context, image *api.Image) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -40,7 +41,7 @@ func (r *ImageRegistry) CreateImage(image *api.Image) error {
 	return r.Err
 }
 
-func (r *ImageRegistry) UpdateImage(image *api.Image) error {
+func (r *ImageRegistry) UpdateImage(ctx kapi.Context, image *api.Image) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -48,7 +49,7 @@ func (r *ImageRegistry) UpdateImage(image *api.Image) error {
 	return r.Err
 }
 
-func (r *ImageRegistry) DeleteImage(id string) error {
+func (r *ImageRegistry) DeleteImage(ctx kapi.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 
