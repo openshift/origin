@@ -67,7 +67,7 @@ func (dc *BasicDeploymentController) HandleDeployment() error {
 }
 
 func (dc *BasicDeploymentController) handleNew(ctx kapi.Context, deployment *deployapi.Deployment) deployapi.DeploymentStatus {
-  var controllers *kapi.ReplicationControllerList
+  controllers := &kapi.ReplicationControllerList{}
   var err error
 
   configID, hasConfigID := deployment.Labels[deployapi.DeploymentConfigLabel]
@@ -82,7 +82,7 @@ func (dc *BasicDeploymentController) handleNew(ctx kapi.Context, deployment *dep
 
   controller := &kapi.ReplicationController{
     DesiredState: deployment.ControllerTemplate,
-    Labels:       map[string]string{deployapi.DeploymentConfigLabel: configID, "deploymentID": deployment.ID},
+    Labels:       map[string]string{deployapi.DeploymentConfigLabel: configID, "deployment": deployment.ID},
   }
 
   if controller.DesiredState.PodTemplate.Labels == nil {
@@ -90,7 +90,7 @@ func (dc *BasicDeploymentController) handleNew(ctx kapi.Context, deployment *dep
   }
 
   controller.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel] = configID
-  controller.DesiredState.PodTemplate.Labels["deploymentID"] = deployment.ID
+  controller.DesiredState.PodTemplate.Labels["deployment"] = deployment.ID
 
   glog.V(2).Infof("Creating replicationController for deployment %s", deployment.ID)
   if _, err := dc.ReplicationControllerClient.CreateReplicationController(ctx, controller); err != nil {
