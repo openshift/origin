@@ -175,7 +175,38 @@
     "kind": "Status",
     "status": "success"
 }
-</code></pre></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class=panel-heading><h3 id=_buildConfigHooks__buildID___secret___plugin_ class=panel-title>/buildConfigHooks/{buildID}/{secret}/{plugin}</h3></div><div class=panel-body><div class=panel-group><div class="panel panel-white"><div class=panel-heading><h4 class=panel-title><a class=collapsed data-toggle=collapse href=#panel__buildConfigHooks__buildID___secret___plugin_><span class=parent></span>/buildConfigHooks/{buildID}/{secret}/{plugin}</a> <span class=methods><a href=# data-toggle=modal data-target=#_buildConfigHooks__buildID___secret___plugin__post><span class="badge badge_post">post</span></a></span></h4></div><div id=panel__buildConfigHooks__buildID___secret___plugin_ class="panel-collapse collapse"><div class=panel-body><div class=list-group><div data-toggle=modal data-target=#_buildConfigHooks__buildID___secret___plugin__post class=list-group-item><span class="badge badge_post">post</span><div class=method_description><p>Webhook on push event from external repository.</p><p>buildID specifies which build to trigger, whereas plugin defines source of the request, this might be github, bitbucket or others.</p></div><div class=clearfix></div></div></div></div></div><div class="modal fade" tabindex=0 id=_buildConfigHooks__buildID___secret___plugin__post><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_post">post</span> <span class=parent></span>/buildConfigHooks/{buildID}/{secret}/{plugin}</h4></div><div class=modal-body><div class="alert alert-info"><p>Webhook on push event from external repository.</p><p>buildID specifies which build to trigger, whereas plugin defines source of the request, this might be github, bitbucket or others.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_buildConfigHooks__buildID___secret___plugin__post_request data-toggle=tab>Request</a></li><li><a href=#_buildConfigHooks__buildID___secret___plugin__post_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_buildConfigHooks__buildID___secret___plugin__post_request><h3>URI Parameters</h3><ul><li><strong>buildID</strong>: <em>required (string)</em></li><li><strong>secret</strong>: <em>required (string)</em></li><li><strong>plugin</strong>: <em>required (string)</em></li></ul></div><div class=tab-pane id=_buildConfigHooks__buildID___secret___plugin__post_response><h2>HTTP status code <a href=http://httpstatus.es/204 target=_blank>204</a></h2><p>No content</p></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class=panel-heading><h3 id=_buildConfigs class=panel-title>/buildConfigs</h3></div><div class=panel-body><div class=panel-group><div class="panel panel-white"><div class=panel-heading><h4 class=panel-title><a class=collapsed data-toggle=collapse href=#panel__buildConfigs><span class=parent></span>/buildConfigs</a> <span class=methods><a href=# data-toggle=modal data-target=#_buildConfigs_get><span class="badge badge_get">get</span></a> <a href=# data-toggle=modal data-target=#_buildConfigs_post><span class="badge badge_post">post</span></a></span></h4></div><div id=panel__buildConfigs class="panel-collapse collapse"><div class=panel-body><div class=list-group><div data-toggle=modal data-target=#_buildConfigs_get class=list-group-item><span class="badge badge_get">get</span><div class=method_description><p>List all BuildConfigs.</p><p>BuildConfig contains the inputs needed to produce a new deployable image.</p></div><div class=clearfix></div></div><div data-toggle=modal data-target=#_buildConfigs_post class=list-group-item><span class="badge badge_post">post</span><div class=method_description><p>Create a new build.</p></div><div class=clearfix></div></div></div></div></div><div class="modal fade" tabindex=0 id=_buildConfigs_get><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_get">get</span> <span class=parent></span>/buildConfigs</h4></div><div class=modal-body><div class="alert alert-info"><p>List all BuildConfigs.</p><p>BuildConfig contains the inputs needed to produce a new deployable image.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_buildConfigs_get_request data-toggle=tab>Request</a></li><li><a href=#_buildConfigs_get_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_buildConfigs_get_request></div><div class=tab-pane id=_buildConfigs_get_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p></div></div></div></div></div></div><div class="modal fade" tabindex=0 id=_buildConfigs_post><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_post">post</span> <span class=parent></span>/buildConfigs</h4></div><div class=modal-body><div class="alert alert-info"><p>Create a new build.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_buildConfigs_post_request data-toggle=tab>Request</a></li></ul><div class=tab-content><div class="tab-pane active" id=_buildConfigs_post_request><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
+</code></pre></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class=panel-heading><h3 id=_buildConfigHooks__buildID___secret___plugin_ class=panel-title>/buildConfigHooks/{buildID}/{secret}/{plugin}</h3></div><div class=panel-body><div class=panel-group><div class="panel panel-white"><div class=panel-heading><h4 class=panel-title><a class=collapsed data-toggle=collapse href=#panel__buildConfigHooks__buildID___secret___plugin_><span class=parent></span>/buildConfigHooks/{buildID}/{secret}/{plugin}</a> <span class=methods><a href=# data-toggle=modal data-target=#_buildConfigHooks__buildID___secret___plugin__post><span class="badge badge_post">post</span></a></span></h4></div><div id=panel__buildConfigHooks__buildID___secret___plugin_ class="panel-collapse collapse"><div class=panel-body><div class=list-group><div data-toggle=modal data-target=#_buildConfigHooks__buildID___secret___plugin__post class=list-group-item><span class="badge badge_post">post</span><div class=method_description><p>Webhook on push event from external repository.</p><p>buildID specifies which build to trigger, whereas plugin defines source of the request, this might be github, bitbucket or others.</p></div><div class=clearfix></div></div></div></div></div><div class="modal fade" tabindex=0 id=_buildConfigHooks__buildID___secret___plugin__post><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_post">post</span> <span class=parent></span>/buildConfigHooks/{buildID}/{secret}/{plugin}</h4></div><div class=modal-body><div class="alert alert-info"><p>Webhook on push event from external repository.</p><p>buildID specifies which build to trigger, whereas plugin defines source of the request, this might be github, bitbucket or others.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_buildConfigHooks__buildID___secret___plugin__post_request data-toggle=tab>Request</a></li><li><a href=#_buildConfigHooks__buildID___secret___plugin__post_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_buildConfigHooks__buildID___secret___plugin__post_request><h3>URI Parameters</h3><ul><li><strong>buildID</strong>: <em>required (string)</em></li><li><strong>secret</strong>: <em>required (string)</em></li><li><strong>plugin</strong>: <em>required (string)</em></li></ul></div><div class=tab-pane id=_buildConfigHooks__buildID___secret___plugin__post_response><h2>HTTP status code <a href=http://httpstatus.es/204 target=_blank>204</a></h2><p>No content</p></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class=panel-heading><h3 id=_buildConfigs class=panel-title>/buildConfigs</h3></div><div class=panel-body><div class=panel-group><div class="panel panel-white"><div class=panel-heading><h4 class=panel-title><a class=collapsed data-toggle=collapse href=#panel__buildConfigs><span class=parent></span>/buildConfigs</a> <span class=methods><a href=# data-toggle=modal data-target=#_buildConfigs_get><span class="badge badge_get">get</span></a> <a href=# data-toggle=modal data-target=#_buildConfigs_post><span class="badge badge_post">post</span></a></span></h4></div><div id=panel__buildConfigs class="panel-collapse collapse"><div class=panel-body><div class=list-group><div data-toggle=modal data-target=#_buildConfigs_get class=list-group-item><span class="badge badge_get">get</span><div class=method_description><p>List all BuildConfigs.</p><p>BuildConfig contains the inputs needed to produce a new deployable image.</p></div><div class=clearfix></div></div><div data-toggle=modal data-target=#_buildConfigs_post class=list-group-item><span class="badge badge_post">post</span><div class=method_description><p>Create a new build.</p></div><div class=clearfix></div></div></div></div></div><div class="modal fade" tabindex=0 id=_buildConfigs_get><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_get">get</span> <span class=parent></span>/buildConfigs</h4></div><div class=modal-body><div class="alert alert-info"><p>List all BuildConfigs.</p><p>BuildConfig contains the inputs needed to produce a new deployable image.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_buildConfigs_get_request data-toggle=tab>Request</a></li><li><a href=#_buildConfigs_get_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_buildConfigs_get_request></div><div class=tab-pane id=_buildConfigs_get_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>[{
+    "apiVersion": "v1beta1",
+    "creationTimestamp": "2014-09-10T19:30:36Z",
+    "desiredInput": {
+        "imageTag": "test-database",
+        "registry": "localhost:5000",
+        "sourceURI": "git://github.com/pmorie/simple-ruby",
+        "stiInput": {
+            "builderImage": "mysql"
+        }
+    },
+    "id": "9a3a5b7c-4ee9-11e4-9d75-0800279696e1",
+    "kind": "BuildConfig",
+    "resourceVersion": 116
+},
+
+{
+    "apiVersion": "v1beta1",
+    "creationTimestamp": "2014-09-16T19:33:36Z",
+    "desiredInput": {
+        "imageTag": "test-ruby-app",
+        "registry": "localhost:5000",
+        "sourceURI": "git://github.com/pmorie/simple-ruby",
+        "stiInput": {
+            "builderImage": "openshift/ruby-19-centos"
+        }
+    },
+    "id": "5a6a5b9c-3dd8-11e4-9d75-0800279696e1",
+    "kind": "BuildConfig",
+    "resourceVersion": 117
+}]
+</code></pre></div></div></div></div></div></div><div class="modal fade" tabindex=0 id=_buildConfigs_post><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_post">post</span> <span class=parent></span>/buildConfigs</h4></div><div class=modal-body><div class="alert alert-info"><p>Create a new build.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_buildConfigs_post_request data-toggle=tab>Request</a></li></ul><div class=tab-content><div class="tab-pane active" id=_buildConfigs_post_request><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
     "kind": "BuildConfig",
     "apiVersion": "v1beta1",
     "desiredInput": {
@@ -1412,7 +1443,7 @@
       "destination": {
         "serviceId": "ruby1.9-1237471273",
         "port": 8080
-      }
+      },
       "policy": "round-robin"
     }
   ]
@@ -1428,7 +1459,7 @@
     "destination": {
       "serviceId": "ruby1.9-1237471273",
       "port": 8080
-    }
+    },
     "policy": "round-robin"
   }
 }
@@ -1443,7 +1474,7 @@
     "destination": {
       "serviceId": "ruby1.9-1237471273",
       "port": 8080
-    }
+    },
     "policy": "round-robin"
   }
 }
@@ -1458,7 +1489,7 @@
     "destination": {
       "serviceId": "ruby1.9-1237471273",
       "port": 8080
-    }
+    },
     "policy": "round-robin"
   }
 }

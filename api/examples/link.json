@@ -9,7 +9,7 @@
     "destination": {
       "serviceId": "ruby1.9-1237471273",
       "port": 8080
-    }
+    },
     "policy": "round-robin"
   }
 }

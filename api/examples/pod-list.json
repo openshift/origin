@@ -16,7 +16,7 @@
                     "hostPort": 8080,
                     "containerPort": 80
                   }]
-                }
+                }]
               }
             },
             "currentState": {
@@ -39,7 +39,7 @@
                     "hostPort": 8080,
                     "containerPort": 80
                   }]
-                }
+                }]
               }
             },
             "currentState": {
