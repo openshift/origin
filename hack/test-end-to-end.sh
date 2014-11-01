@@ -33,6 +33,25 @@ FIXTURE_DIR=${HACKDIR}/../examples/sample-app
 GO_OUT=${HACKDIR}/../_output/go/bin
 openshift=$GO_OUT/openshift
 
+# Search for a regular expression in a HTTP response.
+#
+# $1 - a valid URL (e.g.: http://127.0.0.1:8080)
+# $2 - a regular expression or text
+function validate_response {
+    ip=$1,
+    response=$2
+
+  curl $ip | grep -q $response
+  if [ $? -eq 0 ] ;then
+    echo "[INFO] Response is valid."
+    return 0
+  fi
+
+  echo "[INFO] Response is invalid."
+  set -e
+  return 1
+}
+
 # setup()
 function setup()
 {
@@ -146,3 +165,6 @@ wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN
 
 echo "[INFO] Waiting for app to start..."
 wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
+
+echo "[INFO] Validate app response..."
+validate_response "http://${FRONTEND_IP}:5432" "last insertion in the database was at"
