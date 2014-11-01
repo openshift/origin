@@ -9,8 +9,7 @@ of the core functionality of OpenShift is designed as plugins to the core Kubern
 
 Please see the [OpenShift 3 Project Enhancement Proposal (PEP)](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md) for a deeper discussion of the features you see here.
 
-NOTE: This is a very early prototype, and as such is designed for rapid iteration around core
-concepts.
+NOTE: OpenShift is in alpha and is not intended for production use. However we welcome feedback and testing as we approach our first beta.
 
 [![GoDoc](https://godoc.org/github.com/openshift/origin?status.png)](https://godoc.org/github.com/openshift/origin)
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
@@ -40,7 +39,7 @@ Once that's done, open a browser on your machine and open [http://localhost:6061
 
 ### How Does This Work?
 
-This example is simply running the ['openshift/hello-openshift' Docker image](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L11) which is [built on Docker Hub](https://registry.hub.docker.com/u/openshift/hello-openshift/).
+This example runs the ['openshift/hello-openshift' Docker image](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L11) which is [built on Docker Hub](https://registry.hub.docker.com/u/openshift/hello-openshift/).
 
 * At the Docker level, that image [binds to port 8080](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L16) within a container and [prints out a simple 'Hello OpenShift' message on access](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L9).
 * At the Kubernetes level, we [map that bound port in the container](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L13) [to port 6061 on the host](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L14) so that we can access it via the host browser.
@@ -175,9 +174,7 @@ FAQ
 Contributing 
 ------------
 
-Contributions are welcome - a more formal process is coming soon.  In the meantime, open issues as
-necessary, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved
-in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes).
+All contributions are welcome - OpenShift uses the Apache 2 license and does not require any contributor agreement to submit patches.  Please open issues for any bugs or problems you encounter, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes) at the container runtime layer.
 
 See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on
 developing on OpenShift including how different tests are setup.
