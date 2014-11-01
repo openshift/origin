@@ -27,7 +27,7 @@ else
     KUBE_COVER="-cover -covermode=atomic"
   fi
 fi
-KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 30s}
+KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 45s}
 
 if [ -z ${KUBE_RACE+x} ]; then
   KUBE_RACE="-race"
