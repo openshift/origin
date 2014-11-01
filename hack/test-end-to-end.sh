@@ -51,7 +51,10 @@ function teardown()
   set +u
   if [ ! -z $BUILD_ID ]; then
     $openshift kube buildLogs --id=$BUILD_ID > $LOG_DIR/build.log && echo "[INFO] Build logs: $LOG_DIR/build.log"
-    cat $LOG_DIR/build.log
+    # buildLogs command is currently broken, substitute w/ docker logs for now.
+    #cat $LOG_DIR/build.log
+    CONTAINER_ID=` docker ps -a | grep docker-builder | awk '{print $1}'`
+    docker logs $CONTAINER_ID
   fi
   set -u
   fi
@@ -93,6 +96,19 @@ DOCKER_REGISTRY_IP=`$openshift kube get --yaml services/docker-registry | grep "
 echo "[INFO] Probing the docker-registry"
 wait_for_url_timed "http://${DOCKER_REGISTRY_IP}:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
+echo "[INFO] Pre-pulling and pushing centos7"
+STARTTIME=$(date +%s)
+docker pull centos:centos7
+ENDTIME=$(date +%s)
+echo "[INFO] Pulled centos7: $(($ENDTIME - $STARTTIME)) seconds"
+
+docker tag centos:centos7 ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
+STARTTIME=$(date +%s)
+docker push ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
+ENDTIME=$(date +%s)
+echo "[INFO] Pushed centos7: $(($ENDTIME - $STARTTIME)) seconds"
+
+
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
 $openshift kube process -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FILE
@@ -109,7 +125,7 @@ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Git
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
 BUILD_ID=`$openshift kube list builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
-wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((30*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
+wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((40*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
 
 echo "[INFO] Waiting for database pod to start"
 wait_for_command "$openshift kube list pods | grep database | grep Running" $((30*TIME_SEC))
