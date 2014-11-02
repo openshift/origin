@@ -38,10 +38,10 @@ openshift=$GO_OUT/openshift
 # $1 - a valid URL (e.g.: http://127.0.0.1:8080)
 # $2 - a regular expression or text
 function validate_response {
-    ip=$1,
+    ip=$1
     response=$2
 
-  curl $ip | grep -q $response
+  curl $ip | grep -q "$response"
   if [ $? -eq 0 ] ;then
     echo "[INFO] Response is valid."
     return 0
