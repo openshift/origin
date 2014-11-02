@@ -3,8 +3,10 @@
 # This script sets up a go workspace locally and builds all go components.
 # You can 'source' this file if you want to set up GOPATH in your local shell.
 
+OS_REPO_ROOT=$(dirname "${BASH_SOURCE:-$0}")/..
+source "${OS_REPO_ROOT}/hack/common.sh"
+
 hackdir=$(CDPATH="" cd $(dirname $0); pwd)
-source "${hackdir}/common.sh"
 
 if [[ -z "$(which go)" ]]; then
   echo "Can't find 'go' in PATH, please fix and retry." >&2
@@ -25,7 +27,6 @@ if [[ "${TRAVIS:-}" != "true" ]]; then
   fi
 fi
 
-OS_REPO_ROOT=$(dirname "${BASH_SOURCE:-$0}")/..
 case "$(uname)" in
   Darwin)
     # Make the path absolute if it is not.
