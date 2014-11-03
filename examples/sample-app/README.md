@@ -129,26 +129,16 @@ All commands assume the `openshift` binary is in your path:
 
     In this case, the IP for frontend is 172.121.17.2 and it is on port 5432.
 
-14. Confirm the application is now accessible via the frontend service on port 5432:
+14. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.121.17.2:5432 in your browser.
 
-        $ curl http://172.121.17.2:5432
-
-    Sample output:
-
-        All the environment variables are:
-        ADMIN_USERNAME=adminNNC
-        ADMIN_PASSWORD=OmjgNWCT
-        MYSQL_ROOT_PASSWORD=root
-        ....(truncated)
-        DATABASE_SERVICE_HOST=172.121.17.3
-        DATABASE_SERVICE_PORT=5434
+You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
         
-15. Make an additional change to your ruby sample app.rb file and push it.
+15. Make a change to your ruby sample main.html file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
-15. Repeat step 11 (waiting for the build to complete).  Once the build is complete, a curl request to the application service should show your changes.
+16. Repeat step 11 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.  
 
