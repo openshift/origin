@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -54,4 +55,11 @@ func (r *ImageRegistry) DeleteImage(ctx kapi.Context, id string) error {
 	defer r.Unlock()
 
 	return r.Err
+}
+
+func (r *ImageRegistry) WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	r.Lock()
+	defer r.Unlock()
+
+	return nil, r.Err
 }
