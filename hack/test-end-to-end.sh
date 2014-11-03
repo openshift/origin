@@ -167,4 +167,4 @@ echo "[INFO] Waiting for app to start..."
 wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
 
 echo "[INFO] Validate app response..."
-validate_response "http://${FRONTEND_IP}:5432" "last insertion in the database was at"
+validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
