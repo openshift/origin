@@ -50,7 +50,7 @@
       }
     },
     {
-      "id": "build100",
+      "id": "ruby-sample-build",
       "kind": "BuildConfig",
       "apiVersion": "v1beta1",
       "parameters": {
@@ -70,7 +70,7 @@
       },
       "secret": "secret101",
       "labels": {
-        "name": "build100"
+        "name": "ruby-sample-build"
       }
     },
     {
@@ -88,9 +88,6 @@
             "repositoryName": "172.121.17.1:5001/openshift/origin-ruby-sample",
             "tag": "latest"
           }
-        },
-        {
-          "type": "ConfigChange"
         }
       ],
       "template": {
@@ -156,46 +153,52 @@
     },
     {
       "id": "database",
-      "kind": "Deployment",
+      "kind": "DeploymentConfig",
       "apiVersion": "v1beta1",
-      "triggerPolicy": "manual",
-      "strategy": {
-        "type": "Basic"
-      },
-      "controllerTemplate": {
-        "replicas": 1,
-        "replicaSelector": {
-          "name": "database"
-      },
-      "podTemplate": {
-        "desiredState": {
-          "manifest": {
-            "version": "v1beta1",
-            "containers": [
-              {
-                 "name": "ruby-helloworld-database",
-                 "image": "mysql",
-                  "env": [
-                    {
-                      "name": "MYSQL_ROOT_PASSWORD",
-                      "value": "${MYSQL_ROOT_PASSWORD}"
-                    },
-                    {
-                      "name": "MYSQL_DATABASE",
-                      "value": "${MYSQL_DATABASE}"
-                    }
-                  ],
-                  "ports": [
-                    {
-                      "containerPort": 3306
-                    }
-                  ]
-                }
-              ]
-            }
-          },
-          "labels": {
+      "triggers": [
+        {
+          "type": "ConfigChange"
+        }
+      ],
+      "template": {
+        "strategy": {
+          "type": "Basic"
+        },
+        "controllerTemplate": {
+          "replicas": 1,
+          "replicaSelector": {
             "name": "database"
+        },
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "containers": [
+                {
+                   "name": "ruby-helloworld-database",
+                   "image": "mysql",
+                    "env": [
+                      {
+                        "name": "MYSQL_ROOT_PASSWORD",
+                        "value": "${MYSQL_ROOT_PASSWORD}"
+                      },
+                      {
+                        "name": "MYSQL_DATABASE",
+                        "value": "${MYSQL_DATABASE}"
+                      }
+                    ],
+                    "ports": [
+                      {
+                        "containerPort": 3306
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "labels": {
+              "name": "database"
+            }
           }
         }
       }

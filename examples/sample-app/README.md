@@ -60,7 +60,7 @@ All commands assume the `openshift` binary is in your path:
 
 7. *Optional:* Add the following webhook to your new github repository:
 
-        $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+        $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
   * Note: Using the webhook requires your OpenShift server be publicly accessible so github can reach it to invoke the hook.
 
 8. Edit application-template.json
@@ -74,11 +74,11 @@ All commands assume the `openshift` binary is in your path:
  * If you setup the github webhook in step 7, push a change to app.rb in your ruby sample repository from step 6.
  * Otherwise you can simulate the webhook invocation by running:
 
-            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
 
     In the OpenShift logs (logs/openshift.log) you should see something like:
 
-        I0916 13:50:22.479529 21375 log.go:134] POST /osapi/v1beta1/buildConfigHooks/build100/secret101/github
+        I0916 13:50:22.479529 21375 log.go:134] POST /osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
 
     which confirms the webhook was triggered.
 
@@ -136,7 +136,7 @@ You should see a welcome page and a form that allows you to query and update key
 15. Make a change to your ruby sample main.html file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
+            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
 
 16. Repeat step 11 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 

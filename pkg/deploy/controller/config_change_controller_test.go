@@ -8,8 +8,8 @@ import (
 	deploytest "github.com/openshift/origin/pkg/deploy/controller/test"
 )
 
-// Test the controller's response to a new DeploymentConfig
-func TestNewConfig(t *testing.T) {
+// Test the controller's response to a new DeploymentConfig with a config change trigger.
+func TestNewConfigWithoutTrigger(t *testing.T) {
 	generated := false
 	updated := false
 
@@ -25,9 +25,9 @@ func TestNewConfig(t *testing.T) {
 			},
 		},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			return initialConfig()
+			return newConfigWithoutTrigger()
 		},
-		DeploymentStore: deploytest.NewFakeDeploymentStore(matchingInitialDeployment()),
+		DeploymentStore: deploytest.NewFakeDeploymentStore(nil),
 	}
 
 	controller.HandleDeploymentConfig()
@@ -38,6 +38,46 @@ func TestNewConfig(t *testing.T) {
 
 	if updated {
 		t.Error("Unexpected update of deploymentConfig")
+	}
+}
+
+func TestNewConfigWithTrigger(t *testing.T) {
+	var (
+		generatedId string
+		updated     *deployapi.DeploymentConfig
+	)
+
+	controller := &DeploymentConfigChangeController{
+		ChangeStrategy: &testChangeStrategy{
+			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
+				generatedId = id
+				return generatedConfig(), nil
+			},
+			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				updated = config
+				return config, nil
+			},
+		},
+		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
+			return newConfigWithTrigger()
+		},
+		DeploymentStore: deploytest.NewFakeDeploymentStore(nil),
+	}
+
+	controller.HandleDeploymentConfig()
+
+	if generatedId != "test-deploy-config" {
+		t.Fatalf("Unexpected generated config id.  Expected test-deploy-config, got: %v", generatedId)
+	}
+
+	if updated.ID != "test-deploy-config" {
+		t.Fatalf("Unexpected updated config id.  Expected test-deploy-config, got: %v", updated.ID)
+	} else if updated.Details == nil {
+		t.Fatalf("expected config change details to be set")
+	} else if updated.Details.Causes == nil {
+		t.Fatalf("expected config change causes to be set")
+	} else if updated.Details.Causes[0].Type != deployapi.DeploymentTriggerOnConfigChange {
+		t.Fatalf("expected config change cause to be set to config change trigger, got %s", updated.Details.Causes[0].Type)
 	}
 }
 
@@ -52,7 +92,7 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 		ChangeStrategy: &testChangeStrategy{
 			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
 				generatedId = id
-				return generatedConfig(), nil
+				return generatedExistingConfig(), nil
 			},
 			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = config
@@ -98,7 +138,7 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 			},
 		},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			return initialConfig()
+			return existingConfigWithTrigger()
 		},
 		DeploymentStore: deploytest.NewFakeDeploymentStore(matchingInitialDeployment()),
 	}
@@ -127,7 +167,7 @@ func (i *testChangeStrategy) UpdateDeploymentConfig(ctx kapi.Context, config *de
 	return i.UpdateDeploymentConfigFunc(config)
 }
 
-func initialConfig() *deployapi.DeploymentConfig {
+func existingConfigWithTrigger() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -161,6 +201,19 @@ func initialConfig() *deployapi.DeploymentConfig {
 			},
 		},
 	}
+}
+
+func newConfigWithTrigger() *deployapi.DeploymentConfig {
+	config := existingConfigWithTrigger()
+	config.LatestVersion = 0
+	return config
+}
+
+func newConfigWithoutTrigger() *deployapi.DeploymentConfig {
+	config := existingConfigWithTrigger()
+	config.LatestVersion = 0
+	config.Triggers = []deployapi.DeploymentTriggerPolicy{}
+	return config
 }
 
 func diffedConfig() *deployapi.DeploymentConfig {
@@ -199,7 +252,7 @@ func diffedConfig() *deployapi.DeploymentConfig {
 	}
 }
 
-func generatedConfig() *deployapi.DeploymentConfig {
+func generatedExistingConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
@@ -233,6 +286,12 @@ func generatedConfig() *deployapi.DeploymentConfig {
 			},
 		},
 	}
+}
+
+func generatedConfig() *deployapi.DeploymentConfig {
+	config := generatedExistingConfig()
+	config.LatestVersion = 0
+	return config
 }
 
 func matchingInitialDeployment() *deployapi.Deployment {
