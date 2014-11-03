@@ -5,6 +5,22 @@ import (
 	"strings"
 )
 
+// Add takes two sets of scopes, and returns a combined sorted set of scopes
+func Add(has []string, new []string) []string {
+	sorted := sortAndCopy(has)
+	for _, s := range new {
+		i := sort.SearchStrings(sorted, s)
+		if i == len(sorted) {
+			sorted = append(sorted, s)
+		} else if sorted[i] != s {
+			sorted = append(sorted, "")
+			copy(sorted[i+1:], sorted[i:])
+			sorted[i] = s
+		}
+	}
+	return sorted
+}
+
 func Split(scope string) []string {
 	scope = strings.TrimSpace(scope)
 	if scope == "" {

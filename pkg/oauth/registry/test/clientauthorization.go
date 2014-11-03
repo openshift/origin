@@ -12,6 +12,8 @@ type ClientAuthorizationRegistry struct {
 	Err                          error
 	ClientAuthorizations         *api.ClientAuthorizationList
 	ClientAuthorization          *api.ClientAuthorization
+	CreatedAuthorization         *api.ClientAuthorization
+	UpdatedAuthorization         *api.ClientAuthorization
 	DeletedClientAuthorizationId string
 }
 
@@ -28,10 +30,12 @@ func (r *ClientAuthorizationRegistry) GetClientAuthorization(id string) (*api.Cl
 }
 
 func (r *ClientAuthorizationRegistry) CreateClientAuthorization(grant *api.ClientAuthorization) error {
+	r.CreatedAuthorization = grant
 	return r.Err
 }
 
 func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(grant *api.ClientAuthorization) error {
+	r.UpdatedAuthorization = grant
 	return r.Err
 }
 

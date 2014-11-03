@@ -21,10 +21,14 @@ import (
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
+	"github.com/openshift/origin/pkg/auth/server/csrf"
+	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/session"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
+	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
@@ -33,6 +37,7 @@ import (
 const (
 	OpenShiftOAuthAPIPrefix      = "/oauth"
 	OpenShiftLoginPrefix         = "/login"
+	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
@@ -62,7 +67,7 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	config := osinserver.NewDefaultServerConfig()
 
 	grantChecker := registry.NewClientAuthorizationGrantChecker(oauthEtcd)
-	grantHandler := emptyGrant{}
+	grantHandler := c.getGrantHandler(mux, authRequestHandler, oauthEtcd, oauthEtcd)
 
 	server := osinserver.New(
 		config,
@@ -94,11 +99,35 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	}
 }
 
+// getCSRF returns the object responsible for generating and checking CSRF tokens
+func getCSRF() csrf.CSRF {
+	return csrf.NewCookieCSRF("csrf", "/", "", false, false)
+}
+
+// getGrantHandler returns the object that handles approving or rejecting grant requests
+func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) handlers.GrantHandler {
+	var grantHandler handlers.GrantHandler
+	grantHandlerType := env("ORIGIN_GRANT_HANDLER", "prompt")
+	switch grantHandlerType {
+	case "empty":
+		grantHandler = handlers.NewEmptyGrant()
+	case "auto":
+		grantHandler = handlers.NewAutoGrant(authregistry)
+	case "prompt":
+		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultGrantFormRenderer, clientregistry, authregistry)
+		grantServer.Install(mux, OpenShiftApprovePrefix)
+		grantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
+	default:
+		glog.Fatalf("No grant handler found that matches %v.  The oauth server cannot start!", grantHandlerType)
+	}
+	return grantHandler
+}
+
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.AuthenticationSuccessHandler, error handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authHandler handlers.AuthenticationHandler
-	authHandlerType := env("ORIGIN_AUTH_HANDLER", "empty")
+	authHandlerType := env("ORIGIN_AUTH_HANDLER", "login")
 	switch authHandlerType {
 	case "google", "github":
 		callbackPath := OpenShiftOAuthCallbackPrefix + "/" + authHandlerType
@@ -139,7 +168,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 
 		authHandler = &redirectAuthHandler{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
 		success := handlers.AuthenticationSuccessHandlers{success, redirectSuccessHandler{}}
-		login := login.NewLogin(emptyCsrf{}, &callbackPasswordAuthenticator{passwordAuth, success}, login.DefaultLoginFormRenderer)
+		login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, success}, login.DefaultLoginFormRenderer)
 		login.Install(mux, OpenShiftLoginPrefix)
 	case "empty":
 		authHandler = emptyAuth{}
@@ -195,9 +224,6 @@ func (emptyAuth) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) 
 func (emptyAuth) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "<body>AuthenticationError - %s</body>", err)
 }
-func (emptyAuth) String() string {
-	return "emptyAuth"
-}
 
 // Captures the original request url as a "then" param in a redirect to a login flow
 type redirectAuthHandler struct {
@@ -223,30 +249,6 @@ func (auth *redirectAuthHandler) AuthenticationError(err error, w http.ResponseW
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusForbidden)
 	fmt.Fprintf(w, "<body>AuthenticationError - %s</body>", err)
-}
-
-func (auth *redirectAuthHandler) String() string {
-	return fmt.Sprintf("redirectAuth{url:%s, then:%s}", auth.RedirectURL, auth.ThenParam)
-}
-
-type emptyGrant struct{}
-
-func (emptyGrant) GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "<body>GrantNeeded - not implemented<pre>%#v\n%#v\n%#v</pre></body>", client, user, grant)
-}
-
-func (emptyGrant) GrantError(err error, w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "<body>GrantError - %s</body>", err)
-}
-
-type emptyCsrf struct{}
-
-func (emptyCsrf) Generate() (string, error) {
-	return "", nil
-}
-
-func (emptyCsrf) Check(string) (bool, error) {
-	return true, nil
 }
 
 //

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
 
 type testImplicit struct {
@@ -35,7 +36,7 @@ func (t *testImplicit) AuthenticationSucceeded(user api.UserInfo, then string, w
 
 func TestImplicit(t *testing.T) {
 	testCases := map[string]struct {
-		CSRF       *testCSRF
+		CSRF       csrf.CSRF
 		Implicit   *testImplicit
 		Path       string
 		PostValues url.Values
@@ -46,7 +47,7 @@ func TestImplicit(t *testing.T) {
 		ExpectThen       string
 	}{
 		"display confirm form": {
-			CSRF:     &testCSRF{"test", nil},
+			CSRF:     &csrf.FakeCSRF{"test", nil},
 			Implicit: &testImplicit{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
 			Path:     "/login",
 			ExpectContains: []string{
@@ -55,35 +56,35 @@ func TestImplicit(t *testing.T) {
 			},
 		},
 		"successful POST redirects": {
-			CSRF:       &testCSRF{"test", nil},
+			CSRF:       &csrf.FakeCSRF{"test", nil},
 			Implicit:   &testImplicit{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
 			Path:       "/login?then=%2Ffoo",
 			PostValues: url.Values{"csrf": []string{"test"}},
 			ExpectThen: "/foo",
 		},
 		"redirect when POST fails CSRF": {
-			CSRF:           &testCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{"test", nil},
 			Implicit:       &testImplicit{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"wrong"}},
 			ExpectRedirect: "/login?reason=token+expired",
 		},
 		"redirect when not authenticated": {
-			CSRF:           &testCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{"test", nil},
 			Implicit:       &testImplicit{Success: false},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"test"}},
 			ExpectRedirect: "/login?reason=access+denied",
 		},
 		"redirect on auth failure": {
-			CSRF:           &testCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{"test", nil},
 			Implicit:       &testImplicit{Err: errors.New("failed")},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"test"}},
 			ExpectRedirect: "/login?reason=access+denied",
 		},
 		"expect GET error": {
-			CSRF:           &testCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{"test", nil},
 			Implicit:       &testImplicit{Err: errors.New("failed")},
 			ExpectContains: []string{`"message">An unknown error has occured. Contact your administrator`},
 		},
