@@ -302,10 +302,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/kube-deploy",
-				},
+				Type: deployapi.DeploymentStrategyTypeBasic,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,
@@ -340,17 +337,9 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 func manualDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config"},
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerManual,
-			},
-		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/kube-deploy",
-				},
+				Type: deployapi.DeploymentStrategyTypeBasic,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,
@@ -383,18 +372,12 @@ func changeDeploymentConfig() *deployapi.DeploymentConfig {
 		TypeMeta: kapi.TypeMeta{ID: "change-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
-				Type: deployapi.DeploymentTriggerManual,
-			},
-			{
 				Type: deployapi.DeploymentTriggerOnConfigChange,
 			},
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/kube-deploy",
-				},
+				Type: deployapi.DeploymentStrategyTypeBasic,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,

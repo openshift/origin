@@ -129,163 +129,138 @@ func (i *testChangeStrategy) UpdateDeploymentConfig(ctx kapi.Context, config *de
 }
 
 func initialConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerOnConfigChange,
-			},
-		},
-		LatestVersion: 2,
-		Template: deployapi.DeploymentTemplate{
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/kube-deploy",
-				},
-			},
-			ControllerTemplate: kapi.ReplicationControllerState{
-				Replicas: 1,
-				ReplicaSelector: map[string]string{
-					"name": "test-pod",
-				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod",
-					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-1",
-									Image: "registry:8080/openshift/test-image:ref-1",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+  return &deployapi.DeploymentConfig{
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
+    Triggers: []deployapi.DeploymentTriggerPolicy{
+      {
+        Type: deployapi.DeploymentTriggerOnConfigChange,
+      },
+    },
+    LatestVersion: 2,
+    Template: deployapi.DeploymentTemplate{
+      ControllerTemplate: kapi.ReplicationControllerState{
+        Replicas: 1,
+        ReplicaSelector: map[string]string{
+          "name": "test-pod",
+        },
+        PodTemplate: kapi.PodTemplate{
+          Labels: map[string]string{
+            "name": "test-pod",
+          },
+          DesiredState: kapi.PodState{
+            Manifest: kapi.ContainerManifest{
+              Version: "v1beta1",
+              Containers: []kapi.Container{
+                {
+                  Name:  "container-1",
+                  Image: "registry:8080/openshift/test-image:ref-1",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }
 }
 
 func diffedConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerOnConfigChange,
-			},
-		},
-		LatestVersion: 2,
-		Template: deployapi.DeploymentTemplate{
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/kube-deploy",
-				},
-			},
-			ControllerTemplate: kapi.ReplicationControllerState{
-				Replicas: 1,
-				ReplicaSelector: map[string]string{
-					"name": "test-pod-2",
-				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod-2",
-					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-2",
-									Image: "registry:8080/openshift/test-image:ref-1",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+  return &deployapi.DeploymentConfig{
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
+    Triggers: []deployapi.DeploymentTriggerPolicy{
+      {
+        Type: deployapi.DeploymentTriggerOnConfigChange,
+      },
+    },
+    LatestVersion: 2,
+    Template: deployapi.DeploymentTemplate{
+      ControllerTemplate: kapi.ReplicationControllerState{
+        Replicas: 1,
+        ReplicaSelector: map[string]string{
+          "name": "test-pod-2",
+        },
+        PodTemplate: kapi.PodTemplate{
+          Labels: map[string]string{
+            "name": "test-pod-2",
+          },
+          DesiredState: kapi.PodState{
+            Manifest: kapi.ContainerManifest{
+              Version: "v1beta1",
+              Containers: []kapi.Container{
+                {
+                  Name:  "container-2",
+                  Image: "registry:8080/openshift/test-image:ref-1",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }
 }
 
 func generatedConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerOnConfigChange,
-			},
-		},
-		LatestVersion: 3,
-		Template: deployapi.DeploymentTemplate{
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/kube-deploy",
-				},
-			},
-			ControllerTemplate: kapi.ReplicationControllerState{
-				Replicas: 1,
-				ReplicaSelector: map[string]string{
-					"name": "test-pod",
-				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod",
-					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-1",
-									Image: "registry:8080/openshift/test-image:ref-2",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+  return &deployapi.DeploymentConfig{
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
+    Triggers: []deployapi.DeploymentTriggerPolicy{
+      {
+        Type: deployapi.DeploymentTriggerOnConfigChange,
+      },
+    },
+    LatestVersion: 3,
+    Template: deployapi.DeploymentTemplate{
+      ControllerTemplate: kapi.ReplicationControllerState{
+        Replicas: 1,
+        ReplicaSelector: map[string]string{
+          "name": "test-pod",
+        },
+        PodTemplate: kapi.PodTemplate{
+          Labels: map[string]string{
+            "name": "test-pod",
+          },
+          DesiredState: kapi.PodState{
+            Manifest: kapi.ContainerManifest{
+              Version: "v1beta1",
+              Containers: []kapi.Container{
+                {
+                  Name:  "container-1",
+                  Image: "registry:8080/openshift/test-image:ref-2",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }
 }
 
 func matchingInitialDeployment() *deployapi.Deployment {
-	return &deployapi.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config-1"},
-		Status:   deployapi.DeploymentStatusNew,
-		Strategy: deployapi.DeploymentStrategy{
-			Type: deployapi.DeploymentStrategyTypeCustomPod,
-			CustomPod: &deployapi.CustomPodDeploymentStrategy{
-				Image:       "registry:8080/repo1:ref1",
-				Environment: []kapi.EnvVar{},
-			},
-		},
-		ControllerTemplate: kapi.ReplicationControllerState{
-			Replicas: 1,
-			ReplicaSelector: map[string]string{
-				"name": "test-pod",
-			},
-			PodTemplate: kapi.PodTemplate{
-				Labels: map[string]string{
-					"name": "test-pod",
-				},
-				DesiredState: kapi.PodState{
-					Manifest: kapi.ContainerManifest{
-						Version: "v1beta1",
-						Containers: []kapi.Container{
-							{
-								Name:  "container-1",
-								Image: "registry:8080/openshift/test-image:ref-1",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+  return &deployapi.Deployment{
+    TypeMeta: kapi.TypeMeta{ID: "test-deploy-config-1"},
+    Status:   deployapi.DeploymentStatusNew,
+    ControllerTemplate: kapi.ReplicationControllerState{
+      Replicas: 1,
+      ReplicaSelector: map[string]string{
+        "name": "test-pod",
+      },
+      PodTemplate: kapi.PodTemplate{
+        Labels: map[string]string{
+          "name": "test-pod",
+        },
+        DesiredState: kapi.PodState{
+          Manifest: kapi.ContainerManifest{
+            Version: "v1beta1",
+            Containers: []kapi.Container{
+              {
+                Name:  "container-1",
+                Image: "registry:8080/openshift/test-image:ref-1",
+              },
+            },
+          },
+        },
+      },
+    },
+  }
 }

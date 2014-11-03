@@ -3,9 +3,9 @@ package validation
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/deploy/api/test"
 )
 
 // Convenience methods
@@ -18,54 +18,12 @@ func manualTrigger() []api.DeploymentTriggerPolicy {
 	}
 }
 
-func okControllerTemplate() kapi.ReplicationControllerState {
-	return kapi.ReplicationControllerState{
-		ReplicaSelector: okSelector(),
-		PodTemplate:     okPodTemplate(),
-	}
-}
-
-func okSelector() map[string]string {
-	return map[string]string{"a": "b"}
-}
-
-func okPodTemplate() kapi.PodTemplate {
-	return kapi.PodTemplate{
-		DesiredState: kapi.PodState{
-			Manifest: kapi.ContainerManifest{
-				Version: "v1beta1",
-			},
-		},
-		Labels: okSelector(),
-	}
-}
-
-func okDeploymentTemplate() api.DeploymentTemplate {
-	return api.DeploymentTemplate{
-		Strategy:           okStrategy(),
-		ControllerTemplate: okControllerTemplate(),
-	}
-}
-
-func okStrategy() api.DeploymentStrategy {
-	return api.DeploymentStrategy{
-		Type:      api.DeploymentStrategyTypeCustomPod,
-		CustomPod: okCustomPod(),
-	}
-}
-
-func okCustomPod() *api.CustomPodDeploymentStrategy {
-	return &api.CustomPodDeploymentStrategy{
-		Image: "openshift/kube-deploy",
-	}
-}
-
 // TODO: test validation errors for ReplicationControllerTemplates
 
 func TestValidateDeploymentOK(t *testing.T) {
 	errs := ValidateDeployment(&api.Deployment{
-		Strategy:           okStrategy(),
-		ControllerTemplate: okControllerTemplate(),
+		Strategy:           test.OkStrategy(),
+		ControllerTemplate: test.OkControllerTemplate(),
 	})
 	if len(errs) > 0 {
 		t.Errorf("Unxpected non-empty error list: %#v", errs)
@@ -80,10 +38,8 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 	}{
 		"missing strategy.type": {
 			api.Deployment{
-				Strategy: api.DeploymentStrategy{
-					CustomPod: okCustomPod(),
-				},
-				ControllerTemplate: okControllerTemplate(),
+				Strategy:           api.DeploymentStrategy{},
+				ControllerTemplate: test.OkControllerTemplate(),
 			},
 			errors.ValidationErrorTypeRequired,
 			"strategy.type",
@@ -93,7 +49,7 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 				Strategy: api.DeploymentStrategy{
 					Type: api.DeploymentStrategyTypeCustomPod,
 				},
-				ControllerTemplate: okControllerTemplate(),
+				ControllerTemplate: test.OkControllerTemplate(),
 			},
 			errors.ValidationErrorTypeRequired,
 			"strategy.customPod",
@@ -104,7 +60,7 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 					Type:      api.DeploymentStrategyTypeCustomPod,
 					CustomPod: &api.CustomPodDeploymentStrategy{},
 				},
-				ControllerTemplate: okControllerTemplate(),
+				ControllerTemplate: test.OkControllerTemplate(),
 			},
 			errors.ValidationErrorTypeRequired,
 			"strategy.customPod.image",
@@ -130,7 +86,7 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 func TestValidateDeploymentConfigOK(t *testing.T) {
 	errs := ValidateDeploymentConfig(&api.DeploymentConfig{
 		Triggers: manualTrigger(),
-		Template: okDeploymentTemplate(),
+		Template: test.OkDeploymentTemplate(),
 	})
 
 	if len(errs) > 0 {
@@ -153,7 +109,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 						},
 					},
 				},
-				Template: okDeploymentTemplate(),
+				Template: test.OkDeploymentTemplate(),
 			},
 			errors.ValidationErrorTypeRequired,
 			"triggers[0].type",
@@ -168,7 +124,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 						},
 					},
 				},
-				Template: okDeploymentTemplate(),
+				Template: test.OkDeploymentTemplate(),
 			},
 			errors.ValidationErrorTypeRequired,
 			"triggers[0].imageChangeParams.repositoryName",
@@ -183,7 +139,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 						},
 					},
 				},
-				Template: okDeploymentTemplate(),
+				Template: test.OkDeploymentTemplate(),
 			},
 			errors.ValidationErrorTypeRequired,
 			"triggers[0].imageChangeParams.containerNames",
@@ -193,9 +149,9 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				Triggers: manualTrigger(),
 				Template: api.DeploymentTemplate{
 					Strategy: api.DeploymentStrategy{
-						CustomPod: okCustomPod(),
+						CustomPod: test.OkCustomPod(),
 					},
-					ControllerTemplate: okControllerTemplate(),
+					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
 			errors.ValidationErrorTypeRequired,
@@ -208,7 +164,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeCustomPod,
 					},
-					ControllerTemplate: okControllerTemplate(),
+					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
 			errors.ValidationErrorTypeRequired,
@@ -222,7 +178,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 						Type:      api.DeploymentStrategyTypeCustomPod,
 						CustomPod: &api.CustomPodDeploymentStrategy{},
 					},
-					ControllerTemplate: okControllerTemplate(),
+					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
 			errors.ValidationErrorTypeRequired,
