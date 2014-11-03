@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"encoding/json"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -31,15 +32,18 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
 	}
-	if len(container.Env) != 5 {
-		t.Fatalf("Expected 5 elements in Env table, got %d", len(container.Env))
+	if len(container.Env) != 7 {
+		t.Fatalf("Expected 7 elements in Env table, got %d", len(container.Env))
 	}
+	buildJson, _ := json.Marshal(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD_TAG", expected.Input.ImageTag},
-		1: {"SOURCE_URI", expected.Input.SourceURI},
-		2: {"SOURCE_REF", expected.Input.SourceRef},
-		3: {"REGISTRY", expected.Input.Registry},
-		4: {"CONTEXT_DIR", expected.Input.DockerInput.ContextDir},
+		1: {"SOURCE_URI", expected.Source.Git.URI},
+		2: {"SOURCE_REF", expected.Source.Git.Ref},
+		3: {"SOURCE_ID", expected.Revision.Git.Commit},
+		4: {"REGISTRY", expected.Input.Registry},
+		5: {"CONTEXT_DIR", expected.Input.DockerInput.ContextDir},
+		6: {"BUILD", string(buildJson)},
 	}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
@@ -53,8 +57,15 @@ func mockDockerBuild() *api.Build {
 		TypeMeta: kapi.TypeMeta{
 			ID: "dockerBuild",
 		},
+		Revision: api.SourceRevision{
+			Git: &api.GitSourceRevision{},
+		},
+		Source: api.BuildSource{
+			Git: &api.GitBuildSource{
+				URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+			},
+		},
 		Input: api.BuildInput{
-			SourceURI:   "http://my.build.com/the/dockerbuild/Dockerfile",
 			ImageTag:    "repository/dockerBuild",
 			Registry:    "docker-registry",
 			DockerInput: &api.DockerBuildInput{ContextDir: "my/test/dir"},

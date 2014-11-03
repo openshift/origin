@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"encoding/json"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -23,7 +24,10 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, 
 	if build.Input.DockerInput != nil {
 		contextDir = build.Input.DockerInput.ContextDir
 	}
-
+	buildJson, err := json.Marshal(build)
+	if err != nil {
+		return nil, err
+	}
 	pod := &api.Pod{
 		TypeMeta: api.TypeMeta{
 			ID: build.PodID,
@@ -37,10 +41,12 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*api.Pod, 
 						Image: bs.dockerBuilderImage,
 						Env: []api.EnvVar{
 							{Name: "BUILD_TAG", Value: build.Input.ImageTag},
-							{Name: "SOURCE_URI", Value: build.Input.SourceURI},
-							{Name: "SOURCE_REF", Value: build.Input.SourceRef},
+							{Name: "SOURCE_URI", Value: build.Source.Git.URI},
+							{Name: "SOURCE_REF", Value: build.Source.Git.Ref},
+							{Name: "SOURCE_ID", Value: build.Revision.Git.Commit},
 							{Name: "REGISTRY", Value: build.Input.Registry},
 							{Name: "CONTEXT_DIR", Value: contextDir},
+							{Name: "BUILD", Value: string(buildJson)},
 						},
 					},
 				},

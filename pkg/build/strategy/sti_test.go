@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"encoding/json"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -37,16 +38,19 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
 	}
-	if len(container.Env) != 6 {
-		t.Fatalf("Expected 6 elements in Env table, got %d", len(container.Env))
+	if len(container.Env) != 8 {
+		t.Fatalf("Expected 8 elements in Env table, got %d", len(container.Env))
 	}
+	buildJson, _ := json.Marshal(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD_TAG", expected.Input.ImageTag},
-		1: {"SOURCE_URI", expected.Input.SourceURI},
-		2: {"SOURCE_REF", expected.Input.SourceRef},
-		3: {"REGISTRY", expected.Input.Registry},
-		4: {"BUILDER_IMAGE", expected.Input.STIInput.BuilderImage},
-		5: {"TEMP_DIR", "test_temp"},
+		1: {"SOURCE_URI", expected.Source.Git.URI},
+		2: {"SOURCE_REF", expected.Source.Git.Ref},
+		3: {"SOURCE_ID", expected.Revision.Git.Commit},
+		4: {"BUILD", string(buildJson)},
+		5: {"REGISTRY", expected.Input.Registry},
+		6: {"BUILDER_IMAGE", expected.Input.STIInput.BuilderImage},
+		7: {"TEMP_DIR", "test_temp"},
 	}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
@@ -60,11 +64,18 @@ func mockSTIBuild() *api.Build {
 		TypeMeta: kapi.TypeMeta{
 			ID: "stiBuild",
 		},
+		Revision: api.SourceRevision{
+			Git: &api.GitSourceRevision{},
+		},
+		Source: api.BuildSource{
+			Git: &api.GitBuildSource{
+				URI: "http://my.build.com/the/stibuild/Dockerfile",
+			},
+		},
 		Input: api.BuildInput{
-			SourceURI: "http://my.build.com/the/stibuild/Dockerfile",
-			ImageTag:  "repository/stiBuild",
-			Registry:  "docker-registry",
-			STIInput:  &api.STIBuildInput{BuilderImage: "repository/sti-builder"},
+			ImageTag: "repository/stiBuild",
+			Registry: "docker-registry",
+			STIInput: &api.STIBuildInput{BuilderImage: "repository/sti-builder"},
 		},
 		Status: api.BuildNew,
 		PodID:  "-the-pod-id",

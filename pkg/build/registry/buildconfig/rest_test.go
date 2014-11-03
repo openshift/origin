@@ -257,9 +257,14 @@ func mockBuildConfig() *api.BuildConfig {
 			ID:        "dataBuild",
 			Namespace: kapi.NamespaceDefault,
 		},
+		Source: api.BuildSource{
+			Type: api.BuildSourceGit,
+			Git: &api.GitBuildSource{
+				URI: "http://my.build.com/the/build/Dockerfile",
+			},
+		},
 		DesiredInput: api.BuildInput{
-			SourceURI: "http://my.build.com/the/buildConfig/Dockerfile",
-			ImageTag:  "repository/dataBuild",
+			ImageTag: "repository/dataBuild",
 		},
 		Labels: map[string]string{
 			"name": "dataBuild",
@@ -323,9 +328,14 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 	failureCases := map[string]api.BuildConfig{
 		"blank sourceURI": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "",
+				},
+			},
 			DesiredInput: api.BuildInput{
-				SourceURI: "",
-				ImageTag:  "data/image",
+				ImageTag: "data/image",
 				STIInput: &api.STIBuildInput{
 					BuilderImage: "builder/image",
 				},
@@ -333,16 +343,26 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 		},
 		"blank ImageTag": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://github.com/test/source",
+				},
+			},
 			DesiredInput: api.BuildInput{
-				SourceURI: "http://github.com/test/source",
-				ImageTag:  "",
+				ImageTag: "",
 			},
 		},
 		"blank BuilderImage": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://github.com/test/source",
+				},
+			},
 			DesiredInput: api.BuildInput{
-				SourceURI: "http://github.com/test/source",
-				ImageTag:  "data/image",
+				ImageTag: "data/image",
 				STIInput: &api.STIBuildInput{
 					BuilderImage: "",
 				},
@@ -366,16 +386,26 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	failureCases := map[string]api.BuildConfig{
 		"empty ID": {
 			TypeMeta: kapi.TypeMeta{ID: ""},
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://github.com/test/source",
+				},
+			},
 			DesiredInput: api.BuildInput{
-				SourceURI: "http://github.com/test/source",
-				ImageTag:  "data/image",
+				ImageTag: "data/image",
 			},
 		},
 		"blank sourceURI": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "",
+				},
+			},
 			DesiredInput: api.BuildInput{
-				SourceURI: "",
-				ImageTag:  "data/image",
+				ImageTag: "data/image",
 				STIInput: &api.STIBuildInput{
 					BuilderImage: "builder/image",
 				},
@@ -383,16 +413,26 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 		},
 		"blank ImageTag": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://github.com/test/source",
+				},
+			},
 			DesiredInput: api.BuildInput{
-				SourceURI: "http://github.com/test/source",
-				ImageTag:  "",
+				ImageTag: "",
 			},
 		},
 		"blank BuilderImage on STIBuildType": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://github.com/test/source",
+				},
+			},
 			DesiredInput: api.BuildInput{
-				SourceURI: "http://github.com/test/source",
-				ImageTag:  "data/image",
+				ImageTag: "data/image",
 				STIInput: &api.STIBuildInput{
 					BuilderImage: "",
 				},

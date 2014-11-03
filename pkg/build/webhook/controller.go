@@ -7,7 +7,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/client"
 )
 
 // Webhook verification is dependent on the sending side, it can be
@@ -23,8 +22,13 @@ type Plugin interface {
 
 // controller used for processing webhook requests.
 type controller struct {
-	osClient client.Interface
+	osClient webhookBuildInterface
 	plugins  map[string]Plugin
+}
+
+type webhookBuildInterface interface {
+	CreateBuild(ctx kapi.Context, build *api.Build) (*api.Build, error)
+	GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error)
 }
 
 // urlVars holds parsed URL parts.
@@ -36,7 +40,7 @@ type urlVars struct {
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
-func NewController(osClient client.Interface, plugins map[string]Plugin) http.Handler {
+func NewController(osClient webhookBuildInterface, plugins map[string]Plugin) http.Handler {
 	return &controller{osClient: osClient, plugins: plugins}
 }
 
@@ -76,6 +80,10 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Input: buildCfg.DesiredInput,
 		}
 	}
+	if build.Labels == nil {
+		build.Labels = make(map[string]string)
+	}
+	build.Labels[api.BuildConfigLabel] = buildCfg.ID
 
 	if _, err := c.osClient.CreateBuild(kapi.WithNamespaceDefaultIfNone(ctx), build); err != nil {
 		badRequest(w, err.Error())
