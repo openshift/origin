@@ -12,23 +12,22 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 )
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	BuildRegistry build.Registry
 	PodClient     client.PodInterface
-	proxyPrefix   string
 }
 
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get neccessary attibutes to assamble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(b build.Registry, c client.PodInterface, p string) apiserver.RESTStorage {
+func NewREST(b build.Registry, c client.PodInterface) apiserver.RESTStorage {
 	return &REST{
 		BuildRegistry: b,
 		PodClient:     c,
-		proxyPrefix:   p,
 	}
 }
 
@@ -36,19 +35,21 @@ func NewREST(b build.Registry, c client.PodInterface, p string) apiserver.RESTSt
 func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	build, err := r.BuildRegistry.GetBuild(ctx, id)
 	if err != nil {
-		return "", fmt.Errorf("No such build")
+		return "", fmt.Errorf("No such build: %v", err)
 	}
 
 	pod, err := r.PodClient.GetPod(ctx, build.PodID)
 	if err != nil {
-		return "", fmt.Errorf("No such pod")
+		return "", fmt.Errorf("No such pod: %v", err)
 	}
 	buildPodID := build.PodID
-	buildHost := pod.CurrentState.Host
+	buildPodHost := pod.CurrentState.Host
+	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
 	buildContainerName := pod.DesiredState.Manifest.Containers[0].Name
 	location := &url.URL{
-		Path: r.proxyPrefix + "/" + buildHost + "/containerLogs/" + buildPodID + "/" + buildContainerName,
+		Host: fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
+		Path: fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
 	}
 	if build.Status == api.BuildStatusRunning {
 		params := url.Values{"follow": []string{"1"}}

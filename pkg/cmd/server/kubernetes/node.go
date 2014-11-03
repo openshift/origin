@@ -94,8 +94,8 @@ func (c *NodeConfig) RunKubelet() {
 		10)
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
-	// TODO expose this as a command line parameter
-	enableDebuggingHandlers := false
+	// this parameter must be true, otherwise buildLogs won't work
+	enableDebuggingHandlers := true
 	go util.Forever(func() {
 		glog.Infof("Started Kubelet for node %s, server at %s:%d", c.NodeHost, c.BindHost, NodePort)
 		kubelet.ListenAndServeKubeletServer(k, cfg.Channel("http"), net.ParseIP(c.BindHost), uint(NodePort), enableDebuggingHandlers)
