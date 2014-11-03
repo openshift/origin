@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"github.com/openshift/origin/pkg/auth/authenticator/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authfile "github.com/openshift/origin/pkg/auth/authenticator/file"
 	"github.com/openshift/origin/pkg/auth/authenticator/requestheader"
@@ -118,12 +119,27 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 
 		mux.Handle(callbackPath, oauthHandler)
 		authHandler = oauthHandler
-	case "password":
+	case "login":
+		var passwordAuth authenticator.Password
+
+		passwordAuthType := env("ORIGIN_PASSWORD_AUTH_TYPE", "empty")
+		switch passwordAuthType {
+		case "basic":
+			basicAuthURL := env("ORIGIN_BASIC_AUTH_URL", "")
+			if len(basicAuthURL) == 0 {
+				glog.Fatalf("ORIGIN_BASIC_AUTH_URL is required to support basic password auth")
+			}
+			passwordAuth = basicauthpassword.New(basicAuthURL)
+		case "empty":
+			// Accepts any username and password
+			passwordAuth = emptyPasswordAuth{}
+		default:
+			glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
+		}
+
 		authHandler = &redirectAuthHandler{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
-
 		success := handlers.AuthenticationSuccessHandlers{success, redirectSuccessHandler{}}
-
-		login := login.NewLogin(emptyCsrf{}, &callbackPasswordAuthenticator{emptyPasswordAuth{}, success}, login.DefaultLoginFormRenderer)
+		login := login.NewLogin(emptyCsrf{}, &callbackPasswordAuthenticator{passwordAuth, success}, login.DefaultLoginFormRenderer)
 		login.Install(mux, OpenShiftLoginPrefix)
 	case "empty":
 		authHandler = emptyAuth{}

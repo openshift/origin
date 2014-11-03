@@ -2,13 +2,14 @@ package oauthpassword
 
 import (
 	"github.com/RangelReale/osincli"
+	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
 type Authenticator struct {
 	client *osincli.Client
 }
 
-func New() *Authenticator {
+func New() authenticator.Password {
 	return &Authenticator{}
 }
 
