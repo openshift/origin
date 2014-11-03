@@ -75,6 +75,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
     end
   else
+    sync_from = vagrant_openshift_config['sync_from'] || ENV["VAGRANT_SYNC_FROM"] || '.'
+    sync_to = vagrant_openshift_config['sync_to'] || ENV["VAGRANT_SYNC_TO"] || "/data/src/github.com/openshift/origin"
+
     # Single VM dev environment
     # Set VirtualBox provider settings
     config.vm.provider "virtualbox" do |v, override|
@@ -97,13 +100,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # Set AWS provider settings
     config.vm.provider :aws do |aws, override|
-      creds_file = ENV['AWS_CREDS'].nil? || ENV['AWS_CREDS'] == '' ? "~/.awscred" : ENV['AWS_CREDS']
-      if File.exist?(creds_file)
-        aws_creds_file = Pathname.new(File.expand_path(creds_file))
+      creds_file_path = ENV['AWS_CREDS'].nil? || ENV['AWS_CREDS'] == '' ? "~/.awscred" : ENV['AWS_CREDS']
+      if File.exist?(File.expand_path(creds_file_path))
+        aws_creds_file = Pathname.new(File.expand_path(creds_file_path))
         aws_creds      = aws_creds_file.exist? ? Hash[*(File.open(aws_creds_file.to_s).readlines.map{ |l| l.split('=') }.flatten.map{ |i| i.strip })] : {}
 
         override.vm.box               = "dummy"
         override.vm.box_url           = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
+        override.vm.synced_folder sync_from, sync_to, disabled: true
         override.ssh.username         = vagrant_openshift_config['aws']['ssh_user']
         override.ssh.private_key_path = aws_creds["AWSPrivateKeyPath"] || "PATH TO AWS KEYPAIR PRIVATE KEY"
 
@@ -142,7 +146,7 @@ runcmd:
       end
       config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
       config.vm.synced_folder ".", "/vagrant", disabled: true
-      config.vm.synced_folder vagrant_openshift_config['sync_from'] || ENV["VAGRANT_SYNC_FROM"] || '.', vagrant_openshift_config['sync_to'] || ENV["VAGRANT_SYNC_TO"] || "/data/src/github.com/openshift/origin"
+      config.vm.synced_folder sync_from, sync_to
     end
   end
 
