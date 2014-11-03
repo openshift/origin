@@ -6,3 +6,4 @@
 /examples/sample-app/logs/openshift.log
 *.swp
 .vimrc
+.vagrant-openshift.json
