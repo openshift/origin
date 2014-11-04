@@ -7,6 +7,12 @@ import (
 
 func OkStrategy() api.DeploymentStrategy {
 	return api.DeploymentStrategy{
+		Type: api.DeploymentStrategyTypeBasic,
+	}
+}
+
+func OkCustomPodStrategy() api.DeploymentStrategy {
+	return api.DeploymentStrategy{
 		Type:      api.DeploymentStrategyTypeCustomPod,
 		CustomPod: OkCustomPod(),
 	}
@@ -22,6 +28,13 @@ func OkControllerTemplate() kapi.ReplicationControllerState {
 	return kapi.ReplicationControllerState{
 		ReplicaSelector: OkSelector(),
 		PodTemplate:     OkPodTemplate(),
+	}
+}
+
+func OkDeploymentTemplate() api.DeploymentTemplate {
+	return api.DeploymentTemplate{
+		Strategy:           OkStrategy(),
+		ControllerTemplate: OkControllerTemplate(),
 	}
 }
 
