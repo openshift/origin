@@ -257,14 +257,22 @@ func mockBuildConfig() *api.BuildConfig {
 			ID:        "dataBuild",
 			Namespace: kapi.NamespaceDefault,
 		},
-		Source: api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
-				URI: "http://my.build.com/the/build/Dockerfile",
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
 			},
-		},
-		DesiredInput: api.BuildInput{
-			ImageTag: "repository/dataBuild",
+			Strategy: api.BuildStrategy{
+				Type: api.STIBuildStrategyType,
+				STIStrategy: &api.STIBuildStrategy{
+					BuilderImage: "builder/image",
+				},
+			},
+			Output: api.BuildOutput{
+				ImageTag: "repository/dataBuild",
+			},
 		},
 		Labels: map[string]string{
 			"name": "dataBuild",
@@ -328,43 +336,55 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 	failureCases := map[string]api.BuildConfig{
 		"blank sourceURI": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "",
+					},
 				},
-			},
-			DesiredInput: api.BuildInput{
-				ImageTag: "data/image",
-				STIInput: &api.STIBuildInput{
-					BuilderImage: "builder/image",
+				Strategy: api.BuildStrategy{
+					Type: api.STIBuildStrategyType,
+					STIStrategy: &api.STIBuildStrategy{
+						BuilderImage: "builder/image",
+					},
+				},
+				Output: api.BuildOutput{
+					ImageTag: "data/image",
 				},
 			},
 		},
 		"blank ImageTag": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "http://github.com/test/source",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/test/source",
+					},
 				},
-			},
-			DesiredInput: api.BuildInput{
-				ImageTag: "",
+				Output: api.BuildOutput{
+					ImageTag: "",
+				},
 			},
 		},
 		"blank BuilderImage": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "http://github.com/test/source",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/test/source",
+					},
 				},
-			},
-			DesiredInput: api.BuildInput{
-				ImageTag: "data/image",
-				STIInput: &api.STIBuildInput{
-					BuilderImage: "",
+				Strategy: api.BuildStrategy{
+					Type: api.STIBuildStrategyType,
+					STIStrategy: &api.STIBuildStrategy{
+						BuilderImage: "",
+					},
+				},
+				Output: api.BuildOutput{
+					ImageTag: "data/image",
 				},
 			},
 		},
@@ -386,55 +406,69 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	failureCases := map[string]api.BuildConfig{
 		"empty ID": {
 			TypeMeta: kapi.TypeMeta{ID: ""},
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "http://github.com/test/source",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/test/source",
+					},
 				},
-			},
-			DesiredInput: api.BuildInput{
-				ImageTag: "data/image",
+				Output: api.BuildOutput{
+					ImageTag: "data/image",
+				},
 			},
 		},
 		"blank sourceURI": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "",
+					},
 				},
-			},
-			DesiredInput: api.BuildInput{
-				ImageTag: "data/image",
-				STIInput: &api.STIBuildInput{
-					BuilderImage: "builder/image",
+				Strategy: api.BuildStrategy{
+					Type: api.STIBuildStrategyType,
+					STIStrategy: &api.STIBuildStrategy{
+						BuilderImage: "builder/image",
+					},
+				},
+				Output: api.BuildOutput{
+					ImageTag: "data/image",
 				},
 			},
 		},
 		"blank ImageTag": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "http://github.com/test/source",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/test/source",
+					},
 				},
-			},
-			DesiredInput: api.BuildInput{
-				ImageTag: "",
+				Output: api.BuildOutput{
+					ImageTag: "",
+				},
 			},
 		},
 		"blank BuilderImage on STIBuildType": {
 			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "http://github.com/test/source",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/test/source",
+					},
 				},
-			},
-			DesiredInput: api.BuildInput{
-				ImageTag: "data/image",
-				STIInput: &api.STIBuildInput{
-					BuilderImage: "",
+				Strategy: api.BuildStrategy{
+					Type: api.STIBuildStrategyType,
+					STIStrategy: &api.STIBuildStrategy{
+						BuilderImage: "",
+					},
+				},
+				Output: api.BuildOutput{
+					ImageTag: "data/image",
 				},
 			},
 		},

@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/openshift/origin/pkg/build/api"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 type FakeTempDirCreator struct{}
@@ -15,7 +16,12 @@ func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
 }
 
 func TestSTICreateBuildPod(t *testing.T) {
-	strategy := NewSTIBuildStrategy("sti-test-image", &FakeTempDirCreator{}, true)
+	strategy := &STIBuildStrategy{
+		BuilderImage:         "sti-test-image",
+		TempDirectoryCreator: &FakeTempDirCreator{},
+		UseLocalImages:       true,
+	}
+
 	expected := mockSTIBuild()
 	actual, _ := strategy.CreateBuildPod(expected)
 
@@ -29,8 +35,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if container.Name != "sti-build" {
 		t.Errorf("Expected sti-build, but got %s!", container.Name)
 	}
-	if container.Image != strategy.stiBuilderImage {
-		t.Errorf("Expected %s image, got %s!", container.Image, strategy.stiBuilderImage)
+	if container.Image != strategy.BuilderImage {
+		t.Errorf("Expected %s image, got %s!", container.Image, strategy.BuilderImage)
 	}
 	if container.ImagePullPolicy != kapi.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
@@ -43,13 +49,13 @@ func TestSTICreateBuildPod(t *testing.T) {
 	}
 	buildJson, _ := json.Marshal(expected)
 	errorCases := map[int][]string{
-		0: {"BUILD_TAG", expected.Input.ImageTag},
-		1: {"SOURCE_URI", expected.Source.Git.URI},
-		2: {"SOURCE_REF", expected.Source.Git.Ref},
-		3: {"SOURCE_ID", expected.Revision.Git.Commit},
-		4: {"BUILD", string(buildJson)},
-		5: {"REGISTRY", expected.Input.Registry},
-		6: {"BUILDER_IMAGE", expected.Input.STIInput.BuilderImage},
+		0: {"SOURCE_URI", expected.Parameters.Source.Git.URI},
+		1: {"SOURCE_REF", expected.Parameters.Source.Git.Ref},
+		2: {"SOURCE_ID", expected.Parameters.Revision.Git.Commit},
+		3: {"BUILDER_IMAGE", expected.Parameters.Strategy.STIStrategy.BuilderImage},
+		4: {"BUILD_TAG", expected.Parameters.Output.ImageTag},
+		5: {"REGISTRY", expected.Parameters.Output.Registry},
+		6: {"BUILD", string(buildJson)},
 		7: {"TEMP_DIR", "test_temp"},
 	}
 	for index, exp := range errorCases {
@@ -59,25 +65,30 @@ func TestSTICreateBuildPod(t *testing.T) {
 	}
 }
 
-func mockSTIBuild() *api.Build {
-	return &api.Build{
+func mockSTIBuild() *buildapi.Build {
+	return &buildapi.Build{
 		TypeMeta: kapi.TypeMeta{
 			ID: "stiBuild",
 		},
-		Revision: api.SourceRevision{
-			Git: &api.GitSourceRevision{},
-		},
-		Source: api.BuildSource{
-			Git: &api.GitBuildSource{
-				URI: "http://my.build.com/the/stibuild/Dockerfile",
+		Parameters: buildapi.BuildParameters{
+			Revision: &buildapi.SourceRevision{
+				Git: &buildapi.GitSourceRevision{},
+			},
+			Source: buildapi.BuildSource{
+				Git: &buildapi.GitBuildSource{
+					URI: "http://my.build.com/the/stibuild/Dockerfile",
+				},
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type:        buildapi.STIBuildStrategyType,
+				STIStrategy: &buildapi.STIBuildStrategy{BuilderImage: "repository/sti-builder"},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "repository/stiBuild",
+				Registry: "docker-registry",
 			},
 		},
-		Input: api.BuildInput{
-			ImageTag: "repository/stiBuild",
-			Registry: "docker-registry",
-			STIInput: &api.STIBuildInput{BuilderImage: "repository/sti-builder"},
-		},
-		Status: api.BuildNew,
+		Status: buildapi.BuildStatusNew,
 		PodID:  "-the-pod-id",
 		Labels: map[string]string{
 			"name": "stiBuild",

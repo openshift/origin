@@ -53,16 +53,20 @@
       "id": "build100",
       "kind": "BuildConfig",
       "apiVersion": "v1beta1",
-      "source" : {
-        "type" : "Git",
-        "git" : {
-          "uri": "git://github.com/openshift/ruby-hello-world.git",
-        }
-      },
-      "desiredInput": {
-        "type": "docker",
-        "imageTag": "openshift/origin-ruby-sample:latest",
-        "registry": "172.121.17.1:5001"
+      "parameters": {
+        "source" : {
+          "type" : "Git",
+          "git" : {
+            "uri": "git://github.com/openshift/ruby-hello-world.git",
+          }
+        },
+        "strategy": {
+          "type": "Docker"
+        },
+        "output": {
+          "imageTag": "openshift/origin-ruby-sample:latest",
+          "registry": "172.121.17.1:5001"
+        },
       },
       "secret": "secret101",
       "labels": {

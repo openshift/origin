@@ -18,9 +18,9 @@ import (
 
 const (
 	// BuildPath is the path to build resources in etcd
-	BuildPath string = "/registry/builds"
+	BuildPath string = "/builds"
 	// BuildConfigPath is the path to buildConfig resources in etcd
-	BuildConfigPath string = "/registry/build-configs"
+	BuildConfigPath string = "/buildConfigs"
 )
 
 // Etcd implements build.Registry and buildconfig.Registry backed by etcd.

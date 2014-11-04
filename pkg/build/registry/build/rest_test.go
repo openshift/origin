@@ -314,8 +314,8 @@ func TestBuildRESTValidatesCreate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.Build{
 		"empty input": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Input:    api.BuildInput{},
+			TypeMeta:   kapi.TypeMeta{ID: "abc"},
+			Parameters: api.BuildParameters{},
 		},
 	}
 	for desc, failureCase := range failureCases {
@@ -335,18 +335,20 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	failureCases := map[string]api.Build{
 		"empty ID": {
 			TypeMeta: kapi.TypeMeta{ID: ""},
-			Source: api.BuildSource{
-				Git: &api.GitBuildSource{
-					URI: "http://my.build.com/the/build/Dockerfile",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						URI: "http://my.build.com/the/build/Dockerfile",
+					},
 				},
-			},
-			Input: api.BuildInput{
-				ImageTag: "repository/dataBuild",
+				Output: api.BuildOutput{
+					ImageTag: "repository/dataBuild",
+				},
 			},
 		},
 		"empty build input": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
-			Input:    api.BuildInput{},
+			TypeMeta:   kapi.TypeMeta{ID: "abc"},
+			Parameters: api.BuildParameters{},
 		},
 	}
 	for desc, failureCase := range failureCases {
@@ -366,16 +368,24 @@ func mockBuild() *api.Build {
 			ID:        "dataBuild",
 			Namespace: kapi.NamespaceDefault,
 		},
-		Source: api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
-				URI: "http://my.build.com/the/build/Dockerfile",
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
+			},
+			Strategy: api.BuildStrategy{
+				Type: api.STIBuildStrategyType,
+				STIStrategy: &api.STIBuildStrategy{
+					BuilderImage: "builder/image",
+				},
+			},
+			Output: api.BuildOutput{
+				ImageTag: "repository/dataBuild",
 			},
 		},
-		Input: api.BuildInput{
-			ImageTag: "repository/dataBuild",
-		},
-		Status: api.BuildPending,
+		Status: api.BuildStatusPending,
 		PodID:  "-the-pod-id",
 		Labels: map[string]string{
 			"name": "dataBuild",

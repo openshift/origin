@@ -35,6 +35,11 @@ func (c *Fake) ListBuilds(ctx kapi.Context, selector labels.Selector) (*buildapi
 	return &buildapi.BuildList{}, nil
 }
 
+func (c *Fake) GetBuild(ctx kapi.Context, id string) (*buildapi.Build, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "get-build"})
+	return &buildapi.Build{}, nil
+}
+
 func (c *Fake) UpdateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "update-build", Ctx: ctx})
 	return &buildapi.Build{}, nil
@@ -43,6 +48,11 @@ func (c *Fake) UpdateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.B
 func (c *Fake) DeleteBuild(ctx kapi.Context, id string) error {
 	c.Actions = append(c.Actions, FakeAction{Action: "delete-build", Ctx: ctx, Value: id})
 	return nil
+}
+
+func (c *Fake) WatchBuilds(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Actions = append(c.Actions, FakeAction{Action: "watch-builds"})
+	return nil, nil
 }
 
 func (c *Fake) CreateBuildConfig(ctx kapi.Context, config *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {

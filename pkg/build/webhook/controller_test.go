@@ -221,8 +221,8 @@ func (i *testBuildInterface) GetBuildConfig(ctx kapi.Context, id string) (*api.B
 func TestInvokeWebhookOk(t *testing.T) {
 	var buildRequest *api.Build
 	buildConfig := &api.BuildConfig{
-		DesiredInput: api.BuildInput{},
-		Secret:       "secret101",
+		Parameters: api.BuildParameters{},
+		Secret:     "secret101",
 	}
 
 	server := httptest.NewServer(NewController(&mockOsClient{

@@ -4,21 +4,21 @@ import (
 	"os"
 	"path"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 // setupDockerSocket configures the pod to support the host's Docker socket
-func setupDockerSocket(podSpec *api.Pod) {
-	dockerSocketVolume := api.Volume{
+func setupDockerSocket(podSpec *kapi.Pod) {
+	dockerSocketVolume := kapi.Volume{
 		Name: "docker-socket",
-		Source: &api.VolumeSource{
-			HostDir: &api.HostDir{
+		Source: &kapi.VolumeSource{
+			HostDir: &kapi.HostDir{
 				Path: "/var/run/docker.sock",
 			},
 		},
 	}
 
-	dockerSocketVolumeMount := api.VolumeMount{
+	dockerSocketVolumeMount := kapi.VolumeMount{
 		Name:      "docker-socket",
 		MountPath: "/var/run/docker.sock",
 	}
@@ -31,21 +31,21 @@ func setupDockerSocket(podSpec *api.Pod) {
 }
 
 // setupDockerConfig configures the path to .dockercfg which contains registry credentials
-func setupDockerConfig(podSpec *api.Pod) {
+func setupDockerConfig(podSpec *kapi.Pod) {
 	dockerConfig := path.Join(os.Getenv("HOME"), ".dockercfg")
 	if _, err := os.Stat(dockerConfig); os.IsNotExist(err) {
 		return
 	}
-	dockerConfigVolume := api.Volume{
+	dockerConfigVolume := kapi.Volume{
 		Name: "docker-cfg",
-		Source: &api.VolumeSource{
-			HostDir: &api.HostDir{
+		Source: &kapi.VolumeSource{
+			HostDir: &kapi.HostDir{
 				Path: dockerConfig,
 			},
 		},
 	}
 
-	dockerConfigVolumeMount := api.VolumeMount{
+	dockerConfigVolumeMount := kapi.VolumeMount{
 		Name:      "docker-cfg",
 		ReadOnly:  true,
 		MountPath: "/root/.dockercfg",

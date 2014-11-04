@@ -105,7 +105,7 @@ echo "[INFO] Deploying private Docker registry"
 $openshift kube apply --ns=${NAMESPACE} -c ${FIXTURE_DIR}/docker-registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep registrypod | grep Running" $((5*TIME_MIN))
+wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
 
 echo "[INFO] Waiting for Docker registry service to start"
 wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep registrypod"
@@ -143,18 +143,17 @@ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Git
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
-BUILD_ID=`$openshift kube list --ns=${NAMESPACE} builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
-wait_for_command "$openshift kube get --ns=${NAMESPACE} builds/$BUILD_ID | grep complete" $((40*TIME_MIN)) "$openshift kube get --ns=${NAMESPACE} builds/$BUILD_ID | grep failed"
+wait_for_command "$openshift kube list --ns=${NAMESPACE} builds | grep -i complete" $((10*TIME_MIN)) "$openshift kube list --ns=${NAMESPACE} builds | grep -i -e failed -e error"
 
 echo "[INFO] Waiting for database pod to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep database | grep Running" $((30*TIME_SEC))
+wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep database | grep -i Running" $((30*TIME_SEC))
 
 echo "[INFO] Waiting for database service to start"
 wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep database" $((20*TIME_SEC))
 DB_IP=`$openshift kube get --ns=${NAMESPACE} --yaml services/database | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Waiting for frontend pod to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep frontend | grep Running" $((120*TIME_SEC))
+wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
 wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep frontend" $((20*TIME_SEC))

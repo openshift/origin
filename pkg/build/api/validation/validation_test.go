@@ -5,22 +5,31 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/openshift/origin/pkg/build/api"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func TestBuildValdationSuccess(t *testing.T) {
-	build := &api.Build{
+	build := &buildapi.Build{
 		TypeMeta: kapi.TypeMeta{ID: "buildId"},
-		Source: api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
-				URI: "http://github.com/my/repository",
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					ContextDir: "context",
+				},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "repository/data",
 			},
 		},
-		Input: api.BuildInput{
-			ImageTag: "repository/data",
-		},
-		Status: api.BuildNew,
+		Status: buildapi.BuildStatusNew,
 	}
 	if result := ValidateBuild(build); len(result) > 0 {
 		t.Errorf("Unexpected validation error returned %v", result)
@@ -28,18 +37,26 @@ func TestBuildValdationSuccess(t *testing.T) {
 }
 
 func TestBuildValidationFailure(t *testing.T) {
-	build := &api.Build{
+	build := &buildapi.Build{
 		TypeMeta: kapi.TypeMeta{ID: ""},
-		Source: api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
-				URI: "http://github.com/my/repository",
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					ContextDir: "context",
+				},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "repository/data",
 			},
 		},
-		Input: api.BuildInput{
-			ImageTag: "repository/data",
-		},
-		Status: api.BuildNew,
+		Status: buildapi.BuildStatusNew,
 	}
 	if result := ValidateBuild(build); len(result) != 1 {
 		t.Errorf("Unexpected validation result: %v", result)
@@ -47,16 +64,24 @@ func TestBuildValidationFailure(t *testing.T) {
 }
 
 func TestBuildConfigValidationSuccess(t *testing.T) {
-	buildConfig := &api.BuildConfig{
+	buildConfig := &buildapi.BuildConfig{
 		TypeMeta: kapi.TypeMeta{ID: "configId"},
-		Source: api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
-				URI: "http://github.com/my/repository",
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
 			},
-		},
-		DesiredInput: api.BuildInput{
-			ImageTag: "repository/data",
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					ContextDir: "context",
+				},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "repository/data",
+			},
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) > 0 {
@@ -65,16 +90,24 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 }
 
 func TestBuildConfigValidationFailure(t *testing.T) {
-	buildConfig := &api.BuildConfig{
+	buildConfig := &buildapi.BuildConfig{
 		TypeMeta: kapi.TypeMeta{ID: ""},
-		Source: api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
-				URI: "http://github.com/my/repository",
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
 			},
-		},
-		DesiredInput: api.BuildInput{
-			ImageTag: "repository/data",
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					ContextDir: "context",
+				},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "repository/data",
+			},
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) != 1 {
@@ -83,22 +116,22 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 }
 
 func TestValidateSource(t *testing.T) {
-	errorCases := map[string]*api.BuildSource{
-		string(errs.ValidationErrorTypeRequired) + "Git.URI": &api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
+	errorCases := map[string]*buildapi.BuildSource{
+		string(errs.ValidationErrorTypeRequired) + "git.uri": &buildapi.BuildSource{
+			Type: buildapi.BuildSourceGit,
+			Git: &buildapi.GitBuildSource{
 				URI: "",
 			},
 		},
-		string(errs.ValidationErrorTypeInvalid) + "Git.URI": &api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
+		string(errs.ValidationErrorTypeInvalid) + "git.uri": &buildapi.BuildSource{
+			Type: buildapi.BuildSourceGit,
+			Git: &buildapi.GitBuildSource{
 				URI: "::",
 			},
 		},
 	}
 	for desc, config := range errorCases {
-		errors := validateBuildSource(config)
+		errors := validateSource(config)
 		if len(errors) != 1 {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}
@@ -110,21 +143,46 @@ func TestValidateSource(t *testing.T) {
 	}
 }
 
-func TestValidateBuildInput(t *testing.T) {
-	errorCases := map[string]*api.BuildInput{
-		string(errs.ValidationErrorTypeRequired) + "imageTag": &api.BuildInput{
-			ImageTag: "",
+func TestValidateBuildParameters(t *testing.T) {
+	errorCases := map[string]*buildapi.BuildParameters{
+		string(errs.ValidationErrorTypeRequired) + "output.imageTag": &buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					ContextDir: "context",
+				},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "",
+			},
 		},
-		string(errs.ValidationErrorTypeRequired) + "stiBuild.builderImage": &api.BuildInput{
-			ImageTag: "repository/data",
-			STIInput: &api.STIBuildInput{
-				BuilderImage: "",
+		string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.builderImage": &buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "repository/data",
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.STIBuildStrategyType,
+				STIStrategy: &buildapi.STIBuildStrategy{
+					BuilderImage: "",
+				},
 			},
 		},
 	}
 
 	for desc, config := range errorCases {
-		errors := validateBuildInput(config)
+		errors := validateBuildParameters(config)
 		if len(errors) != 1 {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}

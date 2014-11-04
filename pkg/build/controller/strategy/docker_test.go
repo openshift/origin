@@ -5,11 +5,16 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/openshift/origin/pkg/build/api"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func TestDockerCreateBuildPod(t *testing.T) {
-	strategy := NewDockerBuildStrategy("docker-test-image", true)
+	strategy := DockerBuildStrategy{
+		BuilderImage:   "docker-test-image",
+		UseLocalImages: true,
+	}
+
 	expected := mockDockerBuild()
 	actual, _ := strategy.CreateBuildPod(expected)
 
@@ -23,8 +28,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if container.Name != "docker-build" {
 		t.Errorf("Expected docker-build, but got %s!", container.Name)
 	}
-	if container.Image != strategy.dockerBuilderImage {
-		t.Errorf("Expected %s image, got %s!", container.Image, strategy.dockerBuilderImage)
+	if container.Image != strategy.BuilderImage {
+		t.Errorf("Expected %s image, got %s!", container.Image, strategy.BuilderImage)
 	}
 	if container.ImagePullPolicy != kapi.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
@@ -37,12 +42,12 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	}
 	buildJson, _ := json.Marshal(expected)
 	errorCases := map[int][]string{
-		0: {"BUILD_TAG", expected.Input.ImageTag},
-		1: {"SOURCE_URI", expected.Source.Git.URI},
-		2: {"SOURCE_REF", expected.Source.Git.Ref},
-		3: {"SOURCE_ID", expected.Revision.Git.Commit},
-		4: {"REGISTRY", expected.Input.Registry},
-		5: {"CONTEXT_DIR", expected.Input.DockerInput.ContextDir},
+		0: {"SOURCE_URI", expected.Parameters.Source.Git.URI},
+		1: {"SOURCE_REF", expected.Parameters.Source.Git.Ref},
+		2: {"SOURCE_ID", expected.Parameters.Revision.Git.Commit},
+		3: {"CONTEXT_DIR", expected.Parameters.Strategy.DockerStrategy.ContextDir},
+		4: {"BUILD_TAG", expected.Parameters.Output.ImageTag},
+		5: {"REGISTRY", expected.Parameters.Output.Registry},
 		6: {"BUILD", string(buildJson)},
 	}
 	for index, exp := range errorCases {
@@ -52,25 +57,30 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	}
 }
 
-func mockDockerBuild() *api.Build {
-	return &api.Build{
+func mockDockerBuild() *buildapi.Build {
+	return &buildapi.Build{
 		TypeMeta: kapi.TypeMeta{
 			ID: "dockerBuild",
 		},
-		Revision: api.SourceRevision{
-			Git: &api.GitSourceRevision{},
-		},
-		Source: api.BuildSource{
-			Git: &api.GitBuildSource{
-				URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+		Parameters: buildapi.BuildParameters{
+			Revision: &buildapi.SourceRevision{
+				Git: &buildapi.GitSourceRevision{},
+			},
+			Source: buildapi.BuildSource{
+				Git: &buildapi.GitBuildSource{
+					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+				},
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{ContextDir: "my/test/dir"},
+			},
+			Output: buildapi.BuildOutput{
+				ImageTag: "repository/dockerBuild",
+				Registry: "docker-registry",
 			},
 		},
-		Input: api.BuildInput{
-			ImageTag:    "repository/dockerBuild",
-			Registry:    "docker-registry",
-			DockerInput: &api.DockerBuildInput{ContextDir: "my/test/dir"},
-		},
-		Status: api.BuildNew,
+		Status: buildapi.BuildStatusNew,
 		PodID:  "-the-pod-id",
 		Labels: map[string]string{
 			"name": "dockerBuild",

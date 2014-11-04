@@ -5,46 +5,66 @@ import (
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
-// the status of the operation and a reference to the Pod which runs the build.
+// the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
 	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
-	// Source describes the SCM in use
-	Source BuildSource `json:"source,omitempty" yaml:"source,omitempty"`
+	// Parameters are all the inputs used to create the build pod.
+	Parameters BuildParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 
-	//Revision is the information from the source for a specific repo snapshot
-	Revision SourceRevision `json:"revision,omitempty" yaml:"revision,omitempty"`
-
-	// Input is the set of inputs used to configure the build
-	Input BuildInput `json:"input,omitempty" yaml:"input,omitempty"`
-
-	// Status is the current status of the build
+	// Status is the current status of the build.
 	Status BuildStatus `json:"status,omitempty" yaml:"status,omitempty"`
 
 	// PodID is the id of the pod that is used to execute the build
 	PodID string `json:"podID,omitempty" yaml:"podID,omitempty"`
 }
 
-// BuildInput defines input parameters for a given build
-type BuildInput struct {
+// BuildParameters encapsulates all the inputs necessary to represent a build.
+type BuildParameters struct {
+	// Source describes the SCM in use.
+	Source BuildSource `json:"source,omitempty" yaml:"source,omitempty"`
 
-	// ImageTag is the tag to give to the image resulting from the build
-	ImageTag string `json:"imageTag,omitempty" yaml:"imageTag,omitempty"`
+	// Revision is the information from the source for a specific repo snapshot.
+	// This is optional.
+	Revision *SourceRevision `json:"revision,omitempty" yaml:"revision,omitempty"`
 
-	// Registry to push the result image to
-	Registry string `json:"registry,omitempty" yaml:"registry,omitempty"`
+	// Strategy defines how to perform a build.
+	Strategy BuildStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 
-	// DockerBuild represents build parameters specific to docker build
-	DockerInput *DockerBuildInput `json:"dockerInput,omitempty" yaml:"dockerInput,omitempty"`
-
-	// STIBuild represents build parameters specific to STI build
-	STIInput *STIBuildInput `json:"stiInput,omitempty" yaml:"stiInput,omitempty"`
+	// Output describes the Docker image the Strategy should produce.
+	Output BuildOutput `json:"output,omitempty" yaml:"output,omitempty"`
 }
+
+// BuildStatus represents the status of a build at a point in time.
+type BuildStatus string
+
+// Valid values for BuildStatus.
+const (
+	// BuildNew is automatically assigned to a newly created build.
+	BuildStatusNew BuildStatus = "New"
+
+	// BuildPending indicates that a pod name has been assigned and a build is
+	// about to start running.
+	BuildStatusPending BuildStatus = "Pending"
+
+	// BuildRunning indicates that a pod has been created and a build is running.
+	BuildStatusRunning BuildStatus = "Running"
+
+	// BuildComplete indicates that a build has been successful.
+	BuildStatusComplete BuildStatus = "Complete"
+
+	// BuildFailed indicates that a build has executed and failed.
+	BuildStatusFailed BuildStatus = "Failed"
+
+	// BuildError indicates that an error prevented the build from executing.
+	BuildStatusError BuildStatus = "Error"
+)
 
 // BuildSourceType is the type of SCM used
 type BuildSourceType string
 
+// Valid values for BuildSourceType.
 const (
 	//BuildGitSource is a Git SCM
 	BuildSourceGit BuildSourceType = "Git"
@@ -93,76 +113,69 @@ type SourceControlUser struct {
 	Email string `json:"email,omitempty" yaml:"email,omitempty"`
 }
 
-// DockerBuildInput defines input parameters specific to docker build
-type DockerBuildInput struct {
-	// ContextDir is a directory inside the SourceURI structure which should be used as a docker
-	// context when building
+// BuildStrategy contains the details of how to perform a build.
+type BuildStrategy struct {
+	// Type is the kind of build strategy.
+	Type BuildStrategyType `json:"type,omitempty" yaml:"type,omitempty"`
+
+	// DockerStrategy holds the parameters to the Docker build strategy.
+	DockerStrategy *DockerBuildStrategy `json:"dockerBuildStrategy,omitempty" yaml:"dockerBuildStrategy,omitempty"`
+
+	// STIStrategy holds the parameters to the STI build strategy.
+	STIStrategy *STIBuildStrategy `json:"stiBuildStrategy,omitempty" yaml:"stiBuildStrategy,omitempty"`
+}
+
+// BuildStrategyType describes a particular way of performing a build.
+type BuildStrategyType string
+
+// Valid values for BuildStrategyType.
+const (
+	// DockerBuildStrategyType performs builds using a Dockerfile.
+	DockerBuildStrategyType BuildStrategyType = "Docker"
+
+	// STIBuildStrategyType performs builds build using Source To Images with a Git repository
+	// and a builder image.
+	STIBuildStrategyType BuildStrategyType = "STI"
+)
+
+// DockerBuildStrategy defines input parameters specific to Docker build.
+type DockerBuildStrategy struct {
+	// ContextDir is a directory inside the SourceURI structure which should be used as a Docker
+	// context when building.
 	ContextDir string `json:"contextDir,omitempty" yaml:"contextDir,omitempty"`
 }
 
-// STIBuildInput defines input parameters specific to sti build
-type STIBuildInput struct {
-	// BuilderImage is the image used to execute the build
+// STIBuildStrategy defines input parameters specific to an STI build.
+type STIBuildStrategy struct {
+	// BuilderImage is the image used to execute the build.
 	BuilderImage string `json:"builderImage,omitempty" yaml:"builderImage,omitempty"`
+}
+
+// BuildOutput is input to a build strategy and describes the Docker image that the strategy
+// should produce.
+type BuildOutput struct {
+	// ImageTag is the tag to give to the image resulting from the build.
+	ImageTag string `json:"imageTag,omitempty" yaml:"imageTag,omitempty"`
+
+	// Registry is the Docker registry which should receive the resulting built image via push.
+	Registry string `json:"registry,omitempty" yaml:"registry,omitempty"`
 }
 
 // BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
 // on which the Build is based.
 const BuildConfigLabel = "buildconfig"
 
-// BuildConfig contains the inputs needed to produce a new deployable image
+// BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
-	// Source describes the SCM in use
-	Source BuildSource `json:"source,omitempty" yaml:"source,omitempty"`
-
-	// DesiredInput is the input used to create builds from this configuration
-	DesiredInput BuildInput `json:"desiredInput,omitempty" yaml:"desiredInput,omitempty"`
-
 	// Secret used to validate requests.
 	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
+
+	// Parameters holds all the input necessary to produce a new build.
+	Parameters BuildParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
-
-// BuildType is a type of build (docker, sti, etc)
-type BuildType string
-
-// Valid build types
-const (
-	// DockerBuildType is a build based on a Dockerfile with associated artifacts
-	DockerBuildType BuildType = "docker"
-
-	// STIBuildType is a build using Source to Image using a git repository
-	// and a builder image
-	STIBuildType BuildType = "sti"
-)
-
-// BuildStatus represents the status of a Build at a point in time.
-type BuildStatus string
-
-// Valid build status values
-const (
-	// BuildNew is automatically assigned to a newly created build
-	BuildNew BuildStatus = "new"
-
-	// BuildPending indicates that a pod name has been assigned and a build is
-	// about to start running
-	BuildPending BuildStatus = "pending"
-
-	// BuildRunning indicates that a pod has been created and a build is running
-	BuildRunning BuildStatus = "running"
-
-	// BuildComplete indicates that a build has been successful
-	BuildComplete BuildStatus = "complete"
-
-	// BuildFailed indicates that a build has executed and failed
-	BuildFailed BuildStatus = "failed"
-
-	// BuildError indicates that an error prevented the build from
-	// executing
-	BuildError BuildStatus = "error"
-)
 
 // BuildList is a collection of Builds.
 type BuildList struct {

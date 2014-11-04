@@ -3,14 +3,14 @@ package strategy
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
-	pod := api.Pod{
-		DesiredState: api.PodState{
-			Manifest: api.ContainerManifest{
-				Containers: []api.Container{
+	pod := kapi.Pod{
+		DesiredState: kapi.PodState{
+			Manifest: kapi.ContainerManifest{
+				Containers: []kapi.Container{
 					{},
 				},
 			},
