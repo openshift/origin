@@ -141,10 +141,12 @@ $openshift kube apply -c $CONFIG_FILE
 echo "[INFO] Simulating github hook to trigger new build using curl"
 curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/build100/secret101/github
 
+echo "[INFO] Waiting for build to enter running state"
+wait_for_command "$openshift kube list builds | grep -i running" $((1*TIME_MIN)) "$openshift kube list builds | grep -i -e failed -e complete -e error"
+
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
-BUILD_ID=`$openshift kube list builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
-wait_for_command "$openshift kube get builds/$BUILD_ID | grep complete" $((40*TIME_MIN)) "$openshift kube get builds/$BUILD_ID | grep failed"
+wait_for_command "$openshift kube list builds | grep -i complete" $((10*TIME_MIN)) "$openshift kube list builds | grep -i -e failed -e error"
 
 echo "[INFO] Waiting for database pod to start"
 wait_for_command "$openshift kube list pods | grep database | grep Running" $((30*TIME_SEC))
