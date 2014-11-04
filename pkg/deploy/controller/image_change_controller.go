@@ -38,6 +38,8 @@ func (c *ImageChangeController) HandleImageRepo() {
 	configIDs := []string{}
 	firedTriggersForConfig := make(map[string][]deployapi.DeploymentTriggerImageChangeParams)
 
+	imageRepoCtx := kapi.WithNamespace(kapi.NewContext(), imageRepo.Namespace)
+
 	for _, c := range c.DeploymentConfigStore.List() {
 		config := c.(*deployapi.DeploymentConfig)
 		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", config.ID)
@@ -71,7 +73,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 
 	for _, configID := range configIDs {
 		glog.V(4).Infof("Regenerating deploymentConfig %s", configID)
-		err := c.regenerate(kapi.NewContext(), configID, firedTriggersForConfig[configID])
+		err := c.regenerate(imageRepoCtx, configID, firedTriggersForConfig[configID])
 		if err != nil {
 			glog.V(2).Infof("Error regenerating deploymentConfig %v: %v", configID, err)
 		}
