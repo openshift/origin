@@ -260,9 +260,19 @@
         {
             "creationTimestamp": "2014-09-16T02:58:19Z",
             "id": "5065bcf2-3d4d-11e4-a95b-0800279696e1",
-            "input": {
-                "imageTag": "test/dockerbuild",
-                "sourceURI": "git://github.com/test/dockerbuild",
+            "parameters": {
+              "source": {
+                "type": "Git",
+                "git": {
+                  "uri": "git://github.com/test/dockerbuild"
+                }
+              },
+              "strategy": {
+                "type": "Docker"
+              },
+              "output": {
+                "imageTag": "test/dockerbuild"
+              }
             },
             "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",
             "resourceVersion": 114,
@@ -275,18 +285,38 @@
 </code></pre></div></div></div></div></div></div><div class="modal fade" tabindex=0 id=_builds_post><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_post">post</span> <span class=parent></span>/builds</h4></div><div class=modal-body><div class="alert alert-info"><p>Create a new build.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_builds_post_request data-toggle=tab>Request</a></li></ul><div class=tab-content><div class="tab-pane active" id=_builds_post_request><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
 	"kind": "Build",
 	"apiVersion": "v1beta1",
-	"input": {
-		"sourceURI": "github.com/test/dockerBuild",
-		"imageTag": "test/dockerBuild"
-	}
+    "parameters": {
+      "source": {
+        "type": "Git",
+        "git": {
+          "uri": "git://github.com/test/dockerbuild"
+        }
+      },
+      "strategy": {
+        "type": "Docker"
+      },
+      "output": {
+        "imageTag": "test/dockerbuild"
+      }
+    }
 }
 </code></pre></div></div></div></div></div></div></div><div class="panel panel-white"><div class=panel-heading><h4 class=panel-title><a class=collapsed data-toggle=collapse href=#panel__builds__buildID_><span class=parent>/builds</span>/{buildID}</a> <span class=methods><a href=# data-toggle=modal data-target=#_builds__buildID__get><span class="badge badge_get">get</span></a> <a href=# data-toggle=modal data-target=#_builds__buildID__put><span class="badge badge_put">put</span></a> <a href=# data-toggle=modal data-target=#_builds__buildID__delete><span class="badge badge_delete">delete</span></a></span></h4></div><div id=panel__builds__buildID_ class="panel-collapse collapse"><div class=panel-body><div class=list-group><div data-toggle=modal data-target=#_builds__buildID__get class=list-group-item><span class="badge badge_get">get</span><div class=method_description><p>Get details about a specific build.</p></div><div class=clearfix></div></div><div data-toggle=modal data-target=#_builds__buildID__put class=list-group-item><span class="badge badge_put">put</span><div class=method_description><p>Update a specific build.</p></div><div class=clearfix></div></div><div data-toggle=modal data-target=#_builds__buildID__delete class=list-group-item><span class="badge badge_delete">delete</span><div class=method_description><p>Delete a specific build.</p></div><div class=clearfix></div></div></div></div></div><div class="modal fade" tabindex=0 id=_builds__buildID__get><div class=modal-dialog><div class=modal-content><div class=modal-header><button type=button class=close data-dismiss=modal aria-hidden=true>&times;</button><h4 class=modal-title id=myModalLabel><span class="badge badge_get">get</span> <span class=parent>/builds</span>/{buildID}</h4></div><div class=modal-body><div class="alert alert-info"><p>Get details about a specific build.</p></div><ul class="nav nav-tabs"><li class=active><a href=#_builds__buildID__get_request data-toggle=tab>Request</a></li><li><a href=#_builds__buildID__get_response data-toggle=tab>Response</a></li></ul><div class=tab-content><div class="tab-pane active" id=_builds__buildID__get_request><h3>URI Parameters</h3><ul><li><strong>buildID</strong>: <em>required (string)</em></li></ul></div><div class=tab-pane id=_builds__buildID__get_response><h2>HTTP status code <a href=http://httpstatus.es/200 target=_blank>200</a></h2><h3>Body</h3><p><strong>Type: application/json</strong></p><p><strong>Example</strong>:</p><pre><code>{
     "apiVersion": "v1beta1",
     "creationTimestamp": "2014-09-16T02:58:19Z",
     "id": "5065bcf2-3d4d-11e4-a95b-0800279696e1",
-    "input": {
-        "imageTag": "test/dockerBuild",
-        "sourceURI": "github.com/test/dockerBuild",
+    "parameters": {
+      "source": {
+        "type": "Git",
+        "git": {
+          "uri": "git://github.com/test/dockerbuild"
+        }
+      },
+      "strategy": {
+        "type": "Docker"
+      },
+      "output": {
+        "imageTag": "test/dockerbuild"
+      }
     },
     "kind": "Build",
     "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",
@@ -297,9 +327,19 @@
     "apiVersion": "v1beta1",
     "creationTimestamp": "2014-09-16T02:58:19Z",
     "id": "5065bcf2-3d4d-11e4-a95b-0800279696e1",
-    "input": {
-        "imageTag": "test/dockerBuild",
-        "sourceURI": "github.com/test/dockerBuild",
+    "parameters": {
+      "source": {
+        "type": "Git",
+        "git": {
+          "uri": "git://github.com/test/dockerbuild"
+        }
+      },
+      "strategy": {
+        "type": "Docker"
+      },
+      "output": {
+        "imageTag": "test/dockerbuild"
+      }
     },
     "kind": "Build",
     "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",

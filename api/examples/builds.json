@@ -1,19 +1,30 @@
 {
-    "apiVersion": "v1beta1",
-    "creationTimestamp": null,
-    "items": [
-        {
-            "creationTimestamp": "2014-09-16T02:58:19Z",
-            "id": "5065bcf2-3d4d-11e4-a95b-0800279696e1",
-            "input": {
-                "imageTag": "test/dockerbuild",
-                "sourceURI": "git://github.com/test/dockerbuild",
-            },
-            "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",
-            "resourceVersion": 114,
-            "status": "new"
+  "apiVersion": "v1beta1",
+  "creationTimestamp": null,
+  "items": [
+    {
+      "creationTimestamp": "2014-09-16T02:58:19Z",
+      "id": "5065bcf2-3d4d-11e4-a95b-0800279696e1",
+      "podID": "build-sti-5065bcf2-3d4d-11e4-a95b-0800279696e1",
+      "parameters": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Docker"
+        },
+        "output": {
+          "imageTag": "openshift/origin-ruby-sample:latest",
+          "registry": "172.121.17.1:5001"
         }
-    ],
-    "kind": "BuildList",
-    "resourceVersion": 116
+      },
+      "resourceVersion": 114,
+      "status": "new"
+    }
+  ],
+  "kind": "BuildList",
+  "resourceVersion": 116
 }

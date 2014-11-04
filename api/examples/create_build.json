@@ -1,8 +1,19 @@
 {
-	"kind": "Build",
-	"apiVersion": "v1beta1",
-	"input": {
-		"sourceURI": "github.com/test/dockerBuild",
-		"imageTag": "test/dockerBuild"
-	}
+  "kind": "Build",
+  "apiVersion": "v1beta1",
+  "parameters": {
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "git://github.com/openshift/ruby-hello-world.git"
+      }
+    },
+    "strategy": {
+      "type": "Docker"
+    },
+    "output": {
+      "imageTag": "openshift/origin-ruby-sample:latest",
+      "registry": "172.121.17.1:5001"
+    }
+  }
 }

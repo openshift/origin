@@ -1,15 +1,22 @@
 {
-    "apiVersion": "v1beta1",
-    "creationTimestamp": "2014-09-16T19:33:36Z",
-    "desiredInput": {
-        "imageTag": "test-ruby-app",
-        "registry": "localhost:5000",
-        "sourceURI": "git://github.com/pmorie/simple-ruby",
-        "stiInput": {
-            "builderImage": "openshift/ruby-19-centos"
-        }
+  "apiVersion": "v1beta1",
+  "creationTimestamp": "2014-09-16T19:33:36Z",
+  "parameters": {
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "git://github.com/openshift/ruby-hello-world.git"
+      }
     },
-    "id": "5a6a5b9c-3dd8-11e4-9d75-0800279696e1",
-    "kind": "BuildConfig",
-    "resourceVersion": 117
+    "strategy": {
+      "type": "Docker"
+    },
+    "output": {
+      "imageTag": "openshift/origin-ruby-sample:latest",
+      "registry": "172.121.17.1:5001"
+    }
+  },
+  "id": "5a6a5b9c-3dd8-11e4-9d75-0800279696e1",
+  "kind": "BuildConfig",
+  "resourceVersion": 117
 }

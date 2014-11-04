@@ -57,7 +57,7 @@
         "source" : {
           "type" : "Git",
           "git" : {
-            "uri": "git://github.com/openshift/ruby-hello-world.git",
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
