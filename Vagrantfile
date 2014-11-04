@@ -26,6 +26,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "vmware" => {
         "box_name" => "fedora_inst",
         "box_url" => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_fedora-20_chef-provisionerless.box"
+      },
+      "aws" => {
+        "ami" => "<AMI>",
+        "ami_region" => "<AMI_REGION>",
+        "ssh_user" => "<SSH_USER>",
+        "machine_name" => "<AMI_NAME>"
       }
     }
   end
