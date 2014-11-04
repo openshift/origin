@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/deploy/api"
 )
 
-var deploymentColumns = []string{"ID", "Status"}
+var deploymentColumns = []string{"ID", "Status", "Cause"}
 var deploymentConfigColumns = []string{"ID", "Triggers", "LatestVersion"}
 
 // RegisterPrintHandlers registers human-readable printers for deploy types.
@@ -22,7 +22,14 @@ func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
 }
 
 func printDeployment(d *api.Deployment, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\n", d.ID, d.Status)
+	causes := util.StringSet{}
+	if d.Details != nil {
+		for _, cause := range d.Details.Causes {
+			causes.Insert(string(cause.Type))
+		}
+	}
+	cStr := strings.Join(causes.List(), ", ")
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", d.ID, d.Status, cStr)
 	return err
 }
 
