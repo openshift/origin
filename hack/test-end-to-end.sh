@@ -24,6 +24,7 @@ TMPDIR="${TMPDIR:-"/tmp"}"
 ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d ${TMPDIR}/openshift.local.volumes.XXXX)
 LOG_DIR="${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}"
+mkdir -p $LOG_DIR
 API_PORT="${API_PORT:-8080}"
 API_HOST="${API_HOST:-127.0.0.1}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
@@ -67,18 +68,15 @@ function teardown()
 {
   if [ $? -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
-  echo "[INFO] Server logs: $LOG_DIR/openshift.log"
-  cat $LOG_DIR/openshift.log | grep -v "failed to find a fit"
-  set +u
-  if [ ! -z $BUILD_ID ]; then
-    $openshift kube buildLogs --id=$BUILD_ID > $LOG_DIR/build.log && echo "[INFO] Build logs: $LOG_DIR/build.log"
-    # buildLogs command is currently broken, substitute w/ docker logs for now.
-    #cat $LOG_DIR/build.log
-    CONTAINER_ID=` docker ps -a | grep docker-builder | awk '{print $1}'`
-    docker logs $CONTAINER_ID
   fi
-  set -u
-  fi
+
+  echo "[INFO] Dumping container logs to $LOG_DIR"
+  for container in $(docker ps -aq); do
+    docker logs $container >& $LOG_DIR/container-$container.log
+  done
+
+  echo ""
+
   set +u
   if [ "$SKIP_TEARDOWN" != "1" ]; then
     set +e
