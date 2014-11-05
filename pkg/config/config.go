@@ -90,7 +90,7 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 
 // AddConfigLabels adds new label(s) to all resources defined in the given Config.
 func AddConfigLabels(c *api.Config, labels labels.Set) error {
-	for i, _ := range c.Items {
+	for i := range c.Items {
 		switch t := c.Items[i].Object.(type) {
 		case *kapi.Pod:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {

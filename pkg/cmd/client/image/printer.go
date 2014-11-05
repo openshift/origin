@@ -38,7 +38,7 @@ func printImageRepository(repo *api.ImageRepository, w io.Writer) error {
 	tags := ""
 	if len(repo.Tags) > 0 {
 		var t []string
-		for tag, _ := range repo.Tags {
+		for tag := range repo.Tags {
 			t = append(t, tag)
 		}
 		tags = strings.Join(t, ",")

@@ -28,12 +28,12 @@ Once setup, you can:
 
 2.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
-        $ _output/go/bin/openshift start
+        $ _output/local/go/bin/openshift start
 
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ _output/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
+        $ _output/local/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
 
 Once that's done, open a browser on your machine and open [http://localhost:6061](http://localhost:6061); you should see a 'Welcome to OpenShift' message.
 

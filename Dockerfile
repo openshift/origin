@@ -1,10 +1,23 @@
-FROM google/golang
-MAINTAINER Jessica Forrester <jforrest@redhat.com>
+#
+# This is the unofficial OpenShift Origin image for the DockerHub. It has as its
+# entrypoint the OpenShift all-in-one binary.
+#
+# See images/origin for the official release version of this image
+#
+# The standard name for this image is openshift/origin
+#
+FROM openshift/origin-base
 
-WORKDIR /gopath/src/github.com/openshift/origin
-ADD . /gopath/src/github.com/openshift/origin
+RUN yum install -y golang && yum clean all
+
+WORKDIR /go/src/github.com/openshift/origin
+ADD .   /go/src/github.com/openshift/origin
+ENV GOPATH /go
+ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
+
 RUN go get github.com/openshift/origin && \
-    hack/build-go.sh
+    hack/build-go.sh && \
+    cp _output/local/go/bin/* /usr/bin/
 
 EXPOSE 8080
-ENTRYPOINT ["_output/go/bin/openshift"]
+ENTRYPOINT ["/usr/bin/openshift"]

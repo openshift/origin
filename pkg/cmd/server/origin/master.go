@@ -261,9 +261,9 @@ func (c *MasterConfig) RunAssetServer() {
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
 func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
-	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/docker-builder")
-	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/sti-builder")
-	useLocalImages := env("USE_LOCAL_IMAGES", "false") == "true"
+	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/origin-docker-builder")
+	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/origin-sti-builder")
+	useLocalImages := env("USE_LOCAL_IMAGES", "true") == "true"
 
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		Client:     c.OSClient,
@@ -289,8 +289,10 @@ func (c *MasterConfig) RunCustomPodDeploymentController() {
 		Client:     c.OSClient,
 		KubeClient: c.KubeClient,
 		Environment: []api.EnvVar{
-			api.EnvVar{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
+			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 		},
+		DefaultImage:   env("OPENSHIFT_DEPLOY_CUSTOMPOD_DEFAULT_IMAGE", "openshift/origin-deployer"),
+		UseLocalImages: env("USE_LOCAL_IMAGES", "true") == "true",
 	}
 
 	controller := factory.Create()

@@ -11,5 +11,5 @@ func init() {
 	)
 }
 
-func (*Route) IsAnAPIObject() {}
+func (*Route) IsAnAPIObject()     {}
 func (*RouteList) IsAnAPIObject() {}

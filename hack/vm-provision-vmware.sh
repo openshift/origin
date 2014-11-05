@@ -13,7 +13,7 @@ fi
 if [[ $(grep GOPATH /home/vagrant/.bash_profile) = "" ]]; then
   touch /home/vagrant/.bash_profile
   echo "export GOPATH=/home/vagrant/go" >> /home/vagrant/.bash_profile
-  echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/go/bin:\$GOPATH/bin:\$PATH" >> /home/vagrant/.bash_profile
+  echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/local/go/bin:\$GOPATH/bin:\$PATH" >> /home/vagrant/.bash_profile
   echo "cd \$GOPATH/src/github.com/openshift/origin" >> /home/vagrant/.bash_profile
 fi
 
@@ -21,7 +21,7 @@ if [[ $(grep GOPATH /root/.bash_profile) = "" ]]; then
   touch /root/.bash_profile
 
   echo "export GOPATH=/home/vagrant/go" >> /root/.bash_profile
-  echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/go/bin:\$GOPATH/bin:\$PATH" >> /root/.bash_profile
+  echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/local/go/bin:\$GOPATH/bin:\$PATH" >> /root/.bash_profile
   echo "cd \$GOPATH/src/github.com/openshift/origin" >> /root/.bash_profile
 
 else

@@ -28,7 +28,7 @@ yum install -y docker-io git golang e2fsprogs hg openvswitch net-tools bridge-ut
 echo "Building openshift"
 pushd /vagrant
   ./hack/build-go.sh
-  cp _output/go/bin/openshift /usr/bin
+  cp _output/local/go/bin/openshift /usr/bin
 popd
 
 # Setup networking between the nodes

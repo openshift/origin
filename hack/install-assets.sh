@@ -2,7 +2,8 @@
 
 set -e
 
-hackdir=$(CDPATH="" cd $(dirname $0); pwd)
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/common.sh"
 
 # If we are running inside of Travis then do not run the rest of this
 # script unless we want to TEST_ASSETS
@@ -33,17 +34,17 @@ if ! which grunt > /dev/null 2>&1 ; then
   fi
 fi
 
-pushd ${hackdir}/../assets > /dev/null
+pushd ${OS_ROOT}/assets > /dev/null
   npm install
 
   # In case upstream components change things without incrementing versions
   bower cache clean
   bower install
 
-  bundle install --path ${hackdir}/../assets/.bundle
+  bundle install --path ${OS_ROOT}/assets/.bundle
 popd > /dev/null
 
-pushd ${hackdir}/../Godeps/_workspace > /dev/null
+pushd ${OS_ROOT}/Godeps/_workspace > /dev/null
   godep_path=$(pwd)
   pushd src/github.com/jteeuwen/go-bindata > /dev/null
     GOPATH=$godep_path go install ./...

@@ -377,7 +377,10 @@ func changeDeploymentConfig() *deployapi.DeploymentConfig {
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeBasic,
+				Type: deployapi.DeploymentStrategyTypeCustomPod,
+				CustomPod: &deployapi.CustomPodDeploymentStrategy{
+					Image: "registry:8080/openshift/origin-deployer",
+				},
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,

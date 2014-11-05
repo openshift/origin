@@ -20,7 +20,7 @@ func OkCustomPodStrategy() api.DeploymentStrategy {
 
 func OkCustomPod() *api.CustomPodDeploymentStrategy {
 	return &api.CustomPodDeploymentStrategy{
-		Image: "openshift/kube-deploy",
+		Image: "openshift/origin-deployer",
 	}
 }
 

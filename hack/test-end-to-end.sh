@@ -13,25 +13,27 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/util.sh"
+
 echo "[INFO] Starting end-to-end test"
 
-HACKDIR=$(CDPATH="" cd $(dirname $0); pwd)
-source ${HACKDIR}/util.sh
+USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 
-TMPDIR=${TMPDIR:-"/tmp"}
+TMPDIR="${TMPDIR:-"/tmp"}"
 ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d ${TMPDIR}/openshift.local.volumes.XXXX)
-LOG_DIR=${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}
-API_PORT=${API_PORT:-8080}
-API_HOST=${API_HOST:-127.0.0.1}
-KUBELET_PORT=${KUBELET_PORT:-10250}
-NAMESPACE=${NAMESPACE:-test}
+LOG_DIR="${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}"
+API_PORT="${API_PORT:-8080}"
+API_HOST="${API_HOST:-127.0.0.1}"
+KUBELET_PORT="${KUBELET_PORT:-10250}"
+NAMESPACE="${NAMESPACE:-test}"
 
-CONFIG_FILE=${LOG_DIR}/appConfig.json
-BUILD_CONFIG_FILE=${LOG_DIR}/buildConfig.json
-FIXTURE_DIR=${HACKDIR}/../examples/sample-app
-GO_OUT=${HACKDIR}/../_output/go/bin
-openshift=$GO_OUT/openshift
+CONFIG_FILE="${LOG_DIR}/appConfig.json"
+BUILD_CONFIG_FILE="${LOG_DIR}/buildConfig.json"
+FIXTURE_DIR="${OS_ROOT}/examples/sample-app"
+GO_OUT="${OS_ROOT}/_output/local/go/bin"
+openshift="${GO_OUT}/openshift"
 
 # Search for a regular expression in a HTTP response.
 #

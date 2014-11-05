@@ -2,8 +2,9 @@
 
 set -e
 
-hackdir=$(CDPATH="" cd $(dirname $0); pwd)
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/common.sh"
 
-pushd ${hackdir}/../assets > /dev/null
+pushd "${OS_ROOT}/assets" > /dev/null
   bundle exec grunt serve
 popd > /dev/null

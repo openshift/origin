@@ -12,7 +12,7 @@ import (
 
 func manualTrigger() []api.DeploymentTriggerPolicy {
 	return []api.DeploymentTriggerPolicy{
-		api.DeploymentTriggerPolicy{
+		{
 			Type: api.DeploymentTriggerManual,
 		},
 	}

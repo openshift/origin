@@ -24,7 +24,7 @@ yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils
 echo "Building openshift"
 pushd /vagrant
   ./hack/build-go.sh
-  cp _output/go/bin/openshift /usr/bin
+  cp _output/local/go/bin/openshift /usr/bin
   ./hack/install-etcd.sh
 popd
 

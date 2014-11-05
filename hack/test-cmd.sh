@@ -3,7 +3,12 @@
 # This command checks that the built commands can function together for
 # simple scenarios.  It does not require Docker so it can run in travis.
 
-source $(dirname $0)/util.sh
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/util.sh"
 
 function cleanup()
 {
@@ -11,7 +16,7 @@ function cleanup()
       echo "[FAIL] !!!!! Test Failed !!!!"
     fi
     set +e
-    kill ${OS_PID} 1>&2 2>/dev/null
+    kill ${OS_PID-} 1>&2 2>/dev/null
     echo
     echo "Complete"
 }
@@ -20,12 +25,14 @@ trap cleanup EXIT SIGINT
 
 set -e
 
+USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
+
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-4001}
 API_PORT=${API_PORT:-8080}
 API_HOST=${API_HOST:-127.0.0.1}
 KUBELET_PORT=${KUBELET_PORT:-10250}
-GO_OUT=$(dirname $0)/../_output/go/bin
+GO_OUT="${OS_ROOT}/_output/local/go/bin"
 
 ETCD_DATA_DIR=$(mktemp -d /tmp/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d /tmp/openshift.local.volumes.XXXX)

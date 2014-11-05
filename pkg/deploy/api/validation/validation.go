@@ -81,7 +81,7 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ErrorList {
 	result := errors.ErrorList{}
 
-	for i, _ := range config.Triggers {
+	for i := range config.Triggers {
 		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
 	}
 

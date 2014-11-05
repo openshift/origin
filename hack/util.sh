@@ -145,7 +145,7 @@ function start_etcd {
 # $3 - log dir
 function start_openshift_server()
 {
-  $openshift start --volume-dir=$1 --etcd-dir=$2 --loglevel=4 &> $3/openshift.log &
+  "${openshift}" start --volume-dir="${1}" --etcd-dir="${2}" --loglevel=4 &> "${3}/openshift.log" &
   export OS_PID=$!
 }
 
