@@ -17,7 +17,7 @@ context="${OS_ROOT}/_output/buildenv-context"
 
 # clean existing output
 rm -rf "${OS_ROOT}/_output/local/releases"
-rm -rf "${OS_ROOT}/_output/go/bin"
+rm -rf "${OS_ROOT}/_output/local/go/bin"
 rm -rf "${context}"
 mkdir -p "${context}"
 mkdir -p "${OS_ROOT}/_output/local"
@@ -41,6 +41,6 @@ if [[ $(echo $releases | wc -l) -ne 1 ]]; then
   echo "There should be exactly one Linux release tar in _output/local/releases"
   exit 1
 fi
-bindir="_output/go/bin"
+bindir="_output/local/go/bin"
 mkdir -p "${bindir}"
 tar mxzf "${releases}" -C "${bindir}"
