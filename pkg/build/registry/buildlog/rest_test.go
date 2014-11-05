@@ -3,7 +3,7 @@ package buildlog
 import (
 	"testing"
 
-	kapi	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -20,7 +20,7 @@ func (p *podClient) ListPods(ctx kapi.Context, selector labels.Selector) (*kapi.
 
 func (p *podClient) GetPod(ctx kapi.Context, id string) (*kapi.Pod, error) {
 	pod := &kapi.Pod{
-		TypeMeta:     kapi.TypeMeta{ID: "foo"},
+		TypeMeta: kapi.TypeMeta{ID: "foo"},
 		DesiredState: kapi.PodState{
 			Manifest: kapi.ContainerManifest{
 				Version: "v1beta1",
@@ -52,8 +52,8 @@ func (p *podClient) UpdatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error
 
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
-		api.BuildComplete: "/proxy/minion/foo-host/containerLogs/foo-pod/foo-container",
-		api.BuildRunning: "/proxy/minion/foo-host/containerLogs/foo-pod/foo-container?follow=1",
+		api.BuildStatusComplete: "/proxy/minion/foo-host/containerLogs/foo-pod/foo-container",
+		api.BuildStatusRunning:  "/proxy/minion/foo-host/containerLogs/foo-pod/foo-container?follow=1",
 	}
 
 	ctx := kapi.NewDefaultContext()

@@ -31,6 +31,7 @@ type Interface interface {
 // BuildInterface exposes methods on Build resources.
 type BuildInterface interface {
 	ListBuilds(ctx kapi.Context, labels labels.Selector) (*buildapi.BuildList, error)
+	GetBuild(ctx kapi.Context, id string) (*buildapi.Build, error)
 	CreateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error)
 	UpdateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error)
 	DeleteBuild(ctx kapi.Context, id string) error
@@ -143,6 +144,13 @@ func (c *Client) CreateBuild(ctx kapi.Context, build *buildapi.Build) (result *b
 func (c *Client) ListBuilds(ctx kapi.Context, selector labels.Selector) (result *buildapi.BuildList, err error) {
 	result = &buildapi.BuildList{}
 	err = c.Get().Namespace(kapi.Namespace(ctx)).Path("builds").SelectorParam("labels", selector).Do().Into(result)
+	return
+}
+
+// GetBuild returns information about a particular build and error if one occurs.
+func (c *Client) GetBuild(ctx kapi.Context, id string) (result *buildapi.Build, err error) {
+	result = &buildapi.Build{}
+	err = c.Get().Path("builds").Path(id).Do().Into(result)
 	return
 }
 

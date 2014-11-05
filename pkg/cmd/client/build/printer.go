@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
-var buildColumns = []string{"ID", "Status", "Pod ID"}
+var buildColumns = []string{"ID", "Type", "Status", "Pod ID"}
 var buildConfigColumns = []string{"ID", "Type", "SourceURI"}
 
 // RegisterPrintHandlers registers HumanReadablePrinter handlers
@@ -21,7 +21,7 @@ func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
 }
 
 func printBuild(build *api.Build, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", build.ID, build.Status, build.PodID)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.ID, build.Parameters.Strategy.Type, build.Status, build.PodID)
 	return err
 }
 
@@ -35,12 +35,7 @@ func printBuildList(buildList *api.BuildList, w io.Writer) error {
 }
 
 func printBuildConfig(bc *api.BuildConfig, w io.Writer) error {
-	buildType := api.DockerBuildType
-	if bc.DesiredInput.STIInput != nil {
-		buildType = api.STIBuildType
-	}
-
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.ID, buildType, bc.Source.Git.URI)
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.ID, bc.Parameters.Strategy.Type, bc.Parameters.Source.Git.URI)
 	return err
 }
 

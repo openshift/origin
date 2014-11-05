@@ -24,13 +24,12 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
-	"github.com/openshift/origin/pkg/build"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
+	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
-	"github.com/openshift/origin/pkg/build/strategy"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -266,14 +265,22 @@ func (c *MasterConfig) RunBuildController() {
 	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/sti-builder")
 	useLocalImages := env("USE_LOCAL_IMAGES", "false") == "true"
 
-	buildStrategies := map[buildapi.BuildType]build.BuildJobStrategy{
-		buildapi.DockerBuildType: strategy.NewDockerBuildStrategy(dockerBuilderImage, useLocalImages),
-		buildapi.STIBuildType: strategy.NewSTIBuildStrategy(stiBuilderImage,
-			strategy.STITempDirectoryCreator, useLocalImages),
+	factory := buildcontrollerfactory.BuildControllerFactory{
+		Client:     c.OSClient,
+		KubeClient: c.KubeClient,
+		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
+			BuilderImage:   dockerBuilderImage,
+			UseLocalImages: useLocalImages,
+		},
+		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
+			BuilderImage:         stiBuilderImage,
+			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
+			UseLocalImages:       useLocalImages,
+		},
 	}
 
-	buildController := build.NewBuildController(c.KubeClient, c.OSClient, buildStrategies, 2400)
-	buildController.Run(10 * time.Second)
+	controller := factory.Create()
+	controller.Run()
 }
 
 // RunDeploymentController starts the deployment controller process.

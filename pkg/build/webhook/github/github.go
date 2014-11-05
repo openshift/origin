@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 // GitHubWebHook used for processing github webhook requests.
@@ -20,10 +20,10 @@ func New() *GitHubWebHook {
 }
 
 type gitHubCommit struct {
-	ID        string                `json:"id,omitempty" yaml:"id,omitempty"`
-	Author    api.SourceControlUser `json:"author,omitempty" yaml:"author,omitempty"`
-	Committer api.SourceControlUser `json:"committer,omitempty" yaml:"committer,omitempty"`
-	Message   string                `json:"message,omitempty" yaml:"message,omitempty"`
+	ID        string                     `json:"id,omitempty" yaml:"id,omitempty"`
+	Author    buildapi.SourceControlUser `json:"author,omitempty" yaml:"author,omitempty"`
+	Committer buildapi.SourceControlUser `json:"committer,omitempty" yaml:"committer,omitempty"`
+	Message   string                     `json:"message,omitempty" yaml:"message,omitempty"`
 }
 
 type gitHubPushEvent struct {
@@ -33,7 +33,7 @@ type gitHubPushEvent struct {
 }
 
 // Extract responsible for servicing webhooks from github.com.
-func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
+func (p *GitHubWebHook) Extract(buildCfg *buildapi.BuildConfig, path string, req *http.Request) (build *buildapi.Build, proceed bool, err error) {
 	if err = verifyRequest(req); err != nil {
 		return
 	}
@@ -56,27 +56,30 @@ func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, path string, req *htt
 	}
 	proceed = buildConfigRefMatches(event, buildCfg)
 
-	build = &api.Build{
-		Source: buildCfg.Source,
-		Revision: api.SourceRevision{
-			Type: api.BuildSourceGit,
-			Git: &api.GitSourceRevision{
-				Commit:    event.HeadCommit.ID,
-				Author:    event.HeadCommit.Author,
-				Committer: event.HeadCommit.Committer,
-				Message:   event.HeadCommit.Message,
+	build = &buildapi.Build{
+		Parameters: buildapi.BuildParameters{
+			Source: buildCfg.Parameters.Source,
+			Revision: &buildapi.SourceRevision{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitSourceRevision{
+					Commit:    event.HeadCommit.ID,
+					Author:    event.HeadCommit.Author,
+					Committer: event.HeadCommit.Committer,
+					Message:   event.HeadCommit.Message,
+				},
 			},
+			Strategy: buildCfg.Parameters.Strategy,
+			Output:   buildCfg.Parameters.Output,
 		},
-		Input: buildCfg.DesiredInput,
 	}
 
 	return
 }
 
-func buildConfigRefMatches(event gitHubPushEvent, buildCfg *api.BuildConfig) bool {
+func buildConfigRefMatches(event gitHubPushEvent, buildCfg *buildapi.BuildConfig) bool {
 	const RefPrefix = "refs/heads/"
 	eventRef := strings.TrimPrefix(event.Ref, RefPrefix)
-	configRef := strings.TrimPrefix(buildCfg.Source.Git.Ref, RefPrefix)
+	configRef := strings.TrimPrefix(buildCfg.Parameters.Source.Git.Ref, RefPrefix)
 	if configRef == "" {
 		configRef = "master"
 	}

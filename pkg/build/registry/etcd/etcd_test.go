@@ -27,12 +27,12 @@ func NewTestEtcd(client tools.EtcdClient) *Etcd {
 // fail to let them know they've change some significant change and that other dependent pieces may break.
 func makeTestBuildListKey(namespace string) string {
 	if len(namespace) != 0 {
-		return "/registry/builds/" + namespace
+		return "/builds/" + namespace
 	}
-	return "/registry/builds"
+	return "/builds"
 }
 func makeTestBuildKey(namespace, id string) string {
-	return "/registry/builds/" + namespace + "/" + id
+	return "/builds/" + namespace + "/" + id
 }
 func makeTestDefaultBuildKey(id string) string {
 	return makeTestBuildKey(kapi.NamespaceDefault, id)
@@ -42,12 +42,12 @@ func makeTestDefaultBuildListKey() string {
 }
 func makeTestBuildConfigListKey(namespace string) string {
 	if len(namespace) != 0 {
-		return "/registry/build-configs/" + namespace
+		return "/buildConfigs/" + namespace
 	}
-	return "/registry/build-configs"
+	return "/buildConfigs"
 }
 func makeTestBuildConfigKey(namespace, id string) string {
-	return "/registry/build-configs/" + namespace + "/" + id
+	return "/buildConfigs/" + namespace + "/" + id
 }
 func makeTestDefaultBuildConfigKey(id string) string {
 	return makeTestBuildConfigKey(kapi.NamespaceDefault, id)
@@ -97,15 +97,23 @@ func TestEtcdCreateBuild(t *testing.T) {
 		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
-		Source: api.BuildSource{
-			Git: &api.GitBuildSource{
-				URI: "http://my.build.com/the/build/Dockerfile",
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
+			},
+			Strategy: api.BuildStrategy{
+				Type: api.STIBuildStrategyType,
+				STIStrategy: &api.STIBuildStrategy{
+					BuilderImage: "builder/image",
+				},
+			},
+			Output: api.BuildOutput{
+				ImageTag: "repository/dataBuild",
 			},
 		},
-		Input: api.BuildInput{
-			ImageTag: "repository/dataBuild",
-		},
-		Status: api.BuildPending,
+		Status: api.BuildStatusPending,
 		PodID:  "-the-pod-id",
 		Labels: map[string]string{
 			"name": "dataBuild",
@@ -230,7 +238,7 @@ func TestEtcdListBuilds(t *testing.T) {
 func TestEtcdWatchBuilds(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := labels.SelectorFromSet(labels.Set{"ID": "foo", "Status": string(api.BuildRunning), "PodID": "bar"})
+	filterFields := labels.SelectorFromSet(labels.Set{"ID": "foo", "Status": string(api.BuildStatusRunning), "PodID": "bar"})
 
 	watching, err := registry.WatchBuilds(kapi.NewContext(), labels.Everything(), filterFields, "1")
 	if err != nil {
@@ -238,7 +246,7 @@ func TestEtcdWatchBuilds(t *testing.T) {
 	}
 	fakeClient.WaitForWatchCompletion()
 
-	repo := &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}, Status: api.BuildRunning, PodID: "bar"}
+	repo := &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}, Status: api.BuildStatusRunning, PodID: "bar"}
 	repoBytes, _ := latest.Codec.Encode(repo)
 	fakeClient.WatchResponse <- &etcd.Response{
 		Action: "set",
@@ -311,13 +319,21 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 		TypeMeta: kapi.TypeMeta{
 			ID: "foo",
 		},
-		Source: api.BuildSource{
-			Git: &api.GitBuildSource{
-				URI: "http://my.build.com/the/build/Dockerfile",
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
 			},
-		},
-		DesiredInput: api.BuildInput{
-			ImageTag: "repository/dataBuild",
+			Strategy: api.BuildStrategy{
+				Type: api.STIBuildStrategyType,
+				STIStrategy: &api.STIBuildStrategy{
+					BuilderImage: "builder/image",
+				},
+			},
+			Output: api.BuildOutput{
+				ImageTag: "repository/dataBuild",
+			},
 		},
 		Labels: map[string]string{
 			"name": "dataBuildConfig",
@@ -473,7 +489,7 @@ func TestEtcdListBuildsInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Data["/registry/builds/alfa"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/builds/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -485,7 +501,7 @@ func TestEtcdListBuildsInDifferentNamespaces(t *testing.T) {
 		},
 		E: nil,
 	}
-	fakeClient.Data["/registry/builds/bravo"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/builds/bravo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -523,7 +539,7 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Data["/registry/build-configs/alfa"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/buildConfigs/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -535,7 +551,7 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 		},
 		E: nil,
 	}
-	fakeClient.Data["/registry/build-configs/bravo"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/buildConfigs/bravo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -573,8 +589,8 @@ func TestEtcdGetBuildConfigInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/registry/build-configs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/registry/build-configs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/buildConfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/buildConfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetBuildConfig(namespaceAlfa, "foo")
@@ -598,8 +614,8 @@ func TestEtcdGetBuildInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/registry/builds/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/registry/builds/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/builds/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/builds/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetBuild(namespaceAlfa, "foo")

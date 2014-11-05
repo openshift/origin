@@ -71,7 +71,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		build.ID = uuid.NewUUID().String()
 	}
 	if len(build.Status) == 0 {
-		build.Status = api.BuildNew
+		build.Status = api.BuildStatusNew
 	}
 	build.CreationTimestamp = util.Now()
 	if errs := validation.ValidateBuild(build); len(errs) > 0 {

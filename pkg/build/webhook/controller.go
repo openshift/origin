@@ -77,7 +77,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	if build == nil {
 		build = &api.Build{
-			Input: buildCfg.DesiredInput,
+			Parameters: buildCfg.Parameters,
 		}
 	}
 	if build.Labels == nil {

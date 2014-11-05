@@ -24,13 +24,14 @@ type osClient struct {
 func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
 	return &api.BuildConfig{
 		Secret: "secret101",
-		Source: api.BuildSource{
-			Type: api.BuildSourceGit,
-			Git: &api.GitBuildSource{
-				URI: "git://github.com/my/repo.git",
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "git://github.com/my/repo.git",
+				},
 			},
 		},
-		DesiredInput: api.BuildInput{},
 	}, nil
 }
 
@@ -183,13 +184,14 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 		plugin: GitHubWebHook{},
 		buildCfg: &api.BuildConfig{
 			Secret: "secret101",
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "git://github.com/my/repo.git",
+			Parameters: api.BuildParameters{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "git://github.com/my/repo.git",
+					},
 				},
 			},
-			DesiredInput: api.BuildInput{},
 		},
 		path: "/foobar",
 	}
@@ -239,7 +241,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	if build == nil {
 		t.Error("Expecting the build to not be nil")
 	} else {
-		if build.Revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
+		if build.Parameters.Revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
 			t.Error("Expecting the build's desired input to contain the commit id from the push event")
 		}
 	}
@@ -248,11 +250,11 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 func TestExtractSkipsBuildForUnmachedBranches(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent.json", "push")
-	context.buildCfg.Source.Git.Ref = "adfj32qrafdavckeaewra"
+	context.buildCfg.Parameters.Source.Git.Ref = "adfj32qrafdavckeaewra"
 
 	//execute
 	build, proceed, _ := context.plugin.Extract(context.buildCfg, context.path, context.req)
 	if proceed {
-		t.Errorf("Expecting to not continue from this event because the branch '%s' is not for this buildConfig '%s'", build.Source.Git.Ref, context.buildCfg.Source.Git.Ref)
+		t.Errorf("Expecting to not continue from this event because the branch '%s' is not for this buildConfig '%s'", build.Parameters.Source.Git.Ref, context.buildCfg.Parameters.Source.Git.Ref)
 	}
 }

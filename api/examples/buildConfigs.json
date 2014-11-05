@@ -1,31 +1,52 @@
-[{
+[
+  {
     "apiVersion": "v1beta1",
     "creationTimestamp": "2014-09-10T19:30:36Z",
-    "desiredInput": {
-        "imageTag": "test-database",
-        "registry": "localhost:5000",
-        "sourceURI": "git://github.com/pmorie/simple-ruby",
-        "stiInput": {
-            "builderImage": "mysql"
-        }
-    },
     "id": "9a3a5b7c-4ee9-11e4-9d75-0800279696e1",
     "kind": "BuildConfig",
+    "parameters": {
+      "source": {
+        "type": "Git",
+        "git": {
+          "uri": "git://github.com/openshift/ruby-hello-world.git"
+        }
+      },
+      "strategy": {
+        "type": "Docker",
+        "dockerStrategy": {
+          "contextDir": "/my/build"
+        }
+      },
+      "output": {
+        "imageTag": "openshift/origin-ruby-sample:latest",
+        "registry": "172.121.17.1:5001"
+      }
+    },
     "resourceVersion": 116
-},
-
-{
+  },
+  {
     "apiVersion": "v1beta1",
     "creationTimestamp": "2014-09-16T19:33:36Z",
-    "desiredInput": {
-        "imageTag": "test-ruby-app",
-        "registry": "localhost:5000",
-        "sourceURI": "git://github.com/pmorie/simple-ruby",
-        "stiInput": {
-            "builderImage": "openshift/ruby-19-centos"
-        }
-    },
     "id": "5a6a5b9c-3dd8-11e4-9d75-0800279696e1",
     "kind": "BuildConfig",
+    "parameters": {
+      "source": {
+        "type": "Git",
+        "git": {
+          "uri": "git://github.com/openshift/ruby-hello-world.git"
+        }
+      },
+      "strategy": {
+        "type": "STI",
+        "stiStrategy": {
+          "builderImage": "openshift/sti-builder"
+        }
+      },
+      "output": {
+        "imageTag": "openshift/origin-ruby-sample:latest",
+        "registry": "172.121.17.1:5001"
+      }
+    },
     "resourceVersion": 117
-}]
+  }
+]
