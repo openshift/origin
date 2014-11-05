@@ -289,7 +289,7 @@ func (c *MasterConfig) RunCustomPodDeploymentController() {
 		Client:     c.OSClient,
 		KubeClient: c.KubeClient,
 		Environment: []api.EnvVar{
-			api.EnvVar{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
+			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 		},
 	}
 

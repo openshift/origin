@@ -9,7 +9,7 @@ import (
 
 type User struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	Labels           map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Labels        map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is a human readable string uniquely representing this user at any time.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
@@ -19,12 +19,12 @@ type User struct {
 
 type UserList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	Items            []User `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []User `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type Identity struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	Labels           map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Labels        map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Name is the unique identifier of a user within a given provider
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`

@@ -117,13 +117,13 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 
 func TestValidateSource(t *testing.T) {
 	errorCases := map[string]*buildapi.BuildSource{
-		string(errs.ValidationErrorTypeRequired) + "git.uri": &buildapi.BuildSource{
+		string(errs.ValidationErrorTypeRequired) + "git.uri": {
 			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitBuildSource{
 				URI: "",
 			},
 		},
-		string(errs.ValidationErrorTypeInvalid) + "git.uri": &buildapi.BuildSource{
+		string(errs.ValidationErrorTypeInvalid) + "git.uri": {
 			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitBuildSource{
 				URI: "::",
@@ -145,7 +145,7 @@ func TestValidateSource(t *testing.T) {
 
 func TestValidateBuildParameters(t *testing.T) {
 	errorCases := map[string]*buildapi.BuildParameters{
-		string(errs.ValidationErrorTypeRequired) + "output.imageTag": &buildapi.BuildParameters{
+		string(errs.ValidationErrorTypeRequired) + "output.imageTag": {
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -162,7 +162,7 @@ func TestValidateBuildParameters(t *testing.T) {
 				ImageTag: "",
 			},
 		},
-		string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.builderImage": &buildapi.BuildParameters{
+		string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.builderImage": {
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{

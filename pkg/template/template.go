@@ -114,8 +114,8 @@ func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
 // over the given manifest and substitutes all Parameter expression
 // occurances with their corresponding values.
 func (p *TemplateProcessor) substituteParametersInManifest(manifest *kapi.ContainerManifest, paramMap map[string]string) {
-	for i, _ := range manifest.Containers {
-		for e, _ := range manifest.Containers[i].Env {
+	for i := range manifest.Containers {
+		for e := range manifest.Containers[i].Env {
 			envValue := &manifest.Containers[i].Env[e].Value
 			// Match all parameter expressions found in the given env var
 			for _, match := range parameterExp.FindAllStringSubmatch(*envValue, -1) {
@@ -142,7 +142,7 @@ func (p *TemplateProcessor) substituteParametersInManifest(manifest *kapi.Contai
 // "0x[A-F0-9]{4}"  | "0xB3AF"
 // "[a-zA-Z0-9]{8}" | "hW4yQU5i"
 func (p *TemplateProcessor) GenerateParameterValues(t *api.Template) error {
-	for i, _ := range t.Parameters {
+	for i := range t.Parameters {
 		param := &t.Parameters[i]
 		if param.Generate != "" {
 			generator, ok := p.Generators[param.Generate]
