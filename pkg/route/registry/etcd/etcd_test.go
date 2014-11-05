@@ -2,8 +2,8 @@ package etcd
 
 import (
 	"fmt"
-	"testing"
 	"reflect"
+	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -380,7 +380,7 @@ func TestEtcdGetRouteInDifferentNamespaces(t *testing.T) {
 	}
 }
 
-func TestEtcdWatchRoutes(t *testing.T){
+func TestEtcdWatchRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 
@@ -407,13 +407,13 @@ func TestEtcdWatchRoutes(t *testing.T){
 		},
 	}
 
-	event := <- watching.ResultChan()
+	event := <-watching.ResultChan()
 
 	if event.Type != watch.Added {
 		t.Errorf("Expected add but got %s", event.Type)
 	}
 
-	if !reflect.DeepEqual(route, event.Object){
+	if !reflect.DeepEqual(route, event.Object) {
 		t.Errorf("Expected %v, got %v", route, event.Object)
 	}
 

@@ -81,6 +81,6 @@ func (r *RouteRegistry) DeleteRoute(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (r *RouteRegistry) WatchRoutes(ctx kapi.Context, labels, fields labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (r *RouteRegistry) WatchRoutes(ctx kapi.Context, labels, fields labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, nil
 }
