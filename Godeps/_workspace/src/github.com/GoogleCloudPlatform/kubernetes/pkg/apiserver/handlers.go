@@ -65,7 +65,6 @@ func RecoverPanics(handler http.Handler) http.Handler {
 		defer httplog.NewLogged(req, &w).StacktraceWhen(
 			httplog.StatusIsNot(
 				http.StatusOK,
-				http.StatusCreated,
 				http.StatusAccepted,
 				http.StatusMovedPermanently,
 				http.StatusTemporaryRedirect,

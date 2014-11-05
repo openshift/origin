@@ -179,7 +179,7 @@ func TestPollMinions(t *testing.T) {
 }
 
 func TestDefaultErrorFunc(t *testing.T) {
-	testPod := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
+	testPod := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo", Namespace: "bar"}}
 	handler := util.FakeHandler{
 		StatusCode:   200,
 		ResponseBody: runtime.EncodeOrDie(latest.Codec, testPod),
@@ -207,7 +207,7 @@ func TestDefaultErrorFunc(t *testing.T) {
 		if !exists {
 			continue
 		}
-		handler.ValidateRequest(t, "/api/"+testapi.Version()+"/pods/foo", "GET", nil)
+		handler.ValidateRequest(t, "/api/"+testapi.Version()+"/pods/foo?namespace=bar", "GET", nil)
 		if e, a := testPod, got; !reflect.DeepEqual(e, a) {
 			t.Errorf("Expected %v, got %v", e, a)
 		}
