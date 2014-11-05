@@ -7,7 +7,7 @@ import (
 
 	"testing"
 
-	kubeapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -20,7 +20,7 @@ import (
 func TestExamples(t *testing.T) {
 	expected := map[string]runtime.Object{
 		"guestbook/template.json":                 &templateapi.Template{},
-		"hello-openshift/hello-pod.json":          &kubeapi.Pod{},
+		"hello-openshift/hello-pod.json":          &kapi.Pod{},
 		"hello-openshift/hello-project.json":      &projectapi.Project{},
 		"sample-app/application-buildconfig.json": &buildapi.BuildConfig{},
 		"sample-app/github-webhook-example.json":  nil, // Skip.
