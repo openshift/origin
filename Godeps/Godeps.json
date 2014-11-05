@@ -466,6 +466,10 @@
 			"Rev": "740c764bc6149d3f1806231418adb9f52c11bcbf"
 		},
 		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/sti",
+			"Rev": "a5aff8d6941d7494aec1bda63e6190af64e3affe"
+		},
+		{
 			"ImportPath": "github.com/racker/perigee",
 			"Comment": "v0.0.0-18-g0c00cb0",
 			"Rev": "0c00cb0a026b71034ebc8205263c77dad3577db5"
