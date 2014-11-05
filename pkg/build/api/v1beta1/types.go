@@ -140,8 +140,9 @@ const (
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
-	// ContextDir is a directory inside the SourceURI structure which should be used as a Docker
-	// context when building.
+	// ContextDir is used as the Docker build context. It is a path for a directory within the
+	// application source directory structure (as referenced in the BuildSource. See GitBuildSource
+	// for an example.)
 	ContextDir string `json:"contextDir,omitempty" yaml:"contextDir,omitempty"`
 }
 

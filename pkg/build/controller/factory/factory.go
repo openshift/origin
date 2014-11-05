@@ -31,6 +31,14 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	buildQueue := cache.NewFIFO()
 	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildQueue).Run()
 
+	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
+	// states. Because of this, we can't receive events related to container (and thus Pod)
+	// state changes, such as Running -> Terminated. As a workaround, populate the FIFO with
+	// a polling implementation which relies on client calls to list Pods - the Get/List
+	// REST implementations will populate the synchronized container/pod status on-demand.
+	//
+	// TODO: Find a way to get watch events for Pod/container status updates. The polling
+	// strategy is horribly inefficient and should be addressed upstream somehow.
 	podQueue := cache.NewFIFO()
 	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).Run()
 
@@ -60,7 +68,7 @@ func (factory *BuildControllerFactory) pollPods() (cache.Enumerator, error) {
 	return &podEnumerator{list}, nil
 }
 
-// minionEnumerator allows a cache.Poller to enumerate items in an api.PodList
+// podEnumerator allows a cache.Poller to enumerate items in an api.PodList
 type podEnumerator struct {
 	*kapi.PodList
 }
