@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/golang/glog"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
@@ -22,11 +24,13 @@ type BuildControllerFactory struct {
 	KubeClient          *kclient.Client
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	STIBuildStrategy    *strategy.STIBuildStrategy
+
+	buildStore cache.Store
 }
 
 func (factory *BuildControllerFactory) Create() *controller.BuildController {
-	buildStore := cache.NewStore()
-	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildStore).Run()
+	factory.buildStore = cache.NewStore()
+	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, factory.buildStore).Run()
 
 	buildQueue := cache.NewFIFO()
 	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildQueue).Run()
@@ -43,7 +47,7 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).Run()
 
 	return &controller.BuildController{
-		BuildStore:   buildStore,
+		BuildStore:   factory.buildStore,
 		BuildUpdater: factory.Client,
 		PodCreator:   factory.KubeClient,
 		NextBuild: func() *buildapi.Build {
@@ -59,12 +63,25 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	}
 }
 
-// pollPods lists all pods and returns an enumerator for cache.Poller.
+// pollPods lists pods for all builds in the buildStore which are pending or running and
+// returns an enumerator for cache.Poller. The poll scope is narrowed for efficiency.
 func (factory *BuildControllerFactory) pollPods() (cache.Enumerator, error) {
-	list, err := factory.KubeClient.ListPods(kapi.NewContext(), labels.Everything())
-	if err != nil {
-		return nil, err
+	list := &kapi.PodList{}
+
+	for _, obj := range factory.buildStore.List() {
+		build := obj.(*buildapi.Build)
+
+		switch build.Status {
+		case buildapi.BuildStatusPending, buildapi.BuildStatusRunning:
+			pod, err := factory.KubeClient.GetPod(kapi.WithNamespace(kapi.NewContext(), build.Namespace), build.PodID)
+			if err != nil {
+				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodID, build.ID, err)
+				continue
+			}
+			list.Items = append(list.Items, *pod)
+		}
 	}
+
 	return &podEnumerator{list}, nil
 }
 
