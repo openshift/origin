@@ -91,14 +91,16 @@ func TestWatchBuilds(t *testing.T) {
 	openshift := NewTestBuildOpenshift(t)
 	build := mockBuild()
 
-	expected, err := openshift.Client.CreateBuild(ctx, build)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
 	watch, err := openshift.Client.WatchBuilds(ctx, labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+
+	expected, err := openshift.Client.CreateBuild(ctx, build)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
 
