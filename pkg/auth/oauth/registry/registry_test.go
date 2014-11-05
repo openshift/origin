@@ -1,11 +1,16 @@
 package registry
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osincli"
 
 	"github.com/openshift/origin/pkg/auth/api"
@@ -44,6 +49,34 @@ func (h *testHandlers) GrantNeeded(client api.Client, user api.UserInfo, grant *
 
 func (h *testHandlers) GrantError(err error, w http.ResponseWriter, req *http.Request) {
 	h.GrantErr = err
+}
+
+type AccessTokenRegistry struct {
+	Err                  error
+	AccessTokens         *oapi.AccessTokenList
+	AccessToken          *oapi.AccessToken
+	DeletedAccessTokenId string
+}
+
+func (r *AccessTokenRegistry) ListAccessTokens(selector labels.Selector) (*oapi.AccessTokenList, error) {
+	return r.AccessTokens, r.Err
+}
+
+func (r *AccessTokenRegistry) GetAccessToken(id string) (*oapi.AccessToken, error) {
+	return r.AccessToken, r.Err
+}
+
+func (r *AccessTokenRegistry) CreateAccessToken(token *oapi.AccessToken) error {
+	return r.Err
+}
+
+func (r *AccessTokenRegistry) UpdateAccessToken(token *oapi.AccessToken) error {
+	return r.Err
+}
+
+func (r *AccessTokenRegistry) DeleteAccessToken(id string) error {
+	r.DeletedAccessTokenId = id
+	return r.Err
 }
 
 func TestRegistryAndServer(t *testing.T) {
@@ -215,5 +248,85 @@ func TestRegistryAndServer(t *testing.T) {
 		}
 
 		testCase.Check(h, req)
+	}
+}
+
+func TestAuthenticateTokenNotFound(t *testing.T) {
+	tokenRegistry := &AccessTokenRegistry{Err: errors.NewNotFound("AccessToken", "token")}
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+
+	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
+	if found {
+		t.Error("Found token, but it should be missing!")
+	}
+	if err != nil {
+		t.Error("Unexpected error: %v", err)
+	}
+	if userInfo != nil {
+		t.Error("Unexpected user: %v", userInfo)
+	}
+}
+func TestAuthenticateTokenOtherGetError(t *testing.T) {
+	tokenRegistry := &AccessTokenRegistry{Err: fmt.Errorf("get error")}
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+
+	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
+	if found {
+		t.Error("Found token, but it should be missing!")
+	}
+	if err == nil {
+		t.Error("Expected error is missing!")
+	}
+	if err.Error() != tokenRegistry.Err.Error() {
+		t.Error("Expected error %v, but got error %v", tokenRegistry.Err, err)
+	}
+	if userInfo != nil {
+		t.Error("Unexpected user: %v", userInfo)
+	}
+}
+func TestAuthenticateTokenExpired(t *testing.T) {
+	tokenRegistry := &AccessTokenRegistry{
+		Err: nil,
+		AccessToken: &oapi.AccessToken{
+			TypeMeta: kapi.TypeMeta{CreationTimestamp: util.Time{time.Now().Add(-1 * time.Hour)}},
+			AuthorizeToken: oapi.AuthorizeToken{
+				ExpiresIn: 600, // 10 minutes
+			},
+		},
+	}
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+
+	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
+	if found {
+		t.Error("Found token, but it should be missing!")
+	}
+	if err != nil {
+		t.Error("Unexpected error: %v", err)
+	}
+	if userInfo != nil {
+		t.Error("Unexpected user: %v", userInfo)
+	}
+}
+func TestAuthenticateTokenValidated(t *testing.T) {
+	tokenRegistry := &AccessTokenRegistry{
+		Err: nil,
+		AccessToken: &oapi.AccessToken{
+			TypeMeta: kapi.TypeMeta{CreationTimestamp: util.Time{time.Now()}},
+			AuthorizeToken: oapi.AuthorizeToken{
+				ExpiresIn: 600, // 10 minutes
+			},
+		},
+	}
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+
+	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
+	if !found {
+		t.Error("Did not find a token!")
+	}
+	if err != nil {
+		t.Error("Unexpected error: %v", err)
+	}
+	if userInfo == nil {
+		t.Error("Did not get a user!")
 	}
 }

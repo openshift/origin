@@ -28,7 +28,7 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (api.UserInfo, bool
 	if err != nil {
 		return nil, false, err
 	}
-	if token.CreationTimestamp.Time.Add(time.Duration(token.AuthorizeToken.ExpiresIn) * time.Second).After(time.Now()) {
+	if token.CreationTimestamp.Time.Add(time.Duration(token.AuthorizeToken.ExpiresIn) * time.Second).Before(time.Now()) {
 		return nil, false, nil
 	}
 	return &api.DefaultUserInfo{
