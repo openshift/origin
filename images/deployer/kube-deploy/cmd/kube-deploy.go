@@ -6,7 +6,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kubeclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
@@ -31,13 +31,13 @@ func main() {
 		glog.Fatalf("Unable to parse %v as a URL\n", err)
 	}
 
-	client, err := kubeclient.New(&kubeclient.Config{Host: masterServer, Version: klatest.Version})
+	client, err := kclient.New(&kclient.Config{Host: masterServer, Version: klatest.Version})
 	if err != nil {
 		glog.Errorf("Unable to connect to kubernetes master: %v", err)
 		os.Exit(1)
 	}
 
-	osClient, err := osclient.New(&kubeclient.Config{Host: masterServer, Version: latest.Version})
+	osClient, err := osclient.New(&kclient.Config{Host: masterServer, Version: latest.Version})
 	if err != nil {
 		glog.Errorf("Unable to connect to openshift master: %v", err)
 		os.Exit(1)
@@ -46,7 +46,7 @@ func main() {
 	deployTarget(client, osClient)
 }
 
-func deployTarget(client *kubeclient.Client, osClient osclient.Interface) {
+func deployTarget(client *kclient.Client, osClient osclient.Interface) {
 	namespace := os.Getenv("KUBERNETES_NAMESPACE")
 	if len(namespace) == 0 {
 		glog.Fatal("No namespace was specified. Expected KUBERNETES_NAMESPACE variable.")
