@@ -63,12 +63,12 @@ All commands assume the `openshift` binary is in your path:
         $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
   * Note: Using the webhook requires your OpenShift server be publicly accessible so github can reach it to invoke the hook.
 
-8. Edit application-template.json
+8. Edit application-template-stibuild.json
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
 
 9. Submit the application template for processing and create the application using the processed template:
 
-        $ openshift kube process -c application-template.json | openshift kube apply -c -
+        $ openshift kube process -c application-template-stibuild.json | openshift kube apply -c -
 
 10. Trigger an initial build of your application
  * If you setup the github webhook in step 7, push a change to app.rb in your ruby sample repository from step 6.

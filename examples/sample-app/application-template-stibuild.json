@@ -1,0 +1,210 @@
+{
+  "id": "ruby-helloworld-sample",
+  "kind": "Template",
+  "apiVersion": "v1beta1",
+  "name": "ruby-hello-world-template",
+  "description": "This example shows how to create a simple ruby application in openshift origin v3",
+  "parameters": [
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "administrator username",
+      "generate": "expression",
+      "from": "admin[A-Z0-9]{3}"
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "administrator password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root"
+    }
+  ],
+  "items": [
+    {
+      "id": "frontend",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 5432,
+      "containerPort": 8080,
+      "selector": {
+        "name": "frontend"
+      }
+    },
+    {
+      "id": "origin-ruby-sample",
+      "kind": "ImageRepository",
+      "apiVersion": "v1beta1",
+      "dockerImageRepository": "172.121.17.1:5001/openshift/origin-ruby-sample",
+      "labels": {
+        "name": "origin-ruby-sample"
+      }
+    },
+    {
+      "id": "ruby-sample-build",
+      "kind": "BuildConfig",
+      "apiVersion": "v1beta1",
+      "parameters": {
+        "source" : {
+          "type" : "Git",
+          "git" : {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"        
+          }
+        },
+        "strategy": {
+          "type": "STI",
+          "stiStrategy": {
+            "builderImage": "openshift/ruby-20-centos"
+          }
+        },
+        "output": {
+          "imageTag": "openshift/origin-ruby-sample:latest",
+          "registry": "172.121.17.1:5001"
+        },
+      },
+      "secret": "secret101",
+      "labels": {
+        "name": "ruby-sample-build"
+      }
+    },
+    {
+      "id": "frontend",
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
+      "triggers": [
+        {
+          "type": "ImageChange",
+          "imageChangeParams": {
+            "automatic": true,
+            "containerNames": [
+              "ruby-helloworld"
+            ],
+            "repositoryName": "172.121.17.1:5001/openshift/origin-ruby-sample",
+            "tag": "latest"
+          }
+        }
+      ],
+      "template": {
+        "strategy": {
+          "type": "Basic"
+        },
+        "controllerTemplate": {
+          "replicas": 1,
+          "replicaSelector": {
+            "name": "frontend"
+          },
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "version": "v1beta1",
+                "containers": [
+                  {
+                    "name": "ruby-helloworld",
+                    "image": "172.121.17.1:5001/openshift/origin-ruby-sample",
+                    "env": [
+                      {
+                        "name": "ADMIN_USERNAME",
+                        "value": "${ADMIN_USERNAME}"
+                      },
+                      {
+                        "name": "ADMIN_PASSWORD",
+                        "value": "${ADMIN_PASSWORD}"
+                      },
+                      {
+                        "name": "MYSQL_ROOT_PASSWORD",
+                        "value": "${MYSQL_ROOT_PASSWORD}"
+                      },
+                      {
+                        "name": "MYSQL_DATABASE",
+                        "value": "${MYSQL_DATABASE}"
+                      }
+                    ],
+                    "ports": [
+                      {
+                        "containerPort": 8080
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "labels": {
+              "name": "frontend"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "database",
+      "kind": "Service",
+      "apiVersion": "v1beta1",
+      "port": 5434,
+      "containerPort": 3306,
+      "selector": {
+        "name": "database"
+      }
+    },
+    {
+      "id": "database",
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta1",
+      "triggers": [
+        {
+          "type": "ConfigChange"
+        }
+      ],
+      "template": {
+      "strategy": {
+        "type": "Basic"
+      },
+      "controllerTemplate": {
+        "replicas": 1,
+        "replicaSelector": {
+          "name": "database"
+      },
+      "podTemplate": {
+        "desiredState": {
+          "manifest": {
+            "version": "v1beta1",
+            "containers": [
+              {
+                 "name": "ruby-helloworld-database",
+                 "image": "mysql",
+                  "env": [
+                    {
+                      "name": "MYSQL_ROOT_PASSWORD",
+                      "value": "${MYSQL_ROOT_PASSWORD}"
+                    },
+                    {
+                      "name": "MYSQL_DATABASE",
+                      "value": "${MYSQL_DATABASE}"
+                    }
+                  ],
+                  "ports": [
+                    {
+                      "containerPort": 3306
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "labels": {
+            "name": "database"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

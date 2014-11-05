@@ -19,13 +19,14 @@ import (
 
 func TestExamples(t *testing.T) {
 	expected := map[string]runtime.Object{
-		"guestbook/template.json":                 &templateapi.Template{},
-		"hello-openshift/hello-pod.json":          &kapi.Pod{},
-		"hello-openshift/hello-project.json":      &projectapi.Project{},
-		"sample-app/application-buildconfig.json": &buildapi.BuildConfig{},
-		"sample-app/github-webhook-example.json":  nil, // Skip.
-		"sample-app/docker-registry-config.json":  &configapi.Config{},
-		"sample-app/application-template.json":    &templateapi.Template{},
+		"guestbook/template.json":                          &templateapi.Template{},
+		"hello-openshift/hello-pod.json":                   &kapi.Pod{},
+		"hello-openshift/hello-project.json":               &projectapi.Project{},
+		"sample-app/application-buildconfig.json":          &buildapi.BuildConfig{},
+		"sample-app/github-webhook-example.json":           nil, // Skip.
+		"sample-app/docker-registry-config.json":           &configapi.Config{},
+		"sample-app/application-template-stibuild.json":    &templateapi.Template{},
+		"sample-app/application-template-dockerbuild.json": &templateapi.Template{},
 	}
 
 	files := []string{}
