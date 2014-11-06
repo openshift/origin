@@ -63,25 +63,33 @@ func NewCmdOpenShiftClient(name string) *cobra.Command {
 	cmd.AddCommand(auth.NewCmdLogin("login"))
 	cmd.AddCommand(auth.NewCmdLogout("logout"))
 
-	// Exposes kubectl subcommands
+	// Exposes kubectl flags
 	cmd.PersistentFlags().StringP("server", "s", "", "Kubernetes apiserver to connect to")
 	cmd.PersistentFlags().StringP("auth-path", "a", os.Getenv("HOME")+"/.kubernetes_auth", "Path to the auth info file. If missing, prompt the user. Only used if using https.")
 	cmd.PersistentFlags().Bool("match-server-version", false, "Require server version to match client version")
-	cmd.PersistentFlags().String("api-version", latest.Version, "The version of the API to use against the server (used for viewing resources only)")
+	cmd.PersistentFlags().String("api-version", latest.Version, "The version of the API to use against the server")
 	cmd.PersistentFlags().String("certificate-authority", "", "Path to a certificate file for the certificate authority")
 	cmd.PersistentFlags().String("client-certificate", "", "Path to a client certificate for TLS.")
 	cmd.PersistentFlags().String("client-key", "", "Path to a client key file for TLS.")
 	cmd.PersistentFlags().Bool("insecure-skip-tls-verify", false, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
+	cmd.PersistentFlags().String("ns-path", os.Getenv("HOME")+"/.kubernetes_ns", "Path to the namespace info file that holds the namespace context to use for CLI requests.")
+	cmd.PersistentFlags().StringP("namespace", "n", "", "If present, the namespace scope for this CLI request.")
 
+	// Exposes kubectl subcommands
 	f := kubectl.NewFactory()
 	out := os.Stdout
-	//cmds.AddCommand(NewCmdVersion(out))
-	//cmds.AddCommand(NewCmdProxy(out))
+
+	cmd.AddCommand(kubectl.NewCmdProxy(out))
+
 	cmd.AddCommand(f.NewCmdGet(out))
 	cmd.AddCommand(f.NewCmdDescribe(out))
 	cmd.AddCommand(f.NewCmdCreate(out))
 	cmd.AddCommand(f.NewCmdUpdate(out))
 	cmd.AddCommand(f.NewCmdDelete(out))
+
+	cmd.AddCommand(kubectl.NewCmdNamespace(out))
+	cmd.AddCommand(kubectl.NewCmdLog(out))
+	cmd.AddCommand(kubectl.NewCmdCreateAll(out))
 
 	return cmd
 }
