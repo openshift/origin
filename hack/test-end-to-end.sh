@@ -41,8 +41,8 @@ openshift="${GO_OUT}/openshift"
 # $1 - a valid URL (e.g.: http://127.0.0.1:8080)
 # $2 - a regular expression or text
 function validate_response {
-    ip=$1
-    response=$2
+  ip=$1
+  response=$2
 
   curl $ip | grep -q "$response"
   if [ $? -eq 0 ] ;then
@@ -143,7 +143,7 @@ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Git
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} builds | grep -i complete" $((10*TIME_MIN)) "$openshift kube list --ns=${NAMESPACE} builds | grep -i -e failed -e error"
+watch_resource "${API_HOST}" "${API_PORT}" "${NAMESPACE}" "builds" "complete" $((10*TIME_MIN)) "failed|error"
 BUILD_ID=`$openshift kube list --ns=${NAMESPACE} builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
 $openshift kube buildLogs --ns=${NAMESPACE} --id=$BUILD_ID > $LOG_DIR/build.log
 grep -q "Successfully built" $LOG_DIR/build.log

@@ -15,36 +15,93 @@ TIME_MIN=$((60 * $TIME_SEC))
 function wait_for_command {
   STARTTIME=$(date +%s)
   cmd=$1
-  msg="Waiting for command to finish: '${cmd}'..."
   max_wait=${2:-10*TIME_SEC}
   fail=${3:-""}
   wait=0.2
 
-  echo "[INFO] $msg"
+  echo "[INFO] Waiting for command to finish: '${cmd}'..."
   expire=$(($(time_now) + $max_wait))
   set +e
   while [[ $(time_now) -lt $expire ]]; do
-    eval $cmd
+    eval ${cmd}
     if [ $? -eq 0 ]; then
       set -e
       ENDTIME=$(date +%s)
-      echo "[INFO] Success running command: '$cmd' after $(($ENDTIME - $STARTTIME)) seconds"
+      echo "[INFO] Success running command: '${cmd}' after $(($ENDTIME - $STARTTIME)) seconds"
       return 0
     fi
     #check a failure condition where the success
     #command may never be evaulated before timing
     #out
-    if [[ ! -z $fail ]]; then
-      eval $fail
+    if [[ ! -z ${fail} ]]; then
+      eval ${fail}
       if [ $? -eq 0 ]; then
         set -e
-        echo "[FAIL] Returning early. Command Failed '$cmd'"
+        echo "[FAIL] Returning early. Command Failed '${cmd}'"
         return 1
       fi
     fi
-    sleep $wait
+    sleep ${wait}
   done
-  echo "[ ERR] Gave up waiting for: '$cmd'"
+  echo "[ ERR] Gave up waiting for: '${cmd}'"
+  set -e
+  return 1
+}
+
+# watch_resource performs a watch operation on a specified resource
+#
+# $1 - openshift api host
+# $2 - openshift api port
+# $3 - namespace
+# $4 - resource name
+# $5 - text to wait for
+# $6 - Optional maximum time to wait before giving up (Default: 10s)
+# $7 - Optional alternate text to determine failure
+function watch_resource {
+  STARTTIME=$(date +%s)
+  host=$1
+  port=$2
+  namespace=$3
+  res=$4
+  text=$5
+  max_wait=${6:-10*TIME_SEC}
+  fail=${7:-""}
+  wait=0.2
+
+  echo "[INFO] Watching '${res}'..."
+  set +e
+
+  curl_log=$(mktemp)
+  curl -o $curl_log --no-buffer --silent --fail http://${host}:${port}/osapi/v1beta1/watch/${res}?fields=?labels=?resourceVersion=0 &
+  curl_pid=$!
+
+  expire=$(($(time_now) + $max_wait))
+  while [[ $(time_now) -lt $expire ]]; do
+    grep -E -s -i ${text} ${curl_log} &>/dev/null
+    if [ $? -eq 0 ]; then
+      kill ${curl_pid} &>/dev/null
+      rm ${curl_log}
+      set -e
+      ENDTIME=$(date +%s)
+      echo "[INFO] Success waiting for '${text}' on '${res}' after $(($ENDTIME - $STARTTIME)) seconds"
+      return 0
+    fi
+    #check a failure text where the success
+    if [[ ! -z ${fail} ]]; then
+      grep -E -s -i ${text} ${curl_log} &>/dev/null
+      if [ $? -eq 0 ]; then
+        kill ${curl_pid} &>/dev/null
+        rm ${curl_log}
+        set -e
+        echo "[FAIL] Returning early. Found '${fail}' on '${res}'"
+        return 1
+      fi
+    fi
+    sleep ${wait}
+  done
+  echo "[ ERR] Gave up waiting for '${text}' on '${res}'"
+  kill ${curl_pid} &>/dev/null
+  rm ${curl_log}
   set -e
   return 1
 }
@@ -64,17 +121,17 @@ function wait_for_url_timed {
   expire=$(($(time_now) + $max_wait))
   set +e
   while [[ $(time_now) -lt $expire ]]; do
-    out=$(curl -fs $url 2>/dev/null)
+    out=$(curl -fs ${url} 2>/dev/null)
     if [ $? -eq 0 ]; then
       set -e
       echo ${prefix}${out}
       ENDTIME=$(date +%s)
-      echo "[INFO] Success accessing '$url' after $(($ENDTIME - $STARTTIME)) seconds"
+      echo "[INFO] Success accessing '${url}' after $(($ENDTIME - $STARTTIME)) seconds"
       return 0
     fi
-    sleep $wait
+    sleep ${wait}
   done
-  echo "ERROR: gave up waiting for $url"
+  echo "ERROR: gave up waiting for ${url}"
   set -e
   return 1
 }
@@ -93,17 +150,17 @@ function wait_for_url {
   times=${4:-10}
 
   set +e
-  for i in $(seq 1 $times); do
+  for i in $(seq 1 ${times}); do
     out=$(curl -fs $url 2>/dev/null)
     if [ $? -eq 0 ]; then
       set -e
       echo ${prefix}${out}
       return 0
     fi
-    sleep $wait
+    sleep ${wait}
   done
-  echo "ERROR: gave up waiting for $url"
-  curl $url
+  echo "ERROR: gave up waiting for ${url}"
+  curl ${url}
   set -e
   return 1
 }
@@ -123,7 +180,7 @@ function start_etcd {
   fi
 
   running_etcd=$(ps -ef | grep etcd | grep -c name)
-  if [ "$running_etcd" != "0" ]; then
+  if [ "${running_etcd}" != "0" ]; then
     echo "etcd appears to already be running on this machine, please kill and restart the test."
     exit 1
   fi
@@ -157,7 +214,7 @@ function stop_openshift_server()
     set +u
     if [ -n $OS_PID ] ; then
       echo "[INFO] Found running OpenShift Server instance"
-      kill $OS_PID 1>&2 2>/dev/null
+      kill $OS_PID &>/dev/null
       echo "[INFO] Terminated OpenShift Server"
     fi
     set -u
