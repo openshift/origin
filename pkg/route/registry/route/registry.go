@@ -21,5 +21,5 @@ type Registry interface {
 	// DeleteRoute deletes a route.
 	DeleteRoute(ctx kapi.Context, routeID string) error
 	// WatchRoutes watches for new/modified/deleted routes.
-	WatchRoutes(ctx kapi.Context, labels, fields labels.Selector, resourceVersion uint64) (watch.Interface, error)
+	WatchRoutes(ctx kapi.Context, labels, fields labels.Selector, resourceVersion string) (watch.Interface, error)
 }

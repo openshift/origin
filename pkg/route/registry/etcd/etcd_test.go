@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -14,6 +15,8 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/route/api"
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we
@@ -375,4 +378,57 @@ func TestEtcdGetRouteInDifferentNamespaces(t *testing.T) {
 	if bravoFoo == nil || bravoFoo.ID != "foo" {
 		t.Errorf("Unexpected deployment: %#v", bravoFoo)
 	}
+}
+
+func TestEtcdWatchRoutes(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcd(fakeClient)
+
+	watching, err := registry.WatchRoutes(kapi.NewDefaultContext(), labels.Everything(), labels.Everything(), "1")
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	fakeClient.WaitForWatchCompletion()
+
+	route := &api.Route{
+		TypeMeta: kapi.TypeMeta{
+			ID: "foo",
+		},
+	}
+
+	routeBytes, _ := latest.Codec.Encode(route)
+
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "set",
+		Node: &etcd.Node{
+			Value: string(routeBytes),
+		},
+	}
+
+	event := <-watching.ResultChan()
+
+	if event.Type != watch.Added {
+		t.Errorf("Expected add but got %s", event.Type)
+	}
+
+	if !reflect.DeepEqual(route, event.Object) {
+		t.Errorf("Expected %v, got %v", route, event.Object)
+	}
+
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	default:
+	}
+
+	fakeClient.WatchInjectError <- nil
+	if _, ok := <-watching.ResultChan(); ok {
+		t.Errorf("watching channel should be closed")
+	}
+
+	watching.Stop()
 }

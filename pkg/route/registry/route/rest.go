@@ -115,6 +115,6 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obj
 
 // Watch returns Routes events via a watch.Interface.
 // It implements apiserver.ResourceWatcher.
-func (rs *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion uint64) (watch.Interface, error) {
+func (rs *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
 }
