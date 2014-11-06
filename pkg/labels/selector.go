@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openshift/origin/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 // Selector represents a label selector.

@@ -20,9 +20,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/Godeps/_workspace/src/github.com/google/gofuzz"
-	api "github.com/openshift/origin/pkg/api2"
-	"github.com/openshift/origin/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
+	"github.com/google/gofuzz"
 )
 
 func TestExtractList(t *testing.T) {

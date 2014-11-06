@@ -23,8 +23,8 @@ import (
 	"net/url"
 	"testing"
 
-	api "github.com/openshift/origin/pkg/api2"
-	"github.com/openshift/origin/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func TestGetURLParts(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/openshift/origin/pkg/conversion"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 )
 
 // GetItemsPtr returns a pointer to the list object's Items member.

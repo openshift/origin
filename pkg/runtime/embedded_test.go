@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 var scheme = runtime.NewScheme()

@@ -24,7 +24,7 @@ import (
 	"os"
 	"strconv"
 
-	version "github.com/openshift/origin/pkg/version"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 )
 
 type versionValue int

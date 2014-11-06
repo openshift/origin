@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	api "github.com/openshift/origin/pkg/api2"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 type FakeExec struct {
