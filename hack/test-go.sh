@@ -47,6 +47,12 @@ if [ "${1-}" != "" ]; then
   fi
 
   go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$OS_GO_PACKAGE/$1" "${@:2}"
+
+  if [ -n "${KUBE_COVER}" ]; then
+    echo "Saving coverage to _output/coverage.html..."
+    go tool cover -html=tmp.out -o _output/coverage.html
+  fi
+
   exit 0
 fi
 
