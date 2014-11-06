@@ -60,11 +60,6 @@ To run all tests with verbose output:
 
     $ hack/test-go.sh "" -v
 
-To view line coverage, run a single package unit test to generate the coverage report and then use
-the `go tool cover` command:
-
-    $ hack/test-go.sh pkg/build go tool cover -html=_output/go/tmp.out
-
 To turn off or change the coverage mode, which is `-cover -covermode=atomic` by default, use:
 
     $ KUBE_COVER="" hack/test-go.sh
@@ -72,6 +67,11 @@ To turn off or change the coverage mode, which is `-cover -covermode=atomic` by 
 To run tests without the go race detector, which is on by default, use:
 
     $ KUBE_RACE="" hack/test-go.sh
+
+A line coverage report is run by default when testing a single package.
+To create a coverage report for all packages:
+
+    $ OUTPUT_COVERAGE=true hack/test-go.sh pkg/build
 
 ### Integration tests
 

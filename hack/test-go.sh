@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# See HACKING.md for usage
+
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -42,18 +44,28 @@ if [ -z ${KUBE_RACE+x} ]; then
 fi
 
 if [ "${1-}" != "" ]; then
-  if [ -n "${KUBE_COVER}" ]; then
-    KUBE_COVER="${KUBE_COVER} -coverprofile=tmp.out"
-  fi
-
-  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$OS_GO_PACKAGE/$1" "${@:2}"
-
-  if [ -n "${KUBE_COVER}" ]; then
-    echo "Saving coverage to _output/coverage.html..."
-    go tool cover -html=tmp.out -o _output/coverage.html
-  fi
-
-  exit 0
+  test_packages="$OS_GO_PACKAGE/$1"
+  OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-"true"}
+else
+  test_packages=`find_test_dirs`
+  OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-"false"}
 fi
 
-find_test_dirs | xargs go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}"
+if [[ -n "${KUBE_COVER}" && "${OUTPUT_COVERAGE}" == "true" ]]; then
+  # Iterate over packages to run coverage
+  test_packages=( $test_packages )
+  for test_package in "${test_packages[@]}"
+  do
+    mkdir -p "_output/coverage/$test_package"
+    KUBE_COVER_PROFILE="-coverprofile=_output/coverage/$test_package/profile.out"
+
+    go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
+
+    if [ -f "_output/coverage/$test_package/profile.out" ]; then
+      go tool cover "-html=_output/coverage/$test_package/profile.out" -o "_output/coverage/$test_package/coverage.html"
+      echo "coverage: ${OS_ROOT}/_output/coverage/$test_package/coverage.html"
+    fi
+  done
+else
+  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
+fi
