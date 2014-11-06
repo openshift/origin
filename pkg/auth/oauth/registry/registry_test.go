@@ -9,7 +9,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osincli"
 
@@ -49,34 +48,6 @@ func (h *testHandlers) GrantNeeded(client api.Client, user api.UserInfo, grant *
 
 func (h *testHandlers) GrantError(err error, w http.ResponseWriter, req *http.Request) {
 	h.GrantErr = err
-}
-
-type AccessTokenRegistry struct {
-	Err                  error
-	AccessTokens         *oapi.AccessTokenList
-	AccessToken          *oapi.AccessToken
-	DeletedAccessTokenId string
-}
-
-func (r *AccessTokenRegistry) ListAccessTokens(selector labels.Selector) (*oapi.AccessTokenList, error) {
-	return r.AccessTokens, r.Err
-}
-
-func (r *AccessTokenRegistry) GetAccessToken(id string) (*oapi.AccessToken, error) {
-	return r.AccessToken, r.Err
-}
-
-func (r *AccessTokenRegistry) CreateAccessToken(token *oapi.AccessToken) error {
-	return r.Err
-}
-
-func (r *AccessTokenRegistry) UpdateAccessToken(token *oapi.AccessToken) error {
-	return r.Err
-}
-
-func (r *AccessTokenRegistry) DeleteAccessToken(id string) error {
-	r.DeletedAccessTokenId = id
-	return r.Err
 }
 
 func TestRegistryAndServer(t *testing.T) {
@@ -252,7 +223,7 @@ func TestRegistryAndServer(t *testing.T) {
 }
 
 func TestAuthenticateTokenNotFound(t *testing.T) {
-	tokenRegistry := &AccessTokenRegistry{Err: errors.NewNotFound("AccessToken", "token")}
+	tokenRegistry := &test.AccessTokenRegistry{Err: errors.NewNotFound("AccessToken", "token")}
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
@@ -267,7 +238,7 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 	}
 }
 func TestAuthenticateTokenOtherGetError(t *testing.T) {
-	tokenRegistry := &AccessTokenRegistry{Err: fmt.Errorf("get error")}
+	tokenRegistry := &test.AccessTokenRegistry{Err: fmt.Errorf("get error")}
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
@@ -285,7 +256,7 @@ func TestAuthenticateTokenOtherGetError(t *testing.T) {
 	}
 }
 func TestAuthenticateTokenExpired(t *testing.T) {
-	tokenRegistry := &AccessTokenRegistry{
+	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.AccessToken{
 			TypeMeta: kapi.TypeMeta{CreationTimestamp: util.Time{time.Now().Add(-1 * time.Hour)}},
@@ -308,7 +279,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 	}
 }
 func TestAuthenticateTokenValidated(t *testing.T) {
-	tokenRegistry := &AccessTokenRegistry{
+	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.AccessToken{
 			TypeMeta: kapi.TypeMeta{CreationTimestamp: util.Time{time.Now()}},
