@@ -48,7 +48,8 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 	}
 
 	if config.LatestVersion == 0 {
-		glog.V(4).Info("Ignoring config change with LatestVersion=0")
+		glog.V(4).Infof("Creating new deployment for config %v", config.ID)
+		dc.generateDeployment(config, nil)
 		return
 	}
 
@@ -67,6 +68,10 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 		return
 	}
 
+	dc.generateDeployment(config, deployment)
+}
+
+func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig, deployment *deployapi.Deployment) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), config.Namespace)
 	newConfig, err := dc.ChangeStrategy.GenerateDeploymentConfig(ctx, config.ID)
 	if err != nil {
@@ -74,7 +79,9 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 		return
 	}
 
-	glog.V(4).Infof("Updating config %s (LatestVersion: %d -> %d) to advance existing deployment %s", config.ID, config.LatestVersion, newConfig.LatestVersion, deployment.ID)
+	if deployment != nil {
+		glog.V(4).Infof("Updating config %s (LatestVersion: %d -> %d) to advance existing deployment %s", config.ID, config.LatestVersion, newConfig.LatestVersion, deployment.ID)
+	}
 
 	// set the trigger details for the new deployment config
 	causes := []*deployapi.DeploymentCause{}

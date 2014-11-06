@@ -154,15 +154,6 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	// submit the initial generated config, which will cause an initial deployment
-	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.ID); err != nil {
-		t.Fatalf("Error generating config: %v", err)
-	}
-
-	if _, err := openshift.Client.UpdateDeploymentConfig(ctx, config); err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
-	}
-
 	// verify the initial deployment exists
 	event := <-watch.ResultChan()
 	deployment := event.Object.(*deployapi.Deployment)
