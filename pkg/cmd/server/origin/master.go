@@ -136,7 +136,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildEtcd),
 		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
-		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.KubeClient, "/proxy/minion"),
+		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.KubeClient),
 
 		"images":                  image.NewREST(imageEtcd),
 		"imageRepositories":       imagerepository.NewREST(imageEtcd),
