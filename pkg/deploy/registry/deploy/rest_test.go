@@ -121,12 +121,11 @@ func TestCreateRegistrySaveError(t *testing.T) {
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
-		if status.Status != "failure" || status.Message != "foo" {
+		if status.Status != kapi.StatusFailure || status.Message != "test error" {
 			t.Errorf("Expected failure status, got %#v", status)
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
 
@@ -157,7 +156,6 @@ func TestCreateDeploymentOk(t *testing.T) {
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
 
@@ -281,7 +279,6 @@ func TestDeleteDeployment(t *testing.T) {
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
 

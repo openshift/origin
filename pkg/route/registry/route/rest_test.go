@@ -105,7 +105,6 @@ func TestCreateRouteOK(t *testing.T) {
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
 
@@ -276,7 +275,6 @@ func TestDeleteRouteOk(t *testing.T) {
 		}
 	case <-time.After(50 * time.Millisecond):
 		t.Errorf("Timed out waiting for result")
-	default:
 	}
 }
 
