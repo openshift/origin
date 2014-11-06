@@ -52,7 +52,7 @@ import (
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
-	"github.com/openshift/origin/pkg/template"
+	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
@@ -146,7 +146,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
 
-		"templateConfigs": template.NewStorage(),
+		"templateConfigs": templateregistry.NewREST(),
 
 		"routes": routeregistry.NewREST(routeEtcd),
 

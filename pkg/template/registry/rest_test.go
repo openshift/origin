@@ -7,8 +7,8 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
-func TestNewStorageInvalidType(t *testing.T) {
-	storage := NewStorage()
+func TestNewRESTInvalidType(t *testing.T) {
+	storage := NewREST()
 	_, err := storage.Create(nil, &kapi.Pod{})
 	if err == nil {
 		t.Errorf("Expected type error.")
@@ -16,7 +16,7 @@ func TestNewStorageInvalidType(t *testing.T) {
 }
 
 func TestStorageNotImplementedFunctions(t *testing.T) {
-	storage := NewStorage()
+	storage := NewREST()
 
 	if _, err := storage.List(nil, nil, nil); err == nil {
 		t.Errorf("Expected not implemented error.")
