@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/webhook"
 )
 
 // GitHubWebHook used for processing github webhook requests.
@@ -54,7 +56,10 @@ func (p *GitHubWebHook) Extract(buildCfg *buildapi.BuildConfig, path string, req
 	if err = json.Unmarshal(body, &event); err != nil {
 		return
 	}
-	proceed = buildConfigRefMatches(event, buildCfg)
+	proceed = webhook.GitRefMatches(event.Ref, buildCfg.Parameters.Source.Git.Ref)
+	if !proceed {
+		glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, event)
+	}
 
 	build = &buildapi.Build{
 		Parameters: buildapi.BuildParameters{
@@ -74,16 +79,6 @@ func (p *GitHubWebHook) Extract(buildCfg *buildapi.BuildConfig, path string, req
 	}
 
 	return
-}
-
-func buildConfigRefMatches(event gitHubPushEvent, buildCfg *buildapi.BuildConfig) bool {
-	const RefPrefix = "refs/heads/"
-	eventRef := strings.TrimPrefix(event.Ref, RefPrefix)
-	configRef := strings.TrimPrefix(buildCfg.Parameters.Source.Git.Ref, RefPrefix)
-	if configRef == "" {
-		configRef = "master"
-	}
-	return configRef == eventRef
 }
 
 func verifyRequest(req *http.Request) error {

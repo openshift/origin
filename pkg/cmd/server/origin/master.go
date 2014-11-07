@@ -31,6 +31,7 @@ import (
 	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -166,7 +167,8 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
 	osMux.Handle(whPrefix, http.StripPrefix(whPrefix,
 		webhook.NewController(c.OSClient, map[string]webhook.Plugin{
-			"github": github.New(),
+			"generic": generic.New(),
+			"github":  github.New(),
 		})))
 
 	var extra []string

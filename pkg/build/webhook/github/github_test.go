@@ -247,7 +247,31 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	}
 }
 
-func TestExtractSkipsBuildForUnmachedBranches(t *testing.T) {
+func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
+	//setup
+	context := setup(t, "pushevent-not-master-branch.json", "push")
+	context.buildCfg.Parameters.Source.Git.Ref = "my_other_branch"
+
+	//execute
+	build, proceed, err := context.plugin.Extract(context.buildCfg, context.path, context.req)
+
+	//validation
+	if err != nil {
+		t.Errorf("Error while extracting build info: %s", err)
+	}
+	if !proceed {
+		t.Errorf("The 'proceed' return value should equal 'true' %s", proceed)
+	}
+	if build == nil {
+		t.Error("Expecting the build to not be nil")
+	} else {
+		if build.Parameters.Revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
+			t.Error("Expecting the build's desired input to contain the commit id from the push event")
+		}
+	}
+}
+
+func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent.json", "push")
 	context.buildCfg.Parameters.Source.Git.Ref = "adfj32qrafdavckeaewra"
