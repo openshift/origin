@@ -3,6 +3,9 @@
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
 
+# Default to use STI builder if no argument specified
+BUILD_TYPE=${1:-sti}
+
 iptables --list > /dev/null 2>&1
 if [ $? -ne 0 ]; then
   echo "You do not have iptables privileges.  Kubernetes services will not work without iptables access.  See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.  Try 'sudo hack/test-end-to-end.sh'."
@@ -16,7 +19,7 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 
-echo "[INFO] Starting end-to-end test"
+echo "[INFO] Starting end-to-end test using ${BUILD_TYPE} builder"
 
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 
@@ -130,7 +133,7 @@ echo "[INFO] Pushed centos7: $(($ENDTIME - $STARTTIME)) seconds"
 
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
-$openshift kube process --ns=${NAMESPACE} -c ${FIXTURE_DIR}/application-template.json > $CONFIG_FILE
+$openshift kube process --ns=${NAMESPACE} -c ${FIXTURE_DIR}/application-template-${BUILD_TYPE}build.json > $CONFIG_FILE
 # substitute the default IP address with the address where we actually ended up
 sed -i "s,172.121.17.1,${DOCKER_REGISTRY_IP},g" $CONFIG_FILE
 
@@ -146,7 +149,9 @@ echo "[INFO] Waiting for build to complete"
 wait_for_command "$openshift kube list --ns=${NAMESPACE} builds | grep -i complete" $((10*TIME_MIN)) "$openshift kube list --ns=${NAMESPACE} builds | grep -i -e failed -e error"
 BUILD_ID=`$openshift kube list --ns=${NAMESPACE} builds --template="{{with index .Items 0}}{{.ID}}{{end}}"`
 $openshift kube buildLogs --ns=${NAMESPACE} --id=$BUILD_ID > $LOG_DIR/build.log
-grep -q "Successfully built" $LOG_DIR/build.log
+
+# STI builder doesn't currently report a useful success message
+#grep -q "Successfully built" $LOG_DIR/build.log
 
 echo "[INFO] Waiting for database pod to start"
 wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep database | grep -i Running" $((30*TIME_SEC))
