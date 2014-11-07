@@ -28,6 +28,8 @@ readonly OS_COMPILE_PLATFORMS=(
 readonly OS_COMPILE_TARGETS=(
   cmd/openshift-router
   cmd/openshift-deploy
+  cmd/openshift-docker-build
+  cmd/openshift-sti-build
 )
 readonly OS_COMPILE_BINARIES=("${OS_COMPILE_TARGETS[@]##*/}")
 

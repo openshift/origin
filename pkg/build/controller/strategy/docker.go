@@ -22,16 +22,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		return nil, err
 	}
 
-	var sourceId string
-	if build.Parameters.Revision != nil {
-		sourceId = build.Parameters.Revision.Git.Commit
-	}
-
-	var contextDir string
-	if build.Parameters.Strategy.DockerStrategy != nil {
-		contextDir = build.Parameters.Strategy.DockerStrategy.ContextDir
-	}
-
 	pod := &kapi.Pod{
 		TypeMeta: kapi.TypeMeta{
 			ID: build.PodID,
@@ -44,12 +34,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 						Name:  "docker-build",
 						Image: bs.BuilderImage,
 						Env: []kapi.EnvVar{
-							{Name: "SOURCE_URI", Value: build.Parameters.Source.Git.URI},
-							{Name: "SOURCE_REF", Value: build.Parameters.Source.Git.Ref},
-							{Name: "SOURCE_ID", Value: sourceId},
-							{Name: "CONTEXT_DIR", Value: contextDir},
-							{Name: "BUILD_TAG", Value: build.Parameters.Output.ImageTag},
-							{Name: "REGISTRY", Value: build.Parameters.Output.Registry},
 							{Name: "BUILD", Value: string(buildJson)},
 						},
 					},
