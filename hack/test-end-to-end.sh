@@ -27,7 +27,9 @@ TMPDIR="${TMPDIR:-"/tmp"}"
 ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d ${TMPDIR}/openshift.local.volumes.XXXX)
 LOG_DIR="${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}"
+ARTIFACT_DIR="${ARTIFACT_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.artifacts.XXXX)}"
 mkdir -p $LOG_DIR
+mkdir -p $ARTIFACT_DIR
 API_PORT="${API_PORT:-8080}"
 API_HOST="${API_HOST:-127.0.0.1}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
@@ -63,7 +65,8 @@ function setup()
 {
   stop_openshift_server
   echo "[INFO] `$openshift version`"
-  echo "[INFO] Server logs will be at: $LOG_DIR/openshift.log"
+  echo "[INFO] Server logs will be at:    $LOG_DIR/openshift.log"
+  echo "[INFO] Test artifacts will be in: $ARTIFACT_DIR"
 }
 
 # teardown
@@ -77,6 +80,8 @@ function teardown()
   for container in $(docker ps -aq); do
     docker logs $container >& $LOG_DIR/container-$container.log
   done
+
+  curl -L http://localhost:4001/v2/keys/?recursive=true > $ARTIFACT_DIR/etcd_dump.json
 
   echo ""
 
