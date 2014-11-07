@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
+	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
 
 type PasswordAuthenticator interface {
@@ -34,12 +35,12 @@ type LoginFormValues struct {
 }
 
 type Login struct {
-	csrf   CSRF
+	csrf   csrf.CSRF
 	auth   PasswordAuthenticator
 	render LoginFormRenderer
 }
 
-func NewLogin(csrf CSRF, auth PasswordAuthenticator, render LoginFormRenderer) *Login {
+func NewLogin(csrf csrf.CSRF, auth PasswordAuthenticator, render LoginFormRenderer) *Login {
 	return &Login{
 		csrf:   csrf,
 		auth:   auth,
@@ -95,7 +96,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 		form.Error = "An unknown error has occured. Please try again."
 	}
 
-	csrf, err := l.csrf.Generate()
+	csrf, err := l.csrf.Generate(w, req)
 	if err != nil {
 		glog.Errorf("Unable to generate CSRF token: %v", err)
 	}
@@ -105,7 +106,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 }
 
 func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
-	if ok, err := l.csrf.Check(req.FormValue("csrf")); !ok || err != nil {
+	if ok, err := l.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
 		glog.Errorf("Unable to check CSRF token: %v", err)
 		failed("token expired", w, req)
 		return

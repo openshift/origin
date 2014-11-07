@@ -10,20 +10,8 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
-
-type testCSRF struct {
-	Token string
-	Err   error
-}
-
-func (t *testCSRF) Generate() (string, error) {
-	return t.Token, t.Err
-}
-
-func (t *testCSRF) Check(token string) (bool, error) {
-	return t.Token == token, t.Err
-}
 
 type testAuth struct {
 	Username string
@@ -50,7 +38,7 @@ func (t *testAuth) AuthenticationSucceeded(user api.UserInfo, then string, w htt
 
 func TestLogin(t *testing.T) {
 	testCases := map[string]struct {
-		CSRF       *testCSRF
+		CSRF       csrf.CSRF
 		Auth       *testAuth
 		Path       string
 		PostValues url.Values
@@ -61,7 +49,7 @@ func TestLogin(t *testing.T) {
 		ExpectThen       string
 	}{
 		"display form": {
-			CSRF: &testCSRF{Token: "test"},
+			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{},
 			Path: "/login",
 
@@ -72,7 +60,7 @@ func TestLogin(t *testing.T) {
 			},
 		},
 		"display form with errors": {
-			CSRF: &testCSRF{Token: "test"},
+			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{},
 			Path: "?then=foo&reason=failed&username=user",
 
@@ -84,21 +72,21 @@ func TestLogin(t *testing.T) {
 			},
 		},
 		"redirect when POST fails CSRF": {
-			CSRF:           &testCSRF{Token: "test"},
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           &testAuth{},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"wrong"}},
 			ExpectRedirect: "/login?reason=token+expired",
 		},
 		"redirect with 'then' when POST fails CSRF": {
-			CSRF:           &testCSRF{Token: "test"},
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
 			Auth:           &testAuth{},
 			Path:           "/login?then=test",
 			PostValues:     url.Values{"csrf": []string{"wrong"}},
 			ExpectRedirect: "/login?reason=token+expired&then=test",
 		},
 		"redirect when no username": {
-			CSRF: &testCSRF{Token: "test"},
+			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{},
 			Path: "/login",
 			PostValues: url.Values{
@@ -107,7 +95,7 @@ func TestLogin(t *testing.T) {
 			ExpectRedirect: "/login?reason=user+required",
 		},
 		"redirect when not authenticated": {
-			CSRF: &testCSRF{Token: "test"},
+			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{Success: false},
 			Path: "/login",
 			PostValues: url.Values{
@@ -117,7 +105,7 @@ func TestLogin(t *testing.T) {
 			ExpectRedirect: "/login?reason=access+denied",
 		},
 		"redirect on auth error": {
-			CSRF: &testCSRF{Token: "test"},
+			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{Err: errors.New("failed")},
 			Path: "/login",
 			PostValues: url.Values{
@@ -127,7 +115,7 @@ func TestLogin(t *testing.T) {
 			ExpectRedirect: "/login?reason=unknown+error",
 		},
 		"redirect preserving then param": {
-			CSRF: &testCSRF{Token: "test"},
+			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{Err: errors.New("failed")},
 			Path: "/login",
 			PostValues: url.Values{
@@ -138,7 +126,7 @@ func TestLogin(t *testing.T) {
 			ExpectRedirect: "/login?reason=unknown+error&then=anotherurl",
 		},
 		"login successful": {
-			CSRF: &testCSRF{Token: "test"},
+			CSRF: &csrf.FakeCSRF{Token: "test"},
 			Auth: &testAuth{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
 			Path: "/login?then=done",
 			PostValues: url.Values{

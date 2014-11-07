@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
+	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
 
 type RequestAuthenticator interface {
@@ -33,12 +34,12 @@ type ConfirmFormValues struct {
 }
 
 type Confirm struct {
-	csrf   CSRF
+	csrf   csrf.CSRF
 	auth   RequestAuthenticator
 	render ConfirmFormRenderer
 }
 
-func NewConfirm(csrf CSRF, auth RequestAuthenticator, render ConfirmFormRenderer) *Confirm {
+func NewConfirm(csrf csrf.CSRF, auth RequestAuthenticator, render ConfirmFormRenderer) *Confirm {
 	return &Confirm{
 		csrf:   csrf,
 		auth:   auth,
@@ -79,7 +80,7 @@ func (c *Confirm) handleConfirmForm(w http.ResponseWriter, req *http.Request) {
 		form.Error = "An unknown error has occured. Please try again."
 	}
 
-	csrf, err := c.csrf.Generate()
+	csrf, err := c.csrf.Generate(w, req)
 	if err != nil {
 		glog.Errorf("Unable to generate CSRF token: %v", err)
 	}
@@ -99,7 +100,7 @@ func (c *Confirm) handleConfirmForm(w http.ResponseWriter, req *http.Request) {
 }
 
 func (c *Confirm) handleConfirm(w http.ResponseWriter, req *http.Request) {
-	if ok, err := c.csrf.Check(req.FormValue("csrf")); !ok || err != nil {
+	if ok, err := c.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
 		glog.Errorf("Unable to check CSRF token: %v", err)
 		failed("token expired", w, req)
 		return

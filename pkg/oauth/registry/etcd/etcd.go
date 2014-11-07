@@ -166,8 +166,9 @@ func (r *Etcd) CreateClientAuthorization(client *api.ClientAuthorization) error 
 	return err
 }
 
-func (r *Etcd) UpdateClientAuthorization(*api.ClientAuthorization) error {
-	return errors.New("not supported")
+func (r *Etcd) UpdateClientAuthorization(client *api.ClientAuthorization) error {
+	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.ID), client), "clientAuthorization", client.ID)
+	return err
 }
 
 func (r *Etcd) DeleteClientAuthorization(name string) error {

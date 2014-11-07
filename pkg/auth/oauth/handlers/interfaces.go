@@ -19,12 +19,17 @@ type AuthenticationErrorHandler interface {
 	AuthenticationError(err error, w http.ResponseWriter, req *http.Request)
 }
 
+// GrantChecker is responsible for determining if a user has authorized a client for a requested grant
 type GrantChecker interface {
+	// HasAuthorizedClient returns true if the user has authorized the client for the requested grant
 	HasAuthorizedClient(client api.Client, user api.UserInfo, grant *api.Grant) (bool, error)
 }
 
+// GrantHandler handles errors during the grant process, or the client requests an unauthorized grant
 type GrantHandler interface {
+	// GrantNeeded reacts when a client requests an unauthorized grant
 	GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request)
+	// GrantError handles an error during the grant process
 	GrantError(err error, w http.ResponseWriter, req *http.Request)
 }
 
