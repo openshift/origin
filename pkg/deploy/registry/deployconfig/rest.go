@@ -36,8 +36,8 @@ func (s *REST) New() runtime.Object {
 }
 
 // List obtains a list of DeploymentConfigs that match selector.
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	deploymentConfigs, err := s.registry.ListDeploymentConfigs(ctx, selector)
+func (s *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
+	deploymentConfigs, err := s.registry.ListDeploymentConfigs(ctx, label, field)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +47,7 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 
 // Watch begins watching for new, changed, or deleted ImageRepositories.
 func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.registry.WatchDeploymentConfigs(ctx, resourceVersion, func(config *deployapi.DeploymentConfig) bool {
-		fields := labels.Set{
-			"ID": config.ID,
-		}
-		return label.Matches(labels.Set(config.Labels)) && field.Matches(fields)
-	})
+	return s.registry.WatchDeploymentConfigs(ctx, label, field, resourceVersion)
 }
 
 // Get obtains the DeploymentConfig specified by its id.

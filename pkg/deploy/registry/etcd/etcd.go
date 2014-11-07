@@ -35,15 +35,21 @@ func New(helper tools.EtcdHelper) *Etcd {
 }
 
 // ListDeployments obtains a list of Deployments.
-func (r *Etcd) ListDeployments(ctx kapi.Context, selector labels.Selector) (*api.DeploymentList, error) {
+func (r *Etcd) ListDeployments(ctx kapi.Context, label, field labels.Selector) (*api.DeploymentList, error) {
 	deployments := api.DeploymentList{}
 	err := r.ExtractToList(makeDeploymentListKey(ctx), &deployments)
 	if err != nil {
 		return nil, err
 	}
+
 	filtered := []api.Deployment{}
 	for _, item := range deployments.Items {
-		if selector.Matches(labels.Set(item.Labels)) {
+		fields := labels.Set{
+			"id":            item.ID,
+			"status":        string(item.Status),
+			"strategy.type": string(item.Strategy.Type),
+		}
+		if label.Matches(labels.Set(item.Labels)) && field.Matches(fields) {
 			filtered = append(filtered, item)
 		}
 	}
@@ -105,7 +111,7 @@ func (r *Etcd) DeleteDeployment(ctx kapi.Context, id string) error {
 }
 
 // WatchDeployments begins watching for new, changed, or deleted Deployments.
-func (r *Etcd) WatchDeployments(ctx kapi.Context, resourceVersion string, filter func(deployment *api.Deployment) bool) (watch.Interface, error) {
+func (r *Etcd) WatchDeployments(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := parseWatchResourceVersion(resourceVersion, "deployment")
 	if err != nil {
 		return nil, err
@@ -117,12 +123,17 @@ func (r *Etcd) WatchDeployments(ctx kapi.Context, resourceVersion string, filter
 			glog.Errorf("Unexpected object during deployment watch: %#v", obj)
 			return false
 		}
-		return filter(deployment)
+		fields := labels.Set{
+			"id":            deployment.ID,
+			"status":        string(deployment.Status),
+			"strategy.type": string(deployment.Strategy.Type),
+		}
+		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
 	})
 }
 
 // ListDeploymentConfigs obtains a list of DeploymentConfigs.
-func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, selector labels.Selector) (*api.DeploymentConfigList, error) {
+func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selector) (*api.DeploymentConfigList, error) {
 	deploymentConfigs := api.DeploymentConfigList{}
 	err := r.ExtractToList(makeDeploymentConfigListKey(ctx), &deploymentConfigs)
 	if err != nil {
@@ -130,7 +141,10 @@ func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, selector labels.Selector)
 	}
 	filtered := []api.DeploymentConfig{}
 	for _, item := range deploymentConfigs.Items {
-		if selector.Matches(labels.Set(item.Labels)) {
+		fields := labels.Set{
+			"id": item.ID,
+		}
+		if label.Matches(labels.Set(item.Labels)) && field.Matches(fields) {
 			filtered = append(filtered, item)
 		}
 	}
@@ -156,7 +170,7 @@ func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
 }
 
 // WatchDeploymentConfigs begins watching for new, changed, or deleted DeploymentConfigs.
-func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, resourceVersion string, filter func(repo *api.DeploymentConfig) bool) (watch.Interface, error) {
+func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := parseWatchResourceVersion(resourceVersion, "deploymentConfig")
 	if err != nil {
 		return nil, err
@@ -168,7 +182,10 @@ func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, resourceVersion string, 
 			glog.Errorf("Unexpected object during deploymentConfig watch: %#v", obj)
 			return false
 		}
-		return filter(config)
+		fields := labels.Set{
+			"id": config.ID,
+		}
+		return label.Matches(labels.Set(config.Labels)) && field.Matches(fields)
 	})
 }
 

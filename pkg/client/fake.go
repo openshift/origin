@@ -80,7 +80,7 @@ func (c *Fake) DeleteBuildConfig(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (c *Fake) WatchDeploymentConfigs(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *Fake) WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-deploymentconfig"})
 	return nil, nil
 }
@@ -130,7 +130,7 @@ func (c *Fake) CreateImageRepositoryMapping(ctx kapi.Context, mapping *imageapi.
 	return nil
 }
 
-func (c *Fake) ListDeploymentConfigs(ctx kapi.Context, selector labels.Selector) (*deployapi.DeploymentConfigList, error) {
+func (c *Fake) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selector) (*deployapi.DeploymentConfigList, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "list-deploymentconfig", Ctx: ctx})
 	return &deployapi.DeploymentConfigList{}, nil
 }
@@ -160,7 +160,7 @@ func (c *Fake) GenerateDeploymentConfig(ctx kapi.Context, id string) (*deployapi
 	return nil, nil
 }
 
-func (c *Fake) ListDeployments(ctx kapi.Context, selector labels.Selector) (*deployapi.DeploymentList, error) {
+func (c *Fake) ListDeployments(ctx kapi.Context, label, field labels.Selector) (*deployapi.DeploymentList, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "list-deployment"})
 	return &deployapi.DeploymentList{}, nil
 }
@@ -185,7 +185,7 @@ func (c *Fake) DeleteDeployment(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (c *Fake) WatchDeployments(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *Fake) WatchDeployments(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "watch-deployments"})
 	return nil, nil
 }

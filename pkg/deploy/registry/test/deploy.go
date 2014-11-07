@@ -20,7 +20,7 @@ func NewDeploymentRegistry() *DeploymentRegistry {
 	return &DeploymentRegistry{}
 }
 
-func (r *DeploymentRegistry) ListDeployments(ctx kapi.Context, selector labels.Selector) (*api.DeploymentList, error) {
+func (r *DeploymentRegistry) ListDeployments(ctx kapi.Context, label, field labels.Selector) (*api.DeploymentList, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -57,6 +57,6 @@ func (r *DeploymentRegistry) DeleteDeployment(ctx kapi.Context, id string) error
 	return r.Err
 }
 
-func (r *DeploymentRegistry) WatchDeployments(ctx kapi.Context, resourceVersion string, filter func(repo *api.Deployment) bool) (watch.Interface, error) {
+func (r *DeploymentRegistry) WatchDeployments(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, r.Err
 }

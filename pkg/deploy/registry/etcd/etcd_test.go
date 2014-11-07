@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coreos/go-etcd/etcd"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/coreos/go-etcd/etcd"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -66,7 +67,7 @@ func TestEtcdListEmptyDeployments(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -86,7 +87,7 @@ func TestEtcdListErrorDeployments(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -115,7 +116,7 @@ func TestEtcdListEverythingDeployments(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -142,6 +143,17 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
 							TypeMeta: kapi.TypeMeta{ID: "bar"},
 							Labels:   map[string]string{"env": "dev"},
+							Status:   api.DeploymentStatusRunning,
+						}),
+					},
+					{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
+							TypeMeta: kapi.TypeMeta{ID: "baz"},
+							Labels:   map[string]string{"env": "stg"},
+							Strategy: api.DeploymentStrategy{
+								Type: api.DeploymentStrategyTypeBasic,
+							},
+							Status: api.DeploymentStatusRunning,
 						}),
 					},
 				},
@@ -149,15 +161,21 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 		},
 		E: nil,
 	}
+
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+
+	testCase := selectorTest{
+		{labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything(), []string{"bar"}},
+		{labels.SelectorFromSet(labels.Set{"env": "stg"}), labels.Everything(), []string{"baz"}},
+		{labels.Everything(), labels.Everything(), []string{"foo", "bar", "baz"}},
+		{labels.Everything(), labels.SelectorFromSet(labels.Set{"strategy.type": string(api.DeploymentStrategyTypeBasic)}), []string{"baz"}},
+		{labels.Everything(), labels.SelectorFromSet(labels.Set{"id": "baz"}), []string{"baz"}},
+		{labels.Everything(), labels.SelectorFromSet(labels.Set{"status": string(api.DeploymentStatusRunning)}), []string{"bar", "baz"}},
 	}
 
-	if len(deployments.Items) != 1 || deployments.Items[0].ID != "bar" {
-		t.Errorf("Unexpected deployments list: %#v", deployments)
-	}
+	testCase.validate(t, func(scenario selectorScenario) (runtime.Object, error) {
+		return registry.ListDeployments(kapi.NewDefaultContext(), scenario.label, scenario.field)
+	})
 }
 
 func TestEtcdGetDeployments(t *testing.T) {
@@ -310,7 +328,7 @@ func TestEtcdListEmptyDeploymentConfig(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything())
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -330,7 +348,7 @@ func TestEtcdListErrorDeploymentConfig(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything())
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -340,36 +358,7 @@ func TestEtcdListErrorDeploymentConfig(t *testing.T) {
 	}
 }
 
-func TestEtcdListEverythingDeploymentConfig(t *testing.T) {
-	fakeClient := tools.NewFakeEtcdClient(t)
-	key := makeTestDefaultDeploymentConfigListKey()
-	fakeClient.Data[key] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Nodes: []*etcd.Node{
-					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
-					},
-					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
-					},
-				},
-			},
-		},
-		E: nil,
-	}
-	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if len(deploymentConfigs.Items) != 2 || deploymentConfigs.Items[0].ID != "foo" || deploymentConfigs.Items[1].ID != "bar" {
-		t.Errorf("Unexpected deploymentConfigs list: %#v", deploymentConfigs)
-	}
-}
-
-func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
+func TestEtcdListFilteredDeploymentConfigs(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key := makeTestDefaultDeploymentConfigListKey()
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
@@ -393,15 +382,19 @@ func TestEtcdListFilteredDeploymentConfig(t *testing.T) {
 		},
 		E: nil,
 	}
+
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+
+	testCase := selectorTest{
+		{labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything(), []string{"bar"}},
+		{labels.SelectorFromSet(labels.Set{"env": "prod"}), labels.Everything(), []string{"foo"}},
+		{labels.Everything(), labels.Everything(), []string{"foo", "bar"}},
+		{labels.Everything(), labels.SelectorFromSet(labels.Set{"id": "bar"}), []string{"bar"}},
 	}
 
-	if len(deploymentConfigs.Items) != 1 || deploymentConfigs.Items[0].ID != "bar" {
-		t.Errorf("Unexpected deploymentConfigs list: %#v", deploymentConfigs)
-	}
+	testCase.validate(t, func(scenario selectorScenario) (runtime.Object, error) {
+		return registry.ListDeploymentConfigs(kapi.NewDefaultContext(), scenario.label, scenario.field)
+	})
 }
 
 func TestEtcdGetDeploymentConfig(t *testing.T) {
@@ -605,7 +598,7 @@ func TestEtcdListDeploymentsInDifferentNamespaces(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 
-	deploymentsAlfa, err := registry.ListDeployments(namespaceAlfa, labels.Everything())
+	deploymentsAlfa, err := registry.ListDeployments(namespaceAlfa, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -613,7 +606,7 @@ func TestEtcdListDeploymentsInDifferentNamespaces(t *testing.T) {
 		t.Errorf("Unexpected deployments list: %#v", deploymentsAlfa)
 	}
 
-	deploymentsBravo, err := registry.ListDeployments(namespaceBravo, labels.Everything())
+	deploymentsBravo, err := registry.ListDeployments(namespaceBravo, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -655,7 +648,7 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 
-	deploymentConfigsAlfa, err := registry.ListDeploymentConfigs(namespaceAlfa, labels.Everything())
+	deploymentConfigsAlfa, err := registry.ListDeploymentConfigs(namespaceAlfa, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -663,7 +656,7 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 		t.Errorf("Unexpected deployments list: %#v", deploymentConfigsAlfa)
 	}
 
-	deploymentConfigsBravo, err := registry.ListDeploymentConfigs(namespaceBravo, labels.Everything())
+	deploymentConfigsBravo, err := registry.ListDeploymentConfigs(namespaceBravo, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -719,5 +712,56 @@ func TestEtcdGetDeploymentInDifferentNamespaces(t *testing.T) {
 	}
 	if bravoFoo == nil || bravoFoo.ID != "foo" {
 		t.Errorf("Unexpected deployment: %#v", bravoFoo)
+	}
+}
+
+type selectorScenario struct {
+	label       labels.Selector
+	field       labels.Selector
+	expectedIDs []string
+}
+
+type scenarioObjectLister func(selectorScenario) (runtime.Object, error)
+
+type selectorTest []selectorScenario
+
+func (s selectorTest) validate(t *testing.T, lister scenarioObjectLister) {
+	for _, scenario := range s {
+		list, err := lister(scenario)
+		if err != nil {
+			t.Fatalf("Error listing objects for scenario %+v: %#v", scenario, err)
+		}
+
+		objects, err := runtime.ExtractList(list)
+		if err != nil {
+			t.Fatalf("Error extracting objects from list for scenario %+v: %#v", scenario, err)
+		}
+
+		for _, id := range scenario.expectedIDs {
+			found := false
+			for _, object := range objects {
+				apiObject, _ := runtime.FindTypeMeta(object)
+				if apiObject.ID() == id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Expected but didn't find object %s for scenario: %+v", id, scenario)
+			}
+		}
+
+		for _, object := range objects {
+			apiObject, _ := runtime.FindTypeMeta(object)
+			found := false
+			for _, id := range scenario.expectedIDs {
+				if apiObject.ID() == id {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("Unexpected object %s for scenario: %+v", apiObject.ID(), scenario)
+			}
+		}
 	}
 }
