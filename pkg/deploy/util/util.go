@@ -1,10 +1,13 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"hash/adler32"
 	"strconv"
 	"strings"
+
+	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -69,8 +72,13 @@ func ParseContainerImage(image string) (string, string) {
 }
 
 func HashPodTemplate(t api.PodState) uint64 {
+	jsonString, err := json.Marshal(t)
+	if err != nil {
+		glog.Errorf("An error occurred marshalling pod state: %v", err)
+		return 0
+	}
 	hash := adler32.New()
-	fmt.Fprintf(hash, "%#v", t)
+	fmt.Fprintf(hash, "%s", jsonString)
 	return uint64(hash.Sum32())
 }
 

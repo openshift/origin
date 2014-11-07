@@ -80,8 +80,14 @@ func (dc *BasicDeploymentController) handleNew(ctx kapi.Context, deployment *dep
 		}
 	}
 
+	deploymentCopy, err := kapi.Scheme.Copy(deployment)
+	if err != nil {
+		glog.V(2).Infof("Unable to copy deployment %s: %v\n", deployment.ID, err)
+		return deployapi.DeploymentStatusFailed
+	}
+
 	controller := &kapi.ReplicationController{
-		DesiredState: deployment.ControllerTemplate,
+		DesiredState: deploymentCopy.(*deployapi.Deployment).ControllerTemplate,
 		Labels:       map[string]string{deployapi.DeploymentConfigLabel: configID, "deployment": deployment.ID},
 	}
 
