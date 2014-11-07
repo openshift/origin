@@ -294,9 +294,12 @@ func (d *stiDocker) GetImageId(imageName string) (string, error) {
 // CommitContainer commits a container to an image with a specific tag.
 // The new image ID is returned
 func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error) {
+
+	repository, tag := docker.ParseRepositoryTag(opts.Repository)
 	dockerOpts := docker.CommitContainerOptions{
 		Container:  opts.ContainerID,
-		Repository: opts.Repository,
+		Repository: repository,
+		Tag:        tag,
 	}
 	if opts.Command != nil {
 		config := docker.Config{
