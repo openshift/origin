@@ -35,8 +35,8 @@ func (s *REST) New() runtime.Object {
 }
 
 // List obtains a list of Deployments that match selector.
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	deployments, err := s.registry.ListDeployments(ctx, selector)
+func (s *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
+	deployments, err := s.registry.ListDeployments(ctx, label, field)
 	if err != nil {
 		return nil, err
 	}
@@ -114,13 +114,6 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 	}), nil
 }
 
-// Watch begins watching for new, changed, or deleted Deployments.
 func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.registry.WatchDeployments(ctx, resourceVersion, func(deployment *deployapi.Deployment) bool {
-		fields := labels.Set{
-			"ID":       deployment.ID,
-			"Strategy": string(deployment.Strategy.Type),
-		}
-		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
-	})
+	return s.registry.WatchDeployments(ctx, label, field, resourceVersion)
 }

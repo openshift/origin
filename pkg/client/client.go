@@ -70,8 +70,8 @@ type ImageRepositoryMappingInterface interface {
 
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
-	ListDeploymentConfigs(ctx kapi.Context, selector labels.Selector) (*deployapi.DeploymentConfigList, error)
-	WatchDeploymentConfigs(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
+	ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selector) (*deployapi.DeploymentConfigList, error)
+	WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 	GetDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error)
 	CreateDeploymentConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	UpdateDeploymentConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
@@ -81,12 +81,12 @@ type DeploymentConfigInterface interface {
 
 // DeploymentInterface contains methods for working with Deployments
 type DeploymentInterface interface {
-	ListDeployments(ctx kapi.Context, selector labels.Selector) (*deployapi.DeploymentList, error)
+	ListDeployments(ctx kapi.Context, label, field labels.Selector) (*deployapi.DeploymentList, error)
 	GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error)
 	CreateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	UpdateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	DeleteDeployment(ctx kapi.Context, id string) error
-	WatchDeployments(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
+	WatchDeployments(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // RouteInterface exposes methods on Route resources
@@ -278,13 +278,19 @@ func (c *Client) CreateImageRepositoryMapping(ctx kapi.Context, mapping *imageap
 }
 
 // ListDeploymentConfigs takes a selector, and returns the list of deploymentConfigs that match that selector
-func (c *Client) ListDeploymentConfigs(ctx kapi.Context, selector labels.Selector) (result *deployapi.DeploymentConfigList, err error) {
+func (c *Client) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selector) (result *deployapi.DeploymentConfigList, err error) {
 	result = &deployapi.DeploymentConfigList{}
-	err = c.Get().Namespace(kapi.Namespace(ctx)).Path("deploymentConfigs").SelectorParam("labels", selector).Do().Into(result)
+	err = c.Get().
+		Namespace(kapi.Namespace(ctx)).
+		Path("deploymentConfigs").
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Do().
+		Into(result)
 	return
 }
 
-func (c *Client) WatchDeploymentConfigs(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *Client) WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Namespace(kapi.Namespace(ctx)).
 		Path("watch").
@@ -329,9 +335,15 @@ func (c *Client) GenerateDeploymentConfig(ctx kapi.Context, id string) (result *
 }
 
 // ListDeployments takes a selector, and returns the list of deployments that match that selector
-func (c *Client) ListDeployments(ctx kapi.Context, selector labels.Selector) (result *deployapi.DeploymentList, err error) {
+func (c *Client) ListDeployments(ctx kapi.Context, label, field labels.Selector) (result *deployapi.DeploymentList, err error) {
 	result = &deployapi.DeploymentList{}
-	err = c.Get().Namespace(kapi.Namespace(ctx)).Path("deployments").SelectorParam("labels", selector).Do().Into(result)
+	err = c.Get().
+		Namespace(kapi.Namespace(ctx)).
+		Path("deployments").
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Do().
+		Into(result)
 	return
 }
 
@@ -362,7 +374,7 @@ func (c *Client) DeleteDeployment(ctx kapi.Context, id string) error {
 }
 
 // WatchDeployments returns a watch.Interface that watches the requested deployments.
-func (c *Client) WatchDeployments(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *Client) WatchDeployments(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Namespace(kapi.Namespace(ctx)).
 		Path("watch").

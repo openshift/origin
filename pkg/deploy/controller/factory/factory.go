@@ -40,7 +40,7 @@ type BasicDeploymentControllerFactory struct {
 }
 
 func (factory *BasicDeploymentControllerFactory) Create() *controller.BasicDeploymentController {
-	field := labels.SelectorFromSet(labels.Set{"Strategy": string(deployapi.DeploymentStrategyTypeBasic)})
+	field := labels.SelectorFromSet(labels.Set{"strategy.type": string(deployapi.DeploymentStrategyTypeBasic)})
 	queue := cache.NewFIFO()
 	cache.NewReflector(&deploymentLW{client: factory.Client, field: field}, &deployapi.Deployment{}, queue).Run()
 
@@ -65,7 +65,7 @@ type CustomPodDeploymentControllerFactory struct {
 }
 
 func (factory *CustomPodDeploymentControllerFactory) Create() *controller.CustomPodDeploymentController {
-	deploymentFieldSelector := labels.SelectorFromSet(labels.Set{"Strategy": string(deployapi.DeploymentStrategyTypeCustomPod)})
+	deploymentFieldSelector := labels.SelectorFromSet(labels.Set{"strategy.type": string(deployapi.DeploymentStrategyTypeCustomPod)})
 	dQueue := cache.NewFIFO()
 	cache.NewReflector(&deploymentLW{client: factory.Client, field: deploymentFieldSelector}, &deployapi.Deployment{}, dQueue).Run()
 	dStore := cache.NewStore()
@@ -167,35 +167,14 @@ type deploymentLW struct {
 	field  labels.Selector
 }
 
-// List lists all Deployments which match the given field selector. The custom field selector
-// logic is necessary since the List interfaces don't currently support field selectors.
+// List lists all Deployments which match the given field selector.
 func (lw *deploymentLW) List() (runtime.Object, error) {
-	// TODO: remove this filtering once the List interfaces support field selectors
-	results := &deployapi.DeploymentList{}
-	filtered := []deployapi.Deployment{}
-	deployments, err := lw.client.ListDeployments(kapi.NewContext(), labels.Everything())
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, deployment := range deployments.Items {
-		fields := labels.Set{
-			"ID":       deployment.ID,
-			"Strategy": string(deployment.Strategy.Type),
-		}
-		if lw.field.Matches(fields) {
-			filtered = append(filtered, deployment)
-		}
-	}
-
-	results.Items = filtered
-	return results, nil
+	return lw.client.ListDeployments(kapi.NewContext(), labels.Everything(), lw.field)
 }
 
 // Watch watches all Deployments matching the given field selector.
 func (lw *deploymentLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.WatchDeployments(kapi.NewContext(), lw.field, labels.Everything(), "0")
+	return lw.client.WatchDeployments(kapi.NewContext(), labels.Everything(), lw.field, "0")
 }
 
 // deploymentConfigLW is a ListWatcher implementation for DeploymentConfigs.
@@ -205,7 +184,7 @@ type deploymentConfigLW struct {
 
 // List lists all DeploymentConfigs.
 func (lw *deploymentConfigLW) List() (runtime.Object, error) {
-	return lw.client.ListDeploymentConfigs(kapi.NewContext(), labels.Everything())
+	return lw.client.ListDeploymentConfigs(kapi.NewContext(), labels.Everything(), labels.Everything())
 }
 
 // Watch watches all DeploymentConfigs.

@@ -46,8 +46,8 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	ctx := kapi.NewContext()
 	var err error
 
-	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(),
-		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), "0")
+	labelSelector := labels.SelectorFromSet(labels.Set{deployapi.DeploymentConfigLabel: config.ID})
+	watch, err := openshift.Client.WatchDeployments(ctx, labelSelector, labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -88,8 +88,8 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	ctx := kapi.NewContext()
 	var err error
 
-	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(),
-		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), "0")
+	labelSelector := labels.SelectorFromSet(labels.Set{deployapi.DeploymentConfigLabel: config.ID})
+	watch, err := openshift.Client.WatchDeployments(ctx, labelSelector, labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -143,8 +143,8 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	ctx := kapi.NewContext()
 	var err error
 
-	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(),
-		labels.Set{deployapi.DeploymentConfigLabel: config.ID}.AsSelector(), "0")
+	labelSelector := labels.SelectorFromSet(labels.Set{deployapi.DeploymentConfigLabel: config.ID})
+	watch, err := openshift.Client.WatchDeployments(ctx, labelSelector, labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
