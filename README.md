@@ -16,6 +16,18 @@ NOTE: OpenShift is in alpha and is not intended for production use. However we w
 
 Getting Started
 ---------------
+The simplest way to start is to run OpenShift Origin in a Docker container:
+
+    $ docker run -v /var/run/docker.sock:/var/run/docker.sock --net=host --privileged openshift/origin start
+    
+Note that this won't hold any data after a restart, so you'll need to use a data container or mount a volume at `/var/lib/openshift` to preserve that data.  Once the container is started, run:
+
+    $ docker run openshift/origin openshift kube --help
+    
+to see the command line options you can use.
+
+### Start Developing
+
 You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binary](CONTRIBUTING.adoc#download-from-github).
 
 First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
