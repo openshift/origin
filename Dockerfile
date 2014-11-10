@@ -17,7 +17,9 @@ ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN go get github.com/openshift/origin && \
     hack/build-go.sh && \
-    cp _output/local/go/bin/* /usr/bin/
+    cp _output/local/go/bin/* /usr/bin/ && \
+    mkdir -p /var/lib/openshift
 
 EXPOSE 8080
+WORKDIR /var/lib/openshift
 ENTRYPOINT ["/usr/bin/openshift"]
