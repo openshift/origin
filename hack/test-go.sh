@@ -45,25 +45,25 @@ fi
 
 if [ "${1-}" != "" ]; then
   test_packages="$OS_GO_PACKAGE/$1"
-  OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-"true"}
 else
   test_packages=`find_test_dirs`
-  OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-"false"}
 fi
 
-if [[ -n "${KUBE_COVER}" && "${OUTPUT_COVERAGE}" == "true" ]]; then
+OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-""}
+
+if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
   # Iterate over packages to run coverage
   test_packages=( $test_packages )
   for test_package in "${test_packages[@]}"
   do
-    mkdir -p "_output/coverage/$test_package"
-    KUBE_COVER_PROFILE="-coverprofile=_output/coverage/$test_package/profile.out"
+    mkdir -p "$OUTPUT_COVERAGE/$test_package"
+    KUBE_COVER_PROFILE="-coverprofile=$OUTPUT_COVERAGE/$test_package/profile.out"
 
     go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
 
-    if [ -f "_output/coverage/$test_package/profile.out" ]; then
-      go tool cover "-html=_output/coverage/$test_package/profile.out" -o "_output/coverage/$test_package/coverage.html"
-      echo "coverage: ${OS_ROOT}/_output/coverage/$test_package/coverage.html"
+    if [ -f "${OUTPUT_COVERAGE}/$test_package/profile.out" ]; then
+      go tool cover "-html=${OUTPUT_COVERAGE}/$test_package/profile.out" -o "${OUTPUT_COVERAGE}/$test_package/coverage.html"
+      echo "coverage: ${OUTPUT_COVERAGE}/$test_package/coverage.html"
     fi
   done
 else
