@@ -6,9 +6,12 @@
 #
 FROM openshift/origin-base
 
+RUN mkdir -p /var/lib/openshift
+
 ADD bin/openshift        /usr/bin/openshift
 ADD bin/openshift-deploy /usr/bin/openshift-deploy
 ADD bin/openshift-router /usr/bin/openshift-router
 
 ENV HOME /root
+WORKINGDIR /var/lib/openshift
 ENTRYPOINT ["/usr/bin/openshift"]
