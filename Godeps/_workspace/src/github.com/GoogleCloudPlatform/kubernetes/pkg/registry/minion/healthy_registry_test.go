@@ -17,27 +17,18 @@ limitations under the License.
 package minion
 
 import (
-	"bytes"
-	"io/ioutil"
-	"net/http"
 	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/health"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
 )
 
 type alwaysYes struct{}
 
-func fakeHTTPResponse(status int) *http.Response {
-	return &http.Response{
-		StatusCode: status,
-		Body:       ioutil.NopCloser(&bytes.Buffer{}),
-	}
-}
-
-func (alwaysYes) Get(url string) (*http.Response, error) {
-	return fakeHTTPResponse(http.StatusOK), nil
+func (alwaysYes) HealthCheck(host string) (health.Status, error) {
+	return health.Healthy, nil
 }
 
 func TestBasicDelegation(t *testing.T) {
@@ -55,7 +46,7 @@ func TestBasicDelegation(t *testing.T) {
 		t.Errorf("Expected %v, Got %v", mockMinionRegistry.Minions, list)
 	}
 	err = healthy.CreateMinion(ctx, &api.Minion{
-		TypeMeta: api.TypeMeta{ID: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
 	})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -80,11 +71,11 @@ type notMinion struct {
 	minion string
 }
 
-func (n *notMinion) Get(url string) (*http.Response, error) {
-	if url != "http://"+n.minion+":10250/healthz" {
-		return fakeHTTPResponse(http.StatusOK), nil
+func (n *notMinion) HealthCheck(host string) (health.Status, error) {
+	if host != n.minion {
+		return health.Healthy, nil
 	} else {
-		return fakeHTTPResponse(http.StatusInternalServerError), nil
+		return health.Unhealthy, nil
 	}
 }
 
@@ -94,7 +85,6 @@ func TestFiltering(t *testing.T) {
 	healthy := HealthyRegistry{
 		delegate: mockMinionRegistry,
 		client:   &notMinion{minion: "m1"},
-		port:     10250,
 	}
 	expected := []string{"m2", "m3"}
 	list, err := healthy.ListMinions(ctx)

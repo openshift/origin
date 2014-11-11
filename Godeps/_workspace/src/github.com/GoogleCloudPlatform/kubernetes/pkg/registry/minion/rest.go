@@ -45,12 +45,12 @@ func NewREST(m Registry) *REST {
 var ErrDoesNotExist = errors.New("The requested resource does not exist.")
 var ErrNotHealty = errors.New("The requested minion is not healthy.")
 
-func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	minion, ok := obj.(*api.Minion)
 	if !ok {
 		return nil, fmt.Errorf("not a minion: %#v", obj)
 	}
-	if minion.ID == "" {
+	if minion.Name == "" {
 		return nil, fmt.Errorf("ID should not be empty: %#v", minion)
 	}
 
@@ -61,7 +61,11 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Obje
 		if err != nil {
 			return nil, err
 		}
-		minion, err := rs.registry.GetMinion(ctx, minion.ID)
+		minionName := minion.Name
+		minion, err := rs.registry.GetMinion(ctx, minionName)
+		if err == ErrNotHealty {
+			return rs.toApiMinion(minionName), nil
+		}
 		if minion == nil {
 			return nil, ErrDoesNotExist
 		}
@@ -72,7 +76,7 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Obje
 	}), nil
 }
 
-func (rs *REST) Delete(ctx api.Context, id string) (<-chan runtime.Object, error) {
+func (rs *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult, error) {
 	minion, err := rs.registry.GetMinion(ctx, id)
 	if minion == nil {
 		return nil, ErrDoesNotExist
@@ -101,12 +105,12 @@ func (rs *REST) New() runtime.Object {
 	return &api.Minion{}
 }
 
-func (rs *REST) Update(ctx api.Context, minion runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Update(ctx api.Context, minion runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("Minions can only be created (inserted) and deleted.")
 }
 
 func (rs *REST) toApiMinion(name string) *api.Minion {
-	return &api.Minion{TypeMeta: api.TypeMeta{ID: name}}
+	return &api.Minion{ObjectMeta: api.ObjectMeta{Name: name}}
 }
 
 // ResourceLocation returns a URL to which one can send traffic for the specified minion.
@@ -117,7 +121,7 @@ func (rs *REST) ResourceLocation(ctx api.Context, id string) (string, error) {
 	}
 	host := minion.HostIP
 	if host == "" {
-		host = minion.ID
+		host = minion.Name
 	}
 	// TODO: Minion webservers should be secure!
 	return "http://" + net.JoinHostPort(host, strconv.Itoa(ports.KubeletPort)), nil

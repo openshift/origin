@@ -23,10 +23,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-func expectPrefix(t *testing.T, prefix string, errs errors.ErrorList) {
+func expectPrefix(t *testing.T, prefix string, errs errors.ValidationErrorList) {
 	for i := range errs {
 		if f, p := errs[i].(errors.ValidationError).Field, prefix; !strings.HasPrefix(f, p) {
 			t.Errorf("expected prefix '%s' for field '%s' (%v)", p, f, errs[i])
@@ -367,9 +368,11 @@ func TestValidateManifest(t *testing.T) {
 
 func TestValidatePod(t *testing.T) {
 	errs := ValidatePod(&api.Pod{
-		TypeMeta: api.TypeMeta{ID: "foo", Namespace: api.NamespaceDefault},
-		Labels: map[string]string{
-			"foo": "bar",
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo", Namespace: api.NamespaceDefault,
+			Labels: map[string]string{
+				"foo": "bar",
+			},
 		},
 		DesiredState: api.PodState{
 			Manifest: api.ContainerManifest{
@@ -385,9 +388,12 @@ func TestValidatePod(t *testing.T) {
 		t.Errorf("Unexpected non-zero error list: %#v", errs)
 	}
 	errs = ValidatePod(&api.Pod{
-		TypeMeta: api.TypeMeta{ID: "foo", Namespace: api.NamespaceDefault},
-		Labels: map[string]string{
-			"foo": "bar",
+		ObjectMeta: api.ObjectMeta{
+			Name:      "foo",
+			Namespace: api.NamespaceDefault,
+			Labels: map[string]string{
+				"foo": "bar",
+			},
 		},
 		DesiredState: api.PodState{
 			Manifest: api.ContainerManifest{Version: "v1beta1", ID: "abc"},
@@ -398,9 +404,11 @@ func TestValidatePod(t *testing.T) {
 	}
 
 	errs = ValidatePod(&api.Pod{
-		TypeMeta: api.TypeMeta{ID: "foo", Namespace: api.NamespaceDefault},
-		Labels: map[string]string{
-			"foo": "bar",
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo", Namespace: api.NamespaceDefault,
+			Labels: map[string]string{
+				"foo": "bar",
+			},
 		},
 		DesiredState: api.PodState{
 			Manifest: api.ContainerManifest{
@@ -414,6 +422,27 @@ func TestValidatePod(t *testing.T) {
 	if len(errs) != 1 {
 		t.Errorf("Unexpected error list: %#v", errs)
 	}
+	errs = ValidatePod(&api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "foo",
+			Namespace: api.NamespaceDefault,
+			Labels: map[string]string{
+				"123cantbeginwithnumber":          "bar", //invalid
+				"NoUppercase123":                  "bar", //invalid
+				"nospecialchars^=@":               "bar", //invalid
+				"cantendwithadash-":               "bar", //invalid
+				"rfc952-mustbe24charactersorless": "bar", //invalid
+				"rfc952-dash-nodots-lower":        "bar", //good label
+				"rfc952-24chars-orless":           "bar", //good label
+			},
+		},
+		DesiredState: api.PodState{
+			Manifest: api.ContainerManifest{Version: "v1beta1", ID: "abc"},
+		},
+	})
+	if len(errs) != 5 {
+		t.Errorf("Unexpected non-zero error list: %#v", errs)
+	}
 }
 
 func TestValidatePodUpdate(t *testing.T) {
@@ -426,25 +455,29 @@ func TestValidatePodUpdate(t *testing.T) {
 		{api.Pod{}, api.Pod{}, true, "nothing"},
 		{
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 			},
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "bar"},
 			},
 			false,
 			"ids",
 		},
 		{
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
-				Labels: map[string]string{
-					"foo": "bar",
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo",
+					Labels: map[string]string{
+						"foo": "bar",
+					},
 				},
 			},
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
-				Labels: map[string]string{
-					"bar": "foo",
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo",
+					Labels: map[string]string{
+						"bar": "foo",
+					},
 				},
 			},
 			true,
@@ -452,7 +485,9 @@ func TestValidatePodUpdate(t *testing.T) {
 		},
 		{
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo",
+				},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -464,7 +499,7 @@ func TestValidatePodUpdate(t *testing.T) {
 				},
 			},
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -483,7 +518,7 @@ func TestValidatePodUpdate(t *testing.T) {
 		},
 		{
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -495,7 +530,7 @@ func TestValidatePodUpdate(t *testing.T) {
 				},
 			},
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -511,7 +546,7 @@ func TestValidatePodUpdate(t *testing.T) {
 		},
 		{
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -524,7 +559,7 @@ func TestValidatePodUpdate(t *testing.T) {
 				},
 			},
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -541,7 +576,7 @@ func TestValidatePodUpdate(t *testing.T) {
 		},
 		{
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -556,7 +591,7 @@ func TestValidatePodUpdate(t *testing.T) {
 				},
 			},
 			api.Pod{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
 						Containers: []api.Container{
@@ -591,16 +626,19 @@ func TestValidatePodUpdate(t *testing.T) {
 
 func TestValidateService(t *testing.T) {
 	testCases := []struct {
-		name    string
-		svc     api.Service
-		numErrs int
+		name     string
+		svc      api.Service
+		existing api.ServiceList
+		numErrs  int
 	}{
 		{
 			name: "missing id",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{Namespace: api.NamespaceDefault},
-				Port:     8675,
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+				},
 			},
 			// Should fail because the ID is missing.
 			numErrs: 1,
@@ -608,9 +646,11 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "missing namespace",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "foo"},
-				Port:     8675,
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+				},
 			},
 			// Should fail because the Namespace is missing.
 			numErrs: 1,
@@ -618,9 +658,11 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "invalid id",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "123abc", Namespace: api.NamespaceDefault},
-				Port:     8675,
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "123abc", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+				},
 			},
 			// Should fail because the ID is invalid.
 			numErrs: 1,
@@ -628,8 +670,10 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "missing port",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "abc123", Namespace: api.NamespaceDefault},
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Selector: map[string]string{"foo": "bar"},
+				},
 			},
 			// Should fail because the port number is missing/invalid.
 			numErrs: 1,
@@ -637,9 +681,11 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "invalid port",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "abc123", Namespace: api.NamespaceDefault},
-				Port:     65536,
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     66536,
+					Selector: map[string]string{"foo": "bar"},
+				},
 			},
 			// Should fail because the port number is invalid.
 			numErrs: 1,
@@ -647,10 +693,12 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "invalid protocol",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "abc123", Namespace: api.NamespaceDefault},
-				Port:     8675,
-				Protocol: "INVALID",
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+					Protocol: "INVALID",
+				},
 			},
 			// Should fail because the protocol is invalid.
 			numErrs: 1,
@@ -658,8 +706,10 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "missing selector",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "foo", Namespace: api.NamespaceDefault},
-				Port:     8675,
+				ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port: 8675,
+				},
 			},
 			// Should fail because the selector is missing.
 			numErrs: 1,
@@ -667,51 +717,144 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "valid 1",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "abc123", Namespace: api.NamespaceDefault},
-				Port:     1,
-				Protocol: "TCP",
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+					Protocol: "TCP",
+				},
 			},
 			numErrs: 0,
 		},
 		{
 			name: "valid 2",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "abc123", Namespace: api.NamespaceDefault},
-				Port:     65535,
-				Protocol: "UDP",
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+					Protocol: "UDP",
+				},
 			},
 			numErrs: 0,
 		},
 		{
 			name: "valid 3",
 			svc: api.Service{
-				TypeMeta: api.TypeMeta{ID: "abc123", Namespace: api.NamespaceDefault},
-				Port:     80,
-				Selector: map[string]string{"foo": "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+				},
 			},
 			numErrs: 0,
+		},
+		{
+			name: "invalid port in use",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port: 80,
+					CreateExternalLoadBalancer: true,
+					Selector:                   map[string]string{"foo": "bar"},
+				},
+			},
+			existing: api.ServiceList{
+				Items: []api.Service{
+					{Spec: api.ServiceSpec{Port: 80, CreateExternalLoadBalancer: true}},
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "same port in use, but not external",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port: 80,
+					CreateExternalLoadBalancer: true,
+					Selector:                   map[string]string{"foo": "bar"},
+				},
+			},
+			existing: api.ServiceList{
+				Items: []api.Service{
+					{Spec: api.ServiceSpec{Port: 80}},
+				},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "same port in use, but not external on input",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     80,
+					Selector: map[string]string{"foo": "bar"},
+				},
+			},
+			existing: api.ServiceList{
+				Items: []api.Service{
+					{Spec: api.ServiceSpec{Port: 80, CreateExternalLoadBalancer: true}},
+				},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "same port in use, but neither external",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "abc123", Namespace: api.NamespaceDefault},
+				Spec: api.ServiceSpec{
+					Port:     80,
+					Selector: map[string]string{"foo": "bar"},
+				},
+			},
+			existing: api.ServiceList{
+				Items: []api.Service{
+					{Spec: api.ServiceSpec{Port: 80}},
+				},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "invalid label",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "abc123",
+					Namespace: api.NamespaceDefault,
+					Labels: map[string]string{
+						"NoUppercaseOrSpecialCharsLike=Equals": "bar",
+					},
+				},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar", "NoUppercaseOrSpecialCharsLike=Equals": "bar"},
+				},
+			},
+			numErrs: 2,
 		},
 	}
 
 	for _, tc := range testCases {
-		errs := ValidateService(&tc.svc)
+		registry := registrytest.NewServiceRegistry()
+		registry.List = tc.existing
+		errs := ValidateService(&tc.svc, registry, api.NewDefaultContext())
 		if len(errs) != tc.numErrs {
 			t.Errorf("Unexpected error list for case %q: %+v", tc.name, errs)
 		}
 	}
 
 	svc := api.Service{
-		Port:     6502,
-		TypeMeta: api.TypeMeta{ID: "foo", Namespace: api.NamespaceDefault},
-		Selector: map[string]string{"foo": "bar"},
+		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
+		Spec: api.ServiceSpec{
+			Port:     8675,
+			Selector: map[string]string{"foo": "bar"},
+		},
 	}
-	errs := ValidateService(&svc)
+	errs := ValidateService(&svc, registrytest.NewServiceRegistry(), api.NewDefaultContext())
 	if len(errs) != 0 {
 		t.Errorf("Unexpected non-zero error list: %#v", errs)
 	}
-	if svc.Protocol != "TCP" {
+	if svc.Spec.Protocol != "TCP" {
 		t.Errorf("Expected default protocol of 'TCP': %#v", errs)
 	}
 }
@@ -734,16 +877,25 @@ func TestValidateReplicationController(t *testing.T) {
 			},
 		},
 	}
+	invalidSelector := map[string]string{"NoUppercaseOrSpecialCharsLike=Equals": "b"}
+	invalidPodTemplate := api.PodTemplate{
+		DesiredState: api.PodState{
+			Manifest: api.ContainerManifest{
+				Version: "v1beta1",
+			},
+		},
+		Labels: invalidSelector,
+	}
 	successCases := []api.ReplicationController{
 		{
-			TypeMeta: api.TypeMeta{ID: "abc", Namespace: api.NamespaceDefault},
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		{
-			TypeMeta: api.TypeMeta{ID: "abc-123", Namespace: api.NamespaceDefault},
+			ObjectMeta: api.ObjectMeta{Name: "abc-123", Namespace: api.NamespaceDefault},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: validSelector,
 				PodTemplate:     validPodTemplate,
@@ -758,50 +910,75 @@ func TestValidateReplicationController(t *testing.T) {
 
 	errorCases := map[string]api.ReplicationController{
 		"zero-length ID": {
-			TypeMeta: api.TypeMeta{ID: "", Namespace: api.NamespaceDefault},
+			ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		"missing-namespace": {
-			TypeMeta: api.TypeMeta{ID: "abc-123"},
+			ObjectMeta: api.ObjectMeta{Name: "abc-123"},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		"empty selector": {
-			TypeMeta: api.TypeMeta{ID: "abc", Namespace: api.NamespaceDefault},
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
 			DesiredState: api.ReplicationControllerState{
 				PodTemplate: validPodTemplate,
 			},
 		},
 		"selector_doesnt_match": {
-			TypeMeta: api.TypeMeta{ID: "abc", Namespace: api.NamespaceDefault},
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: map[string]string{"foo": "bar"},
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		"invalid manifest": {
-			TypeMeta: api.TypeMeta{ID: "abc", Namespace: api.NamespaceDefault},
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: validSelector,
 			},
 		},
 		"read-write presistent disk": {
-			TypeMeta: api.TypeMeta{ID: "abc"},
+			ObjectMeta: api.ObjectMeta{Name: "abc"},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: validSelector,
 				PodTemplate:     invalidVolumePodTemplate,
 			},
 		},
 		"negative_replicas": {
-			TypeMeta: api.TypeMeta{ID: "abc", Namespace: api.NamespaceDefault},
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
 			DesiredState: api.ReplicationControllerState{
 				Replicas:        -1,
 				ReplicaSelector: validSelector,
+			},
+		},
+		"invalid_label": {
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc-123",
+				Namespace: api.NamespaceDefault,
+				Labels: map[string]string{
+					"NoUppercaseOrSpecialCharsLike=Equals": "bar",
+				},
+			},
+			DesiredState: api.ReplicationControllerState{
+				ReplicaSelector: validSelector,
+				PodTemplate:     validPodTemplate,
+			},
+		},
+		"invalid_label 2": {
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc-123",
+				Namespace: api.NamespaceDefault,
+				Labels: map[string]string{
+					"NoUppercaseOrSpecialCharsLike=Equals": "bar",
+				},
+			},
+			DesiredState: api.ReplicationControllerState{
+				PodTemplate: invalidPodTemplate,
 			},
 		},
 	}
@@ -813,11 +990,13 @@ func TestValidateReplicationController(t *testing.T) {
 		for i := range errs {
 			field := errs[i].(errors.ValidationError).Field
 			if !strings.HasPrefix(field, "desiredState.podTemplate.") &&
-				field != "id" &&
+				field != "name" &&
 				field != "namespace" &&
 				field != "desiredState.replicaSelector" &&
 				field != "GCEPersistentDisk.ReadOnly" &&
-				field != "desiredState.replicas" {
+				field != "desiredState.replicas" &&
+				field != "desiredState.label" &&
+				field != "label" {
 				t.Errorf("%s: missing prefix for: %v", k, errs[i])
 			}
 		}
@@ -827,13 +1006,13 @@ func TestValidateReplicationController(t *testing.T) {
 func TestValidateBoundPodNoName(t *testing.T) {
 	errorCases := map[string]api.BoundPod{
 		// manifest is tested in api/validation_test.go, ensure it is invoked
-		"empty version": {TypeMeta: api.TypeMeta{ID: "test"}, Spec: api.PodSpec{Containers: []api.Container{{Name: ""}}}},
+		"empty version": {ObjectMeta: api.ObjectMeta{Name: "test"}, Spec: api.PodSpec{Containers: []api.Container{{Name: ""}}}},
 
 		// Name
-		"zero-length name":         {TypeMeta: api.TypeMeta{ID: ""}},
-		"name > 255 characters":    {TypeMeta: api.TypeMeta{ID: strings.Repeat("a", 256)}},
-		"name not a DNS subdomain": {TypeMeta: api.TypeMeta{ID: "a.b.c."}},
-		"name with underscore":     {TypeMeta: api.TypeMeta{ID: "a_b_c"}},
+		"zero-length name":         {ObjectMeta: api.ObjectMeta{Name: ""}},
+		"name > 255 characters":    {ObjectMeta: api.ObjectMeta{Name: strings.Repeat("a", 256)}},
+		"name not a DNS subdomain": {ObjectMeta: api.ObjectMeta{Name: "a.b.c."}},
+		"name with underscore":     {ObjectMeta: api.ObjectMeta{Name: "a_b_c"}},
 	}
 	for k, v := range errorCases {
 		if errs := ValidateBoundPod(&v); len(errs) == 0 {

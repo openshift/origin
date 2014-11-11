@@ -114,7 +114,7 @@ func TestKillContainer(t *testing.T) {
 		},
 	}
 	fakeDocker.Container = &docker.Container{
-		ID: "foobar",
+		Name: "foobar",
 	}
 
 	err := kubelet.killContainer(&fakeDocker.ContainerList[0])
@@ -167,8 +167,8 @@ func TestSyncPodsDoesNothing(t *testing.T) {
 	}
 	err := kubelet.SyncPods([]api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID:          "foo",
+			ObjectMeta: api.ObjectMeta{
+				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 			},
@@ -182,8 +182,46 @@ func TestSyncPodsDoesNothing(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+	kubelet.drainWorkers()
+	verifyCalls(t, fakeDocker, []string{"list", "list", "inspect_container", "inspect_container"})
+}
 
-	verifyCalls(t, fakeDocker, []string{"list", "list"})
+func TestSyncPodsWithTerminationLog(t *testing.T) {
+	kubelet, _, fakeDocker := newTestKubelet(t)
+	container := api.Container{
+		Name: "bar",
+		TerminationMessagePath: "/dev/somepath",
+	}
+	fakeDocker.ContainerList = []docker.APIContainers{}
+	err := kubelet.SyncPods([]api.BoundPod{
+		{
+			ObjectMeta: api.ObjectMeta{
+				Name:        "foo",
+				Namespace:   "new",
+				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
+			},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					container,
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	kubelet.drainWorkers()
+	verifyCalls(t, fakeDocker, []string{
+		"list", "create", "start", "list", "inspect_container", "list", "create", "start"})
+
+	fakeDocker.Lock()
+	parts := strings.Split(fakeDocker.Container.HostConfig.Binds[0], ":")
+	if fakeDocker.Container.HostConfig == nil ||
+		!matchString(t, "/tmp/kubelet/foo/bar/k8s_bar\\.[a-f0-9]", parts[0]) ||
+		parts[1] != "/dev/somepath" {
+		t.Errorf("Unexpected containers created %v", fakeDocker.Container)
+	}
+	fakeDocker.Unlock()
 }
 
 // drainWorkers waits until all workers are done.  Should only used for testing.
@@ -213,8 +251,8 @@ func TestSyncPodsCreatesNetAndContainer(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{}
 	err := kubelet.SyncPods([]api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID:          "foo",
+			ObjectMeta: api.ObjectMeta{
+				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 			},
@@ -231,7 +269,7 @@ func TestSyncPodsCreatesNetAndContainer(t *testing.T) {
 	kubelet.drainWorkers()
 
 	verifyCalls(t, fakeDocker, []string{
-		"list", "list", "create", "start", "list", "inspect_container", "list", "create", "start"})
+		"list", "create", "start", "list", "inspect_container", "list", "create", "start"})
 
 	fakeDocker.Lock()
 
@@ -261,8 +299,8 @@ func TestSyncPodsCreatesNetAndContainerPullsImage(t *testing.T) {
 	fakeDocker.ContainerList = []docker.APIContainers{}
 	err := kubelet.SyncPods([]api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID:          "foo",
+			ObjectMeta: api.ObjectMeta{
+				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 			},
@@ -279,7 +317,7 @@ func TestSyncPodsCreatesNetAndContainerPullsImage(t *testing.T) {
 	kubelet.drainWorkers()
 
 	verifyCalls(t, fakeDocker, []string{
-		"list", "list", "create", "start", "list", "inspect_container", "list", "create", "start"})
+		"list", "create", "start", "list", "inspect_container", "list", "create", "start"})
 
 	fakeDocker.Lock()
 
@@ -306,8 +344,8 @@ func TestSyncPodsWithNetCreatesContainer(t *testing.T) {
 	}
 	err := kubelet.SyncPods([]api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID:          "foo",
+			ObjectMeta: api.ObjectMeta{
+				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 			},
@@ -324,7 +362,7 @@ func TestSyncPodsWithNetCreatesContainer(t *testing.T) {
 	kubelet.drainWorkers()
 
 	verifyCalls(t, fakeDocker, []string{
-		"list", "list", "list", "inspect_container", "list", "create", "start"})
+		"list", "list", "inspect_container", "list", "create", "start"})
 
 	fakeDocker.Lock()
 	if len(fakeDocker.Created) != 1 ||
@@ -347,8 +385,8 @@ func TestSyncPodsWithNetCreatesContainerCallsHandler(t *testing.T) {
 	}
 	err := kubelet.SyncPods([]api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID:          "foo",
+			ObjectMeta: api.ObjectMeta{
+				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 			},
@@ -376,7 +414,7 @@ func TestSyncPodsWithNetCreatesContainerCallsHandler(t *testing.T) {
 	kubelet.drainWorkers()
 
 	verifyCalls(t, fakeDocker, []string{
-		"list", "list", "list", "inspect_container", "list", "create", "start"})
+		"list", "list", "inspect_container", "list", "create", "start"})
 
 	fakeDocker.Lock()
 	if len(fakeDocker.Created) != 1 ||
@@ -400,8 +438,8 @@ func TestSyncPodsDeletesWithNoNetContainer(t *testing.T) {
 	}
 	err := kubelet.SyncPods([]api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID:          "foo",
+			ObjectMeta: api.ObjectMeta{
+				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 			},
@@ -418,7 +456,7 @@ func TestSyncPodsDeletesWithNoNetContainer(t *testing.T) {
 	kubelet.drainWorkers()
 
 	verifyCalls(t, fakeDocker, []string{
-		"list", "list", "stop", "create", "start", "list", "list", "inspect_container", "list", "create", "start"})
+		"list", "stop", "create", "start", "list", "list", "inspect_container", "list", "create", "start"})
 
 	// A map iteration is used to delete containers, so must not depend on
 	// order here.
@@ -455,7 +493,7 @@ func TestSyncPodsDeletes(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	verifyCalls(t, fakeDocker, []string{"list", "list", "stop", "stop"})
+	verifyCalls(t, fakeDocker, []string{"list", "stop", "stop"})
 
 	// A map iteration is used to delete containers, so must not depend on
 	// order here.
@@ -495,8 +533,8 @@ func TestSyncPodDeletesDuplicate(t *testing.T) {
 		},
 	}
 	err := kubelet.syncPod(&api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:          "bar",
+		ObjectMeta: api.ObjectMeta{
+			Name:        "bar",
 			Namespace:   "new",
 			Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 		},
@@ -544,8 +582,8 @@ func TestSyncPodBadHash(t *testing.T) {
 		},
 	}
 	err := kubelet.syncPod(&api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:          "foo",
+		ObjectMeta: api.ObjectMeta{
+			Name:        "foo",
 			Namespace:   "new",
 			Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 		},
@@ -559,15 +597,17 @@ func TestSyncPodBadHash(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	verifyCalls(t, fakeDocker, []string{"list", "stop", "list", "create", "start"})
+	verifyCalls(t, fakeDocker, []string{"list", "stop", "stop", "list", "create", "start"})
 
 	// A map interation is used to delete containers, so must not depend on
 	// order here.
 	expectedToStop := map[string]bool{
 		"1234": true,
+		"9876": true,
 	}
-	if len(fakeDocker.Stopped) != 1 ||
-		!expectedToStop[fakeDocker.Stopped[0]] {
+	if len(fakeDocker.Stopped) != 2 ||
+		(!expectedToStop[fakeDocker.Stopped[0]] &&
+			!expectedToStop[fakeDocker.Stopped[1]]) {
 		t.Errorf("Wrong containers were stopped: %v", fakeDocker.Stopped)
 	}
 }
@@ -588,8 +628,8 @@ func TestSyncPodUnhealthy(t *testing.T) {
 		},
 	}
 	err := kubelet.syncPod(&api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:          "foo",
+		ObjectMeta: api.ObjectMeta{
+			Name:        "foo",
 			Namespace:   "new",
 			Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 		},
@@ -607,15 +647,17 @@ func TestSyncPodUnhealthy(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	verifyCalls(t, fakeDocker, []string{"list", "stop", "list", "create", "start"})
+	verifyCalls(t, fakeDocker, []string{"list", "stop", "stop", "list", "create", "start"})
 
 	// A map interation is used to delete containers, so must not depend on
 	// order here.
 	expectedToStop := map[string]bool{
 		"1234": true,
+		"9876": true,
 	}
-	if len(fakeDocker.Stopped) != 1 ||
-		!expectedToStop[fakeDocker.Stopped[0]] {
+	if len(fakeDocker.Stopped) != 2 ||
+		(!expectedToStop[fakeDocker.Stopped[0]] &&
+			expectedToStop[fakeDocker.Stopped[0]]) {
 		t.Errorf("Wrong containers were stopped: %v", fakeDocker.Stopped)
 	}
 }
@@ -648,8 +690,8 @@ func TestMakeEnvVariables(t *testing.T) {
 func TestMountExternalVolumes(t *testing.T) {
 	kubelet, _, _ := newTestKubelet(t)
 	pod := api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:        "foo",
+		ObjectMeta: api.ObjectMeta{
+			Name:      "foo",
 			Namespace: "test",
 		},
 		Spec: api.PodSpec{
@@ -703,8 +745,8 @@ func TestMakeVolumesAndBinds(t *testing.T) {
 	}
 
 	pod := api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:        "pod",
+		ObjectMeta: api.ObjectMeta{
+			Name:      "pod",
 			Namespace: "test",
 		},
 	}
@@ -847,8 +889,7 @@ func TestGetContainerInfo(t *testing.T) {
 	}
 
 	mockCadvisor := &mockCadvisorClient{}
-	req := &info.ContainerInfoRequest{}
-	cadvisorReq := getCadvisorContainerInfoRequest(req)
+	cadvisorReq := &info.ContainerInfoRequest{}
 	mockCadvisor.On("ContainerInfo", containerPath, cadvisorReq).Return(containerInfo, nil)
 
 	kubelet, _, fakeDocker := newTestKubelet(t)
@@ -862,7 +903,7 @@ func TestGetContainerInfo(t *testing.T) {
 		},
 	}
 
-	stats, err := kubelet.GetContainerInfo("qux", "", "foo", req)
+	stats, err := kubelet.GetContainerInfo("qux", "", "foo", cadvisorReq)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -882,8 +923,7 @@ func TestGetRootInfo(t *testing.T) {
 	fakeDocker := dockertools.FakeDockerClient{}
 
 	mockCadvisor := &mockCadvisorClient{}
-	req := &info.ContainerInfoRequest{}
-	cadvisorReq := getCadvisorContainerInfoRequest(req)
+	cadvisorReq := &info.ContainerInfoRequest{}
 	mockCadvisor.On("ContainerInfo", containerPath, cadvisorReq).Return(containerInfo, nil)
 
 	kubelet := Kubelet{
@@ -894,7 +934,7 @@ func TestGetRootInfo(t *testing.T) {
 	}
 
 	// If the container name is an empty string, then it means the root container.
-	_, err := kubelet.GetRootInfo(req)
+	_, err := kubelet.GetRootInfo(cadvisorReq)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -925,8 +965,7 @@ func TestGetContainerInfoWhenCadvisorFailed(t *testing.T) {
 
 	containerInfo := &info.ContainerInfo{}
 	mockCadvisor := &mockCadvisorClient{}
-	req := &info.ContainerInfoRequest{}
-	cadvisorReq := getCadvisorContainerInfoRequest(req)
+	cadvisorReq := &info.ContainerInfoRequest{}
 	expectedErr := fmt.Errorf("some error")
 	mockCadvisor.On("ContainerInfo", containerPath, cadvisorReq).Return(containerInfo, expectedErr)
 
@@ -941,7 +980,7 @@ func TestGetContainerInfoWhenCadvisorFailed(t *testing.T) {
 		},
 	}
 
-	stats, err := kubelet.GetContainerInfo("qux", "uuid", "foo", req)
+	stats, err := kubelet.GetContainerInfo("qux", "uuid", "foo", cadvisorReq)
 	if stats != nil {
 		t.Errorf("non-nil stats on error")
 	}
@@ -991,7 +1030,7 @@ func TestRunInContainerNoSuchPod(t *testing.T) {
 	podNamespace := "etcd"
 	containerName := "containerFoo"
 	output, err := kubelet.RunInContainer(
-		GetPodFullName(&api.BoundPod{TypeMeta: api.TypeMeta{ID: podName, Namespace: podNamespace}}),
+		GetPodFullName(&api.BoundPod{ObjectMeta: api.ObjectMeta{Name: podName, Namespace: podNamespace}}),
 		"",
 		containerName,
 		[]string{"ls"})
@@ -1023,8 +1062,8 @@ func TestRunInContainer(t *testing.T) {
 	cmd := []string{"ls"}
 	_, err := kubelet.RunInContainer(
 		GetPodFullName(&api.BoundPod{
-			TypeMeta: api.TypeMeta{
-				ID:          podName,
+			ObjectMeta: api.ObjectMeta{
+				Name:        podName,
 				Namespace:   podNamespace,
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 			},
@@ -1033,7 +1072,7 @@ func TestRunInContainer(t *testing.T) {
 		containerName,
 		cmd)
 	if fakeCommandRunner.ID != containerID {
-		t.Errorf("unexected ID: %s", fakeCommandRunner.ID)
+		t.Errorf("unexected Name: %s", fakeCommandRunner.ID)
 	}
 	if !reflect.DeepEqual(fakeCommandRunner.Cmd, cmd) {
 		t.Errorf("unexpected commnd: %s", fakeCommandRunner.Cmd)
@@ -1165,8 +1204,8 @@ func TestSyncPodEventHandlerFails(t *testing.T) {
 		},
 	}
 	err := kubelet.syncPod(&api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:          "foo",
+		ObjectMeta: api.ObjectMeta{
+			Name:        "foo",
 			Namespace:   "new",
 			Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
 		},
@@ -1194,5 +1233,299 @@ func TestSyncPodEventHandlerFails(t *testing.T) {
 
 	if len(fakeDocker.Stopped) != 1 {
 		t.Errorf("Wrong containers were stopped: %v", fakeDocker.Stopped)
+	}
+}
+
+func TestKubeletGarbageCollection(t *testing.T) {
+	tests := []struct {
+		containers       []docker.APIContainers
+		containerDetails map[string]*docker.Container
+		expectedRemoved  []string
+	}{
+		{
+			containers: []docker.APIContainers{
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "1876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "2876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "3876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "4876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "5876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "6876",
+				},
+			},
+			containerDetails: map[string]*docker.Container{
+				"1876": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "1876",
+					Created: time.Now(),
+				},
+			},
+			expectedRemoved: []string{"1876"},
+		},
+		{
+			containers: []docker.APIContainers{
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "1876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "2876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "3876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "4876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "5876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "6876",
+				},
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "7876",
+				},
+			},
+			containerDetails: map[string]*docker.Container{
+				"1876": {
+					State: docker.State{
+						Running: true,
+					},
+					ID:      "1876",
+					Created: time.Now(),
+				},
+				"2876": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "2876",
+					Created: time.Now(),
+				},
+			},
+			expectedRemoved: []string{"2876"},
+		},
+		{
+			containers: []docker.APIContainers{
+				{
+					// network container
+					Names: []string{"/k8s_net_foo.new.test_.deadbeef"},
+					ID:    "1876",
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		kubelet, _, fakeDocker := newTestKubelet(t)
+		kubelet.maxContainerCount = 5
+		fakeDocker.ContainerList = test.containers
+		fakeDocker.ContainerMap = test.containerDetails
+		fakeDocker.Container = &docker.Container{ID: "error", Created: time.Now()}
+		err := kubelet.GarbageCollectContainers()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !reflect.DeepEqual(fakeDocker.Removed, test.expectedRemoved) {
+			t.Errorf("expected: %v, got: %v", test.expectedRemoved, fakeDocker.Removed)
+		}
+	}
+}
+
+func TestPurgeOldest(t *testing.T) {
+	created := time.Now()
+	tests := []struct {
+		ids              []string
+		containerDetails map[string]*docker.Container
+		expectedRemoved  []string
+	}{
+		{
+			ids: []string{"1", "2", "3", "4", "5"},
+			containerDetails: map[string]*docker.Container{
+				"1": {
+					State: docker.State{
+						Running: true,
+					},
+					ID:      "1",
+					Created: created,
+				},
+				"2": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "2",
+					Created: created.Add(time.Second),
+				},
+				"3": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "3",
+					Created: created.Add(time.Second),
+				},
+				"4": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "4",
+					Created: created.Add(time.Second),
+				},
+				"5": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "5",
+					Created: created.Add(time.Second),
+				},
+			},
+		},
+		{
+			ids: []string{"1", "2", "3", "4", "5", "6"},
+			containerDetails: map[string]*docker.Container{
+				"1": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "1",
+					Created: created.Add(time.Second),
+				},
+				"2": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "2",
+					Created: created.Add(time.Millisecond),
+				},
+				"3": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "3",
+					Created: created.Add(time.Second),
+				},
+				"4": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "4",
+					Created: created.Add(time.Second),
+				},
+				"5": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "5",
+					Created: created.Add(time.Second),
+				},
+				"6": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "6",
+					Created: created.Add(time.Second),
+				},
+			},
+			expectedRemoved: []string{"2"},
+		},
+		{
+			ids: []string{"1", "2", "3", "4", "5", "6", "7"},
+			containerDetails: map[string]*docker.Container{
+				"1": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "1",
+					Created: created.Add(time.Second),
+				},
+				"2": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "2",
+					Created: created.Add(time.Millisecond),
+				},
+				"3": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "3",
+					Created: created.Add(time.Second),
+				},
+				"4": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "4",
+					Created: created.Add(time.Second),
+				},
+				"5": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "5",
+					Created: created.Add(time.Second),
+				},
+				"6": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "6",
+					Created: created.Add(time.Microsecond),
+				},
+				"7": {
+					State: docker.State{
+						Running: false,
+					},
+					ID:      "7",
+					Created: created.Add(time.Second),
+				},
+			},
+			expectedRemoved: []string{"2", "6"},
+		},
+	}
+	for _, test := range tests {
+		kubelet, _, fakeDocker := newTestKubelet(t)
+		kubelet.maxContainerCount = 5
+		fakeDocker.ContainerMap = test.containerDetails
+		kubelet.purgeOldest(test.ids)
+		if !reflect.DeepEqual(fakeDocker.Removed, test.expectedRemoved) {
+			t.Errorf("expected: %v, got: %v", test.expectedRemoved, fakeDocker.Removed)
+		}
 	}
 }

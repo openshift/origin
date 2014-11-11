@@ -19,11 +19,18 @@ package tools
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os/exec"
 	"reflect"
 	"strconv"
+	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/coreos/go-etcd/etcd"
+
+	"github.com/golang/glog"
 )
 
 const (
@@ -42,6 +49,7 @@ var (
 
 // EtcdClient is an injectable interface for testing.
 type EtcdClient interface {
+	GetCluster() []string
 	AddChild(key, data string, ttl uint64) (*etcd.Response, error)
 	Get(key string, sort, recursive bool) (*etcd.Response, error)
 	Set(key, value string, ttl uint64) (*etcd.Response, error)
@@ -55,6 +63,7 @@ type EtcdClient interface {
 
 // EtcdGetSet interface exposes only the etcd operations needed by EtcdHelper.
 type EtcdGetSet interface {
+	GetCluster() []string
 	Get(key string, sort, recursive bool) (*etcd.Response, error)
 	Set(key, value string, ttl uint64) (*etcd.Response, error)
 	Create(key, value string, ttl uint64) (*etcd.Response, error)
@@ -164,31 +173,30 @@ func (h *EtcdHelper) ExtractList(key string, slicePtr interface{}, resourceVersi
 	if err != nil {
 		return err
 	}
-	h.decodeNodeList(nodes, slicePtr)
-	return nil
+	return h.decodeNodeList(nodes, slicePtr)
 }
 
 // decodeNodeList walks the tree of each node in the list and decodes into the specified object
 func (h *EtcdHelper) decodeNodeList(nodes []*etcd.Node, slicePtr interface{}) error {
-	pv := reflect.ValueOf(slicePtr)
-	if pv.Type().Kind() != reflect.Ptr || pv.Type().Elem().Kind() != reflect.Slice {
+	v, err := conversion.EnforcePtr(slicePtr)
+	if err != nil || v.Kind() != reflect.Slice {
 		// This should not happen at runtime.
 		panic("need ptr to slice")
 	}
-	v := pv.Elem()
 	for _, node := range nodes {
 		if node.Dir {
-			h.decodeNodeList(node.Nodes, slicePtr)
+			if err := h.decodeNodeList(node.Nodes, slicePtr); err != nil {
+				return err
+			}
 			continue
 		}
 		obj := reflect.New(v.Type().Elem())
-		err := h.Codec.DecodeInto([]byte(node.Value), obj.Interface().(runtime.Object))
+		if err := h.Codec.DecodeInto([]byte(node.Value), obj.Interface().(runtime.Object)); err != nil {
+			return err
+		}
 		if h.ResourceVersioner != nil {
 			_ = h.ResourceVersioner.SetResourceVersion(obj.Interface().(runtime.Object), node.ModifiedIndex)
 			// being unable to set the version does not prevent the object from being extracted
-		}
-		if err != nil {
-			return err
 		}
 		v.Set(reflect.Append(v, obj.Elem()))
 	}
@@ -203,13 +211,11 @@ func (h *EtcdHelper) ExtractToList(key string, listObj runtime.Object) error {
 	if err != nil {
 		return err
 	}
-	err = h.ExtractList(key, listPtr, &resourceVersion)
-	if err != nil {
+	if err := h.ExtractList(key, listPtr, &resourceVersion); err != nil {
 		return err
 	}
 	if h.ResourceVersioner != nil {
-		err = h.ResourceVersioner.SetResourceVersion(listObj, resourceVersion)
-		if err != nil {
+		if err := h.ResourceVersioner.SetResourceVersion(listObj, resourceVersion); err != nil {
 			return err
 		}
 	}
@@ -232,8 +238,11 @@ func (h *EtcdHelper) bodyAndExtractObj(key string, objPtr runtime.Object, ignore
 	}
 	if err != nil || response.Node == nil || len(response.Node.Value) == 0 {
 		if ignoreNotFound {
-			pv := reflect.ValueOf(objPtr)
-			pv.Elem().Set(reflect.Zero(pv.Type().Elem()))
+			v, err := conversion.EnforcePtr(objPtr)
+			if err != nil {
+				return "", 0, err
+			}
+			v.Set(reflect.Zero(v.Type()))
 			return "", 0, nil
 		} else if err != nil {
 			return "", 0, err
@@ -315,13 +324,13 @@ type EtcdUpdateFunc func(input runtime.Object) (output runtime.Object, err error
 // })
 //
 func (h *EtcdHelper) AtomicUpdate(key string, ptrToType runtime.Object, tryUpdate EtcdUpdateFunc) error {
-	pt := reflect.TypeOf(ptrToType)
-	if pt.Kind() != reflect.Ptr {
+	v, err := conversion.EnforcePtr(ptrToType)
+	if err != nil {
 		// Panic is appropriate, because this is a programming error.
 		panic("need ptr to type")
 	}
 	for {
-		obj := reflect.New(pt.Elem()).Interface().(runtime.Object)
+		obj := reflect.New(v.Type()).Interface().(runtime.Object)
 		origBody, index, err := h.bodyAndExtractObj(key, obj, true)
 		if err != nil {
 			return err
@@ -356,4 +365,43 @@ func (h *EtcdHelper) AtomicUpdate(key string, ptrToType runtime.Object, tryUpdat
 		}
 		return err
 	}
+}
+
+func checkEtcd(host string) error {
+	response, err := http.Get(host + "/version")
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	if !strings.HasPrefix("etcd", string(body)) {
+		return fmt.Errorf("Unknown server: %s", string(body))
+	}
+	return nil
+}
+
+func startEtcd() (*exec.Cmd, error) {
+	cmd := exec.Command("etcd")
+	err := cmd.Start()
+	if err != nil {
+		return nil, err
+	}
+	return cmd, nil
+}
+
+func NewEtcdClientStartServerIfNecessary(server string) (EtcdClient, error) {
+	err := checkEtcd(server)
+	if err != nil {
+		glog.Infof("Failed to find etcd, attempting to start.")
+		_, err := startEtcd()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	servers := []string{server}
+	return etcd.NewClient(servers), nil
 }

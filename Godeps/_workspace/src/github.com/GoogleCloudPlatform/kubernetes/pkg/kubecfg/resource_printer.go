@@ -138,9 +138,9 @@ func (h *HumanReadablePrinter) validatePrintHandlerFunc(printFunc reflect.Value)
 	return nil
 }
 
-var podColumns = []string{"ID", "Image(s)", "Host", "Labels", "Status"}
-var replicationControllerColumns = []string{"ID", "Image(s)", "Selector", "Replicas"}
-var serviceColumns = []string{"ID", "Labels", "Selector", "IP", "Port"}
+var podColumns = []string{"Name", "Image(s)", "Host", "Labels", "Status"}
+var replicationControllerColumns = []string{"Name", "Image(s)", "Selector", "Replicas"}
+var serviceColumns = []string{"Name", "Labels", "Selector", "IP", "Port"}
 var minionColumns = []string{"Minion identifier"}
 var statusColumns = []string{"Status"}
 var eventColumns = []string{"Name", "Kind", "Status", "Reason", "Message"}
@@ -194,7 +194,7 @@ func podHostString(host, ip string) string {
 
 func printPod(pod *api.Pod, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-		pod.ID, makeImageList(pod.DesiredState.Manifest),
+		pod.Name, makeImageList(pod.DesiredState.Manifest),
 		podHostString(pod.CurrentState.Host, pod.CurrentState.HostIP),
 		labels.Set(pod.Labels), pod.CurrentState.Status)
 	return err
@@ -209,16 +209,16 @@ func printPodList(podList *api.PodList, w io.Writer) error {
 	return nil
 }
 
-func printReplicationController(ctrl *api.ReplicationController, w io.Writer) error {
+func printReplicationController(controller *api.ReplicationController, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
-		ctrl.ID, makeImageList(ctrl.DesiredState.PodTemplate.DesiredState.Manifest),
-		labels.Set(ctrl.DesiredState.ReplicaSelector), ctrl.DesiredState.Replicas)
+		controller.Name, makeImageList(controller.DesiredState.PodTemplate.DesiredState.Manifest),
+		labels.Set(controller.DesiredState.ReplicaSelector), controller.DesiredState.Replicas)
 	return err
 }
 
 func printReplicationControllerList(list *api.ReplicationControllerList, w io.Writer) error {
-	for _, ctrl := range list.Items {
-		if err := printReplicationController(&ctrl, w); err != nil {
+	for _, controller := range list.Items {
+		if err := printReplicationController(&controller, w); err != nil {
 			return err
 		}
 	}
@@ -226,8 +226,8 @@ func printReplicationControllerList(list *api.ReplicationControllerList, w io.Wr
 }
 
 func printService(svc *api.Service, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n", svc.ID, labels.Set(svc.Labels),
-		labels.Set(svc.Selector), svc.PortalIP, svc.Port)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n", svc.Name, labels.Set(svc.Labels),
+		labels.Set(svc.Spec.Selector), svc.Spec.PortalIP, svc.Spec.Port)
 	return err
 }
 
@@ -241,7 +241,7 @@ func printServiceList(list *api.ServiceList, w io.Writer) error {
 }
 
 func printMinion(minion *api.Minion, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\n", minion.ID)
+	_, err := fmt.Fprintf(w, "%s\n", minion.Name)
 	return err
 }
 
@@ -319,19 +319,32 @@ func (h *HumanReadablePrinter) PrintObj(obj runtime.Object, output io.Writer) er
 
 // TemplatePrinter is an implementation of ResourcePrinter which formats data with a Go Template.
 type TemplatePrinter struct {
-	Template *template.Template
+	template *template.Template
+}
+
+func NewTemplatePrinter(tmpl []byte) (*TemplatePrinter, error) {
+	t, err := template.New("output").Parse(string(tmpl))
+	if err != nil {
+		return nil, err
+	}
+	return &TemplatePrinter{t}, nil
 }
 
 // Print parses the data as JSON, and re-formats it with the Go Template.
 func (t *TemplatePrinter) Print(data []byte, w io.Writer) error {
-	obj, err := latest.Codec.Decode(data)
+	obj := map[string]interface{}{}
+	err := json.Unmarshal(data, &obj)
 	if err != nil {
 		return err
 	}
-	return t.PrintObj(obj, w)
+	return t.template.Execute(w, obj)
 }
 
 // PrintObj formats the obj with the Go Template.
 func (t *TemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
-	return t.Template.Execute(w, obj)
+	data, err := latest.Codec.Encode(obj)
+	if err != nil {
+		return err
+	}
+	return t.Print(data, w)
 }

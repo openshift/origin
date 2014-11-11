@@ -26,17 +26,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/fake"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-func expectApiStatusError(t *testing.T, ch <-chan runtime.Object, msg string) {
+func expectApiStatusError(t *testing.T, ch <-chan apiserver.RESTResult, msg string) {
 	out := <-ch
-	status, ok := out.(*api.Status)
+	status, ok := out.Object.(*api.Status)
 	if !ok {
 		t.Errorf("Expected an api.Status object, was %#v", out)
 		return
@@ -46,9 +46,9 @@ func expectApiStatusError(t *testing.T, ch <-chan runtime.Object, msg string) {
 	}
 }
 
-func expectPod(t *testing.T, ch <-chan runtime.Object) (*api.Pod, bool) {
+func expectPod(t *testing.T, ch <-chan apiserver.RESTResult) (*api.Pod, bool) {
 	out := <-ch
-	pod, ok := out.(*api.Pod)
+	pod, ok := out.Object.(*api.Pod)
 	if !ok || pod == nil {
 		t.Errorf("Expected an api.Pod object, was %#v", out)
 		return nil, false
@@ -95,10 +95,10 @@ func TestCreatePodSetsIds(t *testing.T) {
 	}
 	expectApiStatusError(t, ch, podRegistry.Err.Error())
 
-	if len(podRegistry.Pod.ID) == 0 {
+	if len(podRegistry.Pod.Name) == 0 {
 		t.Errorf("Expected pod ID to be set, Got %#v", pod)
 	}
-	if podRegistry.Pod.DesiredState.Manifest.ID != podRegistry.Pod.ID {
+	if podRegistry.Pod.DesiredState.Manifest.ID != podRegistry.Pod.Name {
 		t.Errorf("Expected manifest ID to be equal to pod ID, Got %#v", pod)
 	}
 }
@@ -144,7 +144,7 @@ func TestListPodsError(t *testing.T) {
 }
 
 func TestListEmptyPodList(t *testing.T) {
-	podRegistry := registrytest.NewPodRegistry(&api.PodList{TypeMeta: api.TypeMeta{ResourceVersion: "1"}})
+	podRegistry := registrytest.NewPodRegistry(&api.PodList{ListMeta: api.ListMeta{ResourceVersion: "1"}})
 	storage := REST{
 		registry: podRegistry,
 	}
@@ -175,13 +175,13 @@ func TestListPodList(t *testing.T) {
 	podRegistry.Pods = &api.PodList{
 		Items: []api.Pod{
 			{
-				TypeMeta: api.TypeMeta{
-					ID: "foo",
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo",
 				},
 			},
 			{
-				TypeMeta: api.TypeMeta{
-					ID: "bar",
+				ObjectMeta: api.ObjectMeta{
+					Name: "bar",
 				},
 			},
 		},
@@ -201,10 +201,10 @@ func TestListPodList(t *testing.T) {
 	if len(pods.Items) != 2 {
 		t.Errorf("Unexpected pod list: %#v", pods)
 	}
-	if pods.Items[0].ID != "foo" {
+	if pods.Items[0].Name != "foo" {
 		t.Errorf("Unexpected pod: %#v", pods.Items[0])
 	}
-	if pods.Items[1].ID != "bar" {
+	if pods.Items[1].Name != "bar" {
 		t.Errorf("Unexpected pod: %#v", pods.Items[1])
 	}
 }
@@ -214,18 +214,20 @@ func TestListPodListSelection(t *testing.T) {
 	podRegistry.Pods = &api.PodList{
 		Items: []api.Pod{
 			{
-				TypeMeta: api.TypeMeta{ID: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
 			}, {
-				TypeMeta:     api.TypeMeta{ID: "bar"},
+				ObjectMeta:   api.ObjectMeta{Name: "bar"},
 				DesiredState: api.PodState{Host: "barhost"},
 			}, {
-				TypeMeta:     api.TypeMeta{ID: "baz"},
+				ObjectMeta:   api.ObjectMeta{Name: "baz"},
 				DesiredState: api.PodState{Status: "bazstatus"},
 			}, {
-				TypeMeta: api.TypeMeta{ID: "qux"},
-				Labels:   map[string]string{"label": "qux"},
+				ObjectMeta: api.ObjectMeta{
+					Name:   "qux",
+					Labels: map[string]string{"label": "qux"},
+				},
 			}, {
-				TypeMeta: api.TypeMeta{ID: "zot"},
+				ObjectMeta: api.ObjectMeta{Name: "zot"},
 			},
 		},
 	}
@@ -243,7 +245,7 @@ func TestListPodListSelection(t *testing.T) {
 		{
 			expectedIDs: util.NewStringSet("foo", "bar", "baz", "qux", "zot"),
 		}, {
-			field:       "ID=zot",
+			field:       "name=zot",
 			expectedIDs: util.NewStringSet("zot"),
 		}, {
 			label:       "label=qux",
@@ -284,10 +286,10 @@ func TestListPodListSelection(t *testing.T) {
 			t.Errorf("%v: Expected %v, got %v", index, e, a)
 		}
 		for _, pod := range pods.Items {
-			if !item.expectedIDs.Has(pod.ID) {
-				t.Errorf("%v: Unexpected pod %v", index, pod.ID)
+			if !item.expectedIDs.Has(pod.Name) {
+				t.Errorf("%v: Unexpected pod %v", index, pod.Name)
 			}
-			t.Logf("%v: Got pod ID: %v", index, pod.ID)
+			t.Logf("%v: Got pod Name: %v", index, pod.Name)
 		}
 	}
 }
@@ -298,8 +300,8 @@ func TestPodDecode(t *testing.T) {
 		registry: podRegistry,
 	}
 	expected := &api.Pod{
-		TypeMeta: api.TypeMeta{
-			ID: "foo",
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo",
 		},
 	}
 	body, err := latest.Codec.Encode(expected)
@@ -319,7 +321,7 @@ func TestPodDecode(t *testing.T) {
 
 func TestGetPod(t *testing.T) {
 	podRegistry := registrytest.NewPodRegistry(nil)
-	podRegistry.Pod = &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
+	podRegistry.Pod = &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 	storage := REST{
 		registry: podRegistry,
 		ipCache:  ipCache{},
@@ -340,7 +342,7 @@ func TestGetPod(t *testing.T) {
 func TestGetPodCloud(t *testing.T) {
 	fakeCloud := &fake_cloud.FakeCloud{}
 	podRegistry := registrytest.NewPodRegistry(nil)
-	podRegistry.Pod = &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}, CurrentState: api.PodState{Host: "machine"}}
+	podRegistry.Pod = &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}, CurrentState: api.PodState{Host: "machine"}}
 
 	clock := &fakeClock{t: time.Now()}
 
@@ -383,10 +385,10 @@ func TestGetPodCloud(t *testing.T) {
 
 func TestMakePodStatus(t *testing.T) {
 	fakeClient := client.Fake{
-		Minions: api.MinionList{
+		MinionsList: api.MinionList{
 			Items: []api.Minion{
 				{
-					TypeMeta: api.TypeMeta{ID: "machine"},
+					ObjectMeta: api.ObjectMeta{Name: "machine"},
 				},
 			},
 		},
@@ -416,10 +418,10 @@ func TestMakePodStatus(t *testing.T) {
 
 	tests := []struct {
 		pod    *api.Pod
-		status api.PodStatus
+		status api.PodCondition
 		test   string
 	}{
-		{&api.Pod{DesiredState: desiredState, CurrentState: currentState}, api.PodWaiting, "waiting"},
+		{&api.Pod{DesiredState: desiredState, CurrentState: currentState}, api.PodPending, "waiting"},
 		{
 			&api.Pod{
 				DesiredState: desiredState,
@@ -427,7 +429,7 @@ func TestMakePodStatus(t *testing.T) {
 					Host: "machine-2",
 				},
 			},
-			api.PodTerminated,
+			api.PodFailed,
 			"no info, but bad machine",
 		},
 		{
@@ -455,7 +457,7 @@ func TestMakePodStatus(t *testing.T) {
 					Host: "machine-two",
 				},
 			},
-			api.PodTerminated,
+			api.PodFailed,
 			"all running but minion is missing",
 		},
 		{
@@ -469,7 +471,7 @@ func TestMakePodStatus(t *testing.T) {
 					Host: "machine",
 				},
 			},
-			api.PodTerminated,
+			api.PodFailed,
 			"all stopped",
 		},
 		{
@@ -483,7 +485,7 @@ func TestMakePodStatus(t *testing.T) {
 					Host: "machine-two",
 				},
 			},
-			api.PodTerminated,
+			api.PodFailed,
 			"all stopped but minion missing",
 		},
 		{
@@ -510,12 +512,12 @@ func TestMakePodStatus(t *testing.T) {
 					Host: "machine",
 				},
 			},
-			api.PodWaiting,
+			api.PodPending,
 			"mixed state #2",
 		},
 	}
 	for _, test := range tests {
-		if status, err := getPodStatus(test.pod, &fakeClient); status != test.status {
+		if status, err := getPodStatus(test.pod, fakeClient.Minions()); status != test.status {
 			t.Errorf("In test %s, expected %v, got %v", test.test, test.status, status)
 			if err != nil {
 				t.Errorf("In test %s, unexpected error: %v", test.test, err)
@@ -561,7 +563,7 @@ func TestPodStorageValidatesUpdate(t *testing.T) {
 func TestCreatePod(t *testing.T) {
 	podRegistry := registrytest.NewPodRegistry(nil)
 	podRegistry.Pod = &api.Pod{
-		TypeMeta: api.TypeMeta{ID: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
 		CurrentState: api.PodState{
 			Host: "machine",
 		},
@@ -576,7 +578,7 @@ func TestCreatePod(t *testing.T) {
 		},
 	}
 	pod := &api.Pod{
-		TypeMeta:     api.TypeMeta{ID: "foo"},
+		ObjectMeta:   api.ObjectMeta{Name: "foo"},
 		DesiredState: desiredState,
 	}
 	ctx := api.NewDefaultContext()
@@ -656,7 +658,7 @@ func TestFillPodInfoNoData(t *testing.T) {
 func TestCreatePodWithConflictingNamespace(t *testing.T) {
 	storage := REST{}
 	pod := &api.Pod{
-		TypeMeta: api.TypeMeta{ID: "test", Namespace: "not-default"},
+		ObjectMeta: api.ObjectMeta{Name: "test", Namespace: "not-default"},
 	}
 
 	ctx := api.NewDefaultContext()
@@ -674,7 +676,7 @@ func TestCreatePodWithConflictingNamespace(t *testing.T) {
 func TestUpdatePodWithConflictingNamespace(t *testing.T) {
 	storage := REST{}
 	pod := &api.Pod{
-		TypeMeta: api.TypeMeta{ID: "test", Namespace: "not-default"},
+		ObjectMeta: api.ObjectMeta{Name: "test", Namespace: "not-default"},
 	}
 
 	ctx := api.NewDefaultContext()

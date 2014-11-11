@@ -31,28 +31,31 @@ func TestGetReference(t *testing.T) {
 	table := map[string]struct {
 		obj       runtime.Object
 		ref       *ObjectReference
+		fieldPath string
 		shouldErr bool
 	}{
 		"pod": {
 			obj: &Pod{
-				TypeMeta: TypeMeta{
-					ID:              "foo",
+				ObjectMeta: ObjectMeta{
+					Name:            "foo",
+					UID:             "bar",
 					ResourceVersion: "42",
 					SelfLink:        "/api/v1beta1/pods/foo",
 				},
 			},
+			fieldPath: ".desiredState.containers[0]",
 			ref: &ObjectReference{
 				Kind:            "Pod",
 				APIVersion:      "v1beta1",
 				Name:            "foo",
-				UID:             "foo",
+				UID:             "bar",
 				ResourceVersion: "42",
+				FieldPath:       ".desiredState.containers[0]",
 			},
 		},
 		"serviceList": {
 			obj: &ServiceList{
-				TypeMeta: TypeMeta{
-					ID:              "foo",
+				ListMeta: ListMeta{
 					ResourceVersion: "42",
 					SelfLink:        "/api/v1beta2/services",
 				},
@@ -60,15 +63,12 @@ func TestGetReference(t *testing.T) {
 			ref: &ObjectReference{
 				Kind:            "ServiceList",
 				APIVersion:      "v1beta2",
-				Name:            "foo",
-				UID:             "foo",
 				ResourceVersion: "42",
 			},
 		},
 		"badSelfLink": {
 			obj: &ServiceList{
-				TypeMeta: TypeMeta{
-					ID:              "foo",
+				ListMeta: ListMeta{
 					ResourceVersion: "42",
 					SelfLink:        "v1beta2/services",
 				},
@@ -88,7 +88,7 @@ func TestGetReference(t *testing.T) {
 	}
 
 	for name, item := range table {
-		ref, err := GetReference(item.obj)
+		ref, err := GetPartialReference(item.obj, item.fieldPath)
 		if e, a := item.shouldErr, (err != nil); e != a {
 			t.Errorf("%v: expected %v, got %v", name, e, a)
 			continue

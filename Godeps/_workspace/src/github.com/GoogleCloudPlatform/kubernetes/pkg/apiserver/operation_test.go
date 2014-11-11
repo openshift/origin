@@ -34,16 +34,16 @@ import (
 func TestOperation(t *testing.T) {
 	ops := NewOperations()
 
-	c := make(chan runtime.Object)
+	c := make(chan RESTResult)
 	called := make(chan struct{})
-	op := ops.NewOperation(c, func(runtime.Object) { go close(called) })
+	op := ops.NewOperation(c, func(RESTResult) { go close(called) })
 	// Allow context switch, so that op's ID can get added to the map and Get will work.
 	// This is just so we can test Get. Ordinary users have no need to call Get immediately
 	// after calling NewOperation, because it returns the operation directly.
 	time.Sleep(time.Millisecond)
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		c <- &Simple{TypeMeta: api.TypeMeta{ID: "All done"}}
+		c <- RESTResult{Object: &Simple{ObjectMeta: api.ObjectMeta{Name: "All done"}}}
 	}()
 
 	if op.expired(time.Now().Add(-time.Minute)) {
@@ -96,7 +96,7 @@ func TestOperation(t *testing.T) {
 		t.Errorf("expire failed to remove the operation %#v", ops)
 	}
 
-	if op.result.(*Simple).ID != "All done" {
+	if op.result.Object.(*Simple).Name != "All done" {
 		t.Errorf("Got unexpected result: %#v", op.result)
 	}
 }
@@ -116,10 +116,11 @@ func TestOperationsList(t *testing.T) {
 	}, codec, "/prefix/version", selfLinker)
 	handler.(*defaultAPIServer).group.handler.asyncOpWait = 0
 	server := httptest.NewServer(handler)
+	defer server.Close()
 	client := http.Client{}
 
 	simple := &Simple{
-		Name: "foo",
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
 	}
 	data, err := codec.Encode(simple)
 	if err != nil {
@@ -172,10 +173,11 @@ func TestOpGet(t *testing.T) {
 	}, codec, "/prefix/version", selfLinker)
 	handler.(*defaultAPIServer).group.handler.asyncOpWait = 0
 	server := httptest.NewServer(handler)
+	defer server.Close()
 	client := http.Client{}
 
 	simple := &Simple{
-		Name: "foo",
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
 	}
 	data, err := codec.Encode(simple)
 	t.Log(string(data))
