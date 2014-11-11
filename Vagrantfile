@@ -138,7 +138,7 @@ runcmd:
           {
              "DeviceName" => "/dev/sda1",
              "Ebs.VolumeSize" => 25,
-             "Ebs.VolumeType" => "standard"
+             "Ebs.VolumeType" => "gp2"
           }
         ]
         end
