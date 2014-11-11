@@ -3,12 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/client"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/infra/builder"
+	"github.com/openshift/origin/pkg/cmd/infra/deployer"
+	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -32,6 +36,8 @@ for the latest information on OpenShift.
 `
 
 func main() {
+	name := filepath.Base(os.Args[0])
+
 	openshiftCmd := &cobra.Command{
 		Use:   "openshift",
 		Short: "OpenShift helps you build, deploy, and manage your applications",
@@ -41,9 +47,10 @@ func main() {
 		},
 	}
 
+	flagtypes.GLog(openshiftCmd.PersistentFlags())
+
 	openshiftCmd.AddCommand(server.NewCommandStartServer("start"))
 	openshiftCmd.AddCommand(client.NewCommandKubecfg("kube"))
-	flagtypes.GLog(openshiftCmd.PersistentFlags())
 
 	// version information
 	versionCmd := &cobra.Command{
@@ -55,6 +62,27 @@ func main() {
 		},
 	}
 	openshiftCmd.AddCommand(versionCmd)
+
+	// let the infra commands be executed directly if program name matches
+	infraCommands := []*cobra.Command{
+		router.NewCommandRouter("router"),
+		deployer.NewCommandDeployer("deploy"),
+		builder.NewCommandSTIBuilder("sti-build"),
+		builder.NewCommandDockerBuilder("docker-build"),
+	}
+	for _, c := range infraCommands {
+		if fmt.Sprintf("openshift-%s", c.Name()) == name {
+			c.Use = "openshift-" + c.Use
+			if err := c.Execute(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %s", err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
+	infra := &cobra.Command{Use: "infra"}
+	openshiftCmd.AddCommand(infra)
+	infra.AddCommand(infraCommands...)
 
 	if err := openshiftCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s", err)
