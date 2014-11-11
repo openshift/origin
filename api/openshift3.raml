@@ -79,11 +79,11 @@ documentation:
     responses:
       200:
         body:
-          example: !include examples/buildConfigs.json
+          example: !include examples/build-config-list.json
   post:
     description: Create a new build.
     body:
-      example: !include examples/create_buildConfig.json
+      example: !include examples/create-build-config.json
 
   /{configID}:
     get:
@@ -91,11 +91,11 @@ documentation:
       responses:
         200:
           body:
-            example: !include examples/buildConfig.json
+            example: !include examples/build-config.json
     put:
       description: Update a specific build configuration.
       body:
-        example: !include examples/buildConfig.json
+        example: !include examples/build-config.json
     delete:
       description: Delete a specific build configuration.
       responses:
@@ -113,11 +113,11 @@ documentation:
     responses:
       200:
         body:
-          example: !include examples/builds.json
+          example: !include examples/build-list.json
   post:
     description: Create a new build.
     body:
-      example: !include examples/create_build.json
+      example: !include examples/create-build.json
 
   /{buildID}:
     get:
@@ -187,7 +187,7 @@ documentation:
     responses:
       200:
         body:
-          example: !include examples/deploymentConfigs.json
+          example: !include examples/deployment-config-list.json
   post:
     description: Create a new build.
     body:
@@ -199,11 +199,11 @@ documentation:
       responses:
         200:
           body:
-            example: !include examples/deploymentConfig.json
+            example: !include examples/deployment-config.json
     put:
       description: Update a specific build configuration.
       body:
-        example: !include examples/deploymentConfig.json
+        example: !include examples/deployment-config.json
     delete:
       description: Delete a specific build configuration.
       responses:
@@ -220,7 +220,7 @@ documentation:
     responses:
       200:
         body:
-          example: !include examples/deployments.json
+          example: !include examples/deployment-list.json
   post:
     description: Create a new deployment.
     body:
@@ -255,7 +255,7 @@ documentation:
     responses:
       200:
         body:
-          example: !include examples/image-repositories.json
+          example: !include examples/image-repository-list.json
   post:
     description: Create a new image repository.
     body:
@@ -302,7 +302,7 @@ documentation:
     responses:
       200:
         body:
-          example: !include examples/images.json
+          example: !include examples/image-list.json
   post:
     description: Create a new image definition.
     body:
