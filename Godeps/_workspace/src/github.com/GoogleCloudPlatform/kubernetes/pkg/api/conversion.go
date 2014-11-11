@@ -32,8 +32,16 @@ func init() {
 			out.Spec.Containers = in.Containers
 			out.Spec.Volumes = in.Volumes
 			out.Spec.RestartPolicy = in.RestartPolicy
-			out.ID = in.ID
+			out.Name = in.ID
 			out.UID = in.UUID
+			// TODO(dchen1107): Move this conversion to pkg/api/v1beta[123]/conversion.go
+			// along with fixing #1502
+			for i := range out.Spec.Containers {
+				ctr := &out.Spec.Containers[i]
+				if len(ctr.TerminationMessagePath) == 0 {
+					ctr.TerminationMessagePath = TerminationMessagePathDefault
+				}
+			}
 			return nil
 		},
 		func(in *BoundPod, out *ContainerManifest, s conversion.Scope) error {
@@ -41,8 +49,14 @@ func init() {
 			out.Volumes = in.Spec.Volumes
 			out.RestartPolicy = in.Spec.RestartPolicy
 			out.Version = "v1beta2"
-			out.ID = in.ID
+			out.ID = in.Name
 			out.UUID = in.UID
+			for i := range out.Containers {
+				ctr := &out.Containers[i]
+				if len(ctr.TerminationMessagePath) == 0 {
+					ctr.TerminationMessagePath = TerminationMessagePathDefault
+				}
+			}
 			return nil
 		},
 		func(in *ContainerManifestList, out *BoundPods, s conversion.Scope) error {
@@ -71,7 +85,7 @@ func init() {
 			// Only copy a subset of fields, and override manifest attributes with the pod
 			// metadata
 			out.UID = in.UID
-			out.ID = in.ID
+			out.Name = in.Name
 			out.Namespace = in.Namespace
 			out.CreationTimestamp = in.CreationTimestamp
 			return nil

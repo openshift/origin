@@ -32,7 +32,7 @@ func TestMakeBoundPodNoServices(t *testing.T) {
 	}
 
 	pod, err := factory.MakeBoundPod("machine", &api.Pod{
-		TypeMeta: api.TypeMeta{ID: "foobar"},
+		ObjectMeta: api.ObjectMeta{Name: "foobar"},
 		DesiredState: api.PodState{
 			Manifest: api.ContainerManifest{
 				Containers: []api.Container{
@@ -51,8 +51,12 @@ func TestMakeBoundPodNoServices(t *testing.T) {
 	if len(container.Env) != 0 {
 		t.Errorf("Expected zero env vars, got: %#v", pod)
 	}
-	if pod.ID != "foobar" {
-		t.Errorf("Failed to assign ID to pod: %#v", pod.ID)
+	if pod.Name != "foobar" {
+		t.Errorf("Failed to assign ID to pod: %#v", pod.Name)
+	}
+
+	if _, err := api.GetReference(pod); err != nil {
+		t.Errorf("Unable to get a reference to bound pod: %v", err)
 	}
 }
 
@@ -61,13 +65,15 @@ func TestMakeBoundPodServices(t *testing.T) {
 		List: api.ServiceList{
 			Items: []api.Service{
 				{
-					TypeMeta: api.TypeMeta{ID: "test"},
-					Port:     8080,
-					ContainerPort: util.IntOrString{
-						Kind:   util.IntstrInt,
-						IntVal: 900,
+					ObjectMeta: api.ObjectMeta{Name: "test"},
+					Spec: api.ServiceSpec{
+						Port: 8080,
+						ContainerPort: util.IntOrString{
+							Kind:   util.IntstrInt,
+							IntVal: 900,
+						},
+						PortalIP: "1.2.3.4",
 					},
-					PortalIP: "1.2.3.4",
 				},
 			},
 		},
@@ -137,13 +143,15 @@ func TestMakeBoundPodServicesExistingEnvVar(t *testing.T) {
 		List: api.ServiceList{
 			Items: []api.Service{
 				{
-					TypeMeta: api.TypeMeta{ID: "test"},
-					Port:     8080,
-					ContainerPort: util.IntOrString{
-						Kind:   util.IntstrInt,
-						IntVal: 900,
+					ObjectMeta: api.ObjectMeta{Name: "test"},
+					Spec: api.ServiceSpec{
+						Port: 8080,
+						ContainerPort: util.IntOrString{
+							Kind:   util.IntstrInt,
+							IntVal: 900,
+						},
+						PortalIP: "1.2.3.4",
 					},
-					PortalIP: "1.2.3.4",
 				},
 			},
 		},

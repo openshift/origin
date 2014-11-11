@@ -17,10 +17,10 @@ limitations under the License.
 package endpoint
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -48,7 +48,7 @@ func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
 // List satisfies the RESTStorage interface.
 func (rs *REST) List(ctx api.Context, label, field labels.Selector) (runtime.Object, error) {
 	if !label.Empty() || !field.Empty() {
-		return nil, errors.New("label/field selectors are not supported on endpoints")
+		return nil, errors.NewBadRequest("label/field selectors are not supported on endpoints")
 	}
 	return rs.registry.ListEndpoints(ctx)
 }
@@ -60,12 +60,12 @@ func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVer
 }
 
 // Create satisfies the RESTStorage interface.
-func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	endpoints, ok := obj.(*api.Endpoints)
 	if !ok {
 		return nil, fmt.Errorf("not an endpoints: %#v", obj)
 	}
-	if len(endpoints.ID) == 0 {
+	if len(endpoints.Name) == 0 {
 		return nil, fmt.Errorf("id is required: %#v", obj)
 	}
 	endpoints.CreationTimestamp = util.Now()
@@ -74,12 +74,12 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Obje
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetEndpoints(ctx, endpoints.ID)
+		return rs.registry.GetEndpoints(ctx, endpoints.Name)
 	}), nil
 }
 
 // Update satisfies the RESTStorage interface.
-func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	endpoints, ok := obj.(*api.Endpoints)
 	if !ok {
 		return nil, fmt.Errorf("not an endpoints: %#v", obj)
@@ -89,13 +89,13 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan runtime.Obje
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetEndpoints(ctx, endpoints.ID)
+		return rs.registry.GetEndpoints(ctx, endpoints.Name)
 	}), nil
 }
 
 // Delete satisfies the RESTStorage interface but is unimplemented.
-func (rs *REST) Delete(ctx api.Context, id string) (<-chan runtime.Object, error) {
-	return nil, errors.New("unimplemented")
+func (rs *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult, error) {
+	return nil, errors.NewBadRequest("Endpoints are read-only")
 }
 
 // New implements the RESTStorage interface.
