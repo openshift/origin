@@ -19,11 +19,11 @@ Getting Started
 The simplest way to start is to run OpenShift Origin in a Docker container:
 
     $ docker run -v /var/run/docker.sock:/var/run/docker.sock --net=host --privileged openshift/origin start
-    
+
 Note that this won't hold any data after a restart, so you'll need to use a data container or mount a volume at `/var/lib/openshift` to preserve that data.  Once the container is started, run:
 
     $ docker run openshift/origin openshift kube --help
-    
+
 to see the command line options you can use.
 
 ### Start Developing
@@ -77,7 +77,7 @@ You can use a private [Docker registry](https://github.com/docker/docker-registr
 
 #### Private docker registry
 
-To setup private docker registry you can either follow the [registry quick-start](https://github.com/docker/docker-registry#quick-start) 
+To setup private docker registry you can either follow the [registry quick-start](https://github.com/docker/docker-registry#quick-start)
 or use [sample-app example](https://github.com/openshift/origin/blob/master/examples/sample-app) to host a registry on OpenShift. In your `buildConfig` you should pass the fully qualified registry name of the image you want to push `myregistry.com:8080/username/imagename`.
 
 #### DockerHub
@@ -147,7 +147,7 @@ FAQ
     easy-to-approach developer and operator experience for building applications in containers.
     Kubernetes today is focused around composing containerized applications - OpenShift adds
     building images, managing them, and integrating them into deployment flows.  Our goal is to do
-    most of that work upstream, with integration and final packaging occuring in OpenShift.  As we
+    most of that work upstream, with integration and final packaging occurring in OpenShift.  As we
     iterate through the next few months, you'll see this repository focus more on integration and
     plugins, with more and more features becoming part of Kubernetes.
 
@@ -165,11 +165,11 @@ FAQ
 
     With the introduction of Kubernetes, the Kubelet, and the pull model it leverages from etcd, we
     believe we can implement the pull-orchestration model described in
-    [orchestrating geard](https://github.com/openshift/geard/blob/master/docs/orchestrating_geard.md), 
-    especially now that we have a path to properly 
+    [orchestrating geard](https://github.com/openshift/geard/blob/master/docs/orchestrating_geard.md),
+    especially now that we have a path to properly
     [limit host compromises from affecting the cluster](https://github.com/GoogleCloudPlatform/kubernetes/pull/860).  
-    The pull-model has many advantages for end clients, not least of which that they are guaranteed 
-    to eventually converge to the correct state of the server. We expect that the use cases the geard 
+    The pull-model has many advantages for end clients, not least of which that they are guaranteed
+    to eventually converge to the correct state of the server. We expect that the use cases the geard
     endpoint offered will be merged into the Kubelet for consumption by admins.
 
     systemd and Docker integration offers efficient and clean process management and secure logging
@@ -186,7 +186,7 @@ FAQ
     into the `openshift` command for all-in-one management of a cluster.
 
 
-Contributing 
+Contributing
 ------------
 
 All contributions are welcome - OpenShift uses the Apache 2 license and does not require any contributor agreement to submit patches.  Please open issues for any bugs or problems you encounter, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes) at the container runtime layer.
