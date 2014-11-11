@@ -37,5 +37,6 @@ bad_files=$(find_files | xargs gofmt -s -l)
 if [[ -n "${bad_files}" ]]; then
   echo "!!! gofmt needs to be run on the following files: "
   echo "${bad_files}"
+  echo "Try running 'gofmt -s -d [path]'"
   exit 1
 fi
