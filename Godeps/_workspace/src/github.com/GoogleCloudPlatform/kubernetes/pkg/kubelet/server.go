@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
@@ -53,8 +54,8 @@ func ListenAndServeKubeletServer(host HostInterface, updates chan<- interface{},
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
 		Handler:        &handler,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		ReadTimeout:    5 * time.Minute,
+		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
 	}
 	glog.Fatal(s.ListenAndServe())
@@ -66,6 +67,7 @@ type HostInterface interface {
 	GetContainerInfo(podFullName, uuid, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error)
 	GetRootInfo(req *info.ContainerInfoRequest) (*info.ContainerInfo, error)
 	GetMachineInfo() (*info.MachineInfo, error)
+	GetBoundPods() ([]api.BoundPod, error)
 	GetPodInfo(name, uuid string) (api.PodInfo, error)
 	RunInContainer(name, uuid, container string, cmd []string) ([]byte, error)
 	GetKubeletContainerLogs(podFullName, containerName, tail string, follow bool, stdout, stderr io.Writer) error
@@ -90,6 +92,7 @@ func NewServer(host HostInterface, updates chan<- interface{}, enableDebuggingHa
 func (s *Server) InstallDefaultHandlers() {
 	healthz.InstallHandler(s.mux)
 	s.mux.HandleFunc("/podInfo", s.handlePodInfo)
+	s.mux.HandleFunc("/boundPods", s.handleBoundPods)
 	s.mux.HandleFunc("/stats/", s.handleStats)
 	s.mux.HandleFunc("/spec/", s.handleSpec)
 }
@@ -126,14 +129,14 @@ func (s *Server) handleContainer(w http.ResponseWriter, req *http.Request) {
 		s.error(w, err)
 		return
 	}
-	pod.ID = containerManifest.ID
+	pod.Name = containerManifest.ID
 	pod.UID = containerManifest.UUID
 	pod.Spec.Containers = containerManifest.Containers
 	pod.Spec.Volumes = containerManifest.Volumes
 	pod.Spec.RestartPolicy = containerManifest.RestartPolicy
 	//TODO: sha1 of manifest?
-	if pod.ID == "" {
-		pod.ID = "1"
+	if pod.Name == "" {
+		pod.Name = "1"
 	}
 	if pod.UID == "" {
 		pod.UID = "1"
@@ -158,7 +161,7 @@ func (s *Server) handleContainers(w http.ResponseWriter, req *http.Request) {
 	}
 	pods := make([]api.BoundPod, len(specs))
 	for i := range specs {
-		pods[i].ID = fmt.Sprintf("%d", i+1)
+		pods[i].Name = fmt.Sprintf("%d", i+1)
 		pods[i].Spec = specs[i]
 	}
 	s.updates <- PodUpdate{pods, SET}
@@ -204,8 +207,8 @@ func (s *Server) handleContainerLogs(w http.ResponseWriter, req *http.Request) {
 	tail := uriValues.Get("tail")
 
 	podFullName := GetPodFullName(&api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:          podID,
+		ObjectMeta: api.ObjectMeta{
+			Name:        podID,
 			Namespace:   podNamespace,
 			Annotations: map[string]string{ConfigSourceAnnotationKey: "etcd"},
 		},
@@ -224,6 +227,26 @@ func (s *Server) handleContainerLogs(w http.ResponseWriter, req *http.Request) {
 		s.error(w, err)
 		return
 	}
+}
+
+// handleBoundPods returns a list of pod bound to the Kubelet and their spec
+func (s *Server) handleBoundPods(w http.ResponseWriter, req *http.Request) {
+	pods, err := s.host.GetBoundPods()
+	if err != nil {
+		s.error(w, err)
+		return
+	}
+	boundPods := &api.BoundPods{
+		Items: pods,
+	}
+	data, err := latest.Codec.Encode(boundPods)
+	if err != nil {
+		s.error(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-type", "application/json")
+	w.Write(data)
 }
 
 // handlePodInfo handles podInfo requests against the Kubelet
@@ -248,8 +271,8 @@ func (s *Server) handlePodInfo(w http.ResponseWriter, req *http.Request) {
 	}
 	// TODO: backwards compatibility with existing API, needs API change
 	podFullName := GetPodFullName(&api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:          podID,
+		ObjectMeta: api.ObjectMeta{
+			Name:        podID,
 			Namespace:   podNamespace,
 			Annotations: map[string]string{ConfigSourceAnnotationKey: "etcd"},
 		},
@@ -323,8 +346,8 @@ func (s *Server) handleRun(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	podFullName := GetPodFullName(&api.BoundPod{
-		TypeMeta: api.TypeMeta{
-			ID:          podID,
+		ObjectMeta: api.ObjectMeta{
+			Name:        podID,
 			Namespace:   podNamespace,
 			Annotations: map[string]string{ConfigSourceAnnotationKey: "etcd"},
 		},
@@ -373,8 +396,8 @@ func (s *Server) serveStats(w http.ResponseWriter, req *http.Request) {
 	case 3:
 		// Backward compatibility without uuid information
 		podFullName := GetPodFullName(&api.BoundPod{
-			TypeMeta: api.TypeMeta{
-				ID: components[1],
+			ObjectMeta: api.ObjectMeta{
+				Name: components[1],
 				// TODO: I am broken
 				Namespace:   api.NamespaceDefault,
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "etcd"},
@@ -383,8 +406,8 @@ func (s *Server) serveStats(w http.ResponseWriter, req *http.Request) {
 		stats, err = s.host.GetContainerInfo(podFullName, "", components[2], &query)
 	case 4:
 		podFullName := GetPodFullName(&api.BoundPod{
-			TypeMeta: api.TypeMeta{
-				ID: components[1],
+			ObjectMeta: api.ObjectMeta{
+				Name: components[1],
 				// TODO: I am broken
 				Namespace:   "",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "etcd"},
