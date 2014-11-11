@@ -29,8 +29,8 @@ func NewRouter() *HaproxyRouter {
 	return r
 }
 
-func (hr *HaproxyRouter) writeServer(f *os.File, id string, s *router.Endpoint) {
-	f.WriteString(fmt.Sprintf("  server %s %s:%s check inter 5000ms\n", id, s.IP, s.Port))
+func (hr *HaproxyRouter) writeServer(f *os.File, id string, endpoint *router.Endpoint) {
+	f.WriteString(fmt.Sprintf("  server %s %s:%s check inter 5000ms\n", id, endpoint.IP, endpoint.Port))
 }
 
 func (hr *HaproxyRouter) WriteConfig() {

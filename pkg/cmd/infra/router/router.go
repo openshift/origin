@@ -1,14 +1,14 @@
 package router
 
 import (
+	"flag"
 	"fmt"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	lbmanager "github.com/openshift/origin/pkg/router/lbmanager"
+	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 	"github.com/openshift/origin/plugins/router/haproxy"
 )
 
@@ -20,6 +20,7 @@ created by users and keeps a local router configuration up to date with those ch
 `
 
 func NewCommandRouter(name string) *cobra.Command {
+	flag.Set("v", "4")
 	cfg := clientcmd.NewConfig()
 
 	cmd := &cobra.Command{
@@ -47,11 +48,11 @@ func start(cfg *clientcmd.Config) error {
 	}
 
 	routes := haproxy.NewRouter()
-
-	// TODO yikes
-	controllerManager := lbmanager.NewLBManager(routes, kubeClient.Endpoints(""), osClient)
-	controllerManager.Run(10 * time.Second)
+	factory := controllerfactory.RouterControllerFactory{kubeClient, osClient}
+	controller := factory.Create(routes)
+	controller.Run()
 
 	select {}
+
 	return nil
 }

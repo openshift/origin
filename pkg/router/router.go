@@ -63,11 +63,11 @@ type Router interface {
 	WriteRoutes()
 	FindFrontend(name string) (v Frontend, ok bool)
 	DeleteBackends(name string)
-	CreateFrontend(name string, url string)
-	DeleteFrontend(frontendname string)
-	AddAlias(alias string, frontendname string)
-	RemoveAlias(alias string, frontendname string)
-	AddRoute(frontendname string, fePath string, bePath string, protocols []string, endpoints []Endpoint)
+	CreateFrontend(name, url string)
+	DeleteFrontend(name string)
+	AddAlias(alias, frontendName string)
+	RemoveAlias(alias, frontendName string)
+	AddRoute(frontendName, frontendPath, backendPath string, protocols []string, endpoints []Endpoint)
 	WriteConfig()
 	ReloadRouter() bool
 }
@@ -127,13 +127,13 @@ func (routes *Routes) CreateFrontend(name string, url string) {
 	routes.WriteRoutes()
 }
 
-func (routes *Routes) DeleteFrontend(frontendname string) {
-	delete(routes.GlobalRoutes, frontendname)
+func (routes *Routes) DeleteFrontend(name string) {
+	delete(routes.GlobalRoutes, name)
 	routes.WriteRoutes()
 }
 
-func (routes *Routes) AddAlias(alias string, frontendname string) {
-	a := routes.GlobalRoutes[frontendname]
+func (routes *Routes) AddAlias(alias, frontendName string) {
+	a := routes.GlobalRoutes[frontendName]
 	for _, v := range a.HostAliases {
 		if v == alias {
 			return
@@ -141,12 +141,12 @@ func (routes *Routes) AddAlias(alias string, frontendname string) {
 	}
 
 	a.HostAliases = append(a.HostAliases, alias)
-	routes.GlobalRoutes[frontendname] = a
+	routes.GlobalRoutes[frontendName] = a
 	routes.WriteRoutes()
 }
 
-func (routes *Routes) RemoveAlias(alias string, frontendname string) {
-	a := routes.GlobalRoutes[frontendname]
+func (routes *Routes) RemoveAlias(alias, frontendName string) {
+	a := routes.GlobalRoutes[frontendName]
 	newAliases := make([]string, 0)
 	for _, v := range a.HostAliases {
 		if v == alias || v == "" {
@@ -155,13 +155,13 @@ func (routes *Routes) RemoveAlias(alias string, frontendname string) {
 		newAliases = append(newAliases, v)
 	}
 	a.HostAliases = newAliases
-	routes.GlobalRoutes[frontendname] = a
+	routes.GlobalRoutes[frontendName] = a
 	routes.WriteRoutes()
 }
 
-func (routes *Routes) AddRoute(frontendname string, fePath string, bePath string, protocols []string, endpoints []Endpoint) {
+func (routes *Routes) AddRoute(frontendName, frontendPath, backendPath string, protocols []string, endpoints []Endpoint) {
 	var id string
-	a := routes.GlobalRoutes[frontendname]
+	a := routes.GlobalRoutes[frontendName]
 
 	epIDs := make([]string, 1)
 	for newEpId := range endpoints {
@@ -187,7 +187,7 @@ func (routes *Routes) AddRoute(frontendname string, fePath string, bePath string
 	// locate a backend that may already exist with this protocol and fe/be path
 	found := false
 	for _, be := range a.Backends {
-		if be.FePath == fePath && be.BePath == bePath && cmpStrSlices(protocols, be.Protocols) {
+		if be.FePath == frontendPath && be.BePath == backendPath && cmpStrSlices(protocols, be.Protocols) {
 			for _, epId := range epIDs {
 				be.EndpointIDs = append(be.EndpointIDs, epId)
 			}
@@ -198,7 +198,7 @@ func (routes *Routes) AddRoute(frontendname string, fePath string, bePath string
 	}
 	if !found {
 		id = makeID()
-		a.Backends[id] = Backend{id, fePath, bePath, protocols, epIDs, TERM_EDGE, nil}
+		a.Backends[id] = Backend{id, frontendPath, backendPath, protocols, epIDs, TERM_EDGE, nil}
 	}
 	routes.GlobalRoutes[a.Name] = a
 	routes.WriteRoutes()
