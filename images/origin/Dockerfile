@@ -15,5 +15,5 @@ RUN ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
     ln -s /usr/bin/openshift /usr/bin/openshift-router
 
 ENV HOME /root
-WORKINGDIR /var/lib/openshift
+WORKDIR /var/lib/openshift
 ENTRYPOINT ["/usr/bin/openshift"]
