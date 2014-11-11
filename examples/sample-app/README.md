@@ -11,7 +11,7 @@ Application Build, Deploy, and Update Flow
 
 This section covers how to perform all the steps of building, deploying, and updating an application on the OpenShift platform.
 
-All commands assume the `openshift` binary is in your path:
+All commands assume the `openshift` binary is in your path (normally located under origin/_output/local/go/bin):
 
 1. Pre-pull the docker images used in this sample.  This is not strictly necessary as OpenShift will pull the images as it needs them, but by doing it up front it will prevent lengthy operations during build and deployment which might otherwise lead you to believe the process has failed or hung.
 
