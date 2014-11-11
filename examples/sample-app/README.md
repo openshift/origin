@@ -1,7 +1,7 @@
 OpenShift 3 Application Lifecycle Sample
 ========================================
 
-This is a set of configuration files and scripts which work with Openshift 3 to create a new application and perform application builds.
+This is a set of configuration files and scripts which work with OpenShift 3 to create a new application and perform application builds.
 
 This example assumes you have successfully built the `openshift` binary executable and have Docker installed/working.  See https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
@@ -38,11 +38,11 @@ All commands assume the `openshift` binary is in your path (normally located und
         94679170-54dc-11e4-88cc-3c970e3bf0b7   openshift/docker-registry   localhost.localdomain/   deployment=registry-config,name=registrypod,replicationController=946583f6-54dc-11e4-88cc-3c970e3bf0b7   Running
 
 5. Confirm the registry service is running:
-        
+
         $ openshift kube list services
-        
+
     You should see:
-        
+
         ID                  Labels              Selector            IP                  Port
         ----------          ----------          ----------          ----------          ----------
         docker-registry                         name=registrypod    172.121.17.1        5001
@@ -50,12 +50,12 @@ All commands assume the `openshift` binary is in your path (normally located und
 6. Confirm the registry is accessible (you may need to run this more than once):
 
         $ curl 172.121.17.1:5001
-        
+
     You should see:
-    
+
         "docker-registry server (dev) (v0.9.0)"
-            
-        
+
+
 6. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
 
 7. *Optional:* Add the following webhook to your new github repository:
@@ -97,11 +97,11 @@ All commands assume the `openshift` binary is in your path (normally located und
      be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
 
      If you want to see the build logs of a complete build, use this command (substituting your build id from the "openshift kube list builds" output):
-     
+
          $ openshift kube buildLogs --id=20f54507-3dcd-11e4-984b-3c970e3bf0b7
-    
+
     The creation of the new image will automatically trigger a deployment of the application.
-         
+
 12. Wait for the application's frontend pod and database pods to be started (this can take a few mins):
 
         $ openshift kube list pods
@@ -132,7 +132,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 14. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.121.17.2:5432 in your browser.
 
 You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
-        
+
 15. Make a change to your ruby sample main.html file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
@@ -219,4 +219,4 @@ To clean up all of your environment, you can run the script:
 
         $ sudo ./cleanup.sh
 
-This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  The cleanup script needs root privileges to be able to remove all the directories openshift created.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
+This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.  (**Use with caution!**   Docker containers unrelated to OpenShift will also be killed by this script)
