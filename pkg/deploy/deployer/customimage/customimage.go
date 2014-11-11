@@ -1,6 +1,8 @@
 package customimage
 
 import (
+	"fmt"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -10,20 +12,21 @@ import (
 	"gopkg.in/v1/yaml"
 )
 
+// CustomImageDeployer performs a custom deployment of the given deploymentID
 type CustomImageDeployer struct {
 	KClient  *kclient.Client
 	OSClient osclient.Interface
 }
 
-func (d *CustomImageDeployer) Deploy(deploymentID string) {
+// Deploy performs the standard deployment process as described in the provided deployment.
+func (d *CustomImageDeployer) Deploy(deploymentID string) error {
 	ctx := kapi.NewContext()
 	glog.V(2).Infof("Retrieving deployment id: %v", deploymentID)
 
 	var deployment *deployapi.Deployment
 	var err error
 	if deployment, err = d.OSClient.GetDeployment(ctx, deploymentID); err != nil {
-		glog.Fatalf("An error occurred retrieving the deployment object: %v", err)
-		return
+		return fmt.Errorf("An error occurred retrieving the deployment object: %v", err)
 	}
 
 	var replicationControllers *kapi.ReplicationControllerList
@@ -32,8 +35,7 @@ func (d *CustomImageDeployer) Deploy(deploymentID string) {
 		selector, _ := labels.ParseSelector(deployapi.DeploymentConfigLabel + "=" + configID)
 		replicationControllers, err = d.KClient.ListReplicationControllers(ctx, selector)
 		if err != nil {
-			glog.Fatalf("Unable to get list of replication controllers: %v\n", err)
-			return
+			return fmt.Errorf("Unable to get list of replication controllers: %v\n", err)
 		}
 	}
 
@@ -54,8 +56,7 @@ func (d *CustomImageDeployer) Deploy(deploymentID string) {
 	glog.V(4).Info(string(obj))
 
 	if _, err := d.KClient.CreateReplicationController(ctx, controller); err != nil {
-		glog.Fatalf("An error occurred creating the replication controller: %v", err)
-		return
+		return fmt.Errorf("An error occurred creating the replication controller: %v", err)
 	}
 
 	glog.Info("Created replication controller")
@@ -67,12 +68,12 @@ func (d *CustomImageDeployer) Deploy(deploymentID string) {
 		glog.Info(string(obj))
 		rcObj, err1 := d.KClient.GetReplicationController(ctx, rc.ID)
 		if err1 != nil {
-			glog.Fatalf("Unable to get replication controller %s - error: %#v\n", rc.ID, err1)
+			return fmt.Errorf("Unable to get replication controller %s - error: %#v\n", rc.ID, err1)
 		}
 		rcObj.DesiredState.Replicas = 0
 		_, err := d.KClient.UpdateReplicationController(ctx, rcObj)
 		if err != nil {
-			glog.Fatalf("Unable to stop replication controller %s - error: %#v\n", rc.ID, err)
+			return fmt.Errorf("Unable to stop replication controller %s - error: %#v\n", rc.ID, err)
 		}
 	}
 
@@ -80,7 +81,9 @@ func (d *CustomImageDeployer) Deploy(deploymentID string) {
 		glog.Infof("Deleting replication controller %s", rc.ID)
 		err := d.KClient.DeleteReplicationController(ctx, rc.ID)
 		if err != nil {
-			glog.Fatalf("Unable to remove replication controller %s - error: %#v\n", rc.ID, err)
+			return fmt.Errorf("Unable to remove replication controller %s - error: %#v\n", rc.ID, err)
 		}
 	}
+
+	return nil
 }

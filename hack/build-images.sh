@@ -31,12 +31,8 @@ mkdir -p "${imagedir}"
 tar xzf "${releases}" -C "${imagedir}"
 
 # copy build artifacts to the appropriate locations
-cp -f "${imagedir}/openshift"        images/origin/bin
-cp -f "${imagedir}/openshift-deploy" images/origin/bin
-cp -f "${imagedir}/openshift-router" images/origin/bin
-cp -f "${imagedir}/openshift-router" images/router/haproxy/bin
-cp -f "${imagedir}/openshift-docker-build" images/builder/docker/docker-builder/bin
-cp -f "${imagedir}/openshift-sti-build"    images/builder/docker/sti-builder/bin
+cp -f "${imagedir}/openshift" images/origin/bin
+cp -f "${imagedir}/openshift" images/router/haproxy/bin
 
 # build hello-openshift binary
 "${OS_ROOT}/hack/build-go.sh" examples/hello-openshift

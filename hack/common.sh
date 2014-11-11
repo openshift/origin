@@ -26,12 +26,8 @@ readonly OS_COMPILE_PLATFORMS=(
   linux/amd64
 )
 readonly OS_COMPILE_TARGETS=(
-  cmd/openshift-router
-  cmd/openshift-deploy
-  cmd/openshift-docker-build
-  cmd/openshift-sti-build
 )
-readonly OS_COMPILE_BINARIES=("${OS_COMPILE_TARGETS[@]##*/}")
+readonly OS_COMPILE_BINARIES=("${OS_COMPILE_TARGETS[@]-##*/}")
 
 readonly OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
@@ -44,7 +40,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_ALL_TARGETS=(
-  "${OS_COMPILE_TARGETS[@]}"
+  "${OS_COMPILE_TARGETS[@]-}"
   "${OS_CROSS_COMPILE_TARGETS[@]}"
 )
 readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
