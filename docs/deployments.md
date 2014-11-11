@@ -234,7 +234,7 @@ A generator is modeled as a REST endpoint that receives as a parameter the ID of
 corresponding REST endpoint only.  In the future, the generator to use for a `DeploymentConfig`
 will be modeled as a field of that type.  The workflow around the generator is as follows:
 
-1.  An actor makes an HTTP GET call to `/genDeploymentConfig/<id>`
+1.  An actor makes an HTTP GET call to `/generateDeploymentConfigs/<id>`
 2.  The generator returns a `DeploymentConfig` with the latest versions of the images and tags
     interpolated into the pod template and the `LatestVersion` field incremented if a new
     deployment should be created
