@@ -10,8 +10,7 @@
 #
 # The standard name for this image is openshift/origin-docker-builder
 #
-FROM openshift/origin-base
+FROM openshift/origin
 
 ENV HOME /root
-ADD bin/openshift-docker-build /usr/bin/openshift-docker-build
-CMD ["/usr/bin/openshift-docker-build"]
+ENTRYPOINT ["/usr/bin/openshift-docker-build"]

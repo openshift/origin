@@ -5,6 +5,8 @@
 #
 FROM openshift/origin-haproxy-router-base
 
-ADD bin/openshift-router /usr/bin/openshift-router
+ADD bin/openshift /usr/bin/openshift
+RUN ln -s /usr/bin/openshift /usr/bin/openshift-router
+
 EXPOSE 80
 ENTRYPOINT ["/usr/bin/openshift-router"]

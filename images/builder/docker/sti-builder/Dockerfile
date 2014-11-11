@@ -10,8 +10,7 @@
 #
 # The standard name for this image is openshift/origin-sti-builder
 #
-FROM openshift/origin-base
+FROM openshift/origin
 
 ENV HOME /root
-ADD ./bin/openshift-sti-build /usr/bin/openshift-sti-build
-CMD ["/usr/bin/openshift-sti-build"]
+ENTRYPOINT ["/usr/bin/openshift-sti-build"]
