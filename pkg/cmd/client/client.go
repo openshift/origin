@@ -53,7 +53,7 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.StringVar(&cfg.ID, "id", "", "Specifies ID of requested resource.")
 	flag.StringVar(&cfg.ns, "ns", "", "If present, the namespace scope for this request.")
 	flag.StringVar(&cfg.nsFile, "ns_file", os.Getenv("HOME")+"/.kubernetes_ns", "Path to the namespace file")
-	// this is handy for ended to end testing
+	// this is handy for end to end testing
 	flag.StringVar(&cfg.ClientConfig.BearerToken, "token", "", "If present, the bearer token for this request.")
 
 	return cmd
