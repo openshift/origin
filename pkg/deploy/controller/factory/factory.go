@@ -123,7 +123,7 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 		switch deployment.Status {
 		case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
 			// Validate the correlating pod annotation
-			podID, hasPodID := deployment.Annotations["pod"]
+			podID, hasPodID := deployment.Annotations[deployapi.DeploymentPodAnnotation]
 			if !hasPodID {
 				glog.V(2).Infof("Unexpected state: Deployment %s has no pod annotation; skipping pod polling", deployment.ID)
 				continue
