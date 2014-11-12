@@ -132,7 +132,7 @@ growpart:
   mode: auto
   devices: ['/']
 runcmd:
-- [ sh, -xc, "echo 'Defaults:#{vagrant_openshift_config['aws']['ssh_user']} \!requiretty' >> /etc/sudoers"]
+- [ sh, -xc, "sed -i s/^Defaults.*requiretty/\#Defaults\ requiretty/g /etc/sudoers"]
         }
         aws.block_device_mapping = [
           {

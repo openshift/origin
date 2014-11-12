@@ -35,4 +35,4 @@ usermod -a -G docker vagrant
 
 echo To install etcd, run hack/install-etcd.sh
 
-sed -i s/Defaults.*requiretty/\#Defaults\ requiretty/g /etc/sudoers
+sed -i s/^Defaults.*requiretty/\#Defaults\ requiretty/g /etc/sudoers
