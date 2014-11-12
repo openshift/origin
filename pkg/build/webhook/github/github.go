@@ -34,7 +34,7 @@ type gitHubPushEvent struct {
 	HeadCommit gitHubCommit `json:"head_commit,omitempty" yaml:"head_commit,omitempty"`
 }
 
-// Extract responsible for servicing webhooks from github.com.
+// Extract services webhooks from github.com
 func (p *GitHubWebHook) Extract(buildCfg *buildapi.BuildConfig, path string, req *http.Request) (build *buildapi.Build, proceed bool, err error) {
 	if err = verifyRequest(req); err != nil {
 		return
