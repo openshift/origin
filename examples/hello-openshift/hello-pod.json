@@ -1,7 +1,10 @@
 {
   "id": "hello-openshift",
   "kind": "Pod",
-  "apiVersion": "v1beta1",
+  "apiVersion":"v1beta2",
+  "labels": {
+    "name": "hello-openshift"
+  },
   "desiredState": {
     "manifest": {
       "version": "v1beta1",
@@ -16,7 +19,4 @@
       }]
     }
   },
-  "labels": {
-    "name": "hello-openshift"
-  }
 }

@@ -6,8 +6,8 @@ import (
 )
 
 // ValidateRoute tests if required fields in the route are set.
-func ValidateRoute(route *routeapi.Route) errs.ErrorList {
-	result := errs.ErrorList{}
+func ValidateRoute(route *routeapi.Route) errs.ValidationErrorList {
+	result := errs.ValidationErrorList{}
 
 	if len(route.Host) == 0 {
 		result = append(result, errs.NewFieldRequired("host", ""))
