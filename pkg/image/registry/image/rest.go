@@ -50,36 +50,36 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Create registers the given Image.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	image, ok := obj.(*api.Image)
 	if !ok {
 		return nil, fmt.Errorf("not an image: %#v", obj)
 	}
-	if !kapi.ValidNamespace(ctx, &image.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &image.ObjectMeta) {
 		return nil, errors.NewConflict("image", image.Namespace, fmt.Errorf("Image.Namespace does not match the provided context"))
 	}
 
 	image.CreationTimestamp = util.Now()
 
 	if errs := validation.ValidateImage(image); len(errs) > 0 {
-		return nil, errors.NewInvalid("image", image.ID, errs)
+		return nil, errors.NewInvalid("image", image.Name, errs)
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateImage(ctx, image); err != nil {
 			return nil, err
 		}
-		return s.Get(ctx, image.ID)
+		return s.Get(ctx, image.Name)
 	}), nil
 }
 
 // Update is not supported for Images, as they are immutable.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("Images may not be changed.")
 }
 
 // Delete asynchronously deletes an Image specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImage(ctx, id)
 	}), nil

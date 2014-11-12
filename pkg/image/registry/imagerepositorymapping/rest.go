@@ -44,12 +44,12 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	mapping, ok := obj.(*api.ImageRepositoryMapping)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository mapping: %#v", obj)
 	}
-	if !kapi.ValidNamespace(ctx, &mapping.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &mapping.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepositoryMapping", mapping.Namespace, fmt.Errorf("ImageRepositoryMapping.Namespace does not match the provided context"))
 	}
 
@@ -59,7 +59,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		return nil, err
 	}
 	if repo == nil {
-		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.ID, errors.ErrorList{
+		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.Name, errors.ValidationErrorList{
 			errors.NewFieldNotFound("DockerImageRepository", mapping.DockerImageRepository),
 		})
 	}
@@ -68,7 +68,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 	imageRepoCtx := kapi.WithNamespace(kapi.NewContext(), repo.Namespace)
 
 	if errs := validation.ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
-		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.ID, errs)
+		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.Name, errs)
 	}
 
 	image := mapping.Image
@@ -79,7 +79,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 	if repo.Tags == nil {
 		repo.Tags = make(map[string]string)
 	}
-	repo.Tags[mapping.Tag] = image.ID
+	repo.Tags[mapping.Tag] = image.Name
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err = s.imageRegistry.CreateImage(imageRepoCtx, &image)
@@ -118,11 +118,11 @@ func (s *REST) findImageRepository(ctx kapi.Context, dockerRepo string) (*api.Im
 }
 
 // Update is not supported.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("ImageRepositoryMappings may not be changed.")
 }
 
 // Delete is not supported.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }

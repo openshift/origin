@@ -5,11 +5,9 @@ import (
 )
 
 type AccessToken struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-
-	// Name is the unique value for an access token - also known as its secret
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Labels         map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// AuthorizeToken is the authorization token that granted this access token, and contains
 	// the specific state of the token.
@@ -20,10 +18,8 @@ type AccessToken struct {
 }
 
 type AuthorizeToken struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-
-	// Name is the unique value for an authorization token - also known as its secret
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" yaml:"clientName,omitempty"`
@@ -49,11 +45,9 @@ type AuthorizeToken struct {
 }
 
 type Client struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-
-	// Name is the unique identifier of the client
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Labels         map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Secret is the unique secret associated with a client
 	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
@@ -63,7 +57,8 @@ type Client struct {
 }
 
 type ClientAuthorization struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// ClientName references the client that created this authorization
 	ClientName string `json:"clientName,omitempty" yaml:"clientName,omitempty"`
@@ -80,23 +75,27 @@ type ClientAuthorization struct {
 }
 
 type AccessTokenList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []AccessToken `json:"items,omitempty" yaml:"items,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []AccessToken `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type AuthorizeTokenList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []AuthorizeToken `json:"items,omitempty" yaml:"items,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []AuthorizeToken `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type ClientList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []Client `json:"items,omitempty" yaml:"items,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []Client `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type ClientAuthorizationList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []ClientAuthorization `json:"items,omitempty" yaml:"items,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []ClientAuthorization `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 func (*AccessToken) IsAnAPIObject()             {}

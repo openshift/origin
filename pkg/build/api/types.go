@@ -7,8 +7,9 @@ import (
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Labels         map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Parameters are all the inputs used to create the build pod.
 	Parameters BuildParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -175,8 +176,9 @@ const BuildConfigLabel = "buildconfig"
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Labels         map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
 	// are defined, a new build can only occur as a result of an explicit client build creation.
@@ -219,12 +221,14 @@ const (
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []Build `json:"items,omitempty" yaml:"items,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []Build `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }

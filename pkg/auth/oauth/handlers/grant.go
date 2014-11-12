@@ -104,7 +104,7 @@ func (g *autoGrant) GrantNeeded(client api.Client, user api.UserInfo, grant *api
 			ClientName: client.GetId(),
 			Scopes:     scope.Split(grant.Scope),
 		}
-		clientAuth.ID = clientAuthID
+		clientAuth.Name = clientAuthID
 
 		err = g.authregistry.CreateClientAuthorization(clientAuth)
 		if err != nil {

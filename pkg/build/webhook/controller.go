@@ -79,7 +79,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
-	build.Labels[api.BuildConfigLabel] = buildCfg.ID
+	build.Labels[api.BuildConfigLabel] = buildCfg.Name
 
 	if _, err := c.osClient.CreateBuild(kapi.WithNamespaceDefaultIfNone(ctx), build); err != nil {
 		badRequest(w, err.Error())

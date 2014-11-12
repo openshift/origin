@@ -2,9 +2,10 @@ package project
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
 	"github.com/openshift/origin/pkg/project/api"
-	"io"
 )
 
 var projectColumns = []string{"ID", "Namespace", "Display Name", "Description"}
@@ -16,7 +17,7 @@ func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
 }
 
 func printProject(project *api.Project, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", project.ID, project.Namespace, project.DisplayName, project.Description)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", project.Name, project.Namespace, project.DisplayName, project.Description)
 	return err
 }
 

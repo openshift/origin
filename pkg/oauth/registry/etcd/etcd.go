@@ -162,12 +162,12 @@ func (r *Etcd) ListClientAuthorizations(label, field labels.Selector) (*api.Clie
 }
 
 func (r *Etcd) CreateClientAuthorization(client *api.ClientAuthorization) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientAuthorizationKey(client.ID), client, 0), "clientAuthorization", client.ID)
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientAuthorizationKey(client.Name), client, 0), "clientAuthorization", client.Name)
 	return err
 }
 
 func (r *Etcd) UpdateClientAuthorization(client *api.ClientAuthorization) error {
-	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.ID), client), "clientAuthorization", client.ID)
+	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.Name), client), "clientAuthorization", client.Name)
 	return err
 }
 

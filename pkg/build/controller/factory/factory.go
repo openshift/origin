@@ -75,7 +75,7 @@ func (factory *BuildControllerFactory) pollPods() (cache.Enumerator, error) {
 		case buildapi.BuildStatusPending, buildapi.BuildStatusRunning:
 			pod, err := factory.KubeClient.GetPod(kapi.WithNamespace(kapi.NewContext(), build.Namespace), build.PodID)
 			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodID, build.ID, err)
+				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodID, build.Name, err)
 				continue
 			}
 			list.Items = append(list.Items, *pod)
@@ -100,7 +100,7 @@ func (pe *podEnumerator) Len() int {
 
 // Get returns the item (and ID) with the particular index.
 func (pe *podEnumerator) Get(index int) (string, interface{}) {
-	return pe.Items[index].ID, &pe.Items[index]
+	return pe.Items[index].Name, &pe.Items[index]
 }
 
 type typeBasedFactoryStrategy struct {

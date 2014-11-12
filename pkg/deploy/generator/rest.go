@@ -34,14 +34,14 @@ func (s *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
 	return s.generator.Generate(ctx, id)
 }
 
-func (s *REST) Delete(ctx api.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return nil, errors.New("deploy/generator.REST.Delete() is not implemented.")
 }
 
-func (s *REST) Update(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, errors.New("deploy/generator.REST.Update() is not implemented.")
 }
 
-func (s *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, errors.New("deploy/generator.REST.Create() is not implemented.")
 }

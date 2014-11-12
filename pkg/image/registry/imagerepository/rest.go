@@ -53,7 +53,7 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return s.registry.WatchImageRepositories(ctx, resourceVersion, func(repo *api.ImageRepository) bool {
 		fields := labels.Set{
-			"ID": repo.ID,
+			"Name":                  repo.Name,
 			"DockerImageRepository": repo.DockerImageRepository,
 		}
 		return label.Matches(labels.Set(repo.Labels)) && field.Matches(fields)
@@ -61,17 +61,17 @@ func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVer
 }
 
 // Create registers the given ImageRepository.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository: %#v", obj)
 	}
-	if !kapi.ValidNamespace(ctx, &repo.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &repo.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
 	}
 
-	if len(repo.ID) == 0 {
-		repo.ID = uuid.NewUUID().String()
+	if len(repo.Name) == 0 {
+		repo.Name = uuid.NewUUID().String()
 	}
 
 	if repo.Tags == nil {
@@ -84,20 +84,20 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		if err := s.registry.CreateImageRepository(ctx, repo); err != nil {
 			return nil, err
 		}
-		return s.Get(ctx, repo.ID)
+		return s.Get(ctx, repo.Name)
 	}), nil
 }
 
 // Update replaces an existing ImageRepository in the registry with the given ImageRepository.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
 		return nil, fmt.Errorf("not an image repository: %#v", obj)
 	}
-	if len(repo.ID) == 0 {
+	if len(repo.Name) == 0 {
 		return nil, fmt.Errorf("id is unspecified: %#v", repo)
 	}
-	if !kapi.ValidNamespace(ctx, &repo.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &repo.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
 	}
 
@@ -106,12 +106,12 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		if err != nil {
 			return nil, err
 		}
-		return s.Get(ctx, repo.ID)
+		return s.Get(ctx, repo.Name)
 	}), nil
 }
 
 // Delete asynchronously deletes an ImageRepository specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImageRepository(ctx, id)
 	}), nil

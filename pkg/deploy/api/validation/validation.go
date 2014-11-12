@@ -10,7 +10,7 @@ import (
 //       The upstream validation API isn't factored currently to allow this; we'll make a PR to
 //       upstream and fix when it goes in.
 
-func ValidateDeployment(deployment *deployapi.Deployment) errors.ErrorList {
+func ValidateDeployment(deployment *deployapi.Deployment) errors.ValidationErrorList {
 	result := validateDeploymentStrategy(&deployment.Strategy).Prefix("strategy")
 	controllerStateErrors := validation.ValidateReplicationControllerState(&deployment.ControllerTemplate)
 	result = append(result, controllerStateErrors.Prefix("controllerTemplate")...)
@@ -18,22 +18,8 @@ func ValidateDeployment(deployment *deployapi.Deployment) errors.ErrorList {
 	return result
 }
 
-func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ErrorList {
-	result := errors.ErrorList{}
-
-	for i := range config.Triggers {
-		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
-	}
-
-	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
-	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
-	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
-
-	return result
-}
-
-func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.ErrorList {
-	result := errors.ErrorList{}
+func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
 
 	if len(strategy.Type) == 0 {
 		result = append(result, errors.NewFieldRequired("type", ""))
@@ -51,8 +37,8 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.E
 	return result
 }
 
-func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams) errors.ErrorList {
-	result := errors.ErrorList{}
+func validateCustomPodStrategy(customPod *deployapi.CustomPodDeploymentStrategy) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
 
 	if len(params.Image) == 0 {
 		result = append(result, errors.NewFieldRequired("image", ""))
@@ -61,8 +47,8 @@ func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams) erro
 	return result
 }
 
-func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) errors.ErrorList {
-	result := errors.ErrorList{}
+func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
 
 	if len(trigger.Type) == 0 {
 		result = append(result, errors.NewFieldRequired("type", ""))
@@ -79,8 +65,8 @@ func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) errors.ErrorLis
 	return result
 }
 
-func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams) errors.ErrorList {
-	result := errors.ErrorList{}
+func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
 
 	if len(params.RepositoryName) == 0 {
 		result = append(result, errors.NewFieldRequired("repositoryName", ""))
@@ -89,6 +75,20 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 	if len(params.ContainerNames) == 0 {
 		result = append(result, errors.NewFieldRequired("containerNames", ""))
 	}
+
+	return result
+}
+
+func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
+
+	for i := range config.Triggers {
+		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	}
+
+	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
+	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
+	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
 
 	return result
 }

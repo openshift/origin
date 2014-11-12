@@ -157,7 +157,7 @@ func (c *Client) GetBuild(ctx kapi.Context, id string) (result *buildapi.Build, 
 // UpdateBuild updates the build on server. Returns the server's representation of the build and error if one occurs.
 func (c *Client) UpdateBuild(ctx kapi.Context, build *buildapi.Build) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
-	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("builds").Path(build.ID).Body(build).Do().Into(result)
+	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("builds").Path(build.Name).Body(build).Do().Into(result)
 	return
 }
 
@@ -202,7 +202,7 @@ func (c *Client) GetBuildConfig(ctx kapi.Context, id string) (result *buildapi.B
 // UpdateBuildConfig updates the buildconfig on server. Returns the server's representation of the buildconfig and error if one occurs.
 func (c *Client) UpdateBuildConfig(ctx kapi.Context, build *buildapi.BuildConfig) (result *buildapi.BuildConfig, err error) {
 	result = &buildapi.BuildConfig{}
-	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("buildConfigs").Path(build.ID).Body(build).Do().Into(result)
+	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("buildConfigs").Path(build.Name).Body(build).Do().Into(result)
 	return
 }
 
@@ -268,7 +268,7 @@ func (c *Client) CreateImageRepository(ctx kapi.Context, repo *imageapi.ImageRep
 // UpdateImageRepository updates the imagerepository on the server. Returns the server's representation of the imagerepository and error if one occurs.
 func (c *Client) UpdateImageRepository(ctx kapi.Context, repo *imageapi.ImageRepository) (result *imageapi.ImageRepository, err error) {
 	result = &imageapi.ImageRepository{}
-	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("imageRepositories").Path(repo.ID).Body(repo).Do().Into(result)
+	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("imageRepositories").Path(repo.Name).Body(repo).Do().Into(result)
 	return
 }
 
@@ -318,7 +318,7 @@ func (c *Client) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *depl
 // UpdateDeploymentConfig updates an existing deploymentConfig
 func (c *Client) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("deploymentConfigs").Path(deploymentConfig.ID).Body(deploymentConfig).Do().Into(result)
+	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("deploymentConfigs").Path(deploymentConfig.Name).Body(deploymentConfig).Do().Into(result)
 	return
 }
 
@@ -364,7 +364,7 @@ func (c *Client) CreateDeployment(ctx kapi.Context, deployment *deployapi.Deploy
 // UpdateDeployment updates an existing deployment
 func (c *Client) UpdateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (result *deployapi.Deployment, err error) {
 	result = &deployapi.Deployment{}
-	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("deployments").Path(deployment.ID).Body(deployment).Do().Into(result)
+	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("deployments").Path(deployment.Name).Body(deployment).Do().Into(result)
 	return
 }
 
@@ -414,7 +414,7 @@ func (c *Client) CreateRoute(ctx kapi.Context, route *routeapi.Route) (result *r
 // UpdateRoute takes the representation of a route to update.  Returns the server's representation of the route, and an error, if it occurs
 func (c *Client) UpdateRoute(ctx kapi.Context, route *routeapi.Route) (result *routeapi.Route, err error) {
 	result = &routeapi.Route{}
-	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("routes").Path(route.ID).Body(route).Do().Into(result)
+	err = c.Put().Namespace(kapi.Namespace(ctx)).Path("routes").Path(route.Name).Body(route).Do().Into(result)
 	return
 }
 
