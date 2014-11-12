@@ -70,6 +70,7 @@ func TestUserInitialization(t *testing.T) {
 		Name:     ":test",
 		FullName: "Mr. Test",
 	}
+	expectedUser.ID = ":test"
 	expectedUser.UID = actual.User.UID
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,
@@ -154,6 +155,7 @@ func TestUserLookup(t *testing.T) {
 		Name:     ":test",
 		FullName: "Mr. Test",
 	}
+	expectedUser.ID = ":test"
 	expectedUser.UID = actual.User.UID
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,

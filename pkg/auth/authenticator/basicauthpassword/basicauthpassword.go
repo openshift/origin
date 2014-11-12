@@ -7,7 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/auth/api"
+	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
@@ -21,7 +24,8 @@ import (
 // A successful response may also include name and/or email:
 //   {"id":"userid", "name": "User Name", "email":"user@example.com"}
 type Authenticator struct {
-	URL string
+	url    string
+	mapper authapi.UserIdentityMapper
 }
 
 // RemoteUserData holds user data returned from a remote basic-auth protected endpoint.
@@ -38,17 +42,17 @@ type RemoteError struct {
 }
 
 // New returns an authenticator which will make a basic auth call to the given url.
-func New(url string) authenticator.Password {
-	return &Authenticator{url}
+func New(url string, mapper authapi.UserIdentityMapper) authenticator.Password {
+	return &Authenticator{url, mapper}
 }
 
-func (a *Authenticator) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
-	req, err := http.NewRequest("GET", a.URL, nil)
+func (a *Authenticator) AuthenticatePassword(username, password string) (api.UserInfo, bool, error) {
+	req, err := http.NewRequest("GET", a.url, nil)
 	if err != nil {
 		return nil, false, err
 	}
 
-	req.SetBasicAuth(user, password)
+	req.SetBasicAuth(username, password)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -85,12 +89,18 @@ func (a *Authenticator) AuthenticatePassword(user, password string) (api.UserInf
 		return nil, false, errors.New("Could not retrieve user data")
 	}
 
-	userInfo := api.DefaultUserInfo{
-		Name: remoteUserData.ID,
+	identity := &authapi.DefaultUserIdentityInfo{
+		Name: username,
 		Extra: map[string]string{
 			"name":  remoteUserData.Name,
 			"email": remoteUserData.Email,
 		},
 	}
-	return &userInfo, true, nil
+	user, err := a.mapper.UserFor(identity)
+	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+	}
+
+	return user, true, nil
 }

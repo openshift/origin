@@ -7,10 +7,14 @@ import (
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/auth/api"
+	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 )
 
+// Handler exposes an external oauth provider flow (including the call back) as an oauth.handlers.AuthenticationHandler to allow our internal oauth
+// server to use an external oauth provider for authentication
 type Handler struct {
 	provider     Provider
 	state        State
@@ -18,9 +22,10 @@ type Handler struct {
 	client       *osincli.Client
 	success      handlers.AuthenticationSuccessHandler
 	error        handlers.AuthenticationErrorHandler
+	mapper       authapi.UserIdentityMapper
 }
 
-func NewHandler(provider Provider, state State, redirectUrl string, success handlers.AuthenticationSuccessHandler, error handlers.AuthenticationErrorHandler) (*Handler, error) {
+func NewHandler(provider Provider, state State, redirectUrl string, success handlers.AuthenticationSuccessHandler, error handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
 	clientConfig, err := provider.NewConfig()
 	if err != nil {
 		return nil, err
@@ -40,6 +45,7 @@ func NewHandler(provider Provider, state State, redirectUrl string, success hand
 		client:       client,
 		success:      success,
 		error:        error,
+		mapper:       mapper,
 	}, nil
 }
 
@@ -93,19 +99,25 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	glog.V(4).Infof("Got access data")
 
-	user, ok, err := h.provider.GetUserInfo(accessData)
+	identity, ok, err := h.provider.GetUserIdentity(accessData)
 	if err != nil {
-		glog.V(4).Infof("Error getting user info: %v", err)
+		glog.V(4).Infof("Error getting userIdentityInfo info: %v", err)
 		h.AuthenticationError(err, w, req)
 		return
 	}
-	if !ok || user == nil {
-		glog.V(4).Infof("Could not get user info from access token")
-		h.AuthenticationError(fmt.Errorf("Could not get user info from access token"), w, req)
+	if !ok {
+		glog.V(4).Infof("Could not get userIdentityInfo info from access token")
+		h.AuthenticationError(fmt.Errorf("Could not get userIdentityInfo info from access token"), w, req)
 		return
 	}
 
-	glog.V(4).Infof("Got user data: %#v", user)
+	user, err := h.mapper.UserFor(identity)
+	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
+	if err != nil {
+		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
+		h.AuthenticationError(err, w, req)
+		return
+	}
 
 	ok, err = h.state.Check(authData.State, w, req)
 	if !ok {

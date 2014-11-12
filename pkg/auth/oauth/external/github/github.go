@@ -7,7 +7,9 @@ import (
 	"net/http"
 
 	"github.com/RangelReale/osincli"
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/golang/glog"
+
+	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 )
 
@@ -33,6 +35,7 @@ func NewProvider(client_id, client_secret string) external.Provider {
 	return provider{client_id, client_secret}
 }
 
+// NewConfig implements external/interfaces/Provider.NewConfig
 func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{
 		ClientId:                 p.client_id,
@@ -46,11 +49,12 @@ func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	return config, nil
 }
 
+// AddCustomParameters implements external/interfaces/Provider.AddCustomParameters
 func (p provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
 }
 
-func (p provider) GetUserInfo(data *osincli.AccessData) (api.UserInfo, bool, error) {
-
+// GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
+func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
 	req, _ := http.NewRequest("GET", githubUserApiUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", data.AccessToken))
 
@@ -74,7 +78,7 @@ func (p provider) GetUserInfo(data *osincli.AccessData) (api.UserInfo, bool, err
 		return nil, false, fmt.Errorf("Could not retrieve GitHub id")
 	}
 
-	user := &api.DefaultUserInfo{
+	identity := &authapi.DefaultUserIdentityInfo{
 		Name: fmt.Sprintf("%d", userdata.ID),
 		Extra: map[string]string{
 			"name":  userdata.Name,
@@ -82,5 +86,7 @@ func (p provider) GetUserInfo(data *osincli.AccessData) (api.UserInfo, bool, err
 			"email": userdata.Email,
 		},
 	}
-	return user, true, nil
+	glog.V(4).Infof("Got identity=%#v", identity)
+
+	return identity, true, nil
 }

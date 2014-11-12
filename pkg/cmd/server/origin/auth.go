@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"github.com/openshift/origin/pkg/auth/authenticator/anyauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authfile "github.com/openshift/origin/pkg/auth/authenticator/file"
@@ -26,12 +27,15 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/session"
 
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	"github.com/openshift/origin/pkg/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 )
 
 const (
@@ -131,6 +135,8 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 	switch authHandlerType {
 	case "google", "github":
 		callbackPath := OpenShiftOAuthCallbackPrefix + "/" + authHandlerType
+		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
+		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(authHandlerType /*for now*/, userRegistry)
 
 		var oauthProvider external.Provider
 		if authHandlerType == "google" {
@@ -141,7 +147,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 
 		state := external.DefaultState()
 		success := handlers.AuthenticationSuccessHandlers{success, state.(handlers.AuthenticationSuccessHandler)}
-		oauthHandler, err := external.NewHandler(oauthProvider, state, c.MasterAddr+callbackPath, success, error)
+		oauthHandler, err := external.NewHandler(oauthProvider, state, c.MasterAddr+callbackPath, success, error, identityMapper)
 		if err != nil {
 			glog.Fatalf("unexpected error: %v", err)
 		}
@@ -149,23 +155,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 		mux.Handle(callbackPath, oauthHandler)
 		authHandler = oauthHandler
 	case "login":
-		var passwordAuth authenticator.Password
-
-		passwordAuthType := env("ORIGIN_PASSWORD_AUTH_TYPE", "empty")
-		switch passwordAuthType {
-		case "basic":
-			basicAuthURL := env("ORIGIN_BASIC_AUTH_URL", "")
-			if len(basicAuthURL) == 0 {
-				glog.Fatalf("ORIGIN_BASIC_AUTH_URL is required to support basic password auth")
-			}
-			passwordAuth = basicauthpassword.New(basicAuthURL)
-		case "empty":
-			// Accepts any username and password
-			passwordAuth = emptyPasswordAuth{}
-		default:
-			glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
-		}
-
+		passwordAuth := c.getPasswordAuthenticator()
 		authHandler = &redirectAuthHandler{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
 		success := handlers.AuthenticationSuccessHandlers{success, redirectSuccessHandler{}}
 		login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, success}, login.DefaultLoginFormRenderer)
@@ -177,6 +167,31 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 	}
 
 	return authHandler
+}
+
+func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
+	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// hard-coded strings as a stand-in until it gets sorted out
+	passwordAuthType := env("ORIGIN_PASSWORD_AUTH_TYPE", "empty")
+	userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
+	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(passwordAuthType /*for now*/, userRegistry)
+
+	var passwordAuth authenticator.Password
+	switch passwordAuthType {
+	case "basic":
+		basicAuthURL := env("ORIGIN_BASIC_AUTH_URL", "")
+		if len(basicAuthURL) == 0 {
+			glog.Fatalf("ORIGIN_BASIC_AUTH_URL is required to support basic password auth")
+		}
+		passwordAuth = basicauthpassword.New(basicAuthURL, identityMapper)
+	case "empty":
+		// Accepts any username and password
+		passwordAuth = anyauthpassword.New(identityMapper)
+	default:
+		glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
+	}
+
+	return passwordAuth
 }
 
 func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
@@ -249,20 +264,6 @@ func (auth *redirectAuthHandler) AuthenticationError(err error, w http.ResponseW
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusForbidden)
 	fmt.Fprintf(w, "<body>AuthenticationError - %s</body>", err)
-}
-
-//
-// Approves any login attempt with non-blank username and password
-//
-type emptyPasswordAuth struct{}
-
-func (emptyPasswordAuth) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
-	if user == "" || password == "" {
-		return nil, false, nil
-	}
-	return &api.DefaultUserInfo{
-		Name: user,
-	}, true, nil
 }
 
 //
