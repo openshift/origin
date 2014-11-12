@@ -66,6 +66,7 @@ type Router interface {
 	CreateFrontend(name string, url string)
 	DeleteFrontend(frontendname string)
 	AddAlias(alias string, frontendname string)
+	RemoveAlias(alias string, frontendname string)
 	AddRoute(frontendname string, fePath string, bePath string, protocols []string, endpoints []Endpoint)
 	WriteConfig()
 	ReloadRouter() bool
@@ -140,6 +141,20 @@ func (routes *Routes) AddAlias(alias string, frontendname string) {
 	}
 
 	a.HostAliases = append(a.HostAliases, alias)
+	routes.GlobalRoutes[frontendname] = a
+	routes.WriteRoutes()
+}
+
+func (routes *Routes) RemoveAlias(alias string, frontendname string) {
+	a := routes.GlobalRoutes[frontendname]
+	newAliases := make([]string, 0)
+	for _, v := range a.HostAliases {
+		if v == alias || v == "" {
+			continue
+		}
+		newAliases = append(newAliases, v)
+	}
+	a.HostAliases = newAliases
 	routes.GlobalRoutes[frontendname] = a
 	routes.WriteRoutes()
 }
