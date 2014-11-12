@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	strategy "github.com/openshift/origin/pkg/deploy/strategy/recreate"
 )
 
 const longCommandDesc = `
@@ -66,7 +65,10 @@ func deploy(cfg *config) error {
 		return err
 	}
 
-	// TODO: Choose a strategy based on some input
-	strategy := &strategy.RecreateDeploymentStrategy{ReplicationControllerClient: kClient}
-	return strategy.Deploy(deployment)
+	d := customimage.CustomImageDeployer{
+		customimage.RealDeploymentControl{KubeClient: kClient},
+		customimage.RealReplicationController{KubeClient: kClient},
+		osClient,
+	}
+	return d.Deploy(cfg.DeploymentName)
 }
