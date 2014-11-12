@@ -62,7 +62,7 @@ func (r *Etcd) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.Buil
 
 // WatchBuilds begins watching for new, changed, or deleted Builds.
 func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := parseWatchResourceVersion(resourceVersion, "imageRepository")
+	version, err := parseWatchResourceVersion(resourceVersion, "build")
 	if err != nil {
 		return nil, err
 	}
