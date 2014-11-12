@@ -2,10 +2,9 @@ package router
 
 import "testing"
 
-
 //Test that when removing an alias that only the single alias is removed and not the entire host alias structure for the
 //frontend
-func TestRemoveAlias(t *testing.T){
+func TestRemoveAlias(t *testing.T) {
 	router := &Routes{
 		make(map[string]Frontend),
 	}
@@ -15,7 +14,7 @@ func TestRemoveAlias(t *testing.T){
 
 	frontend := router.GlobalRoutes["frontend1"]
 
-	if len(frontend.HostAliases) != 2{
+	if len(frontend.HostAliases) != 2 {
 		t.Error("Expected 2 aliases got %i", len(frontend.HostAliases))
 	}
 
@@ -29,13 +28,13 @@ func TestRemoveAlias(t *testing.T){
 
 	alias := frontend.HostAliases[0]
 
-	if alias != "alias2"{
+	if alias != "alias2" {
 		t.Error("Expected to have alias2 remaining, found %s", alias)
 	}
 }
 
 //test deleting a frontend removes it from global routes
-func TestDeleteFrontend(t *testing.T){
+func TestDeleteFrontend(t *testing.T) {
 	router := &Routes{
 		make(map[string]Frontend),
 	}
@@ -48,7 +47,7 @@ func TestDeleteFrontend(t *testing.T){
 		t.Error("Expected to find frontend")
 	}
 
-	if len(frontend.HostAliases) != 1{
+	if len(frontend.HostAliases) != 1 {
 		t.Error("Expected 1 host alias")
 	}
 
