@@ -101,10 +101,14 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 	labels[deployapi.DeploymentConfigLabel] = config.Name
 
 	deployment := &deployapi.Deployment{
+
 		ObjectMeta: kapi.ObjectMeta{
 			Name: deployutil.LatestDeploymentIDForConfig(config),
+			Annotations: map[string]string{
+				deployapi.DeploymentConfigAnnotation: config.Name,
+			},
+			Labels: config.Labels,
 		},
-		Labels:             config.Labels,
 		Strategy:           config.Template.Strategy,
 		ControllerTemplate: config.Template.ControllerTemplate,
 		Details:            config.Details,

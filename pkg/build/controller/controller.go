@@ -20,8 +20,20 @@ type BuildController struct {
 	NextBuild     func() *buildapi.Build
 	NextPod       func() *kapi.Pod
 	BuildUpdater  buildUpdater
-	PodCreator    kclient.Client
+	PodControl    PodControlInterface
 	BuildStrategy BuildStrategy
+}
+
+type PodControlInterface interface {
+	createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
+}
+
+type RealPodControl struct {
+	KubeClient kclient.Interface
+}
+
+func (r RealPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return r.KubeClient.Pods(namespace).Create(pod)
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -31,6 +43,10 @@ type BuildStrategy interface {
 
 type buildUpdater interface {
 	UpdateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error)
+}
+
+type podCreator interface {
+	CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
 }
 
 // Run begins watching and syncing build jobs onto the cluster.
@@ -48,10 +64,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 	}
 
 	nextStatus := buildapi.BuildStatusFailed
-
-	build.PodID = fmt.Sprintf("build-%s", build.Name)
-	// TODO: Is this needed?
-	// ctx := kapi.WithNamespace(kapi.NewContext(), build.Namespace)
+	build.PodName = fmt.Sprintf("build-%s", build.Name)
 
 	var podSpec *kapi.Pod
 	var err error
@@ -59,7 +72,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 		glog.V(2).Infof("Strategy failed to create build pod definition: %v", err)
 		nextStatus = buildapi.BuildStatusFailed
 	} else {
-		if _, err := bc.PodCreator.Pods(build.Namespace).Create(podSpec); err != nil {
+		if _, err := bc.PodCreator.CreatePod(build.Namespace, podSpec); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				glog.V(2).Infof("Failed to create pod for build %s: %#v", build.Name, err)
 				nextStatus = buildapi.BuildStatusFailed
@@ -81,7 +94,7 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	var build *buildapi.Build
 	for _, obj := range bc.BuildStore.List() {
 		b := obj.(*buildapi.Build)
-		if b.PodID == pod.Name {
+		if b.PodName == pod.Name {
 			build = b
 			break
 		}
@@ -97,7 +110,7 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	case kapi.PodRunning:
 		// The pod's still running
 		nextStatus = buildapi.BuildStatusRunning
-	case kapi.PodSucceeded:
+	case kapi.PodSucceeded, kapi.PodFailed:
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildStatusComplete
 		for _, info := range pod.CurrentState.Info {

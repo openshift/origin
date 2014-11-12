@@ -7,25 +7,24 @@ import (
 
 // ImageList is a list of Image objects.
 type ImageList struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
-	Items           []Image `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Items         []Image `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	kapi.TypeMeta        `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta      `json:",inline" yaml:",inline"`
-	Labels               map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	DockerImageReference string            `json:"dockerImageReference,omitempty" yaml:"dockerImageReference,omitempty"`
-	Metadata             docker.Image      `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	kapi.ObjectMeta      `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	DockerImageReference string       `json:"dockerImageReference,omitempty" yaml:"dockerImageReference,omitempty"`
+	DockerImageMetadata  docker.Image `json:"dockerImageMetadata,omitempty" yaml:"dockerImageMetadata,omitempty"`
 }
 
 // ImageRepositoryList is a list of ImageRepository objects.
 type ImageRepositoryList struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
-	Items           []ImageRepository `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Items         []ImageRepository `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // ImageRepository stores a mapping of tags to images, metadata overrides that are applied
@@ -33,8 +32,7 @@ type ImageRepositoryList struct {
 // repository on a registry.
 type ImageRepository struct {
 	kapi.TypeMeta         `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta       `json:",inline" yaml:",inline"`
-	Labels                map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	kapi.ObjectMeta       `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	DockerImageRepository string            `json:"dockerImageRepository,omitempty" yaml:"dockerImageRepository,omitempty"`
 	Tags                  map[string]string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
@@ -45,7 +43,7 @@ type ImageRepository struct {
 // well as the reference to the Docker image repository the image came from.
 type ImageRepositoryMapping struct {
 	kapi.TypeMeta         `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta       `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta       `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	DockerImageRepository string `json:"dockerImageRepository" yaml:"dockerImageRepository"`
 	Image                 Image  `json:"image" yaml:"image"`
 	Tag                   string `json:"tag" yaml:"tag"`

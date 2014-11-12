@@ -64,7 +64,7 @@ function wait_for_url_timed {
   expire=$(($(time_now) + $max_wait))
   set +e
   while [[ $(time_now) -lt $expire ]]; do
-    out=$(curl -fs $url 2>/dev/null)
+    out=$(curl --max-time 2 -fs $url 2>/dev/null)
     if [ $? -eq 0 ]; then
       set -e
       echo ${prefix}${out}

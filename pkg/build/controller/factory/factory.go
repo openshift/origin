@@ -49,7 +49,7 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	return &controller.BuildController{
 		BuildStore:   factory.buildStore,
 		BuildUpdater: factory.Client,
-		PodCreator:   factory.KubeClient,
+		PodCreator:   ClientPodCreator{factory.KubeClient},
 		NextBuild: func() *buildapi.Build {
 			return buildQueue.Pop().(*buildapi.Build)
 		},
@@ -73,9 +73,9 @@ func (factory *BuildControllerFactory) pollPods() (cache.Enumerator, error) {
 
 		switch build.Status {
 		case buildapi.BuildStatusPending, buildapi.BuildStatusRunning:
-			pod, err := factory.KubeClient.GetPod(kapi.WithNamespace(kapi.NewContext(), build.Namespace), build.PodID)
+			pod, err := factory.KubeClient.Pods(build.Namespace).Get(build.PodName)
 			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodID, build.Name, err)
+				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodName, build.Name, err)
 				continue
 			}
 			list.Items = append(list.Items, *pod)
@@ -132,4 +132,14 @@ func (lw *buildLW) List() (runtime.Object, error) {
 // Watch watches all Builds.
 func (lw *buildLW) Watch(resourceVersion string) (watch.Interface, error) {
 	return lw.client.WatchBuilds(kapi.NewContext(), labels.Everything(), labels.Everything(), "0")
+}
+
+// ClientPodCreator is a podCreator which delegates to the Kubernetes client interface.
+type ClientPodCreator struct {
+	KubeClient kclient.Interface
+}
+
+// CreatePod creates a pod using the Kubernetes client.
+func (c ClientPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return c.KubeClient.Pods(namespace).Create(pod)
 }

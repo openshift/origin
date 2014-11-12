@@ -74,9 +74,9 @@ func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resou
 			return false
 		}
 		fields := labels.Set{
-			"Name":   build.Name,
-			"Status": string(build.Status),
-			"PodID":  build.PodID,
+			"name":    build.Name,
+			"status":  string(build.Status),
+			"podName": build.PodName,
 		}
 		return label.Matches(labels.Set(build.Labels)) && field.Matches(fields)
 	})

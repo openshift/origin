@@ -239,8 +239,8 @@ func TestInvokeWebhookOk(t *testing.T) {
 				buildRequest = build
 				return build, nil
 			},
-			GetBuildConfigFunc: func(ctx kapi.Context, id string) (*api.BuildConfig, error) {
-				buildConfig.ID = id
+			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*api.BuildConfig, error) {
+				buildConfig.Name = name
 				return buildConfig, nil
 			},
 		},
@@ -259,7 +259,7 @@ func TestInvokeWebhookOk(t *testing.T) {
 		t.Errorf("Wrong response code, expecting 200, got %s: %s!", resp.Status,
 			string(body))
 	}
-	if e, a := buildConfig.ID, buildRequest.Labels[api.BuildConfigLabel]; e != a {
+	if e, a := buildConfig.Name, buildRequest.Labels[api.BuildConfigLabel]; e != a {
 		t.Fatalf("expected build with label '%s', got '%s'", e, a)
 	}
 }

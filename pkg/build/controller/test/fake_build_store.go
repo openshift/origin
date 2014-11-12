@@ -26,7 +26,7 @@ func (s FakeBuildStore) List() []interface{} {
 	return []interface{}{s.Build}
 }
 
-func (s FakeBuildStore) Contains() util.StringSet {
+func (s FakeBuildStore) ContainedIDs() util.StringSet {
 	return util.NewStringSet()
 }
 

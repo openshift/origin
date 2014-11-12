@@ -37,7 +37,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 	}
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: build.PodID,
+			Name: build.PodName,
 		},
 		DesiredState: kapi.PodState{
 			Manifest: kapi.ContainerManifest{

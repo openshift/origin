@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -16,7 +17,7 @@ import (
 // will follow the status of the corresponding pod.
 type CustomPodDeploymentController struct {
 	DeploymentInterface dcDeploymentInterface
-	PodInterface        dcPodInterface
+	PodControl          PodControlInterface
 	Environment         []kapi.EnvVar
 	NextDeployment      func() *deployapi.Deployment
 	NextPod             func() *kapi.Pod
@@ -29,9 +30,21 @@ type dcDeploymentInterface interface {
 	UpdateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
 
-type dcPodInterface interface {
-	CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error)
-	DeletePod(ctx kapi.Context, id string) error
+type PodControlInterface interface {
+	createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
+	deletePod(namespace, id string) error
+}
+
+type RealPodControl struct {
+	KubeClient kclient.Interface
+}
+
+func (r RealPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return r.KubeClient.Pods(namespace).Create(pod)
+}
+
+func (r RealPodControl) deletePod(namespace, id string) error {
+	return r.KubeClient.Pods(namespace).Delete(id)
 }
 
 // Run begins watching and synchronizing deployment states.
@@ -67,7 +80,7 @@ func (dc *CustomPodDeploymentController) HandleDeployment() error {
 
 	deploymentPod := dc.makeDeploymentPod(deployment)
 	glog.V(2).Infof("Attempting to create deployment pod: %+v", deploymentPod)
-	if pod, err := dc.PodInterface.CreatePod(kapi.NewContext(), deploymentPod); err != nil {
+	if pod, err := dc.PodControl.createPod(deployment.Namespace, deploymentPod); err != nil {
 		glog.V(2).Infof("Received error creating pod: %v", err)
 		deployment.Status = deployapi.DeploymentStatusFailed
 	} else {
@@ -131,7 +144,7 @@ func (dc *CustomPodDeploymentController) inspectTerminatedDeploymentPod(deployme
 	if nextStatus == deployapi.DeploymentStatusComplete {
 		podID := deploymentPodID(deployment)
 		glog.V(2).Infof("Removing deployment pod for ID %v", podID)
-		dc.PodInterface.DeletePod(kapi.NewContext(), podID)
+		dc.PodControl.deletePod(deployment.Namespace, podID)
 	}
 
 	glog.V(4).Infof("The deployment pod has finished. Setting deployment state to %s", deployment.Status)

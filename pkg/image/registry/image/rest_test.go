@@ -58,13 +58,13 @@ func TestListImagesPopulatedList(t *testing.T) {
 	mockRegistry.Images = &api.ImageList{
 		Items: []api.Image{
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "foo",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "foo",
 				},
 			},
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "bar",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "bar",
 				},
 			},
 		},
@@ -116,7 +116,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Image{
-		TypeMeta:             kapi.TypeMeta{ID: "foo"},
+		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 	if channel == nil {
@@ -128,7 +128,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
@@ -145,7 +145,7 @@ func TestCreateImageOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Image{
-		TypeMeta:             kapi.TypeMeta{ID: "foo"},
+		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 	if channel == nil {
@@ -157,11 +157,11 @@ func TestCreateImageOK(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		image, ok := result.(*api.Image)
+		image, ok := result.Object.(*api.Image)
 		if !ok {
 			t.Errorf("Expected image type, got: %#v", result)
 		}
-		if image.ID != "foo" {
+		if image.Name != "foo" {
 			t.Errorf("Unexpected image: %#v", image)
 		}
 	case <-time.After(50 * time.Millisecond):
@@ -186,7 +186,7 @@ func TestGetImageError(t *testing.T) {
 func TestGetImageOK(t *testing.T) {
 	mockRegistry := test.NewImageRegistry()
 	mockRegistry.Image = &api.Image{
-		TypeMeta:             kapi.TypeMeta{ID: "foo"},
+		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	}
 	storage := REST{registry: mockRegistry}
@@ -198,7 +198,7 @@ func TestGetImageOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error", err)
 	}
-	if image.(*api.Image).ID != "foo" {
+	if image.(*api.Image).Name != "foo" {
 		t.Errorf("Unexpected image: %#v", image)
 	}
 }
@@ -230,7 +230,7 @@ func TestDeleteImage(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
@@ -246,7 +246,7 @@ func TestCreateImageConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
 	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Image{
-		TypeMeta:             kapi.TypeMeta{ID: "foo", Namespace: "some-value"},
+		ObjectMeta:           kapi.ObjectMeta{Name: "foo", Namespace: "some-value"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 
