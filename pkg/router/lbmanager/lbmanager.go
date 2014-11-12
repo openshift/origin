@@ -60,7 +60,7 @@ func (lm *LBManager) watchRoutes(resourceVersion *string) {
 		return
 	}
 
-	glog.V(4).Infof("Now entering watch mode.\n")
+	glog.V(4).Infof("Now entering watch mode.")
 	for {
 		select {
 		case event, open := <-watching.ResultChan():
@@ -78,7 +78,7 @@ func (lm *LBManager) watchRoutes(resourceVersion *string) {
 			*resourceVersion = rc.ResourceVersion
 			// Sync even if this is a deletion event, to ensure that we leave
 			// it in the desired state.
-			glog.Infof("About to sync from route watch: %v, %s\n", *rc, event.Type)
+			glog.Infof("About to sync from route watch: %v, %s", *rc, event.Type)
 			lm.syncRoutes(event.Type, *rc)
 		}
 	}
@@ -99,7 +99,7 @@ func (lm *LBManager) watchEndpoints(resourceVersion *string) {
 		return
 	}
 
-	glog.V(4).Infof("Now entering watch mode.\n")
+	glog.V(4).Infof("Now entering watch mode.")
 	for {
 		select {
 		case event, open := <-watching.ResultChan():
@@ -117,7 +117,7 @@ func (lm *LBManager) watchEndpoints(resourceVersion *string) {
 			*resourceVersion = rc.ResourceVersion
 			// Sync even if this is a deletion event, to ensure that we leave
 			// it in the desired state.
-			glog.Infof("About to sync from ep watch: %v, %s\n", *rc, event.Type)
+			glog.Infof("About to sync from ep watch: %v, %s", *rc, event.Type)
 			if event.Type != watch.Error {
 				lm.syncEndpoints(event.Type, *rc)
 			} else {
@@ -130,9 +130,9 @@ func (lm *LBManager) watchEndpoints(resourceVersion *string) {
 func (lm *LBManager) syncRoutes(event watch.EventType, app routeapi.Route) {
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
-	glog.V(4).Infof("App Name : %s\n", app.ServiceName)
-	glog.V(4).Infof("\tAlias : %s\n", app.Host)
-	glog.V(4).Infof("\tEvent : %s\n", event)
+	glog.V(4).Infof("App Name : %s", app.ServiceName)
+	glog.V(4).Infof("\tAlias : %s", app.Host)
+	glog.V(4).Infof("\tEvent : %s", event)
 
 	_, ok := lm.routes.FindFrontend(app.ServiceName)
 	if !ok {
@@ -140,7 +140,7 @@ func (lm *LBManager) syncRoutes(event watch.EventType, app routeapi.Route) {
 	}
 
 	if event == watch.Added || event == watch.Modified {
-		glog.V(4).Infof("Modifying routes for %s\n", app.ServiceName)
+		glog.V(4).Infof("Modifying routes for %s", app.ServiceName)
 		lm.routes.AddAlias(app.Host, app.ServiceName)
 	} else if event == watch.Deleted {
 		lm.routes.RemoveAlias(app.Host, app.ServiceName)
@@ -152,10 +152,10 @@ func (lm *LBManager) syncRoutes(event watch.EventType, app routeapi.Route) {
 func (lm *LBManager) syncEndpoints(event watch.EventType, app api.Endpoints) {
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
-	glog.V(4).Infof("App Name : %s\n", app.ID)
-	glog.V(4).Infof("\tNumber of endpoints : %d\n", len(app.Endpoints))
+	glog.V(4).Infof("App Name : %s", app.ID)
+	glog.V(4).Infof("\tNumber of endpoints : %d", len(app.Endpoints))
 	for i, e := range app.Endpoints {
-		glog.V(4).Infof("\tEndpoint %d : %s\n", i, e)
+		glog.V(4).Infof("\tEndpoint %d : %s", i, e)
 	}
 	_, ok := lm.routes.FindFrontend(app.ID)
 	if !ok {
@@ -166,7 +166,7 @@ func (lm *LBManager) syncEndpoints(event watch.EventType, app api.Endpoints) {
 	lm.routes.DeleteBackends(app.ID)
 
 	if event == watch.Added || event == watch.Modified {
-		glog.V(4).Infof("Modifying endpoints for %s\n", app.ID)
+		glog.V(4).Infof("Modifying endpoints for %s", app.ID)
 		eps := make([]router.Endpoint, len(app.Endpoints))
 		for i, e := range app.Endpoints {
 			ep := router.Endpoint{}
