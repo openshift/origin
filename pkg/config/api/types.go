@@ -9,7 +9,8 @@ import (
 // TODO: Unify with Kubernetes Config
 //       https://github.com/GoogleCloudPlatform/kubernetes/pull/1007
 type Config struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// Required: Name identifies the Config.
 	Name string `json:"name" yaml:"name"`

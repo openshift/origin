@@ -1,19 +1,20 @@
 package validation
 
 import (
+	"strings"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/project/api"
-	"strings"
 )
 
 // ValidateProject tests required fields for a Project.
-func ValidateProject(project *api.Project) errors.ErrorList {
-	result := errors.ErrorList{}
-	if len(project.ID) == 0 {
-		result = append(result, errors.NewFieldRequired("ID", project.ID))
-	} else if !util.IsDNS952Label(project.ID) {
-		result = append(result, errors.NewFieldInvalid("ID", project.ID))
+func ValidateProject(project *api.Project) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
+	if len(project.Name) == 0 {
+		result = append(result, errors.NewFieldRequired("Name", project.Name))
+	} else if !util.IsDNS952Label(project.Name) {
+		result = append(result, errors.NewFieldInvalid("Name", project.Name))
 	}
 	if !util.IsDNSSubdomain(project.Namespace) {
 		result = append(result, errors.NewFieldInvalid("Namespace", project.Namespace))

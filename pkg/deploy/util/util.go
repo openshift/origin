@@ -16,7 +16,7 @@ import (
 )
 
 func LatestDeploymentIDForConfig(config *deployapi.DeploymentConfig) string {
-	return config.ID + "-" + strconv.Itoa(config.LatestVersion)
+	return config.Name + "-" + strconv.Itoa(config.LatestVersion)
 }
 
 func ParamsForImageChangeTrigger(config *deployapi.DeploymentConfig, repoName string) *deployapi.DeploymentTriggerImageChangeParams {

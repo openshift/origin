@@ -16,7 +16,7 @@ import (
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
 
 // ValidateParameter tests if required fields in the Parameter are set.
-func ValidateParameter(param *api.Parameter) (errs errors.ErrorList) {
+func ValidateParameter(param *api.Parameter) (errs errors.ValidationErrorList) {
 	if len(param.Name) == 0 {
 		errs = append(errs, errors.NewFieldRequired("name", ""))
 		return
@@ -28,19 +28,20 @@ func ValidateParameter(param *api.Parameter) (errs errors.ErrorList) {
 }
 
 // ValidateTemplate tests if required fields in the Template are set.
-func ValidateTemplate(template *api.Template) (errs errors.ErrorList) {
-	if len(template.ID) == 0 {
-		errs = append(errs, errors.NewFieldRequired("id", template.ID))
+func ValidateTemplate(template *api.Template) (errs errors.ValidationErrorList) {
+	if len(template.Name) == 0 {
+		errs = append(errs, errors.NewFieldRequired("name", template.Name))
 	}
 	for i, item := range template.Items {
-		err := errors.ErrorList{}
+		err := errors.ValidationErrorList{}
 		switch obj := item.Object.(type) {
 		case *kapi.ReplicationController:
 			err = validation.ValidateReplicationController(obj)
 		case *kapi.Pod:
 			err = validation.ValidatePod(obj)
-		case *kapi.Service:
-			err = validation.ValidateService(obj)
+			// TODO: ValidateService now require registry and context
+			//		case *kapi.Service:
+			//			err = validation.ValidateService(obj)
 		case *routeapi.Route:
 			err = routevalidation.ValidateRoute(obj)
 		default:
@@ -57,11 +58,11 @@ func ValidateTemplate(template *api.Template) (errs errors.ErrorList) {
 	return
 }
 
-func filter(errs errors.ErrorList, prefix string) errors.ErrorList {
+func filter(errs errors.ValidationErrorList, prefix string) errors.ValidationErrorList {
 	if errs == nil {
 		return errs
 	}
-	next := errors.ErrorList{}
+	next := errors.ValidationErrorList{}
 	for _, err := range errs {
 		ve, ok := err.(errors.ValidationError)
 		if ok && strings.HasPrefix(ve.Field, prefix) {

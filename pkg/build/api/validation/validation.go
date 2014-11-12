@@ -9,20 +9,20 @@ import (
 )
 
 // ValidateBuild tests required fields for a Build.
-func ValidateBuild(build *buildapi.Build) errs.ErrorList {
-	allErrs := errs.ErrorList{}
-	if len(build.ID) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("id", build.ID))
+func ValidateBuild(build *buildapi.Build) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if len(build.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("name", build.Name))
 	}
 	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("parameters")...)
 	return allErrs
 }
 
 // ValidateBuildConfig tests required fields for a Build.
-func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ErrorList {
-	allErrs := errs.ErrorList{}
-	if len(config.ID) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("id", config.ID))
+func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if len(config.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("name", config.Name))
 	}
 	for i := range config.Triggers {
 		allErrs = append(allErrs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
@@ -31,8 +31,8 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ErrorList {
 	return allErrs
 }
 
-func validateBuildParameters(params *buildapi.BuildParameters) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateBuildParameters(params *buildapi.BuildParameters) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 
 	allErrs = append(allErrs, validateSource(&params.Source).Prefix("source")...)
 
@@ -46,8 +46,8 @@ func validateBuildParameters(params *buildapi.BuildParameters) errs.ErrorList {
 	return allErrs
 }
 
-func validateSource(input *buildapi.BuildSource) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateSource(input *buildapi.BuildSource) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	if input.Type != buildapi.BuildSourceGit {
 		allErrs = append(allErrs, errs.NewFieldRequired("type", buildapi.BuildSourceGit))
 	}
@@ -59,8 +59,8 @@ func validateSource(input *buildapi.BuildSource) errs.ErrorList {
 	return allErrs
 }
 
-func validateGitSource(git *buildapi.GitBuildSource) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateGitSource(git *buildapi.GitBuildSource) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	if len(git.URI) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("uri", git.URI))
 	} else if !isValidURL(git.URI) {
@@ -69,8 +69,8 @@ func validateGitSource(git *buildapi.GitBuildSource) errs.ErrorList {
 	return allErrs
 }
 
-func validateRevision(revision *buildapi.SourceRevision) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateRevision(revision *buildapi.SourceRevision) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	if len(revision.Type) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("type", revision.Type))
 	}
@@ -78,8 +78,8 @@ func validateRevision(revision *buildapi.SourceRevision) errs.ErrorList {
 	return allErrs
 }
 
-func validateStrategy(strategy *buildapi.BuildStrategy) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 
 	if len(strategy.Type) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("type", strategy.Type))
@@ -101,16 +101,16 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ErrorList {
 	return allErrs
 }
 
-func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	if len(strategy.BuilderImage) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("builderImage", strategy.BuilderImage))
 	}
 	return allErrs
 }
 
-func validateOutput(output *buildapi.BuildOutput) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	if len(output.ImageTag) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("imageTag", output.ImageTag))
 	}

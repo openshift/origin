@@ -46,7 +46,7 @@ func (p *TemplateProcessor) Process(template *api.Template) (*config.Config, err
 		Description: template.Description,
 		Items:       template.Items,
 	}
-	config.ID = template.ID
+	config.Name = template.Name
 	config.Kind = "Config"
 	config.CreationTimestamp = util.Now()
 	return config, nil

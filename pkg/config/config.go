@@ -18,6 +18,11 @@ type ApplyResult struct {
 	Message string
 }
 
+type BaseConfigItem struct {
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+}
+
 // Apply creates and manages resources defined in the Config. The create process wont
 // stop on error, but it will finish the job and then return error and for each item
 // in the config a error and status message string.
@@ -43,7 +48,7 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 			continue
 		}
 
-		itemBase := kapi.TypeMeta{}
+		itemBase := BaseConfigItem{}
 
 		err = json.Unmarshal(item, &itemBase)
 		if err != nil {
@@ -56,7 +61,7 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 			continue
 		}
 
-		if itemBase.ID == "" {
+		if itemBase.Name == "" {
 			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'id'", i)
 			continue
 		}
@@ -81,7 +86,7 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 		if err = request.Do().Error(); err != nil {
 			itemResult.Error = err
 		} else {
-			itemResult.Message = fmt.Sprintf("Creation succeeded for %v with 'id=%v'", itemBase.Kind, itemBase.ID)
+			itemResult.Message = fmt.Sprintf("Creation succeeded for %v with 'id=%v'", itemBase.Kind, itemBase.Name)
 		}
 		result = append(result, itemResult)
 	}

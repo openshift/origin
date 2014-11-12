@@ -38,7 +38,7 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {
 		return nil, errors.New("Not a template config.")
@@ -55,18 +55,18 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		if err != nil {
 			return nil, err
 		}
-		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.ID}); err != nil {
+		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); err != nil {
 			return nil, err
 		}
 		return cfg, nil
 	}), nil
 }
 
-func (s *REST) Update(ctx kapi.Context, tpl runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, tpl runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return nil, errors.New("not implemented")
 	}), nil

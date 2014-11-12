@@ -7,7 +7,8 @@ import (
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// Required: Name identifies the Template.
 	Name string `json:"name" yaml:"name"`

@@ -73,14 +73,14 @@ func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 	return nil, fmt.Errorf("BuildLog can't be listed")
 }
 
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("BuildLog can't be deleted")
 }
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("BuildLog can't be created")
 }
 
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("BuildLog can't be updated")
 }

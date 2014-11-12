@@ -7,12 +7,10 @@ import (
 // A deployment represents a single configuration of a pod deployed into the cluster, and may
 // represent both a current deployment or a historical deployment.
 type Deployment struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-
-	// Strategy describes how a deployment is executed.
-	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
-	// ControllerTemplate is the desired replication state the deployment works to materialize.
+	api.TypeMeta       `json:",inline" yaml:",inline"`
+	api.ObjectMeta     `json:",inline" yaml:",inline"`
+	Labels             map[string]string              `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Strategy           DeploymentStrategy             `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	ControllerTemplate api.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 	// Status is the execution status of the deployment.
 	Status DeploymentStatus `json:"status,omitempty" yaml:"status,omitempty"`
@@ -23,6 +21,13 @@ type Deployment struct {
 	// If no trigger is specified here, then the deployment was likely created as a result of an
 	// explicit client request to create a new deployment resource.
 	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
+}
+
+// A DeploymentList is a collection of deployments.
+type DeploymentList struct {
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []Deployment `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // DeploymentStatus decribes the possible states a Deployment can be in.
@@ -71,12 +76,6 @@ type CustomDeploymentStrategyParams struct {
 	Command []string `json:"command,omitempty" yaml:"command,omitempty"`
 }
 
-// A DeploymentList is a collection of deployments.
-type DeploymentList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []Deployment `json:"items,omitempty" yaml:"items,omitempty"`
-}
-
 // These constants represent annotation keys used for correlating objects related to deployments.
 const (
 	DeploymentConfigAnnotation = "deploymentConfig"
@@ -93,8 +92,9 @@ const (
 // what the template is for the deployment, how new deployments are triggered, what the desired
 // deployment state is.
 type DeploymentConfig struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Labels         map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.
@@ -109,7 +109,15 @@ type DeploymentConfig struct {
 	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
 }
 
-// DeploymentTemplate templatizes the configurable fields of a Deployment.
+// A DeploymentConfigList is a collection of deployment configs.
+type DeploymentConfigList struct {
+	api.TypeMeta   `json:",inline" yaml:",inline"`
+	api.ObjectMeta `json:",inline" yaml:",inline"`
+	Items          []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
+}
+
+// DeploymentTemplate contains all the necessary information to create a Deployment from a
+// DeploymentStrategy.
 type DeploymentTemplate struct {
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
@@ -171,10 +179,4 @@ type DeploymentCauseImageTrigger struct {
 	RepositoryName string `json:"repositoryName,omitempty" yaml:"repositoryName,omitempty"`
 	// Tag is the name of an image repository tag that is now pointing to a new image.
 	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
-}
-
-// A DeploymentConfigList is a collection of deployment configs.
-type DeploymentConfigList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }

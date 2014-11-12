@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"fmt"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -46,18 +45,19 @@ func (c *MasterConfig) EnsurePortalFlags() {
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
 func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
-	podInfoGetter := &kclient.HTTPPodInfoGetter{
-		Client: http.DefaultClient,
-		Port:   uint(NodePort),
-	}
+	//podInfoGetter := &kclient.HTTPPodInfoGetter{
+	//	Client: http.DefaultClient,
+	//	Port:   uint(NodePort),
+	//}
 
 	masterConfig := &master.Config{
 		Client:             c.KubeClient,
 		EtcdHelper:         c.EtcdHelper,
 		HealthCheckMinions: true,
-		Minions:            c.NodeHosts,
-		PodInfoGetter:      podInfoGetter,
-		PortalNet:          c.PortalNet,
+		// TODO: https://github.com/GoogleCloudPlatform/kubernetes/commit/019b7fc74c999c1ae8d54c6687735ad54e9b2b68
+		// Minions:            c.NodeHosts,
+		// PodInfoGetter: podInfoGetter,
+		PortalNet: c.PortalNet,
 	}
 	m := master.New(masterConfig)
 

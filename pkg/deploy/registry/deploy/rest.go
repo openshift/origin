@@ -54,33 +54,33 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the Deployment specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteDeployment(ctx, id)
 	}), nil
 }
 
 // Create registers a given new Deployment instance to s.registry.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	deployment, ok := obj.(*deployapi.Deployment)
 	if !ok {
 		return nil, fmt.Errorf("not a deployment: %#v", obj)
 	}
-	if !kapi.ValidNamespace(ctx, &deployment.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &deployment.ObjectMeta) {
 		return nil, kerrors.NewConflict("deployment", deployment.Namespace, fmt.Errorf("Deployment.Namespace does not match the provided context"))
 	}
 
 	deployment.CreationTimestamp = util.Now()
 
-	if len(deployment.ID) == 0 {
-		deployment.ID = uuid.NewUUID().String()
+	if len(deployment.Name) == 0 {
+		deployment.Name = uuid.NewUUID().String()
 	}
 	deployment.Status = deployapi.DeploymentStatusNew
 
-	glog.Infof("Creating deployment with namespace::ID: %v::%v", deployment.Namespace, deployment.ID)
+	glog.Infof("Creating deployment with namespace::ID: %v::%v", deployment.Namespace, deployment.Name)
 
 	if errs := validation.ValidateDeployment(deployment); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("deployment", deployment.ID, errs)
+		return nil, kerrors.NewInvalid("deployment", deployment.Name, errs)
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
@@ -93,15 +93,15 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 }
 
 // Update replaces a given Deployment instance with an existing instance in s.registry.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	deployment, ok := obj.(*deployapi.Deployment)
 	if !ok {
 		return nil, fmt.Errorf("not a deployment: %#v", obj)
 	}
-	if len(deployment.ID) == 0 {
+	if len(deployment.Name) == 0 {
 		return nil, fmt.Errorf("id is unspecified: %#v", deployment)
 	}
-	if !kapi.ValidNamespace(ctx, &deployment.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &deployment.ObjectMeta) {
 		return nil, kerrors.NewConflict("deployment", deployment.Namespace, fmt.Errorf("Deployment.Namespace does not match the provided context"))
 	}
 

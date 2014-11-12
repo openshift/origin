@@ -6,11 +6,11 @@ import (
 )
 
 // ValidateImage tests required fields for an Image.
-func ValidateImage(image *api.Image) errors.ErrorList {
-	result := errors.ErrorList{}
+func ValidateImage(image *api.Image) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
 
-	if len(image.ID) == 0 {
-		result = append(result, errors.NewFieldRequired("ID", image.ID))
+	if len(image.Name) == 0 {
+		result = append(result, errors.NewFieldRequired("Name", image.Name))
 	}
 
 	if len(image.DockerImageReference) == 0 {
@@ -21,8 +21,8 @@ func ValidateImage(image *api.Image) errors.ErrorList {
 }
 
 // ValidateImageRepositoryMapping tests required fields for an ImageRepositoryMapping.
-func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.ErrorList {
-	result := errors.ErrorList{}
+func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
 
 	if len(mapping.DockerImageRepository) == 0 {
 		result = append(result, errors.NewFieldRequired("DockerImageRepository", mapping.DockerImageRepository))

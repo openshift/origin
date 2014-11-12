@@ -74,7 +74,7 @@ func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resou
 			return false
 		}
 		fields := labels.Set{
-			"ID":     build.ID,
+			"Name":   build.Name,
 			"Status": string(build.Status),
 			"PodID":  build.PodID,
 		}
@@ -114,22 +114,22 @@ func (r *Etcd) GetBuild(ctx kapi.Context, id string) (*api.Build, error) {
 
 // CreateBuild creates a new Build.
 func (r *Etcd) CreateBuild(ctx kapi.Context, build *api.Build) error {
-	key, err := makeBuildKey(ctx, build.ID)
+	key, err := makeBuildKey(ctx, build.Name)
 	if err != nil {
 		return err
 	}
 	err = r.CreateObj(key, build, 0)
-	return etcderr.InterpretCreateError(err, "build", build.ID)
+	return etcderr.InterpretCreateError(err, "build", build.Name)
 }
 
 // UpdateBuild replaces an existing Build.
 func (r *Etcd) UpdateBuild(ctx kapi.Context, build *api.Build) error {
-	key, err := makeBuildKey(ctx, build.ID)
+	key, err := makeBuildKey(ctx, build.Name)
 	if err != nil {
 		return err
 	}
 	err = r.SetObj(key, build)
-	return etcderr.InterpretUpdateError(err, "build", build.ID)
+	return etcderr.InterpretUpdateError(err, "build", build.Name)
 }
 
 // DeleteBuild deletes a Build specified by its ID.
@@ -183,22 +183,22 @@ func (r *Etcd) GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, er
 
 // CreateBuildConfig creates a new BuildConfig.
 func (r *Etcd) CreateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
-	key, err := makeBuildConfigKey(ctx, config.ID)
+	key, err := makeBuildConfigKey(ctx, config.Name)
 	if err != nil {
 		return err
 	}
 	err = r.CreateObj(key, config, 0)
-	return etcderr.InterpretCreateError(err, "buildConfig", config.ID)
+	return etcderr.InterpretCreateError(err, "buildConfig", config.Name)
 }
 
 // UpdateBuildConfig replaces an existing BuildConfig.
 func (r *Etcd) UpdateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
-	key, err := makeBuildConfigKey(ctx, config.ID)
+	key, err := makeBuildConfigKey(ctx, config.Name)
 	if err != nil {
 		return err
 	}
 	err = r.SetObj(key, config)
-	return etcderr.InterpretUpdateError(err, "buildConfig", config.ID)
+	return etcderr.InterpretUpdateError(err, "buildConfig", config.Name)
 }
 
 // DeleteBuildConfig deletes a BuildConfig specified by its ID.

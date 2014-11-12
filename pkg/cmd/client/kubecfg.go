@@ -11,11 +11,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -285,7 +285,10 @@ func (c *KubeConfig) Run() {
 
 	if c.Proxy {
 		glog.Info("Starting to serve on localhost:8001")
-		server := kubecfg.NewProxyServer(c.WWW, kubeClient)
+		server, err := kubecfg.NewProxyServer(c.WWW, clientConfig)
+		if err != nil {
+			glog.Fatalf("Unable to initialize proxy server %v", err)
+		}
 		glog.Fatal(server.Serve())
 	}
 
@@ -371,7 +374,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		if err != nil {
 			glog.Fatalf("error obtaining resource version for update: %v", err)
 		}
-		typeMeta, err := runtime.FindTypeMeta(obj)
+		typeMeta, err := meta.Accessor(obj)
 		if err != nil {
 			glog.Fatalf("error finding json base for update: %v", err)
 		}
@@ -396,7 +399,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
-			typeMeta, err := runtime.FindTypeMeta(obj)
+			typeMeta, err := meta.Accessor(obj)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
@@ -435,13 +438,8 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		} else {
 			data = []byte(c.TemplateStr)
 		}
-		tmpl, err := template.New("output").Parse(string(data))
-		if err != nil {
-			glog.Fatalf("Error parsing template %s, %v", string(data), err)
-			return false
-		}
-		printer = &kubecfg.TemplatePrinter{
-			Template: tmpl,
+		if printer, err = kubecfg.NewTemplatePrinter(data); err != nil {
+			glog.Fatalf("Failed to create printer %v", err)
 		}
 	default:
 		printer = humanReadablePrinter()

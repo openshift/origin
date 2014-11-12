@@ -85,10 +85,10 @@ func (lm *LBManager) watchRoutes(resourceVersion *string) {
 }
 
 // resourceVersion is a pointer to the resource version to use/update.
-func (lm *LBManager) watchEndpoints(resourceVersion *string) {
-	ctx := kapi.NewContext()
-	watching, err := lm.endpointWatcher.WatchEndpoints(
-		ctx,
+func (lm *LBManager) watchEndpoints(resourceVersion string) {
+	// TODO: Is this needed anymore?
+	// ctx := kapi.NewContext()
+	watching, err := lm.endpointWatcher.Watch(
 		labels.Everything(),
 		labels.Everything(),
 		*resourceVersion,
@@ -152,21 +152,21 @@ func (lm *LBManager) syncRoutes(event watch.EventType, app routeapi.Route) {
 func (lm *LBManager) syncEndpoints(event watch.EventType, app api.Endpoints) {
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
-	glog.V(4).Infof("App Name : %s", app.ID)
-	glog.V(4).Infof("\tNumber of endpoints : %d", len(app.Endpoints))
+	glog.V(4).Infof("App Name : %s\n", app.Name)
+	glog.V(4).Infof("\tNumber of endpoints : %d\n", len(app.Endpoints))
 	for i, e := range app.Endpoints {
 		glog.V(4).Infof("\tEndpoint %d : %s", i, e)
 	}
-	_, ok := lm.routes.FindFrontend(app.ID)
+	_, ok := lm.routes.FindFrontend(app.Name)
 	if !ok {
-		lm.routes.CreateFrontend(app.ID, "") //"www."+app.ID+".com"
+		lm.routes.CreateFrontend(app.Name, "") //"www."+app.ID+".com"
 	}
 
 	// Delete the endpoints only
-	lm.routes.DeleteBackends(app.ID)
+	lm.routes.DeleteBackends(app.Name)
 
 	if event == watch.Added || event == watch.Modified {
-		glog.V(4).Infof("Modifying endpoints for %s", app.ID)
+		glog.V(4).Infof("Modifying endpoints for %s\n", app.Name)
 		eps := make([]router.Endpoint, len(app.Endpoints))
 		for i, e := range app.Endpoints {
 			ep := router.Endpoint{}
@@ -182,7 +182,7 @@ func (lm *LBManager) syncEndpoints(event watch.EventType, app api.Endpoints) {
 			}
 			eps[i] = ep
 		}
-		lm.routes.AddRoute(app.ID, "", "", nil, eps)
+		lm.routes.AddRoute(app.Name, "", "", nil, eps)
 	}
 	lm.routes.WriteConfig()
 	lm.routes.ReloadRouter()

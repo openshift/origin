@@ -38,40 +38,40 @@ func (c *DeploymentConfigController) HandleDeploymentConfig() {
 	deploy, err := c.shouldDeploy(ctx, config)
 	if err != nil {
 		// TODO: better error handling
-		glog.V(2).Infof("Error determining whether to redeploy deploymentConfig %v: %#v", config.ID, err)
+		glog.V(2).Infof("Error determining whether to redeploy deploymentConfig %v: %#v", config.Name, err)
 		return
 	}
 
 	if !deploy {
-		glog.V(4).Infof("Won't deploy from config %s", config.ID)
+		glog.V(4).Infof("Won't deploy from config %s", config.Name)
 		return
 	}
 
 	err = c.deploy(ctx, config)
 	if err != nil {
-		glog.V(2).Infof("Error deploying config %s: %v", config.ID, err)
+		glog.V(2).Infof("Error deploying config %s: %v", config.Name, err)
 	}
 }
 
 // shouldDeploy returns true if the DeploymentConfig should have a new Deployment created.
 func (c *DeploymentConfigController) shouldDeploy(ctx kapi.Context, config *deployapi.DeploymentConfig) (bool, error) {
 	if config.LatestVersion == 0 {
-		glog.V(4).Infof("Shouldn't deploy config %s with LatestVersion=0", config.ID)
+		glog.V(4).Infof("Shouldn't deploy config %s with LatestVersion=0", config.Name)
 		return false, nil
 	}
 
 	deployment, err := c.latestDeploymentForConfig(ctx, config)
 	if deployment != nil {
-		glog.V(4).Infof("Shouldn't deploy because a deployment '%s' already exists for latest config %s", deployment.ID, config.ID)
+		glog.V(4).Infof("Shouldn't deploy because a deployment '%s' already exists for latest config %s", deployment.Name, config.Name)
 		return false, nil
 	}
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			glog.V(4).Infof("Should deploy config %s because there's no latest deployment", config.ID)
+			glog.V(4).Infof("Should deploy config %s because there's no latest deployment", config.Name)
 			return true, nil
 		} else {
-			glog.V(4).Infof("Shouldn't deploy config %s because of an error looking up latest deployment", config.ID)
+			glog.V(4).Infof("Shouldn't deploy config %s because of an error looking up latest deployment", config.Name)
 			return false, err
 		}
 	}
@@ -94,12 +94,15 @@ func (c *DeploymentConfigController) latestDeploymentForConfig(ctx kapi.Context,
 
 // deploy performs the work of actually creating a Deployment from the given DeploymentConfig.
 func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.DeploymentConfig) error {
+	labels := make(map[string]string)
+	for k, v := range config.Labels {
+		labels[k] = v
+	}
+	labels[deployapi.DeploymentConfigLabel] = config.Name
+
 	deployment := &deployapi.Deployment{
-		TypeMeta: kapi.TypeMeta{
-			ID: deployutil.LatestDeploymentIDForConfig(config),
-			Annotations: map[string]string{
-				deployapi.DeploymentConfigAnnotation: config.ID,
-			},
+		ObjectMeta: kapi.ObjectMeta{
+			Name: deployutil.LatestDeploymentIDForConfig(config),
 		},
 		Labels:             config.Labels,
 		Strategy:           config.Template.Strategy,
@@ -107,7 +110,7 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 		Details:            config.Details,
 	}
 
-	glog.V(4).Infof("Creating new deployment from config %s", config.ID)
+	glog.V(4).Infof("Creating new deployment from config %s", config.Name)
 	_, err := c.DeploymentInterface.CreateDeployment(ctx, deployment)
 	return err
 }
