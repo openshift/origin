@@ -16,21 +16,32 @@ const ConfigSyntax = " --master=<addr>"
 type Config struct {
 	MasterAddr     flagtypes.Addr
 	KubernetesAddr flagtypes.Addr
-	BearerToken    string
+	// ClientConfig is the shared base config for both the openshift config and kubernetes config
+	CommonConfig kclient.Config
 }
 
 func NewConfig() *Config {
 	return &Config{
 		MasterAddr:     flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
 		KubernetesAddr: flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080}.Default(),
-		BearerToken:    "",
+		CommonConfig:   kclient.Config{},
 	}
 }
 
-func (cfg *Config) Bind(flag *pflag.FlagSet) {
-	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
-	flag.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.")
-	flag.StringVar(&cfg.BearerToken, "token", "", "If present, the bearer token for this request.")
+// BindClientConfig adds flags for the supplied client config
+func BindClientConfigSecurityFlags(config *kclient.Config, flags *pflag.FlagSet) {
+	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
+	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client key file for TLS.")
+	flags.StringVar(&config.KeyFile, "client-key", config.KeyFile, "Path to a client key file for TLS.")
+	flags.StringVar(&config.CAFile, "certificate-authority", config.CAFile, "Path to a cert. file for the certificate authority")
+	flags.StringVar(&config.BearerToken, "token", config.BearerToken, "If present, the bearer token for this request.")
+}
+
+func (cfg *Config) Bind(flags *pflag.FlagSet) {
+	flags.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
+	flags.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.")
+
+	BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
 }
 
 func (cfg *Config) bindEnv() {
@@ -40,8 +51,8 @@ func (cfg *Config) bindEnv() {
 	if value, ok := util.GetEnv("OPENSHIFT_MASTER"); ok && !cfg.MasterAddr.Provided {
 		cfg.MasterAddr.Set(value)
 	}
-	if value, ok := util.GetEnv("BEARER_TOKEN"); ok && len(cfg.BearerToken) == 0 {
-		cfg.BearerToken = value
+	if value, ok := util.GetEnv("BEARER_TOKEN"); ok && len(cfg.CommonConfig.BearerToken) == 0 {
+		cfg.CommonConfig.BearerToken = value
 	}
 }
 
@@ -53,13 +64,16 @@ func (cfg *Config) Clients() (*kclient.Client, *osclient.Client, error) {
 		kaddr = cfg.MasterAddr
 	}
 
-	config := &kclient.Config{Host: cfg.MasterAddr.String(), BearerToken: cfg.BearerToken}
-	kubeClient, err := kclient.New(&kclient.Config{Host: kaddr.URL.String(), BearerToken: cfg.BearerToken})
+	kConfig := cfg.CommonConfig
+	kConfig.Host = kaddr.URL.String()
+	kubeClient, err := kclient.New(&kConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Unable to configure Kubernetes client: %v", err)
 	}
 
-	osClient, err := osclient.New(config)
+	osConfig := cfg.CommonConfig
+	osConfig.Host = cfg.MasterAddr.String()
+	osClient, err := osclient.New(&osConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Unable to configure OpenShift client: %v", err)
 	}
