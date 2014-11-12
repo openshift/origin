@@ -36,8 +36,29 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	}
 }
 
-// DeploymentControllerFactory can create a DeploymentController which obtains Deployments
-// from a queue populated from a watch of Deployments.
+// BasicDeploymentControllerFactory can create a BasicDeploymentController which obtains Deployments
+// from a queue populated from a watch of Deployments whose strategy DeploymentStrategyTypeBasic.
+type BasicDeploymentControllerFactory struct {
+	Client     *osclient.Client
+	KubeClient *kclient.Client
+}
+
+func (factory *BasicDeploymentControllerFactory) Create() *controller.BasicDeploymentController {
+	field := labels.SelectorFromSet(labels.Set{"strategy.type": string(deployapi.DeploymentStrategyTypeBasic)})
+	queue := cache.NewFIFO()
+	cache.NewReflector(&deploymentLW{client: factory.Client, field: field}, &deployapi.Deployment{}, queue).Run()
+
+	return &controller.BasicDeploymentController{
+		DeploymentUpdater:     factory.Client,
+		ReplicationController: controller.RealReplicationController{factory.KubeClient},
+		NextDeployment: func() *deployapi.Deployment {
+			return queue.Pop().(*deployapi.Deployment)
+		},
+	}
+}
+
+// CustomPodDeploymentControllerFactory can create a CustomPodDeploymentController which obtains Deployments
+// from a queue populated from a watch of Deployments whose strategy is DeploymentStrategyTypeCustomPod.
 // Pods are obtained from a queue populated from a watch of all pods.
 type DeploymentControllerFactory struct {
 	// Client satisfies DeploymentInterface.
@@ -51,9 +72,15 @@ type DeploymentControllerFactory struct {
 	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
 	RecreateStrategyImage string
 
-	// deploymentStore is maintained on the factory to support narrowing of the pod polling scope.
-	deploymentStore cache.Store
-}
+func (factory *CustomPodDeploymentControllerFactory) Create() *controller.CustomPodDeploymentController {
+	deploymentFieldSelector := labels.SelectorFromSet(labels.Set{"strategy.type": string(deployapi.DeploymentStrategyTypeCustomPod)})
+	dQueue := cache.NewFIFO()
+	cache.NewReflector(&deploymentLW{client: factory.Client, field: deploymentFieldSelector}, &deployapi.Deployment{}, dQueue).Run()
+	dStore := cache.NewStore()
+	cache.NewReflector(&deploymentLW{client: factory.Client, field: deploymentFieldSelector}, &deployapi.Deployment{}, dStore).Run()
+	pQueue := cache.NewFIFO()
+	pSelector, _ := labels.ParseSelector("deployment!=")
+	cache.NewReflector(&podLW{client: factory.KubeClient, namespace: kapi.NamespaceDefault, labelSelector: pSelector}, &kapi.Pod{}, pQueue).Run()
 
 func (factory *DeploymentControllerFactory) Create() *controller.DeploymentController {
 	deploymentQueue := cache.NewFIFO()
@@ -76,7 +103,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 	return &controller.DeploymentController{
 		ContainerCreator:    factory,
 		DeploymentInterface: factory.Client,
-		PodInterface:        factory.KubeClient,
+		PodControl:          controller.RealPodControl{factory.KubeClient},
 		Environment:         factory.Environment,
 		NextDeployment: func() *deployapi.Deployment {
 			return deploymentQueue.Pop().(*deployapi.Deployment)
@@ -207,12 +234,13 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 // podLW is a ListWatcher implementation for pods.
 type podLW struct {
 	client        *kclient.Client
+	namespace     string
 	labelSelector labels.Selector
 }
 
 // List lists all pods.
 func (lw *podLW) List() (runtime.Object, error) {
-	pods, err := lw.client.ListPods(kapi.NewContext(), lw.labelSelector)
+	pods, err := lw.client.Pods(lw.namespace).List(lw.labelSelector)
 	if err != nil {
 		return nil, err
 	}

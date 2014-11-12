@@ -49,7 +49,7 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	return &controller.BuildController{
 		BuildStore:   factory.buildStore,
 		BuildUpdater: factory.Client,
-		PodCreator:   factory.KubeClient,
+		PodControl:   controller.RealPodControl{factory.KubeClient},
 		NextBuild: func() *buildapi.Build {
 			return buildQueue.Pop().(*buildapi.Build)
 		},
@@ -73,7 +73,7 @@ func (factory *BuildControllerFactory) pollPods() (cache.Enumerator, error) {
 
 		switch build.Status {
 		case buildapi.BuildStatusPending, buildapi.BuildStatusRunning:
-			pod, err := factory.KubeClient.GetPod(kapi.WithNamespace(kapi.NewContext(), build.Namespace), build.PodID)
+			pod, err := factory.KubeClient.Pods(build.Namespace).Get(build.PodID)
 			if err != nil {
 				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodID, build.Name, err)
 				continue
