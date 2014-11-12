@@ -13,13 +13,15 @@ import (
 // updated with a new LatestVersion. Any deployment created is correlated to a DeploymentConfig
 // by setting the DeploymentConfigLabel on the deployment.
 type DeploymentConfigController struct {
-	DeploymentInterface deploymentInterface
+	// DeploymentInterface provides access to Deployments.
+	DeploymentInterface dccDeploymentInterface
 
-	// Blocks until the next DeploymentConfig is available
+	// NextDeploymentConfig blocks until the next DeploymentConfig is available.
 	NextDeploymentConfig func() *deployapi.DeploymentConfig
 }
 
-type deploymentInterface interface {
+// dccDeploymentInterface is a small private interface for dealing with Deployments.
+type dccDeploymentInterface interface {
 	GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error)
 	CreateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
@@ -92,17 +94,14 @@ func (c *DeploymentConfigController) latestDeploymentForConfig(ctx kapi.Context,
 
 // deploy performs the work of actually creating a Deployment from the given DeploymentConfig.
 func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.DeploymentConfig) error {
-	labels := make(map[string]string)
-	for k, v := range config.Labels {
-		labels[k] = v
-	}
-	labels[deployapi.DeploymentConfigLabel] = config.ID
-
 	deployment := &deployapi.Deployment{
 		TypeMeta: kapi.TypeMeta{
 			ID: deployutil.LatestDeploymentIDForConfig(config),
+			Annotations: map[string]string{
+				deployapi.DeploymentConfigAnnotation: config.ID,
+			},
 		},
-		Labels:             labels,
+		Labels:             config.Labels,
 		Strategy:           config.Template.Strategy,
 		ControllerTemplate: config.Template.ControllerTemplate,
 		Details:            config.Details,
@@ -110,6 +109,5 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 
 	glog.V(4).Infof("Creating new deployment from config %s", config.ID)
 	_, err := c.DeploymentInterface.CreateDeployment(ctx, deployment)
-
 	return err
 }

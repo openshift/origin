@@ -47,7 +47,7 @@ docker build -t openshift/hello-openshift       examples/hello-openshift
 
 # images that depend on openshift/origin
 echo "--- openshift/origin-deployer ---"
-docker build -t openshift/origin-deployer       images/deploy/customimage
+docker build -t openshift/origin-deployer       images/deployer
 echo "--- openshift/origin-docker-builder ---"
 docker build -t openshift/origin-docker-builder images/builder/docker/docker-builder
 echo "--- openshift/origin-sti-builder ---"

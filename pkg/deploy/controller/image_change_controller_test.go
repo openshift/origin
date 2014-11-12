@@ -182,10 +182,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/origin-deployer",
-				},
+				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,
@@ -229,10 +226,7 @@ func regeneratedConfig(ctx kapi.Context) *deployapi.DeploymentConfig {
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/origin-deployer",
-				},
+				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,

@@ -7,9 +7,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/deploy/deployer/customimage"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	strategy "github.com/openshift/origin/pkg/deploy/strategy/recreate"
 )
 
 const longCommandDesc = `
@@ -21,6 +24,7 @@ This command makes calls to OpenShift to perform a deployment as described by a 
 type config struct {
 	Config         *clientcmd.Config
 	DeploymentName string
+	Namespace      string
 }
 
 func NewCommandDeployer(name string) *cobra.Command {
@@ -41,7 +45,8 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)
-	flag.StringVar(&cfg.DeploymentName, "deployment", util.Env("KUBERNETES_DEPLOYMENT_ID", ""), "The deployment name to start")
+	flag.StringVar(&cfg.DeploymentName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")
+	flag.StringVar(&cfg.Namespace, "namespace", util.Env("OPENSHIFT_DEPLOYMENT_NAMESPACE", ""), "The deployment namespace")
 
 	return cmd
 }
@@ -53,9 +58,15 @@ func deploy(cfg *config) error {
 		return err
 	}
 	if len(cfg.DeploymentName) == 0 {
-		return errors.New("No deployment name was specified. Expected KUBERNETES_DEPLOYMENT_ID variable.")
+		return errors.New("No deployment name was specified.")
 	}
 
-	d := customimage.CustomImageDeployer{kClient, osClient}
-	return d.Deploy(cfg.DeploymentName)
+	var deployment *deployapi.Deployment
+	if deployment, err = osClient.GetDeployment(kapi.WithNamespace(kapi.NewContext(), cfg.Namespace), cfg.DeploymentName); err != nil {
+		return err
+	}
+
+	// TODO: Choose a strategy based on some input
+	strategy := &strategy.RecreateDeploymentStrategy{ReplicationControllerClient: kClient}
+	return strategy.Deploy(deployment)
 }

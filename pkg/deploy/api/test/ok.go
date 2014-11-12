@@ -7,19 +7,19 @@ import (
 
 func OkStrategy() api.DeploymentStrategy {
 	return api.DeploymentStrategy{
-		Type: api.DeploymentStrategyTypeBasic,
+		Type: api.DeploymentStrategyTypeRecreate,
 	}
 }
 
-func OkCustomPodStrategy() api.DeploymentStrategy {
+func OkCustomStrategy() api.DeploymentStrategy {
 	return api.DeploymentStrategy{
-		Type:      api.DeploymentStrategyTypeCustomPod,
-		CustomPod: OkCustomPod(),
+		Type:         api.DeploymentStrategyTypeCustom,
+		CustomParams: OkCustomParams(),
 	}
 }
 
-func OkCustomPod() *api.CustomPodDeploymentStrategy {
-	return &api.CustomPodDeploymentStrategy{
+func OkCustomParams() *api.CustomDeploymentStrategyParams {
+	return &api.CustomDeploymentStrategyParams{
 		Image: "openshift/origin-deployer",
 	}
 }

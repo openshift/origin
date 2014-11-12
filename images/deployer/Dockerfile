@@ -1,5 +1,5 @@
 #
-# This is the default custom deployment image for OpenShift Origin. It expects a set of
+# This is the default deployment strategy image for OpenShift Origin. It expects a set of
 # environment variables to parameterize the deploy:
 #
 #   KUBERNETES_MASTER - the address of the OpenShift master

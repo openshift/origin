@@ -44,27 +44,6 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 			errors.ValidationErrorTypeRequired,
 			"strategy.type",
 		},
-		"missing strategy.customPod": {
-			api.Deployment{
-				Strategy: api.DeploymentStrategy{
-					Type: api.DeploymentStrategyTypeCustomPod,
-				},
-				ControllerTemplate: test.OkControllerTemplate(),
-			},
-			errors.ValidationErrorTypeRequired,
-			"strategy.customPod",
-		},
-		"missing strategy.customPod.image": {
-			api.Deployment{
-				Strategy: api.DeploymentStrategy{
-					Type:      api.DeploymentStrategyTypeCustomPod,
-					CustomPod: &api.CustomPodDeploymentStrategy{},
-				},
-				ControllerTemplate: test.OkControllerTemplate(),
-			},
-			errors.ValidationErrorTypeRequired,
-			"strategy.customPod.image",
-		},
 	}
 
 	for k, v := range errorCases {
@@ -149,7 +128,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				Triggers: manualTrigger(),
 				Template: api.DeploymentTemplate{
 					Strategy: api.DeploymentStrategy{
-						CustomPod: test.OkCustomPod(),
+						CustomParams: test.OkCustomParams(),
 					},
 					ControllerTemplate: test.OkControllerTemplate(),
 				},
@@ -157,32 +136,32 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			errors.ValidationErrorTypeRequired,
 			"template.strategy.type",
 		},
-		"missing strategy.customPod": {
+		"missing strategy.customParams": {
 			api.DeploymentConfig{
 				Triggers: manualTrigger(),
 				Template: api.DeploymentTemplate{
 					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeCustomPod,
+						Type: api.DeploymentStrategyTypeCustom,
 					},
 					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
 			errors.ValidationErrorTypeRequired,
-			"template.strategy.customPod",
+			"template.strategy.customParams",
 		},
-		"missing template.strategy.customPod.Image": {
+		"missing template.strategy.customParams.image": {
 			api.DeploymentConfig{
 				Triggers: manualTrigger(),
 				Template: api.DeploymentTemplate{
 					Strategy: api.DeploymentStrategy{
-						Type:      api.DeploymentStrategyTypeCustomPod,
-						CustomPod: &api.CustomPodDeploymentStrategy{},
+						Type:         api.DeploymentStrategyTypeCustom,
+						CustomParams: &api.CustomDeploymentStrategyParams{},
 					},
 					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
 			errors.ValidationErrorTypeRequired,
-			"template.strategy.customPod.image",
+			"template.strategy.customParams.image",
 		},
 	}
 

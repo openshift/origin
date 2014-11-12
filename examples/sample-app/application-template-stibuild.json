@@ -95,7 +95,7 @@
       ],
       "template": {
         "strategy": {
-          "type": "Basic"
+          "type":"Recreate"
         },
         "controllerTemplate": {
           "replicas": 1,
@@ -165,7 +165,7 @@
       ],
       "template": {
       "strategy": {
-        "type": "Basic"
+        "type":"Recreate"
       },
       "controllerTemplate": {
         "replicas": 1,

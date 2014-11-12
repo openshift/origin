@@ -3,15 +3,17 @@ package etcd
 import (
 	"strconv"
 
+	"github.com/golang/glog"
+
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
+
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -45,9 +47,8 @@ func (r *Etcd) ListDeployments(ctx kapi.Context, label, field labels.Selector) (
 	filtered := []api.Deployment{}
 	for _, item := range deployments.Items {
 		fields := labels.Set{
-			"id":            item.ID,
-			"status":        string(item.Status),
-			"strategy.type": string(item.Strategy.Type),
+			"id":     item.ID,
+			"status": string(item.Status),
 		}
 		if label.Matches(labels.Set(item.Labels)) && field.Matches(fields) {
 			filtered = append(filtered, item)
@@ -124,9 +125,8 @@ func (r *Etcd) WatchDeployments(ctx kapi.Context, label, field labels.Selector, 
 			return false
 		}
 		fields := labels.Set{
-			"id":            deployment.ID,
-			"status":        string(deployment.Status),
-			"strategy.type": string(deployment.Strategy.Type),
+			"id":     deployment.ID,
+			"status": string(deployment.Status),
 		}
 		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
 	})

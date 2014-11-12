@@ -286,25 +286,16 @@ func (c *MasterConfig) RunBuildController() {
 }
 
 // RunDeploymentController starts the deployment controller process.
-func (c *MasterConfig) RunCustomPodDeploymentController() {
-	factory := deploycontrollerfactory.CustomPodDeploymentControllerFactory{
+func (c *MasterConfig) RunDeploymentController() {
+	factory := deploycontrollerfactory.DeploymentControllerFactory{
 		Client:     c.OSClient,
 		KubeClient: c.KubeClient,
 		Environment: []api.EnvVar{
 			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
+			{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
 		},
-		DefaultImage:   env("OPENSHIFT_DEPLOY_CUSTOMPOD_DEFAULT_IMAGE", "openshift/origin-deployer"),
-		UseLocalImages: env("USE_LOCAL_IMAGES", "true") == "true",
-	}
-
-	controller := factory.Create()
-	controller.Run()
-}
-
-func (c *MasterConfig) RunBasicDeploymentController() {
-	factory := deploycontrollerfactory.BasicDeploymentControllerFactory{
-		Client:     c.OSClient,
-		KubeClient: c.KubeClient,
+		UseLocalImages:        env("USE_LOCAL_IMAGES", "true") == "true",
+		RecreateStrategyImage: env("OPENSHIFT_DEPLOY_RECREATE_IMAGE", "openshift/origin-deployer"),
 	}
 
 	controller := factory.Create()
@@ -312,7 +303,7 @@ func (c *MasterConfig) RunBasicDeploymentController() {
 }
 
 func (c *MasterConfig) RunDeploymentConfigController() {
-	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{c.OSClient}
+	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{Client: c.OSClient}
 	controller := factory.Create()
 	controller.Run()
 }
