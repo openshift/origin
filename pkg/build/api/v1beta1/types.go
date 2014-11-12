@@ -150,6 +150,9 @@ type DockerBuildStrategy struct {
 type STIBuildStrategy struct {
 	// BuilderImage is the image used to execute the build.
 	BuilderImage string `json:"builderImage,omitempty" yaml:"builderImage,omitempty"`
+
+	// Clean flag forces the STI build to not do incremental builds if true.
+	Clean bool `json:"clean,omitempty" yaml:"clean,omitempty"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

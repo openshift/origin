@@ -34,6 +34,7 @@ func (s *STIBuilder) Build() error {
 		Source:       s.build.Parameters.Source.Git.URI,
 		Tag:          imageTag(s.build),
 		Environment:  getBuildEnvVars(s.build),
+		Clean:        s.build.Parameters.Strategy.STIStrategy.Clean,
 	}
 	if s.build.Parameters.Revision != nil && s.build.Parameters.Revision.Git != nil &&
 		s.build.Parameters.Revision.Git.Commit != "" {
