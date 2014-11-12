@@ -30,7 +30,7 @@ type genericGitInfo struct {
 	api.GitSourceRevision
 }
 
-// Extract responsible for servicing generic webhooks
+// Extract services generic webhooks.
 func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
 	if err = verifyRequest(req); err != nil {
 		return
