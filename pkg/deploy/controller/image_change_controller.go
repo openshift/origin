@@ -42,7 +42,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 
 	for _, c := range c.DeploymentConfigStore.List() {
 		config := c.(*deployapi.DeploymentConfig)
-		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", config.ID)
+		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", config.Name)
 
 		// Extract relevant triggers for this imageRepo for this config
 		triggersForConfig := []deployapi.DeploymentTriggerImageChangeParams{}
@@ -55,7 +55,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 		}
 
 		for _, params := range triggersForConfig {
-			glog.V(4).Infof("Processing image triggers for deploymentConfig %s", config.ID)
+			glog.V(4).Infof("Processing image triggers for deploymentConfig %s", config.Name)
 			containerNames := util.NewStringSet(params.ContainerNames...)
 			for _, container := range config.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers {
 				if !containerNames.Has(container.Name) {
@@ -64,8 +64,8 @@ func (c *ImageChangeController) HandleImageRepo() {
 
 				_, tag := parseImage(container.Image)
 				if tag != imageRepo.Tags[params.Tag] {
-					configIDs = append(configIDs, config.ID)
-					firedTriggersForConfig[config.ID] = append(firedTriggersForConfig[config.ID], params)
+					configIDs = append(configIDs, config.Name)
+					firedTriggersForConfig[config.Name] = append(firedTriggersForConfig[config.Name], params)
 				}
 			}
 		}

@@ -26,8 +26,8 @@ func TestWebhookGithubPush(t *testing.T) {
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{
-		TypeMeta: kapi.TypeMeta{
-			ID: "pushbuild",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "pushbuild",
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
@@ -83,8 +83,8 @@ func TestWebhookGithubPing(t *testing.T) {
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{
-		TypeMeta: kapi.TypeMeta{
-			ID: "pingbuild",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "pingbuild",
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{

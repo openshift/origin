@@ -1,7 +1,9 @@
 {
-  "id": "testroute",
   "kind": "Route",
   "apiVersion": "v1beta1",
+  "metadata": {
+    "name": "testroute"
+  },
   "host": "test.example.com",
   "serviceName": "testservice",
   "labels": {

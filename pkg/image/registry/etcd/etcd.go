@@ -77,13 +77,13 @@ func (r *Etcd) GetImage(ctx kapi.Context, id string) (*api.Image, error) {
 
 // CreateImage creates a new image
 func (r *Etcd) CreateImage(ctx kapi.Context, image *api.Image) error {
-	key, err := makeImageKey(ctx, image.ID)
+	key, err := makeImageKey(ctx, image.Name)
 	if err != nil {
 		return err
 	}
 
 	err = r.CreateObj(key, image, 0)
-	return etcderr.InterpretCreateError(err, "image", image.ID)
+	return etcderr.InterpretCreateError(err, "image", image.Name)
 }
 
 // UpdateImage updates an existing image
@@ -195,22 +195,22 @@ func (r *Etcd) WatchImageRepositories(ctx kapi.Context, resourceVersion string, 
 
 // CreateImageRepository registers the given ImageRepository.
 func (r *Etcd) CreateImageRepository(ctx kapi.Context, repo *api.ImageRepository) error {
-	key, err := makeImageRepositoryKey(ctx, repo.ID)
+	key, err := makeImageRepositoryKey(ctx, repo.Name)
 	if err != nil {
 		return err
 	}
 	err = r.CreateObj(key, repo, 0)
-	return etcderr.InterpretCreateError(err, "imageRepository", repo.ID)
+	return etcderr.InterpretCreateError(err, "imageRepository", repo.Name)
 }
 
 // UpdateImageRepository replaces an existing ImageRepository in the registry with the given ImageRepository.
 func (r *Etcd) UpdateImageRepository(ctx kapi.Context, repo *api.ImageRepository) error {
-	key, err := makeImageRepositoryKey(ctx, repo.ID)
+	key, err := makeImageRepositoryKey(ctx, repo.Name)
 	if err != nil {
 		return err
 	}
 	err = r.SetObj(key, repo)
-	return etcderr.InterpretUpdateError(err, "imageRepository", repo.ID)
+	return etcderr.InterpretUpdateError(err, "imageRepository", repo.Name)
 }
 
 // DeleteImageRepository deletes an ImageRepository by id.

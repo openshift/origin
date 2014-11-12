@@ -29,7 +29,7 @@ func printDeployment(d *api.Deployment, w io.Writer) error {
 		}
 	}
 	cStr := strings.Join(causes.List(), ", ")
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", d.ID, d.Status, cStr)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", d.Name, d.Status, cStr)
 	return err
 }
 
@@ -50,7 +50,7 @@ func printDeploymentConfig(dc *api.DeploymentConfig, w io.Writer) error {
 	}
 	tStr := strings.Join(triggers.List(), ", ")
 
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.ID, tStr, dc.LatestVersion)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.Name, tStr, dc.LatestVersion)
 	return err
 }
 

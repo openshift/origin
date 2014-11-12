@@ -18,8 +18,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	expected := mockDockerBuild()
 	actual, _ := strategy.CreateBuildPod(expected)
 
-	if actual.TypeMeta.ID != expected.PodID {
-		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.TypeMeta.ID)
+	if actual.ObjectMeta.Name != expected.PodName {
+		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
 	}
 	if actual.DesiredState.Manifest.Version != "v1beta1" {
 		t.Error("Expected v1beta1, but got %s!, actual.DesiredState.Manifest.Version")
@@ -53,8 +53,11 @@ func TestDockerCreateBuildPod(t *testing.T) {
 
 func mockDockerBuild() *buildapi.Build {
 	return &buildapi.Build{
-		TypeMeta: kapi.TypeMeta{
-			ID: "dockerBuild",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "dockerBuild",
+			Labels: map[string]string{
+				"name": "dockerBuild",
+			},
 		},
 		Parameters: buildapi.BuildParameters{
 			Revision: &buildapi.SourceRevision{
@@ -74,10 +77,7 @@ func mockDockerBuild() *buildapi.Build {
 				Registry: "docker-registry",
 			},
 		},
-		Status: buildapi.BuildStatusNew,
-		PodID:  "-the-pod-id",
-		Labels: map[string]string{
-			"name": "dockerBuild",
-		},
+		Status:  buildapi.BuildStatusNew,
+		PodName: "-the-pod-id",
 	}
 }
