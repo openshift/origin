@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/golang/glog"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -15,12 +17,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
-	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	osclient "github.com/openshift/origin/pkg/client"
-
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
@@ -46,8 +46,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	ctx := kapi.NewContext()
 	var err error
 
-	labelSelector := labels.SelectorFromSet(labels.Set{deployapi.DeploymentConfigLabel: config.ID})
-	watch, err := openshift.Client.WatchDeployments(ctx, labelSelector, labels.Everything(), "0")
+	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -67,8 +66,8 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	event := <-watch.ResultChan()
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Labels[deployapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("Expected deployment DeploymentConfigLabel label '%s', got '%s'", e, a)
+	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 }
 
@@ -88,8 +87,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	ctx := kapi.NewContext()
 	var err error
 
-	labelSelector := labels.SelectorFromSet(labels.Set{deployapi.DeploymentConfigLabel: config.ID})
-	watch, err := openshift.Client.WatchDeployments(ctx, labelSelector, labels.Everything(), "0")
+	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -113,8 +111,8 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	event := <-watch.ResultChan()
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Labels[deployapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("Expected deployment DeploymentConfigLabel label '%s', got '%s'", e, a)
+	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
 	imageRepo.Tags["latest"] = "ref-2"
@@ -126,8 +124,8 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	event = <-watch.ResultChan()
 	deployment = event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Labels[deployapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("Expected deployment DeploymentConfigLabel label '%s', got '%s'", e, a)
+	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
 	if deployment.ID != config.ID+"-2" {
@@ -143,8 +141,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	ctx := kapi.NewContext()
 	var err error
 
-	labelSelector := labels.SelectorFromSet(labels.Set{deployapi.DeploymentConfigLabel: config.ID})
-	watch, err := openshift.Client.WatchDeployments(ctx, labelSelector, labels.Everything(), "0")
+	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -158,8 +155,8 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	event := <-watch.ResultChan()
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Labels[deployapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("Expected deployment deployapi.DeploymentConfigLabel label '%s', got '%s'", e, a)
+	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
 	assertEnvVarEquals("ENV_TEST", "ENV_VALUE1", deployment, t)
@@ -204,7 +201,7 @@ func (p *podInfoGetter) GetPodInfo(host, namespace, podID string) (kapi.PodInfo,
 
 type testOpenshift struct {
 	Client *osclient.Client
-	server *httptest.Server
+	Server *httptest.Server
 }
 
 func NewTestOpenshift(t *testing.T) *testOpenshift {
@@ -216,10 +213,10 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 
 	osMux := http.NewServeMux()
-	openshift.server = httptest.NewServer(osMux)
+	openshift.Server = httptest.NewServer(osMux)
 
-	kubeClient := client.NewOrDie(&client.Config{Host: openshift.server.URL, Version: klatest.Version})
-	osClient, _ := osclient.New(&client.Config{Host: openshift.server.URL, Version: latest.Version})
+	kubeClient := client.NewOrDie(&client.Config{Host: openshift.Server.URL, Version: klatest.Version})
+	osClient, _ := osclient.New(&client.Config{Host: openshift.Server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
 
@@ -263,7 +260,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		t.Errorf("Expected %#v, got %#v", e, a)
 	}
 
-	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{osClient}
+	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{Client: osClient}
 	dccFactory.Create().Run()
 
 	cccFactory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{osClient}
@@ -293,7 +290,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeBasic,
+				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,
@@ -330,7 +327,7 @@ func manualDeploymentConfig() *deployapi.DeploymentConfig {
 		TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config"},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeBasic,
+				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,
@@ -368,10 +365,7 @@ func changeDeploymentConfig() *deployapi.DeploymentConfig {
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/origin-deployer",
-				},
+				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,

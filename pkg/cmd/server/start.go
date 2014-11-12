@@ -259,9 +259,8 @@ func start(cfg *config, args []string) error {
 
 		osmaster.RunAssetServer()
 		osmaster.RunBuildController()
+		osmaster.RunDeploymentController()
 		osmaster.RunDeploymentConfigController()
-		osmaster.RunBasicDeploymentController()
-		osmaster.RunCustomPodDeploymentController()
 		osmaster.RunDeploymentConfigChangeController()
 		osmaster.RunDeploymentImageChangeTriggerController()
 	}

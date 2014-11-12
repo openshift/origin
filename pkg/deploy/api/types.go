@@ -7,11 +7,15 @@ import (
 // A deployment represents a single configuration of a pod deployed into the cluster, and may
 // represent both a current deployment or a historical deployment.
 type Deployment struct {
-	api.TypeMeta       `json:",inline" yaml:",inline"`
-	Labels             map[string]string              `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Strategy           DeploymentStrategy             `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	api.TypeMeta `json:",inline" yaml:",inline"`
+	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+
+	// Strategy describes how a deployment is executed.
+	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	// ControllerTemplate is the desired replication state the deployment works to materialize.
 	ControllerTemplate api.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
-	Status             DeploymentStatus               `json:"status,omitempty" yaml:"status,omitempty"`
+	// Status is the execution status of the deployment.
+	Status DeploymentStatus `json:"status,omitempty" yaml:"status,omitempty"`
 	// Details captures the causes for the creation of this deployment resource.
 	// This could be based on a change made by the user to the deployment config
 	// or caused by an automatic trigger that was specified in the deployment config.
@@ -19,12 +23,6 @@ type Deployment struct {
 	// If no trigger is specified here, then the deployment was likely created as a result of an
 	// explicit client request to create a new deployment resource.
 	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
-}
-
-// A DeploymentList is a collection of deployments.
-type DeploymentList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []Deployment `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // DeploymentStatus decribes the possible states a Deployment can be in.
@@ -45,34 +43,46 @@ const (
 	DeploymentStatusFailed DeploymentStatus = "Failed"
 )
 
-// DeploymentConfigLabel is the key of a Deployment label whose value is the ID of a DeploymentConfig
-// on which the Deployment is based.
-const DeploymentConfigLabel = "deploymentConfig"
-
 // DeploymentStrategy describes how to perform a deployment.
 type DeploymentStrategy struct {
+	// Type is the name of a deployment strategy.
 	Type DeploymentStrategyType `json:"type,omitempty" yaml:"type,omitempty"`
-	// CustomPod represents the parameters for the CustomPod strategy.
-	CustomPod *CustomPodDeploymentStrategy `json:"customPod,omitempty" yaml:"customPod,omitempty"`
+	// CustomParams are the input to the Custom deployment strategy.
+	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty" yaml:"customParams,omitempty"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
 type DeploymentStrategyType string
 
 const (
-	// DeploymentStrategyTypeBasic is a simple remove-and-replace deployment strategy.
-	DeploymentStrategyTypeBasic DeploymentStrategyType = "Basic"
-	// DeploymentStrategyTypeCustomPod is a custom deployment strategy carried out by a pod.
-	DeploymentStrategyTypeCustomPod DeploymentStrategyType = "CustomPod"
+	// DeploymentStrategyTypeRecreate is a simple strategy suitable as a default.
+	DeploymentStrategyTypeRecreate DeploymentStrategyType = "Recreate"
+	// DeploymentStrategyTypeCustom is a user defined strategy.
+	DeploymentStrategyTypeCustom DeploymentStrategyType = "Custom"
 )
 
-// CustomPodDeploymentStrategy represents parameters for the CustomPod strategy.
-type CustomPodDeploymentStrategy struct {
+// CustomParams are the input to the Custom deployment strategy.
+type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
 	Image string `json:"image,omitempty" yaml:"image,omitempty"`
 	// Environment holds the environment which will be given to the container for Image.
 	Environment []api.EnvVar `json:"environment,omitempty" yaml:"environment,omitempty"`
+	// Command is optional and overrides CMD in the container Image.
+	Command []string `json:"command,omitempty" yaml:"command,omitempty"`
 }
+
+// A DeploymentList is a collection of deployments.
+type DeploymentList struct {
+	api.TypeMeta `json:",inline" yaml:",inline"`
+	Items        []Deployment `json:"items,omitempty" yaml:"items,omitempty"`
+}
+
+// These constants represent annotation keys used for correlating objects related to deployments.
+const (
+	DeploymentConfigAnnotation = "deploymentConfig"
+	DeploymentAnnotation       = "deployment"
+	DeploymentPodAnnotation    = "pod"
+)
 
 // DeploymentConfig represents a configuration for a single deployment of a replication controller:
 // what the template is for the deployment, how new deployments are triggered, what the desired
@@ -94,16 +104,11 @@ type DeploymentConfig struct {
 	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
 }
 
-// A DeploymentConfigList is a collection of deployment configs.
-type DeploymentConfigList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
-}
-
-// DeploymentTemplate contains all the necessary information to create a Deployment from a
-// DeploymentStrategy.
+// DeploymentTemplate templatizes the configurable fields of a Deployment.
 type DeploymentTemplate struct {
-	Strategy           DeploymentStrategy             `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	// Strategy describes how a deployment is executed.
+	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	// ControllerTemplate is the desired replication state the deployment works to materialize.
 	ControllerTemplate api.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 }
 
@@ -112,18 +117,6 @@ type DeploymentTriggerPolicy struct {
 	Type DeploymentTriggerType `json:"type,omitempty" yaml:"type,omitempty"`
 	// ImageChangeParams represents the parameters for the ImageChange trigger.
 	ImageChangeParams *DeploymentTriggerImageChangeParams `json:"imageChangeParams,omitempty" yaml:"imageChangeParams,omitempty"`
-}
-
-// DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
-type DeploymentTriggerImageChangeParams struct {
-	// Automatic means that the detection of a new tag value should result in a new deployment.
-	Automatic bool `json:"automatic,omitempty" yaml:"automatic,omitempty"`
-	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
-	ContainerNames []string `json:"containerNames,omitempty" yaml:"containerNames,omitempty"`
-	// RepositoryName is the identifier for a Docker image repository to watch for changes.
-	RepositoryName string `json:"repositoryName,omitempty" yaml:"repositoryName,omitempty"`
-	// Tag is the name of an image repository tag to watch for changes.
-	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
 }
 
 // DeploymentTriggerType refers to a specific DeploymentTriggerPolicy implementation.
@@ -139,6 +132,18 @@ const (
 	// the ControllerTemplate of a DeploymentConfig.
 	DeploymentTriggerOnConfigChange DeploymentTriggerType = "ConfigChange"
 )
+
+// DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
+type DeploymentTriggerImageChangeParams struct {
+	// Automatic means that the detection of a new tag value should result in a new deployment.
+	Automatic bool `json:"automatic,omitempty" yaml:"automatic,omitempty"`
+	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
+	ContainerNames []string `json:"containerNames,omitempty" yaml:"containerNames,omitempty"`
+	// RepositoryName is the identifier for a Docker image repository to watch for changes.
+	RepositoryName string `json:"repositoryName,omitempty" yaml:"repositoryName,omitempty"`
+	// Tag is the name of an image repository tag to watch for changes.
+	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+}
 
 // DeploymentDetails captures information about the causes of a deployment.
 type DeploymentDetails struct {
@@ -161,4 +166,10 @@ type DeploymentCauseImageTrigger struct {
 	RepositoryName string `json:"repositoryName,omitempty" yaml:"repositoryName,omitempty"`
 	// Tag is the name of an image repository tag that is now pointing to a new image.
 	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+}
+
+// A DeploymentConfigList is a collection of deployment configs.
+type DeploymentConfigList struct {
+	api.TypeMeta `json:",inline" yaml:",inline"`
+	Items        []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }

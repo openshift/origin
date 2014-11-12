@@ -8,19 +8,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-type testDeploymentInterface struct {
-	GetDeploymentFunc    func(id string) (*deployapi.Deployment, error)
-	CreateDeploymentFunc func(deployment *deployapi.Deployment) (*deployapi.Deployment, error)
-}
-
-func (i *testDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error) {
-	return i.GetDeploymentFunc(id)
-}
-
-func (i *testDeploymentInterface) CreateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	return i.CreateDeploymentFunc(deployment)
-}
-
 func TestHandleNewDeploymentConfig(t *testing.T) {
 	controller := &DeploymentConfigController{
 		DeploymentInterface: &testDeploymentInterface{
@@ -70,8 +57,8 @@ func TestHandleInitialDeployment(t *testing.T) {
 		t.Fatalf("expected a deployment")
 	}
 
-	if e, a := deploymentConfig.ID, deployed.Labels[deployapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("expected deployment with label %s, got %s", e, a)
+	if e, a := deploymentConfig.ID, deployed.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+		t.Fatalf("expected deployment with deploymentConfig annotation %s, got %s", e, a)
 	}
 }
 
@@ -124,9 +111,22 @@ func TestHandleConfigChangeWithPodTemplateDiff(t *testing.T) {
 		t.Fatalf("expected a deployment")
 	}
 
-	if e, a := deploymentConfig.ID, deployed.Labels[deployapi.DeploymentConfigLabel]; e != a {
-		t.Fatalf("expected deployment with label %s, got %s", e, a)
+	if e, a := deploymentConfig.ID, deployed.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+		t.Fatalf("expected deployment annotated with deploymentConfig %s, got %s", e, a)
 	}
+}
+
+type testDeploymentInterface struct {
+	GetDeploymentFunc    func(id string) (*deployapi.Deployment, error)
+	CreateDeploymentFunc func(deployment *deployapi.Deployment) (*deployapi.Deployment, error)
+}
+
+func (i *testDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error) {
+	return i.GetDeploymentFunc(id)
+}
+
+func (i *testDeploymentInterface) CreateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+	return i.CreateDeploymentFunc(deployment)
 }
 
 func manualDeploymentConfig() *deployapi.DeploymentConfig {
@@ -139,10 +139,7 @@ func manualDeploymentConfig() *deployapi.DeploymentConfig {
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeCustomPod,
-				CustomPod: &deployapi.CustomPodDeploymentStrategy{
-					Image: "registry:8080/openshift/origin-deployer",
-				},
+				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
 			ControllerTemplate: kapi.ReplicationControllerState{
 				Replicas: 1,
@@ -175,11 +172,7 @@ func matchingDeployment() *deployapi.Deployment {
 		TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config-1"},
 		Status:   deployapi.DeploymentStatusNew,
 		Strategy: deployapi.DeploymentStrategy{
-			Type: deployapi.DeploymentStrategyTypeCustomPod,
-			CustomPod: &deployapi.CustomPodDeploymentStrategy{
-				Image:       "registry:8080/repo1:ref1",
-				Environment: []kapi.EnvVar{},
-			},
+			Type: deployapi.DeploymentStrategyTypeRecreate,
 		},
 		ControllerTemplate: kapi.ReplicationControllerState{
 			Replicas: 1,

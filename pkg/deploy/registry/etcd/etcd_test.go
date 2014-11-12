@@ -150,10 +150,7 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{
 							TypeMeta: kapi.TypeMeta{ID: "baz"},
 							Labels:   map[string]string{"env": "stg"},
-							Strategy: api.DeploymentStrategy{
-								Type: api.DeploymentStrategyTypeBasic,
-							},
-							Status: api.DeploymentStatusRunning,
+							Status:   api.DeploymentStatusRunning,
 						}),
 					},
 				},
@@ -168,7 +165,6 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 		{labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything(), []string{"bar"}},
 		{labels.SelectorFromSet(labels.Set{"env": "stg"}), labels.Everything(), []string{"baz"}},
 		{labels.Everything(), labels.Everything(), []string{"foo", "bar", "baz"}},
-		{labels.Everything(), labels.SelectorFromSet(labels.Set{"strategy.type": string(api.DeploymentStrategyTypeBasic)}), []string{"baz"}},
 		{labels.Everything(), labels.SelectorFromSet(labels.Set{"id": "baz"}), []string{"baz"}},
 		{labels.Everything(), labels.SelectorFromSet(labels.Set{"status": string(api.DeploymentStatusRunning)}), []string{"bar", "baz"}},
 	}

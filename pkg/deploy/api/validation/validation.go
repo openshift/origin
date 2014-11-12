@@ -18,6 +18,20 @@ func ValidateDeployment(deployment *deployapi.Deployment) errors.ErrorList {
 	return result
 }
 
+func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ErrorList {
+	result := errors.ErrorList{}
+
+	for i := range config.Triggers {
+		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	}
+
+	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
+	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
+	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
+
+	return result
+}
+
 func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.ErrorList {
 	result := errors.ErrorList{}
 
@@ -25,21 +39,22 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.E
 		result = append(result, errors.NewFieldRequired("type", ""))
 	}
 
-	if strategy.Type == deployapi.DeploymentStrategyTypeCustomPod {
-		if strategy.CustomPod == nil {
-			result = append(result, errors.NewFieldRequired("customPod", nil))
+	switch strategy.Type {
+	case deployapi.DeploymentStrategyTypeCustom:
+		if strategy.CustomParams == nil {
+			result = append(result, errors.NewFieldRequired("customParams", ""))
 		} else {
-			result = append(result, validateCustomPodStrategy(strategy.CustomPod).Prefix("customPod")...)
+			result = append(result, validateCustomParams(strategy.CustomParams).Prefix("customParams")...)
 		}
 	}
 
 	return result
 }
 
-func validateCustomPodStrategy(customPod *deployapi.CustomPodDeploymentStrategy) errors.ErrorList {
+func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams) errors.ErrorList {
 	result := errors.ErrorList{}
 
-	if len(customPod.Image) == 0 {
+	if len(params.Image) == 0 {
 		result = append(result, errors.NewFieldRequired("image", ""))
 	}
 
@@ -74,20 +89,6 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 	if len(params.ContainerNames) == 0 {
 		result = append(result, errors.NewFieldRequired("containerNames", ""))
 	}
-
-	return result
-}
-
-func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ErrorList {
-	result := errors.ErrorList{}
-
-	for i := range config.Triggers {
-		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
-	}
-
-	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
-	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
-	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
 
 	return result
 }
