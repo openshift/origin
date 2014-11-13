@@ -80,7 +80,7 @@ func TestWrongUserAgent(t *testing.T) {
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "User-Agent") {
+		!strings.Contains(string(body), "User-Agent go-lang") {
 		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
