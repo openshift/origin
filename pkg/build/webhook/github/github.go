@@ -89,7 +89,7 @@ func verifyRequest(req *http.Request) error {
 		return fmt.Errorf("Unsupported Content-Type %s", contentType)
 	}
 	if userAgent := req.Header.Get("User-Agent"); !strings.HasPrefix(userAgent, "GitHub-Hookshot/") {
-		return fmt.Errorf("Unsupported User-Agent %s")
+		return fmt.Errorf("Unsupported User-Agent %s", userAgent)
 	}
 	if req.Header.Get("X-GitHub-Event") == "" {
 		return errors.New("Missing X-GitHub-Event")
