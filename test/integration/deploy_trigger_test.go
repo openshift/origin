@@ -66,7 +66,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	event := <-watch.ResultChan()
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 }
@@ -111,7 +111,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	event := <-watch.ResultChan()
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
@@ -124,7 +124,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	event = <-watch.ResultChan()
 	deployment = event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
@@ -155,7 +155,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	event := <-watch.ResultChan()
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Annotations["deploymentConfig"]; e != a {
+	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
