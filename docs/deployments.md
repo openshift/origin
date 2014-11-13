@@ -273,10 +273,22 @@ Timeline of a Deployment:
     `Failed` based on the pod’s exit code:
     1.  Exit code 0 maps to Complete
     2.  Exit code != 0 maps to Failed
-    3.  Deployer Image Specification
 
-In addition, deployer images are provided a mechanism for authorizing calls to the master to perform
-manual orchestration.
+#### Deployer Image Specification
+
+The deployer image receives the following inputs:
+
+1.  The namespace of the deployment to process
+2.  The name of the deployment to process
+
+The exit code of the deployer image entrypoint represents the success or failure of the deployment
+process as follows:
+
+1.  `0`: The deployment completed successfully
+2.  All other exit codes represent a failure - this will likely change to have reserved exit codes
+    for specific types of failures
+
+Additional, deployer images are provided a mechanism for authorizing calls to the master.
 
 #### Example: Destroy and Recreate Strategy
 
