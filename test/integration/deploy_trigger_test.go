@@ -17,6 +17,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
+	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
@@ -64,6 +65,9 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	}
 
 	event := <-watch.ResultChan()
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
 	deployment := event.Object.(*deployapi.Deployment)
 
 	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
@@ -109,6 +113,9 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 
 	event := <-watch.ResultChan()
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
 	deployment := event.Object.(*deployapi.Deployment)
 
 	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
@@ -122,14 +129,13 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 
 	event = <-watch.ResultChan()
-	deployment = event.Object.(*deployapi.Deployment)
-
-	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
-		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
+	newDeployment := event.Object.(*deployapi.Deployment)
 
-	if deployment.ID != config.ID+"-2" {
-		t.Fatalf("Unexpected deployment ID: %v", deployment.ID)
+	if newDeployment.ID == deployment.ID {
+		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.ID, newDeployment.ID)
 	}
 }
 
@@ -153,6 +159,10 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 
 	// verify the initial deployment exists
 	event := <-watch.ResultChan()
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+
 	deployment := event.Object.(*deployapi.Deployment)
 
 	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
@@ -173,9 +183,16 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	}
 
 	event = <-watch.ResultChan()
-	deployment = event.Object.(*deployapi.Deployment)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newDeployment := event.Object.(*deployapi.Deployment)
 
-	assertEnvVarEquals("ENV_TEST", "UPDATED", deployment, t)
+	assertEnvVarEquals("ENV_TEST", "UPDATED", newDeployment, t)
+
+	if newDeployment.ID == deployment.ID {
+		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.ID, newDeployment.ID)
+	}
 }
 
 func assertEnvVarEquals(name string, value string, deployment *deployapi.Deployment, t *testing.T) {
