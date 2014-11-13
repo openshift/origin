@@ -55,7 +55,6 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 		if existing.Identity.Name == "" {
 			uid := uuid.New()
 			existing.User.UID = uid
-			existing.User.ID = name
 			existing.User.Name = name
 			if err := r.initializer.InitializeUser(&mapping.Identity, &existing.User); err != nil {
 				return in, err
@@ -63,7 +62,6 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 
 			// set these again to prevent bad initialization from messing up data
 			existing.User.UID = uid
-			existing.User.ID = name
 			existing.User.Name = name
 			existing.Identity = mapping.Identity
 

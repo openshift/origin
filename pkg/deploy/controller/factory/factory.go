@@ -152,13 +152,13 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 			// Validate the correlating pod annotation
 			podID, hasPodID := deployment.Annotations[deployapi.DeploymentPodAnnotation]
 			if !hasPodID {
-				glog.V(2).Infof("Unexpected state: Deployment %s has no pod annotation; skipping pod polling", deployment.ID)
+				glog.V(2).Infof("Unexpected state: Deployment %s has no pod annotation; skipping pod polling", deployment.Name)
 				continue
 			}
 
-			pod, err := factory.KubeClient.GetPod(kapi.WithNamespace(kapi.NewContext(), deployment.Namespace), podID)
+			pod, err := factory.KubeClient.Pods(deployment.Namespace).Get(podID)
 			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", podID, deployment.ID, err)
+				glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", podID, deployment.Name, err)
 				continue
 			}
 
@@ -184,7 +184,7 @@ func (pe *podEnumerator) Len() int {
 
 // Get returns the item (and ID) with the particular index.
 func (pe *podEnumerator) Get(index int) (string, interface{}) {
-	return pe.Items[index].ID, &pe.Items[index]
+	return pe.Items[index].Name, &pe.Items[index]
 }
 
 // DeploymentConfigChangeControllerFactory can create a DeploymentConfigChangeController which obtains DeploymentConfigs

@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -18,8 +19,8 @@ type DeploymentController struct {
 	ContainerCreator DeploymentContainerCreator
 	// DeploymentInterface provides access to deployments.
 	DeploymentInterface dcDeploymentInterface
-	// PodInterface provides access to pods.
-	PodInterface dcPodInterface
+	// PodControle provides access to pods.
+	PodControl PodControlInterface
 	// NextDeployment blocks until the next deployment is available.
 	NextDeployment func() *deployapi.Deployment
 	// NextPod blocks until the next pod is available.
@@ -43,9 +44,21 @@ type dcDeploymentInterface interface {
 	UpdateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
 
-type dcPodInterface interface {
-	CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error)
-	DeletePod(ctx kapi.Context, id string) error
+type PodControlInterface interface {
+	createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
+	deletePod(namespace, id string) error
+}
+
+type RealPodControl struct {
+	KubeClient kclient.Interface
+}
+
+func (r RealPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return r.KubeClient.Pods(namespace).Create(pod)
+}
+
+func (r RealPodControl) deletePod(namespace, id string) error {
+	return r.KubeClient.Pods(namespace).Delete(id)
 }
 
 // Run begins watching and synchronizing deployment states.
@@ -62,7 +75,7 @@ func (dc *DeploymentController) HandleDeployment() {
 	deployment := dc.NextDeployment()
 
 	if deployment.Status != deployapi.DeploymentStatusNew {
-		glog.V(4).Infof("Ignoring deployment %s with non-New status", deployment.ID)
+		glog.V(4).Infof("Ignoring deployment %s with non-New status", deployment.Name)
 		return
 	}
 
@@ -70,31 +83,31 @@ func (dc *DeploymentController) HandleDeployment() {
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), deployment.Namespace)
 	nextStatus := deployment.Status
-	if pod, err := dc.PodInterface.CreatePod(ctx, deploymentPod); err != nil {
+	if pod, err := dc.PodControl.createPod(deployment.Namespace, deploymentPod); err != nil {
 		// If the pod already exists, it's possible that a previous CreatePod succeeded but
 		// the deployment state update failed and now we're re-entering.
 		if kerrors.IsAlreadyExists(err) {
 			nextStatus = deployapi.DeploymentStatusPending
 		} else {
-			glog.Infof("Error creating pod for deployment %s: %v", deployment.ID, err)
+			glog.Infof("Error creating pod for deployment %s: %v", deployment.Name, err)
 			nextStatus = deployapi.DeploymentStatusFailed
 		}
 	} else {
-		glog.V(2).Infof("Created pod %s for deployment %s", pod.ID, deployment.ID)
+		glog.V(2).Infof("Created pod %s for deployment %s", pod.Name, deployment.Name)
 
 		if deployment.Annotations == nil {
 			deployment.Annotations = make(map[string]string)
 		}
-		deployment.Annotations[deployapi.DeploymentPodAnnotation] = pod.ID
+		deployment.Annotations[deployapi.DeploymentPodAnnotation] = pod.Name
 
 		nextStatus = deployapi.DeploymentStatusPending
 	}
 
 	deployment.Status = nextStatus
 
-	glog.V(2).Infof("Updating deployment %s status %s -> %s", deployment.ID, deployment.Status, nextStatus)
+	glog.V(2).Infof("Updating deployment %s status %s -> %s", deployment.Name, deployment.Status, nextStatus)
 	if _, err := dc.DeploymentInterface.UpdateDeployment(ctx, deployment); err != nil {
-		glog.V(2).Infof("Failed to update deployment %s: %v", deployment.ID, err)
+		glog.V(2).Infof("Failed to update deployment %s: %v", deployment.Name, err)
 	}
 }
 
@@ -106,13 +119,13 @@ func (dc *DeploymentController) HandlePod() {
 	// Verify the assumption that we'll be given only pods correlated to a deployment
 	deploymentID, hasDeploymentID := pod.Annotations[deployapi.DeploymentAnnotation]
 	if !hasDeploymentID {
-		glog.V(2).Infof("Unexpected state: Pod %s has no deployment annotation; skipping", pod.ID)
+		glog.V(2).Infof("Unexpected state: Pod %s has no deployment annotation; skipping", pod.Name)
 		return
 	}
 
 	deploymentObj, deploymentExists := dc.DeploymentStore.Get(deploymentID)
 	if !deploymentExists {
-		glog.V(2).Infof("Couldn't find deployment %s associated with pod %s", deploymentID, pod.ID)
+		glog.V(2).Infof("Couldn't find deployment %s associated with pod %s", deploymentID, pod.Name)
 		return
 	}
 
@@ -123,7 +136,7 @@ func (dc *DeploymentController) HandlePod() {
 	switch pod.CurrentState.Status {
 	case kapi.PodRunning:
 		nextDeploymentStatus = deployapi.DeploymentStatusRunning
-	case kapi.PodTerminated:
+	case kapi.PodSucceeded:
 		nextDeploymentStatus = deployapi.DeploymentStatusComplete
 
 		// Detect failure based on the container state
@@ -135,19 +148,19 @@ func (dc *DeploymentController) HandlePod() {
 
 		// Automatically clean up successful pods
 		if nextDeploymentStatus == deployapi.DeploymentStatusComplete {
-			if err := dc.PodInterface.DeletePod(ctx, pod.ID); err != nil {
-				glog.V(4).Infof("Couldn't delete completed pod %s for deployment %s: %#v", pod.ID, deployment.ID, err)
+			if err := dc.PodControl.deletePod(deployment.Namespace, pod.Name); err != nil {
+				glog.V(4).Infof("Couldn't delete completed pod %s for deployment %s: %#v", pod.Name, deployment.Name, err)
 			} else {
-				glog.V(4).Infof("Deleted completed pod %s for deployment %s", pod.ID, deployment.ID)
+				glog.V(4).Infof("Deleted completed pod %s for deployment %s", pod.Name, deployment.Name)
 			}
 		}
 	}
 
 	if deployment.Status != nextDeploymentStatus {
-		glog.V(2).Infof("Updating deployment %s status %s -> %s", deployment.ID, deployment.Status, nextDeploymentStatus)
+		glog.V(2).Infof("Updating deployment %s status %s -> %s", deployment.Name, deployment.Status, nextDeploymentStatus)
 		deployment.Status = nextDeploymentStatus
 		if _, err := dc.DeploymentInterface.UpdateDeployment(ctx, deployment); err != nil {
-			glog.V(2).Infof("Failed to update deployment %v: %v", deployment.ID, err)
+			glog.V(2).Infof("Failed to update deployment %v: %v", deployment.Name, err)
 		}
 	}
 }
@@ -160,16 +173,16 @@ func (dc *DeploymentController) makeDeploymentPod(deployment *deployapi.Deployme
 	// Combine the container environment, controller environment, and deployment values into
 	// the pod's environment.
 	envVars := container.Env
-	envVars = append(envVars, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: deployment.ID})
+	envVars = append(envVars, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: deployment.Name})
 	envVars = append(envVars, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: deployment.Namespace})
 	for _, env := range dc.Environment {
 		envVars = append(envVars, env)
 	}
 
 	pod := &kapi.Pod{
-		TypeMeta: kapi.TypeMeta{
+		ObjectMeta: kapi.ObjectMeta{
 			Annotations: map[string]string{
-				deployapi.DeploymentAnnotation: deployment.ID,
+				deployapi.DeploymentAnnotation: deployment.Name,
 			},
 		},
 		DesiredState: kapi.PodState{

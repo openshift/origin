@@ -18,6 +18,20 @@ func ValidateDeployment(deployment *deployapi.Deployment) errors.ValidationError
 	return result
 }
 
+func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
+
+	for i := range config.Triggers {
+		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	}
+
+	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
+	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
+	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
+
+	return result
+}
+
 func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
 
@@ -37,7 +51,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.V
 	return result
 }
 
-func validateCustomPodStrategy(customPod *deployapi.CustomPodDeploymentStrategy) errors.ValidationErrorList {
+func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
 
 	if len(params.Image) == 0 {
@@ -75,20 +89,6 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 	if len(params.ContainerNames) == 0 {
 		result = append(result, errors.NewFieldRequired("containerNames", ""))
 	}
-
-	return result
-}
-
-func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ValidationErrorList {
-	result := errors.ValidationErrorList{}
-
-	for i := range config.Triggers {
-		result = append(result, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
-	}
-
-	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
-	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
-	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
 
 	return result
 }

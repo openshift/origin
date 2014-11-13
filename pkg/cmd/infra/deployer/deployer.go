@@ -65,10 +65,7 @@ func deploy(cfg *config) error {
 		return err
 	}
 
-	d := customimage.CustomImageDeployer{
-		customimage.RealDeploymentControl{KubeClient: kClient},
-		customimage.RealReplicationController{KubeClient: kClient},
-		osClient,
-	}
-	return d.Deploy(cfg.DeploymentName)
+	// TODO: Choose a strategy based on some input
+	strategy := &strategy.RecreateDeploymentStrategy{strategy.RealReplicationController{KubeClient: kClient}}
+	return strategy.Deploy(deployment)
 }
