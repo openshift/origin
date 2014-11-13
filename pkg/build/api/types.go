@@ -178,12 +178,44 @@ type BuildConfig struct {
 	api.TypeMeta `json:",inline" yaml:",inline"`
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
-	// Secret used to validate requests.
-	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
+	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
+	// are defined, a new build can only occur as a result of an explicit client build creation.
+	Triggers []BuildTriggerPolicy `json:"triggers,omitempty" yaml:"triggers,omitempty"`
 
 	// Parameters holds all the input necessary to produce a new build.
 	Parameters BuildParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
+
+// WebHookTrigger is a trigger that gets invoked using a webhook type of post
+type WebHookTrigger struct {
+	// Secret used to validate requests.
+	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
+}
+
+// BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
+type BuildTriggerPolicy struct {
+	// Type is the type of build trigger
+	Type BuildTriggerType `json:"type,omitempty" yaml:"type,omitempty"`
+
+	// GithubWebHook contains the parameters for a Github webhook type of trigger
+	GithubWebHook *WebHookTrigger `json:"github,omitempty" yaml:"github,omitempty"`
+
+	// GenericWebHook contains the parameters for a Generic webhook type of trigger
+	GenericWebHook *WebHookTrigger `json:"generic,omitempty" yaml:"generic,omitempty"`
+}
+
+// BuildTriggerType refers to a specific BuildTriggerPolicy implementation.
+type BuildTriggerType string
+
+const (
+	// GithubWebHookType represents a trigger that launches builds on
+	// Github webhook invocations
+	GithubWebHookType BuildTriggerType = "github"
+
+	// GenericWebHookType represents a trigger that launches builds on
+	// generic webhook invocations
+	GenericWebHookType BuildTriggerType = "generic"
+)
 
 // BuildList is a collection of Builds.
 type BuildList struct {

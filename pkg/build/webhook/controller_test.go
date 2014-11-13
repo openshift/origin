@@ -21,7 +21,16 @@ type osClient struct {
 }
 
 func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
-	return &api.BuildConfig{Secret: "secret101"}, nil
+	return &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GithubWebHookType,
+				GithubWebHook: &api.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
+	}, nil
 }
 
 func (_ *osClient) WatchBuilds(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
@@ -48,14 +57,14 @@ type pathPlugin struct {
 	Path string
 }
 
-func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (*api.Build, bool, error) {
+func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.Build, bool, error) {
 	p.Path = path
 	return nil, true, nil
 }
 
 type errPlugin struct{}
 
-func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (*api.Build, bool, error) {
+func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.Build, bool, error) {
 	return nil, true, errors.New("Plugin error!")
 }
 
@@ -222,7 +231,6 @@ func TestInvokeWebhookOk(t *testing.T) {
 	var buildRequest *api.Build
 	buildConfig := &api.BuildConfig{
 		Parameters: api.BuildParameters{},
-		Secret:     "secret101",
 	}
 
 	server := httptest.NewServer(NewController(&mockOsClient{

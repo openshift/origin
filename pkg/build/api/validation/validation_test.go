@@ -193,3 +193,88 @@ func TestValidateBuildParameters(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateTrigger(t *testing.T) {
+	tests := map[string]struct {
+		trigger  buildapi.BuildTriggerPolicy
+		expected []errs.ValidationError
+	}{
+		"trigger without type": {
+			trigger:  buildapi.BuildTriggerPolicy{},
+			expected: []errs.ValidationError{errs.NewFieldRequired("type", "")},
+		},
+		"github type with no github webhook": {
+			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GithubWebHookType},
+			expected: []errs.ValidationError{errs.NewFieldRequired("github", "")},
+		},
+		"github trigger with no secret": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type:          buildapi.GithubWebHookType,
+				GithubWebHook: &buildapi.WebHookTrigger{},
+			},
+			expected: []errs.ValidationError{errs.NewFieldRequired("github.secret", "")},
+		},
+		"github trigger with generic webhook": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GithubWebHookType,
+				GenericWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+			expected: []errs.ValidationError{errs.NewFieldInvalid("generic", "")},
+		},
+		"generic trigger with no generic webhook": {
+			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookType},
+			expected: []errs.ValidationError{errs.NewFieldRequired("generic", "")},
+		},
+		"generic trigger with no secret": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type:           buildapi.GenericWebHookType,
+				GenericWebHook: &buildapi.WebHookTrigger{},
+			},
+			expected: []errs.ValidationError{errs.NewFieldRequired("generic.secret", "")},
+		},
+		"generic trigger with github webhook": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GenericWebHookType,
+				GithubWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+			expected: []errs.ValidationError{errs.NewFieldInvalid("github", "")},
+		},
+		"valid github trigger": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GithubWebHookType,
+				GithubWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
+		"valid generic trigger": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GenericWebHookType,
+				GenericWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
+	}
+	for desc, test := range tests {
+		errors := validateTrigger(&test.trigger)
+		if len(test.expected) == 0 {
+			if len(errors) != 0 {
+				t.Errorf("%s: Got unexpected validation errors: %#v", errors)
+			}
+			continue
+		}
+		err := errors[0]
+		validationError := err.(errs.ValidationError)
+		if validationError.Type != test.expected[0].Type {
+			t.Errorf("%s: Unexpected error type: %s", desc, validationError.Type)
+		}
+		if validationError.Field != test.expected[0].Field {
+			t.Errorf("%s: Unexpected error field: %s", desc, validationError.Field)
+		}
+	}
+}

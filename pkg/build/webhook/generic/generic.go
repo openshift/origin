@@ -31,7 +31,16 @@ type genericGitInfo struct {
 }
 
 // Extract services generic webhooks.
-func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
+func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
+	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookType, buildCfg)
+	if !ok {
+		err = fmt.Errorf("BuildConfig %s does not allow Github webhook type of triggers", buildCfg.ID)
+		return
+	}
+	if trigger.GenericWebHook.Secret != secret {
+		err = fmt.Errorf("Secret does not match for BuildConfig %s", buildCfg.ID)
+		return
+	}
 	if err = verifyRequest(req); err != nil {
 		return
 	}

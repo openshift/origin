@@ -17,7 +17,7 @@ type Plugin interface {
 	// - newly created build object or nil if default is to be created
 	// - information whether to trigger the build itself
 	// - eventual error.
-	Extract(buildCfg *api.BuildConfig, path string, req *http.Request) (*api.Build, bool, error)
+	Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.Build, bool, error)
 }
 
 // controller used for processing webhook requests.
@@ -57,17 +57,13 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		badRequest(w, err.Error())
 		return
 	}
-	if uv.secret != buildCfg.Secret {
-		badRequest(w, "")
-		return
-	}
 
 	plugin, ok := c.plugins[uv.plugin]
 	if !ok {
 		notFound(w, "Plugin ", uv.plugin, " not found")
 		return
 	}
-	build, proceed, err := plugin.Extract(buildCfg, uv.path, req)
+	build, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
 	if err != nil {
 		badRequest(w, err.Error())
 		return

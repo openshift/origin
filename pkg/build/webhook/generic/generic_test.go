@@ -90,6 +90,14 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 	req.Header.Add("User-Agent", "Some User Agent")
 	req.Header.Add("Content-Type", "application/json")
 	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{
 				Type: api.BuildSourceGit,
@@ -101,7 +109,7 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	build, proceed, err := plugin.Extract(buildConfig, "", req)
+	build, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)
 	}
@@ -120,6 +128,14 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 	req := GivenRequestWithPayload(t)
 	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{
 				Type: api.BuildSourceGit,
@@ -131,7 +147,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	build, proceed, err := plugin.Extract(buildConfig, "", req)
+	build, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Unexpected error when triggering build: %s", err)
@@ -147,6 +163,14 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 func TestExtractWithGitPayload(t *testing.T) {
 	req := GivenRequestWithPayload(t)
 	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{
 				Type: api.BuildSourceGit,
@@ -159,7 +183,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 	}
 	plugin := New()
 
-	build, proceed, err := plugin.Extract(buildConfig, "", req)
+	build, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)

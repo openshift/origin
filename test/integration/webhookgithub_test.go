@@ -29,6 +29,14 @@ func TestWebhookGithubPush(t *testing.T) {
 		TypeMeta: kapi.TypeMeta{
 			ID: "pushbuild",
 		},
+		Triggers: []buildapi.BuildTriggerPolicy{
+			{
+				Type: buildapi.GithubWebHookType,
+				GithubWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -46,7 +54,6 @@ func TestWebhookGithubPush(t *testing.T) {
 				ImageTag: "namespace/builtimage",
 			},
 		},
-		Secret: "secret101",
 	}
 
 	if _, err := openshift.Client.CreateBuildConfig(ctx, buildConfig); err != nil {
@@ -79,6 +86,14 @@ func TestWebhookGithubPing(t *testing.T) {
 		TypeMeta: kapi.TypeMeta{
 			ID: "pingbuild",
 		},
+		Triggers: []buildapi.BuildTriggerPolicy{
+			{
+				Type: buildapi.GithubWebHookType,
+				GithubWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -96,7 +111,6 @@ func TestWebhookGithubPing(t *testing.T) {
 				ImageTag: "namespace/builtimage",
 			},
 		},
-		Secret: "secret101",
 	}
 	if _, err := openshift.Client.CreateBuildConfig(ctx, buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)

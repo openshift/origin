@@ -23,7 +23,14 @@ type osClient struct {
 
 func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
 	return &api.BuildConfig{
-		Secret: "secret101",
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GithubWebHookType,
+				GithubWebHook: &api.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{
 				Type: api.BuildSourceGit,
@@ -183,7 +190,14 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 	context := testContext{
 		plugin: GitHubWebHook{},
 		buildCfg: &api.BuildConfig{
-			Secret: "secret101",
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GithubWebHookType,
+					GithubWebHook: &api.WebHookTrigger{
+						Secret: "secret101",
+					},
+				},
+			},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -213,7 +227,7 @@ func TestExtractForAPingEvent(t *testing.T) {
 	context := setup(t, "pingevent.json", "ping")
 
 	//execute
-	_, proceed, err := context.plugin.Extract(context.buildCfg, context.path, context.req)
+	_, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -229,7 +243,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	context := setup(t, "pushevent.json", "push")
 
 	//execute
-	build, proceed, err := context.plugin.Extract(context.buildCfg, context.path, context.req)
+	build, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -253,7 +267,7 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	context.buildCfg.Parameters.Source.Git.Ref = "my_other_branch"
 
 	//execute
-	build, proceed, err := context.plugin.Extract(context.buildCfg, context.path, context.req)
+	build, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -277,7 +291,7 @@ func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	context.buildCfg.Parameters.Source.Git.Ref = "adfj32qrafdavckeaewra"
 
 	//execute
-	build, proceed, _ := context.plugin.Extract(context.buildCfg, context.path, context.req)
+	build, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 	if proceed {
 		t.Errorf("Expecting to not continue from this event because the branch '%s' is not for this buildConfig '%s'", build.Parameters.Source.Git.Ref, context.buildCfg.Parameters.Source.Git.Ref)
 	}
