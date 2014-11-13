@@ -79,7 +79,7 @@ To test your route independent of DNS you can send a host header to the router. 
     [vagrant@openshiftdev origin]$ openshift kube -c ~/pod.json create pods
     [vagrant@openshiftdev origin]$ openshift kube -c ~/service.json create services
     [vagrant@openshiftdev origin]$ openshift kube -c ~/route.json create routes
-    [vagrant@openshiftdev origin]$ curl -H "Host:hello-openshift.v3.rhcloud.com" 10.245.1.2
+    [vagrant@openshiftdev origin]$ curl -H "Host:hello-openshift.v3.rhcloud.com" <vm ip>
     Hello OpenShift!
     
     $ ..... vagrant up with cluster instructions .....
