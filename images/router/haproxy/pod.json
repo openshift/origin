@@ -13,7 +13,7 @@
                         "containerPort": 80,
                         "hostPort": 80
                     }],
-                    "command": ["-master=MASTER_IP:8080", "-v=4"],
+                    "command": ["--master=MASTER_IP:8080"],
                     "imagePullPolicy": "PullIfNotPresent"
                 }
             ],

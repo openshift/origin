@@ -15,7 +15,7 @@ import (
 const longCommandDesc = `
 Start an OpenShift router
 
-This command launches a router connected to your OpenShift master. The router listens for routes and services
+This command launches a router connected to your OpenShift master. The router listens for routes and endpoints
 created by users and keeps a local router configuration up to date with those changes.
 `
 

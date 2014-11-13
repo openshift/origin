@@ -22,6 +22,7 @@ source "${OS_ROOT}/hack/util.sh"
 echo "[INFO] Starting end-to-end test using ${BUILD_TYPE} builder"
 
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
+ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 
 TMPDIR="${TMPDIR:-"/tmp"}"
 ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
@@ -178,5 +179,33 @@ wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN
 echo "[INFO] Waiting for app to start..."
 wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
 
-echo "[INFO] Validate app response..."
-validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
+
+if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
+    # use the docker bridge ip address until there is a good way to get the address from master
+    # this address is considered stable
+    apiIP="172.17.42.1"
+
+    echo "[INFO] Installing router with master ip of ${apiIP} and starting pod..."
+    echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
+    "${OS_ROOT}/hack/install-router.sh" $apiIP $openshift
+    wait_for_command "$openshift kube list pods | grep router | grep -i Running" $((5*TIME_MIN))
+
+    echo "[INFO] Validate routed app response doesn't exist"
+    # quick nap to ensure router has bound to port 80 and is ready or we'll get connection refused rather than
+    # service unavailable
+    sleep 2
+    validate_response "-H Host:end-to-end --connect-timeout 10 http://${apiIP}" "503 Service Unavailable"
+
+    echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
+    $openshift kube create routes --ns=${NAMESPACE} -c "${ARTIFACT_DIR}/route.json"
+
+    echo "[INFO] Waiting for route to be picked up..."
+    sleep 2
+
+    echo "[INFO] Validate routed app response..."
+    validate_response "-H Host:end-to-end http://${apiIP}" "Hello from OpenShift"
+else
+    echo "[INFO] Validate app response..."
+    validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
+fi
+
