@@ -60,7 +60,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 	}
 
 	nextStatus := buildapi.BuildStatusFailed
-	build.PodID = fmt.Sprintf("build-%s", build.Name)
+	build.PodName = fmt.Sprintf("build-%s", build.Name)
 
 	var podSpec *kapi.Pod
 	var err error
@@ -90,7 +90,7 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	var build *buildapi.Build
 	for _, obj := range bc.BuildStore.List() {
 		b := obj.(*buildapi.Build)
-		if b.PodID == pod.Name {
+		if b.PodName == pod.Name {
 			build = b
 			break
 		}
@@ -109,12 +109,9 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	case kapi.PodSucceeded:
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildStatusComplete
-		for _, info := range pod.CurrentState.Info {
-			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
-				nextStatus = buildapi.BuildStatusFailed
-				break
-			}
-		}
+	case kapi.PodFailed:
+		// At least one of the pods exited with non-zero exit code
+		nextStatus = buildapi.BuildStatusFailed
 	}
 
 	if build.Status != nextStatus {

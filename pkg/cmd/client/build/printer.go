@@ -21,7 +21,7 @@ func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
 }
 
 func printBuild(build *api.Build, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, build.Parameters.Strategy.Type, build.Status, build.PodID)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, build.Parameters.Strategy.Type, build.Status, build.PodName)
 	return err
 }
 

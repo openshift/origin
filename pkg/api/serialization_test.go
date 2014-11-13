@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/fsouza/go-dockerclient"
@@ -30,7 +31,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		// APIVersion and Kind must remain blank in memory.
 		j.APIVersion = ""
 		j.Kind = ""
-		j.ID = c.RandString()
+		j.Name = c.RandString()
 		// TODO: Fix JSON/YAML packages and/or write custom encoding
 		// for uint64's. Somehow the LS *byte* of this is lost, but
 		// only when all 8 bytes are set.
@@ -42,12 +43,10 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		c.Fuzz(&nsec)
 		j.CreationTimestamp = util.Unix(sec, nsec).Rfc3339Copy()
 	},
-	func(j *api.TypeMeta, c fuzz.Continue) {
+	func(j *api.ObjectMeta, c fuzz.Continue) {
 		// We have to customize the randomization of TypeMetas because their
 		// APIVersion and Kind must remain blank in memory.
-		j.APIVersion = ""
-		j.Kind = ""
-		j.ID = c.RandString()
+		j.Name = c.RandString()
 		// TODO: Fix JSON/YAML packages and/or write custom encoding
 		// for uint64's. Somehow the LS *byte* of this is lost, but
 		// only when all 8 bytes are set.
@@ -95,7 +94,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 	name := reflect.TypeOf(source).Elem().Name()
 	apiObjectFuzzer.Fuzz(source)
-	j, err := runtime.FindTypeMeta(source)
+	j, err := meta.Accessor(source)
 	if err != nil {
 		t.Fatalf("Unexpected error %v for %#v", err, source)
 	}
@@ -148,7 +147,7 @@ func TestTypes(t *testing.T) {
 				t.Errorf("Couldn't make a %v? %v", kind, err)
 				continue
 			}
-			if _, err := runtime.FindTypeMeta(item); err != nil {
+			if _, err := meta.Accessor(item); err != nil {
 				t.Logf("%s is not a TypeMeta and cannot be round tripped: %v", kind, err)
 				continue
 			}

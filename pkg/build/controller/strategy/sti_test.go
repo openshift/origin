@@ -25,8 +25,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	expected := mockSTIBuild()
 	actual, _ := strategy.CreateBuildPod(expected)
 
-	if actual.TypeMeta.ID != expected.PodID {
-		t.Errorf("Expected %s, but got %s!", expected.PodID, actual.TypeMeta.ID)
+	if actual.ObjectMeta.Name != expected.PodName {
+		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
 	}
 	if actual.DesiredState.Manifest.Version != "v1beta1" {
 		t.Error("Expected v1beta1, but got %s!, actual.DesiredState.Manifest.Version")
@@ -60,8 +60,11 @@ func TestSTICreateBuildPod(t *testing.T) {
 
 func mockSTIBuild() *buildapi.Build {
 	return &buildapi.Build{
-		TypeMeta: kapi.TypeMeta{
-			ID: "stiBuild",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "stiBuild",
+			Labels: map[string]string{
+				"name": "stiBuild",
+			},
 		},
 		Parameters: buildapi.BuildParameters{
 			Revision: &buildapi.SourceRevision{
@@ -81,10 +84,7 @@ func mockSTIBuild() *buildapi.Build {
 				Registry: "docker-registry",
 			},
 		},
-		Status: buildapi.BuildStatusNew,
-		PodID:  "-the-pod-id",
-		Labels: map[string]string{
-			"name": "stiBuild",
-		},
+		Status:  buildapi.BuildStatusNew,
+		PodName: "-the-pod-id",
 	}
 }

@@ -58,12 +58,12 @@ func makeTestDefaultBuildConfigListKey() string {
 
 func TestEtcdGetBuild(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultBuildKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultBuildKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	build, err := registry.GetBuild(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
-	} else if build.ID != "foo" {
+	} else if build.Name != "foo" {
 		t.Errorf("Unexpected build: %#v", build)
 	}
 }
@@ -94,8 +94,11 @@ func TestEtcdCreateBuild(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(kapi.NewDefaultContext(), &api.Build{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"name": "dataBuild",
+			},
 		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{
@@ -113,11 +116,8 @@ func TestEtcdCreateBuild(t *testing.T) {
 				ImageTag: "repository/dataBuild",
 			},
 		},
-		Status: api.BuildStatusPending,
-		PodID:  "-the-pod-id",
-		Labels: map[string]string{
-			"name": "dataBuild",
-		},
+		Status:  api.BuildStatusPending,
+		PodName: "-the-pod-id",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -133,7 +133,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if build.ID != "foo" {
+	if build.Name != "foo" {
 		t.Errorf("Unexpected build: %#v %s", build, resp.Node.Value)
 	}
 }
@@ -143,15 +143,15 @@ func TestEtcdCreateBuildAlreadyExisting(t *testing.T) {
 	fakeClient.Data[makeTestDefaultBuildKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(kapi.NewDefaultContext(), &api.Build{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err == nil {
@@ -165,7 +165,7 @@ func TestEtcdDeleteBuild(t *testing.T) {
 
 	key := makeTestDefaultBuildKey("foo")
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Build{
-		TypeMeta: kapi.TypeMeta{ID: "foo"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuild(kapi.NewDefaultContext(), "foo")
@@ -211,12 +211,12 @@ func TestEtcdListBuilds(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							TypeMeta: kapi.TypeMeta{ID: "foo"},
+							ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							TypeMeta: kapi.TypeMeta{ID: "bar"},
+							ObjectMeta: kapi.ObjectMeta{Name: "bar"},
 						}),
 					},
 				},
@@ -230,7 +230,7 @@ func TestEtcdListBuilds(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(builds.Items) != 2 || builds.Items[0].ID != "foo" || builds.Items[1].ID != "bar" {
+	if len(builds.Items) != 2 || builds.Items[0].Name != "foo" || builds.Items[1].Name != "bar" {
 		t.Errorf("Unexpected build list: %#v", builds)
 	}
 }
@@ -238,7 +238,7 @@ func TestEtcdListBuilds(t *testing.T) {
 func TestEtcdWatchBuilds(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := labels.SelectorFromSet(labels.Set{"ID": "foo", "Status": string(api.BuildStatusRunning), "PodID": "bar"})
+	filterFields := labels.SelectorFromSet(labels.Set{"Name": "foo", "Status": string(api.BuildStatusRunning), "PodName": "bar"})
 
 	watching, err := registry.WatchBuilds(kapi.NewContext(), labels.Everything(), filterFields, "1")
 	if err != nil {
@@ -246,7 +246,7 @@ func TestEtcdWatchBuilds(t *testing.T) {
 	}
 	fakeClient.WaitForWatchCompletion()
 
-	repo := &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}, Status: api.BuildStatusRunning, PodID: "bar"}
+	repo := &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}, Status: api.BuildStatusRunning, PodName: "bar"}
 	repoBytes, _ := latest.Codec.Encode(repo)
 	fakeClient.WatchResponse <- &etcd.Response{
 		Action: "set",
@@ -280,12 +280,12 @@ func TestEtcdWatchBuilds(t *testing.T) {
 
 func TestEtcdGetBuildConfig(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultBuildConfigKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultBuildConfigKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	buildConfig, err := registry.GetBuildConfig(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
-	} else if buildConfig.ID != "foo" {
+	} else if buildConfig.Name != "foo" {
 		t.Errorf("Unexpected build config: %#v", buildConfig)
 	}
 }
@@ -316,8 +316,11 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(kapi.NewDefaultContext(), &api.BuildConfig{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"name": "dataBuildConfig",
+			},
 		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{
@@ -335,9 +338,6 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 				ImageTag: "repository/dataBuild",
 			},
 		},
-		Labels: map[string]string{
-			"name": "dataBuildConfig",
-		},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -353,7 +353,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if buildConfig.ID != "foo" {
+	if buildConfig.Name != "foo" {
 		t.Errorf("Unexpected buildConfig: %#v %s", buildConfig, resp.Node.Value)
 	}
 }
@@ -363,15 +363,15 @@ func TestEtcdCreateBuildConfigAlreadyExisting(t *testing.T) {
 	fakeClient.Data[makeTestDefaultBuildConfigKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(kapi.NewDefaultContext(), &api.BuildConfig{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err == nil {
@@ -385,7 +385,7 @@ func TestEtcdDeleteBuildConfig(t *testing.T) {
 
 	key := makeTestDefaultBuildConfigKey("foo")
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-		TypeMeta: kapi.TypeMeta{ID: "foo"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteBuildConfig(kapi.NewDefaultContext(), "foo")
@@ -431,12 +431,12 @@ func TestEtcdListBuildConfigs(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-							TypeMeta: kapi.TypeMeta{ID: "foo"},
+							ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{
-							TypeMeta: kapi.TypeMeta{ID: "bar"},
+							ObjectMeta: kapi.ObjectMeta{Name: "bar"},
 						}),
 					},
 				},
@@ -450,7 +450,7 @@ func TestEtcdListBuildConfigs(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(buildConfigs.Items) != 2 || buildConfigs.Items[0].ID != "foo" || buildConfigs.Items[1].ID != "bar" {
+	if len(buildConfigs.Items) != 2 || buildConfigs.Items[0].Name != "foo" || buildConfigs.Items[1].Name != "bar" {
 		t.Errorf("Unexpected buildConfig list: %#v", buildConfigs)
 	}
 }
@@ -460,8 +460,8 @@ func TestEtcdCreateBuildConfigFailsWithoutNamespace(t *testing.T) {
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuildConfig(kapi.NewContext(), &api.BuildConfig{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 
@@ -475,8 +475,8 @@ func TestEtcdCreateBuildFailsWithoutNamespace(t *testing.T) {
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateBuild(kapi.NewContext(), &api.Build{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 
@@ -494,7 +494,7 @@ func TestEtcdListBuildsInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo1"}}),
 					},
 				},
 			},
@@ -506,10 +506,10 @@ func TestEtcdListBuildsInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "bar2"}}),
 					},
 				},
 			},
@@ -522,7 +522,7 @@ func TestEtcdListBuildsInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(buildsAlfa.Items) != 1 || buildsAlfa.Items[0].ID != "foo1" {
+	if len(buildsAlfa.Items) != 1 || buildsAlfa.Items[0].Name != "foo1" {
 		t.Errorf("Unexpected builds list: %#v", buildsAlfa)
 	}
 
@@ -530,7 +530,7 @@ func TestEtcdListBuildsInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(buildsBravo.Items) != 2 || buildsBravo.Items[0].ID != "foo2" || buildsBravo.Items[1].ID != "bar2" {
+	if len(buildsBravo.Items) != 2 || buildsBravo.Items[0].Name != "foo2" || buildsBravo.Items[1].Name != "bar2" {
 		t.Errorf("Unexpected builds list: %#v", buildsBravo)
 	}
 }
@@ -544,7 +544,7 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo1"}}),
 					},
 				},
 			},
@@ -556,10 +556,10 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "bar2"}}),
 					},
 				},
 			},
@@ -572,7 +572,7 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(buildConfigsAlfa.Items) != 1 || buildConfigsAlfa.Items[0].ID != "foo1" {
+	if len(buildConfigsAlfa.Items) != 1 || buildConfigsAlfa.Items[0].Name != "foo1" {
 		t.Errorf("Unexpected builds list: %#v", buildConfigsAlfa)
 	}
 
@@ -580,7 +580,7 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(buildConfigsBravo.Items) != 2 || buildConfigsBravo.Items[0].ID != "foo2" || buildConfigsBravo.Items[1].ID != "bar2" {
+	if len(buildConfigsBravo.Items) != 2 || buildConfigsBravo.Items[0].Name != "foo2" || buildConfigsBravo.Items[1].Name != "bar2" {
 		t.Errorf("Unexpected builds list: %#v", buildConfigsBravo)
 	}
 }
@@ -589,15 +589,15 @@ func TestEtcdGetBuildConfigInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/buildConfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/buildConfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/buildConfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/buildConfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetBuildConfig(namespaceAlfa, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if alfaFoo == nil || alfaFoo.ID != "foo" {
+	if alfaFoo == nil || alfaFoo.Name != "foo" {
 		t.Errorf("Unexpected buildConfig: %#v", alfaFoo)
 	}
 
@@ -605,7 +605,7 @@ func TestEtcdGetBuildConfigInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if bravoFoo == nil || bravoFoo.ID != "foo" {
+	if bravoFoo == nil || bravoFoo.Name != "foo" {
 		t.Errorf("Unexpected buildConfig: %#v", bravoFoo)
 	}
 }
@@ -614,15 +614,15 @@ func TestEtcdGetBuildInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/builds/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/builds/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/builds/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/builds/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetBuild(namespaceAlfa, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if alfaFoo == nil || alfaFoo.ID != "foo" {
+	if alfaFoo == nil || alfaFoo.Name != "foo" {
 		t.Errorf("Unexpected buildConfig: %#v", alfaFoo)
 	}
 
@@ -630,7 +630,7 @@ func TestEtcdGetBuildInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if bravoFoo == nil || bravoFoo.ID != "foo" {
+	if bravoFoo == nil || bravoFoo.Name != "foo" {
 		t.Errorf("Unexpected buildConfig: %#v", bravoFoo)
 	}
 }

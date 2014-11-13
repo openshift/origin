@@ -73,9 +73,9 @@ func (factory *BuildControllerFactory) pollPods() (cache.Enumerator, error) {
 
 		switch build.Status {
 		case buildapi.BuildStatusPending, buildapi.BuildStatusRunning:
-			pod, err := factory.KubeClient.Pods(build.Namespace).Get(build.PodID)
+			pod, err := factory.KubeClient.Pods(build.Namespace).Get(build.PodName)
 			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodID, build.Name, err)
+				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodName, build.Name, err)
 				continue
 			}
 			list.Items = append(list.Items, *pod)

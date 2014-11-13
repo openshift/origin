@@ -6,7 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -18,16 +18,28 @@ import (
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	BuildRegistry build.Registry
-	Client        *client.Client
+	PodControl    PodControlInterface
+}
+
+type PodControlInterface interface {
+	getPod(namespace, name string) (*kapi.Pod, error)
+}
+
+type RealPodControl struct {
+	KubeClient kclient.Interface
+}
+
+func (r RealPodControl) getPod(namespace, name string) (*kapi.Pod, error) {
+	return r.KubeClient.Pods(namespace).Get(name)
 }
 
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get neccessary attibutes to assamble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(b build.Registry, c *client.Client) apiserver.RESTStorage {
+func NewREST(b build.Registry, c *kclient.Client) apiserver.RESTStorage {
 	return &REST{
 		BuildRegistry: b,
-		Client:        c,
+		PodControl:    RealPodControl{c},
 	}
 }
 
@@ -38,11 +50,11 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		return "", fmt.Errorf("No such build: %v", err)
 	}
 
-	pod, err := r.Client.Pods(build.Namespace).Get(build.PodID)
+	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
 	if err != nil {
 		return "", fmt.Errorf("No such pod: %v", err)
 	}
-	buildPodID := build.PodID
+	buildPodID := build.PodName
 	buildPodHost := pod.CurrentState.Host
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container

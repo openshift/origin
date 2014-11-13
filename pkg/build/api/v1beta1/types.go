@@ -1,14 +1,14 @@
 package v1beta1
 
 import (
-	api "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// Parameters are all the inputs used to create the build pod.
 	Parameters BuildParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -16,8 +16,8 @@ type Build struct {
 	// Status is the current status of the build.
 	Status BuildStatus `json:"status,omitempty" yaml:"status,omitempty"`
 
-	// PodID is the id of the pod that is used to execute the build
-	PodID string `json:"podID,omitempty" yaml:"podID,omitempty"`
+	// PodName is the name of the pod that is used to execute the build
+	PodName string `json:"podName,omitempty" yaml:"podName,omitempty"`
 }
 
 // BuildParameters encapsulates all the inputs necessary to represent a build.
@@ -119,10 +119,10 @@ type BuildStrategy struct {
 	Type BuildStrategyType `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// DockerStrategy holds the parameters to the Docker build strategy.
-	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty" yaml:"dockerStrategy,omitempty"`
+	DockerStrategy *DockerBuildStrategy `json:"dockerBuildStrategy,omitempty" yaml:"dockerBuildStrategy,omitempty"`
 
 	// STIStrategy holds the parameters to the STI build strategy.
-	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty" yaml:"stiStrategy,omitempty"`
+	STIStrategy *STIBuildStrategy `json:"stiBuildStrategy,omitempty" yaml:"stiBuildStrategy,omitempty"`
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -175,8 +175,8 @@ const BuildConfigLabel = "buildconfig"
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
 	// are defined, a new build can only occur as a result of an explicit client build creation.
@@ -219,12 +219,14 @@ const (
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []Build `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:",inline" yaml:",inline"`
+	Items         []Build `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	api.TypeMeta `json:",inline" yaml:",inline"`
-	Items        []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:",inline" yaml:",inline"`
+	Items         []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }

@@ -6,7 +6,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildtest "github.com/openshift/origin/pkg/build/controller/test"
@@ -37,25 +36,32 @@ func (_ *errStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	return nil, errors.New("CreateBuildPod error!")
 }
 
-type errKubeClient struct {
-	kclient.Fake
+type okPodControl struct{}
+
+func (_ *okPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return &kapi.Pod{}, nil
 }
 
-func (_ *errKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
+type errPodControl struct{}
+
+func (_ *errPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, errors.New("CreatePod error!")
 }
 
-type errExistsKubeClient struct {
-	kclient.Fake
-}
+type errExistsPodControl struct{}
 
-func (_ *errExistsKubeClient) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
+func (_ *errExistsPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, kerrors.NewAlreadyExists("kind", "name")
 }
 
 func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build, controller *BuildController) {
 	build = &buildapi.Build{
-		TypeMeta: kapi.TypeMeta{ID: "dataBuild"},
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "dataBuild",
+			Labels: map[string]string{
+				"name": "dataBuild",
+			},
+		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -73,16 +79,13 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 				ImageTag: "repository/dataBuild",
 			},
 		},
-		Status: status,
-		PodID:  "-the-pod-id",
-		Labels: map[string]string{
-			"name": "dataBuild",
-		},
+		Status:  status,
+		PodName: "-the-pod-id",
 	}
 	controller = &BuildController{
 		BuildStore:    buildtest.NewFakeBuildStore(build),
 		BuildUpdater:  &osclient.Fake{},
-		PodCreator:    &kclient.Fake{},
+		PodControl:    &okPodControl{},
 		NextBuild:     func() *buildapi.Build { return nil },
 		NextPod:       func() *kapi.Pod { return nil },
 		BuildStrategy: &okStrategy{},
@@ -90,18 +93,11 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 	return
 }
 
-func mockPod(status kapi.PodStatus, exitCode int) *kapi.Pod {
+func mockPod(status kapi.PodCondition) *kapi.Pod {
 	return &kapi.Pod{
-		TypeMeta: kapi.TypeMeta{ID: "podID"},
+		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
 		CurrentState: kapi.PodState{
 			Status: status,
-			Info: kapi.PodInfo{
-				"container1": kapi.ContainerStatus{
-					State: kapi.ContainerState{
-						Termination: &kapi.ContainerStateTerminated{ExitCode: exitCode},
-					},
-				},
-			},
 		},
 	}
 }
@@ -112,7 +108,7 @@ func TestHandleBuild(t *testing.T) {
 		outStatus     buildapi.BuildStatus
 		buildStrategy BuildStrategy
 		buildUpdater  buildUpdater
-		podCreator    podCreator
+		podControl    PodControlInterface
 	}
 
 	tests := []handleBuildTest{
@@ -148,12 +144,12 @@ func TestHandleBuild(t *testing.T) {
 		{ // 7
 			inStatus:   buildapi.BuildStatusNew,
 			outStatus:  buildapi.BuildStatusFailed,
-			podCreator: &errKubeClient{},
+			podControl: &errPodControl{},
 		},
 		{ // 8
 			inStatus:   buildapi.BuildStatusNew,
 			outStatus:  buildapi.BuildStatusFailed,
-			podCreator: &errExistsKubeClient{},
+			podControl: &errExistsPodControl{},
 		},
 		{ // 9
 			inStatus:     buildapi.BuildStatusNew,
@@ -170,8 +166,8 @@ func TestHandleBuild(t *testing.T) {
 		if tc.buildUpdater != nil {
 			ctrl.BuildUpdater = tc.buildUpdater
 		}
-		if tc.podCreator != nil {
-			ctrl.PodCreator = tc.podCreator
+		if tc.podControl != nil {
+			ctrl.PodControl = tc.podControl
 		}
 
 		ctrl.HandleBuild(build)
@@ -187,8 +183,7 @@ func TestHandlePod(t *testing.T) {
 		matchID      bool
 		inStatus     buildapi.BuildStatus
 		outStatus    buildapi.BuildStatus
-		podStatus    kapi.PodStatus
-		exitCode     int
+		podStatus    kapi.PodCondition
 		buildUpdater buildUpdater
 	}
 
@@ -197,52 +192,46 @@ func TestHandlePod(t *testing.T) {
 			matchID:   false,
 			inStatus:  buildapi.BuildStatusPending,
 			outStatus: buildapi.BuildStatusPending,
-			podStatus: kapi.PodWaiting,
-			exitCode:  0,
+			podStatus: kapi.PodPending,
 		},
 		{ // 1
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusPending,
 			outStatus: buildapi.BuildStatusPending,
-			podStatus: kapi.PodWaiting,
-			exitCode:  0,
+			podStatus: kapi.PodPending,
 		},
 		{ // 2
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusPending,
 			outStatus: buildapi.BuildStatusRunning,
 			podStatus: kapi.PodRunning,
-			exitCode:  0,
 		},
 		{ // 3
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusRunning,
 			outStatus: buildapi.BuildStatusComplete,
-			podStatus: kapi.PodTerminated,
-			exitCode:  0,
+			podStatus: kapi.PodSucceeded,
 		},
 		{ // 4
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusRunning,
 			outStatus: buildapi.BuildStatusFailed,
-			podStatus: kapi.PodTerminated,
-			exitCode:  -1,
+			podStatus: kapi.PodFailed,
 		},
 		{ // 5
 			matchID:      true,
 			inStatus:     buildapi.BuildStatusRunning,
 			outStatus:    buildapi.BuildStatusComplete,
-			podStatus:    kapi.PodTerminated,
-			exitCode:     0,
+			podStatus:    kapi.PodSucceeded,
 			buildUpdater: &errOsClient{},
 		},
 	}
 
 	for i, tc := range tests {
 		build, ctrl := mockBuildAndController(tc.inStatus)
-		pod := mockPod(tc.podStatus, tc.exitCode)
+		pod := mockPod(tc.podStatus)
 		if tc.matchID {
-			build.PodID = pod.ID
+			build.PodName = pod.Name
 		}
 		if tc.buildUpdater != nil {
 			ctrl.BuildUpdater = tc.buildUpdater
