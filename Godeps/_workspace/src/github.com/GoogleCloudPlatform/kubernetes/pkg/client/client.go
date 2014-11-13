@@ -29,6 +29,7 @@ import (
 type Interface interface {
 	PodsNamespacer
 	ReplicationControllersNamespacer
+	EndpointsNamespacer
 	ServicesNamespacer
 	VersionInterface
 	MinionsInterface

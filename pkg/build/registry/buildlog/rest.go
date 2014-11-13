@@ -18,16 +18,16 @@ import (
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	BuildRegistry build.Registry
-	PodClient     client.PodInterface
+	Client        *client.Client
 }
 
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get neccessary attibutes to assamble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(b build.Registry, c client.PodInterface) apiserver.RESTStorage {
+func NewREST(b build.Registry, c *client.Client) apiserver.RESTStorage {
 	return &REST{
 		BuildRegistry: b,
-		PodClient:     c,
+		Client:        c,
 	}
 }
 
@@ -38,7 +38,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		return "", fmt.Errorf("No such build: %v", err)
 	}
 
-	pod, err := r.PodClient.GetPod(ctx, build.PodID)
+	pod, err := r.Client.Pods(build.Namespace).Get(build.PodID)
 	if err != nil {
 		return "", fmt.Errorf("No such pod: %v", err)
 	}

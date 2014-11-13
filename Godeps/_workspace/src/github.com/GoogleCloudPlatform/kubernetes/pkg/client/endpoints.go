@@ -26,7 +26,7 @@ import (
 
 // EndpointsNamespacer has methods to work with Endpoint resources in a namespace
 type EndpointsNamespacer interface {
-	Endpoint(namespace string) EndpointsInterface
+	Endpoints(namespace string) EndpointsInterface
 }
 
 // EndpointsInterface has methods to work with Endpoints resources
