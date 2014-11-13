@@ -1,0 +1,210 @@
+package recreate
+
+import (
+	"testing"
+
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+)
+
+func TestFirstDeployment(t *testing.T) {
+	var (
+		createdController *kapi.ReplicationController
+		deployment        = okDeployment()
+	)
+
+	strategy := &RecreateDeploymentStrategy{
+		ReplicationControllerClient: &testControllerClient{
+			listReplicationControllers: func(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
+			},
+			createReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				createdController = ctrl
+				return ctrl, nil
+			},
+			deleteReplicationController: func(ctx kapi.Context, id string) error {
+				t.Fatalf("unexpected call to DeleteReplicationController")
+				return nil
+			},
+			updateReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected call to UpdateReplicationController")
+				return nil, nil
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment)
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if createdController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := "deploy1", createdController.Annotations[deployapi.DeploymentAnnotation]; e != a {
+		t.Fatalf("expected controller deployment annotation %s, git %s", e, a)
+	}
+
+	if e, a := "deploymentConfig1", createdController.Labels[deployapi.DeploymentConfigLabel]; e != a {
+		t.Fatalf("expected controller with label %s, got %s", e, a)
+	}
+
+	if e, a := "deploymentConfig1", createdController.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel]; e != a {
+		t.Fatalf("expected controller podtemplate label %s, got %s", e, a)
+	}
+
+	if e, a := 2, createdController.DesiredState.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestSecondDeployment(t *testing.T) {
+	var (
+		createdController   *kapi.ReplicationController
+		updatedController   *kapi.ReplicationController
+		deletedControllerID string
+		deployment          = okDeployment()
+	)
+
+	strategy := &RecreateDeploymentStrategy{
+		ReplicationControllerClient: &testControllerClient{
+			listReplicationControllers: func(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{
+					Items: []kapi.ReplicationController{
+						okReplicationController(),
+					},
+				}, nil
+			},
+			createReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				createdController = ctrl
+				return ctrl, nil
+			},
+			deleteReplicationController: func(ctx kapi.Context, id string) error {
+				deletedControllerID = id
+				return nil
+			},
+			updateReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+	}
+
+	deployment.ID = "deploy2"
+	err := strategy.Deploy(deployment)
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if createdController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := "deploy2", createdController.Annotations[deployapi.DeploymentAnnotation]; e != a {
+		t.Fatalf("expected controller deployment annotation %s, git %s", e, a)
+	}
+
+	if e, a := "deploymentConfig1", createdController.Labels[deployapi.DeploymentConfigLabel]; e != a {
+		t.Fatalf("expected controller with label %s, got %s", e, a)
+	}
+
+	if e, a := "deploymentConfig1", createdController.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel]; e != a {
+		t.Fatalf("expected controller podtemplate label %s, got %s", e, a)
+	}
+
+	if e, a := 0, updatedController.DesiredState.Replicas; e != a {
+		t.Fatalf("expected old controller replicas to be %d, got %d", e, a)
+	}
+
+	if e, a := "controller1", deletedControllerID; e != a {
+		t.Fatalf("expected deletion of controller %s, got %s", e, a)
+	}
+}
+
+type testControllerClient struct {
+	listReplicationControllers  func(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error)
+	createReplicationController func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
+	updateReplicationController func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
+	deleteReplicationController func(ctx kapi.Context, id string) error
+}
+
+func (t *testControllerClient) ListReplicationControllers(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+	return t.listReplicationControllers(ctx, selector)
+}
+
+func (t *testControllerClient) CreateReplicationController(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return t.createReplicationController(ctx, ctrl)
+}
+
+func (t *testControllerClient) UpdateReplicationController(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return t.updateReplicationController(ctx, ctrl)
+}
+
+func (t *testControllerClient) DeleteReplicationController(ctx kapi.Context, id string) error {
+	return t.deleteReplicationController(ctx, id)
+}
+
+func okDeployment() *deployapi.Deployment {
+	return &deployapi.Deployment{
+		TypeMeta: kapi.TypeMeta{
+			ID: "deploy1",
+			Annotations: map[string]string{
+				deployapi.DeploymentConfigAnnotation: "deploymentConfig1",
+			},
+		},
+		Status: deployapi.DeploymentStatusNew,
+		Strategy: deployapi.DeploymentStrategy{
+			Type: deployapi.DeploymentStrategyTypeRecreate,
+		},
+		ControllerTemplate: kapi.ReplicationControllerState{
+			Replicas: 2,
+			PodTemplate: kapi.PodTemplate{
+				DesiredState: kapi.PodState{
+					Manifest: kapi.ContainerManifest{
+						Containers: []kapi.Container{
+							{
+								Name:  "container1",
+								Image: "registry:8080/repo1:ref1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func okReplicationController() kapi.ReplicationController {
+	return kapi.ReplicationController{
+		TypeMeta: kapi.TypeMeta{
+			ID:          "controller1",
+			Annotations: map[string]string{deployapi.DeploymentAnnotation: "deploy1"},
+		},
+		Labels: map[string]string{
+			deployapi.DeploymentConfigLabel: "deploymentConfig1",
+		},
+		DesiredState: kapi.ReplicationControllerState{
+			Replicas: 0,
+			PodTemplate: kapi.PodTemplate{
+				Labels: map[string]string{
+					deployapi.DeploymentConfigLabel: "deploymentConfig1",
+				},
+				DesiredState: kapi.PodState{
+					Manifest: kapi.ContainerManifest{
+						Containers: []kapi.Container{
+							{
+								Name:  "container1",
+								Image: "registry:8080/repo1:ref1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}

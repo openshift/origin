@@ -22,7 +22,6 @@ type RecreateDeploymentStrategy struct {
 
 type controllerClient interface {
 	ListReplicationControllers(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error)
-	GetReplicationController(ctx kapi.Context, id string) (*kapi.ReplicationController, error)
 	CreateReplicationController(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	UpdateReplicationController(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	DeleteReplicationController(ctx kapi.Context, id string) error
@@ -34,12 +33,12 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *deployapi.Deployment) er
 	controllers := &kapi.ReplicationControllerList{}
 	var err error
 
-	configID, hasConfigID := deployment.Annotations["deploymentConfig"]
+	configID, hasConfigID := deployment.Annotations[deployapi.DeploymentConfigAnnotation]
 	if !hasConfigID {
 		return fmt.Errorf("This strategy is only compatible with deployments associated with a DeploymentConfig")
 	}
 
-	selector, _ := labels.ParseSelector("deploymentConfig=" + configID)
+	selector, _ := labels.ParseSelector(deployapi.DeploymentConfigLabel + "=" + configID)
 	controllers, err = s.ReplicationControllerClient.ListReplicationControllers(ctx, selector)
 	if err != nil {
 		return fmt.Errorf("Unable to get list of replication controllers for previous deploymentConfig %s: %v\n", configID, err)
@@ -52,34 +51,29 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *deployapi.Deployment) er
 
 	controller := &kapi.ReplicationController{
 		TypeMeta: kapi.TypeMeta{
-			Annotations: map[string]string{"deployment": deployment.ID},
+			Annotations: map[string]string{deployapi.DeploymentAnnotation: deployment.ID},
 		},
 		DesiredState: deploymentCopy.(*deployapi.Deployment).ControllerTemplate,
-		Labels:       map[string]string{"deploymentConfig": configID},
+		Labels:       map[string]string{deployapi.DeploymentConfigLabel: configID},
 	}
 
+	// Correlate pods created by the ReplicationController to the deployment config
 	if controller.DesiredState.PodTemplate.Labels == nil {
 		controller.DesiredState.PodTemplate.Labels = make(map[string]string)
 	}
-
-	controller.DesiredState.PodTemplate.Labels["deploymentConfig"] = configID
+	controller.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel] = configID
 
 	glog.Infof("Creating replicationController for deployment %s", deployment.ID)
 	if _, err := s.ReplicationControllerClient.CreateReplicationController(ctx, controller); err != nil {
 		return fmt.Errorf("An error occurred creating the replication controller for deployment %s: %v", deployment.ID, err)
 	}
 
+	// For this simple deploy, remove previous replication controllers.
+	// TODO: This isn't transactional, and we don't actually wait for the replica count to
+	// become zero before deleting them.
 	allProcessed := true
-	// For this simple deploy, remove previous replication controllers
 	for _, rc := range controllers.Items {
 		glog.Infof("Stopping replication controller for previous deploymentConfig %s: %v", configID, rc.ID)
-
-		controller, err := s.ReplicationControllerClient.GetReplicationController(ctx, rc.ID)
-		if err != nil {
-			glog.Errorf("Unable to get replication controller %s for previous deploymentConfig %s: %#v\n", rc.ID, configID, err)
-			allProcessed = false
-			continue
-		}
 
 		controller.DesiredState.Replicas = 0
 		glog.Infof("Settings Replicas=0 for replicationController %s for previous deploymentConfig %s", rc.ID, configID)
@@ -88,9 +82,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *deployapi.Deployment) er
 			allProcessed = false
 			continue
 		}
-	}
 
-	for _, rc := range controllers.Items {
 		glog.Infof("Deleting replication controller %s for previous deploymentConfig %s", rc.ID, configID)
 		err := s.ReplicationControllerClient.DeleteReplicationController(ctx, rc.ID)
 		if err != nil {

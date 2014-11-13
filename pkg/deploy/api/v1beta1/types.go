@@ -84,6 +84,11 @@ const (
 	DeploymentPodAnnotation    = "pod"
 )
 
+// These constants represent label keys used for correlating objects related to deployment.
+const (
+	DeploymentConfigLabel = "deploymentConfig"
+)
+
 // DeploymentConfig represents a configuration for a single deployment of a replication controller:
 // what the template is for the deployment, how new deployments are triggered, what the desired
 // deployment state is.
