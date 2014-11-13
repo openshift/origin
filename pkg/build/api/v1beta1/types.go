@@ -144,6 +144,10 @@ type DockerBuildStrategy struct {
 	// application source directory structure (as referenced in the BuildSource. See GitBuildSource
 	// for an example.)
 	ContextDir string `json:"contextDir,omitempty" yaml:"contextDir,omitempty"`
+
+	// NoCache if set to true indicates that the docker build must be executed with the
+	// --no-cache=true flag
+	NoCache bool `json:"noCache,omitempty" yaml:"noCache,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.

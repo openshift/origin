@@ -26,7 +26,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 }
 
 // buildImage invokes a docker build on a particular directory
-func buildImage(client DockerClient, dir string, tag string, tar tar.Tar) error {
+func buildImage(client DockerClient, dir string, noCache bool, tag string, tar tar.Tar) error {
 	tarFile, err := tar.CreateTarFile("", dir)
 	if err != nil {
 		return err
@@ -41,6 +41,7 @@ func buildImage(client DockerClient, dir string, tag string, tar tar.Tar) error 
 		RmTmpContainer: true,
 		OutputStream:   os.Stdout,
 		InputStream:    tarStream,
+		NoCache:        noCache,
 	}
 	return client.BuildImage(opts)
 }
