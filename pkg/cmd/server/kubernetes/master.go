@@ -50,6 +50,16 @@ func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
 	//	Port:   uint(NodePort),
 	//}
 
+	kubeletClient, err := kclient.NewKubeletClient(
+		&kclient.KubeletConfig{
+			Port: 10250,
+		},
+	)
+
+	if err != nil {
+		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+	}
+
 	masterConfig := &master.Config{
 		Client:             c.KubeClient,
 		EtcdHelper:         c.EtcdHelper,
@@ -57,7 +67,9 @@ func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
 		// TODO: https://github.com/GoogleCloudPlatform/kubernetes/commit/019b7fc74c999c1ae8d54c6687735ad54e9b2b68
 		// Minions:            c.NodeHosts,
 		// PodInfoGetter: podInfoGetter,
-		PortalNet: c.PortalNet,
+		PortalNet:     c.PortalNet,
+		KubeletClient: kubeletClient,
+		APIPrefix:     KubeAPIPrefixV1Beta1, // TODO check, this should not be needed but makes a "panic: http: invalid pattern"
 	}
 	m := master.New(masterConfig)
 
