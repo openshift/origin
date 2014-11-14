@@ -10,7 +10,6 @@ import (
 type User struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta `json:",inline" yaml:",inline"`
-	Labels          map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	FullName string `json:"fullName,omitempty" yaml:"fullName,omitempty"`
 }
@@ -24,7 +23,6 @@ type UserList struct {
 type Identity struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta `json:",inline" yaml:",inline"`
-	Labels          map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Provider is the source of identity information - if empty, the default provider
 	// is assumed.
