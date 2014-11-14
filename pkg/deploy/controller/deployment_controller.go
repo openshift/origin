@@ -138,22 +138,15 @@ func (dc *DeploymentController) HandlePod() {
 		nextDeploymentStatus = deployapi.DeploymentStatusRunning
 	case kapi.PodSucceeded:
 		nextDeploymentStatus = deployapi.DeploymentStatusComplete
-
-		// Detect failure based on the container state
-		for _, info := range pod.CurrentState.Info {
-			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
-				nextDeploymentStatus = deployapi.DeploymentStatusFailed
-			}
-		}
-
 		// Automatically clean up successful pods
-		if nextDeploymentStatus == deployapi.DeploymentStatusComplete {
-			if err := dc.PodControl.deletePod(deployment.Namespace, pod.Name); err != nil {
-				glog.V(4).Infof("Couldn't delete completed pod %s for deployment %s: %#v", pod.Name, deployment.Name, err)
-			} else {
-				glog.V(4).Infof("Deleted completed pod %s for deployment %s", pod.Name, deployment.Name)
-			}
+		if err := dc.PodControl.deletePod(deployment.Namespace, pod.Name); err != nil {
+			glog.V(4).Infof("Couldn't delete completed pod %s for deployment %s: %#v", pod.Name, deployment.Name, err)
+		} else {
+			glog.V(4).Infof("Deleted completed pod %s for deployment %s", pod.Name, deployment.Name)
 		}
+	case kapi.PodFailed:
+		// Detect failure based on the container state
+		nextDeploymentStatus = deployapi.DeploymentStatusFailed
 	}
 
 	if deployment.Status != nextDeploymentStatus {

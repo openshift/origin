@@ -72,10 +72,10 @@ func TestEtcdListProjectsEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{ObjectMeta: kapi.ObjectMeta{Name: "bar"}}),
 					},
 				},
 			},
@@ -88,7 +88,7 @@ func TestEtcdListProjectsEverything(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(projects.Items) != 2 || projects.Items[0].ID != "foo" || projects.Items[1].ID != "bar" {
+	if len(projects.Items) != 2 || projects.Items[0].Name != "foo" || projects.Items[1].Name != "bar" {
 		t.Errorf("Unexpected projects list: %#v", projects)
 	}
 }
@@ -103,14 +103,18 @@ func TestEtcdListProjectsFiltered(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{
-							TypeMeta: kapi.TypeMeta{ID: "foo"},
-							Labels:   map[string]string{"env": "prod"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "foo",
+								Labels: map[string]string{"env": "prod"},
+							},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Project{
-							TypeMeta: kapi.TypeMeta{ID: "bar"},
-							Labels:   map[string]string{"env": "dev"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "bar",
+								Labels: map[string]string{"env": "dev"},
+							},
 						}),
 					},
 				},
@@ -124,7 +128,7 @@ func TestEtcdListProjectsFiltered(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(projects.Items) != 1 || projects.Items[0].ID != "bar" {
+	if len(projects.Items) != 1 || projects.Items[0].Name != "bar" {
 		t.Errorf("Unexpected projects list: %#v", projects)
 	}
 }
@@ -132,14 +136,14 @@ func TestEtcdListProjectsFiltered(t *testing.T) {
 func TestEtcdGetProject(t *testing.T) {
 	ctx := kapi.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeProjectKey(ctx, "foo"), runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeProjectKey(ctx, "foo"), runtime.EncodeOrDie(latest.Codec, &api.Project{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	project, err := registry.GetProject(ctx, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if project.ID != "foo" {
+	if project.Name != "foo" {
 		t.Errorf("Unexpected project: %#v", project)
 	}
 }
@@ -175,8 +179,8 @@ func TestEtcdCreateProject(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateProject(ctx, &api.Project{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err != nil {
@@ -193,7 +197,7 @@ func TestEtcdCreateProject(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if project.ID != "foo" {
+	if project.Name != "foo" {
 		t.Errorf("Unexpected project: %#v %s", project, resp.Node.Value)
 	}
 }
@@ -204,15 +208,15 @@ func TestEtcdCreateProjectAlreadyExists(t *testing.T) {
 	fakeClient.Data[makeProjectKey(ctx, "foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Project{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Project{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateProject(ctx, &api.Project{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err == nil {

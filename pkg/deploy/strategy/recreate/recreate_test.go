@@ -16,19 +16,19 @@ func TestFirstDeployment(t *testing.T) {
 	)
 
 	strategy := &RecreateDeploymentStrategy{
-		ReplicationControllerClient: &testControllerClient{
-			listReplicationControllers: func(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+		ReplicationController: &testControllerClient{
+			listReplicationControllersFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
 				return &kapi.ReplicationControllerList{}, nil
 			},
-			createReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			createReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				createdController = ctrl
 				return ctrl, nil
 			},
-			deleteReplicationController: func(ctx kapi.Context, id string) error {
+			deleteReplicationControllerFunc: func(namespaceBravo, id string) error {
 				t.Fatalf("unexpected call to DeleteReplicationController")
 				return nil
 			},
-			updateReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call to UpdateReplicationController")
 				return nil, nil
 			},
@@ -71,30 +71,30 @@ func TestSecondDeployment(t *testing.T) {
 	)
 
 	strategy := &RecreateDeploymentStrategy{
-		ReplicationControllerClient: &testControllerClient{
-			listReplicationControllers: func(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+		ReplicationController: &testControllerClient{
+			listReplicationControllersFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
 				return &kapi.ReplicationControllerList{
 					Items: []kapi.ReplicationController{
 						okReplicationController(),
 					},
 				}, nil
 			},
-			createReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			createReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				createdController = ctrl
 				return ctrl, nil
 			},
-			deleteReplicationController: func(ctx kapi.Context, id string) error {
+			deleteReplicationControllerFunc: func(namespace, id string) error {
 				deletedControllerID = id
 				return nil
 			},
-			updateReplicationController: func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				updatedController = ctrl
 				return ctrl, nil
 			},
 		},
 	}
 
-	deployment.ID = "deploy2"
+	deployment.Name = "deploy2"
 	err := strategy.Deploy(deployment)
 
 	if err != nil {
@@ -127,32 +127,37 @@ func TestSecondDeployment(t *testing.T) {
 }
 
 type testControllerClient struct {
-	listReplicationControllers  func(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error)
-	createReplicationController func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
-	updateReplicationController func(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
-	deleteReplicationController func(ctx kapi.Context, id string) error
+	listReplicationControllersFunc  func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
+	getReplicationControllerFunc    func(namespace, id string) (*kapi.ReplicationController, error)
+	createReplicationControllerFunc func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
+	updateReplicationControllerFunc func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
+	deleteReplicationControllerFunc func(namespace, id string) error
 }
 
-func (t *testControllerClient) ListReplicationControllers(ctx kapi.Context, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-	return t.listReplicationControllers(ctx, selector)
+func (t *testControllerClient) listReplicationControllers(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+	return t.listReplicationControllersFunc(namespace, selector)
 }
 
-func (t *testControllerClient) CreateReplicationController(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return t.createReplicationController(ctx, ctrl)
+func (t *testControllerClient) getReplicationController(namespace, id string) (*kapi.ReplicationController, error) {
+	return t.getReplicationControllerFunc(namespace, id)
 }
 
-func (t *testControllerClient) UpdateReplicationController(ctx kapi.Context, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return t.updateReplicationController(ctx, ctrl)
+func (t *testControllerClient) createReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return t.createReplicationControllerFunc(namespace, ctrl)
 }
 
-func (t *testControllerClient) DeleteReplicationController(ctx kapi.Context, id string) error {
-	return t.deleteReplicationController(ctx, id)
+func (t *testControllerClient) updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return t.updateReplicationControllerFunc(namespace, ctrl)
+}
+
+func (t *testControllerClient) deleteReplicationController(namespace, id string) error {
+	return t.deleteReplicationControllerFunc(namespace, id)
 }
 
 func okDeployment() *deployapi.Deployment {
 	return &deployapi.Deployment{
-		TypeMeta: kapi.TypeMeta{
-			ID: "deploy1",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "deploy1",
 			Annotations: map[string]string{
 				deployapi.DeploymentConfigAnnotation: "deploymentConfig1",
 			},
@@ -181,12 +186,12 @@ func okDeployment() *deployapi.Deployment {
 
 func okReplicationController() kapi.ReplicationController {
 	return kapi.ReplicationController{
-		TypeMeta: kapi.TypeMeta{
-			ID:          "controller1",
+		ObjectMeta: kapi.ObjectMeta{
+			Name:        "controller1",
 			Annotations: map[string]string{deployapi.DeploymentAnnotation: "deploy1"},
-		},
-		Labels: map[string]string{
-			deployapi.DeploymentConfigLabel: "deploymentConfig1",
+			Labels: map[string]string{
+				deployapi.DeploymentConfigLabel: "deploymentConfig1",
+			},
 		},
 		DesiredState: kapi.ReplicationControllerState{
 			Replicas: 0,

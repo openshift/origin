@@ -16,7 +16,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "missing id",
 			project: api.Project{
-				TypeMeta:    kapi.TypeMeta{Namespace: kapi.NamespaceDefault},
+				ObjectMeta:  kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -26,7 +26,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid id",
 			project: api.Project{
-				TypeMeta:    kapi.TypeMeta{ID: "141-.124.$", Namespace: kapi.NamespaceDefault},
+				ObjectMeta:  kapi.ObjectMeta{Name: "141-.124.$", Namespace: kapi.NamespaceDefault},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -36,7 +36,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "missing namespace",
 			project: api.Project{
-				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: ""},
+				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: ""},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -46,7 +46,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid namespace",
 			project: api.Project{
-				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: "141-.124.$"},
+				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "141-.124.$"},
 				DisplayName: "hi",
 				Description: "This is a description",
 			},
@@ -56,7 +56,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid description",
 			project: api.Project{
-				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: "foo"},
+				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},
 				DisplayName: "hi",
 				Description: "This is a \n description",
 			},
@@ -66,7 +66,7 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid display name",
 			project: api.Project{
-				TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: "foo"},
+				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},
 				DisplayName: "h\t\ni",
 				Description: "This is a description",
 			},
@@ -83,7 +83,7 @@ func TestValidateProject(t *testing.T) {
 	}
 
 	project := api.Project{
-		TypeMeta:    kapi.TypeMeta{ID: "foo", Namespace: kapi.NamespaceDefault},
+		ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: kapi.NamespaceDefault},
 		DisplayName: "hi",
 		Description: "This is a description",
 	}

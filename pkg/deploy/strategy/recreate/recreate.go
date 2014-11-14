@@ -23,7 +23,7 @@ type RecreateDeploymentStrategy struct {
 
 type ReplicationControllerInterface interface {
 	listReplicationControllers(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
-	getReplicationController(namespace string, id string) (*kapi.ReplicationController, error)
+	getReplicationController(namespace, id string) (*kapi.ReplicationController, error)
 	createReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	deleteReplicationController(namespace string, id string) error

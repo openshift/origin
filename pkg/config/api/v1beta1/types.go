@@ -16,5 +16,5 @@ type Config struct {
 	// Pod and/or ReplicationController kind.
 	// TODO: Handle unregistered types. Define custom []runtime.Object
 	//       type and its unmarshaller instead of []runtime.Object.
-	Items []runtime.RawExtension `json:"items" yaml:"items"`
+	Items []runtime.EmbeddedObject `json:"items" yaml:"items"`
 }

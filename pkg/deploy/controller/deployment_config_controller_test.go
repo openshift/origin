@@ -57,7 +57,7 @@ func TestHandleInitialDeployment(t *testing.T) {
 		t.Fatalf("expected a deployment")
 	}
 
-	if e, a := deploymentConfig.ID, deployed.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := deploymentConfig.Name, deployed.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("expected deployment with deploymentConfig annotation %s, got %s", e, a)
 	}
 }
@@ -111,7 +111,7 @@ func TestHandleConfigChangeWithPodTemplateDiff(t *testing.T) {
 		t.Fatalf("expected a deployment")
 	}
 
-	if e, a := deploymentConfig.ID, deployed.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := deploymentConfig.Name, deployed.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("expected deployment annotated with deploymentConfig %s, got %s", e, a)
 	}
 }
@@ -131,7 +131,7 @@ func (i *testDeploymentInterface) CreateDeployment(ctx kapi.Context, deployment 
 
 func manualDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "manual-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerManual,
@@ -169,8 +169,8 @@ func manualDeploymentConfig() *deployapi.DeploymentConfig {
 
 func matchingDeployment() *deployapi.Deployment {
 	return &deployapi.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config-1"},
-		Status:   deployapi.DeploymentStatusNew,
+		ObjectMeta: kapi.ObjectMeta{Name: "manual-deploy-config-1"},
+		Status:     deployapi.DeploymentStatusNew,
 		Strategy: deployapi.DeploymentStrategy{
 			Type: deployapi.DeploymentStrategyTypeRecreate,
 		},

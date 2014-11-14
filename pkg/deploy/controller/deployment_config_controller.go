@@ -107,8 +107,8 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 			Annotations: map[string]string{
 				deployapi.DeploymentConfigAnnotation: config.Name,
 			},
+			Labels: config.Labels,
 		},
-		Labels:             config.Labels,
 		Strategy:           config.Template.Strategy,
 		ControllerTemplate: config.Template.ControllerTemplate,
 		Details:            config.Details,

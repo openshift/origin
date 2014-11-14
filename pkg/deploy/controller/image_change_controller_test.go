@@ -124,11 +124,11 @@ func TestImageChange(t *testing.T) {
 		t.Errorf("Expected updatedConfigNamespace %v, got %v", nonDefaultNamespace, updatedConfigNamespace)
 	}
 
-	if e, a := updatedConfig.ID, generatedConfig.ID; e != a {
+	if e, a := updatedConfig.Name, generatedConfig.Name; e != a {
 		t.Fatalf("expected updated config with id %s, got %s", e, a)
 	}
 
-	if e, a := updatedConfig.ID, generatedConfig.ID; e != a {
+	if e, a := updatedConfig.Name, generatedConfig.Name; e != a {
 		t.Fatalf("expected updated config with id %s, got %s", e, a)
 	}
 }
@@ -137,7 +137,7 @@ func TestImageChange(t *testing.T) {
 
 func originalImageRepo() *imageapi.ImageRepository {
 	return &imageapi.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo", Namespace: nonDefaultNamespace},
+		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-repo", Namespace: nonDefaultNamespace},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"test-tag": "ref-1",
@@ -147,7 +147,7 @@ func originalImageRepo() *imageapi.ImageRepository {
 
 func unregisteredTagUpdate() *imageapi.ImageRepository {
 	return &imageapi.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo", Namespace: nonDefaultNamespace},
+		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-repo", Namespace: nonDefaultNamespace},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"test-tag":       "ref-1",
@@ -158,7 +158,7 @@ func unregisteredTagUpdate() *imageapi.ImageRepository {
 
 func tagUpdate() *imageapi.ImageRepository {
 	return &imageapi.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo", Namespace: nonDefaultNamespace},
+		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-repo", Namespace: nonDefaultNamespace},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"test-tag": "ref-2",
@@ -168,7 +168,7 @@ func tagUpdate() *imageapi.ImageRepository {
 
 func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "image-change-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-change-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnImageChange,
@@ -212,7 +212,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 
 func regeneratedConfig(ctx kapi.Context) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "image-change-deploy-config", Namespace: kapi.Namespace(ctx)},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-change-deploy-config", Namespace: kapi.Namespace(ctx)},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnImageChange,

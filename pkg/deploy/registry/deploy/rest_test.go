@@ -58,13 +58,13 @@ func TestListDeploymentsPopulatedList(t *testing.T) {
 	mockRegistry.Deployments = &api.DeploymentList{
 		Items: []api.Deployment{
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "foo",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "foo",
 				},
 			},
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "bar",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "bar",
 				},
 			},
 		},
@@ -104,7 +104,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Deployment{
-		TypeMeta:           kapi.TypeMeta{ID: "foo"},
+		ObjectMeta:         kapi.ObjectMeta{Name: "foo"},
 		Strategy:           deploytest.OkStrategy(),
 		ControllerTemplate: deploytest.OkControllerTemplate(),
 	})
@@ -117,7 +117,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
@@ -134,7 +134,7 @@ func TestCreateDeploymentOk(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Deployment{
-		TypeMeta:           kapi.TypeMeta{ID: "foo"},
+		ObjectMeta:         kapi.ObjectMeta{Name: "foo"},
 		Strategy:           deploytest.OkStrategy(),
 		ControllerTemplate: deploytest.OkControllerTemplate(),
 	})
@@ -147,11 +147,11 @@ func TestCreateDeploymentOk(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		deployment, ok := result.(*api.Deployment)
+		deployment, ok := result.Object.(*api.Deployment)
 		if !ok {
 			t.Errorf("Expected deployment type, got: %#v", result)
 		}
-		if deployment.ID != "foo" {
+		if deployment.Name != "foo" {
 			t.Errorf("Unexpected deployment: %#v", deployment)
 		}
 	case <-time.After(50 * time.Millisecond):
@@ -176,7 +176,7 @@ func TestGetDeploymentError(t *testing.T) {
 func TestGetDeploymentOk(t *testing.T) {
 	mockRegistry := test.NewDeploymentRegistry()
 	mockRegistry.Deployment = &api.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "foo"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 
@@ -187,7 +187,7 @@ func TestGetDeploymentOk(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error", err)
 	}
-	if deployment.(*api.Deployment).ID != "foo" {
+	if deployment.(*api.Deployment).Name != "foo" {
 		t.Errorf("Unexpected deployment: %#v", deployment)
 	}
 }
@@ -222,13 +222,13 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(kapi.NewDefaultContext(), &api.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "bar"},
+		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 	result := <-channel
-	status, ok := result.(*kapi.Status)
+	status, ok := result.Object.(*kapi.Status)
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
@@ -242,17 +242,17 @@ func TestUpdateDeploymentOk(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(kapi.NewDefaultContext(), &api.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "bar"},
+		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
 	})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 	result := <-channel
-	repo, ok := result.(*api.Deployment)
+	repo, ok := result.Object.(*api.Deployment)
 	if !ok {
 		t.Errorf("Expected Deployment, got %#v", result)
 	}
-	if repo.ID != "bar" {
+	if repo.Name != "bar" {
 		t.Errorf("Unexpected repo returned: %#v", repo)
 	}
 }
@@ -270,7 +270,7 @@ func TestDeleteDeployment(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
@@ -286,8 +286,8 @@ func TestCreateDeploymentConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
 	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "foo", Namespace: "some-value"},
-		Strategy: deploytest.OkStrategy(),
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "some-value"},
+		Strategy:   deploytest.OkStrategy(),
 	})
 
 	if channel != nil {
@@ -302,8 +302,8 @@ func TestUpdateDeploymentConflictingNamespace(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "foo", Namespace: "some-value"},
-		Strategy: deploytest.OkStrategy(),
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "some-value"},
+		Strategy:   deploytest.OkStrategy(),
 	})
 
 	if channel != nil {
