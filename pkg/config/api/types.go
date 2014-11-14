@@ -12,15 +12,9 @@ type Config struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta `json:",inline" yaml:",inline"`
 
-	// Required: Name identifies the Config.
-	Name string `json:"name" yaml:"name"`
-
-	// Optional: Description describes the Config.
-	Description string `json:"description" yaml:"description"`
-
 	// Required: Items is an array of Kubernetes resources of Service,
 	// Pod and/or ReplicationController kind.
 	// TODO: Handle unregistered types. Define custom []runtime.Object
 	//       type and its unmarshaller instead of []runtime.Object.
-	Items []runtime.EmbeddedObject `json:"items" yaml:"items"`
+	Items []runtime.RawExtension `json:"items" yaml:"items"`
 }

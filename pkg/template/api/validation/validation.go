@@ -6,7 +6,9 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	routevalidation "github.com/openshift/origin/pkg/route/api/validation"
@@ -28,13 +30,18 @@ func ValidateParameter(param *api.Parameter) (errs errors.ValidationErrorList) {
 }
 
 // ValidateTemplate tests if required fields in the Template are set.
-func ValidateTemplate(template *api.Template) (errs errors.ValidationErrorList) {
+func ValidateTemplate(m meta.RESTMapper, t runtime.ObjectTyper, template *api.Template) (errs errors.ValidationErrorList) {
 	if len(template.Name) == 0 {
 		errs = append(errs, errors.NewFieldRequired("name", template.Name))
 	}
-	for i, item := range template.Items {
+	for i, in := range template.Items {
+		// TODO: Catch the errors here
+		version, kind, _ := t.DataVersionAndKind(in.RawJSON)
+		mapping, _ := m.RESTMapping(version, kind)
+		item, _ := mapping.Codec.Decode(in.RawJSON)
+
 		err := errors.ValidationErrorList{}
-		switch obj := item.Object.(type) {
+		switch obj := item.(type) {
 		case *kapi.ReplicationController:
 			err = validation.ValidateReplicationController(obj)
 		case *kapi.Pod:
@@ -51,6 +58,7 @@ func ValidateTemplate(template *api.Template) (errs errors.ValidationErrorList) 
 		err = filter(err, "namespace")
 		errs = append(errs, err.PrefixIndex(i).Prefix("items")...)
 	}
+
 	for i := range template.Parameters {
 		paramErr := ValidateParameter(&template.Parameters[i])
 		errs = append(errs, paramErr.PrefixIndex(i).Prefix("parameters")...)

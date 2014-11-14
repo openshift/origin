@@ -1,12 +1,13 @@
 package v1beta1
 
 import (
-	v1beta1 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 // Route encapsulates the inputs needed to connect a DNS/alias to a service proxy.
 type Route struct {
-	v1beta1.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// Required: Alias/DNS that points to the service
 	// Can be host or host:port
@@ -16,12 +17,12 @@ type Route struct {
 	Path string `json:"path,omitempty" yaml:"path,omitempty"`
 
 	// the name of the service that this route points to
-	ServiceName string            `json:"serviceName" yaml:"serviceName"`
-	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	ServiceName string `json:"serviceName" yaml:"serviceName"`
 }
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	v1beta1.TypeMeta `json:",inline" yaml:",inline"`
-	Items            []Route `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	Items           []Route `json:"items,omitempty" yaml:"items,omitempty"`
 }

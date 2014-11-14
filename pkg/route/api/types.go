@@ -17,8 +17,7 @@ type Route struct {
 	Path string `json:"path,omitempty" yaml:"path,omitempty"`
 
 	// the name of the service that this route points to
-	ServiceName string            `json:"serviceName" yaml:"serviceName"`
-	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	ServiceName string `json:"serviceName" yaml:"serviceName"`
 }
 
 // RouteList is a collection of Routes.

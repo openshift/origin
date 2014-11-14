@@ -6,11 +6,14 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 
-	config "github.com/openshift/origin/pkg/config/api"
+	"github.com/openshift/origin/pkg/config"
+	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -21,35 +24,53 @@ var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
 // TemplateProcessor transforms Template objects into Config objects.
 type TemplateProcessor struct {
 	Generators map[string]Generator
+	Mapper     meta.RESTMapper
+	Typer      runtime.ObjectTyper
 }
 
 // NewTemplateProcessor creates new TemplateProcessor and initializes
 // its set of generators.
 func NewTemplateProcessor(generators map[string]Generator) *TemplateProcessor {
-	return &TemplateProcessor{Generators: generators}
+	return &TemplateProcessor{
+		Generators: generators,
+		Mapper:     klatest.RESTMapper,
+		Typer:      kapi.Scheme,
+	}
 }
 
 // Process transforms Template object into Config object. It generates
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurances with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *TemplateProcessor) Process(template *api.Template) (*config.Config, error) {
+func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, error) {
 	if err := p.GenerateParameterValues(template); err != nil {
 		return nil, err
 	}
-	if err := p.SubstituteParameters(template); err != nil {
-		return nil, err
+
+	items := []runtime.RawExtension{}
+
+	for _, in := range template.Items {
+		obj, mapping, err := config.DecodeConfigItem(in, p.Mapper, p.Typer)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := p.SubstituteParameters(&obj, template); err != nil {
+			// TODO: Make this use ValidationErrorList
+			return nil, err
+		}
+		item, err := mapping.Codec.Encode(obj)
+		items = append(items, runtime.RawExtension{RawJSON: item})
 	}
 
-	config := &config.Config{
-		Name:        template.Name,
-		Description: template.Description,
-		Items:       template.Items,
+	c := &configapi.Config{
+		ObjectMeta: template.ObjectMeta,
+		Items:      items,
 	}
-	config.Name = template.Name
-	config.Kind = "Config"
-	config.CreationTimestamp = util.Now()
-	return config, nil
+
+	c.TypeMeta.Kind = "Config"
+	c.ObjectMeta.CreationTimestamp = util.Now()
+	return c, nil
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides
@@ -81,30 +102,28 @@ func (p *TemplateProcessor) GetParameterByName(t *api.Template, name string) *ap
 //   - ${PARAMETER_NAME}
 //
 // TODO: Implement substitution for more types and fields.
-func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
+func (p *TemplateProcessor) SubstituteParameters(item *runtime.Object, t *api.Template) error {
 	// Make searching for given parameter name/value more effective
 	paramMap := make(map[string]string, len(t.Parameters))
 	for _, param := range t.Parameters {
 		paramMap[param.Name] = param.Value
 	}
 
-	for i, item := range t.Items {
-		switch obj := item.Object.(type) {
-		case *kapi.ReplicationController:
-			p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		case *kapi.Pod:
-			p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		case *deployapi.Deployment:
-			p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		case *deployapi.DeploymentConfig:
-			p.substituteParametersInManifest(&obj.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		default:
-			glog.V(1).Infof("template.items[%v]: Parameter substitution not implemented for resource '%T'.", i, obj)
-		}
+	switch obj := (*item).(type) {
+	case *kapi.ReplicationController:
+		p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
+		*item = obj
+	case *kapi.Pod:
+		p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
+		*item = obj
+	case *deployapi.Deployment:
+		p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
+		*item = obj
+	case *deployapi.DeploymentConfig:
+		p.substituteParametersInManifest(&obj.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
+		*item = obj
+	default:
+		glog.V(1).Infof("The %T resource does not support parameter substitution", obj)
 	}
 
 	return nil

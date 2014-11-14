@@ -6,7 +6,9 @@ import (
 	"reflect"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
@@ -93,10 +95,29 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 	return
 }
 
+func DecodeConfigItem(in runtime.RawExtension, m meta.RESTMapper, t runtime.ObjectTyper) (runtime.Object, *meta.RESTMapping, error) {
+	version, kind, err := t.DataVersionAndKind(in.RawJSON)
+	if err != nil {
+		// TODO: Make this use ValidationErrorList
+		return nil, nil, err
+	}
+	mapping, err := m.RESTMapping(version, kind)
+	if err != nil {
+		// TODO: Make this use ValidationErrorList
+		return nil, nil, err
+	}
+	obj, err := mapping.Codec.Decode(in.RawJSON)
+	return obj, mapping, err
+}
+
 // AddConfigLabels adds new label(s) to all resources defined in the given Config.
-func AddConfigLabels(c *api.Config, labels labels.Set) error {
+func AddConfigLabels(c *api.Config, labels labels.Set, m meta.RESTMapper, t runtime.ObjectTyper) error {
 	for i := range c.Items {
-		switch t := c.Items[i].Object.(type) {
+		obj, _, err := DecodeConfigItem(c.Items[i], m, t)
+		if err != nil {
+			return fmt.Errorf("Unable to decode Template.Items[%v]: %v", i, err)
+		}
+		switch t := obj.(type) {
 		case *kapi.Pod:
 			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
 				return fmt.Errorf("Unable to add labels to Template.Items[%v] Pod.Labels: %v", i, err)
@@ -128,7 +149,7 @@ func AddConfigLabels(c *api.Config, labels labels.Set) error {
 			}
 		default:
 			// Unknown generic object. Try to find "Labels" field in it.
-			obj := reflect.ValueOf(c.Items[i].Object)
+			obj := reflect.ValueOf(c.Items[i])
 
 			if obj.Kind() == reflect.Interface || obj.Kind() == reflect.Ptr {
 				obj = obj.Elem()
