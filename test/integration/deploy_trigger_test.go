@@ -188,11 +188,14 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	}
 	newDeployment := event.Object.(*deployapi.Deployment)
 
-	assertEnvVarEquals("ENV_TEST", "UPDATED", newDeployment, t)
-
 	if newDeployment.ID == deployment.ID {
 		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.ID, newDeployment.ID)
 	}
+
+	// TODO: remove this. 9.
+	t.Logf("ORIGINAL:\n%#v\nNEW:%#v\n", deployment, newDeployment)
+
+	assertEnvVarEquals("ENV_TEST", "UPDATED", newDeployment, t)
 }
 
 func assertEnvVarEquals(name string, value string, deployment *deployapi.Deployment, t *testing.T) {

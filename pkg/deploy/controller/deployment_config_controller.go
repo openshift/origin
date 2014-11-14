@@ -107,6 +107,7 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 		Details:            config.Details,
 	}
 
+	glog.Infof("!!!! DeploymentConfigController creating deployment.\nDeploymentConfig:\n%#v\nDeployment:\n%#v", config, deployment)
 	glog.V(4).Infof("Creating new deployment from config %s", config.ID)
 	_, err := c.DeploymentInterface.CreateDeployment(ctx, deployment)
 	return err
