@@ -99,6 +99,7 @@ func (d *stiDocker) IsImageInLocalRegistry(imageName string) (bool, error) {
 func (d *stiDocker) CheckAndPull(imageName string) (image *docker.Image, err error) {
 	if image, err = d.client.InspectImage(imageName); err != nil &&
 		err != docker.ErrNoSuchImage {
+		log.Printf("Error: Unable to get image metadata for %s: %v", imageName, err)
 		return nil, errors.ErrPullImageFailed
 	}
 
