@@ -127,16 +127,20 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 
 // dockerBuild performs a docker build on the source that has been retrieved
 func (d *DockerBuilder) dockerBuild(dir string) error {
-	if d.build.Parameters.Strategy.DockerStrategy != nil &&
-		d.build.Parameters.Strategy.DockerStrategy.ContextDir != "" {
-		dir = filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir)
+	var noCache bool
+	if d.build.Parameters.Strategy.DockerStrategy != nil {
+		if d.build.Parameters.Strategy.DockerStrategy.ContextDir != "" {
+			dir = filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir)
+		}
+		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
 	}
-	return buildImage(d.dockerClient, dir, imageTag(d.build), d.tar)
+	return buildImage(d.dockerClient, dir, noCache, imageTag(d.build), d.tar)
 }
 
 // addImageVars creates a new Dockerfile which adds certain environment
 // variables to the previously tagged image
 func (d *DockerBuilder) addImageVars() error {
+	var noCache bool
 	envVars := getBuildEnvVars(d.build)
 	tempDir, err := ioutil.TempDir("", "overlay")
 	if err != nil {
@@ -153,5 +157,8 @@ func (d *DockerBuilder) addImageVars() error {
 	if err = overlay.Close(); err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, tempDir, imageTag(d.build), d.tar)
+	if d.build.Parameters.Strategy.DockerStrategy != nil {
+		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
+	}
+	return buildImage(d.dockerClient, tempDir, noCache, imageTag(d.build), d.tar)
 }
