@@ -1,7 +1,7 @@
 package v1beta1
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
@@ -9,7 +9,8 @@ import (
 // TODO: Unify with Kubernetes Config
 //       https://github.com/GoogleCloudPlatform/kubernetes/pull/1007
 type Config struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:",inline" yaml:",inline"`
 
 	// Required: Name identifies the Config.
 	Name string `json:"name" yaml:"name"`
@@ -21,5 +22,5 @@ type Config struct {
 	// Pod and/or ReplicationController kind.
 	// TODO: Handle unregistered types. Define custom []runtime.Object
 	//       type and its unmarshaller instead of []runtime.Object.
-	Items []runtime.RawExtension `json:"items" yaml:"items"`
+	Items []runtime.EmbeddedObject `json:"items" yaml:"items"`
 }

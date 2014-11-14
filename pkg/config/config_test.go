@@ -76,7 +76,7 @@ func TestApplySendsData(t *testing.T) {
 	clients := clientapi.ClientMappings{
 		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
-	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "id": "FakeID" } ] }`
+	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "name": "FakeID" } ] }`
 	result, err := Apply(kapi.NamespaceDefault, []byte(config), clients)
 
 	if err != nil || result == nil {
@@ -143,7 +143,7 @@ func TestAddConfigLabels(t *testing.T) {
 			map[string]string{},
 		},
 		{ // Test resource labels + 0 => expected labels
-			&kapi.Pod{Labels: map[string]string{"foo": "bar"}},
+			&kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}}},
 			map[string]string{},
 			true,
 			map[string]string{"foo": "bar"},
@@ -155,26 +155,28 @@ func TestAddConfigLabels(t *testing.T) {
 			map[string]string{"foo": "bar"},
 		},
 		{ // Test resource labels + addLabels => expected labels
-			&kapi.Service{Labels: map[string]string{"baz": ""}},
+			&kapi.Service{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"baz": ""}}},
 			map[string]string{"foo": "bar"},
 			true,
 			map[string]string{"foo": "bar", "baz": ""},
 		},
 		{ // Test conflicting keys with the same value
-			&kapi.Service{Labels: map[string]string{"foo": "same value"}},
+			&kapi.Service{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "same value"}}},
 			map[string]string{"foo": "same value"},
 			true,
 			map[string]string{"foo": "same value"},
 		},
 		{ // Test conflicting keys with a different value
-			&kapi.Service{Labels: map[string]string{"foo": "first value"}},
+			&kapi.Service{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "first value"}}},
 			map[string]string{"foo": "second value"},
 			false,
 			map[string]string{"foo": "first value"},
 		},
 		{ // Test conflicting keys with the same value in the nested ReplicationController labels
 			&kapi.ReplicationController{
-				Labels: map[string]string{"foo": "same value"},
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: map[string]string{"foo": "same value"},
+				},
 				DesiredState: kapi.ReplicationControllerState{
 					PodTemplate: kapi.PodTemplate{
 						Labels: map[string]string{"foo": "same value"},
@@ -187,7 +189,9 @@ func TestAddConfigLabels(t *testing.T) {
 		},
 		{ // Test conflicting keys with a different value in the nested ReplicationController labels
 			&kapi.ReplicationController{
-				Labels: map[string]string{"foo": "first value"},
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: map[string]string{"foo": "first value"},
+				},
 				DesiredState: kapi.ReplicationControllerState{
 					PodTemplate: kapi.PodTemplate{
 						Labels: map[string]string{"foo": "first value"},

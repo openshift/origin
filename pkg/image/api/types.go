@@ -7,25 +7,24 @@ import (
 
 // ImageList is a list of Image objects.
 type ImageList struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
-	Items           []Image `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:",inline" yaml:",inline"`
+	Items         []Image `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	kapi.TypeMeta        `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta      `json:",inline" yaml:",inline"`
-	Labels               map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	DockerImageReference string            `json:"dockerImageReference,omitempty" yaml:"dockerImageReference,omitempty"`
-	Metadata             docker.Image      `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	DockerImageReference string       `json:"dockerImageReference,omitempty" yaml:"dockerImageReference,omitempty"`
+	Metadata             docker.Image `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 // ImageRepositoryList is a list of ImageRepository objects.
 type ImageRepositoryList struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
-	Items           []ImageRepository `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:",inline" yaml:",inline"`
+	Items         []ImageRepository `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // ImageRepository stores a mapping of tags to images, metadata overrides that are applied
@@ -34,7 +33,6 @@ type ImageRepositoryList struct {
 type ImageRepository struct {
 	kapi.TypeMeta         `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta       `json:",inline" yaml:",inline"`
-	Labels                map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	DockerImageRepository string            `json:"dockerImageRepository,omitempty" yaml:"dockerImageRepository,omitempty"`
 	Tags                  map[string]string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }

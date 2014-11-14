@@ -109,10 +109,10 @@ func TestEtcdListImagesEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "bar"}}),
 					},
 				},
 			},
@@ -125,7 +125,7 @@ func TestEtcdListImagesEverything(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(images.Items) != 2 || images.Items[0].ID != "foo" || images.Items[1].ID != "bar" {
+	if len(images.Items) != 2 || images.Items[0].Name != "foo" || images.Items[1].Name != "bar" {
 		t.Errorf("Unexpected images list: %#v", images)
 	}
 }
@@ -139,14 +139,18 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{
-							TypeMeta: kapi.TypeMeta{ID: "foo"},
-							Labels:   map[string]string{"env": "prod"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "foo",
+								Labels: map[string]string{"env": "prod"},
+							},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{
-							TypeMeta: kapi.TypeMeta{ID: "bar"},
-							Labels:   map[string]string{"env": "dev"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "bar",
+								Labels: map[string]string{"env": "dev"},
+							},
 						}),
 					},
 				},
@@ -160,21 +164,21 @@ func TestEtcdListImagesFiltered(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(images.Items) != 1 || images.Items[0].ID != "bar" {
+	if len(images.Items) != 1 || images.Items[0].Name != "bar" {
 		t.Errorf("Unexpected images list: %#v", images)
 	}
 }
 
 func TestEtcdGetImage(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultImageKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultImageKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	image, err := registry.GetImage(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if image.ID != "foo" {
+	if image.Name != "foo" {
 		t.Errorf("Unexpected image: %#v", image)
 	}
 }
@@ -208,8 +212,8 @@ func TestEtcdCreateImage(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImage(kapi.NewDefaultContext(), &api.Image{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 		DockerImageReference: "openshift/ruby-19-centos",
 		Metadata: docker.Image{
@@ -230,7 +234,7 @@ func TestEtcdCreateImage(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if image.ID != "foo" {
+	if image.Name != "foo" {
 		t.Errorf("Unexpected image: %#v %s", image, resp.Node.Value)
 	}
 
@@ -248,15 +252,15 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 	fakeClient.Data[makeTestDefaultImageKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImage(kapi.NewDefaultContext(), &api.Image{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err == nil {
@@ -339,9 +343,9 @@ func TestEtcdWatchImagesOK(t *testing.T) {
 		{
 			labels.Everything(),
 			[]*api.Image{
-				{TypeMeta: kapi.TypeMeta{ID: "a"}},
-				{TypeMeta: kapi.TypeMeta{ID: "b"}},
-				{TypeMeta: kapi.TypeMeta{ID: "c"}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b"}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c"}},
 			},
 			[]bool{
 				true,
@@ -352,9 +356,9 @@ func TestEtcdWatchImagesOK(t *testing.T) {
 		{
 			labels.SelectorFromSet(labels.Set{"color": "blue"}),
 			[]*api.Image{
-				{TypeMeta: kapi.TypeMeta{ID: "a"}, Labels: map[string]string{"color": "blue"}},
-				{TypeMeta: kapi.TypeMeta{ID: "b"}, Labels: map[string]string{"color": "green"}},
-				{TypeMeta: kapi.TypeMeta{ID: "c"}, Labels: map[string]string{"color": "blue"}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: map[string]string{"color": "blue"}}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: map[string]string{"color": "green"}}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: map[string]string{"color": "blue"}}},
 			},
 			[]bool{
 				true,
@@ -466,10 +470,10 @@ func TestEtcdListImageRepositoriesEverything(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "bar"}}),
 					},
 				},
 			},
@@ -482,7 +486,7 @@ func TestEtcdListImageRepositoriesEverything(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(repos.Items) != 2 || repos.Items[0].ID != "foo" || repos.Items[1].ID != "bar" {
+	if len(repos.Items) != 2 || repos.Items[0].Name != "foo" || repos.Items[1].Name != "bar" {
 		t.Errorf("Unexpected images list: %#v", repos)
 	}
 }
@@ -496,14 +500,18 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
-							TypeMeta: kapi.TypeMeta{ID: "foo"},
-							Labels:   map[string]string{"env": "prod"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "foo",
+								Labels: map[string]string{"env": "prod"},
+							},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
-							TypeMeta: kapi.TypeMeta{ID: "bar"},
-							Labels:   map[string]string{"env": "dev"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "bar",
+								Labels: map[string]string{"env": "dev"},
+							},
 						}),
 					},
 				},
@@ -517,21 +525,21 @@ func TestEtcdListImageRepositoriesFiltered(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(repos.Items) != 1 || repos.Items[0].ID != "bar" {
+	if len(repos.Items) != 1 || repos.Items[0].Name != "bar" {
 		t.Errorf("Unexpected repos list: %#v", repos)
 	}
 }
 
 func TestEtcdGetImageRepository(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultImageRepositoriesKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultImageRepositoriesKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	repo, err := registry.GetImageRepository(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if repo.ID != "foo" {
+	if repo.Name != "foo" {
 		t.Errorf("Unexpected repo: %#v", repo)
 	}
 }
@@ -565,10 +573,10 @@ func TestEtcdCreateImageRepository(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImageRepository(kapi.NewDefaultContext(), &api.ImageRepository{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name:   "foo",
+			Labels: map[string]string{"a": "b"},
 		},
-		Labels:                map[string]string{"a": "b"},
 		DockerImageRepository: "c/d",
 		Tags: map[string]string{"t1": "v1"},
 	})
@@ -586,7 +594,7 @@ func TestEtcdCreateImageRepository(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if repo.ID != "foo" {
+	if repo.Name != "foo" {
 		t.Errorf("Unexpected repo: %#v %s", repo, resp.Node.Value)
 	}
 
@@ -608,15 +616,15 @@ func TestEtcdCreateImageRepositoryAlreadyExists(t *testing.T) {
 	fakeClient.Data[makeTestDefaultImageRepositoriesKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImageRepository(kapi.NewDefaultContext(), &api.ImageRepository{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err == nil {
@@ -631,10 +639,10 @@ func TestEtcdUpdateImageRepository(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 
-	resp, _ := fakeClient.Set(makeTestDefaultImageRepositoriesKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	resp, _ := fakeClient.Set(makeTestDefaultImageRepositoriesKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateImageRepository(kapi.NewDefaultContext(), &api.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "foo", ResourceVersion: strconv.FormatUint(resp.Node.ModifiedIndex, 10)},
+		ObjectMeta:            kapi.ObjectMeta{Name: "foo", ResourceVersion: strconv.FormatUint(resp.Node.ModifiedIndex, 10)},
 		DockerImageRepository: "some/repo",
 	})
 	if err != nil {
@@ -692,7 +700,7 @@ func TestEtcdWatchImageRepositories(t *testing.T) {
 
 	watching, err := registry.WatchImageRepositories(kapi.NewDefaultContext(), "1", func(repo *api.ImageRepository) bool {
 		fields := labels.Set{
-			"ID": repo.ID,
+			"ID": repo.Name,
 		}
 		return filterFields.Matches(fields)
 	})
@@ -701,7 +709,7 @@ func TestEtcdWatchImageRepositories(t *testing.T) {
 	}
 	fakeClient.WaitForWatchCompletion()
 
-	repo := &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo"}}
+	repo := &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}
 	repoBytes, _ := latest.Codec.Encode(repo)
 	fakeClient.WatchResponse <- &etcd.Response{
 		Action: "set",
@@ -738,8 +746,8 @@ func TestEtcdCreateImageFailsWithoutNamespace(t *testing.T) {
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImage(kapi.NewContext(), &api.Image{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 
@@ -757,7 +765,7 @@ func TestEtcdListImagesInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo1"}}),
 					},
 				},
 			},
@@ -769,10 +777,10 @@ func TestEtcdListImagesInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "bar2"}}),
 					},
 				},
 			},
@@ -785,7 +793,7 @@ func TestEtcdListImagesInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(buildsAlfa.Items) != 1 || buildsAlfa.Items[0].ID != "foo1" {
+	if len(buildsAlfa.Items) != 1 || buildsAlfa.Items[0].Name != "foo1" {
 		t.Errorf("Unexpected builds list: %#v", buildsAlfa)
 	}
 
@@ -793,7 +801,7 @@ func TestEtcdListImagesInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(buildsBravo.Items) != 2 || buildsBravo.Items[0].ID != "foo2" || buildsBravo.Items[1].ID != "bar2" {
+	if len(buildsBravo.Items) != 2 || buildsBravo.Items[0].Name != "foo2" || buildsBravo.Items[1].Name != "bar2" {
 		t.Errorf("Unexpected builds list: %#v", buildsBravo)
 	}
 }
@@ -802,15 +810,15 @@ func TestEtcdGetImageInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/images/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/images/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Image{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/images/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/images/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetImage(namespaceAlfa, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if alfaFoo == nil || alfaFoo.ID != "foo" {
+	if alfaFoo == nil || alfaFoo.Name != "foo" {
 		t.Errorf("Unexpected deployment: %#v", alfaFoo)
 	}
 
@@ -818,7 +826,7 @@ func TestEtcdGetImageInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if bravoFoo == nil || bravoFoo.ID != "foo" {
+	if bravoFoo == nil || bravoFoo.Name != "foo" {
 		t.Errorf("Unexpected deployment: %#v", bravoFoo)
 	}
 }
@@ -828,8 +836,8 @@ func TestEtcdCreateImageRepositoryFailsWithoutNamespace(t *testing.T) {
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateImageRepository(kapi.NewContext(), &api.ImageRepository{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 
@@ -847,7 +855,7 @@ func TestEtcdListImageRepositoriesInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo1"}}),
 					},
 				},
 			},
@@ -859,10 +867,10 @@ func TestEtcdListImageRepositoriesInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "bar2"}}),
 					},
 				},
 			},
@@ -875,7 +883,7 @@ func TestEtcdListImageRepositoriesInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(imageRepositoriesAlfa.Items) != 1 || imageRepositoriesAlfa.Items[0].ID != "foo1" {
+	if len(imageRepositoriesAlfa.Items) != 1 || imageRepositoriesAlfa.Items[0].Name != "foo1" {
 		t.Errorf("Unexpected imageRepository list: %#v", imageRepositoriesAlfa)
 	}
 
@@ -883,7 +891,7 @@ func TestEtcdListImageRepositoriesInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(imageRepositoriesBravo.Items) != 2 || imageRepositoriesBravo.Items[0].ID != "foo2" || imageRepositoriesBravo.Items[1].ID != "bar2" {
+	if len(imageRepositoriesBravo.Items) != 2 || imageRepositoriesBravo.Items[0].Name != "foo2" || imageRepositoriesBravo.Items[1].Name != "bar2" {
 		t.Errorf("Unexpected imageRepository list: %#v", imageRepositoriesBravo)
 	}
 }
@@ -892,15 +900,15 @@ func TestEtcdGetImageRepositoryInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/imageRepositories/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/imageRepositories/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/imageRepositories/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/imageRepositories/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetImageRepository(namespaceAlfa, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if alfaFoo == nil || alfaFoo.ID != "foo" {
+	if alfaFoo == nil || alfaFoo.Name != "foo" {
 		t.Errorf("Unexpected deployment: %#v", alfaFoo)
 	}
 
@@ -908,7 +916,7 @@ func TestEtcdGetImageRepositoryInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if bravoFoo == nil || bravoFoo.ID != "foo" {
+	if bravoFoo == nil || bravoFoo.Name != "foo" {
 		t.Errorf("Unexpected deployment: %#v", bravoFoo)
 	}
 }
