@@ -34,30 +34,16 @@ documentation:
     queryParameters:
       serviceID:
         description: filter aliases by associated service.
-    responses:
-      200:
-        body:
-          example: !include examples/aliases.json
   post:
     description: Create an alias for this service.
-    body:
-      example: !include examples/alias.json
 
   /{aliasID}:
     get:
       description: Get a specific alias.
-      body:
-        example: !include examples/alias.json
     put:
       description: Update a specific alias.
-      body:
-        example: !include examples/alias.json
     delete:
       description: Delete a specific alias.
-      responses:
-        200:
-          body:
-            example: !include examples/status-success.json
 
 /buildConfigHooks/{buildID}/{secret}/{plugin}:
   post:
@@ -334,24 +320,14 @@ documentation:
         description: filter the links owned by a particular project.
       serviceID:
         description: filter the links attached to a particular service.
-    responses:
-      200:
-        body:
-          example: !include examples/links.json
   post:
     description: Create a new link between two services.
-    body:
-      example: !include examples/link.json
 
   /{linkID}:
     get:
       description: Get details about a specific link.
-      body:
-        example: !include examples/link.json
     put:
       description: Update a specific link.
-      body:
-        example: !include examples/link.json
     delete:
       description: Delete a specific link.
       responses:

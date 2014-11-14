@@ -78,6 +78,7 @@ func TestExamples(t *testing.T) {
 		"../api/examples/create-pod.json": &kapi.Pod{},
 
 		"../api/examples/create-service.json": &kapi.Service{},
+		"../api/examples/status-success.json": nil,
 	}
 
 	// Add the root directory to search for files you want to test, if is not in the list below.
