@@ -1,0 +1,54 @@
+OpenShift 3 Jenkins Example
+=========================
+
+This sample walks through the process of starting up an OpenShift cluster and deploying a Jenkins Pod in it.
+It also configures a simple application and then creates a Jenkins job to trigger a build of that application.
+
+The Jenkins job will trigger OpenShift to build+deploy a test version of the application, validate that
+the deployment works, and then tag the test version into production.
+
+Steps
+-----
+
+1. Start OpenShift
+    
+        $ sudo openshift start &> logs/openshift.log &
+
+2. Start the docker registry services
+
+        $ openshift kubectl apply -f docker-registry-config.json
+
+3. Start the Jenkins services
+
+        $ openshift kubectl apply -f jenkins-config.json
+
+4. Create the application configuration
+
+        $ openshift kubectl process -f application-template.json | openshift kubectl apply -f -
+ 
+5. Locate the Jenkins service endpoint and go to it in your browser:
+
+        $ openshift kubectl get services | grep jenkins | awk '{print $3":"$4}'
+
+    Once it is available, proceed to the next step.
+    
+6. Create the Jenkins job named rubyJob:
+
+        $ JENKINS_ENDPOINT=`openshift kubectl get services | grep jenkins | awk '{print $3":"$4}'`
+        $ cat job.xml | curl -X POST -H "Content-Type: application/xml" -H "Expect: " --data-binary @- http://$JENKINS_ENDPOINT/createItem?name=rubyJob
+
+7. Run the Jenkins build
+   
+    Go back to your browser, refresh and select the rubyJob build job and choose `Build with parameters`. 
+    You should not need to modify the `OPENSHIFT_HOST`.
+
+8. Watch the job output
+
+   It will trigger an OpenShift build of the application, wait for the build to result in a deployment,
+   confirm the new deployment works, and re-tag the image for production.  This re-tagging will trigger
+   another deployment, this time creating/updated the production service.
+
+9. Confirm both the test and production services are available by browsing to both services:
+
+        $ openshift kubectl get services | grep frontend
+   
