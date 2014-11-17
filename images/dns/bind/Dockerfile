@@ -4,7 +4,8 @@ RUN yum -y install bind
 RUN yum clean all
 
 ADD conf/named.conf /etc/named.conf
-ADD conf/v3.rhcloud.com.zone /var/named/
+ADD conf/template.zone /var/named/
+ADD bin/start-dns.sh /usr/bin/
 
 EXPOSE 53/udp
-CMD ["/usr/sbin/named", "-fg", "-unamed"]
+ENTRYPOINT ["/usr/bin/start-dns.sh"]

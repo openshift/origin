@@ -1,0 +1,9 @@
+@       IN      SOA     . v3.rhcloud.com. (
+                     2009092001         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        1206900         ; Expire
+                            300 )       ; Negative Cache TTL
+        IN      NS      ns1.v3.rhcloud.com.
+ns1     IN      A       127.0.0.1
+
