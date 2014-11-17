@@ -36,27 +36,6 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	}
 }
 
-// BasicDeploymentControllerFactory can create a BasicDeploymentController which obtains Deployments
-// from a queue populated from a watch of Deployments whose strategy DeploymentStrategyTypeBasic.
-type BasicDeploymentControllerFactory struct {
-	Client     *osclient.Client
-	KubeClient *kclient.Client
-}
-
-func (factory *BasicDeploymentControllerFactory) Create() *controller.BasicDeploymentController {
-	field := labels.SelectorFromSet(labels.Set{"strategy.type": string(deployapi.DeploymentStrategyTypeBasic)})
-	queue := cache.NewFIFO()
-	cache.NewReflector(&deploymentLW{client: factory.Client, field: field}, &deployapi.Deployment{}, queue).Run()
-
-	return &controller.BasicDeploymentController{
-		DeploymentUpdater:     factory.Client,
-		ReplicationController: controller.RealReplicationController{factory.KubeClient},
-		NextDeployment: func() *deployapi.Deployment {
-			return queue.Pop().(*deployapi.Deployment)
-		},
-	}
-}
-
 // CustomPodDeploymentControllerFactory can create a CustomPodDeploymentController which obtains Deployments
 // from a queue populated from a watch of Deployments whose strategy is DeploymentStrategyTypeCustomPod.
 // Pods are obtained from a queue populated from a watch of all pods.
@@ -72,15 +51,8 @@ type DeploymentControllerFactory struct {
 	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
 	RecreateStrategyImage string
 
-func (factory *CustomPodDeploymentControllerFactory) Create() *controller.CustomPodDeploymentController {
-	deploymentFieldSelector := labels.SelectorFromSet(labels.Set{"strategy.type": string(deployapi.DeploymentStrategyTypeCustomPod)})
-	dQueue := cache.NewFIFO()
-	cache.NewReflector(&deploymentLW{client: factory.Client, field: deploymentFieldSelector}, &deployapi.Deployment{}, dQueue).Run()
-	dStore := cache.NewStore()
-	cache.NewReflector(&deploymentLW{client: factory.Client, field: deploymentFieldSelector}, &deployapi.Deployment{}, dStore).Run()
-	pQueue := cache.NewFIFO()
-	pSelector, _ := labels.ParseSelector("deployment!=")
-	cache.NewReflector(&podLW{client: factory.KubeClient, namespace: kapi.NamespaceDefault, labelSelector: pSelector}, &kapi.Pod{}, pQueue).Run()
+	deploymentStore cache.Store
+}
 
 func (factory *DeploymentControllerFactory) Create() *controller.DeploymentController {
 	deploymentQueue := cache.NewFIFO()

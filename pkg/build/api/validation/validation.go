@@ -117,8 +117,8 @@ func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
 	return allErrs
 }
 
-func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	if len(trigger.Type) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("type", ""))
 		return allErrs
@@ -149,8 +149,8 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ErrorList {
 	return allErrs
 }
 
-func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t buildapi.BuildTriggerType) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t buildapi.BuildTriggerType) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	for triggerType, present := range params {
 		if triggerType != t && present {
 			allErrs = append(allErrs, errs.NewFieldInvalid(string(triggerType), ""))
@@ -159,8 +159,8 @@ func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t builda
 	return allErrs
 }
 
-func validateWebHook(webHook *buildapi.WebHookTrigger) errs.ErrorList {
-	allErrs := errs.ErrorList{}
+func validateWebHook(webHook *buildapi.WebHookTrigger) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
 	if len(webHook.Secret) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("secret", ""))
 	}

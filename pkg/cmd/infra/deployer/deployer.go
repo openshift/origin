@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	strategy "github.com/openshift/origin/pkg/deploy/strategy/recreate"
 )
 
 const longCommandDesc = `
