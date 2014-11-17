@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -22,10 +22,10 @@ func New() *GitHubWebHook {
 }
 
 type gitHubCommit struct {
-	ID        string                     `json:"id,omitempty" yaml:"id,omitempty"`
-	Author    buildapi.SourceControlUser `json:"author,omitempty" yaml:"author,omitempty"`
-	Committer buildapi.SourceControlUser `json:"committer,omitempty" yaml:"committer,omitempty"`
-	Message   string                     `json:"message,omitempty" yaml:"message,omitempty"`
+	ID        string                `json:"id,omitempty" yaml:"id,omitempty"`
+	Author    api.SourceControlUser `json:"author,omitempty" yaml:"author,omitempty"`
+	Committer api.SourceControlUser `json:"committer,omitempty" yaml:"committer,omitempty"`
+	Message   string                `json:"message,omitempty" yaml:"message,omitempty"`
 }
 
 type gitHubPushEvent struct {
@@ -35,7 +35,16 @@ type gitHubPushEvent struct {
 }
 
 // Extract services webhooks from github.com
-func (p *GitHubWebHook) Extract(buildCfg *buildapi.BuildConfig, path string, req *http.Request) (build *buildapi.Build, proceed bool, err error) {
+func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
+	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookType, buildCfg)
+	if !ok {
+		err = fmt.Errorf("BuildConfig %s does not allow Github webhook type of triggers", buildCfg.ID)
+		return
+	}
+	if trigger.GithubWebHook.Secret != secret {
+		err = fmt.Errorf("Secret does not match for BuildConfig %s", buildCfg.ID)
+		return
+	}
 	if err = verifyRequest(req); err != nil {
 		return
 	}
@@ -61,12 +70,12 @@ func (p *GitHubWebHook) Extract(buildCfg *buildapi.BuildConfig, path string, req
 		glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, event)
 	}
 
-	build = &buildapi.Build{
-		Parameters: buildapi.BuildParameters{
+	build = &api.Build{
+		Parameters: api.BuildParameters{
 			Source: buildCfg.Parameters.Source,
-			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitSourceRevision{
+			Revision: &api.SourceRevision{
+				Type: api.BuildSourceGit,
+				Git: &api.GitSourceRevision{
 					Commit:    event.HeadCommit.ID,
 					Author:    event.HeadCommit.Author,
 					Committer: event.HeadCommit.Committer,

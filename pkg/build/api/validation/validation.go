@@ -24,6 +24,9 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ErrorList {
 	if len(config.ID) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("id", config.ID))
 	}
+	for i := range config.Triggers {
+		allErrs = append(allErrs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	}
 	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("parameters")...)
 	return allErrs
 }
@@ -110,6 +113,56 @@ func validateOutput(output *buildapi.BuildOutput) errs.ErrorList {
 	allErrs := errs.ErrorList{}
 	if len(output.ImageTag) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("imageTag", output.ImageTag))
+	}
+	return allErrs
+}
+
+func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	if len(trigger.Type) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("type", ""))
+		return allErrs
+	}
+
+	// Ensure that only parameters for the trigger's type are present
+	triggerPresence := map[buildapi.BuildTriggerType]bool{
+		buildapi.GithubWebHookType:  trigger.GithubWebHook != nil,
+		buildapi.GenericWebHookType: trigger.GenericWebHook != nil,
+	}
+	allErrs = append(allErrs, validateTriggerPresence(triggerPresence, trigger.Type)...)
+
+	// Validate each trigger type
+	switch trigger.Type {
+	case buildapi.GithubWebHookType:
+		if trigger.GithubWebHook == nil {
+			allErrs = append(allErrs, errs.NewFieldRequired("github", nil))
+		} else {
+			allErrs = append(allErrs, validateWebHook(trigger.GithubWebHook).Prefix("github")...)
+		}
+	case buildapi.GenericWebHookType:
+		if trigger.GenericWebHook == nil {
+			allErrs = append(allErrs, errs.NewFieldRequired("generic", nil))
+		} else {
+			allErrs = append(allErrs, validateWebHook(trigger.GenericWebHook).Prefix("generic")...)
+		}
+	}
+	return allErrs
+}
+
+func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t buildapi.BuildTriggerType) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	for triggerType, present := range params {
+		if triggerType != t && present {
+			allErrs = append(allErrs, errs.NewFieldInvalid(string(triggerType), ""))
+		}
+	}
+	return allErrs
+}
+
+func validateWebHook(webHook *buildapi.WebHookTrigger) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	if len(webHook.Secret) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("secret", ""))
 	}
 	return allErrs
 }

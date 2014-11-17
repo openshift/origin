@@ -92,6 +92,14 @@ func mockBuildConfig() *buildapi.BuildConfig {
 			"label1": "value1",
 			"label2": "value2",
 		},
+		Triggers: []buildapi.BuildTriggerPolicy{
+			{
+				Type: buildapi.GithubWebHookType,
+				GithubWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
