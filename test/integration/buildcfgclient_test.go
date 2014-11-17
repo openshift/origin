@@ -86,6 +86,30 @@ func TestDeleteBuildConfig(t *testing.T) {
 	}
 }
 
+func TestWatchBuildConfigs(t *testing.T) {
+	deleteAllEtcdKeys()
+	ctx := kapi.NewContext()
+	openshift := NewTestBuildOpenshift(t)
+	buildConfig := mockBuildConfig()
+
+	watch, err := openshift.Client.WatchBuildConfigs(ctx, labels.Everything(), labels.Everything(), "0")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected, err := openshift.Client.CreateBuildConfig(ctx, buildConfig)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	event := <-watch.ResultChan()
+	actual := event.Object.(*buildapi.BuildConfig)
+
+	if e, a := expected.Name, actual.Name; e != a {
+		t.Errorf("Expected buildConfig Name %s, got %s", e, a)
+	}
+}
+
 func mockBuildConfig() *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{

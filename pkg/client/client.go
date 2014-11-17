@@ -35,7 +35,7 @@ type BuildInterface interface {
 	CreateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error)
 	UpdateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error)
 	DeleteBuild(ctx kapi.Context, id string) error
-	WatchBuilds(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
+	WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // BuildConfigInterface exposes methods on BuildConfig resources
@@ -45,6 +45,7 @@ type BuildConfigInterface interface {
 	CreateBuildConfig(ctx kapi.Context, config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	UpdateBuildConfig(ctx kapi.Context, config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	DeleteBuildConfig(ctx kapi.Context, id string) error
+	WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // ImageInterface exposes methods on Image resources.
@@ -167,7 +168,8 @@ func (c *Client) DeleteBuild(ctx kapi.Context, id string) (err error) {
 	return
 }
 
-func (c *Client) WatchBuilds(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+// WatchBuilds returns a watch.Interface that watches the requested builds.
+func (c *Client) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Namespace(kapi.Namespace(ctx)).
 		Path("watch").
@@ -209,6 +211,18 @@ func (c *Client) UpdateBuildConfig(ctx kapi.Context, build *buildapi.BuildConfig
 // DeleteBuildConfig deletes a BuildConfig, returns error if one occurs.
 func (c *Client) DeleteBuildConfig(ctx kapi.Context, id string) error {
 	return c.Delete().Namespace(kapi.Namespace(ctx)).Path("buildConfigs").Path(id).Do().Error()
+}
+
+// WatchBuildConfigs returns a watch.Interface that watches the requested buildConfigs.
+func (c *Client) WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return c.Get().
+		Namespace(kapi.Namespace(ctx)).
+		Path("watch").
+		Path("buildConfigs").
+		Param("resourceVersion", resourceVersion).
+		SelectorParam("labels", label).
+		SelectorParam("fields", field).
+		Watch()
 }
 
 // ListImages returns a list of images that match the selector.

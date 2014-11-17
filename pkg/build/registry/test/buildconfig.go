@@ -3,6 +3,7 @@ package test
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/build/api"
 )
 
@@ -32,4 +33,8 @@ func (r *BuildConfigRegistry) UpdateBuildConfig(ctx kapi.Context, config *api.Bu
 func (r *BuildConfigRegistry) DeleteBuildConfig(ctx kapi.Context, id string) error {
 	r.DeletedConfigId = id
 	return r.Err
+}
+
+func (r *BuildConfigRegistry) WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return nil, r.Err
 }

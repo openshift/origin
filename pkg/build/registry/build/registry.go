@@ -20,6 +20,6 @@ type Registry interface {
 	UpdateBuild(ctx kapi.Context, build *api.Build) error
 	// DeleteBuild deletes a build.
 	DeleteBuild(ctx kapi.Context, id string) error
-	// WatchDeployments watches builds.
+	// WatchBuilds watches builds.
 	WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
