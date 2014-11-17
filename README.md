@@ -22,9 +22,9 @@ The simplest way to start is to run OpenShift Origin in a Docker container:
 
 Note that this won't hold any data after a restart, so you'll need to use a data container or mount a volume at `/var/lib/openshift` to preserve that data.  Once the container is started, run:
 
-    $ docker run openshift/origin kube --help
+    $ docker run --net=host openshift/origin kube --help
 
-to see the command line options you can use.
+to see the command line options you can use (if you don't specify `--net=host`, you'll need to pass `-h <hostip>` to the CLI to connect).
 
 ### Start Developing
 
