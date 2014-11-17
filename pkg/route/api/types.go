@@ -22,7 +22,7 @@ type Route struct {
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items           []Route `json:"items,omitempty" yaml:"items,omitempty"`
+	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Items         []Route `json:"items,omitempty" yaml:"items,omitempty"`
 }

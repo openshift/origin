@@ -17,7 +17,7 @@ type Image struct {
 	kapi.TypeMeta        `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta      `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	DockerImageReference string       `json:"dockerImageReference,omitempty" yaml:"dockerImageReference,omitempty"`
-	Metadata             docker.Image `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Metadata             docker.Image `json:"meta,omitempty" yaml:"meta,omitempty"`
 }
 
 // ImageRepositoryList is a list of ImageRepository objects.

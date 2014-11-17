@@ -5,11 +5,8 @@ import (
 )
 
 type AccessToken struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	Labels        map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-
-	// Name is the unique value for an access token - also known as its secret
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// AuthorizeToken is the authorization token that granted this access token, and contains
 	// the specific state of the token.
@@ -20,10 +17,8 @@ type AccessToken struct {
 }
 
 type AuthorizeToken struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
-
-	// Name is the unique value for an authorization token - also known as its secret
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" yaml:"clientName,omitempty"`
@@ -49,11 +44,8 @@ type AuthorizeToken struct {
 }
 
 type Client struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	Labels        map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-
-	// Name is the unique identifier of the client
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Secret is the unique secret associated with a client
 	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
@@ -63,7 +55,8 @@ type Client struct {
 }
 
 type ClientAuthorization struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// ClientName references the client that created this authorization
 	ClientName string `json:"clientName,omitempty" yaml:"clientName,omitempty"`
@@ -81,29 +74,24 @@ type ClientAuthorization struct {
 
 type AccessTokenList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []AccessToken `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type AuthorizeTokenList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []AuthorizeToken `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type ClientList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []Client `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 type ClientAuthorizationList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []ClientAuthorization `json:"items,omitempty" yaml:"items,omitempty"`
 }
-
-func (*AccessToken) IsAnAPIObject()             {}
-func (*AuthorizeToken) IsAnAPIObject()          {}
-func (*Client) IsAnAPIObject()                  {}
-func (*AccessTokenList) IsAnAPIObject()         {}
-func (*AuthorizeTokenList) IsAnAPIObject()      {}
-func (*ClientList) IsAnAPIObject()              {}
-func (*ClientAuthorization) IsAnAPIObject()     {}
-func (*ClientAuthorizationList) IsAnAPIObject() {}

@@ -93,10 +93,10 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "bar"}}),
 					},
 				},
 			},
@@ -109,7 +109,7 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(routes.Items) != 2 || routes.Items[0].ID != "foo" || routes.Items[1].ID != "bar" {
+	if len(routes.Items) != 2 || routes.Items[0].Name != "foo" || routes.Items[1].Name != "bar" {
 		t.Errorf("Unexpected routes list: %#v", routes)
 	}
 }
@@ -123,14 +123,18 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{
-							TypeMeta: kapi.TypeMeta{ID: "foo"},
-							Labels:   map[string]string{"env": "prod"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "foo",
+								Labels: map[string]string{"env": "prod"},
+							},
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{
-							TypeMeta: kapi.TypeMeta{ID: "bar"},
-							Labels:   map[string]string{"env": "dev"},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:   "bar",
+								Labels: map[string]string{"env": "dev"},
+							},
 						}),
 					},
 				},
@@ -144,21 +148,21 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(routes.Items) != 1 || routes.Items[0].ID != "bar" {
+	if len(routes.Items) != 1 || routes.Items[0].Name != "bar" {
 		t.Errorf("Unexpected routes list: %#v", routes)
 	}
 }
 
 func TestEtcdGetRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(makeTestDefaultRouteKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set(makeTestDefaultRouteKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 	route, err := registry.GetRoute(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if route.ID != "foo" {
+	if route.Name != "foo" {
 		t.Errorf("Unexpected route: %#v", route)
 	}
 }
@@ -192,8 +196,8 @@ func TestEtcdCreateRoutes(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateRoute(kapi.NewDefaultContext(), &api.Route{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err != nil {
@@ -210,7 +214,7 @@ func TestEtcdCreateRoutes(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if route.ID != "foo" {
+	if route.Name != "foo" {
 		t.Errorf("Unexpected route: %#v %s", route, resp.Node.Value)
 	}
 }
@@ -220,15 +224,15 @@ func TestEtcdCreateAlreadyExistsRoutes(t *testing.T) {
 	fakeClient.Data[makeTestDefaultRouteKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}),
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
 			},
 		},
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateRoute(kapi.NewDefaultContext(), &api.Route{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err == nil {
@@ -243,8 +247,8 @@ func TestEtcdUpdateOkRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateRoute(kapi.NewDefaultContext(), &api.Route{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 	if err != nil {
@@ -295,8 +299,8 @@ func TestEtcdCreateRouteFailsWithoutNamespace(t *testing.T) {
 	fakeClient.TestIndex = true
 	registry := NewTestEtcd(fakeClient)
 	err := registry.CreateRoute(kapi.NewContext(), &api.Route{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	})
 
@@ -314,7 +318,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo1"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo1"}}),
 					},
 				},
 			},
@@ -326,10 +330,10 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo2"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "bar2"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "bar2"}}),
 					},
 				},
 			},
@@ -342,7 +346,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(routesAlfa.Items) != 1 || routesAlfa.Items[0].ID != "foo1" {
+	if len(routesAlfa.Items) != 1 || routesAlfa.Items[0].Name != "foo1" {
 		t.Errorf("Unexpected builds list: %#v", routesAlfa)
 	}
 
@@ -350,7 +354,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(routesBravo.Items) != 2 || routesBravo.Items[0].ID != "foo2" || routesBravo.Items[1].ID != "bar2" {
+	if len(routesBravo.Items) != 2 || routesBravo.Items[0].Name != "foo2" || routesBravo.Items[1].Name != "bar2" {
 		t.Errorf("Unexpected builds list: %#v", routesBravo)
 	}
 }
@@ -359,15 +363,15 @@ func TestEtcdGetRouteInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/routes/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
-	fakeClient.Set("/routes/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{TypeMeta: kapi.TypeMeta{ID: "foo"}}), 0)
+	fakeClient.Set("/routes/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/routes/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetRoute(namespaceAlfa, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if alfaFoo == nil || alfaFoo.ID != "foo" {
+	if alfaFoo == nil || alfaFoo.Name != "foo" {
 		t.Errorf("Unexpected deployment: %#v", alfaFoo)
 	}
 
@@ -375,7 +379,7 @@ func TestEtcdGetRouteInDifferentNamespaces(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if bravoFoo == nil || bravoFoo.ID != "foo" {
+	if bravoFoo == nil || bravoFoo.Name != "foo" {
 		t.Errorf("Unexpected deployment: %#v", bravoFoo)
 	}
 }
@@ -393,8 +397,8 @@ func TestEtcdWatchRoutes(t *testing.T) {
 	fakeClient.WaitForWatchCompletion()
 
 	route := &api.Route{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	}
 

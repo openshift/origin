@@ -148,7 +148,7 @@ func TestTypes(t *testing.T) {
 				continue
 			}
 			if _, err := meta.Accessor(item); err != nil {
-				t.Logf("%s is not a TypeMeta and cannot be round tripped: %v", kind, err)
+				t.Logf("%s is not a ObjectMeta and cannot be round tripped: %v", kind, err)
 				continue
 			}
 			runTest(t, v1beta1.Codec, item)
