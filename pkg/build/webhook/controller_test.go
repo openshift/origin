@@ -57,14 +57,14 @@ type pathPlugin struct {
 	Path string
 }
 
-func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.Build, bool, error) {
+func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
 	p.Path = path
 	return nil, true, nil
 }
 
 type errPlugin struct{}
 
-func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.Build, bool, error) {
+func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
 	return nil, true, errors.New("Plugin error!")
 }
 

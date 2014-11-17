@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/util"
 )
 
 // Webhook verification is dependent on the sending side, it can be
@@ -17,7 +18,7 @@ type Plugin interface {
 	// - newly created build object or nil if default is to be created
 	// - information whether to trigger the build itself
 	// - eventual error.
-	Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.Build, bool, error)
+	Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error)
 }
 
 // controller used for processing webhook requests.
@@ -63,7 +64,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		notFound(w, "Plugin ", uv.plugin, " not found")
 		return
 	}
-	build, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
+	revision, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
 	if err != nil {
 		badRequest(w, err.Error())
 		return
@@ -71,16 +72,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !proceed {
 		return
 	}
-	if build == nil {
-		build = &api.Build{
-			Parameters: buildCfg.Parameters,
-		}
-	}
-	if build.Labels == nil {
-		build.Labels = make(map[string]string)
-	}
-	build.Labels[api.BuildConfigLabel] = buildCfg.Name
-
+	build := util.GenerateBuild(buildCfg, revision)
 	if _, err := c.osClient.CreateBuild(kapi.WithNamespaceDefaultIfNone(ctx), build); err != nil {
 		badRequest(w, err.Error())
 	}

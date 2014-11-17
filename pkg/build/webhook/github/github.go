@@ -35,7 +35,7 @@ type gitHubPushEvent struct {
 }
 
 // Extract services webhooks from github.com
-func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
+func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
 	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookType, buildCfg)
 	if !ok {
 		err = fmt.Errorf("BuildConfig %s does not support the Github webhook trigger type", buildCfg.Name)
@@ -70,20 +70,13 @@ func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, event)
 	}
 
-	build = &api.Build{
-		Parameters: api.BuildParameters{
-			Source: buildCfg.Parameters.Source,
-			Revision: &api.SourceRevision{
-				Type: api.BuildSourceGit,
-				Git: &api.GitSourceRevision{
-					Commit:    event.HeadCommit.ID,
-					Author:    event.HeadCommit.Author,
-					Committer: event.HeadCommit.Committer,
-					Message:   event.HeadCommit.Message,
-				},
-			},
-			Strategy: buildCfg.Parameters.Strategy,
-			Output:   buildCfg.Parameters.Output,
+	revision = &api.SourceRevision{
+		Type: api.BuildSourceGit,
+		Git: &api.GitSourceRevision{
+			Commit:    event.HeadCommit.ID,
+			Author:    event.HeadCommit.Author,
+			Committer: event.HeadCommit.Committer,
+			Message:   event.HeadCommit.Message,
 		},
 	}
 

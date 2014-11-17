@@ -31,7 +31,7 @@ type genericGitInfo struct {
 }
 
 // Extract services generic webhooks.
-func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (build *api.Build, proceed bool, err error) {
+func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
 	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookType, buildCfg)
 	if !ok {
 		err = fmt.Errorf("BuildConfig %s does not support the Generic webhook trigger type", buildCfg.Name)
@@ -44,16 +44,13 @@ func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path s
 	if err = verifyRequest(req); err != nil {
 		return
 	}
-	build = &api.Build{
-		Parameters: buildCfg.Parameters,
-	}
 	if req.Body != nil {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return nil, false, err
 		}
 		if len(body) == 0 {
-			return build, true, nil
+			return revision, true, nil
 		}
 		var data genericWebHookEvent
 		if err = json.Unmarshal(body, &data); err != nil {
@@ -63,7 +60,7 @@ func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path s
 			glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, data)
 			return nil, false, nil
 		}
-		build.Parameters.Revision = &api.SourceRevision{
+		revision = &api.SourceRevision{
 			Type: api.BuildSourceGit,
 			Git: &api.GitSourceRevision{
 				Commit:    data.Git.Commit,
@@ -73,7 +70,7 @@ func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path s
 			},
 		}
 	}
-	return build, true, nil
+	return revision, true, nil
 }
 
 func verifyRequest(req *http.Request) error {
