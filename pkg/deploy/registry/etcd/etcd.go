@@ -78,6 +78,7 @@ func (r *Etcd) GetDeployment(ctx kapi.Context, id string) (*api.Deployment, erro
 	if err != nil {
 		return nil, etcderr.InterpretGetError(err, "deployment", id)
 	}
+
 	return &deployment, nil
 }
 
@@ -88,6 +89,7 @@ func (r *Etcd) CreateDeployment(ctx kapi.Context, deployment *api.Deployment) er
 		return err
 	}
 	err = r.CreateObj(key, deployment, 0)
+	glog.Infof("!!!!! Deployment registry created deployment: %#v", deployment)
 	return etcderr.InterpretCreateError(err, "deployment", deployment.ID)
 }
 
@@ -231,6 +233,7 @@ func (r *Etcd) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.De
 	}
 
 	err = r.SetObj(key, deploymentConfig)
+	glog.Infof("!!!!! Deployment registry updated deploymentConfig: %#v", deploymentConfig)
 	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.ID)
 }
 
