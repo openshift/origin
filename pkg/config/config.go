@@ -22,7 +22,7 @@ type ApplyResult struct {
 
 type BaseConfigItem struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 // Apply creates and manages resources defined in the Config. The create process wont

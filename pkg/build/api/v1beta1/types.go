@@ -8,7 +8,7 @@ import (
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Parameters are all the inputs used to create the build pod.
 	Parameters BuildParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -176,7 +176,7 @@ const BuildConfigLabel = "buildconfig"
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
 	// are defined, a new build can only occur as a result of an explicit client build creation.
@@ -220,13 +220,13 @@ const (
 // BuildList is a collection of Builds.
 type BuildList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []Build `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }

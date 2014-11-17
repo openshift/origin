@@ -26,20 +26,20 @@ type PodControlInterface interface {
 }
 
 type RealPodControl struct {
-	KubeClient kclient.Interface
+	podsNamspacer kclient.PodsNamespacer
 }
 
 func (r RealPodControl) getPod(namespace, name string) (*kapi.Pod, error) {
-	return r.KubeClient.Pods(namespace).Get(name)
+	return r.podsNamspacer.Pods(namespace).Get(name)
 }
 
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get neccessary attibutes to assamble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(b build.Registry, c *kclient.Client) apiserver.RESTStorage {
+func NewREST(b build.Registry, pn kclient.PodsNamespacer) apiserver.RESTStorage {
 	return &REST{
 		BuildRegistry: b,
-		PodControl:    RealPodControl{c},
+		PodControl:    RealPodControl{pn},
 	}
 }
 

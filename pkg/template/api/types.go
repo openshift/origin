@@ -8,7 +8,7 @@ import (
 // Template contains the inputs needed to produce a Config.
 type Template struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Required: Items is an array of Kubernetes resources of Service,
 	// Pod and/or ReplicationController kind.
@@ -24,7 +24,7 @@ type Template struct {
 // Parameter defines a name/value variable that is to be processed during
 // the Template to Config transformation.
 type Parameter struct {
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Optional: Generate specifies the generator to be used to generate
 	// random string from an input value specified by From field. The result

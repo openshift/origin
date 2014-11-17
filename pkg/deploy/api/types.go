@@ -8,7 +8,7 @@ import (
 // represent both a current deployment or a historical deployment.
 type Deployment struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
@@ -74,7 +74,7 @@ type CustomDeploymentStrategyParams struct {
 // A DeploymentList is a collection of deployments.
 type DeploymentList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []Deployment `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
@@ -95,7 +95,7 @@ const (
 // deployment state is.
 type DeploymentConfig struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.
@@ -178,6 +178,6 @@ type DeploymentCauseImageTrigger struct {
 // A DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:",inline" yaml:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }

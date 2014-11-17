@@ -7,7 +7,7 @@ import (
 // Route encapsulates the inputs needed to connect a DNS/alias to a service proxy.
 type Route struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Required: Alias/DNS that points to the service
 	// Can be host or host:port
@@ -23,6 +23,6 @@ type Route struct {
 // RouteList is a collection of Routes.
 type RouteList struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items           []Route `json:"items,omitempty" yaml:"items,omitempty"`
 }

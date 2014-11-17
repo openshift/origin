@@ -10,7 +10,7 @@ import (
 //       https://github.com/GoogleCloudPlatform/kubernetes/pull/1007
 type Config struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Required: Items is an array of Kubernetes resources of Service,
 	// Pod and/or ReplicationController kind.
