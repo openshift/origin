@@ -69,7 +69,7 @@ func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
 		// PodInfoGetter: podInfoGetter,
 		PortalNet:     c.PortalNet,
 		KubeletClient: kubeletClient,
-		APIPrefix:     KubeAPIPrefixV1Beta1, // TODO check, this should not be needed but makes a "panic: http: invalid pattern"
+		APIPrefix:     "/api", // TODO check, this should not be needed but makes a "panic: http: invalid pattern"
 	}
 	m := master.New(masterConfig)
 

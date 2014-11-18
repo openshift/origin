@@ -1,5 +1,10 @@
 {
-  "id": "hello-openshift",
+  "metadata": {
+    "name": "hello-openshift",
+    "labels": {
+      "name": "hello-openshift"
+    }
+  },
   "desiredState": {
     "manifest": {
       "version": "v1beta1",
@@ -14,7 +19,4 @@
       }]
     }
   },
-  "labels": {
-    "name": "hello-openshift"
-  }
 }

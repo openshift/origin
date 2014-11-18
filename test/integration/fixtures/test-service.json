@@ -1,9 +1,13 @@
 {
-  "id": "frontend",
   "kind": "Service",
-  "apiVersion": "v1beta1",
-  "port": 9998,
-  "selector": {
+  "apiVersion": "v1beta3",
+  "metadata": {
     "name": "frontend"
+  },
+  "spec": {
+      "port": 9998,
+      "selector": {
+        "name": "frontend"
+      }
   }
 }

@@ -1,7 +1,9 @@
 {
-  "id": "test-deployment-config",
   "kind": "DeploymentConfig",
   "apiVersion": "v1beta1",
+  "metadata": {
+    "name": "test-deployment-config"
+  },
   "triggers": [
   ],
   "template": {
