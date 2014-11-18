@@ -1,7 +1,7 @@
 package v1beta1
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 )
 
 // Route encapsulates the inputs needed to connect a DNS/alias to a service proxy.
