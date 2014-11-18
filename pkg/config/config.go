@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/openshift/origin/pkg/api/latest"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
@@ -29,13 +30,30 @@ type BaseConfigItem struct {
 // stop on error, but it will finish the job and then return error and for each item
 // in the config a error and status message string.
 func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (result []ApplyResult, err error) {
-	// Unmarshal the Config JSON manually instead of using runtime.Decode()
-	conf := struct {
-		Items []json.RawMessage `json:"items" yaml:"items"`
-	}{}
+	typer := kapi.Scheme
+	mapper := latest.RESTMapper
 
-	if err := json.Unmarshal(data, &conf); err != nil {
-		return nil, fmt.Errorf("Unable to parse Config: %v", err)
+	version, kind, err := typer.DataVersionAndKind(data)
+	// TODO: Add proper ValidationErrorList here
+	if err != nil {
+		return nil, fmt.Errorf("DataVersionAndKind: %v", err)
+	}
+
+	mapping, err := mapper.RESTMapping(version, kind)
+	// TODO: Add proper ValidationErrorList here
+	if err != nil {
+		return nil, fmt.Errorf("RESTMapping: %v", err)
+	}
+
+	confObj, err := mapping.Codec.Decode(data)
+	// TODO: Add proper ValidationErrorList here
+	if err != nil {
+		return nil, fmt.Errorf("Decode: %v", err)
+	}
+
+	conf, ok := confObj.(*api.Config)
+	if !ok {
+		return nil, fmt.Errorf("Invalid Config")
 	}
 
 	if len(conf.Items) == 0 {
@@ -45,46 +63,26 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 	for i, item := range conf.Items {
 		itemResult := ApplyResult{}
 
-		if item == nil || (len(item) == 4 && string(item) == "null") {
-			itemResult.Error = fmt.Errorf("Config.items[%v] is null", i)
-			result = append(result, itemResult)
-			continue
-		}
-
-		itemBase := BaseConfigItem{}
-
-		err = json.Unmarshal(item, &itemBase)
+		itemBase, mapping, err := DecodeConfigItem(item)
 		if err != nil {
 			itemResult.Error = fmt.Errorf("Unable to parse Config item: %v", err)
 			result = append(result, itemResult)
 			continue
 		}
 
-		if itemBase.Kind == "" {
-			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'kind'", i)
-			result = append(result, itemResult)
-			continue
-		}
-
-		if itemBase.Name == "" {
-			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'name'", i)
-			result = append(result, itemResult)
-			continue
-		}
-
-		client, path, err := getClientAndPath(itemBase.Kind, storage)
+		client, path, err := getClientAndPath(mapping.Kind, storage)
 		if err != nil {
 			itemResult.Error = fmt.Errorf("Config.items[%v]: %v", i, err)
 			result = append(result, itemResult)
 			continue
 		}
 		if client == nil {
-			itemResult.Error = fmt.Errorf("Config.items[%v]: Unknown client for 'kind=%v'", i, itemBase.Kind)
+			itemResult.Error = fmt.Errorf("Config.items[%v]: Unknown client for 'kind=%v'", i, mapping.Kind)
 			result = append(result, itemResult)
 			continue
 		}
 
-		jsonResource, err := item.MarshalJSON()
+		jsonResource, err := mapping.Encode(itemBase)
 		if err != nil {
 			itemResult.Error = fmt.Errorf("%v", err)
 			continue
@@ -94,86 +92,103 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 		if err = request.Do().Error(); err != nil {
 			itemResult.Error = err
 		} else {
-			itemResult.Message = fmt.Sprintf("Creation succeeded for %v with 'id=%v'", itemBase.Kind, itemBase.Name)
+			itemName, _ := mapping.MetadataAccessor.Name(itemBase)
+			itemResult.Message = fmt.Sprintf("Creation succeeded for %v with 'name=%v'", mapping.Kind, itemName)
 		}
 		result = append(result, itemResult)
 	}
 	return
 }
 
-func DecodeConfigItem(in runtime.RawExtension, m meta.RESTMapper, t runtime.ObjectTyper) (runtime.Object, *meta.RESTMapping, error) {
-	version, kind, err := t.DataVersionAndKind(in.RawJSON)
+func DecodeConfigItem(in runtime.RawExtension) (runtime.Object, *meta.RESTMapping, error) {
+	typer := kapi.Scheme
+	mapper := latest.RESTMapper
+	version, kind, err := typer.DataVersionAndKind(in.RawJSON)
+	// TODO: Add proper ValidationErrorList here
 	if err != nil {
-		// TODO: Make this use ValidationErrorList
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("DataVersionAndKind: %v", err)
 	}
-	mapping, err := m.RESTMapping(version, kind)
+
+	mapping, err := mapper.RESTMapping(version, kind)
+	// TODO: Add proper ValidationErrorList here
 	if err != nil {
-		// TODO: Make this use ValidationErrorList
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("RESTMapping: %v", err)
 	}
+
 	obj, err := mapping.Codec.Decode(in.RawJSON)
+	// TODO: Add proper ValidationErrorList here
+	if err != nil {
+		return nil, nil, fmt.Errorf("Decode: %v", err)
+	}
+
 	return obj, mapping, err
 }
 
-// AddConfigLabels adds new label(s) to all resources defined in the given Config.
-func AddConfigLabels(c *api.Config, labels labels.Set, m meta.RESTMapper, t runtime.ObjectTyper) error {
-	for i := range c.Items {
-		obj, _, err := DecodeConfigItem(c.Items[i], m, t)
-		if err != nil {
-			return fmt.Errorf("Unable to decode Template.Items[%v]: %v", i, err)
+func addLabelError(kind string, err error) error {
+	return fmt.Errorf("Enable to add labels to Template.%s item: %v", kind, err)
+}
+
+func AddConfigLabel(obj runtime.Object, labels labels.Set) error {
+	switch t := obj.(type) {
+	case *kapi.Pod:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Pod", err)
 		}
-		switch t := obj.(type) {
-		case *kapi.Pod:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Pod.Labels: %v", i, err)
-			}
-		case *kapi.Service:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Service.Labels: %v", i, err)
-			}
-		case *kapi.ReplicationController:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.Labels: %v", i, err)
-			}
-			if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.DesiredState.PodTemplate.Labels: %v", i, err)
-			}
-		case *deployapi.Deployment:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Deployment.Labels: %v", i, err)
-			}
-			if err := mergeMaps(&t.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] ControllerTemplate.PodTemplate.Labels: %v", i, err)
-			}
-		case *deployapi.DeploymentConfig:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] DeploymentConfig.Labels: %v", i, err)
-			}
-			if err := mergeMaps(&t.Template.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Template.ControllerTemplate.PodTemplate.Labels: %v", i, err)
-			}
-		default:
-			// Unknown generic object. Try to find "Labels" field in it.
-			obj := reflect.ValueOf(c.Items[i])
+	case *kapi.Service:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Service", err)
+		}
+	case *kapi.ReplicationController:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("ReplicationController", err)
+		}
+		if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("RepliacationController.PodTemplate", err)
+		}
+	case *deployapi.Deployment:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Deployment", err)
+		}
+		if err := mergeMaps(&t.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Deployment.ControllerTemplate.PodTemplate", err)
+		}
+	case *deployapi.DeploymentConfig:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("DeploymentConfig", err)
+		}
+		if err := mergeMaps(&t.Template.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("DeploymentConfig.ControllerTemplate.PodTemplate", err)
+		}
+	default:
+		// Unknown generic object. Try to find "Labels" field in it.
+		unknownObj := reflect.ValueOf(obj)
 
-			if obj.Kind() == reflect.Interface || obj.Kind() == reflect.Ptr {
-				obj = obj.Elem()
-			}
-			if obj.Kind() != reflect.Struct {
-				return fmt.Errorf("Template.Items[%v]: Invalid object kind. Expected: Struct, got:", i, obj.Kind())
-			}
+		if unknownObj.Kind() == reflect.Interface || unknownObj.Kind() == reflect.Ptr {
+			unknownObj = unknownObj.Elem()
+		}
 
-			obj = obj.FieldByName("Labels")
-			if obj.IsValid() {
-				// Merge labels into the Template.Items[i].Labels field.
-				if err := mergeMaps(obj.Interface(), labels, ErrorOnDifferentDstKeyValue); err != nil {
-					return fmt.Errorf("Unable to add labels to Template.Items[%v] GenericObject.Labels: %v", i, err)
-				}
+		if unknownObj.Kind() != reflect.Struct {
+			return fmt.Errorf("Template.Items[%v]: Invalid unknownObject kind. Expected: Struct, got:", unknownObj.Kind())
+		}
+
+		unknownObj = unknownObj.FieldByName("Labels")
+		if unknownObj.IsValid() {
+			// Merge labels into the Template.Items[i].Labels field.
+			if err := mergeMaps(unknownObj.Interface(), labels, ErrorOnDifferentDstKeyValue); err != nil {
+				return fmt.Errorf("Unable to add labels to Template.Items GenericObject.Labels: %v", err)
 			}
 		}
 	}
 
+	return nil
+}
+
+// AddConfigLabels adds new label(s) to all resources defined in the given Config.
+func AddConfigLabels(c *api.Config, labels labels.Set) error {
+	for _, in := range c.Items {
+		obj, _, _ := DecodeConfigItem(in)
+		AddConfigLabel(obj, labels)
+	}
 	return nil
 }
 

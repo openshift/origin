@@ -12,8 +12,6 @@ type Template struct {
 
 	// Required: Items is an array of Kubernetes resources of Service,
 	// Pod and/or ReplicationController kind.
-	// TODO: Handle unregistered types. Define custom []runtime.Object
-	//       type and its unmarshaller instead of []runtime.Object.
 	Items []runtime.RawExtension `json:"items" yaml:"items"`
 
 	// Optional: Parameters is an array of Parameters used during the

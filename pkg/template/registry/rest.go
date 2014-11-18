@@ -7,7 +7,6 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -40,14 +39,11 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	// TODO: This should be MultiMapper to handle both Origin and K8s objects
-	mapper := latest.RESTMapper
-	typer := kapi.Scheme
 	tpl, ok := obj.(*api.Template)
 	if !ok {
 		return nil, errors.New("Not a template config.")
 	}
-	if errs := validation.ValidateTemplate(mapper, typer, tpl); len(errs) > 0 {
+	if errs := validation.ValidateTemplate(tpl); len(errs) > 0 {
 		return nil, errors.New(fmt.Sprintf("Invalid template config: %#v", errs))
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
@@ -59,7 +55,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		if err != nil {
 			return nil, err
 		}
-		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}, mapper, typer); err != nil {
+		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); err != nil {
 			return nil, err
 		}
 		return cfg, nil

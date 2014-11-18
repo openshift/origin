@@ -1,40 +1,52 @@
 {
   "kind": "Template",
   "apiVersion": "v1beta1",
-  "name": "guestbook-example",
-  "annotations": {
-    "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+  "metadata": {
+    "name": "guestbook-example",
+    "annotations": {
+      "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+    }
   },
   "parameters": [
     {
-      "name": "ADMIN_USERNAME",
-      "description": "Guestbook administrator username",
+      "metadata": {
+        "name": "ADMIN_USERNAME",
+        "annotations": { "description": "Guestbook administrator username" }
+      },
       "generate": "expression",
       "from": "admin[A-Z0-9]{3}"
     },
     {
-      "name": "ADMIN_PASSWORD",
-      "description": "Guestboot administrator password",
+      "metadata": {
+        "name": "ADMIN_PASSWORD",
+        "annotations": { "description": "Guestbook administrator password" }
+      },
       "generate": "expression",
       "from": "[a-zA-Z0-9]{8}"
     },
     {
-      "name": "REDIS_PASSWORD",
-      "description": "The password Redis use for communication",
+      "metadata": {
+        "name": "REDIS_PASSWORD",
+        "annotations": { "description": "Redis password" }
+      },
       "generate": "expression",
       "from": "[a-zA-Z0-9]{8}"
     }
   ],
   "items": [
     {
-      "name": "frontend-route",
+      "metadata": {
+        "name": "frontend-route"
+      },
       "kind": "Route",
       "apiVersion": "v1beta1",
       "host": "guestbook.example.com",
       "serviceName": "frontend"
     },
     {
-      "name": "frontend",
+      "metadata": {
+        "name": "frontend"
+      },
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 5432,
@@ -43,7 +55,9 @@
       }
     },
     {
-      "name": "redis-master",
+      "metadata": {
+        "name": "redis-master"
+      },
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 10000,
@@ -52,7 +66,9 @@
       }
     },
     {
-      "name": "redis-slave",
+      "metadata": {
+        "name": "redis-slave"
+      },
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 10001,
@@ -61,7 +77,9 @@
       }
     },
     {
-      "name": "redis-master",
+      "metadata": {
+        "name": "redis-master"
+      },
       "kind": "Pod",
       "apiVersion": "v1beta1",
       "desiredState": {
@@ -85,7 +103,9 @@
       }
     },
     {
-      "name": "guestbook",
+      "metadata": {
+        "name": "guestbook"
+      },
       "kind": "ReplicationController",
       "apiVersion": "v1beta1",
       "desiredState": {
@@ -121,7 +141,9 @@
       }
     },
     {
-      "name": "redis-slave",
+      "metadata": {
+        "name": "redis-slave"
+      },
       "kind": "ReplicationController",
       "apiVersion": "v1beta1",
       "desiredState": {

@@ -6,12 +6,8 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
-
 	"github.com/openshift/origin/pkg/config"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -24,18 +20,12 @@ var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
 // TemplateProcessor transforms Template objects into Config objects.
 type TemplateProcessor struct {
 	Generators map[string]Generator
-	Mapper     meta.RESTMapper
-	Typer      runtime.ObjectTyper
 }
 
 // NewTemplateProcessor creates new TemplateProcessor and initializes
 // its set of generators.
 func NewTemplateProcessor(generators map[string]Generator) *TemplateProcessor {
-	return &TemplateProcessor{
-		Generators: generators,
-		Mapper:     klatest.RESTMapper,
-		Typer:      kapi.Scheme,
-	}
+	return &TemplateProcessor{Generators: generators}
 }
 
 // Process transforms Template object into Config object. It generates
@@ -48,29 +38,36 @@ func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, 
 	}
 
 	items := []runtime.RawExtension{}
-
 	for _, in := range template.Items {
-		obj, mapping, err := config.DecodeConfigItem(in, p.Mapper, p.Typer)
+
+		item, mapping, err := config.DecodeConfigItem(in)
+		if err != nil {
+			// TODO: Handle errors properly
+			return nil, err
+		}
+
+		// TODO: Report failed parameter substitution for unknown objects
+		//			 These errors are no-fatal and the object returned is the same
+		//			 just without substitution.
+		newItem, err := p.SubstituteParameters(template.Parameters, item)
+		if err != nil {
+			fmt.Printf("WARNING: Parameter processing failed: %v\n", err)
+		}
+
+		jsonItem, err := mapping.Codec.Encode(newItem)
 		if err != nil {
 			return nil, err
 		}
-
-		if err := p.SubstituteParameters(&obj, template); err != nil {
-			// TODO: Make this use ValidationErrorList
-			return nil, err
-		}
-		item, err := mapping.Codec.Encode(obj)
-		items = append(items, runtime.RawExtension{RawJSON: item})
+		items = append(items, runtime.RawExtension{RawJSON: jsonItem})
 	}
 
-	c := &configapi.Config{
+	config := &configapi.Config{
 		ObjectMeta: template.ObjectMeta,
 		Items:      items,
 	}
-
-	c.TypeMeta.Kind = "Config"
-	c.ObjectMeta.CreationTimestamp = util.Now()
-	return c, nil
+	config.Kind = "Config"
+	config.ObjectMeta.CreationTimestamp = util.Now()
+	return config, nil
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides
@@ -102,31 +99,30 @@ func (p *TemplateProcessor) GetParameterByName(t *api.Template, name string) *ap
 //   - ${PARAMETER_NAME}
 //
 // TODO: Implement substitution for more types and fields.
-func (p *TemplateProcessor) SubstituteParameters(item *runtime.Object, t *api.Template) error {
+func (p *TemplateProcessor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
 	// Make searching for given parameter name/value more effective
-	paramMap := make(map[string]string, len(t.Parameters))
-	for _, param := range t.Parameters {
+	paramMap := make(map[string]string, len(params))
+	for _, param := range params {
 		paramMap[param.Name] = param.Value
 	}
 
-	switch obj := (*item).(type) {
+	switch obj := item.(type) {
 	case *kapi.ReplicationController:
 		p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
-		*item = obj
+		return obj, nil
 	case *kapi.Pod:
 		p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
-		*item = obj
+		return obj, nil
 	case *deployapi.Deployment:
 		p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
-		*item = obj
+		return obj, nil
 	case *deployapi.DeploymentConfig:
 		p.substituteParametersInManifest(&obj.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
-		*item = obj
+		return obj, nil
 	default:
-		glog.V(1).Infof("The %T resource does not support parameter substitution", obj)
+		return obj, fmt.Errorf("Parameter substitution not implemented for %T", obj)
 	}
 
-	return nil
 }
 
 // substituteParametersInManifest is a helper function that iterates

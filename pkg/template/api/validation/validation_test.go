@@ -89,7 +89,7 @@ func TestValidateTemplate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		errs := ValidateTemplate(nil, nil, test.template)
+		errs := ValidateTemplate(test.template)
 		if len(errs) != 0 && test.isValidExpected {
 			t.Errorf("Unexpected non-empty error list: %#v", errs)
 		}

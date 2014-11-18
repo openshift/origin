@@ -21,7 +21,7 @@ type MultiObjectTyper struct {
 func (m MultiObjectTyper) DataVersionAndKind(data []byte) (version, kind string, err error) {
 	for _, t := range m.Typers {
 		version, kind, err = t.DataVersionAndKind(data)
-		if err != nil && len(kind) > 0 {
+		if err == nil && len(kind) > 0 {
 			return
 		}
 	}
@@ -34,7 +34,7 @@ func (m MultiObjectTyper) DataVersionAndKind(data []byte) (version, kind string,
 func (m MultiObjectTyper) ObjectVersionAndKind(obj runtime.Object) (version, kind string, err error) {
 	for _, t := range m.Typers {
 		version, kind, err = t.ObjectVersionAndKind(obj)
-		if err != nil && len(kind) > 0 {
+		if err == nil && len(kind) > 0 {
 			return
 		}
 	}
@@ -47,7 +47,7 @@ func (m MultiObjectTyper) ObjectVersionAndKind(obj runtime.Object) (version, kin
 func (m MultiRESTMapper) VersionAndKindForResource(resource string) (defaultVersion, kind string, err error) {
 	for _, t := range m.Mappers {
 		defaultVersion, kind, err = t.VersionAndKindForResource(resource)
-		if err != nil && len(kind) > 0 {
+		if err == nil && len(kind) > 0 {
 			return
 		}
 	}
@@ -60,7 +60,7 @@ func (m MultiRESTMapper) VersionAndKindForResource(resource string) (defaultVers
 func (m MultiRESTMapper) RESTMapping(version, kind string) (mapping *meta.RESTMapping, err error) {
 	for _, t := range m.Mappers {
 		mapping, err = t.RESTMapping(version, kind)
-		if err != nil && mapping != nil {
+		if err == nil && mapping != nil {
 			return
 		}
 	}

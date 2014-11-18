@@ -69,7 +69,6 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 func init() {
 
 	kubeMapper := klatest.RESTMapper
-
 	originMapper := kmeta.NewDefaultRESTMapper(
 		Versions,
 		func(version string) (*kmeta.VersionInterfaces, bool) {
