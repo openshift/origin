@@ -92,6 +92,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.memory = 1024
       v.cpus = 2
       v.customize ["modifyvm", :id, "--cpus", "2"]
+			config.vm.network "forwarded_port", guest: 8080, host: 8080
     end
 
     # Set VMware Fusion provider settings
