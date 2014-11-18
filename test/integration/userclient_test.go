@@ -14,6 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -200,9 +201,9 @@ func TestUserLookup(t *testing.T) {
 }
 
 func compareIgnoringSelfLinkAndVersion(t *testing.T, expected runtime.Object, actual runtime.Object) {
-	if actualTypeMeta, _ := runtime.FindTypeMeta(actual); actualTypeMeta != nil {
-		actualTypeMeta.SetSelfLink("")
-		actualTypeMeta.SetResourceVersion("")
+	if actualAccessor, _ := meta.Accessor(actual); actualAccessor != nil {
+		actualAccessor.SetSelfLink("")
+		actualAccessor.SetResourceVersion("")
 	}
 
 	if !reflect.DeepEqual(expected, actual) {

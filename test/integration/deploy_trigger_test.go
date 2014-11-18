@@ -14,6 +14,7 @@ import (
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
@@ -237,12 +238,17 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	openshift.Client = osClient
 
+	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
+	if err != nil {
+		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+	}
+
 	kmaster := master.New(&master.Config{
 		Client:             kubeClient,
 		EtcdHelper:         etcdHelper,
-		PodInfoGetter:      &podInfoGetter{},
 		HealthCheckMinions: false,
-		Minions:            []string{"127.0.0.1"},
+		KubeletClient:      kubeletClient,
+		APIPrefix:          "/api/v1beta1",
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
