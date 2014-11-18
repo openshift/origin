@@ -50,7 +50,7 @@ func TestUnregisteredContainer(t *testing.T) {
 	controller.HandleImageRepo()
 }
 
-func TestImageChangeForUnregisteredTag(t *testing.T) {
+func TestImageChangeForNonAutomaticTag(t *testing.T) {
 	config := imageChangeDeploymentConfig()
 	config.Triggers[0].ImageChangeParams.Automatic = false
 
@@ -67,6 +67,34 @@ func TestImageChangeForUnregisteredTag(t *testing.T) {
 		},
 		NextImageRepository: func() *imageapi.ImageRepository {
 			return tagUpdate()
+		},
+		DeploymentConfigStore: deploytest.NewFakeDeploymentConfigStore(config),
+	}
+
+	// verify no-op
+	controller.HandleImageRepo()
+}
+
+func TestImageChangeForUnregisteredTag(t *testing.T) {
+	config := imageChangeDeploymentConfig()
+
+	controller := &ImageChangeController{
+		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
+			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				t.Fatalf("unexpected deployment config update")
+				return nil, nil
+			},
+			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+				t.Fatalf("unexpected generator call")
+				return nil, nil
+			},
+		},
+		NextImageRepository: func() *imageapi.ImageRepository {
+			imageRepo := tagUpdate()
+			imageRepo.Tags = map[string]string{
+				"unknown-tag": "ref-1",
+			}
+			return imageRepo
 		},
 		DeploymentConfigStore: deploytest.NewFakeDeploymentConfigStore(config),
 	}
