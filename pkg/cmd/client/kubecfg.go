@@ -559,7 +559,7 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 		glog.Fatal("Need to pass valid configuration file (-c config.json)")
 	}
 
-	result, err := config.Apply(c.getNamespace(), c.readConfig("config", latest.Codec), clients)
+	result, err := config.Apply(c.getNamespace(), c.readConfigData(), clients)
 	if err != nil {
 		glog.Fatalf("Error applying the config: %v", err)
 	}
