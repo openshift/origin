@@ -56,7 +56,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.ID); err != nil {
+	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
@@ -70,7 +70,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	}
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 }
@@ -80,7 +80,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	openshift := NewTestOpenshift(t)
 
 	imageRepo := &imageapi.ImageRepository{
-		TypeMeta:              kapi.TypeMeta{ID: "test-image-repo"},
+		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-repo"},
 		DockerImageRepository: "registry:8080/openshift/test-image",
 		Tags: map[string]string{
 			"latest": "ref-1",
@@ -104,7 +104,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.ID); err != nil {
+	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
@@ -118,7 +118,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
@@ -134,8 +134,8 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 	newDeployment := event.Object.(*deployapi.Deployment)
 
-	if newDeployment.ID == deployment.ID {
-		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.ID, newDeployment.ID)
+	if newDeployment.Name == deployment.Name {
+		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
 	}
 }
 
@@ -165,14 +165,14 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 
 	deployment := event.Object.(*deployapi.Deployment)
 
-	if e, a := config.ID, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
 	assertEnvVarEquals("ENV_TEST", "ENV_VALUE1", deployment, t)
 
 	// submit a new config with an updated environment variable
-	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.ID); err != nil {
+	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
@@ -190,8 +190,8 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 
 	assertEnvVarEquals("ENV_TEST", "UPDATED", newDeployment, t)
 
-	if newDeployment.ID == deployment.ID {
-		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.ID, newDeployment.ID)
+	if newDeployment.Name == deployment.Name {
+		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
 	}
 }
 
@@ -266,7 +266,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	apiserver.NewAPIGroup(kmaster.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, interfaces.SelfLinker).InstallREST(osMux, osPrefix)
+	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(osMux, osPrefix)
 	apiserver.InstallSupport(osMux)
 
 	info, err := kubeClient.ServerVersion()
@@ -291,7 +291,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "image-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnImageChange,
@@ -341,7 +341,7 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 
 func manualDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "manual-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "manual-deploy-config"},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{
 				Type: deployapi.DeploymentStrategyTypeRecreate,
@@ -374,7 +374,7 @@ func manualDeploymentConfig() *deployapi.DeploymentConfig {
 
 func changeDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "change-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "change-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnConfigChange,
