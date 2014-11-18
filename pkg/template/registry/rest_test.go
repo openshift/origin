@@ -36,9 +36,8 @@ func TestStorageNotImplementedFunctions(t *testing.T) {
 	}
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
-		if !ok || status.Status != kapi.StatusFailure {
-			t.Errorf("Expected not implemented error.")
+		if result.Object != nil {
+			t.Errorf("Expected nil as the delete operation should not give any result")
 		}
 	case <-time.After(time.Millisecond * 100):
 		t.Error("Unexpected timeout from async channel")
