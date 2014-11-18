@@ -90,12 +90,12 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 			handlers.NewAuthorizeAuthenticator(
 				authRequestHandler,
 				authHandler,
-				emptyError{},
+				handlers.EmptyError{},
 			),
 			handlers.NewGrantCheck(
 				grantChecker,
 				grantHandler,
-				emptyError{},
+				handlers.EmptyError{},
 			),
 		},
 		osinserver.AccessHandlers{
@@ -177,7 +177,7 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authen
 	// does not attempt to hide the ugly
 	sessionStore := session.NewStore(c.SessionSecrets...)
 	authRequestHandler := c.getAuthenticationRequestHandler(sessionStore)
-	authHandler := c.getAuthenticationHandler(mux, sessionStore, emptyError{})
+	authHandler := c.getAuthenticationHandler(mux, sessionStore, handlers.EmptyError{})
 
 	return authRequestHandler, authHandler
 }
@@ -235,7 +235,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 		login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, successHandler}, login.DefaultLoginFormRenderer)
 		login.Install(mux, OpenShiftLoginPrefix)
 	case "empty":
-		authHandler = emptyAuth{}
+		authHandler = handlers.EmptyAuth{}
 	default:
 		glog.Fatalf("No AuthenticationHandler found that matches %v.  The oauth server cannot start!", authHandlerType)
 	}
@@ -303,7 +303,9 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 		}
 		authRequestHandler = bearertoken.New(tokenAuthenticator)
 	case "requestheader":
-		authRequestHandler = requestheader.NewAuthenticator(requestheader.NewDefaultConfig())
+		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
+		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(authRequestHandlerType /*for now*/, userRegistry)
+		authRequestHandler = requestheader.NewAuthenticator(requestheader.NewDefaultConfig(), identityMapper)
 	case "basicauth":
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = requesthandlers.NewBasicAuthAuthentication(passwordAuthenticator)
@@ -344,12 +346,6 @@ func GetTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, er
 	}
 }
 
-type emptyAuth struct{}
-
-func (emptyAuth) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
-	return false, nil
-}
-
 // Captures the original request url as a "then" param in a redirect to a login flow
 type redirectAuthHandler struct {
 	RedirectURL string
@@ -388,23 +384,4 @@ func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then st
 
 	http.Redirect(w, req, then, http.StatusFound)
 	return true, nil
-}
-
-type emptySuccess struct{}
-
-func (emptySuccess) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
-	glog.V(4).Infof("AuthenticationSucceeded: %v (state=%s)", user, state)
-	return false, nil
-}
-
-type emptyError struct{}
-
-func (emptyError) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
-	glog.V(4).Infof("AuthenticationError: %v", err)
-	return false, err
-}
-
-func (emptyError) GrantError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
-	glog.V(4).Infof("GrantError: %v", err)
-	return false, err
 }
