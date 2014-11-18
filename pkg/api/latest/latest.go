@@ -5,10 +5,12 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	_ "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 )
 
@@ -32,7 +34,7 @@ var Versions = []string{"v1beta1"}
 var Codec = v1beta1.Codec
 
 // accessor is the shared static metadata accessor for the API.
-var accessor = meta.NewAccessor()
+var accessor = kmeta.NewAccessor()
 
 // ResourceVersioner describes a default versioner that can handle all types
 // of versioning.
@@ -47,14 +49,14 @@ var SelfLinker runtime.SelfLinker = accessor
 
 // RESTMapper provides the default mapping between REST paths and the objects declared in api.Scheme and all known
 // Kubernetes versions.
-var RESTMapper meta.RESTMapper
+var RESTMapper kmeta.RESTMapper
 
 // InterfacesFor returns the default Codec and ResourceVersioner for a given version
 // string, or an error if the version is not known.
-func InterfacesFor(version string) (*meta.VersionInterfaces, error) {
+func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 	switch version {
 	case "v1beta1":
-		return &meta.VersionInterfaces{
+		return &kmeta.VersionInterfaces{
 			Codec:            v1beta1.Codec,
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
@@ -65,9 +67,12 @@ func InterfacesFor(version string) (*meta.VersionInterfaces, error) {
 }
 
 func init() {
-	mapper := meta.NewDefaultRESTMapper(
+
+	kubeMapper := klatest.RESTMapper
+
+	originMapper := kmeta.NewDefaultRESTMapper(
 		Versions,
-		func(version string) (*meta.VersionInterfaces, bool) {
+		func(version string) (*kmeta.VersionInterfaces, bool) {
 			interfaces, err := InterfacesFor(version)
 			if err != nil {
 				return nil, false
@@ -75,7 +80,12 @@ func init() {
 			return interfaces, true
 		},
 	)
-	mapper.Add(api.Scheme, true, Versions...)
-	// TODO: when v1beta3 is added it will not use mixed case.
-	RESTMapper = mapper
+	originMapper.Add(api.Scheme, true, Versions...)
+
+	// For Origin we use MultiRESTMapper that handles both Origin and Kubernetes
+	// objects
+	RESTMapper = meta.MultiRESTMapper{[]kmeta.RESTMapper{
+		originMapper,
+		kubeMapper,
+	}}
 }
