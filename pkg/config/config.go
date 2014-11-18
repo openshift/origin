@@ -47,6 +47,7 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 
 		if item == nil || (len(item) == 4 && string(item) == "null") {
 			itemResult.Error = fmt.Errorf("Config.items[%v] is null", i)
+			result = append(result, itemResult)
 			continue
 		}
 
@@ -55,26 +56,31 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (res
 		err = json.Unmarshal(item, &itemBase)
 		if err != nil {
 			itemResult.Error = fmt.Errorf("Unable to parse Config item: %v", err)
+			result = append(result, itemResult)
 			continue
 		}
 
 		if itemBase.Kind == "" {
 			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'kind'", i)
+			result = append(result, itemResult)
 			continue
 		}
 
 		if itemBase.Name == "" {
-			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'id'", i)
+			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'name'", i)
+			result = append(result, itemResult)
 			continue
 		}
 
 		client, path, err := getClientAndPath(itemBase.Kind, storage)
 		if err != nil {
 			itemResult.Error = fmt.Errorf("Config.items[%v]: %v", i, err)
+			result = append(result, itemResult)
 			continue
 		}
 		if client == nil {
 			itemResult.Error = fmt.Errorf("Config.items[%v]: Unknown client for 'kind=%v'", i, itemBase.Kind)
+			result = append(result, itemResult)
 			continue
 		}
 

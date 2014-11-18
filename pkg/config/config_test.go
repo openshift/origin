@@ -33,14 +33,15 @@ func TestApplyInvalidConfig(t *testing.T) {
 		`{ "items": [ { "kind": "InvalidClientResource", "apiVersion": "v1beta1" } ] }`,
 	}
 	for i, invalidConfig := range invalidConfigs {
-		result, _ := Apply(kapi.NamespaceDefault, []byte(invalidConfig), clients)
+		result, err := Apply(kapi.NamespaceDefault, []byte(invalidConfig), clients)
 
-		if result != nil {
-			t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])
+		if i <= 3 && err == nil {
+			t.Errorf("Expected error while applying invalid Config '%v', result: %v", invalidConfigs[i], result)
 		}
+
 		for _, itemResult := range result {
 			if itemResult.Error == nil {
-				t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig[i])
+				t.Errorf("Expected error while applying invalid Config '%v'", invalidConfigs[i])
 			}
 			if _, ok := itemResult.Error.(kclient.APIStatus); ok {
 				t.Errorf("Unexpected conversion of %T into kclient.APIStatus", itemResult.Error)
@@ -50,7 +51,8 @@ func TestApplyInvalidConfig(t *testing.T) {
 }
 
 type FakeResource struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
+	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 func (*FakeResource) IsAnAPIObject() {}
@@ -75,25 +77,20 @@ func TestApplySendsData(t *testing.T) {
 	clients := clientapi.ClientMappings{
 		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
-	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "name": "FakeID" } ] }`
+	config := `{ "apiVersion": "v1beta1", "name": "test-config", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "metadata": { "name": "FakeID" } } ] }`
 	result, err := Apply(kapi.NamespaceDefault, []byte(config), clients)
 
 	if err != nil || result == nil {
-		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, err)
+		t.Errorf("Unexpected error while applying valid Config '%v', result: %v, error: %v", config, result, err)
 	}
+
 	for _, itemResult := range result {
-		if itemResult.Error == nil {
-			continue
-		}
-
-		if _, ok := itemResult.Error.(kclient.APIStatus); ok {
+		if itemResult.Error != nil {
 			t.Errorf("Unexpected error while applying valid Config '%v': %v", config, itemResult.Error)
-		} else {
-			t.Errorf("Cannot convert %T into kclient.APIStatus", itemResult.Error)
 		}
 	}
 
-	<-received
+	//<-received
 }
 
 func TestGetClientAndPath(t *testing.T) {
