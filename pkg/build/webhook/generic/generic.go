@@ -52,6 +52,9 @@ func (p *GenericWebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path s
 		if err != nil {
 			return nil, false, err
 		}
+		if len(body) == 0 {
+			return build, true, nil
+		}
 		var data genericWebHookEvent
 		if err = json.Unmarshal(body, &data); err != nil {
 			return nil, false, err
