@@ -6,22 +6,18 @@ import (
 )
 
 // MultiRESTMapper is a wrapper for multiple RESTMappers.
-type MultiRESTMapper struct {
-	Mappers []meta.RESTMapper
-}
+type MultiRESTMapper []meta.RESTMapper
 
 // MultiObjectTyper is a wrapper for multiple ObjectTypers.
-type MultiObjectTyper struct {
-	Typers []runtime.ObjectTyper
-}
+type MultiObjectTyper []runtime.ObjectTyper
 
 // DataVersionAndKind provides the Version and Kind from a raw JSON/YAML string
 // based on the current Schema. This implementation searches multiple schemas
 // and return the first match.
 func (m MultiObjectTyper) DataVersionAndKind(data []byte) (version, kind string, err error) {
-	for _, t := range m.Typers {
+	for _, t := range m {
 		version, kind, err = t.DataVersionAndKind(data)
-		if err == nil && len(kind) > 0 {
+		if err == nil {
 			return
 		}
 	}
@@ -32,9 +28,9 @@ func (m MultiObjectTyper) DataVersionAndKind(data []byte) (version, kind string,
 // based on the current Schema. This implementation searches multiple schemas
 // and return the first match.
 func (m MultiObjectTyper) ObjectVersionAndKind(obj runtime.Object) (version, kind string, err error) {
-	for _, t := range m.Typers {
+	for _, t := range m {
 		version, kind, err = t.ObjectVersionAndKind(obj)
-		if err == nil && len(kind) > 0 {
+		if err == nil {
 			return
 		}
 	}
@@ -45,9 +41,9 @@ func (m MultiObjectTyper) ObjectVersionAndKind(obj runtime.Object) (version, kin
 // REST resources. This implementation supports multiple REST schemas and return
 // the first match.
 func (m MultiRESTMapper) VersionAndKindForResource(resource string) (defaultVersion, kind string, err error) {
-	for _, t := range m.Mappers {
+	for _, t := range m {
 		defaultVersion, kind, err = t.VersionAndKindForResource(resource)
-		if err == nil && len(kind) > 0 {
+		if err == nil {
 			return
 		}
 	}
@@ -58,9 +54,9 @@ func (m MultiRESTMapper) VersionAndKindForResource(resource string) (defaultVers
 // kind and version. This implementation supports multiple REST schemas and
 // return the first match.
 func (m MultiRESTMapper) RESTMapping(version, kind string) (mapping *meta.RESTMapping, err error) {
-	for _, t := range m.Mappers {
+	for _, t := range m {
 		mapping, err = t.RESTMapping(version, kind)
-		if err == nil && mapping != nil {
+		if err == nil {
 			return
 		}
 	}

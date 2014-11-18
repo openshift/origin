@@ -83,8 +83,8 @@ func init() {
 
 	// For Origin we use MultiRESTMapper that handles both Origin and Kubernetes
 	// objects
-	RESTMapper = meta.MultiRESTMapper{[]kmeta.RESTMapper{
+	RESTMapper = meta.MultiRESTMapper{
 		originMapper,
 		kubeMapper,
-	}}
+	}
 }
