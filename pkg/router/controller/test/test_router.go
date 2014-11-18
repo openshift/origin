@@ -32,12 +32,14 @@ func NewRouter(registeredFrontends map[string]router.Frontend) *Router {
 	}
 }
 
-func (r *Router) ReadRoutes() {
+func (r *Router) ReadRoutes() (*router.Routes, error) {
 	r.RoutesRead = true
+	return nil, nil
 }
 
-func (r *Router) WriteRoutes() {
+func (r *Router) WriteRoutes() (*router.Routes, error) {
 	r.RoutesWritten = true
+	return nil, nil
 }
 
 func (r *Router) FindFrontend(name string) (router.Frontend, bool) {
@@ -49,24 +51,29 @@ func (r *Router) DeleteBackends(name string) {
 	r.DeletedBackends = append(r.DeletedBackends, name)
 }
 
-func (r *Router) CreateFrontend(name, url string) {
+func (r *Router) CreateFrontend(name, url string) (*router.Routes, error) {
 	r.CreatedFrontends = append(r.CreatedFrontends, name)
+	return nil, nil
 }
 
-func (r *Router) DeleteFrontend(name string) {
+func (r *Router) DeleteFrontend(name string) (*router.Routes, error) {
 	r.DeletedFrontends = append(r.DeletedFrontends, name)
+	return nil, nil
 }
 
-func (r *Router) AddAlias(alias, frontendName string) {
+func (r *Router) AddAlias(alias, frontendName string) (*router.Routes, error) {
 	r.AddedAliases[alias] = frontendName
+	return nil, nil
 }
 
-func (r *Router) RemoveAlias(alias, frontendName string) {
+func (r *Router) RemoveAlias(alias, frontendName string) (*router.Routes, error) {
 	r.RemovedAliases[alias] = frontendName
+	return nil, nil
 }
 
-func (r *Router) AddRoute(frontendName, fePath, bePath string, protocols []string, endpoints []router.Endpoint) {
+func (r *Router) AddRoute(frontendName, fePath, bePath string, protocols []string, endpoints []router.Endpoint) (*router.Routes, error) {
 	r.AddedRoutes[frontendName] = endpoints
+	return nil, nil
 }
 
 func (r *Router) WriteConfig() {
