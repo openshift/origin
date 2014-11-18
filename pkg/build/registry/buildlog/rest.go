@@ -51,7 +51,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		Host: fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
 		Path: fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
 	}
-	if build.Status == api.BuildStatusRunning {
+	if pod.CurrentState.Status == kapi.PodRunning && (build.Status == api.BuildStatusPending || build.Status == api.BuildStatusRunning) {
 		params := url.Values{"follow": []string{"1"}}
 		location.RawQuery = params.Encode()
 	}
