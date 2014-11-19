@@ -1,0 +1,24 @@
+package handlers
+
+import (
+	"testing"
+
+	"github.com/openshift/origin/pkg/oauth/registry/test"
+	"github.com/openshift/origin/pkg/oauth/server/osinserver"
+)
+
+func TestGrant(t *testing.T) {
+	_ = osinserver.AuthorizeHandler(&GrantCheck{})
+}
+
+func TestEmptyGrant(t *testing.T) {
+	_ = NewEmptyGrant()
+}
+
+func TestAutoGrant(t *testing.T) {
+	_ = NewAutoGrant(&test.ClientAuthorizationRegistry{})
+}
+
+func TestRedirectGrant(t *testing.T) {
+	_ = NewRedirectGrant("/")
+}

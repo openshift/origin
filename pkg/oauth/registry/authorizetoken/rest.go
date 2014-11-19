@@ -1,6 +1,7 @@
 package authorizetoken
 
 import (
+	"errors"
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -70,7 +71,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // Update is not supported for AuthorizeTokens, as they are immutable.
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("AuthorizeTokens may not be changed.")
+	return nil, errors.New("AuthorizeTokens may not be changed.")
 }
 
 // Delete asynchronously deletes an AuthorizeToken specified by its id.

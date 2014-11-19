@@ -1,6 +1,7 @@
 package accesstoken
 
 import (
+	"errors"
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -69,7 +70,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // Update is not supported for AccessTokens, as they are immutable.
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("AccessTokens may not be changed.")
+	return nil, errors.New("AccessTokens may not be changed.")
 }
 
 // Delete asynchronously deletes an AccessToken specified by its id.

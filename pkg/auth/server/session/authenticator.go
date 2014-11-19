@@ -43,14 +43,14 @@ func (a *SessionAuthenticator) AuthenticateRequest(req *http.Request) (api.UserI
 	}, true, nil
 }
 
-func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) error {
+func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
-		return err
+		return false, err
 	}
 	values := session.Values()
 	values[UserNameKey] = user.GetName()
-	return a.store.Save(w, req)
+	return false, a.store.Save(w, req)
 }
 
 func (a *SessionAuthenticator) InvalidateAuthentication(context api.UserInfo, w http.ResponseWriter, req *http.Request) error {

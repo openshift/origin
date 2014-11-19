@@ -3,6 +3,7 @@ package google
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -62,7 +63,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	id, _ := userdata["id"].(string)
 	email, _ := userdata["email"].(string)
 	if id == "" || email == "" {
-		return nil, false, fmt.Errorf("Could not retrieve Google id")
+		return nil, false, errors.New("Could not retrieve Google id")
 	}
 
 	identity := &authapi.DefaultUserIdentityInfo{

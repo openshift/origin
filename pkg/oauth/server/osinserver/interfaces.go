@@ -12,41 +12,55 @@ type Mux interface {
 	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
 }
 
+// AuthorizeHandler populates an AuthorizeRequest or handles the request itself
 type AuthorizeHandler interface {
-	HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (handled bool)
+	// HandleAuthorize populates an AuthorizeRequest (typically the Authorized and UserData fields)
+	// and returns false, or writes the response itself and returns true.
+	HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (handled bool, err error)
 }
 
-type AuthorizeHandlerFunc func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) bool
+type AuthorizeHandlerFunc func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error)
 
-func (f AuthorizeHandlerFunc) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) bool {
-	return f(ar, w, r)
+func (f AuthorizeHandlerFunc) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+	return f(ar, w)
 }
 
 type AuthorizeHandlers []AuthorizeHandler
 
-func (all AuthorizeHandlers) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) bool {
+func (all AuthorizeHandlers) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
 	for _, h := range all {
-		if h.HandleAuthorize(ar, w, r) {
-			return true
+		if handled, err := h.HandleAuthorize(ar, w); handled || err != nil {
+			return handled, err
 		}
 	}
-	return false
+	return false, nil
 }
 
+// AccessHandler populates an AccessRequest
 type AccessHandler interface {
-	HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter, r *http.Request)
+	// HandleAccess populates an AccessRequest (typically the Authorized and UserData fields)
+	HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error
 }
 
-type AccessHandlerFunc func(ar *osin.AccessRequest, w http.ResponseWriter, r *http.Request)
+type AccessHandlerFunc func(ar *osin.AccessRequest, w http.ResponseWriter) error
 
-func (f AccessHandlerFunc) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter, r *http.Request) {
-	f(ar, w, r)
+func (f AccessHandlerFunc) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error {
+	return f(ar, w)
 }
 
 type AccessHandlers []AccessHandler
 
-func (all AccessHandlers) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter, r *http.Request) {
+func (all AccessHandlers) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error {
 	for _, h := range all {
-		h.HandleAccess(ar, w, r)
+		if err := h.HandleAccess(ar, w); err != nil {
+			return err
+		}
 	}
+	return nil
+}
+
+// ErrorHandler writes an error response
+type ErrorHandler interface {
+	// HandleError writes an error response
+	HandleError(err error, w http.ResponseWriter, req *http.Request)
 }
