@@ -86,7 +86,7 @@ func TestImplicit(t *testing.T) {
 		"expect GET error": {
 			CSRF:           &csrf.FakeCSRF{"test", nil},
 			Implicit:       &testImplicit{Err: errors.New("failed")},
-			ExpectContains: []string{`"message">An unknown error has occured. Contact your administrator`},
+			ExpectContains: []string{`"message">An unknown error has occurred. Contact your administrator`},
 		},
 	}
 
