@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/config"
@@ -28,22 +29,32 @@ func NewTemplateProcessor(generators map[string]Generator) *TemplateProcessor {
 	return &TemplateProcessor{Generators: generators}
 }
 
+// reportError reports the single item validation error and properly set the
+// prefix and index to match the Config item JSON index
+// TODO: Move this into some 'utils' or 'helpers' package
+func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
+	i := errs.ValidationErrorList{}
+	*allErrs = append(*allErrs, append(i, err).PrefixIndex(index).Prefix("item")...)
+}
+
 // Process transforms Template object into Config object. It generates
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurances with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, error) {
+func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, errs.ValidationErrorList) {
+	templateErrors := errs.ValidationErrorList{}
+
 	if err := p.GenerateParameterValues(template); err != nil {
-		return nil, err
+		return nil, append(templateErrors.Prefix("Template"), errs.NewFieldInvalid("parameters", err))
 	}
 
 	items := []runtime.RawExtension{}
-	for _, in := range template.Items {
+	for i, in := range template.Items {
 
-		item, mapping, err := config.DecodeConfigItem(in)
+		item, mapping, err := config.DecodeWithMapper(in)
 		if err != nil {
-			// TODO: Handle errors properly
-			return nil, err
+			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
+			continue
 		}
 
 		// TODO: Report failed parameter substitution for unknown objects
@@ -51,12 +62,13 @@ func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, 
 		//			 just without substitution.
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
-			fmt.Printf("WARNING: Parameter processing failed: %v\n", err)
+			reportError(&templateErrors, i, errs.NewFieldNotSupported("parameters", err))
 		}
 
 		jsonItem, err := mapping.Codec.Encode(newItem)
 		if err != nil {
-			return nil, err
+			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
+			continue
 		}
 		items = append(items, runtime.RawExtension{RawJSON: jsonItem})
 	}
@@ -67,7 +79,7 @@ func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, 
 	}
 	config.Kind = "Config"
 	config.ObjectMeta.CreationTimestamp = util.Now()
-	return config, nil
+	return config, templateErrors.Prefix("Template")
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides

@@ -10,7 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/config"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
@@ -52,11 +52,16 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		}
 		processor := template.NewTemplateProcessor(generators)
 		cfg, err := processor.Process(tpl)
-		if err != nil {
-			return nil, err
+		if len(err) > 0 {
+			// TODO: We don't report the processing errors to users as there is no
+			// good way how to do it for just some items.
+			glog.V(1).Infof(err.ToError().Error())
 		}
-		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); err != nil {
-			return nil, err
+
+		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); len(err) > 0 {
+			// TODO: We don't report the processing errors to users as there is no
+			// good way how to do it for just some items.
+			glog.V(1).Infof(err.ToError().Error())
 		}
 		return cfg, nil
 	}), nil

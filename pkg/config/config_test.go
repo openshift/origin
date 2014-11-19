@@ -40,11 +40,8 @@ func TestApplyInvalidConfig(t *testing.T) {
 		}
 
 		for _, itemResult := range result {
-			if itemResult.Error == nil {
+			if len(itemResult.Errors) > 0 {
 				t.Errorf("Expected error while applying invalid Config '%v'", invalidConfigs[i])
-			}
-			if _, ok := itemResult.Error.(kclient.APIStatus); ok {
-				t.Errorf("Unexpected conversion of %T into kclient.APIStatus", itemResult.Error)
 			}
 		}
 	}
@@ -72,8 +69,8 @@ func TestApplySendsData(t *testing.T) {
 	}
 
 	for _, itemResult := range result {
-		if itemResult.Error != nil {
-			t.Errorf("Unexpected error while applying valid Config '%v': %v", config, itemResult.Error)
+		if len(itemResult.Errors) > 0 {
+			t.Errorf("Unexpected error while applying valid Config '%v': %+v", config, itemResult.Errors)
 		}
 	}
 
