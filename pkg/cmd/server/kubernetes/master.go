@@ -5,10 +5,13 @@ import (
 	"net"
 	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/resources"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -67,7 +70,7 @@ func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
 		// TODO: https://github.com/GoogleCloudPlatform/kubernetes/commit/019b7fc74c999c1ae8d54c6687735ad54e9b2b68
 		// Minions:            c.NodeHosts,
 		// PodInfoGetter: podInfoGetter,
-		PortalNet:     c.PortalNet,
+		// PortalNet:     c.PortalNet,
 		KubeletClient: kubeletClient,
 		APIPrefix:     "/api", // TODO check, this should not be needed but makes a "panic: http: invalid pattern"
 	}
@@ -104,4 +107,18 @@ func (c *MasterConfig) RunScheduler() {
 	s := scheduler.New(config)
 	s.Run()
 	glog.Infof("Started Kubernetes Scheduler")
+}
+
+func (c *MasterConfig) RunMinionController() {
+	nodeResources := &kapi.NodeResources{
+		Capacity: kapi.ResourceList{
+			resources.CPU:    kubeutil.NewIntOrStringFromInt(int(1000)),
+			resources.Memory: kubeutil.NewIntOrStringFromInt(int(3 * 1024 * 1024 * 1024)),
+		},
+	}
+
+	minionController := minionControllerPkg.NewMinionController(nil, "", c.NodeHosts, nodeResources, c.KubeClient)
+	minionController.Run(10 * time.Second)
+
+	glog.Infof("Started Kubernetes Minion Controller")
 }

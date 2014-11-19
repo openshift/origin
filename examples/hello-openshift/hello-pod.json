@@ -1,9 +1,9 @@
 {
-  "metadata": {
-    "name": "hello-openshift",
-    "labels": {
-      "name": "hello-openshift"
-    }
+  "id": "hello-openshift",
+  "kind": "Pod",
+  "apiVersion":"v1beta2",
+  "labels": {
+    "name": "hello-openshift"
   },
   "desiredState": {
     "manifest": {

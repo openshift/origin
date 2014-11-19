@@ -252,6 +252,7 @@ func start(cfg *config, args []string) error {
 			kmaster.RunScheduler()
 			kmaster.RunReplicationController()
 			kmaster.RunEndpointController()
+			kmaster.RunMinionController()
 
 		} else {
 			osmaster.RunAPI(auth)
