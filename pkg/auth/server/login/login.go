@@ -93,7 +93,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 	case "access denied":
 		form.Error = "Invalid login or password. Please try again."
 	default:
-		form.Error = "An unknown error has occured. Please try again."
+		form.Error = "An unknown error has occurred. Please try again."
 	}
 
 	csrf, err := l.csrf.Generate(w, req)

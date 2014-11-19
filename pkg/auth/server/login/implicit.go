@@ -77,7 +77,7 @@ func (c *Confirm) handleConfirmForm(w http.ResponseWriter, req *http.Request) {
 	case "":
 		break
 	default:
-		form.Error = "An unknown error has occured. Please try again."
+		form.Error = "An unknown error has occurred. Please try again."
 	}
 
 	csrf, err := c.csrf.Generate(w, req)
@@ -89,7 +89,7 @@ func (c *Confirm) handleConfirmForm(w http.ResponseWriter, req *http.Request) {
 	user, ok, err := c.auth.AuthenticateRequest(req)
 	if err != nil || !ok {
 		glog.Errorf("Unable to authenticate request: %v", err)
-		form.Error = "An unknown error has occured. Contact your administrator."
+		form.Error = "An unknown error has occurred. Contact your administrator."
 		c.render.Render(form, w, req)
 		return
 	}
