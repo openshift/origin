@@ -1,8 +1,9 @@
 {
-  "id": "ruby-helloworld-sample",
+  "metadata":{
+    "name": "ruby-helloworld-sample",
+  },
   "kind": "Template",
   "apiVersion": "v1beta1",
-  "name": "ruby-hello-world-template",
   "description": "This example shows how to create a simple ruby application in openshift origin v3",
   "parameters": [
     {
@@ -41,7 +42,9 @@
       }
     },
     {
-      "id": "origin-ruby-sample",
+      "metadata":{
+        "name": "origin-ruby-sample",
+      },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
       "dockerImageRepository": "172.121.17.1:5001/openshift/origin-ruby-sample",
@@ -50,7 +53,9 @@
       }
     },
     {
-      "id": "ruby-sample-build",
+      "metadata":{
+        "name": "ruby-sample-build",
+      },
       "kind": "BuildConfig",
       "apiVersion": "v1beta1",
       "triggers": [
@@ -84,7 +89,9 @@
       }
     },
     {
-      "id": "frontend",
+      "metadata":{
+        "name": "frontend",
+      },
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta1",
       "triggers": [
@@ -162,7 +169,9 @@
       }
     },
     {
-      "id": "database",
+      "metadata":{
+        "name": "database",
+      },
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta1",
       "triggers": [
