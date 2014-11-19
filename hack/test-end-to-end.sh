@@ -149,8 +149,8 @@ echo "[INFO] Applying application config"
 $openshift kube apply --ns=${NAMESPACE} -c $CONFIG_FILE
 
 # Trigger build
-echo "[INFO] Simulating github hook to trigger new build using curl"
-curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @${FIXTURE_DIR}/github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=${NAMESPACE}
+echo "[INFO]  Invoking generic web hook to trigger new build using curl"
+curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=${NAMESPACE}
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"

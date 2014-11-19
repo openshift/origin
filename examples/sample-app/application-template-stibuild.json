@@ -64,6 +64,12 @@
           "github": {
             "secret": "secret101"
           }
+        },
+        {
+          "type": "generic",
+          "generic": {
+            "secret": "secret101"
+          }
         }
       ],
       "parameters": {
