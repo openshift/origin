@@ -14,7 +14,6 @@
                         "hostPort": 53,
                         "protocol": "UDP"
                     }],
-                    "command": ["10.245.2.2 10.245.2.3"],
                     "imagePullPolicy": "PullIfNotPresent"
                 }
             ],

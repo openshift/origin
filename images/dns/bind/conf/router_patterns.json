@@ -1,0 +1,35 @@
+{
+    "shards": [
+
+        {
+            "name": "shard-1",
+            "pattern": "*.shard1",
+            "routerlist": [
+                {
+                    "name": "router-1",
+                    "ip": "10.245.2.2"
+                },
+                {
+                    "name": "router-2",
+                    "ip": "10.245.2.3"
+                }
+            ]
+        },
+        {
+            "name": "shard-2",
+            "pattern": "*.shard2",
+            "routerlist": [
+                {
+                    "name": "router-2",
+                    "ip": "10.245.2.3"
+                },
+                {
+                    "name": "router-1",
+                    "ip": "10.245.2.2"
+                }
+            ]
+        }
+
+    ]
+}
+

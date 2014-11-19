@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
+	"github.com/openshift/origin/pkg/cmd/infra/dns"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -69,6 +70,7 @@ func main() {
 		deployer.NewCommandDeployer("deploy"),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
+		dns.NewCommandDNS("dns"),
 	}
 	for _, c := range infraCommands {
 		if fmt.Sprintf("openshift-%s", c.Name()) == name {
