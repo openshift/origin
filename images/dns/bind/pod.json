@@ -1,0 +1,25 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1beta1",
+    "id": "openshift-dns",
+    "desiredState": {
+        "manifest": {
+            "version": "v1beta2",
+            "containers": [
+                {
+                    "name": "origin-bind-dns",
+                    "image": "pweil/origin-bind-dns",
+                    "ports": [{
+                        "containerPort": 53,
+                        "hostPort": 53,
+                        "protocol": "UDP"
+                    }],
+                    "imagePullPolicy": "PullIfNotPresent"
+                }
+            ],
+            "restartPolicy": {
+                "always": {}
+            }
+        }
+    }
+}
