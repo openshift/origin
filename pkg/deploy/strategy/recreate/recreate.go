@@ -97,21 +97,21 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *deployapi.Deployment) er
 	// TODO: This isn't transactional, and we don't actually wait for the replica count to
 	// become zero before deleting them.
 	allProcessed := true
-	for _, rc := range controllers.Items {
-		glog.Infof("Stopping replication controller for previous deploymentConfig %s: %v", configID, rc.Name)
+	for _, oldController := range controllers.Items {
+		glog.Infof("Stopping replication controller for previous deploymentConfig %s: %v", configID, oldController.Name)
 
-		controller.DesiredState.Replicas = 0
-		glog.Infof("Settings Replicas=0 for replicationController %s for previous deploymentConfig %s", rc.Name, configID)
-		if _, err := s.ReplicationController.updateReplicationController(namespace, controller); err != nil {
-			glog.Errorf("Unable to stop replication controller %s for previous deploymentConfig %s: %#v\n", rc.Name, configID, err)
+		oldController.DesiredState.Replicas = 0
+		glog.Infof("Settings Replicas=0 for replicationController %s for previous deploymentConfig %s", oldController.Name, configID)
+		if _, err := s.ReplicationController.updateReplicationController(namespace, &oldController); err != nil {
+			glog.Errorf("Unable to stop replication controller %s for previous deploymentConfig %s: %#v\n", oldController.Name, configID, err)
 			allProcessed = false
 			continue
 		}
 
-		glog.Infof("Deleting replication controller %s for previous deploymentConfig %s", rc.Name, configID)
-		err := s.ReplicationController.deleteReplicationController(namespace, rc.Name)
+		glog.Infof("Deleting replication controller %s for previous deploymentConfig %s", oldController.Name, configID)
+		err := s.ReplicationController.deleteReplicationController(namespace, oldController.Name)
 		if err != nil {
-			glog.Errorf("Unable to remove replication controller %s for previous deploymentConfig %s:%#v\n", rc.Name, configID, err)
+			glog.Errorf("Unable to remove replication controller %s for previous deploymentConfig %s:%#v\n", oldController.Name, configID, err)
 			allProcessed = false
 			continue
 		}

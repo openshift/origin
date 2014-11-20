@@ -194,7 +194,7 @@ func okReplicationController() kapi.ReplicationController {
 			},
 		},
 		DesiredState: kapi.ReplicationControllerState{
-			Replicas: 0,
+			Replicas: 1,
 			PodTemplate: kapi.PodTemplate{
 				Labels: map[string]string{
 					deployapi.DeploymentConfigLabel: "deploymentConfig1",
