@@ -27,9 +27,6 @@ func (c *Client) GetUser(name string) (result *api.User, err error) {
 // when the identity is new - future APIs may allow clients to bind additional identities to an account.
 func (c *Client) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMapping) (result *api.UserIdentityMapping, created bool, err error) {
 	result = &api.UserIdentityMapping{}
-	err = c.Put().Path("userIdentityMappings").Path("-").Body(mapping).Do().Into(result)
-	if err == nil {
-		created = true
-	}
+	err = c.Put().Path("userIdentityMappings").Path("-").Body(mapping).Do().WasCreated(&created).Into(result)
 	return
 }

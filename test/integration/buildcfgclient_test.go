@@ -39,7 +39,7 @@ func TestCreateBuildConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if expected.ID == "" {
+	if expected.Name == "" {
 		t.Errorf("Unexpected empty buildConfig ID %v", expected)
 	}
 
@@ -62,7 +62,7 @@ func TestUpdateBuildConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	actual, err = openshift.Client.GetBuildConfig(ctx, actual.ID)
+	actual, err = openshift.Client.GetBuildConfig(ctx, actual.Name)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -81,16 +81,18 @@ func TestDeleteBuildConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if err := openshift.Client.DeleteBuildConfig(ctx, actual.ID); err != nil {
+	if err := openshift.Client.DeleteBuildConfig(ctx, actual.Name); err != nil {
 		t.Fatalf("Unxpected error: %v", err)
 	}
 }
 
 func mockBuildConfig() *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		Labels: map[string]string{
-			"label1": "value1",
-			"label2": "value2",
+		ObjectMeta: kapi.ObjectMeta{
+			Labels: map[string]string{
+				"label1": "value1",
+				"label2": "value2",
+			},
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
@@ -135,9 +137,11 @@ func TestBuildConfigClient(t *testing.T) {
 
 	// get a validation error
 	buildConfig := &buildapi.BuildConfig{
-		Labels: map[string]string{
-			"label1": "value1",
-			"label2": "value2",
+		ObjectMeta: kapi.ObjectMeta{
+			Labels: map[string]string{
+				"label1": "value1",
+				"label2": "value2",
+			},
 		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
@@ -163,7 +167,7 @@ func TestBuildConfigClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got.ID == "" {
+	if got.Name == "" {
 		t.Errorf("unexpected empty buildConfig ID %v", got)
 	}
 
@@ -176,12 +180,12 @@ func TestBuildConfigClient(t *testing.T) {
 		t.Errorf("expected one buildConfig, got %#v", buildConfigs)
 	}
 	actual := buildConfigs.Items[0]
-	if actual.ID != got.ID {
+	if actual.Name != got.Name {
 		t.Errorf("expected buildConfig %#v, got %#v", got, actual)
 	}
 
 	// delete a buildConfig
-	err = openshift.Client.DeleteBuildConfig(ctx, got.ID)
+	err = openshift.Client.DeleteBuildConfig(ctx, got.Name)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}

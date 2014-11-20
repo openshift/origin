@@ -5,10 +5,13 @@ import (
 	"net"
 	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/resources"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -20,14 +23,17 @@ import (
 )
 
 const (
+	KubeAPIPrefix        = "/api"
 	KubeAPIPrefixV1Beta1 = "/api/v1beta1"
 	KubeAPIPrefixV1Beta2 = "/api/v1beta2"
 )
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
-	NodeHosts []string
-	PortalNet *net.IPNet
+	MasterHost string
+	MasterPort int
+	NodeHosts  []string
+	PortalNet  *net.IPNet
 
 	EtcdHelper tools.EtcdHelper
 	KubeClient *kclient.Client
@@ -45,24 +51,34 @@ func (c *MasterConfig) EnsurePortalFlags() {
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
 func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
-	//podInfoGetter := &kclient.HTTPPodInfoGetter{
-	//	Client: http.DefaultClient,
-	//	Port:   uint(NodePort),
-	//}
+	kubeletClient, err := kclient.NewKubeletClient(
+		&kclient.KubeletConfig{
+			Port: 10250,
+		},
+	)
+	if err != nil {
+		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+	}
 
 	masterConfig := &master.Config{
+		PublicAddress: c.MasterHost,
+		ReadWritePort: c.MasterPort,
+		ReadOnlyPort:  c.MasterPort,
+
+		Authorizer: apiserver.NewAlwaysAllowAuthorizer(),
+
 		Client:             c.KubeClient,
 		EtcdHelper:         c.EtcdHelper,
 		HealthCheckMinions: true,
-		// TODO: https://github.com/GoogleCloudPlatform/kubernetes/commit/019b7fc74c999c1ae8d54c6687735ad54e9b2b68
-		// Minions:            c.NodeHosts,
-		// PodInfoGetter: podInfoGetter,
+
 		PortalNet: c.PortalNet,
+
+		KubeletClient: kubeletClient,
+		APIPrefix:     KubeAPIPrefix,
 	}
 	m := master.New(masterConfig)
 
-	apiserver.NewAPIGroup(m.API_v1beta1()).InstallREST(mux, KubeAPIPrefixV1Beta1)
-	apiserver.NewAPIGroup(m.API_v1beta2()).InstallREST(mux, KubeAPIPrefixV1Beta2)
+	mux.Handle("/", m.Handler)
 
 	return []string{
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),
@@ -82,7 +98,7 @@ func (c *MasterConfig) RunEndpointController() {
 	endpoints := service.NewEndpointController(c.KubeClient)
 	go kubeutil.Forever(func() { endpoints.SyncServiceEndpoints() }, time.Second*10)
 
-	glog.Infof("Started Kubernetes Replication Manager")
+	glog.Infof("Started Kubernetes Endpoint Controller")
 }
 
 // RunScheduler starts the Kubernetes scheduler
@@ -92,4 +108,18 @@ func (c *MasterConfig) RunScheduler() {
 	s := scheduler.New(config)
 	s.Run()
 	glog.Infof("Started Kubernetes Scheduler")
+}
+
+func (c *MasterConfig) RunMinionController() {
+	nodeResources := &kapi.NodeResources{
+		Capacity: kapi.ResourceList{
+			resources.CPU:    kubeutil.NewIntOrStringFromInt(int(1000)),
+			resources.Memory: kubeutil.NewIntOrStringFromInt(int(3 * 1024 * 1024 * 1024)),
+		},
+	}
+
+	minionController := minionControllerPkg.NewMinionController(nil, "", c.NodeHosts, nodeResources, c.KubeClient)
+	minionController.Run(10 * time.Second)
+
+	glog.Infof("Started Kubernetes Minion Controller")
 }

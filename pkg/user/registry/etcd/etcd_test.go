@@ -31,26 +31,24 @@ func makeTestUserIdentityMapping(providerId, identityName string) string {
 func TestEtcdGetUser(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	expectedResultingMapping := &userapi.UserIdentityMapping{
-		TypeMeta: kapi.TypeMeta{ID: "tango"},
 		Identity: userapi.Identity{
-			Name:     "uniform",
-			Provider: "victor",
+			ObjectMeta: kapi.ObjectMeta{Name: "tango"},
+			Provider:   "victor",
 		},
 		User: userapi.User{
-			TypeMeta: kapi.TypeMeta{ID: "uniform"},
-			Name:     "uniform",
+			ObjectMeta: kapi.ObjectMeta{Name: "uniform"},
 		},
 	}
 	key := makeTestUserIdentityMapping(expectedResultingMapping.Identity.Provider, expectedResultingMapping.Identity.Name)
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, expectedResultingMapping), 0)
 	registry := NewTestEtcd(fakeClient)
 
-	user, err := registry.GetUser("victor:uniform")
+	user, err := registry.GetUser("victor:tango")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if user.Name != expectedResultingMapping.User.Name {
-		t.Errorf("Expected %#v, but we got %#v", expectedResultingMapping.User, user)
+		t.Errorf("Expected %#v, but we got %#v", expectedResultingMapping.User.Name, user.Name)
 	}
 }
 
@@ -59,22 +57,19 @@ func TestEtcdCreateUserIdentityMapping(t *testing.T) {
 	fakeClient.TestIndex = true
 
 	testMapping := &userapi.UserIdentityMapping{
-		TypeMeta: kapi.TypeMeta{ID: "quebec"},
+		ObjectMeta: kapi.ObjectMeta{Name: "quebec"},
 		Identity: userapi.Identity{
-			Name:     "romeo",
 			Provider: "sierra",
 		},
 		User: userapi.User{},
 	}
 	expectedResultingMapping := &userapi.UserIdentityMapping{
-		TypeMeta: kapi.TypeMeta{ID: "quebec"},
+		ObjectMeta: kapi.ObjectMeta{Name: "quebec"},
 		Identity: userapi.Identity{
-			Name:     "romeo",
 			Provider: "sierra",
 		},
 		User: userapi.User{
-			TypeMeta: kapi.TypeMeta{ID: "romeo"},
-			Name:     "romeo",
+			ObjectMeta: kapi.ObjectMeta{Name: "romeo"},
 		},
 	}
 	key := makeTestUserIdentityMapping(testMapping.Identity.Provider, testMapping.Identity.Name)
@@ -104,14 +99,13 @@ func TestEtcdCreateUserIdentityMapping(t *testing.T) {
 func TestEtcdUpdateUserIdentityMappingWithConflictingUser(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	startingMapping := &userapi.UserIdentityMapping{
-		TypeMeta: kapi.TypeMeta{ID: "whiskey"},
+		ObjectMeta: kapi.ObjectMeta{Name: "whiskey"},
 		Identity: userapi.Identity{
-			Name:     "xray",
-			Provider: "yankee",
+			ObjectMeta: kapi.ObjectMeta{Name: "xray"},
+			Provider:   "yankee",
 		},
 		User: userapi.User{
-			TypeMeta: kapi.TypeMeta{ID: "xray"},
-			Name:     "xray",
+			ObjectMeta: kapi.ObjectMeta{Name: "xray"},
 		},
 	}
 	// this key is intentionally wrong so that we can have an internally consistend UserIdentityMapping
@@ -121,10 +115,10 @@ func TestEtcdUpdateUserIdentityMappingWithConflictingUser(t *testing.T) {
 	registry := NewTestEtcd(fakeClient)
 
 	testMapping := &userapi.UserIdentityMapping{
-		TypeMeta: kapi.TypeMeta{ID: "bravo"},
+		ObjectMeta: kapi.ObjectMeta{Name: "bravo"},
 		Identity: userapi.Identity{
-			Name:     "alfa",
-			Provider: "zulu",
+			Provider:   "zulu",
+			ObjectMeta: kapi.ObjectMeta{Name: "alfa"},
 		},
 		User: userapi.User{},
 	}
@@ -132,17 +126,17 @@ func TestEtcdUpdateUserIdentityMappingWithConflictingUser(t *testing.T) {
 	persistedUserIdentityMapping, created, err := registry.CreateOrUpdateUserIdentityMapping(testMapping)
 	if err == nil {
 		t.Errorf("Expected an error, but we didn't get one")
-	}
-
-	const expectedError = "the provided user name does not match the existing mapping"
-	if !strings.Contains(err.Error(), expectedError) {
-		t.Errorf("Expected error %v, but we got %v", expectedError, expectedError)
-	}
-	if created {
-		t.Errorf("Expected  be updated, but we were created instead")
-	}
-	if persistedUserIdentityMapping != nil {
-		t.Errorf("Expected nil, but we got %#v", persistedUserIdentityMapping)
+	} else {
+		const expectedError = "the provided user name does not match the existing mapping"
+		if !strings.Contains(err.Error(), expectedError) {
+			t.Errorf("Expected error %v, but we got %v", expectedError, expectedError)
+		}
+		if created {
+			t.Errorf("Expected  be updated, but we were created instead")
+		}
+		if persistedUserIdentityMapping != nil {
+			t.Errorf("Expected nil, but we got %#v", persistedUserIdentityMapping)
+		}
 	}
 }
 
@@ -150,13 +144,13 @@ func compareUserIdentityMappingFieldsThatAreFixed(expected, actual *userapi.User
 	if ((actual == nil) && (expected != nil)) || ((actual != nil) && (expected == nil)) {
 		return false
 	}
-	if actual.ID != expected.ID {
+	if actual.Name != expected.Name {
 		return false
 	}
 	if actual.Identity.Name != expected.Identity.Name || actual.Identity.Provider != expected.Identity.Provider {
 		return false
 	}
-	if actual.User.Name != expected.User.Name || actual.User.ID != actual.User.ID {
+	if actual.User.Name != expected.User.Name || actual.User.Name != actual.User.Name {
 		return false
 	}
 

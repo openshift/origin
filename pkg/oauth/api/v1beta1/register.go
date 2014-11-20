@@ -16,3 +16,12 @@ func init() {
 		&ClientAuthorizationList{},
 	)
 }
+
+func (*AccessToken) IsAnAPIObject()             {}
+func (*AuthorizeToken) IsAnAPIObject()          {}
+func (*Client) IsAnAPIObject()                  {}
+func (*AccessTokenList) IsAnAPIObject()         {}
+func (*AuthorizeTokenList) IsAnAPIObject()      {}
+func (*ClientList) IsAnAPIObject()              {}
+func (*ClientAuthorization) IsAnAPIObject()     {}
+func (*ClientAuthorizationList) IsAnAPIObject() {}

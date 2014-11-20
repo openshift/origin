@@ -57,7 +57,7 @@ func TestRegistryAndServer(t *testing.T) {
 	}))
 
 	validClient := &oapi.Client{
-		Name:         "test",
+		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
 		Secret:       "secret",
 		RedirectURIs: []string{assertServer.URL + "/assert"},
 	}
@@ -259,7 +259,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.AccessToken{
-			TypeMeta: kapi.TypeMeta{CreationTimestamp: util.Time{time.Now().Add(-1 * time.Hour)}},
+			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now().Add(-1 * time.Hour)}},
 			AuthorizeToken: oapi.AuthorizeToken{
 				ExpiresIn: 600, // 10 minutes
 			},
@@ -282,7 +282,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.AccessToken{
-			TypeMeta: kapi.TypeMeta{CreationTimestamp: util.Time{time.Now()}},
+			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now()}},
 			AuthorizeToken: oapi.AuthorizeToken{
 				ExpiresIn: 600, // 10 minutes
 			},

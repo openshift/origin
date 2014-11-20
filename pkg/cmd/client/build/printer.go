@@ -8,8 +8,8 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
-var buildColumns = []string{"ID", "Type", "Status", "Pod ID"}
-var buildConfigColumns = []string{"ID", "Type", "SourceURI"}
+var buildColumns = []string{"Name", "Type", "Status", "Pod Name"}
+var buildConfigColumns = []string{"Name", "Type", "SourceURI"}
 
 // RegisterPrintHandlers registers HumanReadablePrinter handlers
 // for build and buildConfig resources.
@@ -21,7 +21,7 @@ func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
 }
 
 func printBuild(build *api.Build, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, build.Parameters.Strategy.Type, build.Status, build.PodID)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, build.Parameters.Strategy.Type, build.Status, build.PodName)
 	return err
 }
 
