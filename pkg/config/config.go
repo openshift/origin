@@ -24,8 +24,8 @@ type ApplyResult struct {
 
 // Set the default RESTMapper and ObjectTyper
 var (
-	DefaultMapper = latest.RESTMapper
-	DefaultTyper  = kapi.Scheme
+	defaultMapper = latest.RESTMapper
+	defaultTyper  = kapi.Scheme
 )
 
 // DecodeWithMapper decodes the RawExtension that holds the raw JSON/YAML into
@@ -33,12 +33,12 @@ var (
 // for encoding the Object back into JSON/YAML.
 // This function is Origin specific as it uses the Origin RESTMapper by default.
 func DecodeWithMapper(in runtime.RawExtension) (runtime.Object, *meta.RESTMapping, error) {
-	version, kind, err := DefaultTyper.DataVersionAndKind(in.RawJSON)
+	version, kind, err := defaultTyper.DataVersionAndKind(in.RawJSON)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mapping, err := DefaultMapper.RESTMapping(version, kind)
+	mapping, err := defaultMapper.RESTMapping(version, kind)
 	if err != nil {
 		return nil, nil, err
 	}
