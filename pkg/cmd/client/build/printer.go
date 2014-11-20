@@ -8,8 +8,8 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
-var buildColumns = []string{"ID", "Type", "Status", "Pod ID"}
-var buildConfigColumns = []string{"ID", "Type", "SourceURI"}
+var buildColumns = []string{"Name", "Type", "Status", "Pod Name"}
+var buildConfigColumns = []string{"Name", "Type", "SourceURI"}
 
 // RegisterPrintHandlers registers HumanReadablePrinter handlers
 // for build and buildConfig resources.
