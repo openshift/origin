@@ -1,13 +1,13 @@
 {
     "kind": "Pod",
     "apiVersion": "v1beta1",
-    "id": "openshift-router",
+    "id": "ROUTER_ID",
     "desiredState": {
         "manifest": {
             "version": "v1beta2",
             "containers": [
                 {
-                    "name": "origin-haproxy-router",
+                    "name": "origin-haproxy-router-ROUTER_ID",
                     "image": "openshift/origin-haproxy-router",
                     "ports": [{
                         "containerPort": 80,
