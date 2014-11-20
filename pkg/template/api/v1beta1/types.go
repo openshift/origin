@@ -22,7 +22,12 @@ type Template struct {
 // Parameter defines a name/value variable that is to be processed during
 // the Template to Config transformation.
 type Parameter struct {
-	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	// Required: Parameter name must be set and it can be referenced in Template
+	// Items using ${PARAMETER_NAME}
+	Name string `json:"name" yaml:"name"`
+
+	// Optional: Parameter can have description
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
 	// Optional: Generate specifies the generator to be used to generate
 	// random string from an input value specified by From field. The result

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/api/latest"
@@ -18,9 +17,7 @@ import (
 
 func makeParameter(name, value, generate string) api.Parameter {
 	return api.Parameter{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: name,
-		},
+		Name:     name,
 		Value:    value,
 		Generate: generate,
 	}
