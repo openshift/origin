@@ -216,7 +216,7 @@ func TestEtcdCreateImage(t *testing.T) {
 			Name: "foo",
 		},
 		DockerImageReference: "openshift/ruby-19-centos",
-		Metadata: docker.Image{
+		DockerImageMetadata: docker.Image{
 			ID: "abc123",
 		},
 	})
@@ -242,7 +242,7 @@ func TestEtcdCreateImage(t *testing.T) {
 		t.Errorf("Expected %v, got %v", e, a)
 	}
 
-	if e, a := "abc123", image.Metadata.ID; e != a {
+	if e, a := "abc123", image.DockerImageMetadata.ID; e != a {
 		t.Errorf("Expected %v, got %v", e, a)
 	}
 }

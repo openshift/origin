@@ -191,7 +191,7 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			Metadata: docker.Image{
+			DockerImageMetadata: docker.Image{
 				Config: &docker.Config{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
@@ -219,7 +219,7 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	if !reflect.DeepEqual(mapping.Image.Metadata, image.Metadata) {
+	if !reflect.DeepEqual(mapping.Image.DockerImageMetadata, image.DockerImageMetadata) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
@@ -257,7 +257,7 @@ func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			Metadata: docker.Image{
+			DockerImageMetadata: docker.Image{
 				Config: &docker.Config{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
