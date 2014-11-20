@@ -93,11 +93,18 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 	return
 }
 
-func mockPod(status kapi.PodCondition) *kapi.Pod {
+func mockPod(status kapi.PodCondition, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
 		CurrentState: kapi.PodState{
 			Status: status,
+			Info: kapi.PodInfo{
+				"container1": kapi.ContainerStatus{
+					State: kapi.ContainerState{
+						Termination: &kapi.ContainerStateTerminated{ExitCode: exitCode},
+					},
+				},
+			},
 		},
 	}
 }
@@ -184,6 +191,7 @@ func TestHandlePod(t *testing.T) {
 		inStatus     buildapi.BuildStatus
 		outStatus    buildapi.BuildStatus
 		podStatus    kapi.PodCondition
+		exitCode     int
 		buildUpdater buildUpdater
 	}
 
@@ -193,43 +201,49 @@ func TestHandlePod(t *testing.T) {
 			inStatus:  buildapi.BuildStatusPending,
 			outStatus: buildapi.BuildStatusPending,
 			podStatus: kapi.PodPending,
+			exitCode:  0,
 		},
 		{ // 1
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusPending,
 			outStatus: buildapi.BuildStatusPending,
 			podStatus: kapi.PodPending,
+			exitCode:  0,
 		},
 		{ // 2
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusPending,
 			outStatus: buildapi.BuildStatusRunning,
 			podStatus: kapi.PodRunning,
+			exitCode:  0,
 		},
 		{ // 3
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusRunning,
 			outStatus: buildapi.BuildStatusComplete,
 			podStatus: kapi.PodSucceeded,
+			exitCode:  0,
 		},
 		{ // 4
 			matchID:   true,
 			inStatus:  buildapi.BuildStatusRunning,
 			outStatus: buildapi.BuildStatusFailed,
 			podStatus: kapi.PodFailed,
+			exitCode:  -1,
 		},
 		{ // 5
 			matchID:      true,
 			inStatus:     buildapi.BuildStatusRunning,
 			outStatus:    buildapi.BuildStatusComplete,
 			podStatus:    kapi.PodSucceeded,
+			exitCode:     0,
 			buildUpdater: &errOsClient{},
 		},
 	}
 
 	for i, tc := range tests {
 		build, ctrl := mockBuildAndController(tc.inStatus)
-		pod := mockPod(tc.podStatus)
+		pod := mockPod(tc.podStatus, tc.exitCode)
 		if tc.matchID {
 			build.PodName = pod.Name
 		}

@@ -211,8 +211,8 @@ func TestUpdateDeploymentMissingID(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
-	if strings.Index(err.Error(), "id is unspecified:") == -1 {
-		t.Errorf("Expected 'id is unspecified' error, got %v", err)
+	if strings.Index(err.Error(), "name is unspecified:") == -1 {
+		t.Errorf("Expected 'name is unspecified' error, got %v", err)
 	}
 }
 

@@ -696,11 +696,11 @@ func TestEtcdDeleteImageRepositoryOK(t *testing.T) {
 func TestEtcdWatchImageRepositories(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := labels.SelectorFromSet(labels.Set{"ID": "foo"})
+	filterFields := labels.SelectorFromSet(labels.Set{"name": "foo"})
 
 	watching, err := registry.WatchImageRepositories(kapi.NewDefaultContext(), "1", func(repo *api.ImageRepository) bool {
 		fields := labels.Set{
-			"ID": repo.Name,
+			"name": repo.Name,
 		}
 		return filterFields.Matches(fields)
 	})

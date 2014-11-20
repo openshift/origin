@@ -47,9 +47,8 @@ func (r *Etcd) ListDeployments(ctx kapi.Context, label, field labels.Selector) (
 	filtered := []api.Deployment{}
 	for _, item := range deployments.Items {
 		fields := labels.Set{
-			"name":          item.Name,
-			"status":        string(item.Status),
-			"strategy.type": string(item.Strategy.Type),
+			"name":   item.Name,
+			"status": string(item.Status),
 		}
 		if label.Matches(labels.Set(item.Labels)) && field.Matches(fields) {
 			filtered = append(filtered, item)
@@ -126,9 +125,8 @@ func (r *Etcd) WatchDeployments(ctx kapi.Context, label, field labels.Selector, 
 			return false
 		}
 		fields := labels.Set{
-			"name":          deployment.Name,
-			"status":        string(deployment.Status),
-			"strategy.type": string(deployment.Strategy.Type),
+			"name":   deployment.Name,
+			"status": string(deployment.Status),
 		}
 		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
 	})

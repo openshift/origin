@@ -77,7 +77,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 	deployment.Status = deployapi.DeploymentStatusNew
 
-	glog.Infof("Creating deployment with namespace::ID: %v::%v", deployment.Namespace, deployment.Name)
+	glog.Infof("Creating deployment with namespace::Name: %v::%v", deployment.Namespace, deployment.Name)
 
 	if errs := validation.ValidateDeployment(deployment); len(errs) > 0 {
 		return nil, kerrors.NewInvalid("deployment", deployment.Name, errs)
@@ -99,7 +99,7 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, fmt.Errorf("not a deployment: %#v", obj)
 	}
 	if len(deployment.Name) == 0 {
-		return nil, fmt.Errorf("id is unspecified: %#v", deployment)
+		return nil, fmt.Errorf("name is unspecified: %#v", deployment)
 	}
 	if !kapi.ValidNamespace(ctx, &deployment.ObjectMeta) {
 		return nil, kerrors.NewConflict("deployment", deployment.Namespace, fmt.Errorf("Deployment.Namespace does not match the provided context"))

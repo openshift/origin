@@ -409,6 +409,13 @@ func succeededPod() *kapi.Pod {
 func failedPod() *kapi.Pod {
 	p := basicPod()
 	p.CurrentState.Status = kapi.PodFailed
+	p.CurrentState.Info["container1"] = kapi.ContainerStatus{
+		State: kapi.ContainerState{
+			Termination: &kapi.ContainerStateTerminated{
+				ExitCode: 1,
+			},
+		},
+	}
 	return p
 }
 

@@ -94,7 +94,6 @@ func (c *NodeConfig) RunKubelet() {
 		10,
 		0,
 		5)
-	// k := kubelet.NewIntegrationTestKubelet(c.NodeHost, c.VolumeDir, c.DockerClient)
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
 	// this parameter must be true, otherwise buildLogs won't work

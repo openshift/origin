@@ -36,8 +36,8 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	}
 }
 
-// CustomPodDeploymentControllerFactory can create a CustomPodDeploymentController which obtains Deployments
-// from a queue populated from a watch of Deployments whose strategy is DeploymentStrategyTypeCustomPod.
+// DeploymentControllerFactory can create a DeploymentController which obtains Deployments
+// from a queue populated from a watch of Deployments.
 // Pods are obtained from a queue populated from a watch of all pods.
 type DeploymentControllerFactory struct {
 	// Client satisfies DeploymentInterface.
@@ -51,6 +51,7 @@ type DeploymentControllerFactory struct {
 	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
 	RecreateStrategyImage string
 
+	// deploymentStore is maintained on the factory to support narrowing of the pod polling scope.
 	deploymentStore cache.Store
 }
 
