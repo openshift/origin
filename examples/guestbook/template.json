@@ -29,18 +29,14 @@
   ],
   "items": [
     {
-      "metadata": {
-        "name": "frontend-route"
-      },
+      "id": "frontend-route",
       "kind": "Route",
       "apiVersion": "v1beta1",
       "host": "guestbook.example.com",
       "serviceName": "frontend"
     },
     {
-      "metadata": {
-        "name": "frontend"
-      },
+      "id": "frontend",
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 5432,
@@ -49,9 +45,7 @@
       }
     },
     {
-      "metadata": {
-        "name": "redis-master"
-      },
+      "id": "redis-master",
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 10000,
@@ -60,9 +54,7 @@
       }
     },
     {
-      "metadata": {
-        "name": "redis-slave"
-      },
+      "id": "redis-slave",
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 10001,
@@ -71,9 +63,7 @@
       }
     },
     {
-      "metadata": {
-        "name": "redis-master"
-      },
+      "id": "redis-master",
       "kind": "Pod",
       "apiVersion": "v1beta1",
       "desiredState": {
@@ -97,9 +87,7 @@
       }
     },
     {
-      "metadata": {
-        "name": "guestbook"
-      },
+      "id": "guestbook",
       "kind": "ReplicationController",
       "apiVersion": "v1beta1",
       "desiredState": {
@@ -135,9 +123,7 @@
       }
     },
     {
-      "metadata": {
-        "name": "redis-slave"
-      },
+      "id": "redis-slave",
       "kind": "ReplicationController",
       "apiVersion": "v1beta1",
       "desiredState": {

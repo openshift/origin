@@ -146,7 +146,15 @@ func AddConfigLabel(obj runtime.Object, labels labels.Set) error {
 			return addLabelError("ReplicationController", err)
 		}
 		if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("RepliacationController.PodTemplate", err)
+			return addLabelError("ReplicationController.PodTemplate", err)
+		}
+		if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, t.DesiredState.ReplicaSelector, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("ReplicationController.ReplicaSelector", err)
+		}
+		// The ReplicaSelector and DesiredState.PodTemplate.Labels need to make
+		// create succeed
+		if err := mergeMaps(&t.DesiredState.ReplicaSelector, t.DesiredState.PodTemplate.Labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("ReplicationController.PodTemplate", err)
 		}
 	case *deployapi.Deployment:
 		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
