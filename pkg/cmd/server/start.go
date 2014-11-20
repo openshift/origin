@@ -240,6 +240,8 @@ func start(cfg *config, args []string) error {
 		if startKube {
 			portalNet := net.IPNet(cfg.PortalNet)
 			kmaster := &kubernetes.MasterConfig{
+				MasterHost: cfg.MasterAddr.Host,
+				MasterPort: cfg.MasterAddr.Port,
 				NodeHosts:  cfg.NodeList,
 				PortalNet:  &portalNet,
 				EtcdHelper: ketcdHelper,

@@ -176,7 +176,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		extra = append(extra, i.InstallAPI(osMux)...)
 	}
 	apiserver.NewAPIGroup(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(osMux, OpenShiftAPIPrefixV1Beta1)
-	apiserver.InstallSupport(osMux)
+	//apiserver.InstallSupport(osMux)
 
 	handler := http.Handler(osMux)
 	if c.RequireAuthentication {
