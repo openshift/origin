@@ -132,7 +132,7 @@ echo "[INFO] Pulled centos7: $(($ENDTIME - $STARTTIME)) seconds"
 
 docker tag centos:centos7 ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
 STARTTIME=$(date +%s)
-docker push ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
+docker push ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7 --insecure-registry
 ENDTIME=$(date +%s)
 echo "[INFO] Pushed centos7: $(($ENDTIME - $STARTTIME)) seconds"
 
