@@ -94,12 +94,6 @@ func (c *DeploymentConfigController) latestDeploymentForConfig(ctx kapi.Context,
 
 // deploy performs the work of actually creating a Deployment from the given DeploymentConfig.
 func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.DeploymentConfig) error {
-	labels := make(map[string]string)
-	for k, v := range config.Labels {
-		labels[k] = v
-	}
-	labels[deployapi.DeploymentConfigLabel] = config.Name
-
 	deployment := &deployapi.Deployment{
 
 		ObjectMeta: kapi.ObjectMeta{
