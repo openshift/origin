@@ -5,7 +5,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -19,8 +18,8 @@ type DeploymentController struct {
 	ContainerCreator DeploymentContainerCreator
 	// DeploymentInterface provides access to deployments.
 	DeploymentInterface dcDeploymentInterface
-	// PodControle provides access to pods.
-	PodControl PodControlInterface
+	// PodInterface provides access to pods.
+	PodInterface dcPodInterface
 	// NextDeployment blocks until the next deployment is available.
 	NextDeployment func() *deployapi.Deployment
 	// NextPod blocks until the next pod is available.
@@ -44,21 +43,9 @@ type dcDeploymentInterface interface {
 	UpdateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
 
-type PodControlInterface interface {
-	createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	deletePod(namespace, id string) error
-}
-
-type RealPodControl struct {
-	KubeClient kclient.Interface
-}
-
-func (r RealPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-	return r.KubeClient.Pods(namespace).Create(pod)
-}
-
-func (r RealPodControl) deletePod(namespace, id string) error {
-	return r.KubeClient.Pods(namespace).Delete(id)
+type dcPodInterface interface {
+	CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
+	DeletePod(namespace, id string) error
 }
 
 // Run begins watching and synchronizing deployment states.
@@ -83,7 +70,7 @@ func (dc *DeploymentController) HandleDeployment() {
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), deployment.Namespace)
 	nextStatus := deployment.Status
-	if pod, err := dc.PodControl.createPod(deployment.Namespace, deploymentPod); err != nil {
+	if pod, err := dc.PodInterface.CreatePod(deployment.Namespace, deploymentPod); err != nil {
 		// If the pod already exists, it's possible that a previous CreatePod succeeded but
 		// the deployment state update failed and now we're re-entering.
 		if kerrors.IsAlreadyExists(err) {
@@ -147,7 +134,7 @@ func (dc *DeploymentController) HandlePod() {
 
 		// Automatically clean up successful pods
 		if nextDeploymentStatus == deployapi.DeploymentStatusComplete {
-			if err := dc.PodControl.deletePod(deployment.Namespace, pod.Name); err != nil {
+			if err := dc.PodInterface.DeletePod(deployment.Namespace, pod.Name); err != nil {
 				glog.V(4).Infof("Couldn't delete completed pod %s for deployment %s: %#v", pod.Name, deployment.Name, err)
 			} else {
 				glog.V(4).Infof("Deleted completed pod %s for deployment %s", pod.Name, deployment.Name)

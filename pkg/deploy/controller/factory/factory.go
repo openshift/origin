@@ -76,7 +76,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 	return &controller.DeploymentController{
 		ContainerCreator:    factory,
 		DeploymentInterface: factory.Client,
-		PodControl:          controller.RealPodControl{factory.KubeClient},
+		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
 		Environment:         factory.Environment,
 		NextDeployment: func() *deployapi.Deployment {
 			return deploymentQueue.Pop().(*deployapi.Deployment)
@@ -142,6 +142,18 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 	return &podEnumerator{list}, nil
 }
 
+type DeploymentControllerPodInterface struct {
+	KubeClient kclient.Interface
+}
+
+func (i DeploymentControllerPodInterface) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return i.KubeClient.Pods(namespace).Create(pod)
+}
+
+func (i DeploymentControllerPodInterface) DeletePod(namespace, id string) error {
+	return i.KubeClient.Pods(namespace).Delete(id)
+}
+
 // podEnumerator allows a cache.Poller to enumerate items in an api.PodList
 type podEnumerator struct {
 	*kapi.PodList
@@ -202,34 +214,6 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 			return queue.Pop().(*imageapi.ImageRepository)
 		},
 	}
-}
-
-// podLW is a ListWatcher implementation for pods.
-type podLW struct {
-	client        *kclient.Client
-	namespace     string
-	labelSelector labels.Selector
-}
-
-// List lists all pods.
-func (lw *podLW) List() (runtime.Object, error) {
-	pods, err := lw.client.Pods(lw.namespace).List(lw.labelSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	return pods, nil
-}
-
-// Watch watches all pods with the given selector.
-func (lw *podLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.
-		Get().
-		Path("watch").
-		Path("pods").
-		SelectorParam("labels", lw.labelSelector).
-		Param("resourceVersion", resourceVersion).
-		Watch()
 }
 
 // deploymentLW is a ListWatcher implementation for Deployments.

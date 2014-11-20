@@ -25,7 +25,7 @@ func TestHandleNewDeploymentCreatePodOk(t *testing.T) {
 				return updatedDeployment, nil
 			},
 		},
-		PodControl: &testDcPodInterface{
+		PodInterface: &testDcPodInterface{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				createdPod = pod
 				return pod, nil
@@ -95,7 +95,7 @@ func TestHandleNewDeploymentCreatePodFail(t *testing.T) {
 				return updatedDeployment, nil
 			},
 		},
-		PodControl: &testDcPodInterface{
+		PodInterface: &testDcPodInterface{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return nil, fmt.Errorf("Failed to create pod %s", pod.Name)
 			},
@@ -134,7 +134,7 @@ func TestHandleNewDeploymentCreatePodAlreadyExists(t *testing.T) {
 				return updatedDeployment, nil
 			},
 		},
-		PodControl: &testDcPodInterface{
+		PodInterface: &testDcPodInterface{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return nil, kerrors.NewAlreadyExists("pod", pod.Name)
 			},
@@ -171,7 +171,7 @@ func TestHandleUncorrelatedPod(t *testing.T) {
 				return nil, nil
 			},
 		},
-		PodControl:     &testDcPodInterface{},
+		PodInterface:   &testDcPodInterface{},
 		NextDeployment: func() *deployapi.Deployment { return nil },
 		NextPod: func() *kapi.Pod {
 			pod := runningPod()
@@ -193,7 +193,7 @@ func TestHandleOrphanedPod(t *testing.T) {
 				return nil, nil
 			},
 		},
-		PodControl:      &testDcPodInterface{},
+		PodInterface:    &testDcPodInterface{},
 		NextDeployment:  func() *deployapi.Deployment { return nil },
 		NextPod:         func() *kapi.Pod { return runningPod() },
 		DeploymentStore: deploytest.NewFakeDeploymentStore(nil),
@@ -213,7 +213,7 @@ func TestHandlePodRunning(t *testing.T) {
 				return deployment, nil
 			},
 		},
-		PodControl: &testDcPodInterface{},
+		PodInterface: &testDcPodInterface{},
 		NextDeployment: func() *deployapi.Deployment {
 			return nil
 		},
@@ -243,7 +243,7 @@ func TestHandlePodTerminatedOk(t *testing.T) {
 				return deployment, nil
 			},
 		},
-		PodControl: &testDcPodInterface{
+		PodInterface: &testDcPodInterface{
 			DeletePodFunc: func(namespace, id string) error {
 				deletedPodId = id
 				return nil
@@ -279,7 +279,7 @@ func TestHandlePodTerminatedNotOk(t *testing.T) {
 				return deployment, nil
 			},
 		},
-		PodControl: &testDcPodInterface{
+		PodInterface: &testDcPodInterface{
 			DeletePodFunc: func(namespace, id string) error {
 				t.Fatalf("unexpected delete of pod %s", id)
 				return nil
@@ -327,11 +327,11 @@ type testDcPodInterface struct {
 	DeletePodFunc func(namespace, id string) error
 }
 
-func (i *testDcPodInterface) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (i *testDcPodInterface) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return i.CreatePodFunc(namespace, pod)
 }
 
-func (i *testDcPodInterface) deletePod(namespace, id string) error {
+func (i *testDcPodInterface) DeletePod(namespace, id string) error {
 	return i.DeletePodFunc(namespace, id)
 }
 
