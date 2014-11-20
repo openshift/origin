@@ -36,21 +36,21 @@ func (_ *errStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	return nil, errors.New("CreateBuildPod error!")
 }
 
-type okPodControl struct{}
+type okPodCreator struct{}
 
-func (_ *okPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (_ *okPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, nil
 }
 
-type errPodControl struct{}
+type errPodCreator struct{}
 
-func (_ *errPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (_ *errPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, errors.New("CreatePod error!")
 }
 
-type errExistsPodControl struct{}
+type errExistsPodCreator struct{}
 
-func (_ *errExistsPodControl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (_ *errExistsPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, kerrors.NewAlreadyExists("kind", "name")
 }
 
@@ -85,7 +85,7 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 	controller = &BuildController{
 		BuildStore:    buildtest.NewFakeBuildStore(build),
 		BuildUpdater:  &osclient.Fake{},
-		PodControl:    &okPodControl{},
+		PodCreator:    &okPodCreator{},
 		NextBuild:     func() *buildapi.Build { return nil },
 		NextPod:       func() *kapi.Pod { return nil },
 		BuildStrategy: &okStrategy{},
@@ -115,7 +115,7 @@ func TestHandleBuild(t *testing.T) {
 		outStatus     buildapi.BuildStatus
 		buildStrategy BuildStrategy
 		buildUpdater  buildUpdater
-		podControl    PodControlInterface
+		podCreator    podCreator
 	}
 
 	tests := []handleBuildTest{
@@ -151,12 +151,12 @@ func TestHandleBuild(t *testing.T) {
 		{ // 7
 			inStatus:   buildapi.BuildStatusNew,
 			outStatus:  buildapi.BuildStatusFailed,
-			podControl: &errPodControl{},
+			podCreator: &errPodCreator{},
 		},
 		{ // 8
 			inStatus:   buildapi.BuildStatusNew,
 			outStatus:  buildapi.BuildStatusFailed,
-			podControl: &errExistsPodControl{},
+			podCreator: &errExistsPodCreator{},
 		},
 		{ // 9
 			inStatus:     buildapi.BuildStatusNew,
@@ -173,8 +173,8 @@ func TestHandleBuild(t *testing.T) {
 		if tc.buildUpdater != nil {
 			ctrl.BuildUpdater = tc.buildUpdater
 		}
-		if tc.podControl != nil {
-			ctrl.PodControl = tc.podControl
+		if tc.podCreator != nil {
+			ctrl.PodCreator = tc.podCreator
 		}
 
 		ctrl.HandleBuild(build)
