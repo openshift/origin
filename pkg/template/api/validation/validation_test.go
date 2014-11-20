@@ -11,8 +11,8 @@ import (
 
 func makeParameter(name, value string) *api.Parameter {
 	return &api.Parameter{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
-		Value:      value,
+		Name:  name,
+		Value: value,
 	}
 }
 
