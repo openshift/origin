@@ -43,6 +43,7 @@
                 "containers":[
                   {
                     "image":"openshift/docker-registry",
+                    "imagePullPolicy":"PullIfNotPresent",
                     "name":"registry-container",
                     "ports":[
                       {
@@ -61,7 +62,7 @@
                       },
                       {
                         "name":"REGISTRY_URL",
-                        "value":"172.121.17.1:5001"
+                        "value":"172.121.17.3:5001"
                       }
                     ],
                     "volumeMounts":[
