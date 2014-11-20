@@ -80,14 +80,14 @@ type DeploymentList struct {
 
 // These constants represent annotation keys used for correlating objects related to deployments.
 const (
-	DeploymentConfigAnnotation = "deploymentConfig"
+	DeploymentConfigAnnotation = "deploymentconfig"
 	DeploymentAnnotation       = "deployment"
 	DeploymentPodAnnotation    = "pod"
 )
 
 // These constants represent label keys used for correlating objects related to deployment.
 const (
-	DeploymentConfigLabel = "deploymentConfig"
+	DeploymentConfigLabel = "deploymentconfig"
 )
 
 // DeploymentConfig represents a configuration for a single deployment of a replication controller:
