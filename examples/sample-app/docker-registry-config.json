@@ -59,10 +59,6 @@
                       {
                         "name":"OPENSHIFT_URL",
                         "value":"http://172.17.42.1:8080/osapi/v1beta1"
-                      },
-                      {
-                        "name":"REGISTRY_URL",
-                        "value":"172.121.17.3:5001"
                       }
                     ],
                     "volumeMounts":[
@@ -71,7 +67,8 @@
                         "mountPath":"/tmp/openshift.local.registry",
                         "readOnly":false
                       }
-                    ]
+                    ],
+                    "command": ["sh", "-c", "REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} exec docker-registry"]
                   }
                 ],
                 "version":"v1beta1",

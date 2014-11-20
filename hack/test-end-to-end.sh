@@ -75,6 +75,8 @@ function teardown()
 {
   if [ $? -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
+  else 
+    echo "[INFO] Test Succeeded"
   fi
 
   echo "[INFO] Dumping container logs to $LOG_DIR"
