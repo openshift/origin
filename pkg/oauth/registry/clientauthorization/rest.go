@@ -42,7 +42,7 @@ func (s *REST) List(ctx kapi.Context, label, fields labels.Selector) (runtime.Ob
 }
 
 // Create registers the given ClientAuthorization.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	authorization, ok := obj.(*api.ClientAuthorization)
 	if !ok {
 		return nil, fmt.Errorf("not an authorization: %#v", obj)
@@ -52,7 +52,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		return nil, fmt.Errorf("invalid authorization")
 	}
 
-	authorization.ID = s.registry.ClientAuthorizationID(authorization.UserName, authorization.ClientName)
+	authorization.Name = s.registry.ClientAuthorizationID(authorization.UserName, authorization.ClientName)
 	authorization.CreationTimestamp = util.Now()
 
 	// if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
@@ -63,17 +63,17 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		if err := s.registry.CreateClientAuthorization(authorization); err != nil {
 			return nil, err
 		}
-		return s.Get(ctx, authorization.ID)
+		return s.Get(ctx, authorization.Name)
 	}), nil
 }
 
 // Update modifies an existing client authorization
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return s.Create(ctx, obj)
 }
 
 // Delete asynchronously deletes an ClientAuthorization specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteClientAuthorization(id)
 	}), nil

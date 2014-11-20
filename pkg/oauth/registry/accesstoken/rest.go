@@ -47,7 +47,7 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 }
 
 // Create registers the given AccessToken.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	token, ok := obj.(*api.AccessToken)
 	if !ok {
 		return nil, fmt.Errorf("not an token: %#v", obj)
@@ -68,12 +68,12 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 }
 
 // Update is not supported for AccessTokens, as they are immutable.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("AccessTokens may not be changed.")
 }
 
 // Delete asynchronously deletes an AccessToken specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteAccessToken(id)
 	}), nil

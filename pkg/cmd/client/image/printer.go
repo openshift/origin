@@ -21,7 +21,7 @@ func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
 }
 
 func printImage(image *api.Image, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\n", image.ID, image.DockerImageReference)
+	_, err := fmt.Fprintf(w, "%s\t%s\n", image.Name, image.DockerImageReference)
 	return err
 }
 
@@ -43,7 +43,7 @@ func printImageRepository(repo *api.ImageRepository, w io.Writer) error {
 		}
 		tags = strings.Join(t, ",")
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", repo.ID, repo.DockerImageRepository, tags)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", repo.Name, repo.DockerImageRepository, tags)
 	return err
 }
 
