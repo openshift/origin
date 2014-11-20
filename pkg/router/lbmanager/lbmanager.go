@@ -85,7 +85,7 @@ func (lm *LBManager) watchRoutes(resourceVersion *string) {
 }
 
 // resourceVersion is a pointer to the resource version to use/update.
-func (lm *LBManager) watchEndpoints(resourceVersion *string) {
+func (lm *LBManager) watchEndpoints(resourceVersion string) {
 	// TODO: Is this needed anymore?
 	// ctx := kapi.NewContext()
 	watching, err := lm.endpointWatcher.Watch(
