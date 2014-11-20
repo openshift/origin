@@ -18,7 +18,7 @@ func (*DefaultUserInitStrategy) InitializeUser(identity *api.Identity, user *api
 	}
 	name, ok := identity.Extra["name"]
 	if !ok {
-		name = identity.Name
+		name = identity.UserName
 	}
 	user.FullName = name
 	return nil

@@ -80,7 +80,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	}
 
 	identity := &authapi.DefaultUserIdentityInfo{
-		Name: fmt.Sprintf("%d", userdata.ID),
+		UserName: fmt.Sprintf("%d", userdata.ID),
 		Extra: map[string]string{
 			"name":  userdata.Name,
 			"login": userdata.Login,

@@ -28,6 +28,9 @@ type Identity struct {
 	// is assumed.
 	Provider string `json:"provider" yaml:"provider"`
 
+	// UserName uniquely represents this identity in the scope of the identity provider
+	UserName string `json:"userName" yaml:"userName"`
+
 	Extra map[string]string `json:"extra,omitempty" yaml:"extra,omitempty"`
 }
 

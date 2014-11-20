@@ -24,22 +24,23 @@ func NewTestEtcd(client tools.EtcdClient) *Etcd {
 // expect it to. If someone changes the location of these resources by say moving all the resources to
 // "/origin/resources" (which is a really good idea), then they've made a breaking change and something should
 // fail to let them know they've change some significant change and that other dependent pieces may break.
-func makeTestUserIdentityMapping(providerId, identityName string) string {
-	return fmt.Sprintf("/userIdentityMappings/%s:%s", providerId, identityName)
+func makeTestUserIdentityMapping(providerId, userName string) string {
+	return fmt.Sprintf("/userIdentityMappings/%s:%s", providerId, userName)
 }
 
 func TestEtcdGetUser(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	expectedResultingMapping := &userapi.UserIdentityMapping{
 		Identity: userapi.Identity{
-			ObjectMeta: kapi.ObjectMeta{Name: "tango"},
+			ObjectMeta: kapi.ObjectMeta{Name: "victor:tango"},
 			Provider:   "victor",
+			UserName:   "tango",
 		},
 		User: userapi.User{
 			ObjectMeta: kapi.ObjectMeta{Name: "uniform"},
 		},
 	}
-	key := makeTestUserIdentityMapping(expectedResultingMapping.Identity.Provider, expectedResultingMapping.Identity.Name)
+	key := makeTestUserIdentityMapping(expectedResultingMapping.Identity.Provider, expectedResultingMapping.Identity.UserName)
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, expectedResultingMapping), 0)
 	registry := NewTestEtcd(fakeClient)
 
@@ -66,13 +67,14 @@ func TestEtcdCreateUserIdentityMapping(t *testing.T) {
 	expectedResultingMapping := &userapi.UserIdentityMapping{
 		ObjectMeta: kapi.ObjectMeta{Name: "quebec"},
 		Identity: userapi.Identity{
-			Provider: "sierra",
+			ObjectMeta: kapi.ObjectMeta{Name: "sierra:"},
+			Provider:   "sierra",
 		},
 		User: userapi.User{
 			ObjectMeta: kapi.ObjectMeta{Name: "romeo"},
 		},
 	}
-	key := makeTestUserIdentityMapping(testMapping.Identity.Provider, testMapping.Identity.Name)
+	key := makeTestUserIdentityMapping(testMapping.Identity.Provider, testMapping.Identity.UserName)
 
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
@@ -101,11 +103,12 @@ func TestEtcdUpdateUserIdentityMappingWithConflictingUser(t *testing.T) {
 	startingMapping := &userapi.UserIdentityMapping{
 		ObjectMeta: kapi.ObjectMeta{Name: "whiskey"},
 		Identity: userapi.Identity{
-			ObjectMeta: kapi.ObjectMeta{Name: "xray"},
+			ObjectMeta: kapi.ObjectMeta{Name: "yankee:xray"},
 			Provider:   "yankee",
+			UserName:   "xray",
 		},
 		User: userapi.User{
-			ObjectMeta: kapi.ObjectMeta{Name: "xray"},
+			ObjectMeta: kapi.ObjectMeta{Name: "yankee:xray"},
 		},
 	}
 	// this key is intentionally wrong so that we can have an internally consistend UserIdentityMapping
@@ -117,8 +120,8 @@ func TestEtcdUpdateUserIdentityMappingWithConflictingUser(t *testing.T) {
 	testMapping := &userapi.UserIdentityMapping{
 		ObjectMeta: kapi.ObjectMeta{Name: "bravo"},
 		Identity: userapi.Identity{
-			Provider:   "zulu",
-			ObjectMeta: kapi.ObjectMeta{Name: "alfa"},
+			Provider: "zulu",
+			UserName: "alfa",
 		},
 		User: userapi.User{},
 	}
@@ -147,7 +150,7 @@ func compareUserIdentityMappingFieldsThatAreFixed(expected, actual *userapi.User
 	if actual.Name != expected.Name {
 		return false
 	}
-	if actual.Identity.Name != expected.Identity.Name || actual.Identity.Provider != expected.Identity.Provider {
+	if actual.Identity.UserName != expected.Identity.UserName || actual.Identity.Provider != expected.Identity.Provider {
 		return false
 	}
 	if actual.User.Name != expected.User.Name || actual.User.Name != actual.User.Name {

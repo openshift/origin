@@ -90,7 +90,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (api.Use
 	}
 
 	identity := &authapi.DefaultUserIdentityInfo{
-		Name: username,
+		UserName: username,
 		Extra: map[string]string{
 			"name":  remoteUserData.Name,
 			"email": remoteUserData.Email,

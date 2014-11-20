@@ -12,15 +12,15 @@ func TestProvisionUser(t *testing.T) {
 	providerId := "papa"
 	identityMapper := NewAlwaysCreateUserIdentityToUserMapper(providerId, userIdentityRegistry)
 	identity := &authapi.DefaultUserIdentityInfo{
-		Name: "oscar",
+		UserName: "oscar",
 	}
 
 	identityMapper.UserFor(identity)
 	if userIdentityRegistry.CreatedUserIdentityMapping.Identity.Provider != providerId {
 		t.Errorf("Expected provider to be set to %v, but it was actually %v", providerId, userIdentityRegistry.CreatedUserIdentityMapping.Identity.Provider)
 	}
-	if userIdentityRegistry.CreatedUserIdentityMapping.Identity.Name != identity.GetName() {
-		t.Errorf("Expected name to be set to %v, but it was actually %v", identity.GetName(), userIdentityRegistry.CreatedUserIdentityMapping.Identity.Name)
+	if userIdentityRegistry.CreatedUserIdentityMapping.Identity.UserName != identity.GetUserName() {
+		t.Errorf("Expected username to be set to %v, but it was actually %v", identity.GetUserName(), userIdentityRegistry.CreatedUserIdentityMapping.Identity.UserName)
 	}
 
 }
