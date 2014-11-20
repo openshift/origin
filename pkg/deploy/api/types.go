@@ -80,7 +80,7 @@ type DeploymentList struct {
 
 // These constants represent annotation keys used for correlating objects related to deployments.
 const (
-	DeploymentConfigAnnotation = "deploymentconfig"
+	DeploymentConfigAnnotation = "deploymentConfig"
 	DeploymentAnnotation       = "deployment"
 	DeploymentPodAnnotation    = "pod"
 )
