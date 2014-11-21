@@ -83,6 +83,9 @@ const (
 	DeploymentConfigAnnotation = "deploymentConfig"
 	DeploymentAnnotation       = "deployment"
 	DeploymentPodAnnotation    = "pod"
+	// TODO: This is a workaround for upstream's lack of annotation support on PodTemplate. Once
+	// annotations are available on PodTemplate, audit this constant with the goal of removing it.
+	DeploymentLabel = "deployment"
 )
 
 // These constants represent label keys used for correlating objects related to deployment.
