@@ -9,8 +9,8 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 )
 
-var imageColumns = []string{"ID", "Docker Ref"}
-var imageRepositoryColumns = []string{"ID", "Docker Repo", "Tags"}
+var imageColumns = []string{"Name", "Docker Ref"}
+var imageRepositoryColumns = []string{"Name", "Docker Repo", "Tags"}
 
 // RegisterPrintHandlers registers HumanReadablePrinter handlers for image and image repository resources.
 func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {

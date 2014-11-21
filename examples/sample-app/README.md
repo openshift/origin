@@ -33,7 +33,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
     You should see:
 
-        ID                                     Image(s)                    Host                     Labels                                                                                                   Status
+        Name                                   Image(s)                    Host                     Labels                                                                                                   Status
         ----------                             ----------                  ----------               ----------                                                                                               ----------
         94679170-54dc-11e4-88cc-3c970e3bf0b7   openshift/docker-registry   localhost.localdomain/   deployment=registry-config,name=registrypod,replicationController=946583f6-54dc-11e4-88cc-3c970e3bf0b7   Running
 
@@ -43,7 +43,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
     You should see:
 
-        ID                  Labels              Selector            IP                  Port
+        Name                Labels              Selector            IP                  Port
         ----------          ----------          ----------          ----------          ----------
         docker-registry                         name=registrypod    172.121.17.1        5001
 
@@ -88,7 +88,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
     Sample output:
 
-        ID                                     Status              Pod ID
+        Name                                   Status              Pod Name
         ----------                             ----------          ----------
         20f54507-3dcd-11e4-984b-3c970e3bf0b7   complete            build-docker-20f54507-3dcd-11e4-984b-3c970e3bf0b7
 
@@ -108,7 +108,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
     Sample output:
 
-        ID                                                  Image(s)                                                                                                          Host                     Labels                                                                                                                                                       Status
+        Name                                                Image(s)                                                                                                          Host                     Labels                                                                                                                                                       Status
         ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
         b8f087b7-605e-11e4-b0db-3c970e3bf0b7                openshift/docker-registry                                                                                         localhost.localdomain/   name=registrypod,replicationController=docker-registry                                                                                                       Running
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
@@ -120,7 +120,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
     Sample output:
 
-        ID                  Labels                            Selector            IP                  Port
+        Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
         database            template=ruby-helloworld-sample   name=database       172.121.17.3        5434
         docker-registry                                       name=registrypod    172.121.17.1        5001
@@ -150,7 +150,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
     Sample output:
 
-        ID                  Labels                            Selector            IP                  Port
+        Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
         docker-registry                                       name=registrypod    172.121.17.1        5001
         frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.2        5432
@@ -173,7 +173,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
     Sample output:
 
-        ID                  Labels                            Selector            IP                  Port
+        Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
         docker-registry                                       name=registrypod    172.121.17.1        5001
         database            template=ruby-helloworld-sample   name=database       172.121.17.3        5434
@@ -195,7 +195,7 @@ Another interesting example is deleting a pod.
 
     Sample output:
 
-        ID                                                  Image(s)                                                                                                          Host                     Labels                                                                                                                                                       Status
+        Name                                                Image(s)                                                                                                          Host                     Labels                                                                                                                                                       Status
         ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
         b8f087b7-605e-11e4-b0db-3c970e3bf0b7                openshift/docker-registry                                                                                         localhost.localdomain/   name=registrypod,replicationController=docker-registry                                                                                                       Running
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
