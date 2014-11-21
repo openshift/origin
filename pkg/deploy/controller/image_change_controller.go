@@ -62,8 +62,9 @@ func (c *ImageChangeController) HandleImageRepo() {
 					continue
 				}
 
-				_, tag := parseImage(container.Image)
-				if tag != imageRepo.Tags[params.Tag] {
+				// The container image's tag name is by convention the same as the image ID it references
+				_, containerImageID := parseImage(container.Image)
+				if repoImageID, repoHasTag := imageRepo.Tags[params.Tag]; repoHasTag && repoImageID != containerImageID {
 					configIDs = append(configIDs, config.Name)
 					firedTriggersForConfig[config.Name] = append(firedTriggersForConfig[config.Name], params)
 				}
