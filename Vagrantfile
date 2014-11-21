@@ -92,7 +92,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.memory = 1024
       v.cpus = 2
       v.customize ["modifyvm", :id, "--cpus", "2"]
+      # to make the ha-proxy reachable from the host, you need to add a port forwarding rule from 1080 to 80, which
+      # requires root privilege. Use iptables on linux based or ipfw on BSD based OS:
+      # sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 1080 
+      # sudo ipfw add 100 fwd 127.0.0.1,1080 tcp from any to any 80 in
+			config.vm.network "forwarded_port", guest: 80, host: 1080
 			config.vm.network "forwarded_port", guest: 8080, host: 8080
+			config.vm.network "forwarded_port", guest: 80, host: 1080
     end
 
     # Set VMware Fusion provider settings
