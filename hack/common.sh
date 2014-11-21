@@ -36,6 +36,7 @@ readonly OS_CROSS_COMPILE_PLATFORMS=(
 )
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
+  cmd/osc
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 

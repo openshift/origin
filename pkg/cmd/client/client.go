@@ -7,20 +7,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const longDescription = `
-Kubernetes Command Line - kubecfg
-
-OpenShift currently embeds the kubecfg command line for prototyping and debugging.
-`
-
-// NewCommandKubecfg returns a CLI handler for 'kubecfg' command.
-// TODO: This command is obsoleted by 'kubectl'
 func NewCommandKubecfg(name string) *cobra.Command {
 	cfg := &KubeConfig{}
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "The Kubernetes command line client",
-		Long:  longDescription + usage(name),
+		Long: `
+Kubernetes Command Line - kubecfg
+
+OpenShift currently embeds the kubecfg command line for prototyping and debugging.
+` + usage(name),
 		Run: func(c *cobra.Command, args []string) {
 			if len(args) < 1 {
 				c.Help()

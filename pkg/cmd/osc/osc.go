@@ -1,7 +1,6 @@
-package kubectl
+package osc
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -11,19 +10,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCommandKubectl(name string) *cobra.Command {
+const longDescription = `
+End-user client tool for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat.
+Note: This is an alpha release of OpenShift and will change significantly.  See
+    https://github.com/openshift/origin
+for the latest information on OpenShift.
+`
+
+func NewCommandDeveloper(name string) *cobra.Command {
+	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: name + " controls the Kubernetes cluster manager and OpenShift",
-		Long: `Controls the Kubernetes cluster manager.
-Find more information at https://github.com/GoogleCloudPlatform/kubernetes and
-https://github.com/openshift/origin.`,
+		Short: "Client tools for OpenShift",
+		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
 			c.Help()
 		},
 	}
 
-	// TODO: Make this as a method in upstream and just consume this method
+	factory := cmd.NewOriginFactory()
+
+	factory.Factory.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
+		return NewHumanReadablePrinter(noHeaders), nil
+	}
+
+	// TODO reuse
 	cmds.PersistentFlags().StringP("server", "s", "", "Kubernetes apiserver to connect to")
 	cmds.PersistentFlags().StringP("auth-path", "a", os.Getenv("HOME")+"/.kubernetes_auth", "Path to the auth info file. If missing, p rompt the user. Only used if using https.")
 	cmds.PersistentFlags().Bool("match-server-version", false, "Require server version to match client version")
@@ -34,22 +45,6 @@ https://github.com/openshift/origin.`,
 	cmds.PersistentFlags().Bool("insecure-skip-tls-verify", false, "If true, the server's certificate will not be checked for validity . This will make your HTTPS connections insecure.")
 	cmds.PersistentFlags().String("ns-path", os.Getenv("HOME")+"/.kubernetes_ns", "Path to the namespace info file that holds the name space context to use for CLI requests.")
 	cmds.PersistentFlags().StringP("namespace", "n", "", "If present, the namespace scope for this CLI request.")
-
-	factory := cmd.NewOriginFactory()
-
-	factory.Factory.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
-		return NewHumanReadablePrinter(noHeaders), nil
-	}
-
-	// Initialize describer for Origin objects
-	factory.OriginDescriber = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
-		if c, err := factory.OriginClient(cmd, mapping); err == nil {
-			if describer, ok := DescriberFor(mapping.Kind, c, cmd); ok == true {
-				return describer, nil
-			}
-		}
-		return nil, fmt.Errorf("unable to describe %s type", mapping.Kind)
-	}
 
 	factory.AddCommands(cmds, os.Stdout)
 
