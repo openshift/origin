@@ -481,8 +481,8 @@
 		},
 		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",
-			"Comment": "v3.0.6",
-			"Rev": "1743f47c0112eff669b0199889670d61384b4730"
+			"Comment": "v3.0.7",
+			"Rev": "bbd0c6e271208dce66d8fda4bc536453cd27fc4a"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",
