@@ -56,7 +56,7 @@ func (cfg *Config) bindEnv() {
 	}
 }
 
-func (cfg *Config) Clients() (*kclient.Client, *osclient.Client, error) {
+func (cfg *Config) Clients() (kclient.Interface, osclient.Interface, error) {
 	cfg.bindEnv()
 
 	kaddr := cfg.KubernetesAddr

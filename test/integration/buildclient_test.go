@@ -37,10 +37,9 @@ func init() {
 
 func TestListBuilds(t *testing.T) {
 	deleteAllEtcdKeys()
-	ctx := kapi.NewContext()
 	openshift := NewTestBuildOpenshift(t)
 
-	builds, err := openshift.Client.ListBuilds(ctx, labels.Everything())
+	builds, err := openshift.Client.Builds(testNamespace).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -51,11 +50,10 @@ func TestListBuilds(t *testing.T) {
 
 func TestCreateBuild(t *testing.T) {
 	deleteAllEtcdKeys()
-	ctx := kapi.NewContext()
 	openshift := NewTestBuildOpenshift(t)
 	build := mockBuild()
 
-	expected, err := openshift.Client.CreateBuild(ctx, build)
+	expected, err := openshift.Client.Builds(testNamespace).Create(build)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -63,7 +61,7 @@ func TestCreateBuild(t *testing.T) {
 		t.Errorf("Unexpected empty build Name %v", expected)
 	}
 
-	builds, err := openshift.Client.ListBuilds(ctx, labels.Everything())
+	builds, err := openshift.Client.Builds(testNamespace).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -74,31 +72,29 @@ func TestCreateBuild(t *testing.T) {
 
 func TestDeleteBuild(t *testing.T) {
 	deleteAllEtcdKeys()
-	ctx := kapi.NewContext()
 	openshift := NewTestBuildOpenshift(t)
 	build := mockBuild()
 
-	actual, err := openshift.Client.CreateBuild(ctx, build)
+	actual, err := openshift.Client.Builds(testNamespace).Create(build)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if err := openshift.Client.DeleteBuild(ctx, actual.Name); err != nil {
+	if err := openshift.Client.Builds(testNamespace).Delete(actual.Name); err != nil {
 		t.Fatalf("Unxpected error: %v", err)
 	}
 }
 
 func TestWatchBuilds(t *testing.T) {
 	deleteAllEtcdKeys()
-	ctx := kapi.NewContext()
 	openshift := NewTestBuildOpenshift(t)
 	build := mockBuild()
 
-	watch, err := openshift.Client.WatchBuilds(ctx, labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	expected, err := openshift.Client.CreateBuild(ctx, build)
+	expected, err := openshift.Client.Builds(testNamespace).Create(build)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -188,7 +184,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(osClient, map[string]webhook.Plugin{
+		webhook.NewController(clientWebhookInterface{osClient}, map[string]webhook.Plugin{
 			"github": github.New(),
 		})))
 
@@ -217,4 +213,16 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	factory.Create().Run()
 
 	return openshift
+}
+
+type clientWebhookInterface struct {
+	Client osclient.Interface
+}
+
+func (c clientWebhookInterface) CreateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
+	return c.Client.Builds(namespace).Create(build)
+}
+
+func (c clientWebhookInterface) GetBuildConfig(namespace, name string) (*buildapi.BuildConfig, error) {
+	return c.Client.BuildConfigs(namespace).Get(name)
 }

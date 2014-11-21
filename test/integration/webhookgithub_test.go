@@ -21,7 +21,6 @@ func init() {
 
 func TestWebhookGithubPush(t *testing.T) {
 	deleteAllEtcdKeys()
-	ctx := kapi.NewContext()
 	openshift := NewTestBuildOpenshift(t)
 
 	// create buildconfig
@@ -56,17 +55,17 @@ func TestWebhookGithubPush(t *testing.T) {
 		},
 	}
 
-	if _, err := openshift.Client.CreateBuildConfig(ctx, buildConfig); err != nil {
+	if _, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.WatchBuilds(ctx, labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github", http.StatusOK, t)
+	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testNamespace, http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -78,7 +77,6 @@ func TestWebhookGithubPush(t *testing.T) {
 
 func TestWebhookGithubPing(t *testing.T) {
 	deleteAllEtcdKeys()
-	ctx := kapi.NewContext()
 	openshift := NewTestBuildOpenshift(t)
 
 	// create buildconfig
@@ -112,17 +110,17 @@ func TestWebhookGithubPing(t *testing.T) {
 			},
 		},
 	}
-	if _, err := openshift.Client.CreateBuildConfig(ctx, buildConfig); err != nil {
+	if _, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.WatchBuilds(ctx, labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 
 	// trigger build event sending push notification
-	postFile("ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pingbuild/secret101/github", http.StatusOK, t)
+	postFile("ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pingbuild/secret101/github?namespace="+testNamespace, http.StatusOK, t)
 
 	// TODO: improve negative testing
 	timer := time.NewTimer(time.Second / 2)

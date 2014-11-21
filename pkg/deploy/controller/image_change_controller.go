@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -23,8 +22,8 @@ type ImageChangeController struct {
 }
 
 type icDeploymentConfigInterface interface {
-	UpdateDeploymentConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
-	GenerateDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
 }
 
 // Run processes ImageRepository events one by one.
@@ -35,10 +34,8 @@ func (c *ImageChangeController) Run() {
 // HandleImageRepo processes the next ImageRepository event.
 func (c *ImageChangeController) HandleImageRepo() {
 	imageRepo := c.NextImageRepository()
-	configIDs := []string{}
+	configNames := []string{}
 	firedTriggersForConfig := make(map[string][]deployapi.DeploymentTriggerImageChangeParams)
-
-	imageRepoCtx := kapi.WithNamespace(kapi.NewContext(), imageRepo.Namespace)
 
 	for _, c := range c.DeploymentConfigStore.List() {
 		config := c.(*deployapi.DeploymentConfig)
@@ -65,36 +62,35 @@ func (c *ImageChangeController) HandleImageRepo() {
 				// The container image's tag name is by convention the same as the image ID it references
 				_, containerImageID := parseImage(container.Image)
 				if repoImageID, repoHasTag := imageRepo.Tags[params.Tag]; repoHasTag && repoImageID != containerImageID {
-					configIDs = append(configIDs, config.Name)
+					configNames = append(configNames, config.Name)
 					firedTriggersForConfig[config.Name] = append(firedTriggersForConfig[config.Name], params)
 				}
 			}
 		}
 	}
 
-	for _, configID := range configIDs {
-		glog.V(4).Infof("Regenerating deploymentConfig %s", configID)
-		err := c.regenerate(imageRepoCtx, configID, firedTriggersForConfig[configID])
+	for _, configName := range configNames {
+		glog.V(4).Infof("Regenerating deploymentConfig %s", configName)
+		err := c.regenerate(imageRepo.Namespace, configName, firedTriggersForConfig[configName])
 		if err != nil {
-			glog.V(2).Infof("Error regenerating deploymentConfig %v: %v", configID, err)
+			glog.V(2).Infof("Error regenerating deploymentConfig %v: %v", configName, err)
 		}
 	}
 }
 
-func (c *ImageChangeController) regenerate(ctx kapi.Context, configID string, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
-	newConfig, err := c.DeploymentConfigInterface.GenerateDeploymentConfig(ctx, configID)
+func (c *ImageChangeController) regenerate(namespace, configName string, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
+	newConfig, err := c.DeploymentConfigInterface.GenerateDeploymentConfig(namespace, configName)
 	if err != nil {
-		glog.V(2).Infof("Error generating new version of deploymentConfig %v", configID)
+		glog.V(2).Infof("Error generating new version of deploymentConfig %v", configName)
 		return err
 	}
 
 	// update the deployment config with the trigger that resulted in the new config being generated
 	newConfig.Details = generateTriggerDetails(triggers)
 
-	ctx = kapi.WithNamespace(ctx, newConfig.Namespace)
-	_, err = c.DeploymentConfigInterface.UpdateDeploymentConfig(ctx, newConfig)
+	_, err = c.DeploymentConfigInterface.UpdateDeploymentConfig(newConfig.Namespace, newConfig)
 	if err != nil {
-		glog.V(2).Infof("Error updating deploymentConfig %v", configID)
+		glog.V(2).Infof("Error updating deploymentConfig %v", configName)
 		return err
 	}
 

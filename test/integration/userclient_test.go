@@ -61,7 +61,7 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	actual, created, err := client.CreateOrUpdateUserIdentityMapping(&mapping)
+	actual, created, err := client.UserIdentityMappings().CreateOrUpdate(&mapping)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestUserInitialization(t *testing.T) {
 	}
 	compareIgnoringSelfLinkAndVersion(t, &expected.User, user)
 
-	actualUser, err := client.GetUser(expectedUser.Name)
+	actualUser, err := client.Users().Get(expectedUser.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestUserLookup(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	actual, created, err := client.CreateOrUpdateUserIdentityMapping(&mapping)
+	actual, created, err := client.UserIdentityMappings().CreateOrUpdate(&mapping)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -175,14 +175,14 @@ func TestUserLookup(t *testing.T) {
 	compareIgnoringSelfLinkAndVersion(t, &expected.User, user)
 
 	// check the user returned by the client
-	actualUser, err := client.GetUser(expectedUser.Name)
+	actualUser, err := client.Users().Get(expectedUser.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	compareIgnoringSelfLinkAndVersion(t, &expected.User, actualUser)
 
 	// check the current user
-	currentUser, err := client.GetUser("~")
+	currentUser, err := client.Users().Get("~")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

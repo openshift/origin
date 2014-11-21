@@ -8,18 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/client"
 )
 
-type osClient struct {
-	client.Fake
-}
+type okClient struct{}
 
-func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
+func (_ *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -40,12 +35,12 @@ func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.Buil
 	}, nil
 }
 
-func (_ *osClient) GenerateBuild(ctx kapi.Context, bc *api.BuildConfig, revision *api.SourceRevision) (*api.Build, error) {
-	return nil, nil
+func (_ *okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
+	return &api.Build{}, nil
 }
 
 func TestWrongMethod(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	resp, _ := http.Get(server.URL + "/build100/secret101/github")
@@ -57,7 +52,7 @@ func TestWrongMethod(t *testing.T) {
 }
 
 func TestWrongContentType(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -74,7 +69,7 @@ func TestWrongContentType(t *testing.T) {
 }
 
 func TestWrongUserAgent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -91,7 +86,7 @@ func TestWrongUserAgent(t *testing.T) {
 }
 
 func TestMissingGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -107,7 +102,7 @@ func TestMissingGithubEvent(t *testing.T) {
 }
 
 func TestWrongGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -124,7 +119,7 @@ func TestWrongGithubEvent(t *testing.T) {
 }
 
 func TestJsonPingEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	postFile("ping", "pingevent.json", server.URL+"/build100/secret101/github",
@@ -132,14 +127,14 @@ func TestJsonPingEvent(t *testing.T) {
 }
 
 func TestJsonPushEventError(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	post("push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
 }
 
 func TestJsonPushEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&osClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	postFile("push", "pushevent.json", server.URL+"/build100/secret101/github",

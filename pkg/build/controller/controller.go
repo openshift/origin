@@ -29,7 +29,7 @@ type BuildStrategy interface {
 }
 
 type buildUpdater interface {
-	UpdateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error)
+	UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error)
 }
 
 type podCreator interface {
@@ -71,7 +71,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 	}
 
 	build.Status = nextStatus
-	if _, err := bc.BuildUpdater.UpdateBuild(kapi.WithNamespace(kapi.NewContext(), build.Namespace), build); err != nil {
+	if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
 		glog.V(2).Infof("Failed to update build %s: %#v", build.Name, err)
 	}
 }
@@ -111,7 +111,7 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	if build.Status != nextStatus {
 		glog.V(4).Infof("Updating build %s status %s -> %s", build.Name, build.Status, nextStatus)
 		build.Status = nextStatus
-		if _, err := bc.BuildUpdater.UpdateBuild(kapi.WithNamespace(kapi.NewContext(), build.Namespace), build); err != nil {
+		if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
 			glog.V(2).Infof("Failed to update build %s: %#v", build.Name, err)
 		}
 	}

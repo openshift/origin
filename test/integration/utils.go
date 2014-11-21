@@ -11,6 +11,8 @@ import (
 	"github.com/golang/glog"
 )
 
+const testNamespace = "integration-test"
+
 func newEtcdClient() *etcd.Client {
 	etcdServers := []string{"http://127.0.0.1:4001"}
 

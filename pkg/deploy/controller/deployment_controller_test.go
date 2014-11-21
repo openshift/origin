@@ -20,7 +20,7 @@ func TestHandleNewDeploymentCreatePodOk(t *testing.T) {
 
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				updatedDeployment = deployment
 				return updatedDeployment, nil
 			},
@@ -90,7 +90,7 @@ func TestHandleNewDeploymentCreatePodFail(t *testing.T) {
 
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namspace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				updatedDeployment = deployment
 				return updatedDeployment, nil
 			},
@@ -129,7 +129,7 @@ func TestHandleNewDeploymentCreatePodAlreadyExists(t *testing.T) {
 
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				updatedDeployment = deployment
 				return updatedDeployment, nil
 			},
@@ -166,7 +166,7 @@ func TestHandleNewDeploymentCreatePodAlreadyExists(t *testing.T) {
 func TestHandleUncorrelatedPod(t *testing.T) {
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				t.Fatalf("Unexpected deployment update")
 				return nil, nil
 			},
@@ -188,7 +188,7 @@ func TestHandleUncorrelatedPod(t *testing.T) {
 func TestHandleOrphanedPod(t *testing.T) {
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				t.Fatalf("Unexpected deployment update")
 				return nil, nil
 			},
@@ -208,7 +208,7 @@ func TestHandlePodRunning(t *testing.T) {
 
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				updatedDeployment = deployment
 				return deployment, nil
 			},
@@ -238,14 +238,14 @@ func TestHandlePodTerminatedOk(t *testing.T) {
 
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				updatedDeployment = deployment
 				return deployment, nil
 			},
 		},
 		PodInterface: &testDcPodInterface{
-			DeletePodFunc: func(namespace, id string) error {
-				deletedPodId = id
+			DeletePodFunc: func(namespace, name string) error {
+				deletedPodId = name
 				return nil
 			},
 		},
@@ -274,14 +274,14 @@ func TestHandlePodTerminatedNotOk(t *testing.T) {
 
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
-			UpdateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			UpdateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				updatedDeployment = deployment
 				return deployment, nil
 			},
 		},
 		PodInterface: &testDcPodInterface{
-			DeletePodFunc: func(namespace, id string) error {
-				t.Fatalf("unexpected delete of pod %s", id)
+			DeletePodFunc: func(namespace, name string) error {
+				t.Fatalf("unexpected delete of pod %s", name)
 				return nil
 			},
 		},
@@ -315,24 +315,24 @@ func (t *testContainerCreator) CreateContainer(strategy *deployapi.DeploymentStr
 }
 
 type testDcDeploymentInterface struct {
-	UpdateDeploymentFunc func(deployment *deployapi.Deployment) (*deployapi.Deployment, error)
+	UpdateDeploymentFunc func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
 
-func (i *testDcDeploymentInterface) UpdateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	return i.UpdateDeploymentFunc(deployment)
+func (i *testDcDeploymentInterface) UpdateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+	return i.UpdateDeploymentFunc(namespace, deployment)
 }
 
 type testDcPodInterface struct {
 	CreatePodFunc func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	DeletePodFunc func(namespace, id string) error
+	DeletePodFunc func(namespace, name string) error
 }
 
 func (i *testDcPodInterface) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return i.CreatePodFunc(namespace, pod)
 }
 
-func (i *testDcPodInterface) DeletePod(namespace, id string) error {
-	return i.DeletePodFunc(namespace, id)
+func (i *testDcPodInterface) DeletePod(namespace, name string) error {
+	return i.DeletePodFunc(namespace, name)
 }
 
 func basicDeployment() *deployapi.Deployment {

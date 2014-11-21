@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -47,9 +46,7 @@ func (lm *LBManager) Run(period time.Duration) {
 
 // resourceVersion is a pointer to the resource version to use/update.
 func (lm *LBManager) watchRoutes(resourceVersion *string) {
-	ctx := kapi.NewContext()
-	watching, err := lm.routeWatcher.WatchRoutes(
-		ctx,
+	watching, err := lm.routeWatcher.Routes(kapi.NamespaceAll).Watch(
 		labels.Everything(),
 		labels.Everything(),
 		*resourceVersion,
@@ -109,7 +106,7 @@ func (lm *LBManager) watchEndpoints(resourceVersion *string) {
 				// that called us call us again.
 				return
 			}
-			rc, ok := event.Object.(*api.Endpoints)
+			rc, ok := event.Object.(*kapi.Endpoints)
 			if !ok {
 				glog.Errorf("unexpected object: %#v", event.Object)
 				continue
@@ -149,7 +146,7 @@ func (lm *LBManager) syncRoutes(event watch.EventType, app routeapi.Route) {
 	lm.routes.ReloadRouter()
 }
 
-func (lm *LBManager) syncEndpoints(event watch.EventType, app api.Endpoints) {
+func (lm *LBManager) syncEndpoints(event watch.EventType, app kapi.Endpoints) {
 	lm.lock.Lock()
 	defer lm.lock.Unlock()
 	glog.V(4).Infof("App Name : %s\n", app.Name)
