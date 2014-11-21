@@ -19,7 +19,7 @@ func (s FakeDeploymentStore) Delete(id string)                  {}
 func (s FakeDeploymentStore) List() []interface{} {
 	return []interface{}{s.Deployment}
 }
-func (s FakeDeploymentStore) Contains() util.StringSet {
+func (s FakeDeploymentStore) ContainedIDs() util.StringSet {
 	return util.NewStringSet()
 }
 func (s FakeDeploymentStore) Get(id string) (item interface{}, exists bool) {

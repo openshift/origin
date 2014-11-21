@@ -8,10 +8,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
+	"strconv"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/route/api"
-	"strconv"
 )
 
 const (
@@ -73,22 +74,22 @@ func (registry *Etcd) GetRoute(ctx kapi.Context, routeID string) (*api.Route, er
 
 // CreateRoute creates a new Route.
 func (registry *Etcd) CreateRoute(ctx kapi.Context, route *api.Route) error {
-	key, err := makeRouteKey(ctx, route.ID)
+	key, err := makeRouteKey(ctx, route.Name)
 	if err != nil {
 		return err
 	}
 	err = registry.CreateObj(key, route, 0)
-	return etcderr.InterpretCreateError(err, "route", route.ID)
+	return etcderr.InterpretCreateError(err, "route", route.Name)
 }
 
 // UpdateRoute replaces an existing Route.
 func (registry *Etcd) UpdateRoute(ctx kapi.Context, route *api.Route) error {
-	key, err := makeRouteKey(ctx, route.ID)
+	key, err := makeRouteKey(ctx, route.Name)
 	if err != nil {
 		return err
 	}
 	err = registry.SetObj(key, route)
-	return etcderr.InterpretUpdateError(err, "route", route.ID)
+	return etcderr.InterpretUpdateError(err, "route", route.Name)
 }
 
 // DeleteRoute deletes a Route specified by its ID.

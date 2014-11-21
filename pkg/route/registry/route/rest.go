@@ -50,7 +50,7 @@ func (rs *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the Route specified by its id.
-func (rs *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (rs *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	_, err := rs.registry.GetRoute(ctx, id)
 	if err != nil {
 		return nil, err
@@ -61,20 +61,20 @@ func (rs *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, erro
 }
 
 // Create registers a given new Route instance to rs.registry.
-func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
 		return nil, fmt.Errorf("not a route: %#v", obj)
 	}
-	if !kapi.ValidNamespace(ctx, &route.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &route.ObjectMeta) {
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
-		return nil, errors.NewInvalid("route", route.ID, errs)
+		return nil, errors.NewInvalid("route", route.Name, errs)
 	}
-	if len(route.ID) == 0 {
-		route.ID = uuid.NewUUID().String()
+	if len(route.Name) == 0 {
+		route.Name = uuid.NewUUID().String()
 	}
 
 	route.CreationTimestamp = util.Now()
@@ -84,32 +84,32 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obj
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetRoute(ctx, route.ID)
+		return rs.registry.GetRoute(ctx, route.Name)
 	}), nil
 }
 
 // Update replaces a given Route instance with an existing instance in rs.registry.
-func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
 		return nil, fmt.Errorf("not a route: %#v", obj)
 	}
-	if len(route.ID) == 0 {
-		return nil, fmt.Errorf("id is unspecified: %#v", route)
+	if len(route.Name) == 0 {
+		return nil, fmt.Errorf("name is unspecified: %#v", route)
 	}
-	if !kapi.ValidNamespace(ctx, &route.TypeMeta) {
+	if !kapi.ValidNamespace(ctx, &route.ObjectMeta) {
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
-		return nil, errors.NewInvalid("route", route.ID, errs)
+		return nil, errors.NewInvalid("route", route.Name, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.UpdateRoute(ctx, route)
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetRoute(ctx, route.ID)
+		return rs.registry.GetRoute(ctx, route.Name)
 	}), nil
 }
 

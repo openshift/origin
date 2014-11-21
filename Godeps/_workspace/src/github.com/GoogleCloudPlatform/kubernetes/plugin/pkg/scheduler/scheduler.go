@@ -22,6 +22,8 @@ import (
 	// TODO: move everything from pkg/scheduler into this package. Remove references from registry.
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/scheduler"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
+	"github.com/golang/glog"
 )
 
 // Binder knows how to write a binding.
@@ -66,21 +68,24 @@ func (s *Scheduler) Run() {
 
 func (s *Scheduler) scheduleOne() {
 	pod := s.config.NextPod()
+	glog.V(3).Infof("Attempting to schedule: %v", pod)
 	dest, err := s.config.Algorithm.Schedule(*pod, s.config.MinionLister)
 	if err != nil {
-		record.Eventf(pod, "", string(api.PodWaiting), "failedScheduling", "Error scheduling: %v", err)
+		glog.V(1).Infof("Failed to schedule: %v", pod)
+		record.Eventf(pod, string(api.PodPending), "failedScheduling", "Error scheduling: %v", err)
 		s.config.Error(pod, err)
 		return
 	}
 	b := &api.Binding{
-		TypeMeta: api.TypeMeta{Namespace: pod.Namespace},
-		PodID:    pod.ID,
-		Host:     dest,
+		ObjectMeta: api.ObjectMeta{Namespace: pod.Namespace},
+		PodID:      pod.Name,
+		Host:       dest,
 	}
 	if err := s.config.Binder.Bind(b); err != nil {
-		record.Eventf(pod, "", string(api.PodWaiting), "failedScheduling", "Binding rejected: %v", err)
+		glog.V(1).Infof("Failed to bind pod: %v", err)
+		record.Eventf(pod, string(api.PodPending), "failedScheduling", "Binding rejected: %v", err)
 		s.config.Error(pod, err)
 		return
 	}
-	record.Eventf(pod, "", string(api.PodWaiting), "scheduled", "Successfully assigned %v to %v", pod.ID, dest)
+	record.Eventf(pod, string(api.PodPending), "scheduled", "Successfully assigned %v to %v", pod.Name, dest)
 }

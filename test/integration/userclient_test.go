@@ -13,6 +13,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -35,18 +37,18 @@ func TestUserInitialization(t *testing.T) {
 	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.ResourceVersioner}}, user.NewDefaultUserInitStrategy())
+	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, user.NewDefaultUserInitStrategy())
 	storage := map[string]apiserver.RESTStorage{
 		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi/v1beta1", interfaces.SelfLinker))
+	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi/v1beta1", interfaces.MetadataAccessor))
 
 	mapping := api.UserIdentityMapping{
 		Identity: api.Identity{
-			Provider: "",
-			Name:     "test",
+			ObjectMeta: kapi.ObjectMeta{Name: "test"},
+			Provider:   "",
 			Extra: map[string]string{
 				"name": "Mr. Test",
 			},
@@ -67,10 +69,10 @@ func TestUserInitialization(t *testing.T) {
 	}
 
 	expectedUser := api.User{
-		Name:     ":test",
-		FullName: "Mr. Test",
+		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
+		FullName:   "Mr. Test",
 	}
-	expectedUser.ID = ":test"
+	expectedUser.Name = ":test"
 	expectedUser.UID = actual.User.UID
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,
@@ -104,7 +106,7 @@ func TestUserLookup(t *testing.T) {
 	deleteAllEtcdKeys()
 	etcdClient := newEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.ResourceVersioner}}, user.NewDefaultUserInitStrategy())
+	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, user.NewDefaultUserInitStrategy())
 	userInfo := &authapi.DefaultUserInfo{
 		Name: ":test",
 	}
@@ -122,7 +124,7 @@ func TestUserLookup(t *testing.T) {
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi/v1beta1", interfaces.SelfLinker)
+	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi/v1beta1", interfaces.MetadataAccessor)
 	apihandler = userregistry.NewCurrentUserContextFilter("/osapi/v1beta1/users/~", userContextFunc, apihandler)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		userContext.Set(req, userInfo)
@@ -131,8 +133,8 @@ func TestUserLookup(t *testing.T) {
 
 	mapping := api.UserIdentityMapping{
 		Identity: api.Identity{
-			Provider: "",
-			Name:     "test",
+			ObjectMeta: kapi.ObjectMeta{Name: "test"},
+			Provider:   "",
 			Extra: map[string]string{
 				"name": "Mr. Test",
 			},
@@ -152,10 +154,10 @@ func TestUserLookup(t *testing.T) {
 		// TODO: t.Errorf("expected created to be true")
 	}
 	expectedUser := api.User{
-		Name:     ":test",
-		FullName: "Mr. Test",
+		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
+		FullName:   "Mr. Test",
 	}
-	expectedUser.ID = ":test"
+	expectedUser.Name = ":test"
 	expectedUser.UID = actual.User.UID
 	expected := &api.UserIdentityMapping{
 		Identity: mapping.Identity,
@@ -199,9 +201,9 @@ func TestUserLookup(t *testing.T) {
 }
 
 func compareIgnoringSelfLinkAndVersion(t *testing.T, expected runtime.Object, actual runtime.Object) {
-	if actualTypeMeta, _ := runtime.FindTypeMeta(actual); actualTypeMeta != nil {
-		actualTypeMeta.SetSelfLink("")
-		actualTypeMeta.SetResourceVersion("")
+	if actualAccessor, _ := meta.Accessor(actual); actualAccessor != nil {
+		actualAccessor.SetSelfLink("")
+		actualAccessor.SetResourceVersion("")
 	}
 
 	if !reflect.DeepEqual(expected, actual) {

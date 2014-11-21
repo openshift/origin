@@ -1,13 +1,15 @@
 {
-  "id": "test",
   "kind": "ImageRepository",
   "apiVersion": "v1beta1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "color": "blue"
+    }
+  },
   "dockerImageRepository": "openshift/ruby-19-centos",
   "tags": {
     "latest": "foo",
     "another": "bar",
-  },
-  "labels": {
-    "color": "blue"
   }
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/etcd"
@@ -54,7 +55,7 @@ func TestOAuthStorage(t *testing.T) {
 	deleteAllEtcdKeys()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	etcdClient := newEtcdClient()
-	etcdHelper := tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.ResourceVersioner}}
+	etcdHelper := tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}
 	registry := etcd.New(etcdHelper)
 
 	user := &testUser{UserName: "test", UserUID: "1"}
@@ -95,7 +96,7 @@ func TestOAuthStorage(t *testing.T) {
 	}))
 
 	registry.CreateClient(&api.Client{
-		Name:         "test",
+		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
 		Secret:       "secret",
 		RedirectURIs: []string{assertServer.URL + "/assert"},
 	})

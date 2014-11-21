@@ -92,7 +92,7 @@ func NewConflict(kind, name string, err error) error {
 }
 
 // NewInvalid returns an error indicating the item is invalid and cannot be processed.
-func NewInvalid(kind, name string, errs ErrorList) error {
+func NewInvalid(kind, name string, errs ValidationErrorList) error {
 	causes := make([]api.StatusCause, 0, len(errs))
 	for i := range errs {
 		if err, ok := errs[i].(ValidationError); ok {
@@ -116,6 +116,35 @@ func NewInvalid(kind, name string, errs ErrorList) error {
 	}}
 }
 
+// NewBadRequest creates an error that indicates that the request is invalid and can not be processed.
+func NewBadRequest(reason string) error {
+	return &statusError{
+		api.Status{
+			Status: api.StatusFailure,
+			Code:   400,
+			Reason: api.StatusReasonBadRequest,
+			Details: &api.StatusDetails{
+				Causes: []api.StatusCause{
+					{Message: reason},
+				},
+			},
+		},
+	}
+}
+
+// NewInternalError returns an error indicating the item is invalid and cannot be processed.
+func NewInternalError(err error) error {
+	return &statusError{api.Status{
+		Status: api.StatusFailure,
+		Code:   500,
+		Reason: api.StatusReasonInternalError,
+		Details: &api.StatusDetails{
+			Causes: []api.StatusCause{{Message: err.Error()}},
+		},
+		Message: fmt.Sprintf("Internal error occurred: %v", err),
+	}}
+}
+
 // IsNotFound returns true if the specified error was created by NewNotFoundErr.
 func IsNotFound(err error) bool {
 	return reasonForError(err) == api.StatusReasonNotFound
@@ -134,6 +163,11 @@ func IsConflict(err error) bool {
 // IsInvalid determines if the err is an error which indicates the provided resource is not valid.
 func IsInvalid(err error) bool {
 	return reasonForError(err) == api.StatusReasonInvalid
+}
+
+// IsBadRequest determines if err is an error which indicates that the request is invalid.
+func IsBadRequest(err error) bool {
+	return reasonForError(err) == api.StatusReasonBadRequest
 }
 
 func reasonForError(err error) api.StatusReason {

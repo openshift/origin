@@ -39,6 +39,7 @@ type fakeKubelet struct {
 	containerInfoFunc func(podFullName, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error)
 	rootInfoFunc      func(query *info.ContainerInfoRequest) (*info.ContainerInfo, error)
 	machineInfoFunc   func() (*info.MachineInfo, error)
+	boundPodsFunc     func() ([]api.BoundPod, error)
 	logFunc           func(w http.ResponseWriter, req *http.Request)
 	runFunc           func(podFullName, uuid, containerName string, cmd []string) ([]byte, error)
 	containerLogsFunc func(podFullName, containerName, tail string, follow bool, stdout, stderr io.Writer) error
@@ -58,6 +59,10 @@ func (fk *fakeKubelet) GetRootInfo(req *info.ContainerInfoRequest) (*info.Contai
 
 func (fk *fakeKubelet) GetMachineInfo() (*info.MachineInfo, error) {
 	return fk.machineInfoFunc()
+}
+
+func (fk *fakeKubelet) GetBoundPods() ([]api.BoundPod, error) {
+	return fk.boundPodsFunc()
 }
 
 func (fk *fakeKubelet) ServeLogs(w http.ResponseWriter, req *http.Request) {
@@ -132,9 +137,9 @@ func TestContainer(t *testing.T) {
 	}
 	expectedPods := []api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID:  "test_manifest",
-				UID: "value",
+			ObjectMeta: api.ObjectMeta{
+				Name: "test_manifest",
+				UID:  "value",
 			},
 			Spec: api.PodSpec{
 				Containers: []api.Container{
@@ -207,8 +212,8 @@ func TestContainers(t *testing.T) {
 	}
 	expectedPods := []api.BoundPod{
 		{
-			TypeMeta: api.TypeMeta{
-				ID: "1",
+			ObjectMeta: api.ObjectMeta{
+				Name: "1",
 			},
 			Spec: api.PodSpec{
 				Containers: []api.Container{
@@ -227,8 +232,8 @@ func TestContainers(t *testing.T) {
 			},
 		},
 		{
-			TypeMeta: api.TypeMeta{
-				ID: "2",
+			ObjectMeta: api.ObjectMeta{
+				Name: "2",
 			},
 			Spec: api.PodSpec{
 				Containers: []api.Container{

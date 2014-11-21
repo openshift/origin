@@ -19,9 +19,12 @@ package client
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -29,6 +32,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta2"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -38,9 +42,241 @@ import (
 	watchjson "github.com/GoogleCloudPlatform/kubernetes/pkg/watch/json"
 )
 
+func skipPolling(name string) (*Request, bool) {
+	return nil, false
+}
+
+func TestRequestWithErrorWontChange(t *testing.T) {
+	original := Request{err: errors.New("test")}
+	r := original
+	changed := r.Param("foo", "bar").
+		SelectorParam("labels", labels.Set{"a": "b"}.AsSelector()).
+		UintParam("uint", 1).
+		AbsPath("/abs").
+		Path("test").
+		ParseSelectorParam("foo", "a=b").
+		Namespace("new").
+		NoPoll().
+		Body("foo").
+		Poller(skipPolling).
+		Timeout(time.Millisecond).
+		Sync(true)
+	if changed != &r {
+		t.Errorf("returned request should point to the same object")
+	}
+	if !reflect.DeepEqual(&original, changed) {
+		t.Errorf("expected %#v, got %#v", &original, changed)
+	}
+}
+
+func TestRequestParseSelectorParam(t *testing.T) {
+	r := (&Request{}).ParseSelectorParam("foo", "a")
+	if r.err == nil || r.params != nil {
+		t.Errorf("should have set err and left params nil: %#v", r)
+	}
+}
+
+func TestRequestParam(t *testing.T) {
+	r := (&Request{}).Param("foo", "a")
+	if !reflect.DeepEqual(map[string]string{"foo": "a"}, r.params) {
+		t.Errorf("should have set a param: %#v", r)
+	}
+}
+
+type NotAnAPIObject struct{}
+
+func (NotAnAPIObject) IsAnAPIObject() {}
+
+func TestRequestBody(t *testing.T) {
+	// test unknown type
+	r := (&Request{}).Body([]string{"test"})
+	if r.err == nil || r.body != nil {
+		t.Errorf("should have set err and left body nil: %#v", r)
+	}
+
+	// test error set when failing to read file
+	f, err := ioutil.TempFile("", "test")
+	if err != nil {
+		t.Fatalf("unable to create temp file")
+	}
+	os.Remove(f.Name())
+	r = (&Request{}).Body(f.Name())
+	if r.err == nil || r.body != nil {
+		t.Errorf("should have set err and left body nil: %#v", r)
+	}
+
+	// test unencodable api object
+	r = (&Request{codec: latest.Codec}).Body(&NotAnAPIObject{})
+	if r.err == nil || r.body != nil {
+		t.Errorf("should have set err and left body nil: %#v", r)
+	}
+}
+
+func TestResultIntoWithErrReturnsErr(t *testing.T) {
+	res := Result{err: errors.New("test")}
+	if err := res.Into(&api.Pod{}); err != res.err {
+		t.Errorf("should have returned exact error from result")
+	}
+}
+
+func TestTransformResponse(t *testing.T) {
+	invalid := []byte("aaaaa")
+	uri, _ := url.Parse("http://localhost")
+	testCases := []struct {
+		Response *http.Response
+		Data     []byte
+		Created  bool
+		Error    bool
+	}{
+		{Response: &http.Response{StatusCode: 200}, Data: []byte{}},
+		{Response: &http.Response{StatusCode: 201}, Data: []byte{}, Created: true},
+		{Response: &http.Response{StatusCode: 199}, Error: true},
+		{Response: &http.Response{StatusCode: 500}, Error: true},
+		{Response: &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader(invalid))}, Data: invalid},
+		{Response: &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader(invalid))}, Data: invalid},
+	}
+	for i, test := range testCases {
+		r := NewRequest(nil, "", uri, testapi.Codec())
+		if test.Response.Body == nil {
+			test.Response.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))
+		}
+		response, created, err := r.transformResponse(test.Response, &http.Request{})
+		hasErr := err != nil
+		if hasErr != test.Error {
+			t.Errorf("%d: unexpected error: %f %v", i, test.Error, err)
+		}
+		if !(test.Data == nil && response == nil) && !reflect.DeepEqual(test.Data, response) {
+			t.Errorf("%d: unexpected response: %#v %#v", i, test.Data, response)
+		}
+		if test.Created != created {
+			t.Errorf("%d: expected created %f, got %f", i, test.Created, created)
+		}
+	}
+}
+
+type clientFunc func(req *http.Request) (*http.Response, error)
+
+func (f clientFunc) Do(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestRequestWatch(t *testing.T) {
+	testCases := []struct {
+		Request *Request
+		Err     bool
+	}{
+		{
+			Request: &Request{err: errors.New("bail")},
+			Err:     true,
+		},
+		{
+			Request: &Request{baseURL: &url.URL{}, path: "%"},
+			Err:     true,
+		},
+		{
+			Request: &Request{
+				client: clientFunc(func(req *http.Request) (*http.Response, error) {
+					return nil, errors.New("err")
+				}),
+				baseURL: &url.URL{},
+			},
+			Err: true,
+		},
+		{
+			Request: &Request{
+				client: clientFunc(func(req *http.Request) (*http.Response, error) {
+					return &http.Response{StatusCode: http.StatusForbidden}, nil
+				}),
+				baseURL: &url.URL{},
+			},
+			Err: true,
+		},
+	}
+	for i, testCase := range testCases {
+		watch, err := testCase.Request.Watch()
+		hasErr := err != nil
+		if hasErr != testCase.Err {
+			t.Errorf("%d: expected %f, got %f: %v", i, testCase.Err, hasErr, err)
+		}
+		if hasErr && watch != nil {
+			t.Errorf("%d: watch should be nil when error is returned", i)
+		}
+	}
+}
+
+func TestRequestStream(t *testing.T) {
+	testCases := []struct {
+		Request *Request
+		Err     bool
+	}{
+		{
+			Request: &Request{err: errors.New("bail")},
+			Err:     true,
+		},
+		{
+			Request: &Request{baseURL: &url.URL{}, path: "%"},
+			Err:     true,
+		},
+		{
+			Request: &Request{
+				client: clientFunc(func(req *http.Request) (*http.Response, error) {
+					return nil, errors.New("err")
+				}),
+				baseURL: &url.URL{},
+			},
+			Err: true,
+		},
+	}
+	for i, testCase := range testCases {
+		body, err := testCase.Request.Stream()
+		hasErr := err != nil
+		if hasErr != testCase.Err {
+			t.Errorf("%d: expected %f, got %f: %v", i, testCase.Err, hasErr, err)
+		}
+		if hasErr && body != nil {
+			t.Errorf("%d: body should be nil when error is returned", i)
+		}
+	}
+}
+
+func TestRequestDo(t *testing.T) {
+	testCases := []struct {
+		Request *Request
+		Err     bool
+	}{
+		{
+			Request: &Request{err: errors.New("bail")},
+			Err:     true,
+		},
+		{
+			Request: &Request{baseURL: &url.URL{}, path: "%"},
+			Err:     true,
+		},
+		{
+			Request: &Request{
+				client: clientFunc(func(req *http.Request) (*http.Response, error) {
+					return nil, errors.New("err")
+				}),
+				baseURL: &url.URL{},
+			},
+			Err: true,
+		},
+	}
+	for i, testCase := range testCases {
+		body, err := testCase.Request.Do().Raw()
+		hasErr := err != nil
+		if hasErr != testCase.Err {
+			t.Errorf("%d: expected %f, got %f: %v", i, testCase.Err, hasErr, err)
+		}
+		if hasErr && body != nil {
+			t.Errorf("%d: body should be nil when error is returned", i)
+		}
+	}
+}
+
 func TestDoRequestNewWay(t *testing.T) {
 	reqBody := "request body"
-	expectedObj := &api.Service{Port: 12345}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
 	expectedBody, _ := v1beta2.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -48,6 +284,7 @@ func TestDoRequestNewWay(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
+	defer testServer.Close()
 	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta2", Username: "user", Password: "pass"})
 	obj, err := c.Verb("POST").
 		Path("foo/bar").
@@ -72,9 +309,9 @@ func TestDoRequestNewWay(t *testing.T) {
 }
 
 func TestDoRequestNewWayReader(t *testing.T) {
-	reqObj := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
+	reqObj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 	reqBodyExpected, _ := v1beta1.Codec.Encode(reqObj)
-	expectedObj := &api.Service{Port: 12345}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
 	expectedBody, _ := v1beta1.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -108,9 +345,9 @@ func TestDoRequestNewWayReader(t *testing.T) {
 }
 
 func TestDoRequestNewWayObj(t *testing.T) {
-	reqObj := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
+	reqObj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 	reqBodyExpected, _ := v1beta2.Codec.Encode(reqObj)
-	expectedObj := &api.Service{Port: 12345}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
 	expectedBody, _ := v1beta2.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -143,7 +380,7 @@ func TestDoRequestNewWayObj(t *testing.T) {
 }
 
 func TestDoRequestNewWayFile(t *testing.T) {
-	reqObj := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo"}}
+	reqObj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 	reqBodyExpected, err := v1beta1.Codec.Encode(reqObj)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -159,7 +396,7 @@ func TestDoRequestNewWayFile(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	expectedObj := &api.Service{Port: 12345}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
 	expectedBody, _ := v1beta1.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -168,13 +405,14 @@ func TestDoRequestNewWayFile(t *testing.T) {
 	}
 	testServer := httptest.NewServer(&fakeHandler)
 	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta1", Username: "user", Password: "pass"})
+	wasCreated := true
 	obj, err := c.Verb("POST").
 		Path("foo/bar").
 		Path("baz").
 		ParseSelectorParam("labels", "name=foo").
 		Timeout(time.Second).
 		Body(file.Name()).
-		Do().Get()
+		Do().WasCreated(&wasCreated).Get()
 	if err != nil {
 		t.Errorf("Unexpected error: %v %#v", err, err)
 		return
@@ -184,8 +422,55 @@ func TestDoRequestNewWayFile(t *testing.T) {
 	} else if !reflect.DeepEqual(obj, expectedObj) {
 		t.Errorf("Expected: %#v, got %#v", expectedObj, obj)
 	}
+	if wasCreated {
+		t.Errorf("expected object was not created")
+	}
 	tmpStr := string(reqBodyExpected)
 	fakeHandler.ValidateRequest(t, "/api/v1beta1/foo/bar/baz?labels=name%3Dfoo", "POST", &tmpStr)
+	if fakeHandler.RequestReceived.Header["Authorization"] == nil {
+		t.Errorf("Request is missing authorization header: %#v", *fakeHandler.RequestReceived)
+	}
+}
+
+func TestWasCreated(t *testing.T) {
+	reqObj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	reqBodyExpected, err := v1beta1.Codec.Encode(reqObj)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
+	expectedBody, _ := v1beta1.Codec.Encode(expectedObj)
+	fakeHandler := util.FakeHandler{
+		StatusCode:   201,
+		ResponseBody: string(expectedBody),
+		T:            t,
+	}
+	testServer := httptest.NewServer(&fakeHandler)
+	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta1", Username: "user", Password: "pass"})
+	wasCreated := false
+	obj, err := c.Verb("PUT").
+		Path("foo/bar").
+		Path("baz").
+		ParseSelectorParam("labels", "name=foo").
+		Timeout(time.Second).
+		Body(reqBodyExpected).
+		Do().WasCreated(&wasCreated).Get()
+	if err != nil {
+		t.Errorf("Unexpected error: %v %#v", err, err)
+		return
+	}
+	if obj == nil {
+		t.Error("nil obj")
+	} else if !reflect.DeepEqual(obj, expectedObj) {
+		t.Errorf("Expected: %#v, got %#v", expectedObj, obj)
+	}
+	if !wasCreated {
+		t.Errorf("Expected object was created")
+	}
+
+	tmpStr := string(reqBodyExpected)
+	fakeHandler.ValidateRequest(t, "/api/v1beta1/foo/bar/baz?labels=name%3Dfoo", "PUT", &tmpStr)
 	if fakeHandler.RequestReceived.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *fakeHandler.RequestReceived)
 	}
@@ -271,15 +556,50 @@ func TestUnacceptableParamNames(t *testing.T) {
 	}
 }
 
-func TestSetPollPeriod(t *testing.T) {
+func TestBody(t *testing.T) {
+	const data = "test payload"
+
+	f, err := ioutil.TempFile("", "test_body")
+	if err != nil {
+		t.Fatalf("TempFile error: %v", err)
+	}
+	if _, err := f.WriteString(data); err != nil {
+		t.Fatalf("TempFile.WriteString error: %v", err)
+	}
+	f.Close()
+
+	c := NewOrDie(&Config{})
+	tests := []interface{}{[]byte(data), f.Name(), strings.NewReader(data)}
+	for i, tt := range tests {
+		r := c.Post().Body(tt)
+		if r.err != nil {
+			t.Errorf("%d: r.Body(%#v) error: %v", i, tt, r.err)
+			continue
+		}
+		buf := make([]byte, len(data))
+		if _, err := r.body.Read(buf); err != nil {
+			t.Errorf("%d: r.body.Read error: %v", i, err)
+			continue
+		}
+		body := string(buf)
+		if body != data {
+			t.Errorf("%d: r.body = %q; want %q", i, body, data)
+		}
+	}
+}
+
+func TestSetPoller(t *testing.T) {
 	c := NewOrDie(&Config{})
 	r := c.Get()
-	if r.pollPeriod == 0 {
+	if c.PollPeriod == 0 {
 		t.Errorf("polling should be on by default")
 	}
-	r.PollPeriod(time.Hour)
-	if r.pollPeriod != time.Hour {
-		t.Errorf("'PollPeriod' doesn't work")
+	if r.poller == nil {
+		t.Errorf("polling should be on by default")
+	}
+	r.NoPoll()
+	if r.poller != nil {
+		t.Errorf("'NoPoll' doesn't work")
 	}
 }
 
@@ -294,6 +614,16 @@ func TestPolling(t *testing.T) {
 
 	callNumber := 0
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if callNumber == 0 {
+			if r.URL.Path != "/api/v1beta1/" {
+				t.Fatalf("unexpected request URL path %s", r.URL.Path)
+			}
+		} else {
+			if r.URL.Path != "/api/v1beta1/operations/1234" {
+				t.Fatalf("unexpected request URL path %s", r.URL.Path)
+			}
+		}
+		t.Logf("About to write %d", callNumber)
 		data, err := v1beta1.Codec.Encode(objects[callNumber])
 		if err != nil {
 			t.Errorf("Unexpected encode error")
@@ -303,11 +633,11 @@ func TestPolling(t *testing.T) {
 	}))
 
 	c := NewOrDie(&Config{Host: testServer.URL, Version: "v1beta1", Username: "user", Password: "pass"})
-
+	c.PollPeriod = 1 * time.Millisecond
 	trials := []func(){
 		func() {
 			// Check that we do indeed poll when asked to.
-			obj, err := c.Get().PollPeriod(5 * time.Millisecond).Do().Get()
+			obj, err := c.Get().Do().Get()
 			if err != nil {
 				t.Errorf("Unexpected error: %v %#v", err, err)
 				return
@@ -322,7 +652,7 @@ func TestPolling(t *testing.T) {
 		},
 		func() {
 			// Check that we don't poll when asked not to.
-			obj, err := c.Get().PollPeriod(0).Do().Get()
+			obj, err := c.Get().NoPoll().Do().Get()
 			if err == nil {
 				t.Errorf("Unexpected non error: %v", obj)
 				return
@@ -380,9 +710,9 @@ func TestWatch(t *testing.T) {
 		t   watch.EventType
 		obj runtime.Object
 	}{
-		{watch.Added, &api.Pod{TypeMeta: api.TypeMeta{ID: "first"}}},
-		{watch.Modified, &api.Pod{TypeMeta: api.TypeMeta{ID: "second"}}},
-		{watch.Deleted, &api.Pod{TypeMeta: api.TypeMeta{ID: "last"}}},
+		{watch.Added, &api.Pod{ObjectMeta: api.ObjectMeta{Name: "first"}}},
+		{watch.Modified, &api.Pod{ObjectMeta: api.ObjectMeta{Name: "second"}}},
+		{watch.Deleted, &api.Pod{ObjectMeta: api.ObjectMeta{Name: "last"}}},
 	}
 
 	auth := &Config{Username: "user", Password: "pass"}

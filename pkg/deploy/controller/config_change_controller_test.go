@@ -70,8 +70,8 @@ func TestNewConfigWithTrigger(t *testing.T) {
 		t.Fatalf("Unexpected generated config id.  Expected test-deploy-config, got: %v", generatedId)
 	}
 
-	if updated.ID != "test-deploy-config" {
-		t.Fatalf("Unexpected updated config id.  Expected test-deploy-config, got: %v", updated.ID)
+	if updated.Name != "test-deploy-config" {
+		t.Fatalf("Unexpected updated config id.  Expected test-deploy-config, got: %v", updated.Name)
 	} else if updated.Details == nil {
 		t.Fatalf("expected config change details to be set")
 	} else if updated.Details.Causes == nil {
@@ -111,8 +111,8 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 		t.Fatalf("Unexpected generated config id.  Expected test-deploy-config, got: %v", generatedId)
 	}
 
-	if updated.ID != "test-deploy-config" {
-		t.Fatalf("Unexpected updated config id.  Expected test-deploy-config, got: %v", updated.ID)
+	if updated.Name != "test-deploy-config" {
+		t.Fatalf("Unexpected updated config id.  Expected test-deploy-config, got: %v", updated.Name)
 	} else if updated.Details == nil {
 		t.Fatalf("expected config change details to be set")
 	} else if updated.Details.Causes == nil {
@@ -169,7 +169,7 @@ func (i *testChangeStrategy) UpdateDeploymentConfig(ctx kapi.Context, config *de
 
 func existingConfigWithTrigger() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "test-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnConfigChange,
@@ -218,7 +218,7 @@ func newConfigWithoutTrigger() *deployapi.DeploymentConfig {
 
 func diffedConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "test-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnConfigChange,
@@ -254,7 +254,7 @@ func diffedConfig() *deployapi.DeploymentConfig {
 
 func generatedExistingConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config"},
+		ObjectMeta: kapi.ObjectMeta{Name: "test-deploy-config"},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnConfigChange,
@@ -296,8 +296,8 @@ func generatedConfig() *deployapi.DeploymentConfig {
 
 func matchingInitialDeployment() *deployapi.Deployment {
 	return &deployapi.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "test-deploy-config-1"},
-		Status:   deployapi.DeploymentStatusNew,
+		ObjectMeta: kapi.ObjectMeta{Name: "test-deploy-config-1"},
+		Status:     deployapi.DeploymentStatusNew,
 		ControllerTemplate: kapi.ReplicationControllerState{
 			Replicas: 1,
 			ReplicaSelector: map[string]string{

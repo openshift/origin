@@ -168,7 +168,7 @@ func (l *Grant) handleGrant(user authapi.UserInfo, w http.ResponseWriter, req *h
 			ClientName: client.Name,
 			Scopes:     scope.Split(scopes),
 		}
-		clientAuth.ID = clientAuthID
+		clientAuth.Name = clientAuthID
 
 		if err = l.authregistry.CreateClientAuthorization(clientAuth); err != nil {
 			glog.Errorf("Unable to create authorization: %v", err)

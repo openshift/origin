@@ -1,6 +1,7 @@
 package identitymapper
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
@@ -20,7 +21,9 @@ func NewAlwaysCreateUserIdentityToUserMapper(providerId string, userIdentityRegi
 func (p *alwaysCreateUserIdentityToUserMapper) UserFor(identityInfo authapi.UserIdentityInfo) (authapi.UserInfo, error) {
 	userIdentityMapping := &userapi.UserIdentityMapping{
 		Identity: userapi.Identity{
-			Name:     identityInfo.GetName(),
+			ObjectMeta: kapi.ObjectMeta{
+				Name: identityInfo.GetName(),
+			},
 			Provider: p.providerId, // Provider information from the provider plugin itself is not considered authoritative
 			Extra:    identityInfo.GetExtra(),
 		},

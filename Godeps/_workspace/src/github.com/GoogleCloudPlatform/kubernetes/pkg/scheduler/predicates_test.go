@@ -17,6 +17,7 @@ limitations under the License.
 package scheduler
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -182,6 +183,42 @@ func TestPodFitsPorts(t *testing.T) {
 	}
 }
 
+func TestGetUsedPorts(t *testing.T) {
+	tests := []struct {
+		pods []api.Pod
+
+		ports map[int]bool
+	}{
+		{
+			[]api.Pod{
+				newPod("m1", 9090),
+			},
+			map[int]bool{9090: true},
+		},
+		{
+			[]api.Pod{
+				newPod("m1", 9090),
+				newPod("m1", 9091),
+			},
+			map[int]bool{9090: true, 9091: true},
+		},
+		{
+			[]api.Pod{
+				newPod("m1", 9090),
+				newPod("m2", 9091),
+			},
+			map[int]bool{9090: true, 9091: true},
+		},
+	}
+
+	for _, test := range tests {
+		ports := getUsedPorts(test.pods...)
+		if !reflect.DeepEqual(test.ports, ports) {
+			t.Errorf("expect %v, got %v", test.ports, ports)
+		}
+	}
+}
+
 func TestDiskConflicts(t *testing.T) {
 	volState := api.PodState{
 		Manifest: api.ContainerManifest{
@@ -231,6 +268,80 @@ func TestDiskConflicts(t *testing.T) {
 		}
 		if !test.isOk && ok {
 			t.Errorf("expected no ok, got one.  %v %v %s", test.pod, test.existingPods, test.test)
+		}
+	}
+}
+
+func TestPodFitsSelector(t *testing.T) {
+	tests := []struct {
+		pod    api.Pod
+		labels map[string]string
+		fits   bool
+		test   string
+	}{
+		{
+			pod:  api.Pod{},
+			fits: true,
+			test: "no selector",
+		},
+		{
+			pod: api.Pod{
+				NodeSelector: map[string]string{
+					"foo": "bar",
+				},
+			},
+			fits: false,
+			test: "missing labels",
+		},
+		{
+			pod: api.Pod{
+				NodeSelector: map[string]string{
+					"foo": "bar",
+				},
+			},
+			labels: map[string]string{
+				"foo": "bar",
+			},
+			fits: true,
+			test: "same labels",
+		},
+		{
+			pod: api.Pod{
+				NodeSelector: map[string]string{
+					"foo": "bar",
+				},
+			},
+			labels: map[string]string{
+				"foo": "bar",
+				"baz": "blah",
+			},
+			fits: true,
+			test: "node labels are superset",
+		},
+		{
+			pod: api.Pod{
+				NodeSelector: map[string]string{
+					"foo": "bar",
+					"baz": "blah",
+				},
+			},
+			labels: map[string]string{
+				"foo": "bar",
+			},
+			fits: false,
+			test: "node labels are subset",
+		},
+	}
+	for _, test := range tests {
+		node := api.Minion{Labels: test.labels}
+
+		fit := NodeSelector{FakeNodeInfo(node)}
+		fits, err := fit.PodSelectorMatches(test.pod, []api.Pod{}, "machine")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if fits != test.fits {
+			t.Errorf("%s: expected: %v got %v", test.test, test.fits, fits)
 		}
 	}
 }

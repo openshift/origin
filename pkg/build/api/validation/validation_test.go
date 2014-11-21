@@ -11,7 +11,7 @@ import (
 
 func TestBuildValdationSuccess(t *testing.T) {
 	build := &buildapi.Build{
-		TypeMeta: kapi.TypeMeta{ID: "buildId"},
+		ObjectMeta: kapi.ObjectMeta{Name: "buildId"},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -38,7 +38,7 @@ func TestBuildValdationSuccess(t *testing.T) {
 
 func TestBuildValidationFailure(t *testing.T) {
 	build := &buildapi.Build{
-		TypeMeta: kapi.TypeMeta{ID: ""},
+		ObjectMeta: kapi.ObjectMeta{Name: ""},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -65,7 +65,7 @@ func TestBuildValidationFailure(t *testing.T) {
 
 func TestBuildConfigValidationSuccess(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
-		TypeMeta: kapi.TypeMeta{ID: "configId"},
+		ObjectMeta: kapi.ObjectMeta{Name: "configId"},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -91,7 +91,7 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 
 func TestBuildConfigValidationFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
-		TypeMeta: kapi.TypeMeta{ID: ""},
+		ObjectMeta: kapi.ObjectMeta{Name: ""},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,

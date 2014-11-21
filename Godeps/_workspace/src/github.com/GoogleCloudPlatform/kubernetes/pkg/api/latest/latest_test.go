@@ -26,8 +26,8 @@ import (
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta2"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/fsouza/go-dockerclient"
-	"github.com/google/gofuzz"
+	docker "github.com/fsouza/go-dockerclient"
+	fuzz "github.com/google/gofuzz"
 )
 
 // apiObjectFuzzer can randomly populate api objects.
@@ -37,7 +37,9 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		// APIVersion and Kind must remain blank in memory.
 		j.APIVersion = ""
 		j.Kind = ""
-		j.ID = c.RandString()
+	},
+	func(j *internal.ObjectMeta, c fuzz.Continue) {
+		j.Name = c.RandString()
 		// TODO: Fix JSON/YAML packages and/or write custom encoding
 		// for uint64's. Somehow the LS *byte* of this is lost, but
 		// only when all 8 bytes are set.
@@ -48,6 +50,13 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		c.Fuzz(&sec)
 		c.Fuzz(&nsec)
 		j.CreationTimestamp = util.Unix(sec, nsec).Rfc3339Copy()
+	},
+	func(j *internal.ListMeta, c fuzz.Continue) {
+		// TODO: Fix JSON/YAML packages and/or write custom encoding
+		// for uint64's. Somehow the LS *byte* of this is lost, but
+		// only when all 8 bytes are set.
+		j.ResourceVersion = strconv.FormatUint(c.RandUint64()>>8, 10)
+		j.SelfLink = c.RandString()
 	},
 	func(j *internal.ObjectReference, c fuzz.Continue) {
 		// We have to customize the randomization of TypeMetas because their
@@ -61,6 +70,10 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		// only when all 8 bytes are set.
 		j.ResourceVersion = strconv.FormatUint(c.RandUint64()>>8, 10)
 		j.FieldPath = c.RandString()
+	},
+	func(j *internal.PodCondition, c fuzz.Continue) {
+		statuses := []internal.PodCondition{internal.PodPending, internal.PodRunning, internal.PodFailed}
+		*j = statuses[c.Rand.Intn(len(statuses))]
 	},
 	func(intstr *util.IntOrString, c fuzz.Continue) {
 		// util.IntOrString will panic if its kind is set wrong.
@@ -133,8 +146,17 @@ func TestInternalRoundTrip(t *testing.T) {
 }
 
 func TestResourceVersioner(t *testing.T) {
-	pod := internal.Pod{TypeMeta: internal.TypeMeta{ResourceVersion: "10"}}
+	pod := internal.Pod{ObjectMeta: internal.ObjectMeta{ResourceVersion: "10"}}
 	version, err := ResourceVersioner.ResourceVersion(&pod)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if version != "10" {
+		t.Errorf("unexpected version %v", version)
+	}
+
+	podList := internal.PodList{ListMeta: internal.ListMeta{ResourceVersion: "10"}}
+	version, err = ResourceVersioner.ResourceVersion(&podList)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -165,6 +187,43 @@ func TestInterfacesFor(t *testing.T) {
 	for i, version := range append([]string{Version, OldestVersion}, Versions...) {
 		if vi, err := InterfacesFor(version); err != nil || vi == nil {
 			t.Fatalf("%d: unexpected result: %v", i, err)
+		}
+	}
+}
+
+func TestRESTMapper(t *testing.T) {
+	if v, k, err := RESTMapper.VersionAndKindForResource("replicationControllers"); err != nil || v != Version || k != "ReplicationController" {
+		t.Errorf("unexpected version mapping: %s %s %v", v, k, err)
+	}
+	if v, k, err := RESTMapper.VersionAndKindForResource("replicationcontrollers"); err != nil || v != Version || k != "ReplicationController" {
+		t.Errorf("unexpected version mapping: %s %s %v", v, k, err)
+	}
+
+	for _, version := range Versions {
+		mapping, err := RESTMapper.RESTMapping(version, "ReplicationController")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		if mapping.Resource != "replicationControllers" && mapping.Resource != "replicationcontrollers" {
+			t.Errorf("incorrect resource name: %#v", mapping)
+		}
+		if mapping.APIVersion != version {
+			t.Errorf("incorrect version: %v", mapping)
+		}
+
+		interfaces, _ := InterfacesFor(version)
+		if mapping.Codec != interfaces.Codec {
+			t.Errorf("unexpected codec: %#v", mapping)
+		}
+
+		rc := &internal.ReplicationController{ObjectMeta: internal.ObjectMeta{Name: "foo"}}
+		name, err := mapping.MetadataAccessor.Name(rc)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if name != "foo" {
+			t.Errorf("unable to retrieve object meta with: %v", mapping.MetadataAccessor)
 		}
 	}
 }

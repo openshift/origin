@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
@@ -34,8 +36,8 @@ func badAuth(err error) *testAuth {
 }
 
 func goodClientRegistry(clientID string, redirectURIs []string) *test.ClientRegistry {
-	client := &oapi.Client{Name: clientID, Secret: "mysecret", RedirectURIs: redirectURIs}
-	client.ID = clientID
+	client := &oapi.Client{ObjectMeta: kapi.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
+	client.Name = clientID
 	return &test.ClientRegistry{Client: client}
 }
 func badClientRegistry(err error) *test.ClientRegistry {
@@ -52,7 +54,7 @@ func existingAuthRegistry(scopes []string) *test.ClientAuthorizationRegistry {
 		ClientName: "existingClientName",
 		Scopes:     scopes,
 	}
-	auth.ID = "existingID"
+	auth.Name = "existingID"
 	return &test.ClientAuthorizationRegistry{ClientAuthorization: &auth}
 }
 

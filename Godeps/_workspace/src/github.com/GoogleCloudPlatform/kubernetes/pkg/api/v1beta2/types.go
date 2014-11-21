@@ -69,6 +69,8 @@ type VolumeSource struct {
 	// A persistent disk that is mounted to the
 	// kubelet's host machine and then exposed to the pod.
 	GCEPersistentDisk *GCEPersistentDisk `yaml:"persistentDisk" json:"persistentDisk"`
+	// GitRepo represents a git repository at a particular revision.
+	GitRepo *GitRepo `json:"gitRepo" yaml:"gitRepo"`
 }
 
 // HostDir represents bare host directory volume.
@@ -122,6 +124,14 @@ type GCEPersistentDisk struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly,omitempty"`
+}
+
+// GitRepo represents a volume that is pulled from git when the pod is created.
+type GitRepo struct {
+	// Repository URL
+	Repository string `yaml:"repository" json:"repository"`
+	// Commit hash, this is optional
+	Revision string `yaml:"revision" json:"revision"`
 }
 
 // VolumeMount describes a mounting of a Volume within a container.
@@ -212,6 +222,8 @@ type Container struct {
 	VolumeMounts  []VolumeMount  `yaml:"volumeMounts,omitempty" json:"volumeMounts,omitempty"`
 	LivenessProbe *LivenessProbe `yaml:"livenessProbe,omitempty" json:"livenessProbe,omitempty"`
 	Lifecycle     *Lifecycle     `yaml:"lifecycle,omitempty" json:"lifecycle,omitempty"`
+	// Optional: Defaults to /dev/termination-log
+	TerminationMessagePath string `yaml:"terminationMessagePath,omitempty" json:"terminationMessagePath,omitempty"`
 	// Optional: Default to false.
 	Privileged bool `json:"privileged,omitempty" yaml:"privileged,omitempty"`
 	// Optional: Policy for pulling images for this container
@@ -285,6 +297,7 @@ type ContainerStateTerminated struct {
 	ExitCode   int       `json:"exitCode" yaml:"exitCode"`
 	Signal     int       `json:"signal,omitempty" yaml:"signal,omitempty"`
 	Reason     string    `json:"reason,omitempty" yaml:"reason,omitempty"`
+	Message    string    `json:"message,omitempty" yaml:"message,omitempty"`
 	StartedAt  time.Time `json:"startedAt,omitempty" yaml:"startedAt,omitempty"`
 	FinishedAt time.Time `json:"finishedAt,omitempty" yaml:"finishedAt,omitempty"`
 }
@@ -300,8 +313,10 @@ type ContainerState struct {
 type ContainerStatus struct {
 	// TODO(dchen1107): Should we rename PodStatus to a more generic name or have a separate states
 	// defined for container?
-	State        ContainerState `json:"state,omitempty" yaml:"state,omitempty"`
-	RestartCount int            `json:"restartCount" yaml:"restartCount"`
+	State ContainerState `json:"state,omitempty" yaml:"state,omitempty"`
+	// Note that this is calculated from dead containers.  But those containers are subject to
+	// garbage collection.  This value will get capped at 5 by GC.
+	RestartCount int `json:"restartCount" yaml:"restartCount"`
 	// TODO(dchen1107): Deprecated this soon once we pull entire PodStatus from node,
 	// not just PodInfo. Now we need this to remove docker.Container from API
 	PodIP string `json:"podIP,omitempty" yaml:"podIP,omitempty"`
@@ -351,7 +366,7 @@ type PodState struct {
 // PodList is a list of Pods.
 type PodList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Items    []Pod `json:"items" yaml:"items,omitempty"`
+	Items    []Pod `json:"items" yaml:"items"`
 }
 
 // Pod is a collection of containers, used as either input (create, update) or as output (list, get).
@@ -360,6 +375,8 @@ type Pod struct {
 	Labels       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	DesiredState PodState          `json:"desiredState,omitempty" yaml:"desiredState,omitempty"`
 	CurrentState PodState          `json:"currentState,omitempty" yaml:"currentState,omitempty"`
+	// NodeSelector is a selector which must be true for the pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty" yaml:"nodeSelector,omitempty"`
 }
 
 // ReplicationControllerState is the state of a replication controller, either input (create, update) or as output (list, get).
@@ -372,7 +389,7 @@ type ReplicationControllerState struct {
 // ReplicationControllerList is a collection of replication controllers.
 type ReplicationControllerList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Items    []ReplicationController `json:"items,omitempty" yaml:"items,omitempty"`
+	Items    []ReplicationController `json:"items" yaml:"items"`
 }
 
 // ReplicationController represents the configuration of a replication controller.
@@ -417,7 +434,9 @@ type Service struct {
 	// Optional, if unspecified use the first port on the container.
 	ContainerPort util.IntOrString `json:"containerPort,omitempty" yaml:"containerPort,omitempty"`
 
-	// PortalIP is assigned by the master.  If specified by the user it will be ignored.
+	// PortalIP is usually assigned by the master.  If specified by the user
+	// we will try to respect it or else fail the request.  This field can
+	// not be changed by updates.
 	PortalIP string `json:"portalIP,omitempty" yaml:"portalIP,omitempty"`
 
 	// ProxyPort is assigned by the master.  If specified by the user it will be ignored.
@@ -434,7 +453,7 @@ type Endpoints struct {
 // EndpointsList is a list of endpoints.
 type EndpointsList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Items    []Endpoints `json:"items,omitempty" yaml:"items,omitempty"`
+	Items    []Endpoints `json:"items" yaml:"items"`
 }
 
 // NodeResources represents resources on a Kubernetes system node
@@ -449,19 +468,21 @@ type ResourceName string
 type ResourceList map[ResourceName]util.IntOrString
 
 // Minion is a worker node in Kubernetenes.
-// The name of the minion according to etcd is in TypeMeta.ID.
+// The name of the minion according to etcd is in ID.
 type Minion struct {
 	TypeMeta `json:",inline" yaml:",inline"`
 	// Queried from cloud provider, if available.
 	HostIP string `json:"hostIP,omitempty" yaml:"hostIP,omitempty"`
 	// Resources available on the node
 	NodeResources NodeResources `json:"resources,omitempty" yaml:"resources,omitempty"`
+	// Labels for the node
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 // MinionList is a list of minions.
 type MinionList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Items    []Minion `json:"items,omitempty" yaml:"items,omitempty"`
+	Items    []Minion `json:"items" yaml:"items"`
 }
 
 // Binding is written by a scheduler to cause a pod to be bound to a host.
@@ -633,14 +654,14 @@ type ServerOp struct {
 // ServerOpList is a list of operations, as delivered to API clients.
 type ServerOpList struct {
 	TypeMeta `yaml:",inline" json:",inline"`
-	Items    []ServerOp `yaml:"items,omitempty" json:"items,omitempty"`
+	Items    []ServerOp `yaml:"items" json:"items"`
 }
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
 type ObjectReference struct {
 	Kind            string `json:"kind,omitempty" yaml:"kind,omitempty"`
 	Namespace       string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-	Name            string `json:"name,omitempty" yaml:"name,omitempty"`
+	ID              string `json:"name,omitempty" yaml:"name,omitempty"`
 	UID             string `json:"uid,omitempty" yaml:"uid,omitempty"`
 	APIVersion      string `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
 	ResourceVersion string `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
@@ -685,12 +706,15 @@ type Event struct {
 	// Optional. The component reporting this event. Should be a short machine understandable string.
 	// TODO: provide exact specification for format.
 	Source string `json:"source,omitempty" yaml:"source,omitempty"`
+
+	// The time at which the client recorded the event. (Time of server receipt is in TypeMeta.)
+	Timestamp util.Time `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 }
 
 // EventList is a list of events.
 type EventList struct {
 	TypeMeta `yaml:",inline" json:",inline"`
-	Items    []Event `yaml:"items,omitempty" json:"items,omitempty"`
+	Items    []Event `yaml:"items" json:"items"`
 }
 
 // ContainerManifest corresponds to the Container Manifest format, documented at:
@@ -716,7 +740,7 @@ type ContainerManifest struct {
 // DEPRECATED: Replaced with BoundPods
 type ContainerManifestList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Items    []ContainerManifest `json:"items,omitempty" yaml:"items,omitempty"`
+	Items    []ContainerManifest `json:"items" yaml:"items,omitempty"`
 }
 
 // Backported from v1beta3 to replace ContainerManifest
