@@ -74,7 +74,7 @@ All commands assume the `openshift` binary is in your path (normally located und
  * If you setup the github webhook in step 7, push a change to app.rb in your ruby sample repository from step 6.
  * Otherwise you can simulate the webhook invocation by running:
 
-            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
+            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic
 
     In the OpenShift logs (logs/openshift.log) you should see something like:
 
