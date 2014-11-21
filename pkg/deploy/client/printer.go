@@ -10,8 +10,8 @@ import (
 	"github.com/openshift/origin/pkg/deploy/api"
 )
 
-var deploymentColumns = []string{"ID", "Status", "Cause"}
-var deploymentConfigColumns = []string{"ID", "Triggers", "LatestVersion"}
+var deploymentColumns = []string{"Name", "Status", "Cause"}
+var deploymentConfigColumns = []string{"Name", "Triggers", "LatestVersion"}
 
 // RegisterPrintHandlers registers human-readable printers for deploy types.
 func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {

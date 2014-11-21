@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/route/api"
 )
 
-var routeColumns = []string{"ID", "Host/Port", "Path", "Service", "Labels"}
+var routeColumns = []string{"Name", "Host/Port", "Path", "Service", "Labels"}
 
 // RegisterPrintHandlers registers HumanReadablePrinter handlers
 func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
