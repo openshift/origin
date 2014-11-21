@@ -143,7 +143,7 @@ echo "[INFO] Pushed centos7: $(($ENDTIME - $STARTTIME)) seconds"
 echo "[INFO] Submitting application template json for processing..."
 $openshift kube process --ns=${NAMESPACE} -c ${FIXTURE_DIR}/application-template-${BUILD_TYPE}build.json > $CONFIG_FILE
 # substitute the default IP address with the address where we actually ended up
-sed -i "s,172.121.17.1,${DOCKER_REGISTRY_IP},g" $CONFIG_FILE
+sed -i "s,172.121.17.3,${DOCKER_REGISTRY_IP},g" $CONFIG_FILE
 
 echo "[INFO] Applying application config"
 $openshift kube apply --ns=${NAMESPACE} -c $CONFIG_FILE
