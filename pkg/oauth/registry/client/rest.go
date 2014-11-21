@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -70,7 +71,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // Update is not supported for Clients, as they are immutable.
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("Clients may not be changed.")
+	return nil, errors.New("Clients may not be changed.")
 }
 
 // Delete asynchronously deletes an Client specified by its id.

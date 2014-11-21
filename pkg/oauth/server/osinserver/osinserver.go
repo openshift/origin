@@ -9,18 +9,20 @@ import (
 )
 
 type Server struct {
-	config    *osin.ServerConfig
-	server    *osin.Server
-	authorize AuthorizeHandler
-	access    AccessHandler
+	config       *osin.ServerConfig
+	server       *osin.Server
+	authorize    AuthorizeHandler
+	access       AccessHandler
+	errorHandler ErrorHandler
 }
 
-func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHandler, access AccessHandler) *Server {
+func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHandler, access AccessHandler, errorHandler ErrorHandler) *Server {
 	return &Server{
-		config:    config,
-		server:    osin.NewServer(config, storage),
-		authorize: authorize,
-		access:    access,
+		config:       config,
+		server:       osin.NewServer(config, storage),
+		authorize:    authorize,
+		access:       access,
+		errorHandler: errorHandler,
 	}
 }
 
@@ -53,7 +55,12 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	defer resp.Close()
 
 	if ar := s.server.HandleAuthorizeRequest(resp, r); ar != nil {
-		if s.authorize.HandleAuthorize(ar, w, r) {
+		handled, err := s.authorize.HandleAuthorize(ar, w)
+		if err != nil {
+			s.errorHandler.HandleError(err, w, r)
+			return
+		}
+		if handled {
 			return
 		}
 		s.server.FinishAuthorizeRequest(resp, r, ar)
@@ -70,7 +77,10 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	defer resp.Close()
 
 	if ar := s.server.HandleAccessRequest(resp, r); ar != nil {
-		s.access.HandleAccess(ar, w, r)
+		if err := s.access.HandleAccess(ar, w); err != nil {
+			s.errorHandler.HandleError(err, w, r)
+			return
+		}
 		s.server.FinishAccessRequest(resp, r, ar)
 	}
 	if resp.IsError && resp.InternalError != nil {
@@ -88,7 +98,3 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	osin.OutputJSON(resp, w, r)
 }
-
-// func (s *Server) String() string {
-// 	return fmt.Sprintf("osinserver.Server{config:%#v, authorize:%v, access:%v}", s.config, s.authorize, s.access)
-// }

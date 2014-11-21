@@ -1,6 +1,7 @@
 package clientauthorization
 
 import (
+	"errors"
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -49,7 +50,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 
 	if authorization.UserName == "" || authorization.ClientName == "" {
-		return nil, fmt.Errorf("invalid authorization")
+		return nil, errors.New("invalid authorization")
 	}
 
 	authorization.Name = s.registry.ClientAuthorizationID(authorization.UserName, authorization.ClientName)

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -15,24 +14,36 @@ import (
 	"github.com/openshift/origin/pkg/oauth/scope"
 )
 
+// GrantCheck implements osinserver.AuthorizeHandler to ensure requested scopes have been authorized
 type GrantCheck struct {
-	check   GrantChecker
-	handler GrantHandler
+	check        GrantChecker
+	handler      GrantHandler
+	errorHandler GrantErrorHandler
 }
 
-func NewGrantCheck(check GrantChecker, handler GrantHandler) *GrantCheck {
-	return &GrantCheck{check, handler}
+// NewGrantCheck returns a new GrantCheck
+func NewGrantCheck(check GrantChecker, handler GrantHandler, errorHandler GrantErrorHandler) *GrantCheck {
+	return &GrantCheck{check, handler, errorHandler}
 }
 
-func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter, req *http.Request) (handled bool) {
+// HandleAuthorize implements osinserver.AuthorizeHandler to ensure the requested scopes have been authorized.
+// The AuthorizeRequest.Authorized field must already be set to true for the grant check to occur.
+// If the requested scopes are authorized, the AuthorizeRequest is unchanged.
+// If the requested scopes are not authorized, or an error occurs, AuthorizeRequest.Authorized is set to false.
+// If the response is written, true is returned.
+// If the response is not written, false is returned.
+func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+	// Requests must already be authorized before we will check grants
 	if !ar.Authorized {
-		return
+		return false, nil
 	}
+
+	// Reset request to unauthorized until we verify the grant
+	ar.Authorized = false
 
 	user, ok := ar.UserData.(api.UserInfo)
 	if !ok || user == nil {
-		h.handler.GrantError(errors.New("the provided user data is not api.UserInfo"), w, req)
-		return true
+		return h.errorHandler.GrantError(errors.New("the provided user data is not api.UserInfo"), w, ar.HttpRequest)
 	}
 
 	grant := &api.Grant{
@@ -42,17 +53,18 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseW
 		RedirectURI: ar.RedirectUri,
 	}
 
-	ok, err := h.check.HasAuthorizedClient(ar.Client, user, grant)
+	ok, err := h.check.HasAuthorizedClient(user, grant)
 	if err != nil {
-		h.handler.GrantError(err, w, req)
-		return true
+		return h.errorHandler.GrantError(err, w, ar.HttpRequest)
 	}
 	if !ok {
-		h.handler.GrantNeeded(ar.Client, user, grant, w, req)
-		return true
+		return h.handler.GrantNeeded(user, grant, w, ar.HttpRequest)
 	}
 
-	return
+	// Grant is verified
+	ar.Authorized = true
+
+	return false, nil
 }
 
 type emptyGrant struct{}
@@ -63,14 +75,8 @@ func NewEmptyGrant() GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (emptyGrant) GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "<body>GrantNeeded - not implemented<pre>%#v\n%#v\n%#v</pre></body>", client, user, grant)
-}
-
-// GrantError implements the GrantHandler interface
-func (emptyGrant) GrantError(err error, w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, "<body>GrantError - %s</body>", err)
+func (emptyGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+	return false, nil
 }
 
 type autoGrant struct {
@@ -84,44 +90,37 @@ func NewAutoGrant(authregistry clientauthorization.Registry) GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (g *autoGrant) GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) {
-	clientAuthID := g.authregistry.ClientAuthorizationID(user.GetName(), client.GetId())
+func (g *autoGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+	clientAuthID := g.authregistry.ClientAuthorizationID(user.GetName(), grant.Client.GetId())
 	clientAuth, err := g.authregistry.GetClientAuthorization(clientAuthID)
 	if err == nil {
 		// Add new scopes and update
 		clientAuth.Scopes = scope.Add(clientAuth.Scopes, scope.Split(grant.Scope))
 		err = g.authregistry.UpdateClientAuthorization(clientAuth)
 		if err != nil {
-			glog.Errorf("Unable to update authorization: %v", err)
-			g.GrantError(err, w, req)
-			return
+			glog.V(4).Infof("Unable to update authorization: %v", err)
+			return false, err
 		}
 	} else {
 		// Make sure client name, user name, grant scope, expiration, and redirect uri match
 		clientAuth = &oapi.ClientAuthorization{
 			UserName:   user.GetName(),
 			UserUID:    user.GetUID(),
-			ClientName: client.GetId(),
+			ClientName: grant.Client.GetId(),
 			Scopes:     scope.Split(grant.Scope),
 		}
 		clientAuth.Name = clientAuthID
 
 		err = g.authregistry.CreateClientAuthorization(clientAuth)
 		if err != nil {
-			glog.Errorf("Unable to create authorization: %v", err)
-			g.GrantError(err, w, req)
-			return
+			glog.V(4).Infof("Unable to create authorization: %v", err)
+			return false, err
 		}
 	}
 
 	// Retry the request
 	http.Redirect(w, req, req.URL.String(), http.StatusFound)
-}
-
-// GrantError implements the GrantHandler interface
-func (g *autoGrant) GrantError(err error, w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, "<body>GrantError - %s</body>", err)
+	return true, nil
 }
 
 type redirectGrant struct {
@@ -139,23 +138,17 @@ func NewRedirectGrant(url string) GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (g *redirectGrant) GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) {
+func (g *redirectGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
 	redirectURL, err := url.Parse(g.url)
 	if err != nil {
-		g.GrantError(err, w, req)
-		return
+		return false, err
 	}
 	redirectURL.RawQuery = url.Values{
 		"then":         {req.URL.String()},
-		"client_id":    {client.GetId()},
+		"client_id":    {grant.Client.GetId()},
 		"scopes":       {grant.Scope},
 		"redirect_uri": {grant.RedirectURI},
 	}.Encode()
 	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
-}
-
-// GrantError implements the GrantHandler interface
-func (g *redirectGrant) GrantError(err error, w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, "<body>GrantError - %s</body>", err)
+	return true, nil
 }

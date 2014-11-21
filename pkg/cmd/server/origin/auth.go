@@ -78,17 +78,20 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 		storage,
 		osinserver.AuthorizeHandlers{
 			handlers.NewAuthorizeAuthenticator(
-				authHandler,
 				authRequestHandler,
+				authHandler,
+				emptyError{},
 			),
 			handlers.NewGrantCheck(
 				grantChecker,
 				grantHandler,
+				emptyError{},
 			),
 		},
 		osinserver.AccessHandlers{
 			handlers.NewDenyAccessAuthenticator(),
 		},
+		osinserver.NewDefaultErrorHandler(),
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 	// glog.Infof("oauth server configured as: %#v", server)
@@ -233,11 +236,8 @@ func GetTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, er
 
 type emptyAuth struct{}
 
-func (emptyAuth) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "<body>AuthenticationNeeded - not implemented</body>")
-}
-func (emptyAuth) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "<body>AuthenticationError - %s</body>", err)
+func (emptyAuth) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
+	return false, nil
 }
 
 // Captures the original request url as a "then" param in a redirect to a login flow
@@ -246,11 +246,10 @@ type redirectAuthHandler struct {
 	ThenParam   string
 }
 
-func (auth *redirectAuthHandler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) {
+func (auth *redirectAuthHandler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
 	redirectURL, err := url.Parse(auth.RedirectURL)
 	if err != nil {
-		auth.AuthenticationError(err, w, req)
-		return
+		return false, err
 	}
 	if len(auth.ThenParam) != 0 {
 		redirectURL.RawQuery = url.Values{
@@ -258,12 +257,7 @@ func (auth *redirectAuthHandler) AuthenticationNeeded(w http.ResponseWriter, req
 		}.Encode()
 	}
 	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
-}
-
-func (auth *redirectAuthHandler) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/html")
-	w.WriteHeader(http.StatusForbidden)
-	fmt.Fprintf(w, "<body>AuthenticationError - %s</body>", err)
+	return true, nil
 }
 
 //
@@ -277,24 +271,30 @@ type callbackPasswordAuthenticator struct {
 // Redirects to the then param on successful authentication
 type redirectSuccessHandler struct{}
 
-func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) error {
+func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	if len(then) == 0 {
-		return fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)
+		return false, fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)
 	}
 
 	http.Redirect(w, req, then, http.StatusFound)
-	return nil
+	return true, nil
 }
 
 type emptySuccess struct{}
 
-func (emptySuccess) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) error {
+func (emptySuccess) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	glog.V(4).Infof("AuthenticationSucceeded: %v (state=%s)", user, state)
-	return nil
+	return false, nil
 }
 
 type emptyError struct{}
 
-func (emptyError) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
+func (emptyError) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
 	glog.V(4).Infof("AuthenticationError: %v", err)
+	return false, err
+}
+
+func (emptyError) GrantError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
+	glog.V(4).Infof("GrantError: %v", err)
+	return false, err
 }

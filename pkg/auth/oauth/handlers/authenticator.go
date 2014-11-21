@@ -10,99 +10,109 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
+// AuthorizeAuthenticator implements osinserver.AuthorizeHandler to ensure requests are authenticated
 type AuthorizeAuthenticator struct {
-	handler AuthenticationHandler
-	request authenticator.Request
+	request      authenticator.Request
+	handler      AuthenticationHandler
+	errorHandler AuthenticationErrorHandler
 }
 
-func NewAuthorizeAuthenticator(handler AuthenticationHandler, request authenticator.Request) *AuthorizeAuthenticator {
-	return &AuthorizeAuthenticator{handler, request}
+// NewAuthorizeAuthenticator returns a new Authenticator
+func NewAuthorizeAuthenticator(request authenticator.Request, handler AuthenticationHandler, errorHandler AuthenticationErrorHandler) *AuthorizeAuthenticator {
+	return &AuthorizeAuthenticator{request, handler, errorHandler}
 }
 
-func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter, req *http.Request) (handled bool) {
-	info, ok, err := h.request.AuthenticateRequest(req)
+// HandleAuthorize implements osinserver.AuthorizeHandler to ensure the AuthorizeRequest is authenticated.
+// If the request is authenticated, UserData and Authorized are set and false is returned.
+// If the request is not authenticated, the auth handler is called and the request is not authorized
+func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+	info, ok, err := h.request.AuthenticateRequest(ar.HttpRequest)
 	if err != nil {
-		h.handler.AuthenticationError(err, w, req)
-		return true
+		return h.errorHandler.AuthenticationError(err, w, ar.HttpRequest)
 	}
 	if !ok {
-		h.handler.AuthenticationNeeded(w, req)
-		return true
+		return h.handler.AuthenticationNeeded(w, ar.HttpRequest)
 	}
 	ar.UserData = info
 	ar.Authorized = true
-	return
+	return false, nil
 }
 
+// AccessAuthenticator implements osinserver.AccessHandler to ensure non-token requests are authenticated
 type AccessAuthenticator struct {
 	password  authenticator.Password
 	assertion authenticator.Assertion
 	client    authenticator.Client
 }
 
+// NewAccessAuthenticator returns a new AccessAuthenticator
 func NewAccessAuthenticator(password authenticator.Password, assertion authenticator.Assertion, client authenticator.Client) *AccessAuthenticator {
 	return &AccessAuthenticator{password, assertion, client}
 }
 
-func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter, req *http.Request) {
+// HandleAccess implements osinserver.AccessHandler
+func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error {
+	var (
+		info api.UserInfo
+		ok   bool
+		err  error
+	)
+
 	switch ar.Type {
 	case osin.AUTHORIZATION_CODE, osin.REFRESH_TOKEN:
 		// auth codes and refresh tokens are assumed allowed
+		ok = true
 	case osin.PASSWORD:
-		info, ok, err := h.password.AuthenticatePassword(ar.Username, ar.Password)
-		if err != nil {
-			glog.Errorf("Unable to authenticate password: %v", err)
-			return
-		}
-		if !ok {
-			return
-		}
-		ar.AccessData.UserData = info
+		info, ok, err = h.password.AuthenticatePassword(ar.Username, ar.Password)
 	case osin.ASSERTION:
-		info, ok, err := h.assertion.AuthenticateAssertion(ar.AssertionType, ar.Assertion)
-		if err != nil {
-			glog.Errorf("Unable to authenticate password: %v", err)
-			return
-		}
-		if !ok {
-			return
-		}
-		ar.AccessData.UserData = info
+		info, ok, err = h.assertion.AuthenticateAssertion(ar.AssertionType, ar.Assertion)
 	case osin.CLIENT_CREDENTIALS:
-		info, ok, err := h.client.AuthenticateClient(ar.Client)
-		if err != nil {
-			glog.Errorf("Unable to authenticate password: %v", err)
-			return
-		}
-		if !ok {
-			return
-		}
-		ar.AccessData.UserData = info
-		return
+		info, ok, err = h.client.AuthenticateClient(ar.Client)
 	default:
 		glog.Warningf("Received unknown access token type: %s", ar.Type)
-		return
 	}
 
-	ar.Authorized = true
+	if err != nil {
+		glog.V(4).Infof("Unable to authenticate %s: %v", ar.Type, err)
+		return err
+	}
+
+	if ok {
+		ar.Authorized = true
+		if info != nil {
+			ar.AccessData.UserData = info
+		}
+	}
+	return nil
 }
 
+// NewDenyAuthenticator returns an Authenticator which rejects all non-token access requests
 func NewDenyAccessAuthenticator() *AccessAuthenticator {
 	return &AccessAuthenticator{Deny, Deny, Deny}
 }
 
-var Deny = denyAuthenticator{}
+// Deny implements Password, Assertion, and Client authentication to deny all requests
+var Deny = &fixedAuthenticator{false}
 
-type denyAuthenticator struct{}
+// Allow implements Password, Assertion, and Client authentication to allow all requests
+var Allow = &fixedAuthenticator{true}
 
-func (denyAuthenticator) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
-	return nil, false, nil
+// fixedAuthenticator implements Password, Assertion, and Client authentication to return a fixed response
+type fixedAuthenticator struct {
+	allow bool
 }
 
-func (denyAuthenticator) AuthenticateAssertion(assertionType, data string) (api.UserInfo, bool, error) {
-	return nil, false, nil
+// AuthenticatePassword implements authenticator.Password
+func (f *fixedAuthenticator) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
+	return nil, f.allow, nil
 }
 
-func (denyAuthenticator) AuthenticateClient(client api.Client) (api.UserInfo, bool, error) {
-	return nil, false, nil
+// AuthenticateAssertion implements authenticator.Assertion
+func (f *fixedAuthenticator) AuthenticateAssertion(assertionType, data string) (api.UserInfo, bool, error) {
+	return nil, f.allow, nil
+}
+
+// AuthenticateClient implements authenticator.Client
+func (f *fixedAuthenticator) AuthenticateClient(client api.Client) (api.UserInfo, bool, error) {
+	return nil, f.allow, nil
 }

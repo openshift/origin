@@ -1,6 +1,7 @@
 package external
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -21,11 +22,11 @@ type Handler struct {
 	clientConfig *osincli.ClientConfig
 	client       *osincli.Client
 	success      handlers.AuthenticationSuccessHandler
-	error        handlers.AuthenticationErrorHandler
+	errorHandler handlers.AuthenticationErrorHandler
 	mapper       authapi.UserIdentityMapper
 }
 
-func NewHandler(provider Provider, state State, redirectUrl string, success handlers.AuthenticationSuccessHandler, error handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
+func NewHandler(provider Provider, state State, redirectUrl string, success handlers.AuthenticationSuccessHandler, errorHandler handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
 	clientConfig, err := provider.NewConfig()
 	if err != nil {
 		return nil, err
@@ -44,13 +45,13 @@ func NewHandler(provider Provider, state State, redirectUrl string, success hand
 		clientConfig: clientConfig,
 		client:       client,
 		success:      success,
-		error:        error,
+		errorHandler: errorHandler,
 		mapper:       mapper,
 	}, nil
 }
 
 // Implements oauth.handlers.AuthenticationHandler
-func (h *Handler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) {
+func (h *Handler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
 	glog.V(4).Infof("Authentication needed for %v", h)
 
 	authReq := h.client.NewAuthorizeRequest(osincli.CODE)
@@ -59,19 +60,14 @@ func (h *Handler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request)
 	state, err := h.state.Generate(w, req)
 	if err != nil {
 		glog.V(4).Infof("Error generating state: %v", err)
-		h.AuthenticationError(err, w, req)
-		return
+		return h.errorHandler.AuthenticationError(err, w, req)
 	}
 
 	oauthUrl := authReq.GetAuthorizeUrlWithParams(state)
 	glog.V(4).Infof("redirect to %v", oauthUrl)
 
 	http.Redirect(w, req, oauthUrl.String(), http.StatusFound)
-}
-
-// Implements oauth.handlers.AuthenticationHandler
-func (h *Handler) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
-	h.error.AuthenticationError(err, w, req)
+	return true, nil
 }
 
 // Handles the callback request in response to an external oauth flow
@@ -82,7 +78,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	authData, err := authReq.HandleRequest(req)
 	if err != nil {
 		glog.V(4).Infof("Error handling request: %v", err)
-		h.AuthenticationError(err, w, req)
+		h.errorHandler.AuthenticationError(err, w, req)
 		return
 	}
 
@@ -93,7 +89,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	accessData, err := accessReq.GetToken()
 	if err != nil {
 		glog.V(4).Infof("Error getting access token:", err)
-		h.AuthenticationError(err, w, req)
+		h.errorHandler.AuthenticationError(err, w, req)
 		return
 	}
 
@@ -102,12 +98,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	identity, ok, err := h.provider.GetUserIdentity(accessData)
 	if err != nil {
 		glog.V(4).Infof("Error getting userIdentityInfo info: %v", err)
-		h.AuthenticationError(err, w, req)
+		h.errorHandler.AuthenticationError(err, w, req)
 		return
 	}
 	if !ok {
 		glog.V(4).Infof("Could not get userIdentityInfo info from access token")
-		h.AuthenticationError(fmt.Errorf("Could not get userIdentityInfo info from access token"), w, req)
+		h.errorHandler.AuthenticationError(errors.New("Could not get userIdentityInfo info from access token"), w, req)
 		return
 	}
 
@@ -115,26 +111,26 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {
 		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
-		h.AuthenticationError(err, w, req)
+		h.errorHandler.AuthenticationError(err, w, req)
 		return
 	}
 
 	ok, err = h.state.Check(authData.State, w, req)
 	if !ok {
 		glog.V(4).Infof("State is invalid")
-		h.AuthenticationError(fmt.Errorf("State is invalid"), w, req)
+		h.errorHandler.AuthenticationError(errors.New("State is invalid"), w, req)
 		return
 	}
 	if err != nil {
 		glog.V(4).Infof("Error verifying state: %v", err)
-		h.AuthenticationError(err, w, req)
+		h.errorHandler.AuthenticationError(err, w, req)
 		return
 	}
 
-	err = h.success.AuthenticationSucceeded(user, authData.State, w, req)
+	_, err = h.success.AuthenticationSucceeded(user, authData.State, w, req)
 	if err != nil {
 		glog.V(4).Infof("Error calling success handler: %v", err)
-		h.AuthenticationError(err, w, req)
+		h.errorHandler.AuthenticationError(err, w, req)
 		return
 	}
 }
@@ -164,22 +160,22 @@ func (defaultState) Check(state string, w http.ResponseWriter, req *http.Request
 
 	then := values.Get("then")
 	if then == "" {
-		return false, fmt.Errorf("State did not contain a redirect")
+		return false, errors.New("State did not contain a redirect")
 	}
 
 	return true, nil
 }
-func (defaultState) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) error {
+func (defaultState) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	values, err := url.ParseQuery(state)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	then := values.Get("then")
 	if len(then) == 0 {
-		return fmt.Errorf("No redirect given")
+		return false, errors.New("No redirect given")
 	}
 
 	http.Redirect(w, req, then, http.StatusFound)
-	return nil
+	return true, nil
 }

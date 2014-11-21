@@ -2,6 +2,7 @@ package github
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -75,7 +76,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	}
 
 	if userdata.ID == 0 {
-		return nil, false, fmt.Errorf("Could not retrieve GitHub id")
+		return nil, false, errors.New("Could not retrieve GitHub id")
 	}
 
 	identity := &authapi.DefaultUserIdentityInfo{

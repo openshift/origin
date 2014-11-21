@@ -64,16 +64,18 @@ func TestOAuthStorage(t *testing.T) {
 	oauthServer := osinserver.New(
 		osinserver.NewDefaultServerConfig(),
 		storage,
-		osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) bool {
+		osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
 			ar.UserData = "test"
 			ar.Authorized = true
-			return false
+			return false, nil
 		}),
-		osinserver.AccessHandlerFunc(func(ar *osin.AccessRequest, w http.ResponseWriter, r *http.Request) {
+		osinserver.AccessHandlerFunc(func(ar *osin.AccessRequest, w http.ResponseWriter) error {
 			ar.UserData = "test"
 			ar.Authorized = true
 			ar.GenerateRefresh = false
+			return nil
 		}),
+		osinserver.NewDefaultErrorHandler(),
 	)
 	mux := http.NewServeMux()
 	oauthServer.Install(mux, "")

@@ -22,14 +22,16 @@ func TestClientCredentialFlow(t *testing.T) {
 	oauthServer := New(
 		NewDefaultServerConfig(),
 		storage,
-		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) bool {
+		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
 			ar.Authorized = true
-			return false
+			return false, nil
 		}),
-		AccessHandlerFunc(func(ar *osin.AccessRequest, w http.ResponseWriter, r *http.Request) {
+		AccessHandlerFunc(func(ar *osin.AccessRequest, w http.ResponseWriter) error {
 			ar.Authorized = true
 			ar.GenerateRefresh = false
+			return nil
 		}),
+		NewDefaultErrorHandler(),
 	)
 	mux := http.NewServeMux()
 	oauthServer.Install(mux, "")
@@ -57,14 +59,16 @@ func TestAuthorizeStartFlow(t *testing.T) {
 	oauthServer := New(
 		NewDefaultServerConfig(),
 		storage,
-		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) bool {
+		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
 			ar.Authorized = true
-			return false
+			return false, nil
 		}),
-		AccessHandlerFunc(func(ar *osin.AccessRequest, w http.ResponseWriter, r *http.Request) {
+		AccessHandlerFunc(func(ar *osin.AccessRequest, w http.ResponseWriter) error {
 			ar.Authorized = true
 			ar.GenerateRefresh = false
+			return nil
 		}),
+		NewDefaultErrorHandler(),
 	)
 	mux := http.NewServeMux()
 	oauthServer.Install(mux, "")

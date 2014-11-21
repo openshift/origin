@@ -1,14 +1,14 @@
 package registry
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	apierrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osincli"
 
@@ -28,26 +28,42 @@ type testHandlers struct {
 	AuthErr      error
 	GrantNeed    bool
 	GrantErr     error
+
+	AuthNeedHandled bool
+	AuthNeedErr     error
+
+	GrantNeedHandled bool
+	GrantNeedErr     error
+
+	HandledErr error
 }
 
-func (h *testHandlers) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) {
+func (h *testHandlers) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
 	h.AuthNeed = true
+	return h.AuthNeedHandled, h.AuthNeedErr
 }
 
-func (h *testHandlers) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) {
+func (h *testHandlers) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
 	h.AuthErr = err
+	return true, nil
 }
 
 func (h *testHandlers) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
 	return h.User, h.Authenticate, h.Err
 }
 
-func (h *testHandlers) GrantNeeded(client api.Client, user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) {
+func (h *testHandlers) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
 	h.GrantNeed = true
+	return h.GrantNeedHandled, h.GrantNeedErr
 }
 
-func (h *testHandlers) GrantError(err error, w http.ResponseWriter, req *http.Request) {
+func (h *testHandlers) GrantError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
 	h.GrantErr = err
+	return true, nil
+}
+
+func (h *testHandlers) HandleError(err error, w http.ResponseWriter, req *http.Request) {
+	h.HandledErr = err
 }
 
 func TestRegistryAndServer(t *testing.T) {
@@ -162,13 +178,13 @@ func TestRegistryAndServer(t *testing.T) {
 			Client: testCase.Client,
 		}
 		if testCase.Client == nil {
-			client.Err = errors.NewNotFound("client", "unknown")
+			client.Err = apierrs.NewNotFound("client", "unknown")
 		}
 		grant := &test.ClientAuthorizationRegistry{
 			ClientAuthorization: testCase.ClientAuth,
 		}
 		if testCase.ClientAuth == nil {
-			grant.Err = errors.NewNotFound("clientAuthorization", "test:test")
+			grant.Err = apierrs.NewNotFound("clientAuthorization", "test:test")
 		}
 		storage := registrystorage.New(access, authorize, client, NewUserConversion())
 		config := osinserver.NewDefaultServerConfig()
@@ -179,15 +195,18 @@ func TestRegistryAndServer(t *testing.T) {
 				handlers.NewAuthorizeAuthenticator(
 					h,
 					h,
+					h,
 				),
 				handlers.NewGrantCheck(
 					NewClientAuthorizationGrantChecker(grant),
+					h,
 					h,
 				),
 			},
 			osinserver.AccessHandlers{
 				handlers.NewDenyAccessAuthenticator(),
 			},
+			h,
 		)
 		mux := http.NewServeMux()
 		server.Install(mux, "")
@@ -223,7 +242,7 @@ func TestRegistryAndServer(t *testing.T) {
 }
 
 func TestAuthenticateTokenNotFound(t *testing.T) {
-	tokenRegistry := &test.AccessTokenRegistry{Err: errors.NewNotFound("AccessToken", "token")}
+	tokenRegistry := &test.AccessTokenRegistry{Err: apierrs.NewNotFound("AccessToken", "token")}
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
@@ -238,7 +257,7 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 	}
 }
 func TestAuthenticateTokenOtherGetError(t *testing.T) {
-	tokenRegistry := &test.AccessTokenRegistry{Err: fmt.Errorf("get error")}
+	tokenRegistry := &test.AccessTokenRegistry{Err: errors.New("get error")}
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
