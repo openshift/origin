@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authfile "github.com/openshift/origin/pkg/auth/authenticator/file"
+	"github.com/openshift/origin/pkg/auth/authenticator/requesthandlers"
 	"github.com/openshift/origin/pkg/auth/authenticator/requestheader"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
@@ -74,14 +75,7 @@ type AuthConfig struct {
 func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
-	authRequestHandler := c.getAuthenticationRequestHandler()
-
-	// Check if the authentication handler wants to be told when we authenticated
-	success, ok := authRequestHandler.(handlers.AuthenticationSuccessHandler)
-	if !ok {
-		success = emptySuccess{}
-	}
-	authHandler := c.getAuthenticationHandler(mux, success, emptyError{})
+	authRequestHandler, authHandler := c.getAuthorizeAuthenticationHandlers(mux)
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
@@ -176,6 +170,18 @@ func getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", false, false)
 }
 
+func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler) {
+	// things based on sessionStore only work if they can share exactly the same instance of sessionStore
+	// this results in really ugly initialization code as we have to pass this concept through to many disparate pieces
+	// of the config that MIGHT need the information.  The first step to fixing it is to see how far it goes, so this
+	// does not attempt to hide the ugly
+	sessionStore := session.NewStore(c.SessionSecrets...)
+	authRequestHandler := c.getAuthenticationRequestHandler(sessionStore)
+	authHandler := c.getAuthenticationHandler(mux, sessionStore, emptyError{})
+
+	return authRequestHandler, authHandler
+}
+
 // getGrantHandler returns the object that handles approving or rejecting grant requests
 func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) handlers.GrantHandler {
 	var grantHandler handlers.GrantHandler
@@ -195,7 +201,9 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 	return grantHandler
 }
 
-func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.AuthenticationSuccessHandler, error handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
+func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore session.Store, error handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
+	successHandler := c.getAuthenticationSuccessHandler(sessionStore)
+
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authHandler handlers.AuthenticationHandler
@@ -214,8 +222,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 		}
 
 		state := external.DefaultState()
-		success := handlers.AuthenticationSuccessHandlers{success, state.(handlers.AuthenticationSuccessHandler)}
-		oauthHandler, err := external.NewHandler(oauthProvider, state, c.MasterAddr+callbackPath, success, error, identityMapper)
+		oauthHandler, err := external.NewHandler(oauthProvider, state, c.MasterAddr+callbackPath, successHandler, error, identityMapper)
 		if err != nil {
 			glog.Fatalf("unexpected error: %v", err)
 		}
@@ -225,8 +232,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, success handlers.
 	case "login":
 		passwordAuth := c.getPasswordAuthenticator()
 		authHandler = &redirectAuthHandler{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
-		success := handlers.AuthenticationSuccessHandlers{success, redirectSuccessHandler{}}
-		login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, success}, login.DefaultLoginFormRenderer)
+		login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, successHandler}, login.DefaultLoginFormRenderer)
 		login.Install(mux, OpenShiftLoginPrefix)
 	case "empty":
 		authHandler = emptyAuth{}
@@ -262,11 +268,33 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	return passwordAuth
 }
 
-func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
+func (c *AuthConfig) getAuthenticationSuccessHandler(sessionStore session.Store) handlers.AuthenticationSuccessHandler {
+	successHandlers := handlers.AuthenticationSuccessHandlers{}
+
+	authRequestHandlerTypes := env("ORIGIN_AUTH_REQUEST_HANDLERS", "session")
+	for _, currType := range strings.Split(authRequestHandlerTypes, ",") {
+		currType = strings.TrimSpace(currType)
+		switch currType {
+		case "session":
+			successHandlers = append(successHandlers, session.NewSessionAuthenticator(sessionStore, "ssn"))
+		}
+	}
+
+	authHandlerType := env("ORIGIN_AUTH_HANDLER", "login")
+	switch authHandlerType {
+	case "google", "github":
+		successHandlers = append(successHandlers, external.DefaultState().(handlers.AuthenticationSuccessHandler))
+	case "login":
+		successHandlers = append(successHandlers, redirectSuccessHandler{})
+	}
+
+	return successHandlers
+}
+
+func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType string, sessionStore session.Store) authenticator.Request {
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandler authenticator.Request
-	authRequestHandlerType := env("ORIGIN_AUTH_REQUEST_HANDLER", "session")
 	switch authRequestHandlerType {
 	case "bearer":
 		tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
@@ -276,13 +304,30 @@ func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
 		authRequestHandler = bearertoken.New(tokenAuthenticator)
 	case "requestheader":
 		authRequestHandler = requestheader.NewAuthenticator(requestheader.NewDefaultConfig())
+	case "basicauth":
+		passwordAuthenticator := c.getPasswordAuthenticator()
+		authRequestHandler = requesthandlers.NewBasicAuthAuthentication(passwordAuthenticator)
 	case "session":
-		sessionStore := session.NewStore(c.SessionSecrets...)
 		authRequestHandler = session.NewSessionAuthenticator(sessionStore, "ssn")
 	default:
 		glog.Fatalf("No AuthenticationRequestHandler found that matches %v.  The oauth server cannot start!", authRequestHandlerType)
 	}
 
+	return authRequestHandler
+}
+
+func (c *AuthConfig) getAuthenticationRequestHandler(sessionStore session.Store) authenticator.Request {
+	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// hard-coded strings as a stand-in until it gets sorted out
+	var authRequestHandlers []authenticator.Request
+	authRequestHandlerTypes := env("ORIGIN_AUTH_REQUEST_HANDLERS", "session")
+	for _, currType := range strings.Split(authRequestHandlerTypes, ",") {
+		currType = strings.TrimSpace(currType)
+
+		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(currType, sessionStore))
+	}
+
+	authRequestHandler := requesthandlers.NewUnionAuthentication(authRequestHandlers)
 	return authRequestHandler
 }
 
