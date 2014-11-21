@@ -10,7 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/config"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
@@ -38,7 +38,7 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {
 		return nil, errors.New("Not a template config.")
@@ -52,21 +52,26 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 		}
 		processor := template.NewTemplateProcessor(generators)
 		cfg, err := processor.Process(tpl)
-		if err != nil {
-			return nil, err
+		if len(err) > 0 {
+			// TODO: We don't report the processing errors to users as there is no
+			// good way how to do it for just some items.
+			glog.V(1).Infof(err.ToError().Error())
 		}
-		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.ID}); err != nil {
-			return nil, err
+
+		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); len(err) > 0 {
+			// TODO: We don't report the processing errors to users as there is no
+			// good way how to do it for just some items.
+			glog.V(1).Infof(err.ToError().Error())
 		}
 		return cfg, nil
 	}), nil
 }
 
-func (s *REST) Update(ctx kapi.Context, tpl runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, tpl runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return nil, errors.New("not implemented")
 	}), nil

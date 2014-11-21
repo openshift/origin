@@ -38,13 +38,13 @@ func TestListRoutesPopulatedList(t *testing.T) {
 	mockRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "foo",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "foo",
 				},
 			},
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "bar",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "bar",
 				},
 			},
 		},
@@ -83,7 +83,7 @@ func TestCreateRouteOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Route{
-		TypeMeta:    kapi.TypeMeta{ID: "foo"},
+		ObjectMeta:  kapi.ObjectMeta{Name: "foo"},
 		Host:        "www.frontend.com",
 		ServiceName: "myrubyservice",
 	})
@@ -96,11 +96,11 @@ func TestCreateRouteOK(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		route, ok := result.(*api.Route)
+		route, ok := result.Object.(*api.Route)
 		if !ok {
 			t.Errorf("Expected route type, got: %#v", result)
 		}
-		if route.ID != "foo" {
+		if route.Name != "foo" {
 			t.Errorf("Unexpected route: %#v", route)
 		}
 	case <-time.After(50 * time.Millisecond):
@@ -127,7 +127,7 @@ func TestGetRouteOK(t *testing.T) {
 	mockRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				TypeMeta: kapi.TypeMeta{ID: "foo"},
+				ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 			},
 		},
 	}
@@ -140,7 +140,7 @@ func TestGetRouteOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error", err)
 	}
-	if route.(*api.Route).ID != "foo" {
+	if route.(*api.Route).Name != "foo" {
 		t.Errorf("Unexpected route: %#v", route)
 	}
 }
@@ -164,8 +164,8 @@ func TestUpdateRouteMissingID(t *testing.T) {
 	if channel != nil {
 		t.Errorf("Expected nil, got %v", channel)
 	}
-	if strings.Index(err.Error(), "id is unspecified:") == -1 {
-		t.Errorf("Expected 'id is unspecified' error, got %v", err)
+	if strings.Index(err.Error(), "name is unspecified:") == -1 {
+		t.Errorf("Expected 'name is unspecified' error, got %v", err)
 	}
 }
 
@@ -174,7 +174,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(kapi.NewDefaultContext(), &api.Route{
-		TypeMeta:    kapi.TypeMeta{ID: "foo"},
+		ObjectMeta:  kapi.ObjectMeta{Name: "foo"},
 		Host:        "www.frontend.com",
 		ServiceName: "rubyservice",
 	})
@@ -182,7 +182,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 	result := <-channel
-	status, ok := result.(*kapi.Status)
+	status, ok := result.Object.(*kapi.Status)
 	if !ok {
 		t.Errorf("Expected status, got %#v", result)
 	}
@@ -196,7 +196,7 @@ func TestUpdateRouteOK(t *testing.T) {
 	mockRepositoryRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				TypeMeta:    kapi.TypeMeta{ID: "bar"},
+				ObjectMeta:  kapi.ObjectMeta{Name: "bar"},
 				Host:        "www.frontend.com",
 				ServiceName: "rubyservice",
 			},
@@ -206,7 +206,7 @@ func TestUpdateRouteOK(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(kapi.NewDefaultContext(), &api.Route{
-		TypeMeta:    kapi.TypeMeta{ID: "bar"},
+		ObjectMeta:  kapi.ObjectMeta{Name: "bar"},
 		Host:        "www.newfrontend.com",
 		ServiceName: "newrubyservice",
 	})
@@ -215,7 +215,7 @@ func TestUpdateRouteOK(t *testing.T) {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 	result := <-channel
-	route, ok := result.(*api.Route)
+	route, ok := result.Object.(*api.Route)
 	if !ok {
 		t.Errorf("Expected Route, got %#v", result)
 	}
@@ -223,7 +223,7 @@ func TestUpdateRouteOK(t *testing.T) {
 		t.Errorf("Nil route returned: %#v", route)
 		t.Errorf("Expected Route, got %#v", result)
 	}
-	if route.ID != "bar" {
+	if route.Name != "bar" {
 		t.Errorf("Unexpected route returned: %#v", route)
 	}
 	if route.Host != "www.newfrontend.com" {
@@ -251,7 +251,7 @@ func TestDeleteRouteOk(t *testing.T) {
 	mockRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				TypeMeta: kapi.TypeMeta{ID: "foo"},
+				ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 			},
 		},
 	}
@@ -266,7 +266,7 @@ func TestDeleteRouteOk(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
@@ -282,7 +282,7 @@ func TestCreateRouteConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
 	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Route{
-		TypeMeta: kapi.TypeMeta{ID: "foo", Namespace: "some-value"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "some-value"},
 	})
 
 	if channel != nil {
@@ -297,7 +297,7 @@ func TestUpdateRouteConflictingNamespace(t *testing.T) {
 	storage := REST{registry: mockRepositoryRegistry}
 
 	channel, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Route{
-		TypeMeta:    kapi.TypeMeta{ID: "bar", Namespace: "some-value"},
+		ObjectMeta:  kapi.ObjectMeta{Name: "bar", Namespace: "some-value"},
 		Host:        "www.newfrontend.com",
 		ServiceName: "newrubyservice",
 	})

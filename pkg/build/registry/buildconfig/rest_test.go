@@ -43,7 +43,7 @@ func TestGetConfig(t *testing.T) {
 	if !ok {
 		t.Errorf("A build config was not returned: %v", configObj)
 	}
-	if config.ID != expectedConfig.ID {
+	if config.Name != expectedConfig.Name {
 		t.Errorf("Unexpected build config returned: %v", config)
 	}
 }
@@ -70,7 +70,7 @@ func TestDeleteBuild(t *testing.T) {
 	}
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Unexpected operation result: %v", result)
 		}
@@ -93,7 +93,7 @@ func TestDeleteBuildError(t *testing.T) {
 	channel, _ := storage.Delete(kapi.NewDefaultContext(), configId)
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Unexpected operation result: %#v", channel)
 		}
@@ -120,7 +120,7 @@ func TestListConfigsError(t *testing.T) {
 }
 
 func TestListEmptyConfigList(t *testing.T) {
-	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{TypeMeta: kapi.TypeMeta{ResourceVersion: "1"}}}
+	mockRegistry := test.BuildConfigRegistry{BuildConfigs: &api.BuildConfigList{ListMeta: kapi.ListMeta{ResourceVersion: "1"}}}
 	storage := REST{&mockRegistry}
 	buildConfigs, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
@@ -140,13 +140,13 @@ func TestListConfigs(t *testing.T) {
 		BuildConfigs: &api.BuildConfigList{
 			Items: []api.BuildConfig{
 				{
-					TypeMeta: kapi.TypeMeta{
-						ID: "foo",
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "foo",
 					},
 				},
 				{
-					TypeMeta: kapi.TypeMeta{
-						ID: "bar",
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "bar",
 					},
 				},
 			},
@@ -161,10 +161,10 @@ func TestListConfigs(t *testing.T) {
 	if len(configs.Items) != 2 {
 		t.Errorf("Unexpected buildConfig list: %#v", configs)
 	}
-	if configs.Items[0].ID != "foo" {
+	if configs.Items[0].Name != "foo" {
 		t.Errorf("Unexpected buildConfig: %#v", configs.Items[0])
 	}
-	if configs.Items[1].ID != "bar" {
+	if configs.Items[1].Name != "bar" {
 		t.Errorf("Unexpected buildConfig: %#v", configs.Items[1])
 	}
 }
@@ -173,8 +173,8 @@ func TestBuildConfigDecode(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{registry: &mockRegistry}
 	buildConfig := &api.BuildConfig{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
 		},
 	}
 	body, err := latest.Codec.Encode(buildConfig)
@@ -253,9 +253,12 @@ func TestCreateBuildConfig(t *testing.T) {
 
 func mockBuildConfig() *api.BuildConfig {
 	return &api.BuildConfig{
-		TypeMeta: kapi.TypeMeta{
-			ID:        "dataBuild",
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "dataBuild",
 			Namespace: kapi.NamespaceDefault,
+			Labels: map[string]string{
+				"name": "dataBuild",
+			},
 		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{
@@ -274,9 +277,6 @@ func mockBuildConfig() *api.BuildConfig {
 				ImageTag: "repository/dataBuild",
 			},
 		},
-		Labels: map[string]string{
-			"name": "dataBuild",
-		},
 	}
 }
 
@@ -290,7 +290,7 @@ func TestUpdateBuildConfig(t *testing.T) {
 	}
 	select {
 	case result := <-channel:
-		switch obj := result.(type) {
+		switch obj := result.Object.(type) {
 		case *kapi.Status:
 			t.Errorf("Unexpected operation error: %v", obj)
 
@@ -317,7 +317,7 @@ func TestUpdateBuildConfigError(t *testing.T) {
 	}
 	select {
 	case result := <-channel:
-		switch obj := result.(type) {
+		switch obj := result.Object.(type) {
 		case *kapi.Status:
 			if obj.Message != mockRegistry.Err.Error() {
 				t.Errorf("Unexpected error result: %v", obj)
@@ -335,7 +335,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.BuildConfig{
 		"blank sourceURI": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -355,7 +355,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 			},
 		},
 		"blank ImageTag": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -369,7 +369,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 			},
 		},
 		"blank BuilderImage": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -405,7 +405,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 	storage := REST{&mockRegistry}
 	failureCases := map[string]api.BuildConfig{
 		"empty ID": {
-			TypeMeta: kapi.TypeMeta{ID: ""},
+			ObjectMeta: kapi.ObjectMeta{Name: ""},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -419,7 +419,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 			},
 		},
 		"blank sourceURI": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -439,7 +439,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 			},
 		},
 		"blank ImageTag": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -453,7 +453,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 			},
 		},
 		"blank BuilderImage on STIBuildType": {
-			TypeMeta: kapi.TypeMeta{ID: "abc"},
+			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
 					Type: api.BuildSourceGit,
@@ -488,7 +488,7 @@ func TestCreateBuildConfigConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
 	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.BuildConfig{
-		TypeMeta: kapi.TypeMeta{ID: "foo", Namespace: "some-value"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "some-value"},
 	})
 
 	if channel != nil {

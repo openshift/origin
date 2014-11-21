@@ -26,12 +26,27 @@ import (
 	"github.com/google/gofuzz"
 )
 
+func TestIsList(t *testing.T) {
+	tests := []struct {
+		obj    runtime.Object
+		isList bool
+	}{
+		{&api.PodList{}, true},
+		{&api.Pod{}, false},
+	}
+	for _, item := range tests {
+		if e, a := item.isList, runtime.IsListType(item.obj); e != a {
+			t.Errorf("%v: Expected %v, got %v", reflect.TypeOf(item.obj), e, a)
+		}
+	}
+}
+
 func TestExtractList(t *testing.T) {
 	pl := &api.PodList{
 		Items: []api.Pod{
-			{TypeMeta: api.TypeMeta{ID: "1"}},
-			{TypeMeta: api.TypeMeta{ID: "2"}},
-			{TypeMeta: api.TypeMeta{ID: "3"}},
+			{ObjectMeta: api.ObjectMeta{Name: "1"}},
+			{ObjectMeta: api.ObjectMeta{Name: "2"}},
+			{ObjectMeta: api.ObjectMeta{Name: "3"}},
 		},
 	}
 	list, err := runtime.ExtractList(pl)
@@ -42,7 +57,7 @@ func TestExtractList(t *testing.T) {
 		t.Fatalf("Expected %v, got %v", e, a)
 	}
 	for i := range list {
-		if e, a := list[i].(*api.Pod).ID, pl.Items[i].ID; e != a {
+		if e, a := list[i].(*api.Pod).Name, pl.Items[i].Name; e != a {
 			t.Fatalf("Expected %v, got %v", e, a)
 		}
 	}
@@ -51,9 +66,9 @@ func TestExtractList(t *testing.T) {
 func TestSetList(t *testing.T) {
 	pl := &api.PodList{}
 	list := []runtime.Object{
-		&api.Pod{TypeMeta: api.TypeMeta{ID: "1"}},
-		&api.Pod{TypeMeta: api.TypeMeta{ID: "2"}},
-		&api.Pod{TypeMeta: api.TypeMeta{ID: "3"}},
+		&api.Pod{ObjectMeta: api.ObjectMeta{Name: "1"}},
+		&api.Pod{ObjectMeta: api.ObjectMeta{Name: "2"}},
+		&api.Pod{ObjectMeta: api.ObjectMeta{Name: "3"}},
 	}
 	err := runtime.SetList(pl, list)
 	if err != nil {
@@ -63,7 +78,7 @@ func TestSetList(t *testing.T) {
 		t.Fatalf("Expected %v, got %v", e, a)
 	}
 	for i := range list {
-		if e, a := list[i].(*api.Pod).ID, pl.Items[i].ID; e != a {
+		if e, a := list[i].(*api.Pod).Name, pl.Items[i].Name; e != a {
 			t.Fatalf("Expected %v, got %v", e, a)
 		}
 	}

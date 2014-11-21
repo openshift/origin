@@ -47,7 +47,7 @@ func (r *Etcd) ListDeployments(ctx kapi.Context, label, field labels.Selector) (
 	filtered := []api.Deployment{}
 	for _, item := range deployments.Items {
 		fields := labels.Set{
-			"id":     item.ID,
+			"name":   item.Name,
 			"status": string(item.Status),
 		}
 		if label.Matches(labels.Set(item.Labels)) && field.Matches(fields) {
@@ -83,22 +83,22 @@ func (r *Etcd) GetDeployment(ctx kapi.Context, id string) (*api.Deployment, erro
 
 // CreateDeployment creates a new Deployment.
 func (r *Etcd) CreateDeployment(ctx kapi.Context, deployment *api.Deployment) error {
-	key, err := makeDeploymentKey(ctx, deployment.ID)
+	key, err := makeDeploymentKey(ctx, deployment.Name)
 	if err != nil {
 		return err
 	}
 	err = r.CreateObj(key, deployment, 0)
-	return etcderr.InterpretCreateError(err, "deployment", deployment.ID)
+	return etcderr.InterpretCreateError(err, "deployment", deployment.Name)
 }
 
 // UpdateDeployment replaces an existing Deployment.
 func (r *Etcd) UpdateDeployment(ctx kapi.Context, deployment *api.Deployment) error {
-	key, err := makeDeploymentKey(ctx, deployment.ID)
+	key, err := makeDeploymentKey(ctx, deployment.Name)
 	if err != nil {
 		return err
 	}
 	err = r.SetObj(key, deployment)
-	return etcderr.InterpretUpdateError(err, "deployment", deployment.ID)
+	return etcderr.InterpretUpdateError(err, "deployment", deployment.Name)
 }
 
 // DeleteDeployment deletes a Deployment specified by its ID.
@@ -125,7 +125,7 @@ func (r *Etcd) WatchDeployments(ctx kapi.Context, label, field labels.Selector, 
 			return false
 		}
 		fields := labels.Set{
-			"id":     deployment.ID,
+			"name":   deployment.Name,
 			"status": string(deployment.Status),
 		}
 		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
@@ -142,7 +142,7 @@ func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selec
 	filtered := []api.DeploymentConfig{}
 	for _, item := range deploymentConfigs.Items {
 		fields := labels.Set{
-			"id": item.ID,
+			"name": item.Name,
 		}
 		if label.Matches(labels.Set(item.Labels)) && field.Matches(fields) {
 			filtered = append(filtered, item)
@@ -183,7 +183,7 @@ func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Sele
 			return false
 		}
 		fields := labels.Set{
-			"id": config.ID,
+			"name": config.Name,
 		}
 		return label.Matches(labels.Set(config.Labels)) && field.Matches(fields)
 	})
@@ -214,24 +214,24 @@ func (r *Etcd) GetDeploymentConfig(ctx kapi.Context, id string) (*api.Deployment
 
 // CreateDeploymentConfig creates a new DeploymentConfig.
 func (r *Etcd) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.DeploymentConfig) error {
-	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.ID)
+	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.Name)
 	if err != nil {
 		return err
 	}
 
 	err = r.CreateObj(key, deploymentConfig, 0)
-	return etcderr.InterpretCreateError(err, "deploymentConfig", deploymentConfig.ID)
+	return etcderr.InterpretCreateError(err, "deploymentConfig", deploymentConfig.Name)
 }
 
 // UpdateDeploymentConfig replaces an existing DeploymentConfig.
 func (r *Etcd) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.DeploymentConfig) error {
-	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.ID)
+	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.Name)
 	if err != nil {
 		return err
 	}
 
 	err = r.SetObj(key, deploymentConfig)
-	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.ID)
+	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.Name)
 }
 
 // DeleteDeploymentConfig deletes a DeploymentConfig specified by its ID.

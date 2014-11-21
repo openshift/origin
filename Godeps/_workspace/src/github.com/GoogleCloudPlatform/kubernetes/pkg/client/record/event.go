@@ -29,8 +29,9 @@ import (
 )
 
 // EventRecorder knows how to store events (client.Client implements it.)
+// EventRecorder must respect the namespace that will be embedded in 'event'.
 type EventRecorder interface {
-	CreateEvent(event *api.Event) (*api.Event, error)
+	Create(event *api.Event) (*api.Event, error)
 }
 
 // StartRecording starts sending events to recorder. Call once while initializing
@@ -44,7 +45,7 @@ func StartRecording(recorder EventRecorder, sourceName string) watch.Interface {
 		event = &eventCopy
 		event.Source = sourceName
 		for {
-			_, err := recorder.CreateEvent(event)
+			_, err := recorder.Create(event)
 			if err == nil {
 				break
 			}
@@ -90,30 +91,39 @@ const queueLen = 1000
 var events = watch.NewMux(queueLen)
 
 // Event constructs an event from the given information and puts it in the queue for sending.
-// 'object' is the object this event is about; 'fieldPath', if not "", locates a part of 'object'.
+// 'object' is the object this event is about. Event will make a reference-- or you may also
+// pass a reference to the object directly.
 // 'status' is the new status of the object. 'reason' is the reason it now has this status.
 // Both 'status' and 'reason' should be short and unique; they will be used to automate
 // handling of events, so imagine people writing switch statements to handle them. You want to
 // make that easy.
 // 'message' is intended to be human readable.
-func Event(object runtime.Object, fieldPath, status, reason, message string) {
+//
+// The resulting event will be created in the same namespace as the reference object.
+func Event(object runtime.Object, status, reason, message string) {
 	ref, err := api.GetReference(object)
 	if err != nil {
-		glog.Errorf("Could not construct reference to: %#v due to: %v", object, err)
+		glog.Errorf("Could not construct reference to: '%#v' due to: '%v'. Will not report event: '%v' '%v' '%v'", object, err, status, reason, message)
 		return
 	}
-	ref.FieldPath = fieldPath
+	t := util.Now()
+
 	e := &api.Event{
+		ObjectMeta: api.ObjectMeta{
+			Name:      fmt.Sprintf("%v.%x", ref.Name, t.UnixNano()),
+			Namespace: ref.Namespace,
+		},
 		InvolvedObject: *ref,
 		Status:         status,
 		Reason:         reason,
 		Message:        message,
+		Timestamp:      t,
 	}
 
 	events.Action(watch.Added, e)
 }
 
 // Eventf is just like Event, but with Sprintf for the message field.
-func Eventf(object runtime.Object, fieldPath, status, reason, messageFmt string, args ...interface{}) {
-	Event(object, fieldPath, status, reason, fmt.Sprintf(messageFmt, args...))
+func Eventf(object runtime.Object, status, reason, messageFmt string, args ...interface{}) {
+	Event(object, status, reason, fmt.Sprintf(messageFmt, args...))
 }

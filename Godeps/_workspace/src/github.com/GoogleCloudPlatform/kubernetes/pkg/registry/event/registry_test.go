@@ -36,18 +36,18 @@ var testTTL uint64 = 60
 func NewTestEventEtcdRegistry(t *testing.T) (*tools.FakeEtcdClient, generic.Registry) {
 	f := tools.NewFakeEtcdClient(t)
 	f.TestIndex = true
-	h := tools.EtcdHelper{f, testapi.Codec(), tools.RuntimeVersionAdapter{testapi.ResourceVersioner()}}
+	h := tools.EtcdHelper{f, testapi.Codec(), tools.RuntimeVersionAdapter{testapi.MetadataAccessor()}}
 	return f, NewEtcdRegistry(h, testTTL)
 }
 
 func TestEventCreate(t *testing.T) {
 	eventA := &api.Event{
-		TypeMeta: api.TypeMeta{ID: "foo"},
-		Reason:   "forTesting",
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
+		Reason:     "forTesting",
 	}
 	eventB := &api.Event{
-		TypeMeta: api.TypeMeta{ID: "foo"},
-		Reason:   "forTesting",
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
+		Reason:     "forTesting",
 	}
 
 	nodeWithEventA := tools.EtcdResponseWithError{

@@ -47,7 +47,9 @@ func start(cfg *clientcmd.Config) error {
 	}
 
 	routes := haproxy.NewRouter()
-	controllerManager := lbmanager.NewLBManager(routes, kubeClient, osClient)
+
+	// TODO yikes
+	controllerManager := lbmanager.NewLBManager(routes, kubeClient.Endpoints(""), osClient)
 	controllerManager.Run(10 * time.Second)
 
 	select {}

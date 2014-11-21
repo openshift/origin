@@ -48,7 +48,7 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 	}
 
 	if config.LatestVersion == 0 {
-		glog.V(4).Infof("Creating new deployment for config %v", config.ID)
+		glog.V(4).Infof("Creating new deployment for config %v", config.Name)
 		dc.generateDeployment(config, nil)
 		return
 	}
@@ -64,7 +64,7 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 	deployment := obj.(*deployapi.Deployment)
 
 	if deployutil.PodTemplatesEqual(config.Template.ControllerTemplate.PodTemplate, deployment.ControllerTemplate.PodTemplate) {
-		glog.V(4).Infof("Ignoring updated config %s with LatestVersion=%d because it matches deployment %s", config.ID, config.LatestVersion, deployment.ID)
+		glog.V(4).Infof("Ignoring updated config %s with LatestVersion=%d because it matches deployment %s", config.Name, config.LatestVersion, deployment.Name)
 		return
 	}
 
@@ -73,14 +73,14 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 
 func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig, deployment *deployapi.Deployment) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), config.Namespace)
-	newConfig, err := dc.ChangeStrategy.GenerateDeploymentConfig(ctx, config.ID)
+	newConfig, err := dc.ChangeStrategy.GenerateDeploymentConfig(ctx, config.Name)
 	if err != nil {
-		glog.V(2).Infof("Error generating new version of deploymentConfig %v: %#v", config.ID, err)
+		glog.V(2).Infof("Error generating new version of deploymentConfig %v: %#v", config.Name, err)
 		return
 	}
 
 	if deployment != nil {
-		glog.V(4).Infof("Updating config %s (LatestVersion: %d -> %d) to advance existing deployment %s", config.ID, config.LatestVersion, newConfig.LatestVersion, deployment.ID)
+		glog.V(4).Infof("Updating config %s (LatestVersion: %d -> %d) to advance existing deployment %s", config.Name, config.LatestVersion, newConfig.LatestVersion, deployment.Name)
 	}
 
 	// set the trigger details for the new deployment config
@@ -97,6 +97,6 @@ func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi
 	// okay - we can just ignore the update for the old resource and any changes to the more
 	// current config will be captured in future events.
 	if _, err = dc.ChangeStrategy.UpdateDeploymentConfig(ctx, newConfig); err != nil {
-		glog.V(2).Infof("Error updating deploymentConfig %v: %#v", config.ID, err)
+		glog.V(2).Infof("Error updating deploymentConfig %v: %#v", config.Name, err)
 	}
 }

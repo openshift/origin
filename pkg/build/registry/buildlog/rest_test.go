@@ -6,21 +6,18 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 )
 
-type podClient struct {
-	kclient.Fake
-}
+type podControl struct{}
 
-func (p *podClient) GetPod(ctx kapi.Context, id string) (*kapi.Pod, error) {
+func (p *podControl) getPod(namespace, name string) (*kapi.Pod, error) {
 	pod := &kapi.Pod{
-		TypeMeta: kapi.TypeMeta{
-			ID:        "foo",
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "foo",
 			Namespace: kapi.NamespaceDefault,
 		},
 		DesiredState: kapi.PodState{
@@ -53,7 +50,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 	for buildStatus, expectedLocation := range expectedLocations {
 		expectedBuild := mockBuild(buildStatus)
 		buildRegistry := test.BuildRegistry{Build: expectedBuild}
-		storage := REST{&buildRegistry, &podClient{}}
+		storage := REST{&buildRegistry, &podControl{}}
 		redirector := apiserver.Redirector(&storage)
 		location, err := redirector.ResourceLocation(ctx, "foo")
 		if err != nil {
@@ -67,10 +64,10 @@ func TestRegistryResourceLocation(t *testing.T) {
 
 func mockBuild(buildStatus api.BuildStatus) *api.Build {
 	return &api.Build{
-		TypeMeta: kapi.TypeMeta{
-			ID: "foo-build",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo-build",
 		},
-		Status: buildStatus,
-		PodID:  "foo-pod",
+		Status:  buildStatus,
+		PodName: "foo-pod",
 	}
 }

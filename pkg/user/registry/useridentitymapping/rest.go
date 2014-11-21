@@ -37,12 +37,12 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 }
 
 // Create is not supported for UserIdentityMappings
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
 // Update will create or update a UserIdentityMapping
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
 		return nil, fmt.Errorf("not a user identity mapping: %#v", obj)
@@ -57,6 +57,6 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Obje
 }
 
 // Delete asynchronously deletes an UserIdentityMapping specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("not implemented")
 }

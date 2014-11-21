@@ -105,6 +105,7 @@ func TestExtractInvalidManifest(t *testing.T) {
 			ResponseBody: string(data),
 		}
 		testServer := httptest.NewServer(&fakeHandler)
+		defer testServer.Close()
 		ch := make(chan interface{}, 1)
 		c := SourceURL{testServer.URL, ch, nil}
 		if err := c.extractFromURL(); err == nil {
@@ -124,8 +125,8 @@ func TestExtractFromHTTP(t *testing.T) {
 			manifests: api.ContainerManifest{Version: "v1beta1", ID: "foo"},
 			expected: CreatePodUpdate(kubelet.SET,
 				api.BoundPod{
-					TypeMeta: api.TypeMeta{
-						ID:        "foo",
+					ObjectMeta: api.ObjectMeta{
+						Name:      "foo",
 						Namespace: "default",
 					},
 					Spec: api.PodSpec{
@@ -141,18 +142,28 @@ func TestExtractFromHTTP(t *testing.T) {
 			},
 			expected: CreatePodUpdate(kubelet.SET,
 				api.BoundPod{
-					TypeMeta: api.TypeMeta{
-						ID:        "1",
+					ObjectMeta: api.ObjectMeta{
+						Name:      "1",
 						Namespace: "default",
 					},
-					Spec: api.PodSpec{Containers: []api.Container{{Name: "1", Image: "foo"}}},
+					Spec: api.PodSpec{
+						Containers: []api.Container{{
+							Name:  "1",
+							Image: "foo",
+							TerminationMessagePath: "/dev/termination-log"}},
+					},
 				},
 				api.BoundPod{
-					TypeMeta: api.TypeMeta{
-						ID:        "bar",
+					ObjectMeta: api.ObjectMeta{
+						Name:      "bar",
 						Namespace: "default",
 					},
-					Spec: api.PodSpec{Containers: []api.Container{{Name: "1", Image: "foo"}}},
+					Spec: api.PodSpec{
+						Containers: []api.Container{{
+							Name:  "1",
+							Image: "foo",
+							TerminationMessagePath: "/dev/termination-log"}},
+					},
 				}),
 		},
 		{
@@ -171,6 +182,7 @@ func TestExtractFromHTTP(t *testing.T) {
 			ResponseBody: string(data),
 		}
 		testServer := httptest.NewServer(&fakeHandler)
+		defer testServer.Close()
 		ch := make(chan interface{}, 1)
 		c := SourceURL{testServer.URL, ch, nil}
 		if err := c.extractFromURL(); err != nil {

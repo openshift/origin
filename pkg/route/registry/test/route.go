@@ -24,7 +24,7 @@ func (r *RouteRegistry) ListRoutes(ctx kapi.Context, labels labels.Selector) (*r
 func (r *RouteRegistry) GetRoute(ctx kapi.Context, id string) (*routeapi.Route, error) {
 	if r.Routes != nil {
 		for _, route := range r.Routes.Items {
-			if route.ID == id {
+			if route.Name == id {
 				return &route, nil
 			}
 		}
@@ -52,7 +52,7 @@ func (r *RouteRegistry) UpdateRoute(ctx kapi.Context, route *routeapi.Route) err
 	newList := []routeapi.Route{}
 	found := false
 	for _, curRoute := range r.Routes.Items {
-		if curRoute.ID == route.ID {
+		if curRoute.Name == route.Name {
 			// route to be updated exists
 			found = true
 		} else {
@@ -60,7 +60,7 @@ func (r *RouteRegistry) UpdateRoute(ctx kapi.Context, route *routeapi.Route) err
 		}
 	}
 	if !found {
-		return errors.New("Route " + route.ID + " not found")
+		return errors.New("Route " + route.Name + " not found")
 	}
 	newList = append(newList, *route)
 	r.Routes.Items = newList
@@ -73,7 +73,7 @@ func (r *RouteRegistry) DeleteRoute(ctx kapi.Context, id string) error {
 	}
 	newList := []routeapi.Route{}
 	for _, curRoute := range r.Routes.Items {
-		if curRoute.ID != id {
+		if curRoute.Name != id {
 			newList = append(newList, curRoute)
 		}
 	}

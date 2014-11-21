@@ -19,6 +19,7 @@ package record_test
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -32,7 +33,7 @@ type testEventRecorder struct {
 }
 
 // CreateEvent records the event for testing.
-func (t *testEventRecorder) CreateEvent(e *api.Event) (*api.Event, error) {
+func (t *testEventRecorder) Create(e *api.Event) (*api.Event, error) {
 	if t.OnEvent != nil {
 		return t.OnEvent(e)
 	}
@@ -44,31 +45,42 @@ func (t *testEventRecorder) clearOnEvent() {
 }
 
 func TestEventf(t *testing.T) {
+	testPod := &api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			SelfLink:  "/api/v1beta1/pods/foo",
+			Name:      "foo",
+			Namespace: "baz",
+			UID:       "bar",
+		},
+	}
+	testRef, err := api.GetPartialReference(testPod, "desiredState.manifest.containers[2]")
+	if err != nil {
+		t.Fatal(err)
+	}
 	table := []struct {
-		obj                       runtime.Object
-		fieldPath, status, reason string
-		messageFmt                string
-		elements                  []interface{}
-		expect                    *api.Event
-		expectLog                 string
+		obj            runtime.Object
+		status, reason string
+		messageFmt     string
+		elements       []interface{}
+		expect         *api.Event
+		expectLog      string
 	}{
 		{
-			obj: &api.Pod{
-				TypeMeta: api.TypeMeta{
-					SelfLink: "/api/v1beta1/pods/foo",
-					ID:       "foo",
-				},
-			},
-			fieldPath:  "desiredState.manifest.containers[2]",
+			obj:        testRef,
 			status:     "running",
 			reason:     "started",
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "foo",
+					Namespace: "baz",
+				},
 				InvolvedObject: api.ObjectReference{
 					Kind:       "Pod",
 					Name:       "foo",
-					UID:        "foo",
+					Namespace:  "baz",
+					UID:        "bar",
 					APIVersion: "v1beta1",
 					FieldPath:  "desiredState.manifest.containers[2]",
 				},
@@ -77,19 +89,55 @@ func TestEventf(t *testing.T) {
 				Message: "some verbose message: 1",
 				Source:  "eventTest",
 			},
-			expectLog: `Event(api.ObjectReference{Kind:"Pod", Namespace:"", Name:"foo", UID:"foo", APIVersion:"v1beta1", ResourceVersion:"", FieldPath:"desiredState.manifest.containers[2]"}): status: 'running', reason: 'started' some verbose message: 1`,
+			expectLog: `Event(api.ObjectReference{Kind:"Pod", Namespace:"baz", Name:"foo", UID:"bar", APIVersion:"v1beta1", ResourceVersion:"", FieldPath:"desiredState.manifest.containers[2]"}): status: 'running', reason: 'started' some verbose message: 1`,
+		},
+		{
+			obj:        testPod,
+			status:     "running",
+			reason:     "started",
+			messageFmt: "some verbose message: %v",
+			elements:   []interface{}{1},
+			expect: &api.Event{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "foo",
+					Namespace: "baz",
+				},
+				InvolvedObject: api.ObjectReference{
+					Kind:       "Pod",
+					Name:       "foo",
+					Namespace:  "baz",
+					UID:        "bar",
+					APIVersion: "v1beta1",
+				},
+				Status:  "running",
+				Reason:  "started",
+				Message: "some verbose message: 1",
+				Source:  "eventTest",
+			},
+			expectLog: `Event(api.ObjectReference{Kind:"Pod", Namespace:"baz", Name:"foo", UID:"bar", APIVersion:"v1beta1", ResourceVersion:"", FieldPath:""}): status: 'running', reason: 'started' some verbose message: 1`,
 		},
 	}
 
 	for _, item := range table {
 		called := make(chan struct{})
 		testEvents := testEventRecorder{
-			OnEvent: func(a *api.Event) (*api.Event, error) {
-				if e := item.expect; !reflect.DeepEqual(e, a) {
+			OnEvent: func(event *api.Event) (*api.Event, error) {
+				a := *event
+				// Just check that the timestamp was set.
+				if a.Timestamp.IsZero() {
+					t.Errorf("timestamp wasn't set")
+				}
+				a.Timestamp = item.expect.Timestamp
+				// Check that name has the right prefix.
+				if n, en := a.Name, item.expect.Name; !strings.HasPrefix(n, en) {
+					t.Errorf("Name '%v' does not contain prefix '%v'", n, en)
+				}
+				a.Name = item.expect.Name
+				if e, a := item.expect, &a; !reflect.DeepEqual(e, a) {
 					t.Errorf("diff: %s", util.ObjectDiff(e, a))
 				}
 				called <- struct{}{}
-				return a, nil
+				return event, nil
 			},
 		}
 		recorder := record.StartRecording(&testEvents, "eventTest")
@@ -101,7 +149,7 @@ func TestEventf(t *testing.T) {
 			called <- struct{}{}
 		})
 
-		record.Eventf(item.obj, item.fieldPath, item.status, item.reason, item.messageFmt, item.elements...)
+		record.Eventf(item.obj, item.status, item.reason, item.messageFmt, item.elements...)
 
 		<-called
 		<-called

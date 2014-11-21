@@ -56,13 +56,13 @@ func TestListProjectsPopulatedList(t *testing.T) {
 	mockRegistry.Projects = &api.ProjectList{
 		Items: []api.Project{
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "foo",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "foo",
 				},
 			},
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "bar",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "bar",
 				},
 			},
 		},
@@ -114,7 +114,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Project{
-		TypeMeta: kapi.TypeMeta{ID: "foo"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -125,7 +125,7 @@ func TestCreateRegistrySaveError(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}
@@ -142,7 +142,7 @@ func TestCreateProjectOK(t *testing.T) {
 	storage := REST{registry: mockRegistry}
 
 	channel, err := storage.Create(nil, &api.Project{
-		TypeMeta: kapi.TypeMeta{ID: "foo"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	})
 	if channel == nil {
 		t.Errorf("Expected nil channel, got %v", channel)
@@ -153,11 +153,11 @@ func TestCreateProjectOK(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		project, ok := result.(*api.Project)
+		project, ok := result.Object.(*api.Project)
 		if !ok {
 			t.Errorf("Expected project type, got: %#v", result)
 		}
-		if project.ID != "foo" {
+		if project.Name != "foo" {
 			t.Errorf("Unexpected project: %#v", project)
 		}
 	case <-time.After(50 * time.Millisecond):
@@ -182,7 +182,7 @@ func TestGetProjectError(t *testing.T) {
 func TestGetProjectOK(t *testing.T) {
 	mockRegistry := test.NewProjectRegistry()
 	mockRegistry.Project = &api.Project{
-		TypeMeta: kapi.TypeMeta{ID: "foo"},
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	}
 	storage := REST{registry: mockRegistry}
 
@@ -193,7 +193,7 @@ func TestGetProjectOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error", err)
 	}
-	if project.(*api.Project).ID != "foo" {
+	if project.(*api.Project).Name != "foo" {
 		t.Errorf("Unexpected project: %#v", project)
 	}
 }
@@ -225,7 +225,7 @@ func TestDeleteProject(t *testing.T) {
 
 	select {
 	case result := <-channel:
-		status, ok := result.(*kapi.Status)
+		status, ok := result.Object.(*kapi.Status)
 		if !ok {
 			t.Errorf("Expected status type, got: %#v", result)
 		}

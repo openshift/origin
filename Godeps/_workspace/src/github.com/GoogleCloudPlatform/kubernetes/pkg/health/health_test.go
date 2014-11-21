@@ -46,13 +46,14 @@ func TestHealthChecker(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(tt.status)
 		}))
+		defer ts.Close()
 		u, err := url.Parse(ts.URL)
 		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
+			t.Fatalf("Unexpected error: %v", err)
 		}
 		host, port, err := net.SplitHostPort(u.Host)
 		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
+			t.Fatalf("Unexpected error: %v", err)
 		}
 		if tt.status == statusServerEarlyShutdown {
 			ts.Close()
@@ -114,13 +115,14 @@ func TestMuxHealthChecker(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
+		defer ts.Close()
 		u, err := url.Parse(ts.URL)
 		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
+			t.Fatalf("Unexpected error: %v", err)
 		}
 		host, port, err := net.SplitHostPort(u.Host)
 		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
+			t.Fatalf("Unexpected error: %v", err)
 		}
 		container := api.Container{
 			LivenessProbe: &api.LivenessProbe{

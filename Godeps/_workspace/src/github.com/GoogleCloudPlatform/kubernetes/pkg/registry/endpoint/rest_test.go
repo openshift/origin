@@ -29,8 +29,8 @@ import (
 func TestGetEndpoints(t *testing.T) {
 	registry := &registrytest.ServiceRegistry{
 		Endpoints: api.Endpoints{
-			TypeMeta:  api.TypeMeta{ID: "foo"},
-			Endpoints: []string{"127.0.0.1:9000"},
+			ObjectMeta: api.ObjectMeta{Name: "foo"},
+			Endpoints:  []string{"127.0.0.1:9000"},
 		},
 	}
 	storage := NewREST(registry)
@@ -59,7 +59,7 @@ func TestGetEndpointsMissingService(t *testing.T) {
 	// returns empty endpoints
 	registry.Err = nil
 	registry.Service = &api.Service{
-		TypeMeta: api.TypeMeta{ID: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
 	}
 	obj, err := storage.Get(ctx, "foo")
 	if err != nil {
@@ -74,10 +74,10 @@ func TestEndpointsRegistryList(t *testing.T) {
 	registry := registrytest.NewServiceRegistry()
 	storage := NewREST(registry)
 	registry.EndpointsList = api.EndpointsList{
-		TypeMeta: api.TypeMeta{ResourceVersion: "1"},
+		ListMeta: api.ListMeta{ResourceVersion: "1"},
 		Items: []api.Endpoints{
-			{TypeMeta: api.TypeMeta{ID: "foo"}},
-			{TypeMeta: api.TypeMeta{ID: "bar"}},
+			{ObjectMeta: api.ObjectMeta{Name: "foo"}},
+			{ObjectMeta: api.ObjectMeta{Name: "bar"}},
 		},
 	}
 	ctx := api.NewContext()
@@ -86,13 +86,24 @@ func TestEndpointsRegistryList(t *testing.T) {
 	if len(sl.Items) != 2 {
 		t.Fatalf("Expected 2 endpoints, but got %v", len(sl.Items))
 	}
-	if e, a := "foo", sl.Items[0].ID; e != a {
+	if e, a := "foo", sl.Items[0].Name; e != a {
 		t.Errorf("Expected %v, but got %v", e, a)
 	}
-	if e, a := "bar", sl.Items[1].ID; e != a {
+	if e, a := "bar", sl.Items[1].Name; e != a {
 		t.Errorf("Expected %v, but got %v", e, a)
 	}
 	if sl.ResourceVersion != "1" {
 		t.Errorf("Unexpected resource version: %#v", sl)
+	}
+}
+
+func TestEndpointsRegistryDelete(t *testing.T) {
+	registry := registrytest.NewServiceRegistry()
+	storage := NewREST(registry)
+	_, err := storage.Delete(api.NewContext(), "n/a")
+	if err == nil {
+		t.Error("unexpected non-error")
+	} else if !errors.IsBadRequest(err) {
+		t.Errorf("unexpected error: %v", err)
 	}
 }

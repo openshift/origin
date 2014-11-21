@@ -16,6 +16,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -79,10 +80,17 @@ func TestExamples(t *testing.T) {
 
 		"../api/examples/create-service.json": &kapi.Service{},
 		"../api/examples/status-success.json": nil,
+
+		"../test/integration/fixtures/test-deployment-config.json": &deployapi.DeploymentConfig{},
+		"../test/integration/fixtures/test-image-repository.json":  &imageapi.ImageRepository{},
+		"../test/integration/fixtures/test-image.json":             &imageapi.Image{},
+		"../test/integration/fixtures/test-mapping.json":           &imageapi.ImageRepositoryMapping{},
+		"../test/integration/fixtures/test-route.json":             &routeapi.Route{},
+		"../test/integration/fixtures/test-service.json":           &kapi.Service{},
 	}
 
 	// Add the root directory to search for files you want to test, if is not in the list below.
-	rootDirs := []string{".", "../api/examples"}
+	rootDirs := []string{".", "../api/examples", "../test/integration/fixtures"}
 	files := []string{}
 
 	for _, rootDir := range rootDirs {

@@ -47,6 +47,9 @@ func TestScheme(t *testing.T) {
 	scheme.AddKnownTypeWithName("", "Simple", &InternalSimple{})
 	scheme.AddKnownTypeWithName("externalVersion", "Simple", &ExternalSimple{})
 
+	// test that scheme is an ObjectTyper
+	var _ runtime.ObjectTyper = scheme
+
 	internalToExternalCalls := 0
 	externalToInternalCalls := 0
 
@@ -120,6 +123,20 @@ func TestScheme(t *testing.T) {
 	// Decode and DecodeInto should each have caused an increment.
 	if e, a := 2, externalToInternalCalls; e != a {
 		t.Errorf("Expected %v, got %v", e, a)
+	}
+}
+
+func TestInvalidObjectValueKind(t *testing.T) {
+	scheme := runtime.NewScheme()
+	scheme.AddKnownTypeWithName("", "Simple", &InternalSimple{})
+
+	embedded := &runtime.EmbeddedObject{}
+	switch obj := embedded.Object.(type) {
+	default:
+		_, _, err := scheme.ObjectVersionAndKind(obj)
+		if err == nil {
+			t.Errorf("Expected error on invalid kind")
+		}
 	}
 }
 

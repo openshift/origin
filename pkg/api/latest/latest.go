@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	_ "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 )
 
@@ -29,35 +33,58 @@ var Versions = []string{"v1beta1"}
 // This codec can decode any object that OpenShift is aware of.
 var Codec = v1beta1.Codec
 
+// accessor is the shared static metadata accessor for the API.
+var accessor = kmeta.NewAccessor()
+
 // ResourceVersioner describes a default versioner that can handle all types
 // of versioning.
 // TODO: when versioning changes, make this part of each API definition.
-var ResourceVersioner = runtime.NewTypeMetaResourceVersioner()
+var ResourceVersioner runtime.ResourceVersioner = accessor
 
 // SelfLinker can set or get the SelfLink field of all API types.
 // TODO: when versioning changes, make this part of each API definition.
 // TODO(lavalamp): Combine SelfLinker & ResourceVersioner interfaces, force all uses
 // to go through the InterfacesFor method below.
-var SelfLinker = runtime.NewTypeMetaSelfLinker()
+var SelfLinker runtime.SelfLinker = accessor
 
-// VersionInterfaces contains the interfaces one should use for dealing with types of a particular version.
-type VersionInterfaces struct {
-	runtime.Codec
-	runtime.ResourceVersioner
-	runtime.SelfLinker
-}
+// RESTMapper provides the default mapping between REST paths and the objects declared in api.Scheme and all known
+// Kubernetes versions.
+var RESTMapper kmeta.RESTMapper
 
 // InterfacesFor returns the default Codec and ResourceVersioner for a given version
 // string, or an error if the version is not known.
-func InterfacesFor(version string) (*VersionInterfaces, error) {
+func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 	switch version {
 	case "v1beta1":
-		return &VersionInterfaces{
-			Codec:             v1beta1.Codec,
-			ResourceVersioner: ResourceVersioner,
-			SelfLinker:        SelfLinker,
+		return &kmeta.VersionInterfaces{
+			Codec:            v1beta1.Codec,
+			ObjectConvertor:  api.Scheme,
+			MetadataAccessor: accessor,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported storage version: %s (valid: %s)", version, strings.Join(Versions, ", "))
+	}
+}
+
+func init() {
+
+	kubeMapper := klatest.RESTMapper
+	originMapper := kmeta.NewDefaultRESTMapper(
+		Versions,
+		func(version string) (*kmeta.VersionInterfaces, bool) {
+			interfaces, err := InterfacesFor(version)
+			if err != nil {
+				return nil, false
+			}
+			return interfaces, true
+		},
+	)
+	originMapper.Add(api.Scheme, true, Versions...)
+
+	// For Origin we use MultiRESTMapper that handles both Origin and Kubernetes
+	// objects
+	RESTMapper = meta.MultiRESTMapper{
+		originMapper,
+		kubeMapper,
 	}
 }

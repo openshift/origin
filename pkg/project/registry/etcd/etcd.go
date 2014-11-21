@@ -66,8 +66,8 @@ func (r *Etcd) GetProject(ctx kapi.Context, id string) (*api.Project, error) {
 
 // CreateProject creates a new project
 func (r *Etcd) CreateProject(ctx kapi.Context, project *api.Project) error {
-	err := r.CreateObj(makeProjectKey(ctx, project.ID), project, 0)
-	return etcderr.InterpretCreateError(err, "project", project.ID)
+	err := r.CreateObj(makeProjectKey(ctx, project.Name), project, 0)
+	return etcderr.InterpretCreateError(err, "project", project.Name)
 }
 
 // UpdateProject updates an existing project

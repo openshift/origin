@@ -2,7 +2,6 @@ package template
 
 import (
 	"testing"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
@@ -30,17 +29,8 @@ func TestStorageNotImplementedFunctions(t *testing.T) {
 		t.Errorf("Expected not implemented error.")
 	}
 
-	channel, err := storage.Delete(nil, "")
+	_, err := storage.Delete(nil, "")
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
-	}
-	select {
-	case result := <-channel:
-		status, ok := result.(*kapi.Status)
-		if !ok || status.Status != kapi.StatusFailure {
-			t.Errorf("Expected not implemented error.")
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
 	}
 }

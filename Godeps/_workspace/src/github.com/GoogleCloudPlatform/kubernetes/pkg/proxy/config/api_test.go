@@ -27,12 +27,12 @@ import (
 )
 
 func TestServices(t *testing.T) {
-	service := api.Service{TypeMeta: api.TypeMeta{ID: "bar", ResourceVersion: "2"}}
+	service := api.Service{ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "2"}}
 
 	fakeWatch := watch.NewFake()
 	fakeClient := &client.Fake{Watch: fakeWatch}
 	services := make(chan ServiceUpdate)
-	source := SourceAPI{client: fakeClient, services: services}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), services: services}
 	resourceVersion := "1"
 	go func() {
 		// called twice
@@ -72,19 +72,19 @@ func TestServices(t *testing.T) {
 }
 
 func TestServicesFromZero(t *testing.T) {
-	service := api.Service{TypeMeta: api.TypeMeta{ID: "bar", ResourceVersion: "2"}}
+	service := api.Service{ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "2"}}
 
 	fakeWatch := watch.NewFake()
 	fakeWatch.Stop()
 	fakeClient := &client.Fake{Watch: fakeWatch}
 	fakeClient.ServiceList = api.ServiceList{
-		TypeMeta: api.TypeMeta{ResourceVersion: "2"},
+		ListMeta: api.ListMeta{ResourceVersion: "2"},
 		Items: []api.Service{
 			service,
 		},
 	}
 	services := make(chan ServiceUpdate)
-	source := SourceAPI{client: fakeClient, services: services}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), services: services}
 	resourceVersion := ""
 	ch := make(chan struct{})
 	go func() {
@@ -112,7 +112,7 @@ func TestServicesFromZero(t *testing.T) {
 func TestServicesError(t *testing.T) {
 	fakeClient := &client.Fake{Err: errors.New("test")}
 	services := make(chan ServiceUpdate)
-	source := SourceAPI{client: fakeClient, services: services}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), services: services}
 	resourceVersion := "1"
 	ch := make(chan struct{})
 	go func() {
@@ -133,7 +133,7 @@ func TestServicesError(t *testing.T) {
 func TestServicesFromZeroError(t *testing.T) {
 	fakeClient := &client.Fake{Err: errors.New("test")}
 	services := make(chan ServiceUpdate)
-	source := SourceAPI{client: fakeClient, services: services}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), services: services}
 	resourceVersion := ""
 	ch := make(chan struct{})
 	go func() {
@@ -152,12 +152,12 @@ func TestServicesFromZeroError(t *testing.T) {
 }
 
 func TestEndpoints(t *testing.T) {
-	endpoint := api.Endpoints{TypeMeta: api.TypeMeta{ID: "bar", ResourceVersion: "2"}, Endpoints: []string{"127.0.0.1:9000"}}
+	endpoint := api.Endpoints{ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "2"}, Endpoints: []string{"127.0.0.1:9000"}}
 
 	fakeWatch := watch.NewFake()
 	fakeClient := &client.Fake{Watch: fakeWatch}
 	endpoints := make(chan EndpointsUpdate)
-	source := SourceAPI{client: fakeClient, endpoints: endpoints}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), endpoints: endpoints}
 	resourceVersion := "1"
 	go func() {
 		// called twice
@@ -197,19 +197,19 @@ func TestEndpoints(t *testing.T) {
 }
 
 func TestEndpointsFromZero(t *testing.T) {
-	endpoint := api.Endpoints{TypeMeta: api.TypeMeta{ID: "bar", ResourceVersion: "2"}, Endpoints: []string{"127.0.0.1:9000"}}
+	endpoint := api.Endpoints{ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "2"}, Endpoints: []string{"127.0.0.1:9000"}}
 
 	fakeWatch := watch.NewFake()
 	fakeWatch.Stop()
 	fakeClient := &client.Fake{Watch: fakeWatch}
 	fakeClient.EndpointsList = api.EndpointsList{
-		TypeMeta: api.TypeMeta{ResourceVersion: "2"},
+		ListMeta: api.ListMeta{ResourceVersion: "2"},
 		Items: []api.Endpoints{
 			endpoint,
 		},
 	}
 	endpoints := make(chan EndpointsUpdate)
-	source := SourceAPI{client: fakeClient, endpoints: endpoints}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), endpoints: endpoints}
 	resourceVersion := ""
 	ch := make(chan struct{})
 	go func() {
@@ -237,7 +237,7 @@ func TestEndpointsFromZero(t *testing.T) {
 func TestEndpointsError(t *testing.T) {
 	fakeClient := &client.Fake{Err: errors.New("test")}
 	endpoints := make(chan EndpointsUpdate)
-	source := SourceAPI{client: fakeClient, endpoints: endpoints}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), endpoints: endpoints}
 	resourceVersion := "1"
 	ch := make(chan struct{})
 	go func() {
@@ -258,7 +258,7 @@ func TestEndpointsError(t *testing.T) {
 func TestEndpointsFromZeroError(t *testing.T) {
 	fakeClient := &client.Fake{Err: errors.New("test")}
 	endpoints := make(chan EndpointsUpdate)
-	source := SourceAPI{client: fakeClient, endpoints: endpoints}
+	source := SourceAPI{servicesWatcher: fakeClient.Services(api.NamespaceAll), endpointsWatcher: fakeClient.Endpoints(api.NamespaceAll), endpoints: endpoints}
 	resourceVersion := ""
 	ch := make(chan struct{})
 	go func() {

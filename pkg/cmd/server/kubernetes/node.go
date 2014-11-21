@@ -91,7 +91,9 @@ func (c *NodeConfig) RunKubelet() {
 		c.NetworkContainerImage,
 		30*time.Second,
 		0.0,
-		10)
+		10,
+		0,
+		5)
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
 	// this parameter must be true, otherwise buildLogs won't work

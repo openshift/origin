@@ -76,7 +76,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 	return &controller.DeploymentController{
 		ContainerCreator:    factory,
 		DeploymentInterface: factory.Client,
-		PodInterface:        factory.KubeClient,
+		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
 		Environment:         factory.Environment,
 		NextDeployment: func() *deployapi.Deployment {
 			return deploymentQueue.Pop().(*deployapi.Deployment)
@@ -125,13 +125,13 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 			// Validate the correlating pod annotation
 			podID, hasPodID := deployment.Annotations[deployapi.DeploymentPodAnnotation]
 			if !hasPodID {
-				glog.V(2).Infof("Unexpected state: Deployment %s has no pod annotation; skipping pod polling", deployment.ID)
+				glog.V(2).Infof("Unexpected state: Deployment %s has no pod annotation; skipping pod polling", deployment.Name)
 				continue
 			}
 
-			pod, err := factory.KubeClient.GetPod(kapi.WithNamespace(kapi.NewContext(), deployment.Namespace), podID)
+			pod, err := factory.KubeClient.Pods(deployment.Namespace).Get(podID)
 			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", podID, deployment.ID, err)
+				glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", podID, deployment.Name, err)
 				continue
 			}
 
@@ -140,6 +140,18 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 	}
 
 	return &podEnumerator{list}, nil
+}
+
+type DeploymentControllerPodInterface struct {
+	KubeClient kclient.Interface
+}
+
+func (i DeploymentControllerPodInterface) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return i.KubeClient.Pods(namespace).Create(pod)
+}
+
+func (i DeploymentControllerPodInterface) DeletePod(namespace, id string) error {
+	return i.KubeClient.Pods(namespace).Delete(id)
 }
 
 // podEnumerator allows a cache.Poller to enumerate items in an api.PodList
@@ -157,7 +169,7 @@ func (pe *podEnumerator) Len() int {
 
 // Get returns the item (and ID) with the particular index.
 func (pe *podEnumerator) Get(index int) (string, interface{}) {
-	return pe.Items[index].ID, &pe.Items[index]
+	return pe.Items[index].Name, &pe.Items[index]
 }
 
 // DeploymentConfigChangeControllerFactory can create a DeploymentConfigChangeController which obtains DeploymentConfigs
@@ -202,33 +214,6 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 			return queue.Pop().(*imageapi.ImageRepository)
 		},
 	}
-}
-
-// podLW is a ListWatcher implementation for pods.
-type podLW struct {
-	client        *kclient.Client
-	labelSelector labels.Selector
-}
-
-// List lists all pods.
-func (lw *podLW) List() (runtime.Object, error) {
-	pods, err := lw.client.ListPods(kapi.NewContext(), lw.labelSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	return pods, nil
-}
-
-// Watch watches all pods with the given selector.
-func (lw *podLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.
-		Get().
-		Path("watch").
-		Path("pods").
-		SelectorParam("labels", lw.labelSelector).
-		Param("resourceVersion", resourceVersion).
-		Watch()
 }
 
 // deploymentLW is a ListWatcher implementation for Deployments.

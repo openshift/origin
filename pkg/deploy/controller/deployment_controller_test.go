@@ -26,7 +26,7 @@ func TestHandleNewDeploymentCreatePodOk(t *testing.T) {
 			},
 		},
 		PodInterface: &testDcPodInterface{
-			CreatePodFunc: func(pod *kapi.Pod) (*kapi.Pod, error) {
+			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				createdPod = pod
 				return pod, nil
 			},
@@ -58,11 +58,11 @@ func TestHandleNewDeploymentCreatePodOk(t *testing.T) {
 		t.Fatalf("expected a pod to be created")
 	}
 
-	if e, a := createdPod.ID, updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; e != a {
+	if e, a := createdPod.Name, updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; e != a {
 		t.Fatalf("expected deployment pod annotation %s, got %s", e, a)
 	}
 
-	if e, a := updatedDeployment.ID, createdPod.Annotations[deployapi.DeploymentAnnotation]; e != a {
+	if e, a := updatedDeployment.Name, createdPod.Annotations[deployapi.DeploymentAnnotation]; e != a {
 		t.Fatalf("expected pod deployment annotation %s, got %s", e, a)
 	}
 
@@ -96,8 +96,8 @@ func TestHandleNewDeploymentCreatePodFail(t *testing.T) {
 			},
 		},
 		PodInterface: &testDcPodInterface{
-			CreatePodFunc: func(pod *kapi.Pod) (*kapi.Pod, error) {
-				return nil, fmt.Errorf("Failed to create pod %s", pod.ID)
+			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				return nil, fmt.Errorf("Failed to create pod %s", pod.Name)
 			},
 		},
 		NextDeployment: func() *deployapi.Deployment {
@@ -135,8 +135,8 @@ func TestHandleNewDeploymentCreatePodAlreadyExists(t *testing.T) {
 			},
 		},
 		PodInterface: &testDcPodInterface{
-			CreatePodFunc: func(pod *kapi.Pod) (*kapi.Pod, error) {
-				return nil, kerrors.NewAlreadyExists("pod", pod.ID)
+			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				return nil, kerrors.NewAlreadyExists("pod", pod.Name)
 			},
 		},
 		NextDeployment: func() *deployapi.Deployment {
@@ -244,13 +244,13 @@ func TestHandlePodTerminatedOk(t *testing.T) {
 			},
 		},
 		PodInterface: &testDcPodInterface{
-			DeletePodFunc: func(id string) error {
+			DeletePodFunc: func(namespace, id string) error {
 				deletedPodId = id
 				return nil
 			},
 		},
 		NextDeployment:  func() *deployapi.Deployment { return nil },
-		NextPod:         func() *kapi.Pod { return terminatedPod(0) },
+		NextPod:         func() *kapi.Pod { return succeededPod() },
 		DeploymentStore: deploytest.NewFakeDeploymentStore(runningDeployment()),
 	}
 
@@ -280,7 +280,7 @@ func TestHandlePodTerminatedNotOk(t *testing.T) {
 			},
 		},
 		PodInterface: &testDcPodInterface{
-			DeletePodFunc: func(id string) error {
+			DeletePodFunc: func(namespace, id string) error {
 				t.Fatalf("unexpected delete of pod %s", id)
 				return nil
 			},
@@ -291,7 +291,7 @@ func TestHandlePodTerminatedNotOk(t *testing.T) {
 			},
 		},
 		NextDeployment:  func() *deployapi.Deployment { return nil },
-		NextPod:         func() *kapi.Pod { return terminatedPod(1) },
+		NextPod:         func() *kapi.Pod { return failedPod() },
 		DeploymentStore: deploytest.NewFakeDeploymentStore(runningDeployment()),
 	}
 
@@ -323,22 +323,22 @@ func (i *testDcDeploymentInterface) UpdateDeployment(ctx kapi.Context, deploymen
 }
 
 type testDcPodInterface struct {
-	CreatePodFunc func(pod *kapi.Pod) (*kapi.Pod, error)
-	DeletePodFunc func(id string) error
+	CreatePodFunc func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
+	DeletePodFunc func(namespace, id string) error
 }
 
-func (i *testDcPodInterface) CreatePod(ctx kapi.Context, pod *kapi.Pod) (*kapi.Pod, error) {
-	return i.CreatePodFunc(pod)
+func (i *testDcPodInterface) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return i.CreatePodFunc(namespace, pod)
 }
 
-func (i *testDcPodInterface) DeletePod(ctx kapi.Context, id string) error {
-	return i.DeletePodFunc(id)
+func (i *testDcPodInterface) DeletePod(namespace, id string) error {
+	return i.DeletePodFunc(namespace, id)
 }
 
 func basicDeployment() *deployapi.Deployment {
 	return &deployapi.Deployment{
-		TypeMeta: kapi.TypeMeta{ID: "deploy1"},
-		Status:   deployapi.DeploymentStatusNew,
+		ObjectMeta: kapi.ObjectMeta{Name: "deploy1"},
+		Status:     deployapi.DeploymentStatusNew,
 		Strategy: deployapi.DeploymentStrategy{
 			Type: deployapi.DeploymentStrategyTypeRecreate,
 		},
@@ -386,8 +386,8 @@ func basicContainer() *kapi.Container {
 
 func basicPod() *kapi.Pod {
 	return &kapi.Pod{
-		TypeMeta: kapi.TypeMeta{
-			ID: "deploy-deploy1",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "deploy-deploy1",
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: "1234",
 			},
@@ -400,17 +400,22 @@ func basicPod() *kapi.Pod {
 	}
 }
 
-func terminatedPod(exitCode int) *kapi.Pod {
+func succeededPod() *kapi.Pod {
 	p := basicPod()
-	p.CurrentState.Status = kapi.PodTerminated
+	p.CurrentState.Status = kapi.PodSucceeded
+	return p
+}
+
+func failedPod() *kapi.Pod {
+	p := basicPod()
+	p.CurrentState.Status = kapi.PodFailed
 	p.CurrentState.Info["container1"] = kapi.ContainerStatus{
 		State: kapi.ContainerState{
 			Termination: &kapi.ContainerStateTerminated{
-				ExitCode: exitCode,
+				ExitCode: 1,
 			},
 		},
 	}
-
 	return p
 }
 

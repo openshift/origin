@@ -29,12 +29,14 @@ var Codec = runtime.CodecFor(scheme, "v1test")
 
 type EmbeddedTest struct {
 	runtime.TypeMeta `yaml:",inline" json:",inline"`
+	ID               string                 `yaml:"id,omitempty" json:"id,omitempty"`
 	Object           runtime.EmbeddedObject `yaml:"object,omitempty" json:"object,omitempty"`
 	EmptyObject      runtime.EmbeddedObject `yaml:"emptyObject,omitempty" json:"emptyObject,omitempty"`
 }
 
 type EmbeddedTestExternal struct {
 	runtime.TypeMeta `yaml:",inline" json:",inline"`
+	ID               string               `yaml:"id,omitempty" json:"id,omitempty"`
 	Object           runtime.RawExtension `yaml:"object,omitempty" json:"object,omitempty"`
 	EmptyObject      runtime.RawExtension `yaml:"emptyObject,omitempty" json:"emptyObject,omitempty"`
 }
@@ -48,10 +50,12 @@ func TestEmbeddedObject(t *testing.T) {
 	s.AddKnownTypeWithName("v1test", "EmbeddedTest", &EmbeddedTestExternal{})
 
 	outer := &EmbeddedTest{
-		TypeMeta: runtime.TypeMeta{ID: "outer"},
+		TypeMeta: runtime.TypeMeta{Name: "outer"},
+		ID:       "outer",
 		Object: runtime.EmbeddedObject{
 			&EmbeddedTest{
-				TypeMeta: runtime.TypeMeta{ID: "inner"},
+				TypeMeta: runtime.TypeMeta{Name: "inner"},
+				ID:       "inner",
 			},
 		},
 	}
@@ -79,7 +83,7 @@ func TestEmbeddedObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected decode error %v", err)
 	}
-	if externalViaJSON.Kind == "" || externalViaJSON.APIVersion == "" || externalViaJSON.ID != "outer" {
+	if externalViaJSON.Kind == "" || externalViaJSON.APIVersion == "" || externalViaJSON.Name != "outer" {
 		t.Errorf("Expected objects to have type info set, got %#v", externalViaJSON)
 	}
 	if !reflect.DeepEqual(externalViaJSON.EmptyObject.RawJSON, []byte("null")) || len(externalViaJSON.Object.RawJSON) == 0 {
