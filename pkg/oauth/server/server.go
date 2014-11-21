@@ -5,6 +5,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/oauth/registry/accesstoken"
 	"github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
 	"github.com/openshift/origin/pkg/oauth/registry/client"
@@ -35,5 +36,5 @@ func (s *Server) API_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec)
 	for k, v := range s.storage {
 		storage[k] = v
 	}
-	return storage, runtime.DefaultCodec
+	return storage, v1beta1.Codec
 }

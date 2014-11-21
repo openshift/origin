@@ -57,8 +57,8 @@ func TestImageTag(t *testing.T) {
 
 func TestGetBuildEnvVars(t *testing.T) {
 	b := &api.Build{
-		TypeMeta: kapi.TypeMeta{
-			ID: "1234",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "1234",
 		},
 		Parameters: api.BuildParameters{
 			Source: api.BuildSource{

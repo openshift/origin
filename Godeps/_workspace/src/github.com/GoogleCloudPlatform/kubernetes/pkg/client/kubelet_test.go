@@ -29,7 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-func TestHTTPPodInfoGetter(t *testing.T) {
+func TestHTTPKubeletClient(t *testing.T) {
 	expectObj := api.PodInfo{
 		"myID": api.ContainerStatus{},
 	}
@@ -43,6 +43,7 @@ func TestHTTPPodInfoGetter(t *testing.T) {
 		ResponseBody: string(body),
 	}
 	testServer := httptest.NewServer(&fakeHandler)
+	defer testServer.Close()
 
 	hostURL, err := url.Parse(testServer.URL)
 	if err != nil {
@@ -56,7 +57,7 @@ func TestHTTPPodInfoGetter(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	podInfoGetter := &HTTPPodInfoGetter{
+	podInfoGetter := &HTTPKubeletClient{
 		Client: http.DefaultClient,
 		Port:   uint(port),
 	}
@@ -71,7 +72,7 @@ func TestHTTPPodInfoGetter(t *testing.T) {
 	}
 }
 
-func TestHTTPPodInfoGetterNotFound(t *testing.T) {
+func TestHTTPKubeletClientNotFound(t *testing.T) {
 	expectObj := api.PodInfo{
 		"myID": api.ContainerStatus{},
 	}
@@ -85,6 +86,7 @@ func TestHTTPPodInfoGetterNotFound(t *testing.T) {
 		ResponseBody: "Pod not found",
 	}
 	testServer := httptest.NewServer(&fakeHandler)
+	defer testServer.Close()
 
 	hostURL, err := url.Parse(testServer.URL)
 	if err != nil {
@@ -98,7 +100,7 @@ func TestHTTPPodInfoGetterNotFound(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	podInfoGetter := &HTTPPodInfoGetter{
+	podInfoGetter := &HTTPKubeletClient{
 		Client: http.DefaultClient,
 		Port:   uint(port),
 	}

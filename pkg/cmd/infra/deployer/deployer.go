@@ -67,6 +67,6 @@ func deploy(cfg *config) error {
 	}
 
 	// TODO: Choose a strategy based on some input
-	strategy := &strategy.RecreateDeploymentStrategy{ReplicationControllerClient: kClient}
+	strategy := &strategy.RecreateDeploymentStrategy{strategy.RealReplicationController{KubeClient: kClient}}
 	return strategy.Deploy(deployment)
 }

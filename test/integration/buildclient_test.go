@@ -12,9 +12,11 @@ import (
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
@@ -57,8 +59,8 @@ func TestCreateBuild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if expected.ID == "" {
-		t.Errorf("Unexpected empty build ID %v", expected)
+	if expected.Name == "" {
+		t.Errorf("Unexpected empty build Name %v", expected)
 	}
 
 	builds, err := openshift.Client.ListBuilds(ctx, labels.Everything())
@@ -80,7 +82,7 @@ func TestDeleteBuild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if err := openshift.Client.DeleteBuild(ctx, actual.ID); err != nil {
+	if err := openshift.Client.DeleteBuild(ctx, actual.Name); err != nil {
 		t.Fatalf("Unxpected error: %v", err)
 	}
 }
@@ -104,16 +106,18 @@ func TestWatchBuilds(t *testing.T) {
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
 
-	if e, a := expected.ID, actual.ID; e != a {
-		t.Errorf("Expected build ID %s, got %s", e, a)
+	if e, a := expected.Name, actual.Name; e != a {
+		t.Errorf("Expected build Name %s, got %s", e, a)
 	}
 }
 
 func mockBuild() *buildapi.Build {
 	return &buildapi.Build{
-		Labels: map[string]string{
-			"label1": "value1",
-			"label2": "value2",
+		ObjectMeta: kapi.ObjectMeta{
+			Labels: map[string]string{
+				"label1": "value1",
+				"label2": "value2",
+			},
 		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
@@ -155,11 +159,17 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	openshift.Client = osClient
 
+	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
+	if err != nil {
+		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+	}
+
 	kmaster := master.New(&master.Config{
 		Client:             kubeClient,
 		EtcdHelper:         etcdHelper,
 		HealthCheckMinions: false,
-		Minions:            []string{"127.0.0.1"},
+		KubeletClient:      kubeletClient,
+		APIPrefix:          "/api/v1beta1",
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -173,7 +183,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	apiserver.NewAPIGroup(kmaster.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, interfaces.SelfLinker).InstallREST(osMux, osPrefix)
+	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(osMux, osPrefix)
 	apiserver.InstallSupport(osMux)
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"

@@ -90,10 +90,10 @@ func (s *storage) GetClient(id string) (osin.Client, error) {
 // SaveAuthorize saves authorize data.
 func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 	token := &api.AuthorizeToken{
-		TypeMeta: kapi.TypeMeta{
+		ObjectMeta: kapi.ObjectMeta{
 			CreationTimestamp: util.Time{data.CreatedAt},
+			Name:              data.Code,
 		},
-		Name:        data.Code,
 		ClientName:  data.Client.GetId(),
 		ExpiresIn:   int64(data.ExpiresIn),
 		Scopes:      scope.Split(data.Scope),
@@ -145,10 +145,10 @@ func (s *storage) RemoveAuthorize(code string) error {
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
 func (s *storage) SaveAccess(data *osin.AccessData) error {
 	token := &api.AccessToken{
-		TypeMeta: kapi.TypeMeta{
+		ObjectMeta: kapi.ObjectMeta{
 			CreationTimestamp: util.Time{data.CreatedAt},
+			Name:              data.AccessToken,
 		},
-		Name:         data.AccessToken,
 		RefreshToken: data.RefreshToken,
 		AuthorizeToken: api.AuthorizeToken{
 			ClientName:  data.Client.GetId(),

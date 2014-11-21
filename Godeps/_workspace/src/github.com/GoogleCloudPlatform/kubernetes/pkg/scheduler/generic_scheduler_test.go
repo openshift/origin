@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func falsePredicate(pod api.Pod, existingPods []api.Pod, node string) (bool, error) {
@@ -34,7 +35,7 @@ func truePredicate(pod api.Pod, existingPods []api.Pod, node string) (bool, erro
 }
 
 func matchesPredicate(pod api.Pod, existingPods []api.Pod, node string) (bool, error) {
-	return pod.ID == node, nil
+	return pod.Name == node, nil
 }
 
 func numericPriority(pod api.Pod, podLister PodLister, minionLister MinionLister) (HostPriorityList, error) {
@@ -46,12 +47,12 @@ func numericPriority(pod api.Pod, podLister PodLister, minionLister MinionLister
 		return nil, err
 	}
 	for _, minion := range nodes.Items {
-		score, err := strconv.Atoi(minion.ID)
+		score, err := strconv.Atoi(minion.Name)
 		if err != nil {
 			return nil, err
 		}
 		result = append(result, HostPriority{
-			host:  minion.ID,
+			host:  minion.Name,
 			score: score,
 		})
 	}
@@ -63,9 +64,75 @@ func makeMinionList(nodeNames []string) api.MinionList {
 		Items: make([]api.Minion, len(nodeNames)),
 	}
 	for ix := range nodeNames {
-		result.Items[ix].ID = nodeNames[ix]
+		result.Items[ix].Name = nodeNames[ix]
 	}
 	return result
+}
+
+func TestSelectHost(t *testing.T) {
+	scheduler := genericScheduler{random: rand.New(rand.NewSource(0))}
+	tests := []struct {
+		list          HostPriorityList
+		possibleHosts util.StringSet
+		expectsErr    bool
+	}{
+		{
+			list: []HostPriority{
+				{host: "machine1.1", score: 1},
+				{host: "machine2.1", score: 2},
+			},
+			possibleHosts: util.NewStringSet("machine1.1"),
+			expectsErr:    false,
+		},
+		// equal scores
+		{
+			list: []HostPriority{
+				{host: "machine1.1", score: 1},
+				{host: "machine1.2", score: 1},
+				{host: "machine1.3", score: 1},
+				{host: "machine2.1", score: 2},
+			},
+			possibleHosts: util.NewStringSet("machine1.1", "machine1.2", "machine1.3"),
+			expectsErr:    false,
+		},
+		// out of order scores
+		{
+			list: []HostPriority{
+				{host: "machine1.1", score: 1},
+				{host: "machine1.2", score: 1},
+				{host: "machine2.1", score: 2},
+				{host: "machine3.1", score: 3},
+				{host: "machine1.3", score: 1},
+			},
+			possibleHosts: util.NewStringSet("machine1.1", "machine1.2", "machine1.3"),
+			expectsErr:    false,
+		},
+		// empty priorityList
+		{
+			list:          []HostPriority{},
+			possibleHosts: util.NewStringSet(),
+			expectsErr:    true,
+		},
+	}
+
+	for _, test := range tests {
+		// increase the randomness
+		for i := 0; i < 10; i++ {
+			got, err := scheduler.selectHost(test.list)
+			if test.expectsErr {
+				if err == nil {
+					t.Error("Unexpected non-error")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if !test.possibleHosts.Has(got) {
+					t.Errorf("got %s is not in the possible map %v", got, test.possibleHosts)
+				}
+			}
+		}
+	}
 }
 
 func TestGenericScheduler(t *testing.T) {
@@ -95,7 +162,7 @@ func TestGenericScheduler(t *testing.T) {
 			predicates:   []FitPredicate{matchesPredicate},
 			prioritizer:  EqualPriority,
 			nodes:        []string{"machine1", "machine2"},
-			pod:          api.Pod{TypeMeta: api.TypeMeta{ID: "machine2"}},
+			pod:          api.Pod{ObjectMeta: api.ObjectMeta{Name: "machine2"}},
 			expectedHost: "machine2",
 		},
 		{
@@ -108,7 +175,7 @@ func TestGenericScheduler(t *testing.T) {
 			predicates:   []FitPredicate{matchesPredicate},
 			prioritizer:  numericPriority,
 			nodes:        []string{"3", "2", "1"},
-			pod:          api.Pod{TypeMeta: api.TypeMeta{ID: "2"}},
+			pod:          api.Pod{ObjectMeta: api.ObjectMeta{Name: "2"}},
 			expectedHost: "2",
 		},
 		{

@@ -111,8 +111,8 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
-			TypeMeta: kapi.TypeMeta{
-				ID: "imageID1",
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
 		},
@@ -137,8 +137,8 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "repo1",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "repo1",
 				},
 				DockerImageRepository: "localhost:5000/test/repo",
 			},
@@ -149,8 +149,8 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
-			TypeMeta: kapi.TypeMeta{
-				ID: "imageID1",
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
 		},
@@ -175,8 +175,8 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "repo1",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "repo1",
 				},
 				DockerImageRepository: "localhost:5000/someproject/somerepo",
 			},
@@ -187,11 +187,11 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
-			TypeMeta: kapi.TypeMeta{
-				ID: "imageID1",
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			Metadata: docker.Image{
+			DockerImageMetadata: docker.Image{
 				Config: &docker.Config{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
@@ -219,7 +219,7 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	if !reflect.DeepEqual(mapping.Image.Metadata, image.Metadata) {
+	if !reflect.DeepEqual(mapping.Image.DockerImageMetadata, image.DockerImageMetadata) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
@@ -238,8 +238,8 @@ func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
 		Items: []api.ImageRepository{
 			{
-				TypeMeta: kapi.TypeMeta{
-					ID: "repo1",
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "repo1",
 				},
 				DockerImageRepository: "localhost:5000/someproject/somerepo",
 			},
@@ -248,16 +248,16 @@ func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
 	mapping := api.ImageRepositoryMapping{
-		TypeMeta: kapi.TypeMeta{
+		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "some-value",
 		},
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
-			TypeMeta: kapi.TypeMeta{
-				ID: "imageID1",
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			Metadata: docker.Image{
+			DockerImageMetadata: docker.Image{
 				Config: &docker.Config{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},

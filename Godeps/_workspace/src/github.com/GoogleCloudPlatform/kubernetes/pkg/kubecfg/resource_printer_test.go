@@ -68,7 +68,7 @@ func TestYAMLPrinterPrint(t *testing.T) {
 	}
 
 	obj := &api.Pod{
-		TypeMeta: api.TypeMeta{ID: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
 	}
 	buf.Reset()
 	printer.PrintObj(obj, buf)
@@ -92,7 +92,7 @@ func TestIdentityPrinter(t *testing.T) {
 	}
 
 	obj := &api.Pod{
-		TypeMeta: api.TypeMeta{ID: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo"},
 	}
 	buff.Reset()
 	printer.PrintObj(obj, buff)
@@ -159,5 +159,21 @@ func TestUnknownTypePrinting(t *testing.T) {
 	err := printer.PrintObj(&TestUnknownType{}, buffer)
 	if err == nil {
 		t.Errorf("An error was expected from printing unknown type")
+	}
+}
+
+func TestTemplateEmitsVersionedObjects(t *testing.T) {
+	// kind is always blank in memory and set on the wire
+	printer, err := NewTemplatePrinter([]byte(`{{.kind}}`))
+	if err != nil {
+		t.Fatalf("tmpl fail: %v", err)
+	}
+	buffer := &bytes.Buffer{}
+	err = printer.PrintObj(&api.Pod{}, buffer)
+	if err != nil {
+		t.Fatalf("print fail: %v", err)
+	}
+	if e, a := "Pod", string(buffer.Bytes()); e != a {
+		t.Errorf("Expected %v, got %v", e, a)
 	}
 }

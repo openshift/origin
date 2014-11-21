@@ -6,7 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -18,16 +18,28 @@ import (
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	BuildRegistry build.Registry
-	PodClient     client.PodInterface
+	PodControl    PodControlInterface
+}
+
+type PodControlInterface interface {
+	getPod(namespace, name string) (*kapi.Pod, error)
+}
+
+type RealPodControl struct {
+	podsNamspacer kclient.PodsNamespacer
+}
+
+func (r RealPodControl) getPod(namespace, name string) (*kapi.Pod, error) {
+	return r.podsNamspacer.Pods(namespace).Get(name)
 }
 
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get neccessary attibutes to assamble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(b build.Registry, c client.PodInterface) apiserver.RESTStorage {
+func NewREST(b build.Registry, pn kclient.PodsNamespacer) apiserver.RESTStorage {
 	return &REST{
 		BuildRegistry: b,
-		PodClient:     c,
+		PodControl:    RealPodControl{pn},
 	}
 }
 
@@ -38,11 +50,11 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		return "", fmt.Errorf("No such build: %v", err)
 	}
 
-	pod, err := r.PodClient.GetPod(ctx, build.PodID)
+	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
 	if err != nil {
 		return "", fmt.Errorf("No such pod: %v", err)
 	}
-	buildPodID := build.PodID
+	buildPodID := build.PodName
 	buildPodHost := pod.CurrentState.Host
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
@@ -73,14 +85,14 @@ func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 	return nil, fmt.Errorf("BuildLog can't be listed")
 }
 
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan runtime.Object, error) {
+func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("BuildLog can't be deleted")
 }
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("BuildLog can't be created")
 }
 
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan runtime.Object, error) {
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	return nil, fmt.Errorf("BuildLog can't be updated")
 }

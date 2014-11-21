@@ -1,148 +1,203 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/openshift/origin/pkg/api/latest"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
+// ApplyResult holds the response from the REST server and potential errors
 type ApplyResult struct {
-	Error   error
+	Errors  errs.ValidationErrorList
 	Message string
+}
+
+// Set the default RESTMapper and ObjectTyper
+var (
+	defaultMapper = latest.RESTMapper
+	defaultTyper  = kapi.Scheme
+)
+
+// DecodeWithMapper decodes the RawExtension that holds the raw JSON/YAML into
+// the runtime Object. It also returns the REST mapping that can be used later
+// for encoding the Object back into JSON/YAML.
+// This function is Origin specific as it uses the Origin RESTMapper by default.
+func DecodeWithMapper(in runtime.RawExtension) (runtime.Object, *meta.RESTMapping, error) {
+	version, kind, err := defaultTyper.DataVersionAndKind(in.RawJSON)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mapping, err := defaultMapper.RESTMapping(version, kind)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	obj, err := mapping.Codec.Decode(in.RawJSON)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return obj, mapping, nil
+}
+
+// reportError reports the single item validation error and properly set the
+// prefix and index to match the Config item JSON index
+func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
+	i := errs.ValidationErrorList{}
+	*allErrs = append(*allErrs, append(i, err).PrefixIndex(index).Prefix("item")...)
 }
 
 // Apply creates and manages resources defined in the Config. The create process wont
 // stop on error, but it will finish the job and then return error and for each item
 // in the config a error and status message string.
-func Apply(namespace string, data []byte, storage clientapi.ClientMappings) (result []ApplyResult, err error) {
-	// Unmarshal the Config JSON manually instead of using runtime.Decode()
-	conf := struct {
-		Items []json.RawMessage `json:"items" yaml:"items"`
-	}{}
+func Apply(namespace string, data []byte, storage clientapi.ClientMappings) ([]ApplyResult, error) {
+	confObj, _, err := DecodeWithMapper(runtime.RawExtension{RawJSON: data})
+	if err != nil {
+		return nil, err
+	}
 
-	if err := json.Unmarshal(data, &conf); err != nil {
-		return nil, fmt.Errorf("Unable to parse Config: %v", err)
+	conf, ok := confObj.(*api.Config)
+	if !ok {
+		return nil, fmt.Errorf("unable to convert object to Config")
 	}
 
 	if len(conf.Items) == 0 {
-		return nil, fmt.Errorf("Config.items is empty")
+		return nil, fmt.Errorf("Config items must be not empty")
 	}
 
+	result := []ApplyResult{}
 	for i, item := range conf.Items {
-		itemResult := ApplyResult{}
+		itemErrors := errs.ValidationErrorList{}
 
-		if item == nil || (len(item) == 4 && string(item) == "null") {
-			itemResult.Error = fmt.Errorf("Config.items[%v] is null", i)
-			continue
-		}
-
-		itemBase := kapi.TypeMeta{}
-
-		err = json.Unmarshal(item, &itemBase)
+		itemBase, mapping, err := DecodeWithMapper(item)
 		if err != nil {
-			itemResult.Error = fmt.Errorf("Unable to parse Config item: %v", err)
+			reportError(&itemErrors, i, errs.ValidationError{
+				errs.ValidationErrorTypeInvalid,
+				"decode",
+				err,
+			})
 			continue
 		}
 
-		if itemBase.Kind == "" {
-			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'kind'", i)
+		// TODO: Use clientFunc here to match with upstream createall
+		client, path, err := getClientAndPath(mapping.Kind, storage)
+		if err != nil || client == nil {
+			reportError(&itemErrors, i, errs.NewFieldNotSupported("client", itemBase))
 			continue
 		}
 
-		if itemBase.ID == "" {
-			itemResult.Error = fmt.Errorf("Config.items[%v] has an empty 'id'", i)
-			continue
-		}
-
-		client, path, err := getClientAndPath(itemBase.Kind, storage)
+		jsonResource, err := mapping.Encode(itemBase)
 		if err != nil {
-			itemResult.Error = fmt.Errorf("Config.items[%v]: %v", i, err)
-			continue
-		}
-		if client == nil {
-			itemResult.Error = fmt.Errorf("Config.items[%v]: Unknown client for 'kind=%v'", i, itemBase.Kind)
-			continue
-		}
-
-		jsonResource, err := item.MarshalJSON()
-		if err != nil {
-			itemResult.Error = fmt.Errorf("%v", err)
+			reportError(&itemErrors, i, errs.ValidationError{
+				errs.ValidationErrorTypeInvalid,
+				"encode",
+				err,
+			})
 			continue
 		}
 
+		// TODO: Use Kubernetes client.Post()
 		request := client.Verb("POST").Namespace(namespace).Path(path).Body(jsonResource)
+		message := ""
 		if err = request.Do().Error(); err != nil {
-			itemResult.Error = err
+			reportError(&itemErrors, i, errs.ValidationError{
+				errs.ValidationErrorTypeInvalid,
+				"create",
+				err,
+			})
 		} else {
-			itemResult.Message = fmt.Sprintf("Creation succeeded for %v with 'id=%v'", itemBase.Kind, itemBase.ID)
+			itemName, _ := mapping.MetadataAccessor.Name(itemBase)
+			message = fmt.Sprintf("Creation succeeded for %s with name %s", mapping.Kind, itemName)
 		}
-		result = append(result, itemResult)
+		result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 	}
-	return
+	return result, nil
 }
 
-// AddConfigLabels adds new label(s) to all resources defined in the given Config.
-func AddConfigLabels(c *api.Config, labels labels.Set) error {
-	for i := range c.Items {
-		switch t := c.Items[i].Object.(type) {
-		case *kapi.Pod:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Pod.Labels: %v", i, err)
-			}
-		case *kapi.Service:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Service.Labels: %v", i, err)
-			}
-		case *kapi.ReplicationController:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.Labels: %v", i, err)
-			}
-			if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] ReplicationController.DesiredState.PodTemplate.Labels: %v", i, err)
-			}
-		case *deployapi.Deployment:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Deployment.Labels: %v", i, err)
-			}
-			if err := mergeMaps(&t.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] ControllerTemplate.PodTemplate.Labels: %v", i, err)
-			}
-		case *deployapi.DeploymentConfig:
-			if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] DeploymentConfig.Labels: %v", i, err)
-			}
-			if err := mergeMaps(&t.Template.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-				return fmt.Errorf("Unable to add labels to Template.Items[%v] Template.ControllerTemplate.PodTemplate.Labels: %v", i, err)
-			}
-		default:
-			// Unknown generic object. Try to find "Labels" field in it.
-			obj := reflect.ValueOf(c.Items[i].Object)
+func addLabelError(kind string, err error) error {
+	return fmt.Errorf("Enable to add labels to Template.%s item: %v", kind, err)
+}
 
-			if obj.Kind() == reflect.Interface || obj.Kind() == reflect.Ptr {
-				obj = obj.Elem()
-			}
-			if obj.Kind() != reflect.Struct {
-				return fmt.Errorf("Template.Items[%v]: Invalid object kind. Expected: Struct, got:", i, obj.Kind())
-			}
-
-			obj = obj.FieldByName("Labels")
-			if obj.IsValid() {
-				// Merge labels into the Template.Items[i].Labels field.
-				if err := mergeMaps(obj.Interface(), labels, ErrorOnDifferentDstKeyValue); err != nil {
-					return fmt.Errorf("Unable to add labels to Template.Items[%v] GenericObject.Labels: %v", i, err)
-				}
-			}
+// AddConfigLabel adds new label(s) to a single Object
+// TODO: AddConfigLabel should add labels into all objects that has ObjectMeta
+func AddConfigLabel(obj runtime.Object, labels labels.Set) error {
+	switch t := obj.(type) {
+	case *kapi.Pod:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Pod", err)
 		}
+	case *kapi.Service:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Service", err)
+		}
+	case *kapi.ReplicationController:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("ReplicationController", err)
+		}
+		if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("ReplicationController.PodTemplate", err)
+		}
+		if err := mergeMaps(&t.DesiredState.PodTemplate.Labels, t.DesiredState.ReplicaSelector, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("ReplicationController.ReplicaSelector", err)
+		}
+		// The ReplicaSelector and DesiredState.PodTemplate.Labels need to make
+		// create succeed
+		if err := mergeMaps(&t.DesiredState.ReplicaSelector, t.DesiredState.PodTemplate.Labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("ReplicationController.PodTemplate", err)
+		}
+	case *deployapi.Deployment:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Deployment", err)
+		}
+		if err := mergeMaps(&t.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("Deployment.ControllerTemplate.PodTemplate", err)
+		}
+	case *deployapi.DeploymentConfig:
+		if err := mergeMaps(&t.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("DeploymentConfig", err)
+		}
+		if err := mergeMaps(&t.Template.ControllerTemplate.PodTemplate.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return addLabelError("DeploymentConfig.ControllerTemplate.PodTemplate", err)
+		}
+	default:
+		// TODO: For unknown objects we should rather skip adding Labels as we don't
+		//			 know where they are. Lets avoid using reflect for now and fix this
+		//			 properly using ObjectMeta/RESTMapper/MetaAccessor
+		return nil
 	}
 
 	return nil
+}
+
+// AddConfigLabels adds new label(s) to all resources defined in the given Config.
+func AddConfigLabels(c *api.Config, labels labels.Set) errs.ValidationErrorList {
+	itemErrors := errs.ValidationErrorList{}
+	for i, in := range c.Items {
+		obj, mapping, err := DecodeWithMapper(in)
+		if err != nil {
+			reportError(&itemErrors, i, errs.NewFieldInvalid("decode", err))
+		}
+		if err := AddConfigLabel(obj, labels); err != nil {
+			reportError(&itemErrors, i, errs.NewFieldInvalid("labels", err))
+		}
+		item, err := mapping.Encode(obj)
+		if err != nil {
+			reportError(&itemErrors, i, errs.NewFieldInvalid("encode", err))
+		}
+		c.Items[i] = runtime.RawExtension{RawJSON: item}
+	}
+	return itemErrors.Prefix("Config")
 }
 
 // mergeMaps flags
@@ -223,11 +278,4 @@ func getClientAndPath(kind string, mappings clientapi.ClientMappings) (clientapi
 		}
 	}
 	return nil, "", fmt.Errorf("No client found for 'kind=%v'", kind)
-}
-
-// reportError provides a human-readable error message that include the Config
-// item JSON representation.
-func reportError(item interface{}, message string) error {
-	itemJSON, _ := json.Marshal(item)
-	return fmt.Errorf(message+": %s", string(itemJSON))
 }

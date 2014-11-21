@@ -61,7 +61,6 @@ ${KUBE_CMD} delete services/frontend
 echo "kube(services): ok"
 
 ${KUBE_CMD} list minions
-${KUBE_CMD} get minions/$(hostname -f)
 echo "kube(minions): ok"
 
 ${KUBE_CMD} list images

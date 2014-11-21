@@ -123,36 +123,37 @@ const (
 	NamespaceAll string = ""
 )
 
-// ContainerManifest corresponds to the Container Manifest format, documented at:
-// https://developers.google.com/compute/docs/containers/container_vms#container_manifest
-// This is used as the representation of Kubernetes workloads.
-// DEPRECATED: Exists to allow backwards compatible storage for clients accessing etcd
-// directly.
-type ContainerManifest struct {
-	// Required: This must be a supported version string, such as "v1beta1".
-	Version string `json:"version" yaml:"version"`
-	// Required: This must be a DNS_SUBDOMAIN.
-	// TODO: ID on Manifest is deprecated and will be removed in the future.
-	ID string `json:"id" yaml:"id"`
-	// TODO: UUID on Manifest is deprecated in the future once we are done
-	// with the API refactoring. It is required for now to determine the instance
-	// of a Pod.
-	UUID          string        `json:"uuid,omitempty" yaml:"uuid,omitempty"`
-	Volumes       []Volume      `json:"volumes" yaml:"volumes"`
-	Containers    []Container   `json:"containers" yaml:"containers"`
-	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" yaml:"restartPolicy,omitempty"`
-}
-
-// ContainerManifestList is used to communicate container manifests to kubelet.
-// DEPRECATED: Exists to allow backwards compatible storage for clients accessing etcd
-// directly.
-type ContainerManifestList struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	// ID is the legacy field representing Name
-	ID string `json:"id,omitempty" yaml:"id,omitempty"`
-
-	Items []ContainerManifest `json:"items,omitempty" yaml:"items,omitempty"`
-}
+//
+//// ContainerManifest corresponds to the Container Manifest format, documented at:
+//// https://developers.google.com/compute/docs/containers/container_vms#container_manifest
+//// This is used as the representation of Kubernetes workloads.
+//// DEPRECATED: Exists to allow backwards compatible storage for clients accessing etcd
+//// directly.
+//type ContainerManifest struct {
+//	// Required: This must be a supported version string, such as "v1beta1".
+//	Version string `json:"version" yaml:"version"`
+//	// Required: This must be a DNS_SUBDOMAIN.
+//	// TODO: ID on Manifest is deprecated and will be removed in the future.
+//	ID string `json:"id" yaml:"id"`
+//	// TODO: UUID on Manifest is deprecated in the future once we are done
+//	// with the API refactoring. It is required for now to determine the instance
+//	// of a Pod.
+//	UUID          string        `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+//	Volumes       []Volume      `json:"volumes" yaml:"volumes"`
+//	Containers    []Container   `json:"containers" yaml:"containers"`
+//	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" yaml:"restartPolicy,omitempty"`
+//}
+//
+//// ContainerManifestList is used to communicate container manifests to kubelet.
+//// DEPRECATED: Exists to allow backwards compatible storage for clients accessing etcd
+//// directly.
+//type ContainerManifestList struct {
+//	TypeMeta `json:",inline" yaml:",inline"`
+//	// ID is the legacy field representing Name
+//	ID string `json:"id,omitempty" yaml:"id,omitempty"`
+//
+//	Items []ContainerManifest `json:"items,omitempty" yaml:"items,omitempty"`
+//}
 
 // Volume represents a named volume in a pod that may be accessed by any containers in the pod.
 type Volume struct {
@@ -178,6 +179,8 @@ type VolumeSource struct {
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	GCEPersistentDisk *GCEPersistentDisk `yaml:"persistentDisk" json:"persistentDisk"`
+	// GitRepo represents a git repository at a particular revision.
+	GitRepo *GitRepo `json:"gitRepo" yaml:"gitRepo"`
 }
 
 // HostDir represents bare host directory volume.
@@ -216,6 +219,14 @@ type GCEPersistentDisk struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly,omitempty"`
+}
+
+// GitRepo represents a volume that is pulled from git when the pod is created.
+type GitRepo struct {
+	// Repository URL
+	Repository string `yaml:"repository" json:"repository"`
+	// Commit hash, this is optional
+	Revision string `yaml:"revision" json:"revision"`
 }
 
 // Port represents a network port in a single container.
@@ -323,6 +334,8 @@ type Container struct {
 	VolumeMounts  []VolumeMount  `json:"volumeMounts,omitempty" yaml:"volumeMounts,omitempty"`
 	LivenessProbe *LivenessProbe `json:"livenessProbe,omitempty" yaml:"livenessProbe,omitempty"`
 	Lifecycle     *Lifecycle     `json:"lifecycle,omitempty" yaml:"lifecycle,omitempty"`
+	// Optional: Defaults to /dev/termination-log
+	TerminationMessagePath string `json:"terminationMessagePath,omitempty" yaml:"terminationMessagePath,omitempty"`
 	// Optional: Default to false.
 	Privileged bool `json:"privileged,omitempty" yaml:"privileged,omitempty"`
 	// Optional: Policy for pulling images for this container
@@ -363,8 +376,8 @@ const (
 	// PodRunning means the pod has been bound to a node and all of the containers have been started.
 	// At least one container is still running or is in the process of being restarted.
 	PodRunning PodCondition = "Running"
-	// PodSucceeded means that all containers in the pod have voluntarily terminated with a container
-	// exit code of 0.
+	// PodSucceeded means that all containers in the pod have voluntarily terminated
+	// with a container exit code of 0, and the system is not going to restart any of these containers.
 	PodSucceeded PodCondition = "Succeeded"
 	// PodFailed means that all containers in the pod have terminated, and at least one container has
 	// terminated in a failure (exited with a non-zero exit code or was stopped by the system).
@@ -384,6 +397,7 @@ type ContainerStateTerminated struct {
 	ExitCode   int       `json:"exitCode" yaml:"exitCode"`
 	Signal     int       `json:"signal,omitempty" yaml:"signal,omitempty"`
 	Reason     string    `json:"reason,omitempty" yaml:"reason,omitempty"`
+	Message    string    `json:"message,omitempty" yaml:"message,omitempty"`
 	StartedAt  time.Time `json:"startedAt,omitempty" yaml:"startedAt,omitempty"`
 	FinishedAt time.Time `json:"finishedAt,omitempty" yaml:"finishedAt,omitempty"`
 }
@@ -399,8 +413,10 @@ type ContainerState struct {
 type ContainerStatus struct {
 	// TODO(dchen1107): Should we rename PodStatus to a more generic name or have a separate states
 	// defined for container?
-	State        ContainerState `json:"state,omitempty" yaml:"state,omitempty"`
-	RestartCount int            `json:"restartCount" yaml:"restartCount"`
+	State ContainerState `json:"state,omitempty" yaml:"state,omitempty"`
+	// Note that this is calculated from dead containers.  But those containers are subject to
+	// garbage collection.  This value will get capped at 5 by GC.
+	RestartCount int `json:"restartCount" yaml:"restartCount"`
 	// TODO(dchen1107): Introduce our own NetworkSettings struct here?
 	// TODO(dchen1107): Which image the container is running with?
 	// TODO(dchen1107): Once we have done with integration with cadvisor, resource
@@ -432,6 +448,8 @@ type PodSpec struct {
 	Volumes       []Volume      `json:"volumes" yaml:"volumes"`
 	Containers    []Container   `json:"containers" yaml:"containers"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" yaml:"restartPolicy,omitempty"`
+	// NodeSelector is a selector which must be true for the pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty" yaml:"nodeSelector,omitempty"`
 }
 
 // PodStatus represents information about the status of a pod. Status may trail the actual
@@ -458,8 +476,8 @@ type PodStatus struct {
 // by clients and scheduled onto hosts.  BoundPod represents the state of this resource
 // to hosts.
 type Pod struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec defines the behavior of a pod.
 	Spec PodSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
@@ -472,7 +490,7 @@ type Pod struct {
 // PodList is a list of Pods.
 type PodList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []Pod `json:"items" yaml:"items"`
 }
@@ -480,7 +498,7 @@ type PodList struct {
 // PodTemplateSpec describes the data a pod should have when created from a template
 type PodTemplateSpec struct {
 	// Metadata of the pods created from this template.
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec defines the behavior of a pod.
 	Spec PodSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
@@ -488,8 +506,8 @@ type PodTemplateSpec struct {
 
 // PodTemplate describes a template for creating copies of a predefined pod.
 type PodTemplate struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec defines the behavior of a pod.
 	Spec PodTemplateSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
@@ -498,7 +516,7 @@ type PodTemplate struct {
 // PodTemplateList is a list of PodTemplates.
 type PodTemplateList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []PodTemplate `json:"items" yaml:"items"`
 }
@@ -507,8 +525,8 @@ type PodTemplateList struct {
 // defines how a Pod may change after a Binding is created. A Pod is a request to
 // execute a pod, whereas a BoundPod is the specification that would be run on a server.
 type BoundPod struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec defines the behavior of a pod.
 	Spec PodSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
@@ -517,8 +535,8 @@ type BoundPod struct {
 // BoundPods is a list of Pods bound to a common server. The resource version of
 // the pod list is guaranteed to only change when the list of bound pods changes.
 type BoundPods struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Host is the name of a node that these pods were bound to.
 	Host string `json:"host" yaml:"host"`
@@ -549,8 +567,8 @@ type ReplicationControllerStatus struct {
 
 // ReplicationController represents the configuration of a replication controller.
 type ReplicationController struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec defines the desired behavior of this replication controller.
 	Spec ReplicationControllerSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
@@ -563,19 +581,13 @@ type ReplicationController struct {
 // ReplicationControllerList is a collection of replication controllers.
 type ReplicationControllerList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []ReplicationController `json:"items" yaml:"items"`
 }
 
 // ServiceStatus represents the current status of a service
-type ServiceStatus struct {
-	// PortalIP is assigned by the master.
-	PortalIP string `json:"portalIP,omitempty" yaml:"portalIP,omitempty"`
-
-	// ProxyPort is assigned by the master.  If 0, the proxy will choose an ephemeral port.
-	ProxyPort int `json:"proxyPort,omitempty" yaml:"proxyPort,omitempty"`
-}
+type ServiceStatus struct{}
 
 // ServiceSpec describes the attributes that a user creates on a service
 type ServiceSpec struct {
@@ -589,6 +601,14 @@ type ServiceSpec struct {
 	// This service will route traffic to pods having labels matching this selector.
 	Selector map[string]string `json:"selector,omitempty" yaml:"selector,omitempty"`
 
+	// PortalIP is usually assigned by the master.  If specified by the user
+	// we will try to respect it or else fail the request.  This field can
+	// not be changed by updates.
+	PortalIP string `json:"portalIP,omitempty" yaml:"portalIP,omitempty"`
+
+	// ProxyPort is assigned by the master.  If 0, the proxy will choose an ephemeral port.
+	ProxyPort int `json:"proxyPort,omitempty" yaml:"proxyPort,omitempty"`
+
 	// CreateExternalLoadBalancer indicates whether a load balancer should be created for this service.
 	CreateExternalLoadBalancer bool `json:"createExternalLoadBalancer,omitempty" yaml:"createExternalLoadBalancer,omitempty"`
 
@@ -601,8 +621,8 @@ type ServiceSpec struct {
 // (for example 3306) that the proxy listens on, and the selector that determines which pods
 // will answer requests sent through the proxy.
 type Service struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec defines the behavior of a service.
 	Spec ServiceSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
@@ -614,7 +634,7 @@ type Service struct {
 // ServiceList holds a list of services.
 type ServiceList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []Service `json:"items" yaml:"items"`
 }
@@ -622,8 +642,8 @@ type ServiceList struct {
 // Endpoints is a collection of endpoints that implement the actual service, for example:
 // Name: "mysql", Endpoints: ["10.10.1.1:1909", "10.10.2.2:8834"]
 type Endpoints struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata" yaml:"metadata"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata" yaml:"metadata"`
 
 	// Endpoints is the list of host ports that satisfy the service selector
 	Endpoints []string `json:"endpoints" yaml:"endpoints"`
@@ -632,7 +652,7 @@ type Endpoints struct {
 // EndpointsList is a list of endpoints.
 type EndpointsList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []Endpoints `json:"items" yaml:"items"`
 }
@@ -657,10 +677,10 @@ type ResourceName string
 type ResourceList map[ResourceName]util.IntOrString
 
 // Node is a worker node in Kubernetenes.
-// The name of the node according to etcd is in TypeMeta.ID.
+// The name of the node according to etcd is in ID.
 type Node struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Spec defines the behavior of a node.
 	Spec NodeSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
@@ -675,7 +695,7 @@ type Node struct {
 // NodeList is a list of minions.
 type NodeList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []Node `json:"items" yaml:"items"`
 }
@@ -683,8 +703,8 @@ type NodeList struct {
 // Binding is written by a scheduler to cause a pod to be bound to a node. Name is not
 // required for Bindings.
 type Binding struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// PodID is a Pod name to be bound to a node.
 	PodID string `json:"podID" yaml:"podID"`
@@ -695,7 +715,7 @@ type Binding struct {
 // Status is a return value for calls that don't return other objects.
 type Status struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// One of: "Success", "Failure", "Working" (for operations not yet completed)
 	Status string `json:"status,omitempty" yaml:"status,omitempty"`
@@ -850,14 +870,14 @@ const (
 // Operation is assigned by the server when an operation is started, and can be used by
 // clients to retrieve the final result of the operation at a later time.
 type Operation struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata" yaml:"metadata"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata" yaml:"metadata"`
 }
 
 // OperationList is a list of operations, as delivered to API clients.
 type OperationList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []Operation `json:"items" yaml:"items"`
 }
@@ -884,8 +904,8 @@ type ObjectReference struct {
 // Event is a report of an event somewhere in the cluster.
 // TODO: Decide whether to store these separately or with the object they apply to.
 type Event struct {
-	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ObjectMeta `json:"metadata" yaml:"metadata"`
+	TypeMeta   `json:",inline" yaml:",inline"`
+	ObjectMeta `json:"metadata" yaml:"metadata"`
 
 	// Required. The object that this event is about.
 	InvolvedObject ObjectReference `json:"involvedObject,omitempty" yaml:"involvedObject,omitempty"`
@@ -912,12 +932,15 @@ type Event struct {
 	// Optional. The component reporting this event. Should be a short machine understandable string.
 	// TODO: provide exact specification for format.
 	Source string `json:"source,omitempty" yaml:"source,omitempty"`
+
+	// The time at which the client recorded the event. (Time of server receipt is in TypeMeta.)
+	Timestamp util.Time `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
 }
 
 // EventList is a list of events.
 type EventList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
-	Metadata ListMeta `json:"metadata" yaml:"metadata"`
+	ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	Items []Event `json:"items" yaml:"items"`
 }

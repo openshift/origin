@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
-
-	config "github.com/openshift/origin/pkg/config/api"
+	"github.com/openshift/origin/pkg/config"
+	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -29,27 +29,57 @@ func NewTemplateProcessor(generators map[string]Generator) *TemplateProcessor {
 	return &TemplateProcessor{Generators: generators}
 }
 
+// reportError reports the single item validation error and properly set the
+// prefix and index to match the Config item JSON index
+// TODO: Move this into some 'utils' or 'helpers' package
+func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
+	i := errs.ValidationErrorList{}
+	*allErrs = append(*allErrs, append(i, err).PrefixIndex(index).Prefix("item")...)
+}
+
 // Process transforms Template object into Config object. It generates
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurances with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *TemplateProcessor) Process(template *api.Template) (*config.Config, error) {
+func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, errs.ValidationErrorList) {
+	templateErrors := errs.ValidationErrorList{}
+
 	if err := p.GenerateParameterValues(template); err != nil {
-		return nil, err
-	}
-	if err := p.SubstituteParameters(template); err != nil {
-		return nil, err
+		return nil, append(templateErrors.Prefix("Template"), errs.NewFieldInvalid("parameters", err))
 	}
 
-	config := &config.Config{
-		Name:        template.Name,
-		Description: template.Description,
-		Items:       template.Items,
+	items := []runtime.RawExtension{}
+	for i, in := range template.Items {
+
+		item, mapping, err := config.DecodeWithMapper(in)
+		if err != nil {
+			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
+			continue
+		}
+
+		// TODO: Report failed parameter substitution for unknown objects
+		//			 These errors are no-fatal and the object returned is the same
+		//			 just without substitution.
+		newItem, err := p.SubstituteParameters(template.Parameters, item)
+		if err != nil {
+			reportError(&templateErrors, i, errs.NewFieldNotSupported("parameters", err))
+		}
+
+		jsonItem, err := mapping.Codec.Encode(newItem)
+		if err != nil {
+			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
+			continue
+		}
+		items = append(items, runtime.RawExtension{RawJSON: jsonItem})
 	}
-	config.ID = template.ID
+
+	config := &configapi.Config{
+		ObjectMeta: template.ObjectMeta,
+		Items:      items,
+	}
 	config.Kind = "Config"
-	config.CreationTimestamp = util.Now()
-	return config, nil
+	config.ObjectMeta.CreationTimestamp = util.Now()
+	return config, templateErrors.Prefix("Template")
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides
@@ -81,33 +111,30 @@ func (p *TemplateProcessor) GetParameterByName(t *api.Template, name string) *ap
 //   - ${PARAMETER_NAME}
 //
 // TODO: Implement substitution for more types and fields.
-func (p *TemplateProcessor) SubstituteParameters(t *api.Template) error {
+func (p *TemplateProcessor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
 	// Make searching for given parameter name/value more effective
-	paramMap := make(map[string]string, len(t.Parameters))
-	for _, param := range t.Parameters {
+	paramMap := make(map[string]string, len(params))
+	for _, param := range params {
 		paramMap[param.Name] = param.Value
 	}
 
-	for i, item := range t.Items {
-		switch obj := item.Object.(type) {
-		case *kapi.ReplicationController:
-			p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		case *kapi.Pod:
-			p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		case *deployapi.Deployment:
-			p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		case *deployapi.DeploymentConfig:
-			p.substituteParametersInManifest(&obj.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
-			t.Items[i] = runtime.EmbeddedObject{Object: obj}
-		default:
-			glog.V(1).Infof("template.items[%v]: Parameter substitution not implemented for resource '%T'.", i, obj)
-		}
+	switch obj := item.(type) {
+	case *kapi.ReplicationController:
+		p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
+		return obj, nil
+	case *kapi.Pod:
+		p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
+		return obj, nil
+	case *deployapi.Deployment:
+		p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
+		return obj, nil
+	case *deployapi.DeploymentConfig:
+		p.substituteParametersInManifest(&obj.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
+		return obj, nil
+	default:
+		return obj, fmt.Errorf("Parameter substitution not implemented for %T", obj)
 	}
 
-	return nil
 }
 
 // substituteParametersInManifest is a helper function that iterates

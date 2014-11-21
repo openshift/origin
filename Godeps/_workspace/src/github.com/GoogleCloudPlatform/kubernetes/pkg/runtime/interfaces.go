@@ -33,6 +33,18 @@ type Codec interface {
 	Encoder
 }
 
+// ObjectConvertor converts an object to a different version.
+type ObjectConvertor interface {
+	ConvertToVersion(in Object, outVersion string) (out Object, err error)
+}
+
+// ObjectTyper contains methods for extracting the APIVersion and Kind
+// of objects.
+type ObjectTyper interface {
+	DataVersionAndKind([]byte) (version, kind string, err error)
+	ObjectVersionAndKind(Object) (version, kind string, err error)
+}
+
 // ResourceVersioner provides methods for setting and retrieving
 // the resource version from an API object.
 type ResourceVersioner interface {
@@ -45,8 +57,8 @@ type SelfLinker interface {
 	SetSelfLink(obj Object, selfLink string) error
 	SelfLink(obj Object) (string, error)
 
-	// Knowing ID is sometimes necessary to use a SelfLinker.
-	ID(obj Object) (string, error)
+	// Knowing Name is sometimes necessary to use a SelfLinker.
+	Name(obj Object) (string, error)
 }
 
 // All api types must support the Object interface. It's deliberately tiny so that this is not an onerous

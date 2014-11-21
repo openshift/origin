@@ -40,6 +40,7 @@ func TestCreate(t *testing.T) {
 		T:            t,
 	}
 	server := httptest.NewServer(&handler)
+	defer server.Close()
 	client := client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})
 	factory := ConfigFactory{client}
 	factory.Create()
@@ -75,6 +76,7 @@ func TestCreateLists(t *testing.T) {
 			T:            t,
 		}
 		server := httptest.NewServer(&handler)
+		defer server.Close()
 		factory.Client = client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})
 		// This test merely tests that the correct request is made.
 		item.factory().List()
@@ -132,6 +134,7 @@ func TestCreateWatches(t *testing.T) {
 			T:            t,
 		}
 		server := httptest.NewServer(&handler)
+		defer server.Close()
 		factory.Client = client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})
 		// This test merely tests that the correct request is made.
 		item.factory().Watch(item.rv)
@@ -145,8 +148,8 @@ func TestPollMinions(t *testing.T) {
 	}{
 		{
 			minions: []api.Minion{
-				{TypeMeta: api.TypeMeta{ID: "foo"}},
-				{TypeMeta: api.TypeMeta{ID: "bar"}},
+				{ObjectMeta: api.ObjectMeta{Name: "foo"}},
+				{ObjectMeta: api.ObjectMeta{Name: "bar"}},
 			},
 		},
 	}
@@ -162,6 +165,7 @@ func TestPollMinions(t *testing.T) {
 		// FakeHandler musn't be sent requests other than the one you want to test.
 		mux.Handle("/api/"+testapi.Version()+"/minions", &handler)
 		server := httptest.NewServer(mux)
+		defer server.Close()
 		client := client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})
 		cf := ConfigFactory{client}
 
@@ -179,7 +183,7 @@ func TestPollMinions(t *testing.T) {
 }
 
 func TestDefaultErrorFunc(t *testing.T) {
-	testPod := &api.Pod{TypeMeta: api.TypeMeta{ID: "foo", Namespace: "bar"}}
+	testPod := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "bar"}}
 	handler := util.FakeHandler{
 		StatusCode:   200,
 		ResponseBody: runtime.EncodeOrDie(latest.Codec, testPod),
@@ -189,6 +193,7 @@ func TestDefaultErrorFunc(t *testing.T) {
 	// FakeHandler musn't be sent requests other than the one you want to test.
 	mux.Handle("/api/"+testapi.Version()+"/pods/foo", &handler)
 	server := httptest.NewServer(mux)
+	defer server.Close()
 	factory := ConfigFactory{client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})}
 	queue := cache.NewFIFO()
 	podBackoff := podBackoff{
@@ -219,7 +224,7 @@ func TestStoreToMinionLister(t *testing.T) {
 	store := cache.NewStore()
 	ids := util.NewStringSet("foo", "bar", "baz")
 	for id := range ids {
-		store.Add(id, &api.Minion{TypeMeta: api.TypeMeta{ID: id}})
+		store.Add(id, &api.Minion{ObjectMeta: api.ObjectMeta{Name: id}})
 	}
 	sml := storeToMinionLister{store}
 
@@ -229,7 +234,7 @@ func TestStoreToMinionLister(t *testing.T) {
 	}
 	got := make([]string, len(gotNodes.Items))
 	for ix := range gotNodes.Items {
-		got[ix] = gotNodes.Items[ix].ID
+		got[ix] = gotNodes.Items[ix].Name
 	}
 	if !ids.HasAll(got...) || len(got) != len(ids) {
 		t.Errorf("Expected %v, got %v", ids, got)
@@ -241,8 +246,10 @@ func TestStoreToPodLister(t *testing.T) {
 	ids := []string{"foo", "bar", "baz"}
 	for _, id := range ids {
 		store.Add(id, &api.Pod{
-			TypeMeta: api.TypeMeta{ID: id},
-			Labels:   map[string]string{"name": id},
+			ObjectMeta: api.ObjectMeta{
+				Name:   id,
+				Labels: map[string]string{"name": id},
+			},
 		})
 	}
 	spl := storeToPodLister{store}
@@ -257,7 +264,7 @@ func TestStoreToPodLister(t *testing.T) {
 			t.Errorf("Expected %v, got %v", e, a)
 			continue
 		}
-		if e, a := id, got[0].ID; e != a {
+		if e, a := id, got[0].Name; e != a {
 			t.Errorf("Expected %v, got %v", e, a)
 			continue
 		}
@@ -267,9 +274,9 @@ func TestStoreToPodLister(t *testing.T) {
 func TestMinionEnumerator(t *testing.T) {
 	testList := &api.MinionList{
 		Items: []api.Minion{
-			{TypeMeta: api.TypeMeta{ID: "foo"}},
-			{TypeMeta: api.TypeMeta{ID: "bar"}},
-			{TypeMeta: api.TypeMeta{ID: "baz"}},
+			{ObjectMeta: api.ObjectMeta{Name: "foo"}},
+			{ObjectMeta: api.ObjectMeta{Name: "bar"}},
+			{ObjectMeta: api.ObjectMeta{Name: "baz"}},
 		},
 	}
 	me := minionEnumerator{testList}
@@ -279,7 +286,7 @@ func TestMinionEnumerator(t *testing.T) {
 	}
 	for i := range testList.Items {
 		gotID, gotObj := me.Get(i)
-		if e, a := testList.Items[i].ID, gotID; e != a {
+		if e, a := testList.Items[i].Name, gotID; e != a {
 			t.Errorf("Expected %v, got %v", e, a)
 		}
 		if e, a := &testList.Items[i], gotObj; !reflect.DeepEqual(e, a) {
@@ -310,6 +317,7 @@ func TestBind(t *testing.T) {
 			T:            t,
 		}
 		server := httptest.NewServer(&handler)
+		defer server.Close()
 		client := client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})
 		b := binder{client}
 
