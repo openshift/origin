@@ -14,8 +14,7 @@ import (
 
 func getDocker(client DockerClient) *stiDocker {
 	return &stiDocker{
-		client:  client,
-		verbose: true,
+		client: client,
 	}
 }
 

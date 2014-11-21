@@ -1,9 +1,10 @@
 package sti
 
 import (
-	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/sti/docker"
 	"github.com/openshift/source-to-image/pkg/sti/script"
@@ -28,11 +29,9 @@ type postExecutor interface {
 
 // newRequestHandler returns a new handler for a given request.
 func newRequestHandler(req *STIRequest) (*requestHandler, error) {
-	if req.Verbose {
-		log.Printf("Using docker socket: %s\n", req.DockerSocket)
-	}
+	glog.V(2).Infof("Using docker socket: %s", req.DockerSocket)
 
-	docker, err := docker.NewDocker(req.DockerSocket, req.Verbose)
+	docker, err := docker.NewDocker(req.DockerSocket)
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +39,9 @@ func newRequestHandler(req *STIRequest) (*requestHandler, error) {
 	return &requestHandler{
 		request:   req,
 		docker:    docker,
-		installer: script.NewInstaller(req.BaseImage, req.ScriptsUrl, docker, req.Verbose),
-		fs:        util.NewFileSystem(req.Verbose),
-		tar:       tar.NewTar(req.Verbose),
+		installer: script.NewInstaller(req.BaseImage, req.ScriptsUrl, docker),
+		fs:        util.NewFileSystem(),
+		tar:       tar.NewTar(),
 	}, nil
 }
 
@@ -54,6 +53,12 @@ func (h *requestHandler) setup(requiredScripts, optionalScripts []string) (err e
 	h.result = &STIResult{
 		Success:    false,
 		WorkingDir: h.request.workingDir,
+	}
+
+	// immediately pull the image if forcepull is true, that way later code that
+	// references the image will have it pre-pulled and can just inspect the image.
+	if h.request.ForcePull {
+		h.docker.PullImage(h.request.BaseImage)
 	}
 
 	dirs := []string{"upload/scripts", "downloads/scripts", "downloads/defaultScripts"}
@@ -84,9 +89,7 @@ func (h *requestHandler) generateConfigEnv() (configEnv []string) {
 }
 
 func (h *requestHandler) execute(command string) error {
-	if h.request.Verbose {
-		log.Printf("Using image name %s", h.request.BaseImage)
-	}
+	glog.V(2).Infof("Using image name %s", h.request.BaseImage)
 
 	uploadDir := filepath.Join(h.request.workingDir, "upload")
 	tarFileName, err := h.tar.CreateTarFile(h.request.workingDir, uploadDir)
@@ -118,7 +121,7 @@ func (h *requestHandler) PostExecute(containerID string, cmd []string) (err erro
 	if h.postExecutor != nil {
 		err = h.postExecutor.PostExecute(containerID, cmd)
 		if err != nil {
-			log.Printf("An error occurred in post executor: %v", err)
+			glog.Errorf("An error occurred in post executor: %v", err)
 		}
 	}
 	return err
@@ -126,7 +129,7 @@ func (h *requestHandler) PostExecute(containerID string, cmd []string) (err erro
 
 func (h *requestHandler) cleanup() {
 	if h.request.PreserveWorkingDir {
-		log.Printf("Temporary directory '%s' will be saved, not deleted\n", h.request.workingDir)
+		glog.Infof("Temporary directory '%s' will be saved, not deleted", h.request.workingDir)
 	} else {
 		h.fs.RemoveDirectory(h.request.workingDir)
 	}

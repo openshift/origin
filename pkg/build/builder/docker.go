@@ -40,7 +40,7 @@ func NewDockerBuilder(dockerClient DockerClient, authCfg docker.AuthConfiguratio
 		auth:         authCfg,
 		build:        build,
 		git:          git.NewGit(),
-		tar:          tar.NewTar(false),
+		tar:          tar.NewTar(),
 		urlTimeout:   urlCheckTimeout,
 	}
 }

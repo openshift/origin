@@ -120,7 +120,6 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 
 func getScriptHandler() *handler {
 	return &handler{
-		verbose:    true,
 		docker:     &test.FakeDocker{},
 		image:      "test-image",
 		scriptsUrl: "http://the.scripts.url/scripts",

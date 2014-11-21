@@ -2,8 +2,9 @@ package sti
 
 import (
 	"io"
-	"log"
 	"path/filepath"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/sti/docker"
 	"github.com/openshift/source-to-image/pkg/sti/errors"
@@ -74,18 +75,15 @@ func (b *Builder) Build() (*STIResult, error) {
 		return nil, err
 	}
 	if bh.Request().incremental {
-		log.Printf("Existing image for tag %s detected for incremental build.\n", bh.Request().Tag)
+		glog.V(1).Infof("Existing image for tag %s detected for incremental build.", bh.Request().Tag)
 	} else {
-		log.Println("Clean build will be performed")
+		glog.V(1).Infof("Clean build will be performed")
 	}
 
-	if bh.Request().Verbose {
-		log.Printf("Performing source build from %s\n", bh.Request().Source)
-	}
-
+	glog.V(2).Infof("Performing source build from %s", bh.Request().Source)
 	if bh.Request().incremental {
 		if err = bh.saveArtifacts(); err != nil {
-			log.Printf("Error saving previous build artifacts: %v", err)
+			glog.Errorf("Error saving previous build artifacts: %v", err)
 		}
 	}
 
@@ -105,7 +103,7 @@ func (h *buildHandler) PostExecute(containerID string, cmd []string) error {
 	var previousImageID = ""
 	if h.request.incremental && h.request.RemovePreviousImage {
 		if previousImageID, err = h.docker.GetImageId(h.request.Tag); err != nil {
-			log.Printf("Error retrieving previous image's metadata: %v", err)
+			glog.Errorf("Error retrieving previous image's metadata: %v", err)
 		}
 	}
 
@@ -121,12 +119,12 @@ func (h *buildHandler) PostExecute(containerID string, cmd []string) error {
 	}
 
 	h.result.ImageID = imageID
-	log.Printf("Tagged %s as %s\n", imageID, h.request.Tag)
+	glog.V(1).Infof("Tagged %s as %s", imageID, h.request.Tag)
 
 	if h.request.incremental && h.request.RemovePreviousImage && previousImageID != "" {
-		log.Printf("Removing previously-tagged image %s\n", previousImageID)
+		glog.V(1).Infof("Removing previously-tagged image %s", previousImageID)
 		if err = h.docker.RemoveImage(previousImageID); err != nil {
-			log.Printf("Unable to remove previous image: %v\n", err)
+			glog.Errorf("Unable to remove previous image: %v", err)
 		}
 	}
 
@@ -135,6 +133,7 @@ func (h *buildHandler) PostExecute(containerID string, cmd []string) error {
 			h.result.Success, h.result.Messages)
 	}
 
+	glog.Infof("Successfully built %s", h.request.Tag)
 	return nil
 }
 
@@ -167,11 +166,8 @@ func (h *buildHandler) saveArtifacts() (err error) {
 	}
 
 	image := h.request.Tag
-
-	log.Printf("Saving build artifacts from image %s to path %s\n", image, artifactTmpDir)
-
 	reader, writer := io.Pipe()
-
+	glog.V(1).Infof("Saving build artifacts from image %s to path %s", image, artifactTmpDir)
 	extractFunc := func() error {
 		defer reader.Close()
 		return h.tar.ExtractTarStream(artifactTmpDir, reader)
@@ -189,9 +185,7 @@ func (h *buildHandler) saveArtifacts() (err error) {
 	if err != nil {
 		switch e := err.(type) {
 		case errors.StiContainerError:
-			if h.request.Verbose {
-				log.Printf("Exit code: %d", e.ExitCode)
-			}
+			glog.V(2).Infof("Exit code: %d", e.ExitCode)
 			return errors.ErrSaveArtifactsFailed
 		}
 	}
@@ -200,17 +194,15 @@ func (h *buildHandler) saveArtifacts() (err error) {
 
 func (h *buildHandler) fetchSource() error {
 	targetSourceDir := filepath.Join(h.request.workingDir, "upload", "src")
-
-	log.Printf("Downloading %s to directory %s\n", h.request.Source, targetSourceDir)
-
+	glog.V(1).Infof("Downloading %s to directory %s", h.request.Source, targetSourceDir)
 	if h.git.ValidCloneSpec(h.request.Source) {
 		if err := h.git.Clone(h.request.Source, targetSourceDir); err != nil {
-			log.Printf("Git clone failed: %+v", err)
+			glog.Errorf("Git clone failed: %+v", err)
 			return err
 		}
 
 		if h.request.Ref != "" {
-			log.Printf("Checking out ref %s", h.request.Ref)
+			glog.V(1).Infof("Checking out ref %s", h.request.Ref)
 
 			if err := h.git.Checkout(targetSourceDir, h.request.Ref); err != nil {
 				return err

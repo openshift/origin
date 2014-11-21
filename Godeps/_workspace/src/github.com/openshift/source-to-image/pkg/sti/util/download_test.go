@@ -93,7 +93,6 @@ func (f *FakeSchemeReader) Read(url *url.URL) (io.ReadCloser, error) {
 func getDownloader() (Downloader, *FakeSchemeReader) {
 	fakeReader := &FakeSchemeReader{}
 	return &downloader{
-		verbose: true,
 		schemeReaders: map[string]schemeReader{
 			"http":  fakeReader,
 			"https": fakeReader,

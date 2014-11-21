@@ -51,7 +51,7 @@ func (c *callbackInvoker) ExecuteCallback(callbackUrl string, success bool, mess
 	for retries := 0; retries < 3; retries++ {
 		resp, err = c.postFunc(callbackUrl, "application/json", jsonBuffer)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Unable to invoke callback: %s", err.Error())
+			errorMessage := fmt.Sprintf("Unable to invoke callback: %v", err)
 			messages = append(messages, errorMessage)
 		}
 		if resp != nil {

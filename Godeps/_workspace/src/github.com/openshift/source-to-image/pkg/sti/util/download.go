@@ -3,10 +3,11 @@ package util
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/golang/glog"
 )
 
 // Downloader downloads the specified URL to the target file location
@@ -28,15 +29,13 @@ type HttpURLReader struct {
 type FileURLReader struct{}
 
 type downloader struct {
-	verbose       bool
 	schemeReaders map[string]schemeReader
 }
 
 // NewDownloader creates an instance of the default Downloader implementation
-func NewDownloader(verbose bool) Downloader {
+func NewDownloader() Downloader {
 	httpReader := NewHttpReader()
 	return &downloader{
-		verbose: verbose,
 		schemeReaders: map[string]schemeReader{
 			"http":  httpReader,
 			"https": httpReader,
@@ -78,14 +77,12 @@ func (d *downloader) DownloadFile(url *url.URL, targetFile string) error {
 	sr := d.schemeReaders[url.Scheme]
 
 	if sr == nil {
-		log.Printf("ERROR: No URL handler found for url %s", url.String())
-		return fmt.Errorf("ERROR: No URL handler found for url %s", url.String())
+		glog.Errorf("No URL handler found for %s", url.String())
+		return fmt.Errorf("No URL handler found url %s", url.String())
 	}
 	reader, err := sr.Read(url)
 	if err != nil {
-		if d.verbose {
-			log.Printf("ERROR: Unable to download %s (%s)\n", url.String(), err)
-		}
+		glog.V(2).Infof("Unable to download %s (%s)", url.String(), err)
 		return err
 	}
 	defer reader.Close()
@@ -95,17 +92,15 @@ func (d *downloader) DownloadFile(url *url.URL, targetFile string) error {
 
 	if err != nil {
 		defer os.Remove(targetFile)
-		log.Printf("ERROR: Unable to create target file %s (%s)\n", targetFile, err)
+		glog.Errorf("Unable to create target file %s (%s)", targetFile, err)
 		return err
 	}
 
 	if _, err = io.Copy(out, reader); err != nil {
 		defer os.Remove(targetFile)
-		log.Printf("Skipping file %s due to error copying from source: %s\n", targetFile, err)
+		glog.Errorf("Skipping file %s due to error copying from source: %s", targetFile, err)
 	}
 
-	if d.verbose {
-		log.Printf("Downloaded '%s'\n", url.String())
-	}
+	glog.V(2).Infof("Downloaded '%s'", url.String())
 	return nil
 }

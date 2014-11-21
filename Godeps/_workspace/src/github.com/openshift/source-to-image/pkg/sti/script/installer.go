@@ -2,10 +2,11 @@ package script
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"path/filepath"
 	"sync"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/sti/docker"
 	"github.com/openshift/source-to-image/pkg/sti/errors"
@@ -20,14 +21,13 @@ type Installer interface {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image, scriptsUrl string, docker docker.Docker, verbose bool) Installer {
+func NewInstaller(image, scriptsUrl string, docker docker.Docker) Installer {
 	handler := &handler{
-		verbose:    verbose,
 		image:      image,
 		scriptsUrl: scriptsUrl,
 		docker:     docker,
-		downloader: util.NewDownloader(verbose),
-		fs:         util.NewFileSystem(verbose),
+		downloader: util.NewDownloader(),
+		fs:         util.NewFileSystem(),
 	}
 	return &installer{handler}
 }
@@ -37,7 +37,6 @@ type installer struct {
 }
 
 type handler struct {
-	verbose    bool
 	docker     docker.Docker
 	image      string
 	scriptsUrl string
@@ -110,7 +109,7 @@ func (s *handler) download(scripts []string, workingDir string) error {
 
 	defaultUrl, err := s.docker.GetDefaultScriptsUrl(s.image)
 	if err != nil {
-		return fmt.Errorf("Unable to retrieve the default STI scripts URL: %s", err.Error())
+		return fmt.Errorf("Unable to retrieve the default STI scripts URL: %v", err)
 	}
 
 	if defaultUrl != "" {
@@ -152,13 +151,9 @@ func (s *handler) getPath(script string, workingDir string) string {
 
 	for i, location := range locations {
 		path := filepath.Join(workingDir, location, script)
-		if s.verbose {
-			log.Printf("Looking for %s script at %s", script, path)
-		}
+		glog.V(2).Infof("Looking for %s script at %s", script, path)
 		if s.fs.Exists(path) {
-			if s.verbose {
-				log.Printf("Found %s script from %s.", script, descriptions[i])
-			}
+			glog.V(2).Infof("Found %s script from %s.", script, descriptions[i])
 			return path
 		}
 	}
@@ -173,18 +168,15 @@ func (s *handler) install(path string, workingDir string) error {
 
 // prepareScriptDownload turns the script name into proper URL
 func (s *handler) prepareDownload(scripts []string, targetDir, baseUrl string) map[string]scriptInfo {
-
 	s.fs.MkdirAll(targetDir)
-
 	info := make(map[string]scriptInfo)
 
 	for _, script := range scripts {
 		url, err := url.Parse(baseUrl + "/" + script)
 		if err != nil {
-			log.Printf("[WARN] Unable to parse script URL: %n\n", baseUrl+"/"+script)
+			glog.Warningf("Unable to parse script URL: %s/%s", baseUrl, script)
 			continue
 		}
-
 		info[targetDir+"/"+script] = scriptInfo{url, script}
 	}
 

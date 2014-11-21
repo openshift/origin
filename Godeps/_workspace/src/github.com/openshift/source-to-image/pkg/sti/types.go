@@ -5,7 +5,6 @@ package sti
 type STIRequest struct {
 	BaseImage           string
 	DockerSocket        string
-	Verbose             bool
 	PreserveWorkingDir  bool
 	Source              string
 	Ref                 string
@@ -15,6 +14,7 @@ type STIRequest struct {
 	Environment         map[string]string
 	CallbackUrl         string
 	ScriptsUrl          string
+	ForcePull           bool
 
 	incremental bool
 	workingDir  string
