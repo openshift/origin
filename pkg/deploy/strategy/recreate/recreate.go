@@ -82,11 +82,13 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *deployapi.Deployment) er
 		DesiredState: deploymentCopy.(*deployapi.Deployment).ControllerTemplate,
 	}
 
-	// Correlate pods created by the ReplicationController to the deployment config
+	// Correlate pods created by the ReplicationController to the deployment objects
 	if controller.DesiredState.PodTemplate.Labels == nil {
 		controller.DesiredState.PodTemplate.Labels = make(map[string]string)
 	}
 	controller.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel] = configID
+	// TODO: Switch this to an annotation once upstream supports annotations on a PodTemplate
+	controller.DesiredState.PodTemplate.Labels[deployapi.DeploymentLabel] = deployment.Name
 
 	glog.Infof("Creating replicationController for deployment %s", deployment.Name)
 	if _, err := s.ReplicationController.createReplicationController(namespace, controller); err != nil {

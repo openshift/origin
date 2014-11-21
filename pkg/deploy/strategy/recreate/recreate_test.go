@@ -57,6 +57,10 @@ func TestFirstDeployment(t *testing.T) {
 		t.Fatalf("expected controller podtemplate label %s, got %s", e, a)
 	}
 
+	if e, a := "deploy1", createdController.DesiredState.PodTemplate.Labels[deployapi.DeploymentLabel]; e != a {
+		t.Fatalf("expected controller podtemplate label %s, got %s", e, a)
+	}
+
 	if e, a := 2, createdController.DesiredState.Replicas; e != a {
 		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
 	}
