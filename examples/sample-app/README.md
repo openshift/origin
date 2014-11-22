@@ -45,11 +45,11 @@ All commands assume the `openshift` binary is in your path (normally located und
 
         Name                Labels              Selector            IP                  Port
         ----------          ----------          ----------          ----------          ----------
-        docker-registry                         name=registrypod    172.121.17.1        5001
+        docker-registry                         name=registrypod    172.121.17.3        5001
 
 6. Confirm the registry is accessible (you may need to run this more than once):
 
-        $ curl 172.121.17.1:5001
+        $ curl 172.121.17.3:5001
 
     You should see:
 
@@ -75,12 +75,6 @@ All commands assume the `openshift` binary is in your path (normally located und
  * Otherwise you can simulate the webhook invocation by running:
 
             $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic
-
-    In the OpenShift logs (logs/openshift.log) you should see something like:
-
-        I0916 13:50:22.479529 21375 log.go:134] POST /osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
-
-    which confirms the webhook was triggered.
 
 11. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
 
@@ -112,7 +106,7 @@ All commands assume the `openshift` binary is in your path (normally located und
         ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
         b8f087b7-605e-11e4-b0db-3c970e3bf0b7                openshift/docker-registry                                                                                         localhost.localdomain/   name=registrypod,replicationController=docker-registry                                                                                                       Running
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
-        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.121.17.1:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
+        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.121.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
 
 13. Determine the IP for the frontend service:
 
@@ -122,21 +116,21 @@ All commands assume the `openshift` binary is in your path (normally located und
 
         Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
-        database            template=ruby-helloworld-sample   name=database       172.121.17.3        5434
-        docker-registry                                       name=registrypod    172.121.17.1        5001
-        frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.2        5432
+        database            template=ruby-helloworld-sample   name=database       172.121.17.5        5434
+        docker-registry                                       name=registrypod    172.121.17.3        5001
+        frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.4        5432
 
 
-    In this case, the IP for frontend is 172.121.17.2 and it is on port 5432.
+    In this case, the IP for frontend is 172.121.17.4 and it is on port 5432.
 
-14. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.121.17.2:5432 in your browser.
+14. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.121.17.4:5432 in your browser.
 
 You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
 15. Make a change to your ruby sample main.html file and push it.
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ curl -s -A "GitHub-Hookshot/github" -H "Content-Type:application/json" -H "X-Github-Event:push" -d @github-webhook-example.json http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
+            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic
 
 16. Repeat step 11 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
@@ -152,9 +146,9 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
         Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
-        docker-registry                                       name=registrypod    172.121.17.1        5001
-        frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.2        5432
-        database            template=ruby-helloworld-sample   name=database       172.121.17.3        5434
+        docker-registry                                       name=registrypod    172.121.17.3        5001
+        frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.4        5432
+        database            template=ruby-helloworld-sample   name=database       172.121.17.5        5434
 
 
   - To remove the **frontend** service use the command:
@@ -175,17 +169,17 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
         Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
-        docker-registry                                       name=registrypod    172.121.17.1        5001
-        database            template=ruby-helloworld-sample   name=database       172.121.17.3        5434
+        docker-registry                                       name=registrypod    172.121.17.3        5001
+        database            template=ruby-helloworld-sample   name=database       172.121.17.5        5434
 
 
   - You can also curl the application to check the service has terminated:
 
-        $ curl http://172.17.17.2:5432
+        $ curl http://172.17.17.4:5432
 
     Sample output:
 
-        curl: (7) Failed connect to 172.17.17.2:5432; No route to host
+        curl: (7) Failed connect to 172.17.17.4:5432; No route to host
 
 Another interesting example is deleting a pod.
 
@@ -199,7 +193,7 @@ Another interesting example is deleting a pod.
         ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
         b8f087b7-605e-11e4-b0db-3c970e3bf0b7                openshift/docker-registry                                                                                         localhost.localdomain/   name=registrypod,replicationController=docker-registry                                                                                                       Running
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
-        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.121.17.1:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
+        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.121.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
 
   - Delete the **frontend** pod by specifying its ID:
 

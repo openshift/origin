@@ -47,7 +47,7 @@
       },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "172.121.17.1:5001/openshift/origin-ruby-sample",
+      "dockerImageRepository": "172.121.17.3:5001/openshift/origin-ruby-sample",
       "labels": {
         "name": "origin-ruby-sample"
       }
@@ -87,7 +87,7 @@
         },
         "output": {
           "imageTag": "openshift/origin-ruby-sample:latest",
-          "registry": "172.121.17.1:5001"
+          "registry": "172.121.17.3:5001"
         },
       },
       "labels": {
@@ -108,7 +108,7 @@
             "containerNames": [
               "ruby-helloworld"
             ],
-            "repositoryName": "172.121.17.1:5001/openshift/origin-ruby-sample",
+            "repositoryName": "172.121.17.3:5001/openshift/origin-ruby-sample",
             "tag": "latest"
           }
         }
@@ -129,7 +129,7 @@
                 "containers": [
                   {
                     "name": "ruby-helloworld",
-                    "image": "172.121.17.1:5001/openshift/origin-ruby-sample",
+                    "image": "172.121.17.3:5001/openshift/origin-ruby-sample",
                     "env": [
                       {
                         "name": "ADMIN_USERNAME",
