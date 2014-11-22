@@ -98,7 +98,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # sudo ipfw add 100 fwd 127.0.0.1,1080 tcp from any to any 80 in
 			config.vm.network "forwarded_port", guest: 80, host: 1080
 			config.vm.network "forwarded_port", guest: 8080, host: 8080
-			config.vm.network "forwarded_port", guest: 80, host: 1080
     end
 
     # Set VMware Fusion provider settings
