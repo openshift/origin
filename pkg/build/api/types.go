@@ -119,7 +119,7 @@ type BuildStrategy struct {
 	Type BuildStrategyType `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// DockerStrategy holds the parameters to the Docker build strategy.
-	DockerStrategy *DockerBuildStrategy `json:"dockerBuildStrategy,omitempty" yaml:"dockerBuildStrategy,omitempty"`
+	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty" yaml:"dockerStrategy,omitempty"`
 
 	// STIStrategy holds the parameters to the STI build strategy.
 	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty" yaml:"stiStrategy,omitempty"`
