@@ -77,3 +77,7 @@ func (f *FakeDocker) RemoveImage(name string) error {
 	f.RemoveImageName = name
 	return f.RemoveImageError
 }
+
+func (f *FakeDocker) PullImage(imageName string) error {
+	return nil
+}

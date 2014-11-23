@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/golang/glog"
 )
 
 // defaultTimeout is the amount of time that the untar will wait for a tar
@@ -35,9 +36,8 @@ type Tar interface {
 }
 
 // NewTar creates a new Tar
-func NewTar(verbose bool) Tar {
+func NewTar() Tar {
 	return &stiTar{
-		verbose: verbose,
 		exclude: defaultExclusionPattern,
 		timeout: defaultTimeout,
 	}
@@ -46,7 +46,6 @@ func NewTar(verbose bool) Tar {
 // stiTar is an implementation of the Tar interface
 type stiTar struct {
 	timeout time.Duration
-	verbose bool
 	exclude *regexp.Regexp
 }
 
@@ -83,11 +82,7 @@ func (t *stiTar) CreateTarStream(dir string, writer io.Writer) error {
 			}
 
 			header.Name = path[1+len(dir):]
-
-			if t.verbose {
-				log.Printf("Adding to tar: %s as %s\n", path, header.Name)
-			}
-
+			glog.V(3).Infof("Adding to tar: %s as %s", path, header.Name)
 			if err = tarWriter.WriteHeader(header); err != nil {
 				return err
 			}
@@ -106,7 +101,7 @@ func (t *stiTar) CreateTarStream(dir string, writer io.Writer) error {
 	})
 
 	if err != nil {
-		log.Printf("Error writing tar: %v\n", err)
+		glog.Errorf("Error writing tar: %v", err)
 		return err
 	}
 
@@ -130,14 +125,14 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 				break
 			}
 			if err != nil {
-				log.Printf("Error reading next tar header: %s", err.Error())
+				glog.Errorf("Error reading next tar header: %v", err)
 				errorChannel <- err
 				break
 			}
 			if header.FileInfo().IsDir() {
 				dirPath := filepath.Join(dir, header.Name)
 				if err = os.MkdirAll(dirPath, 0700); err != nil {
-					log.Printf("Error creating dir %s: %s", dirPath, err.Error())
+					glog.Errorf("Error creating dir %s: %v", dirPath, err)
 					errorChannel <- err
 					break
 				}
@@ -145,55 +140,49 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 				fileDir := filepath.Dir(header.Name)
 				dirPath := filepath.Join(dir, fileDir)
 				if err = os.MkdirAll(dirPath, 0700); err != nil {
-					log.Printf("Error creating dir %s: %s", dirPath, err.Error())
+					glog.Errorf("Error creating dir %s: %v", dirPath, err)
 					errorChannel <- err
 					break
 				}
 				path := filepath.Join(dir, header.Name)
-				if t.verbose {
-					log.Printf("Creating %s", path)
-				}
+				glog.V(2).Infof("Creating %s", path)
 				success := false
 				// The file times need to be modified after it's been closed
 				// thus this function is deferred before the file close
 				defer func() {
 					if success && os.Chtimes(path, time.Now(),
 						header.FileInfo().ModTime()) != nil {
-						log.Printf("Error setting file dates: %v", err)
+						glog.Errorf("Error setting file dates: %v", err)
 						errorChannel <- err
 					}
 				}()
 				file, err := os.Create(path)
 				defer file.Close()
 				if err != nil {
-					log.Printf("Error creating file %s: %s", path, err.Error())
+					glog.Errorf("Error creating file %s: %v", path, err)
 					errorChannel <- err
 					break
 				}
-				if t.verbose {
-					log.Printf("Extracting/writing %s", path)
-				}
+				glog.V(3).Infof("Extracting/writing %s", path)
 				written, err := io.Copy(file, tarReader)
 				if err != nil {
-					log.Printf("Error writing file: %s", err.Error())
+					glog.Errorf("Error writing file: %v", err)
 					errorChannel <- err
 					break
 				}
 				if written != header.Size {
-					message := fmt.Sprintf("Wrote %d bytes, expected to write %d\n",
+					message := fmt.Sprintf("Wrote %d bytes, expected to write %d",
 						written, header.Size)
-					log.Println(message)
+					glog.Errorf(message)
 					errorChannel <- fmt.Errorf(message)
 					break
 				}
 				if err = file.Chmod(header.FileInfo().Mode()); err != nil {
-					log.Printf("Error setting file mode: %v", err)
+					glog.Errorf("Error setting file mode: %v", err)
 					errorChannel <- err
 					break
 				}
-				if t.verbose {
-					log.Printf("Done with %s", path)
-				}
+				glog.V(2).Infof("Done with %s", path)
 				success = true
 			}
 		}
@@ -203,10 +192,9 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 		select {
 		case err := <-errorChannel:
 			if err != nil {
-				log.Printf("Error extracting tar stream")
-			}
-			if t.verbose {
-				log.Printf("Done extracting tar stream")
+				glog.Errorf("Error extracting tar stream")
+			} else {
+				glog.V(2).Infof("Done extracting tar stream")
 			}
 			return err
 		case <-timeoutTimer.C:
