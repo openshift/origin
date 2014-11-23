@@ -11,8 +11,8 @@ type UserInfo interface {
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of
 // some kind (like oauth for example) describes an identity.  Our system controls the users mapped to this identity.
 type UserIdentityInfo interface {
-	// GetName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
-	GetName() string
+	// GetUserName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
+	GetUserName() string
 	// GetProviderName returns the name of the provider of this identity.
 	GetProviderName() string
 	// GetExtra is a map to allow providers to add additional fields that they understand
@@ -64,21 +64,21 @@ func (i *DefaultUserInfo) GetExtra() map[string]string {
 }
 
 type DefaultUserIdentityInfo struct {
-	Name         string
+	UserName     string
 	ProviderName string
 	Extra        map[string]string
 }
 
 // NewDefaultUserIdentityInfo returns a DefaultUserIdentity info with a non-nil Extra component
-func NewDefaultUserIdentityInfo(name string) DefaultUserIdentityInfo {
+func NewDefaultUserIdentityInfo(username string) DefaultUserIdentityInfo {
 	return DefaultUserIdentityInfo{
-		Name:  name,
-		Extra: make(map[string]string),
+		UserName: username,
+		Extra:    make(map[string]string),
 	}
 }
 
-func (i *DefaultUserIdentityInfo) GetName() string {
-	return i.Name
+func (i *DefaultUserIdentityInfo) GetUserName() string {
+	return i.UserName
 }
 
 func (i *DefaultUserIdentityInfo) GetProviderName() string {

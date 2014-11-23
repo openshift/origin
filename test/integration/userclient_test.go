@@ -47,8 +47,9 @@ func TestUserInitialization(t *testing.T) {
 
 	mapping := api.UserIdentityMapping{
 		Identity: api.Identity{
-			ObjectMeta: kapi.ObjectMeta{Name: "test"},
+			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
 			Provider:   "",
+			UserName:   "test",
 			Extra: map[string]string{
 				"name": "Mr. Test",
 			},
@@ -133,8 +134,9 @@ func TestUserLookup(t *testing.T) {
 
 	mapping := api.UserIdentityMapping{
 		Identity: api.Identity{
-			ObjectMeta: kapi.ObjectMeta{Name: "test"},
+			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
 			Provider:   "",
+			UserName:   "test",
 			Extra: map[string]string{
 				"name": "Mr. Test",
 			},

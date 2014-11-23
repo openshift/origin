@@ -67,7 +67,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	}
 
 	identity := &authapi.DefaultUserIdentityInfo{
-		Name: id,
+		UserName: id,
 		Extra: map[string]string{
 			"name":  email,
 			"email": email,

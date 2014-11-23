@@ -41,7 +41,9 @@ func (r *Etcd) GetUser(name string) (user *api.User, err error) {
 
 // CreateOrUpdateUserIdentityMapping implements useridentitymapping.Registry
 func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, bool, error) {
-	name := fmt.Sprintf("%s:%s", mapping.Identity.Provider, mapping.Identity.Name)
+	// Create Identity.Name by combining Provider and UserName
+	name := fmt.Sprintf("%s:%s", mapping.Identity.Provider, mapping.Identity.UserName)
+	mapping.Identity.Name = name
 	key := makeUserKey(name)
 
 	// track the object we set into etcd to return

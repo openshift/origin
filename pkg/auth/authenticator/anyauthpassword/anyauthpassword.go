@@ -26,7 +26,7 @@ func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, passwo
 	}
 
 	identity := &authapi.DefaultUserIdentityInfo{
-		Name: username,
+		UserName: username,
 	}
 	user, err := a.identityMapper.UserFor(identity)
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
