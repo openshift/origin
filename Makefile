@@ -51,7 +51,7 @@ check test:
 # Example:
 #   make run
 run: build
-	$(OUT_DIR)/go/bin/openshift start
+	$(OUT_DIR)/local/go/bin/openshift start
 .PHONY: run
 
 # Remove all build artifacts.
