@@ -14,23 +14,29 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vagrant_openshift_config = JSON.parse(json)
   else
     vagrant_openshift_config = {
-      "instance_name" => "origin-dev",
-      "os" => "fedora",
-      "dev_cluster" => false,
-      "num_minions" => 2,
+      "instance_name"     => "origin-dev",
+      "os"                => "fedora",
+      "dev_cluster"       => false,
+      "num_minions"       => 2,
       "rebuild_yum_cache" => false,
-      "virtualbox" => {
+      "cpus"              => 2,
+      "memory"            => 1024,
+      "virtualbox"        => {
         "box_name" => "fedora_inst",
-        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_virtualbox_inst.box"
+        "box_url"  => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_virtualbox_inst.box"
       },
-      "vmware" => {
+      "vmware"            => {
         "box_name" => "fedora_inst",
-        "box_url" => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_fedora-20_chef-provisionerless.box"
+        "box_url"  => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_fedora-20_chef-provisionerless.box"
       },
-      "aws" => {
-        "ami" => "<AMI>",
-        "ami_region" => "<AMI_REGION>",
-        "ssh_user" => "<SSH_USER>",
+      "libvirt"           => {
+        "box_name" => "fedora_inst",
+        "box_url"  => "https://download.gluster.org/pub/gluster/purpleidea/vagrant/fedora-20/fedora-20.box"
+      },
+      "aws"               => {
+        "ami"          => "<AMI>",
+        "ami_region"   => "<AMI_REGION>",
+        "ssh_user"     => "<SSH_USER>",
         "machine_name" => "<AMI_NAME>"
       }
     }
@@ -87,21 +93,31 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Single VM dev environment
     # Set VirtualBox provider settings
     config.vm.provider "virtualbox" do |v, override|
-      override.vm.box = vagrant_openshift_config['virtualbox']['box_name']
+      override.vm.box     = vagrant_openshift_config['virtualbox']['box_name']
       override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url']
-      v.memory = 1024
-      v.cpus = 2
+
+      v.memory            = vagrant_openshift_config['memory']
+      v.cpus              = vagrant_openshift_config['cpus']
       v.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+
+    config.vm.provider "libvirt" do |libvirt, override|
+      override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
+      override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
+      libvirt.driver      = 'kvm'
+      libvirt.memory      = vagrant_openshift_config['memory']
+      libvirt.cpus        = vagrant_openshift_config['cpus']
+      override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
     end
 
     # Set VMware Fusion provider settings
     config.vm.provider "vmware_fusion" do |v, override|
-      override.vm.box = vagrant_openshift_config['vmware']['box_name']
+      override.vm.box     = vagrant_openshift_config['vmware']['box_name']
       override.vm.box_url = vagrant_openshift_config['vmware']['box_url']
-      override.vm.provision "shell", path: "hack/vm-provision-vmware.sh", id: "setup"
-      v.vmx["memsize"] = "1024"
-      v.vmx["numvcpus"] = "2"
-      v.gui = false
+      v.vmx["memsize"]    = vagrant_openshift_config['memory'].to_s
+      v.vmx["numvcpus"]   = vagrant_openshift_config['cpus'].to_s
+      v.gui               = false
+      override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
     end
 
     # Set AWS provider settings
