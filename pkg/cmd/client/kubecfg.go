@@ -15,9 +15,10 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
@@ -374,7 +375,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 		if err != nil {
 			glog.Fatalf("error obtaining resource version for update: %v", err)
 		}
-		typeMeta, err := meta.Accessor(obj)
+		typeMeta, err := kmeta.Accessor(obj)
 		if err != nil {
 			glog.Fatalf("error finding json base for update: %v", err)
 		}
@@ -399,7 +400,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
-			typeMeta, err := meta.Accessor(obj)
+			typeMeta, err := kmeta.Accessor(obj)
 			if err != nil {
 				glog.Fatalf("error setting resource version: %v", err)
 			}
@@ -559,19 +560,28 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 		glog.Fatal("Need to pass valid configuration file (-c config.json)")
 	}
 
-	result, err := config.Apply(c.getNamespace(), c.readConfigData(), clients)
+	clientFunc := func(m *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+		mapping, ok := clients[m.Resource]
+		if !ok {
+			return nil, fmt.Errorf("Unable to provide REST client for %v", m.Resource)
+		}
+		return kubectl.NewRESTHelper(mapping.Client, m), nil
+	}
+
+	result, err := config.Apply(c.getNamespace(), c.readConfigData(), clientFunc)
 	if err != nil {
 		glog.Fatalf("Error applying the config: %v", err)
 	}
 	for _, itemResult := range result {
 		if len(itemResult.Errors) == 0 {
-			fmt.Println(itemResult.Message)
+			glog.Infof(itemResult.Message)
 			continue
 		}
 		for _, itemError := range itemResult.Errors {
-			fmt.Printf("Error: %v\n", itemError.Error())
+			glog.Errorf("%v", itemError)
 		}
 	}
+
 	return true
 }
 

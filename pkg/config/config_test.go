@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +11,9 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
@@ -20,6 +23,13 @@ import (
 func TestApplyInvalidConfig(t *testing.T) {
 	clients := clientapi.ClientMappings{
 		"InvalidClientMapping": {"InvalidClientResource", nil, nil},
+	}
+	clientFunc := func(m *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+		mapping, ok := clients[m.Resource]
+		if !ok {
+			return nil, fmt.Errorf("Unable to provide REST client for %v", m.Resource)
+		}
+		return kubectl.NewRESTHelper(mapping.Client, m), nil
 	}
 	invalidConfigs := []string{
 		`{}`,
@@ -33,7 +43,7 @@ func TestApplyInvalidConfig(t *testing.T) {
 		`{ "items": [ { "kind": "InvalidClientResource", "apiVersion": "v1beta1" } ] }`,
 	}
 	for i, invalidConfig := range invalidConfigs {
-		result, err := Apply(kapi.NamespaceDefault, []byte(invalidConfig), clients)
+		result, err := Apply(kapi.NamespaceDefault, []byte(invalidConfig), clientFunc)
 
 		if i <= 3 && err == nil {
 			t.Errorf("Expected error while applying invalid Config '%v', result: %v", invalidConfigs[i], result)
@@ -61,8 +71,15 @@ func TestApplySendsData(t *testing.T) {
 	clients := clientapi.ClientMappings{
 		"pods": {"Pod", fakeClient, kapi.Codec},
 	}
+	clientFunc := func(m *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+		mapping, ok := clients[m.Resource]
+		if !ok {
+			return nil, fmt.Errorf("Unable to provide REST client for %v", m.Resource)
+		}
+		return kubectl.NewRESTHelper(mapping.Client, m), nil
+	}
 	config := `{ "apiVersion": "v1beta1", "kind": "Config", "metadata" : { "name": "test-config" }, "items": [ { "kind": "Pod", "apiVersion": "v1beta1", "metadata": { "name": "FakePod" } } ] }`
-	result, err := Apply(kapi.NamespaceDefault, []byte(config), clients)
+	result, err := Apply(kapi.NamespaceDefault, []byte(config), clientFunc)
 
 	if err != nil || result == nil {
 		t.Errorf("Unexpected error while applying valid Config '%v', result: %v, error: %v", config, result, err)
@@ -77,29 +94,21 @@ func TestApplySendsData(t *testing.T) {
 	// <-received
 }
 
-func TestGetClientAndPath(t *testing.T) {
-	kubeClient, _ := kclient.New(&kclient.Config{Host: "127.0.0.1"})
-	testClientMappings := clientapi.ClientMappings{
-		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
-		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
-	}
-	client, path, _ := getClientAndPath("Service", testClientMappings)
-	if client != kubeClient.RESTClient {
-		t.Errorf("Failed to get client for Service")
-	}
-	if path != "services" {
-		t.Errorf("Failed to get path for Service")
-	}
-}
-
 func ExampleApply() {
 	kubeClient, _ := kclient.New(&kclient.Config{Host: "127.0.0.1"})
 	testClientMappings := clientapi.ClientMappings{
 		"pods":     {"Pod", kubeClient.RESTClient, klatest.Codec},
 		"services": {"Service", kubeClient.RESTClient, klatest.Codec},
 	}
-	data, _ := ioutil.ReadFile("config_test.json")
-	Apply(kapi.NamespaceDefault, data, testClientMappings)
+	clientFunc := func(m *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+		mapping, ok := testClientMappings[m.Resource]
+		if !ok {
+			return nil, fmt.Errorf("Unable to provide REST client for %v", m.Resource)
+		}
+		return kubectl.NewRESTHelper(mapping.Client, m), nil
+	}
+	data, _ := ioutil.ReadFile("../../examples/sample-app/docker-registry-config.json")
+	Apply(kapi.NamespaceDefault, data, clientFunc)
 }
 
 type FakeLabelsResource struct {
