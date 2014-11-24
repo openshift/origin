@@ -51,13 +51,7 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 
 // Watch begins watching for new, changed, or deleted ImageRepositories.
 func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.registry.WatchImageRepositories(ctx, resourceVersion, func(repo *api.ImageRepository) bool {
-		fields := labels.Set{
-			"Name":                  repo.Name,
-			"DockerImageRepository": repo.DockerImageRepository,
-		}
-		return label.Matches(labels.Set(repo.Labels)) && field.Matches(fields)
-	})
+	return s.registry.WatchImageRepositories(ctx, label, field, resourceVersion)
 }
 
 // Create registers the given ImageRepository.

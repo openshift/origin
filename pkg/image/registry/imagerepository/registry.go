@@ -15,7 +15,7 @@ type Registry interface {
 	// GetImageRepository retrieves a specific image repository.
 	GetImageRepository(ctx kapi.Context, id string) (*api.ImageRepository, error)
 	// WatchImageRepositories watches for new/changed/deleted image repositories.
-	WatchImageRepositories(ctx kapi.Context, resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error)
+	WatchImageRepositories(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 	// CreateImageRepository creates a new image repository.
 	CreateImageRepository(ctx kapi.Context, repo *api.ImageRepository) error
 	// UpdateImageRepository updates an image repository.

@@ -35,7 +35,7 @@ func (r *ImageRepositoryRegistry) GetImageRepository(ctx kapi.Context, id string
 	return r.ImageRepository, r.Err
 }
 
-func (r *ImageRepositoryRegistry) WatchImageRepositories(ctx kapi.Context, resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
+func (r *ImageRepositoryRegistry) WatchImageRepositories(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, r.Err
 }
 
