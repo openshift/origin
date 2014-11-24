@@ -90,6 +90,7 @@ func (f *OriginFactory) AddCommands(cmds *cobra.Command, out io.Writer) {
 	// Origin commands
 	cmds.AddCommand(f.NewCmdApply(out))
 	cmds.AddCommand(f.NewCmdProcess(out))
+	cmds.AddCommand(f.NewCmdBuildLogs(out))
 }
 
 // NewFactory initialize the kubectl Factory that supports both Kubernetes and
