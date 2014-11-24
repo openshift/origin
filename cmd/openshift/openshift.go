@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
+	"github.com/openshift/origin/pkg/cmd/kubectl"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -51,6 +52,7 @@ func main() {
 
 	openshiftCmd.AddCommand(server.NewCommandStartServer("start"))
 	openshiftCmd.AddCommand(client.NewCommandKubecfg("kube"))
+	openshiftCmd.AddCommand(kubectl.NewCommandKubectl("kubectl"))
 
 	// version information
 	versionCmd := &cobra.Command{
