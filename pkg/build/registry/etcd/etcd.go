@@ -210,3 +210,23 @@ func (r *Etcd) DeleteBuildConfig(ctx kapi.Context, id string) error {
 	err = r.Delete(key, true)
 	return etcderr.InterpretDeleteError(err, "buildConfig", id)
 }
+
+// WatchBuildConfigs begins watching for new, changed, or deleted BuildConfigs.
+func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	version, err := parseWatchResourceVersion(resourceVersion, "buildConfig")
+	if err != nil {
+		return nil, err
+	}
+
+	return r.WatchList(makeBuildConfigListKey(ctx), version, func(obj runtime.Object) bool {
+		buildConfig, ok := obj.(*api.BuildConfig)
+		if !ok {
+			glog.Errorf("Unexpected object during buildConfig watch: %#v", obj)
+			return false
+		}
+		fields := labels.Set{
+			"name": buildConfig.Name,
+		}
+		return label.Matches(labels.Set(buildConfig.Labels)) && field.Matches(fields)
+	})
+}

@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
@@ -101,4 +102,9 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		}
 		return buildConfig, nil
 	}), nil
+}
+
+// Watch begins watching for new, changed, or deleted BuildConfigs.
+func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.registry.WatchBuildConfigs(ctx, label, field, resourceVersion)
 }
