@@ -109,19 +109,15 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-	build, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)
 	}
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
 	}
-	if build == nil {
-		t.Error("Expected the 'build' return value to not be nil")
-	} else {
-		if build.Parameters != buildConfig.Parameters {
-			t.Errorf("Expected build.Parameters '%s' to be the same as buildConfig.Parameters '%s'", build.Parameters, buildConfig.Parameters)
-		}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
 	}
 }
 
@@ -156,7 +152,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 		t.Error("Expected 'proceed' return value to be 'false' for unmatched refs")
 	}
 	if build != nil {
-		t.Error("Expected the 'build' return value to be nil since we arent creating a new one")
+		t.Error("Expected the 'revision' return value to be nil since we arent creating a new one")
 	}
 }
 
@@ -183,7 +179,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 	}
 	plugin := New()
 
-	build, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
 		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)
@@ -191,17 +187,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
 	}
-	if build == nil {
-		t.Error("Expected the 'build' return value to not be nil")
-	} else {
-		if build.Parameters.Source != buildConfig.Parameters.Source {
-			t.Errorf("Expected build.parameters.source '%s' to be the same as buildConfig.parameters.source '%s'", build.Parameters.Source, buildConfig.Parameters.Source)
-		}
-		if build.Parameters.Strategy != buildConfig.Parameters.Strategy {
-			t.Errorf("Expected build.Parameters.Strategy '%s' to be the same as buildConfig.Parameters.Strategy '%s'", build.Parameters.Strategy, buildConfig.Parameters.Strategy)
-		}
-		if build.Parameters.Revision == nil {
-			t.Error("Expected build.Parameters.Revision to not be nil")
-		}
+	if revision == nil {
+		t.Error("Expected the 'revision' return value to not be nil")
 	}
 }

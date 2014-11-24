@@ -9,8 +9,6 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
@@ -42,7 +40,7 @@ func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.Buil
 	}, nil
 }
 
-func (_ *osClient) WatchBuilds(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (_ *osClient) GenerateBuild(ctx kapi.Context, bc *api.BuildConfig, revision *api.SourceRevision) (*api.Build, error) {
 	return nil, nil
 }
 
@@ -243,7 +241,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	context := setup(t, "pushevent.json", "push")
 
 	//execute
-	build, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	revision, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -252,11 +250,11 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	if !proceed {
 		t.Errorf("The 'proceed' return value should equal 'true' %s", proceed)
 	}
-	if build == nil {
-		t.Error("Expecting the build to not be nil")
+	if revision == nil {
+		t.Error("Expecting the revision to not be nil")
 	} else {
-		if build.Parameters.Revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
-			t.Error("Expecting the build's desired input to contain the commit id from the push event")
+		if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
+			t.Error("Expecting the revision to contain the commit id from the push event")
 		}
 	}
 }
@@ -267,7 +265,7 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	context.buildCfg.Parameters.Source.Git.Ref = "my_other_branch"
 
 	//execute
-	build, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	revision, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
 	//validation
 	if err != nil {
@@ -276,11 +274,11 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	if !proceed {
 		t.Errorf("The 'proceed' return value should equal 'true' %s", proceed)
 	}
-	if build == nil {
-		t.Error("Expecting the build to not be nil")
+	if revision == nil {
+		t.Error("Expecting the revision to not be nil")
 	} else {
-		if build.Parameters.Revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
-			t.Error("Expecting the build's desired input to contain the commit id from the push event")
+		if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
+			t.Error("Expecting the revision to contain the commit id from the push event")
 		}
 	}
 }
@@ -291,8 +289,8 @@ func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	context.buildCfg.Parameters.Source.Git.Ref = "adfj32qrafdavckeaewra"
 
 	//execute
-	build, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	_, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 	if proceed {
-		t.Errorf("Expecting to not continue from this event because the branch '%s' is not for this buildConfig '%s'", build.Parameters.Source.Git.Ref, context.buildCfg.Parameters.Source.Git.Ref)
+		t.Errorf("Expecting to not continue from this event because the branch is not for this buildConfig '%s'", context.buildCfg.Parameters.Source.Git.Ref)
 	}
 }
