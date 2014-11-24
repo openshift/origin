@@ -51,7 +51,7 @@ func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, 
 	items := []runtime.RawExtension{}
 	for i, in := range template.Items {
 
-		item, mapping, err := config.DecodeWithMapper(in)
+		item, mapping, err := config.DecodeDataToObject(in.RawJSON)
 		if err != nil {
 			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
 			continue
