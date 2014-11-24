@@ -9,7 +9,7 @@ of the core functionality of OpenShift is designed as plugins to the core Kubern
 
 Please see the [OpenShift 3 Project Enhancement Proposal (PEP)](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md) for a deeper discussion of the features you see here.
 
-NOTE: OpenShift is in alpha and is not intended for production use. However we welcome feedback and testing as we approach our first beta.
+NOTE: OpenShift is in alpha and is not intended for production use yet. However we welcome feedback and testing as we approach our first beta.  The [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev) is a great way to tune in.
 
 [![GoDoc](https://godoc.org/github.com/openshift/origin?status.png)](https://godoc.org/github.com/openshift/origin)
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
