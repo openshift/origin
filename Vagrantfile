@@ -152,7 +152,7 @@ runcmd:
       end
       config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
       config.vm.synced_folder ".", "/vagrant", disabled: true
-      config.vm.synced_folder sync_from, sync_to
+      config.vm.synced_folder sync_from, sync_to, :rsync__args => ["--verbose", "--archive", "--delete", "-z"]
     end
   end
 
