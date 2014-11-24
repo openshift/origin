@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"strconv"
-
 	"github.com/golang/glog"
 
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
@@ -62,7 +60,7 @@ func (r *Etcd) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.Buil
 
 // WatchBuilds begins watching for new, changed, or deleted Builds.
 func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := parseWatchResourceVersion(resourceVersion, "build")
+	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "build")
 	if err != nil {
 		return nil, err
 	}
@@ -80,22 +78,6 @@ func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resou
 		}
 		return label.Matches(labels.Set(build.Labels)) && field.Matches(fields)
 	})
-}
-
-// TODO expose this from kubernetes.  I will do that, but I don't want this merge stuck on kubernetes refactoring
-// parseWatchResourceVersion takes a resource version argument and converts it to
-// the etcd version we should pass to helper.Watch(). Because resourceVersion is
-// an opaque value, the default watch behavior for non-zero watch is to watch
-// the next value (if you pass "1", you will see updates from "2" onwards).
-func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
-	if resourceVersion == "" || resourceVersion == "0" {
-		return 0, nil
-	}
-	version, err := strconv.ParseUint(resourceVersion, 10, 64)
-	if err != nil {
-		return 0, etcderr.InterpretResourceVersionError(err, kind, resourceVersion)
-	}
-	return version + 1, nil
 }
 
 // GetBuild gets a specific Build specified by its ID.
@@ -213,7 +195,7 @@ func (r *Etcd) DeleteBuildConfig(ctx kapi.Context, id string) error {
 
 // WatchBuildConfigs begins watching for new, changed, or deleted BuildConfigs.
 func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := parseWatchResourceVersion(resourceVersion, "buildConfig")
+	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "buildConfig")
 	if err != nil {
 		return nil, err
 	}

@@ -8,8 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	"strconv"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/route/api"
@@ -108,7 +106,7 @@ func (registry *Etcd) WatchRoutes(ctx kapi.Context, label, field labels.Selector
 		return nil, fmt.Errorf("label selectors are not supported on routes yet")
 	}
 
-	version, err := parseWatchResourceVersion(resourceVersion, "pod")
+	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "pod")
 	if err != nil {
 		return nil, err
 	}
@@ -126,19 +124,4 @@ func (registry *Etcd) WatchRoutes(ctx kapi.Context, label, field labels.Selector
 		return registry.WatchList(key, version, tools.Everything)
 	}
 	return nil, fmt.Errorf("only the 'ID' and default (everything) field selectors are supported")
-}
-
-// parseWatchResourceVersion takes a resource version argument and converts it to
-// the etcd version we should pass to helper.Watch(). Because resourceVersion is
-// an opaque value, the default watch behavior for non-zero watch is to watch
-// the next value (if you pass "1", you will see updates from "2" onwards).
-func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
-	if resourceVersion == "" || resourceVersion == "0" {
-		return 0, nil
-	}
-	version, err := strconv.ParseUint(resourceVersion, 10, 64)
-	if err != nil {
-		return 0, etcderr.InterpretResourceVersionError(err, kind, resourceVersion)
-	}
-	return version + 1, nil
 }
