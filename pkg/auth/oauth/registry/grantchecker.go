@@ -19,7 +19,7 @@ func NewClientAuthorizationGrantChecker(registry clientauthorization.Registry) *
 }
 
 func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user api.UserInfo, grant *api.Grant) (approved bool, err error) {
-	id := c.registry.ClientAuthorizationID(user.GetName(), grant.Client.GetId())
+	id := c.registry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
 	authorization, err := c.registry.GetClientAuthorization(id)
 	if errors.IsNotFound(err) {
 		return false, nil

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osin"
 
@@ -79,7 +79,7 @@ func (s *storage) Close() {
 func (s *storage) GetClient(id string) (osin.Client, error) {
 	c, err := s.client.GetClient(id)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -89,18 +89,8 @@ func (s *storage) GetClient(id string) (osin.Client, error) {
 
 // SaveAuthorize saves authorize data.
 func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
-	token := &api.AuthorizeToken{
-		ObjectMeta: kapi.ObjectMeta{
-			CreationTimestamp: util.Time{data.CreatedAt},
-			Name:              data.Code,
-		},
-		ClientName:  data.Client.GetId(),
-		ExpiresIn:   int64(data.ExpiresIn),
-		Scopes:      scope.Split(data.Scope),
-		RedirectURI: data.RedirectUri,
-		State:       data.State,
-	}
-	if err := s.user.ConvertToAuthorizeToken(data.UserData, token); err != nil {
+	token, err := s.convertToAuthorizeToken(data)
+	if err != nil {
 		return err
 	}
 	return s.authorizetoken.CreateAuthorizeToken(token)
@@ -114,25 +104,7 @@ func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 	if err != nil {
 		return nil, err
 	}
-	user, err := s.user.ConvertFromAuthorizeToken(authorize)
-	if err != nil {
-		return nil, err
-	}
-	client, err := s.client.GetClient(authorize.ClientName)
-	if err != nil {
-		return nil, err
-	}
-
-	return &osin.AuthorizeData{
-		Code:        code,
-		Client:      &clientWrapper{authorize.ClientName, client},
-		ExpiresIn:   int32(authorize.ExpiresIn),
-		Scope:       scope.Join(authorize.Scopes),
-		RedirectUri: authorize.RedirectURI,
-		State:       authorize.State,
-		CreatedAt:   authorize.CreationTimestamp.Time,
-		UserData:    user,
-	}, nil
+	return s.convertFromAuthorizeToken(authorize)
 }
 
 // RemoveAuthorize revokes or deletes the authorization code.
@@ -144,20 +116,8 @@ func (s *storage) RemoveAuthorize(code string) error {
 // SaveAccess writes AccessData.
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
 func (s *storage) SaveAccess(data *osin.AccessData) error {
-	token := &api.AccessToken{
-		ObjectMeta: kapi.ObjectMeta{
-			CreationTimestamp: util.Time{data.CreatedAt},
-			Name:              data.AccessToken,
-		},
-		RefreshToken: data.RefreshToken,
-		AuthorizeToken: api.AuthorizeToken{
-			ClientName:  data.Client.GetId(),
-			ExpiresIn:   int64(data.ExpiresIn),
-			Scopes:      scope.Split(data.Scope),
-			RedirectURI: data.RedirectUri,
-		},
-	}
-	if err := s.user.ConvertToAccessToken(data.UserData, token); err != nil {
+	token, err := s.convertToAccessToken(data)
+	if err != nil {
 		return err
 	}
 	return s.accesstoken.CreateAccessToken(token)
@@ -171,25 +131,7 @@ func (s *storage) LoadAccess(token string) (*osin.AccessData, error) {
 	if err != nil {
 		return nil, err
 	}
-	user, err := s.user.ConvertFromAccessToken(access)
-	if err != nil {
-		return nil, err
-	}
-	client, err := s.client.GetClient(access.AuthorizeToken.ClientName)
-	if err != nil {
-		return nil, err
-	}
-
-	return &osin.AccessData{
-		AccessToken:  token,
-		RefreshToken: access.RefreshToken,
-		Client:       &clientWrapper{access.AuthorizeToken.ClientName, client},
-		ExpiresIn:    int32(access.AuthorizeToken.ExpiresIn),
-		Scope:        scope.Join(access.AuthorizeToken.Scopes),
-		RedirectUri:  access.AuthorizeToken.RedirectURI,
-		CreatedAt:    access.CreationTimestamp.Time,
-		UserData:     user,
-	}, nil
+	return s.convertFromAccessToken(access)
 }
 
 // RemoveAccess revokes or deletes an AccessData.
@@ -208,4 +150,87 @@ func (s *storage) LoadRefresh(token string) (*osin.AccessData, error) {
 // RemoveRefresh revokes or deletes refresh AccessData.
 func (s *storage) RemoveRefresh(token string) error {
 	return errors.New("not implemented")
+}
+
+func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.AuthorizeToken, error) {
+	token := &api.AuthorizeToken{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:              data.Code,
+			CreationTimestamp: util.Time{data.CreatedAt},
+		},
+		ClientName:  data.Client.GetId(),
+		ExpiresIn:   int64(data.ExpiresIn),
+		Scopes:      scope.Split(data.Scope),
+		RedirectURI: data.RedirectUri,
+		State:       data.State,
+	}
+	if err := s.user.ConvertToAuthorizeToken(data.UserData, token); err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+func (s *storage) convertFromAuthorizeToken(authorize *api.AuthorizeToken) (*osin.AuthorizeData, error) {
+	user, err := s.user.ConvertFromAuthorizeToken(authorize)
+	if err != nil {
+		return nil, err
+	}
+	client, err := s.client.GetClient(authorize.ClientName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &osin.AuthorizeData{
+		Code:        authorize.Name,
+		Client:      &clientWrapper{authorize.ClientName, client},
+		ExpiresIn:   int32(authorize.ExpiresIn),
+		Scope:       scope.Join(authorize.Scopes),
+		RedirectUri: authorize.RedirectURI,
+		State:       authorize.State,
+		CreatedAt:   authorize.CreationTimestamp.Time,
+		UserData:    user,
+	}, nil
+}
+
+func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.AccessToken, error) {
+	token := &api.AccessToken{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:              data.AccessToken,
+			CreationTimestamp: util.Time{data.CreatedAt},
+		},
+		ExpiresIn:    int64(data.ExpiresIn),
+		RefreshToken: data.RefreshToken,
+		ClientName:   data.Client.GetId(),
+		Scopes:       scope.Split(data.Scope),
+		RedirectURI:  data.RedirectUri,
+	}
+	if data.AuthorizeData != nil {
+		token.AuthorizeToken = data.AuthorizeData.Code
+	}
+	if err := s.user.ConvertToAccessToken(data.UserData, token); err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+func (s *storage) convertFromAccessToken(access *api.AccessToken) (*osin.AccessData, error) {
+	user, err := s.user.ConvertFromAccessToken(access)
+	if err != nil {
+		return nil, err
+	}
+	client, err := s.client.GetClient(access.ClientName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &osin.AccessData{
+		AccessToken:  access.Name,
+		RefreshToken: access.RefreshToken,
+		Client:       &clientWrapper{access.ClientName, client},
+		ExpiresIn:    int32(access.ExpiresIn),
+		Scope:        scope.Join(access.Scopes),
+		RedirectUri:  access.RedirectURI,
+		CreatedAt:    access.CreationTimestamp.Time,
+		UserData:     user,
+	}, nil
 }
