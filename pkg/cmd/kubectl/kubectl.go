@@ -3,6 +3,8 @@ package kubectl
 import (
 	"os"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/kubectl/cmd"
 	"github.com/spf13/cobra"
@@ -33,6 +35,11 @@ https://github.com/openshift/origin.`,
 	cmds.PersistentFlags().StringP("namespace", "n", "", "If present, the namespace scope for this CLI request.")
 
 	factory := cmd.NewOriginFactory()
+
+	factory.Factory.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
+		return NewHumanReadablePrinter(noHeaders), nil
+	}
+
 	factory.AddCommands(cmds, os.Stdout)
 	return cmds
 }
