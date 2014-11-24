@@ -24,5 +24,5 @@ type Route struct {
 type RouteList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []Route `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []Route `json:"items" yaml:"items"`
 }

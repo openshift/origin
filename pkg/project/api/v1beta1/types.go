@@ -8,7 +8,7 @@ import (
 type ProjectList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []Project `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []Project `json:"items" yaml:"items"`
 }
 
 // Project is a logical top-level container for a set of origin resources

@@ -221,12 +221,12 @@ const (
 type BuildList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []Build `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []Build `json:"items" yaml:"items"`
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []BuildConfig `json:"items" yaml:"items"`
 }
