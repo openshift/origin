@@ -1,8 +1,6 @@
 package identitymapper
 
 import (
-	"errors"
-
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
@@ -27,12 +25,9 @@ func (p *alwaysCreateUserIdentityToUserMapper) UserFor(identityInfo authapi.User
 			Extra:    identityInfo.GetExtra(),
 		},
 	}
-	authoritativeMapping, ok, err := p.userIdentityRegistry.CreateOrUpdateUserIdentityMapping(userIdentityMapping)
+	authoritativeMapping, _ /*created*/, err := p.userIdentityRegistry.CreateOrUpdateUserIdentityMapping(userIdentityMapping)
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		return nil, errors.New("Could not map identity to user")
 	}
 
 	ret := &authapi.DefaultUserInfo{
