@@ -3,7 +3,6 @@ package etcd
 import (
 	"errors"
 	"fmt"
-	"strconv"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
@@ -104,7 +103,7 @@ func (r *Etcd) DeleteImage(ctx kapi.Context, id string) error {
 
 // WatchImages begins watching for new or deleted Images.
 func (r *Etcd) WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := parseWatchResourceVersion(resourceVersion, "image")
+	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "image")
 	if err != nil {
 		return nil, err
 	}
@@ -160,25 +159,9 @@ func (r *Etcd) GetImageRepository(ctx kapi.Context, id string) (*api.ImageReposi
 	return &repo, nil
 }
 
-// TODO expose this from kubernetes.  I will do that, but I don't want this merge stuck on kubernetes refactoring
-// parseWatchResourceVersion takes a resource version argument and converts it to
-// the etcd version we should pass to helper.Watch(). Because resourceVersion is
-// an opaque value, the default watch behavior for non-zero watch is to watch
-// the next value (if you pass "1", you will see updates from "2" onwards).
-func parseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
-	if resourceVersion == "" || resourceVersion == "0" {
-		return 0, nil
-	}
-	version, err := strconv.ParseUint(resourceVersion, 10, 64)
-	if err != nil {
-		return 0, etcderr.InterpretResourceVersionError(err, kind, resourceVersion)
-	}
-	return version + 1, nil
-}
-
 // WatchImageRepositories begins watching for new, changed, or deleted ImageRepositories.
-func (r *Etcd) WatchImageRepositories(ctx kapi.Context, resourceVersion string, filter func(repo *api.ImageRepository) bool) (watch.Interface, error) {
-	version, err := parseWatchResourceVersion(resourceVersion, "imageRepository")
+func (r *Etcd) WatchImageRepositories(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "imageRepository")
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +172,11 @@ func (r *Etcd) WatchImageRepositories(ctx kapi.Context, resourceVersion string, 
 			glog.Errorf("Unexpected object during image repository watch: %#v", obj)
 			return false
 		}
-		return filter(repo)
+		fields := labels.Set{
+			"name":                  repo.Name,
+			"dockerImageRepository": repo.DockerImageRepository,
+		}
+		return label.Matches(labels.Set(repo.Labels)) && field.Matches(fields)
 	})
 }
 

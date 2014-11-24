@@ -59,7 +59,7 @@ type ImageInterface interface {
 type ImageRepositoryInterface interface {
 	ListImageRepositories(ctx kapi.Context, labels labels.Selector) (*imageapi.ImageRepositoryList, error)
 	GetImageRepository(ctx kapi.Context, id string) (*imageapi.ImageRepository, error)
-	WatchImageRepositories(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error)
+	WatchImageRepositories(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 	CreateImageRepository(ctx kapi.Context, repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 	UpdateImageRepository(ctx kapi.Context, repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 }
@@ -261,7 +261,7 @@ func (c *Client) GetImageRepository(ctx kapi.Context, id string) (result *imagea
 }
 
 // WatchImageRepositories returns a watch.Interface that watches the requested imagerepositories.
-func (c *Client) WatchImageRepositories(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *Client) WatchImageRepositories(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.Get().
 		Namespace(kapi.Namespace(ctx)).
 		Path("watch").

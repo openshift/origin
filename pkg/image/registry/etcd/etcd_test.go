@@ -696,49 +696,126 @@ func TestEtcdDeleteImageRepositoryOK(t *testing.T) {
 func TestEtcdWatchImageRepositories(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := labels.SelectorFromSet(labels.Set{"name": "foo"})
 
-	watching, err := registry.WatchImageRepositories(kapi.NewDefaultContext(), "1", func(repo *api.ImageRepository) bool {
-		fields := labels.Set{
-			"name": repo.Name,
-		}
-		return filterFields.Matches(fields)
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	fakeClient.WaitForWatchCompletion()
-
-	repo := &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}
-	repoBytes, _ := latest.Codec.Encode(repo)
-	fakeClient.WatchResponse <- &etcd.Response{
-		Action: "set",
-		Node: &etcd.Node{
-			Value: string(repoBytes),
+	var tests = []struct {
+		label    labels.Selector
+		field    labels.Selector
+		repos    []*api.ImageRepository
+		expected []bool
+	}{
+		// want everything
+		{
+			labels.Everything(),
+			labels.Everything(),
+			[]*api.ImageRepository{
+				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: labels.Set{"l1": "v1"}}, DockerImageRepository: "r1"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: labels.Set{"l2": "v2"}}, DockerImageRepository: "r2"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: labels.Set{"l3": "v3"}}, DockerImageRepository: "r3"},
+			},
+			[]bool{
+				true,
+				true,
+				true,
+			},
+		},
+		// want name=foo
+		{
+			labels.Everything(),
+			labels.SelectorFromSet(labels.Set{"name": "foo"}),
+			[]*api.ImageRepository{
+				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: labels.Set{"l1": "v1"}}, DockerImageRepository: "r1"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "foo", Labels: labels.Set{"l2": "v2"}}, DockerImageRepository: "r2"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: labels.Set{"l3": "v3"}}, DockerImageRepository: "r3"},
+			},
+			[]bool{
+				false,
+				true,
+				false,
+			},
+		},
+		// want label color:blue
+		{
+			labels.SelectorFromSet(labels.Set{"color": "blue"}),
+			labels.Everything(),
+			[]*api.ImageRepository{
+				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: labels.Set{"color": "blue"}}, DockerImageRepository: "r1"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "foo", Labels: labels.Set{"l2": "v2"}}, DockerImageRepository: "r2"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: labels.Set{"color": "blue"}}, DockerImageRepository: "r3"},
+			},
+			[]bool{
+				true,
+				false,
+				true,
+			},
+		},
+		// want name=foo, label color:blue, dockerImageRepository=r1
+		{
+			labels.SelectorFromSet(labels.Set{"color": "blue"}),
+			labels.SelectorFromSet(labels.Set{"dockerImageRepository": "r1", "name": "foo"}),
+			[]*api.ImageRepository{
+				{ObjectMeta: kapi.ObjectMeta{Name: "foo", Labels: labels.Set{"color": "blue"}}, DockerImageRepository: "r1"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: labels.Set{"l2": "v2"}}, DockerImageRepository: "r2"},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: labels.Set{"color": "blue"}}, DockerImageRepository: "r3"},
+			},
+			[]bool{
+				true,
+				false,
+				false,
+			},
 		},
 	}
 
-	event := <-watching.ResultChan()
-	if e, a := watch.Added, event.Type; e != a {
-		t.Errorf("Expected %v, got %v", e, a)
-	}
-	if e, a := repo, event.Object; !reflect.DeepEqual(e, a) {
-		t.Errorf("Expected %v, got %v", e, a)
-	}
-
-	select {
-	case _, ok := <-watching.ResultChan():
-		if !ok {
-			t.Errorf("watching channel should be open")
+	for _, tt := range tests {
+		watching, err := registry.WatchImageRepositories(kapi.NewDefaultContext(), tt.label, tt.field, "1")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-	default:
-	}
+		fakeClient.WaitForWatchCompletion()
 
-	fakeClient.WatchInjectError <- nil
-	if _, ok := <-watching.ResultChan(); ok {
-		t.Errorf("watching channel should be closed")
+		for testIndex, repo := range tt.repos {
+			repoBytes, _ := latest.Codec.Encode(repo)
+			fakeClient.WatchResponse <- &etcd.Response{
+				Action: "set",
+				Node: &etcd.Node{
+					Value: string(repoBytes),
+				},
+			}
+
+			select {
+			case event, ok := <-watching.ResultChan():
+				if !ok {
+					t.Errorf("watching channel should be open")
+				}
+				if !tt.expected[testIndex] {
+					t.Errorf("unexpected imageRepository returned from watch: %#v", event.Object)
+				}
+				if e, a := watch.Added, event.Type; e != a {
+					t.Errorf("Expected %v, got %v", e, a)
+				}
+				if e, a := repo, event.Object; !reflect.DeepEqual(e, a) {
+					t.Errorf("Expected %v, got %v", e, a)
+				}
+			case <-time.After(50 * time.Millisecond):
+				if tt.expected[testIndex] {
+					t.Errorf("Expected imageRepository %#v to be returned from watch", repo)
+				}
+			}
+		}
+
+		select {
+		case _, ok := <-watching.ResultChan():
+			if !ok {
+				t.Errorf("watching channel should be open")
+			}
+		default:
+		}
+
+		fakeClient.WatchInjectError <- nil
+		if _, ok := <-watching.ResultChan(); ok {
+			t.Errorf("watching channel should be closed")
+		}
+		watching.Stop()
 	}
-	watching.Stop()
 }
 
 func TestEtcdCreateImageFailsWithoutNamespace(t *testing.T) {
