@@ -179,12 +179,12 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		extra = append(extra, i.InstallAPI(osMux)...)
 	}
 	apiserver.NewAPIGroup(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(osMux, OpenShiftAPIPrefixV1Beta1)
-	//apiserver.InstallSupport(osMux)
 
 	handler := http.Handler(osMux)
 	if c.RequireAuthentication {
-		handler = c.wrapHandlerWithAuthentication(handler)
+		handler = c.wireAuthenticationHandling(osMux, handler)
 	}
+
 	if len(c.CORSAllowedOrigins) > 0 {
 		handler = apiserver.CORS(handler, c.CORSAllowedOrigins, nil, nil, "true")
 	}
@@ -208,9 +208,29 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	}, 0)
 }
 
-func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler) http.Handler {
+func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler) http.Handler {
+	// this tracks requests back to users for authorization.  The same instance must be shared between writers and readers
+	requestsToUsers := authcontext.NewRequestContextMap()
+
+	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
+	handler = c.wrapHandlerWithAuthentication(handler, requestsToUsers)
+
+	// this requires the requests and users to be present
+	thisUserEndpoint := OpenShiftAPIPrefixV1Beta1 + "/users/~"
+	userContextMap := userregistry.UserContextFunc(func(req *http.Request) (userregistry.UserInfo, bool) {
+		obj, found := requestsToUsers.Get(req)
+		if user, ok := obj.(userregistry.UserInfo); found && ok {
+			return user, true
+		}
+		return nil, false
+	})
+	userregistry.InstallThisUser(osMux, thisUserEndpoint, userContextMap, handler)
+
+	return handler
+}
+
+func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler, requestsToUsers *authcontext.RequestContextMap) http.Handler {
 	// wrap with authenticated token check
-	requestsToUsers := authcontext.NewRequestContextMap() // this tracks requests back to users for authorization
 	tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
 	if err != nil {
 		glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
