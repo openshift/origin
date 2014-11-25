@@ -35,9 +35,6 @@ func Translate(c *Config) error {
 		}
 	}
 
-	// Sort to make output stable between invocations
-	sort.Sort(ByPath(toc))
-
 	// Create output file.
 	fd, err := os.Create(c.Output)
 	if err != nil {
@@ -83,6 +80,13 @@ func Translate(c *Config) error {
 	return writeTOCTree(bfd, toc)
 }
 
+// Implement sort.Interface for []os.FileInfo based on Name()
+type ByName []os.FileInfo
+
+func (v ByName) Len() int           { return len(v) }
+func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (v ByName) Less(i, j int) bool { return v[i].Name() < v[j].Name() }
+
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
@@ -115,6 +119,9 @@ func findFiles(dir, prefix string, recursive bool, toc *[]Asset, ignore []*regex
 		if err != nil {
 			return err
 		}
+
+		// Sort to make output stable between invocations
+		sort.Sort(ByName(list))
 	}
 
 	knownFuncs := make(map[string]int)

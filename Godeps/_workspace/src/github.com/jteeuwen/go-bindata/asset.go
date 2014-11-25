@@ -10,10 +10,3 @@ type Asset struct {
 	Name string // Key used in TOC -- name by which asset is referenced.
 	Func string // Function name for the procedure returning the asset contents.
 }
-
-// Implement sort.Interface for []Asset based on Path field
-type ByPath []Asset
-
-func (v ByPath) Len() int           { return len(v) }
-func (v ByPath) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
-func (v ByPath) Less(i, j int) bool { return v[i].Path < v[j].Path }
