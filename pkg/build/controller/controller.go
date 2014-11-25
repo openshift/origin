@@ -19,7 +19,7 @@ type BuildController struct {
 	NextBuild     func() *buildapi.Build
 	NextPod       func() *kapi.Pod
 	BuildUpdater  buildUpdater
-	PodCreator    podCreator
+	PodManager    podManager
 	BuildStrategy BuildStrategy
 }
 
@@ -32,8 +32,9 @@ type buildUpdater interface {
 	UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error)
 }
 
-type podCreator interface {
+type podManager interface {
 	CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
+	DeletePod(namespace string, pod *kapi.Pod) error
 }
 
 // Run begins watching and syncing build jobs onto the cluster.
@@ -59,7 +60,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 		glog.V(2).Infof("Strategy failed to create build pod definition: %v", err)
 		nextStatus = buildapi.BuildStatusFailed
 	} else {
-		if _, err := bc.PodCreator.CreatePod(build.Namespace, podSpec); err != nil {
+		if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				glog.V(2).Infof("Failed to create pod for build %s: %#v", build.Name, err)
 				nextStatus = buildapi.BuildStatusFailed
