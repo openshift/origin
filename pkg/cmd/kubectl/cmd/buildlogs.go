@@ -24,10 +24,13 @@ $ kubectl build-logs 566bed879d2d
 			if len(args) != 2 {
 				usageError(cmd, "<build> are required for log")
 			}
+
+			// TODO: Wouldn't be necessary, in upstream it is builtin.
 			namespace := api.NamespaceDefault
 			if ns := kubecmd.GetFlagString(cmd, "namespace"); len(ns) > 0 {
 				namespace = ns
 			}
+
 			c, err := f.OriginClientFunc(cmd, nil)
 			request := c.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(args[0])
 			readCloser, err := request.Stream()
