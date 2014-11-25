@@ -6,10 +6,11 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/webhook"
 )
 
 var buildColumns = []string{"Name", "Type", "Status", "Pod Name"}
-var buildConfigColumns = []string{"Name", "Type", "SourceURI"}
+var buildConfigColumns = []string{"Name", "Type", "SourceURI", "WebHook URLs"}
 
 // RegisterPrintHandlers registers HumanReadablePrinter handlers
 // for build and buildConfig resources.
@@ -35,7 +36,7 @@ func printBuildList(buildList *api.BuildList, w io.Writer) error {
 }
 
 func printBuildConfig(bc *api.BuildConfig, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, bc.Parameters.Strategy.Type, bc.Parameters.Source.Git.URI)
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%s\n", bc.Name, bc.Parameters.Strategy.Type, bc.Parameters.Source.Git.URI, webhook.GetWebhookUrl(bc))
 	return err
 }
 
