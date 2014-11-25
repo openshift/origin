@@ -56,7 +56,7 @@ func (cfg *Config) bindEnv() {
 	}
 }
 
-func (cfg *Config) Clients() (kclient.Interface, osclient.Interface, error) {
+func (cfg *Config) KubeConfig() *kclient.Config {
 	cfg.bindEnv()
 
 	kaddr := cfg.KubernetesAddr
@@ -66,14 +66,28 @@ func (cfg *Config) Clients() (kclient.Interface, osclient.Interface, error) {
 
 	kConfig := cfg.CommonConfig
 	kConfig.Host = kaddr.URL.String()
-	kubeClient, err := kclient.New(&kConfig)
+
+	return &kConfig
+}
+
+func (cfg *Config) OpenShiftConfig() *kclient.Config {
+	cfg.bindEnv()
+
+	osConfig := cfg.CommonConfig
+	osConfig.Host = cfg.MasterAddr.String()
+
+	return &osConfig
+}
+
+func (cfg *Config) Clients() (kclient.Interface, osclient.Interface, error) {
+	cfg.bindEnv()
+
+	kubeClient, err := kclient.New(cfg.KubeConfig())
 	if err != nil {
 		return nil, nil, fmt.Errorf("Unable to configure Kubernetes client: %v", err)
 	}
 
-	osConfig := cfg.CommonConfig
-	osConfig.Host = cfg.MasterAddr.String()
-	osClient, err := osclient.New(&osConfig)
+	osClient, err := osclient.New(cfg.OpenShiftConfig())
 	if err != nil {
 		return nil, nil, fmt.Errorf("Unable to configure OpenShift client: %v", err)
 	}

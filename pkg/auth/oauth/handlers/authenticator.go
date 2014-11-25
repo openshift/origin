@@ -31,7 +31,7 @@ func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, w ht
 		return h.errorHandler.AuthenticationError(err, w, ar.HttpRequest)
 	}
 	if !ok {
-		return h.handler.AuthenticationNeeded(w, ar.HttpRequest)
+		return h.handler.AuthenticationNeeded(ar.Client, w, ar.HttpRequest)
 	}
 	ar.UserData = info
 	ar.Authorized = true

@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authfile "github.com/openshift/origin/pkg/auth/authenticator/file"
+	authhandlers "github.com/openshift/origin/pkg/auth/authenticator/handlers"
 	"github.com/openshift/origin/pkg/auth/authenticator/requesthandlers"
 	"github.com/openshift/origin/pkg/auth/authenticator/requestheader"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
@@ -36,6 +37,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
+	oauthclient "github.com/openshift/origin/pkg/oauth/registry/client"
 	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
@@ -58,6 +60,13 @@ var (
 			Name: "openshift-browser-client",
 		},
 		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
+	}
+	OSCliClientBase = oauthapi.Client{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "openshift-challenging-client",
+		},
+		Secret:                uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
+		RespondWithChallenges: true,
 	}
 )
 
@@ -104,11 +113,11 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 
-	c.createOrUpdateDefaultOAuthClients()
+	CreateOrUpdateDefaultOAuthClients(c.MasterAddr, oauthEtcd)
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
 	osOAuthClientConfig.RedirectUrl = c.MasterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(authHandler, osOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(osOAuthClient)
 	tokenRequestEndpoints.Install(mux, OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
@@ -137,25 +146,32 @@ func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.Client) *osi
 	return config
 }
 
-func (c *AuthConfig) createOrUpdateDefaultOAuthClients() {
+func CreateOrUpdateDefaultOAuthClients(masterAddr string, clientRegistry oauthclient.Registry) {
 	clientsToEnsure := []*oauthapi.Client{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: OSBrowserClientBase.Name,
 			},
-			Secret:       OSBrowserClientBase.Secret,
-			RedirectURIs: []string{c.MasterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+			Secret:                OSBrowserClientBase.Secret,
+			RespondWithChallenges: OSBrowserClientBase.RespondWithChallenges,
+			RedirectURIs:          []string{masterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: OSCliClientBase.Name,
+			},
+			Secret:                OSCliClientBase.Secret,
+			RespondWithChallenges: OSCliClientBase.RespondWithChallenges,
+			RedirectURIs:          []string{masterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
 		},
 	}
 
-	oauthEtcd := oauthetcd.New(c.EtcdHelper)
-
 	for _, currClient := range clientsToEnsure {
-		if existing, err := oauthEtcd.GetClient(currClient.Name); err == nil || strings.Contains(err.Error(), " not found") {
+		if existing, err := clientRegistry.GetClient(currClient.Name); err == nil || strings.Contains(err.Error(), " not found") {
 			if existing != nil {
-				oauthEtcd.DeleteClient(currClient.Name)
+				clientRegistry.DeleteClient(currClient.Name)
 			}
-			if err = oauthEtcd.CreateClient(currClient); err != nil {
+			if err = clientRegistry.CreateClient(currClient); err != nil {
 				glog.Errorf("Error creating client: %v due to %v\n", currClient, err)
 			}
 		} else {
@@ -201,7 +217,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 	return grantHandler
 }
 
-func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore session.Store, error handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
+func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore session.Store, errorHandler handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
 	successHandler := c.getAuthenticationSuccessHandler(sessionStore)
 
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
@@ -222,16 +238,20 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 		}
 
 		state := external.DefaultState()
-		oauthHandler, err := external.NewHandler(oauthProvider, state, c.MasterAddr+callbackPath, successHandler, error, identityMapper)
+		oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.MasterAddr+callbackPath, successHandler, errorHandler, identityMapper)
 		if err != nil {
 			glog.Fatalf("unexpected error: %v", err)
 		}
 
 		mux.Handle(callbackPath, oauthHandler)
-		authHandler = oauthHandler
+		authHandler = handlers.NewUnionAuthenticationHandler(nil, map[string]handlers.AuthenticationRedirector{authHandlerType: oauthHandler}, errorHandler)
 	case "login":
 		passwordAuth := c.getPasswordAuthenticator()
-		authHandler = &redirectAuthHandler{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
+		authHandler = handlers.NewUnionAuthenticationHandler(
+			map[string]handlers.AuthenticationChallenger{"login": authhandlers.NewBasicAuthChallenger("openshift")},
+			map[string]handlers.AuthenticationRedirector{"login": &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}},
+			errorHandler,
+		)
 		login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, successHandler}, login.DefaultLoginFormRenderer)
 		login.Install(mux, OpenShiftLoginPrefix)
 	case "empty":
@@ -347,16 +367,16 @@ func GetTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, er
 }
 
 // Captures the original request url as a "then" param in a redirect to a login flow
-type redirectAuthHandler struct {
+type redirector struct {
 	RedirectURL string
 	ThenParam   string
 }
 
-// AuthenticationNeeded redirects HTTP request to authorization URL
-func (auth *redirectAuthHandler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
+// AuthenticationRedirectNeeded redirects HTTP request to authorization URL
+func (auth *redirector) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
 	redirectURL, err := url.Parse(auth.RedirectURL)
 	if err != nil {
-		return false, err
+		return err
 	}
 	if len(auth.ThenParam) != 0 {
 		redirectURL.RawQuery = url.Values{
@@ -364,7 +384,7 @@ func (auth *redirectAuthHandler) AuthenticationNeeded(w http.ResponseWriter, req
 		}.Encode()
 	}
 	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
-	return true, nil
+	return nil
 }
 
 //

@@ -8,7 +8,6 @@ import (
 
 	"github.com/RangelReale/osincli"
 
-	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/login"
 )
 
@@ -18,7 +17,6 @@ const (
 )
 
 type endpointDetails struct {
-	authHandler handlers.AuthenticationHandler
 	// Jordan has done the osincli review and declares the osinclit.Client reusable and thread-safe
 	originOAuthClient *osincli.Client
 }
@@ -27,8 +25,8 @@ type Endpoints interface {
 	Install(mux login.Mux, paths ...string)
 }
 
-func NewEndpoints(authHandler handlers.AuthenticationHandler, originOAuthClient *osincli.Client) Endpoints {
-	return &endpointDetails{authHandler, originOAuthClient}
+func NewEndpoints(originOAuthClient *osincli.Client) Endpoints {
+	return &endpointDetails{originOAuthClient}
 }
 
 // Install registers the request token endpoints into a mux. It is expected that the
