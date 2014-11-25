@@ -16,6 +16,8 @@ func (f *OriginFactory) NewCmdApply(out io.Writer) *cobra.Command {
 		Short: "Perform bulk create operation on set of resources",
 		Long: `Create all resources contained in JSON file specified in filename or stdin
 
+NOTE: This command will be obsoleted and it is just temporary.
+
 JSON and YAML formats are accepted.
 
 Examples:
@@ -33,6 +35,7 @@ Examples:
 			data, err := kubecmd.ReadConfigData(filename)
 			checkErr(err)
 
+			// TODO: Wouldn't be necessary, in upstream it is builtin.
 			namespace := api.NamespaceDefault
 			if ns := kubecmd.GetFlagString(cmd, "namespace"); len(ns) > 0 {
 				namespace = ns
