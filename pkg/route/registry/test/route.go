@@ -17,7 +17,7 @@ func NewRouteRegistry() *RouteRegistry {
 	return &RouteRegistry{}
 }
 
-func (r *RouteRegistry) ListRoutes(ctx kapi.Context, labels labels.Selector) (*routeapi.RouteList, error) {
+func (r *RouteRegistry) ListRoutes(ctx kapi.Context, labelSelector labels.Selector, fieldSelector labels.Selector) (*routeapi.RouteList, error) {
 	return r.Routes, nil
 }
 
