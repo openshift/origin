@@ -107,6 +107,31 @@ func TestReflect(t *testing.T){
 	}
 }
 
+//test that when passed a pointer you are returned a field set from the object that the pointer
+//is pointing to
+func TestReflectPointer(t *testing.T){
+	obj := StringObj{"test"}
+	results := FieldSet(&obj)
+
+	if !results.Has("StringField"){
+		t.Fatalf("Expected string field from pointer")
+	}
+}
+
+type Unsupported struct{
+	Pointer *StringObj
+}
+
+//TODO if there is an embedded pointer type we need to go through the recursion again rather than list as an unsupported type
+func TestUnsupported(t *testing.T){
+	obj := Unsupported{nil}
+	results := FieldSet(&obj)
+
+	if len(results) > 0 {
+		t.Fatalf("Expected no results, got %i", len(results))
+	}
+}
+
 func dumpResultMap(set labels.Set){
 	for k, v := range set {
 		fmt.Printf("key: %v, val: %v\n", k, v)

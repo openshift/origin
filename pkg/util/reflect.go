@@ -11,13 +11,13 @@ func FieldSet(object interface{}) labels.Set {
 	fieldSet := labels.Set{}
 
 	objectType := reflect.TypeOf(object)
+	objectVal := reflect.ValueOf(object)
 
-	//if we're given a pointer then get the underlying element
+	//if we're given a pointer then get the underlying value/type objects that the pointer is pointing to
 	if objectType.Kind() == reflect.Ptr {
+		objectVal = reflect.Indirect(objectVal)
 		objectType = objectType.Elem()
 	}
-
-	objectVal := reflect.ValueOf(object)
 
 	for i := 0; i < objectVal.NumField(); i++ {
 		fieldVal := objectVal.Field(i)
@@ -46,6 +46,8 @@ func FieldSet(object interface{}) labels.Set {
 			default:
 				glog.Warningf("Skipping unsupported field %s of type %s.", fieldType.Name, fieldVal.Kind())
 			}
+
+			//TODO if there is an embedded pointer type we need to go through the recursion again rather than list as an unsupported type
 		}
 	}
 
