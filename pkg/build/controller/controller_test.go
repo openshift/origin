@@ -269,3 +269,56 @@ func TestHandlePod(t *testing.T) {
 		}
 	}
 }
+
+func TestCancelBuild(t *testing.T) {
+	type handleCancelBuildTest struct {
+		inStatus  buildapi.BuildStatus
+		outStatus buildapi.BuildStatus
+		podStatus kapi.PodCondition
+		exitCode  int
+	}
+
+	tests := []handleCancelBuildTest{
+		{ // 0
+			inStatus:  buildapi.BuildStatusNew,
+			outStatus: buildapi.BuildStatusNew,
+			podStatus: kapi.PodPending,
+			exitCode:  0,
+		},
+		{ // 1
+			inStatus:  buildapi.BuildStatusPending,
+			outStatus: buildapi.BuildStatusCancelled,
+			podStatus: kapi.PodRunning,
+			exitCode:  0,
+		},
+		{ // 2
+			inStatus:  buildapi.BuildStatusRunning,
+			outStatus: buildapi.BuildStatusCancelled,
+			podStatus: kapi.PodRunning,
+			exitCode:  0,
+		},
+		{ // 3
+			inStatus:  buildapi.BuildStatusComplete,
+			outStatus: buildapi.BuildStatusComplete,
+			podStatus: kapi.PodSucceeded,
+			exitCode:  0,
+		},
+		{ // 4
+			inStatus:  buildapi.BuildStatusFailed,
+			outStatus: buildapi.BuildStatusFailed,
+			podStatus: kapi.PodFailed,
+			exitCode:  1,
+		},
+	}
+
+	for i, tc := range tests {
+		build, ctrl := mockBuildAndController(tc.inStatus)
+		pod := mockPod(tc.podStatus, tc.exitCode)
+
+		ctrl.CancelBuild(build, pod)
+
+		if build.Status != tc.outStatus {
+			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)
+		}
+	}
+}

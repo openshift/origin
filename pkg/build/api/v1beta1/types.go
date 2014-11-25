@@ -63,7 +63,7 @@ const (
 	// BuildError indicates that an error prevented the build from executing.
 	BuildStatusError BuildStatus = "Error"
 
-	// BuildCancelled indicates that a running/pending build was stopped from executing.
+	// BuildStatusCancelled indicates that a running/pending build was stopped from executing.
 	BuildStatusCancelled BuildStatus = "Cancelled"
 )
 
