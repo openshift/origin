@@ -25,8 +25,9 @@ func imageTag(build *api.Build) string {
 // to the built image
 func getBuildEnvVars(build *api.Build) map[string]string {
 	envVars := map[string]string{
-		"OPENSHIFT_BUILD_NAME":   build.Name,
-		"OPENSHIFT_BUILD_SOURCE": build.Parameters.Source.Git.URI,
+		"OPENSHIFT_BUILD_NAME":      build.Name,
+		"OPENSHIFT_BUILD_NAMESPACE": build.Namespace,
+		"OPENSHIFT_BUILD_SOURCE":    build.Parameters.Source.Git.URI,
 	}
 	if build.Parameters.Source.Git.Ref != "" {
 		envVars["OPENSHIFT_BUILD_REFERENCE"] = build.Parameters.Source.Git.Ref
