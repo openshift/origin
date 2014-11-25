@@ -17,7 +17,7 @@ type User struct {
 type UserList struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items           []User `json:"items,omitempty" yaml:"items,omitempty"`
+	Items           []User `json:"items" yaml:"items"`
 }
 
 type Identity struct {

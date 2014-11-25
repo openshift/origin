@@ -75,7 +75,7 @@ type CustomDeploymentStrategyParams struct {
 type DeploymentList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []Deployment `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []Deployment `json:"items" yaml:"items"`
 }
 
 // These constants represent annotation keys used for correlating objects related to deployments.
@@ -182,5 +182,5 @@ type DeploymentCauseImageTrigger struct {
 type DeploymentConfigList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []DeploymentConfig `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []DeploymentConfig `json:"items" yaml:"items"`
 }

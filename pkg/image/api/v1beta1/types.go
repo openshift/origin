@@ -9,7 +9,7 @@ import (
 type ImageList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []Image `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []Image `json:"items" yaml:"items"`
 }
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
@@ -24,7 +24,7 @@ type Image struct {
 type ImageRepositoryList struct {
 	kapi.TypeMeta `json:",inline" yaml:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []ImageRepository `json:"items,omitempty" yaml:"items,omitempty"`
+	Items         []ImageRepository `json:"items" yaml:"items"`
 }
 
 // ImageRepository stores a mapping of tags to images, metadata overrides that are applied
