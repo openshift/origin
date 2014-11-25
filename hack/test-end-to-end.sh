@@ -149,7 +149,7 @@ echo "[INFO] Applying application config"
 $openshift kube apply --ns=${NAMESPACE} -c $CONFIG_FILE
 
 # Trigger build
-echo "[INFO]  Invoking generic web hook to trigger new build using curl"
+echo "[INFO] Invoking generic web hook to trigger new build using curl"
 curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=${NAMESPACE}
 
 # Wait for build to complete
@@ -192,22 +192,16 @@ if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     "${OS_ROOT}/hack/install-router.sh" "router1" $apiIP $openshift
     wait_for_command "$openshift kube list pods | grep router | grep -i Running" $((5*TIME_MIN))
 
-    echo "[INFO] Validate routed app response doesn't exist"
-    # quick nap to ensure router has bound to port 80 and is ready or we'll get connection refused rather than
-    # service unavailable
-    sleep 2
-    validate_response "-H Host:end-to-end --connect-timeout 10 http://${apiIP}" "503 Service Unavailable"
+    echo "[INFO] Validating routed app response doesn't exist"
+    validate_response "-H Host:end-to-end --connect-timeout 10 http://${apiIP}" "503 Service Unavailable" 2 $((2*TIME_MIN))
 
     echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
     $openshift kube create routes --ns=${NAMESPACE} -c "${ARTIFACT_DIR}/route.json"
 
-    echo "[INFO] Waiting for route to be picked up..."
-    sleep 2
-
-    echo "[INFO] Validate routed app response..."
+    echo "[INFO] Validating routed app response..."
     validate_response "-H Host:end-to-end http://${apiIP}" "Hello from OpenShift"
 else
-    echo "[INFO] Validate app response..."
+    echo "[INFO] Validating app response..."
     validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
 fi
 

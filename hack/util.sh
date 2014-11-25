@@ -108,6 +108,33 @@ function wait_for_url {
   return 1
 }
 
+# Search for a regular expression in a HTTP response.
+#
+# $1 - a valid URL (e.g.: http://127.0.0.1:8080)
+# $2 - a regular expression or text
+function validate_response {
+  url=$1
+  response=$2
+  wait=${3:-0.2}
+  times=${4:-10}
+
+  set +e
+  for i in $(seq 1 $times); do
+    curl $url | grep -q "$response"
+    if [ $? -eq 0 ]; then
+      echo "[INFO] Response is valid."
+      set -e
+      return 0
+    fi
+    sleep $wait
+  done
+
+  echo "[INFO] Response is invalid."
+  set -e
+  return 1
+}
+
+
 # start_etcd starts an etcd server
 # $1 - Optional host (Default: 127.0.0.1)
 # $2 - Optional port (Default: 4001)
