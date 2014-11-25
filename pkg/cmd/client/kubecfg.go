@@ -442,7 +442,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 			glog.Fatalf("Failed to create printer %v", err)
 		}
 	default:
-		printer = humanReadablePrinter()
+		printer = c.humanReadablePrinter()
 	}
 
 	if err = printer.PrintObj(obj, os.Stdout); err != nil {
@@ -575,11 +575,11 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 	return true
 }
 
-func humanReadablePrinter() *kubecfg.HumanReadablePrinter {
+func (c *KubeConfig) humanReadablePrinter() *kubecfg.HumanReadablePrinter {
 	printer := kubecfg.NewHumanReadablePrinter()
 
 	// Add Handler calls here to support additional types
-	build.RegisterPrintHandlers(printer)
+	build.RegisterPrintHandlers(printer, &c.ClientConfig)
 	image.RegisterPrintHandlers(printer)
 	deployclient.RegisterPrintHandlers(printer)
 	route.RegisterPrintHandlers(printer)

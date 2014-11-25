@@ -2,9 +2,11 @@ package webhook
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
 )
 
@@ -40,13 +42,12 @@ func GetWebhookUrl(bc *api.BuildConfig, config *client.Config) []string {
 		case "generic":
 			whTrigger = trigger.GenericWebHook.Secret
 		}
-		urlPath := fmt.Sprintf("osapi/%s/buildConfigHooks/%s/%s/%s", bc.APIVersion, bc.Name, whTrigger, bc.Triggers[i].Type)
-		u := url.URL{
-			Scheme: "http",
-			Host:   "host",
-			Path:   urlPath,
+		apiVersion := latest.Version
+		if accessor, err := meta.Accessor(bc); err == nil && len(accessor.APIVersion()) > 0 {
+			apiVersion = accessor.APIVersion()
 		}
-		triggers = append(triggers, u.String())
+		url := fmt.Sprintf("%s/osapi/%s/buildConfigHooks/%s/%s/%s", config.Host, apiVersion, bc.Name, whTrigger, bc.Triggers[i].Type)
+		triggers = append(triggers, url)
 	}
 	return triggers
 }
