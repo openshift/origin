@@ -38,7 +38,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (api.Use
 	if err != nil {
 		return nil, false, err
 	}
-	user, err := client.GetUser("~")
+	user, err := client.Users().Get("~")
 	if err != nil {
 		return nil, false, err
 	}

@@ -11,11 +11,11 @@ import (
 func TestHandleNewDeploymentConfig(t *testing.T) {
 	controller := &DeploymentConfigController{
 		DeploymentInterface: &testDeploymentInterface{
-			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
-				t.Fatalf("unexpected call with id %s", id)
+			GetDeploymentFunc: func(namespace, name string) (*deployapi.Deployment, error) {
+				t.Fatalf("unexpected call with name %s", name)
 				return nil, nil
 			},
-			CreateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			CreateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				t.Fatalf("unexpected call with deployment %v", deployment)
 				return nil, nil
 			},
@@ -38,10 +38,10 @@ func TestHandleInitialDeployment(t *testing.T) {
 
 	controller := &DeploymentConfigController{
 		DeploymentInterface: &testDeploymentInterface{
-			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
-				return nil, kerrors.NewNotFound("deployment", id)
+			GetDeploymentFunc: func(namespace, name string) (*deployapi.Deployment, error) {
+				return nil, kerrors.NewNotFound("deployment", name)
 			},
-			CreateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			CreateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				deployed = deployment
 				return deployment, nil
 			},
@@ -65,10 +65,10 @@ func TestHandleInitialDeployment(t *testing.T) {
 func TestHandleConfigChangeNoPodTemplateDiff(t *testing.T) {
 	controller := &DeploymentConfigController{
 		DeploymentInterface: &testDeploymentInterface{
-			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
+			GetDeploymentFunc: func(namespace, name string) (*deployapi.Deployment, error) {
 				return matchingDeployment(), nil
 			},
-			CreateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			CreateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				t.Fatalf("unexpected call to to create deployment: %v", deployment)
 				return nil, nil
 			},
@@ -92,10 +92,10 @@ func TestHandleConfigChangeWithPodTemplateDiff(t *testing.T) {
 
 	controller := &DeploymentConfigController{
 		DeploymentInterface: &testDeploymentInterface{
-			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
-				return nil, kerrors.NewNotFound("deployment", id)
+			GetDeploymentFunc: func(namespace, name string) (*deployapi.Deployment, error) {
+				return nil, kerrors.NewNotFound("deployment", name)
 			},
-			CreateDeploymentFunc: func(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+			CreateDeploymentFunc: func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 				deployed = deployment
 				return deployment, nil
 			},
@@ -117,16 +117,16 @@ func TestHandleConfigChangeWithPodTemplateDiff(t *testing.T) {
 }
 
 type testDeploymentInterface struct {
-	GetDeploymentFunc    func(id string) (*deployapi.Deployment, error)
-	CreateDeploymentFunc func(deployment *deployapi.Deployment) (*deployapi.Deployment, error)
+	GetDeploymentFunc    func(namespace, name string) (*deployapi.Deployment, error)
+	CreateDeploymentFunc func(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
 
-func (i *testDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error) {
-	return i.GetDeploymentFunc(id)
+func (i *testDeploymentInterface) GetDeployment(namespace, name string) (*deployapi.Deployment, error) {
+	return i.GetDeploymentFunc(namespace, name)
 }
 
-func (i *testDeploymentInterface) CreateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	return i.CreateDeploymentFunc(deployment)
+func (i *testDeploymentInterface) CreateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+	return i.CreateDeploymentFunc(namespace, deployment)
 }
 
 func manualDeploymentConfig() *deployapi.DeploymentConfig {

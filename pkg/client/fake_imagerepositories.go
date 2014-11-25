@@ -1,0 +1,40 @@
+package client
+
+import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+
+	imageapi "github.com/openshift/origin/pkg/image/api"
+)
+
+// FakeImageRepositories implements ImageInterface. Meant to be embedded into a struct to get a default
+// implementation. This makes faking out just the methods you want to test easier.
+type FakeImageRepositories struct {
+	Fake      *Fake
+	Namespace string
+}
+
+func (c *FakeImageRepositories) List(label, field labels.Selector) (*imageapi.ImageRepositoryList, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-imagerepositries"})
+	return &imageapi.ImageRepositoryList{}, nil
+}
+
+func (c *FakeImageRepositories) Get(name string) (*imageapi.ImageRepository, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-imagerepository", Value: name})
+	return &imageapi.ImageRepository{}, nil
+}
+
+func (c *FakeImageRepositories) Create(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-imagerepository"})
+	return &imageapi.ImageRepository{}, nil
+}
+
+func (c *FakeImageRepositories) Update(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-imagerepository"})
+	return &imageapi.ImageRepository{}, nil
+}
+
+func (c *FakeImageRepositories) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-imagerepositories"})
+	return nil, nil
+}

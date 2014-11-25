@@ -8,19 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-
 	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/client"
 )
 
-type osClient struct {
-	client.Fake
-}
+type okClient struct{}
 
-func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
+func (_ *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -33,23 +26,23 @@ func (_ *osClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.Buil
 	}, nil
 }
 
-func (_ *osClient) WatchBuilds(ctx kapi.Context, field, label labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, nil
+func (_ *okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
+	return &api.Build{}, nil
 }
 
 type buildErrorClient struct {
-	osClient
+	okClient
 }
 
-func (_ *buildErrorClient) CreateBuild(ctx kapi.Context, build *api.Build) (result *api.Build, err error) {
+func (_ *buildErrorClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
 	return &api.Build{}, errors.New("Build error!")
 }
 
 type configErrorClient struct {
-	osClient
+	okClient
 }
 
-func (_ *configErrorClient) GetBuildConfig(ctx kapi.Context, id string) (result *api.BuildConfig, err error) {
+func (_ *configErrorClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{}, errors.New("BuildConfig error!")
 }
 
@@ -69,7 +62,7 @@ func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req 
 }
 
 func TestParseUrlError(t *testing.T) {
-	server := httptest.NewServer(NewController(&osClient{}, nil))
+	server := httptest.NewServer(NewController(&okClient{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL, "application/json", nil)
@@ -84,7 +77,7 @@ func TestParseUrlError(t *testing.T) {
 }
 
 func TestParseUrlOK(t *testing.T) {
-	server := httptest.NewServer(NewController(&osClient{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okClient{}, map[string]Plugin{
 		"pathplugin": &pathPlugin{},
 	}))
 	defer server.Close()
@@ -103,7 +96,7 @@ func TestParseUrlOK(t *testing.T) {
 
 func TestParseUrlLong(t *testing.T) {
 	plugin := &pathPlugin{}
-	server := httptest.NewServer(NewController(&osClient{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okClient{}, map[string]Plugin{
 		"pathplugin": plugin,
 	}))
 	defer server.Close()
@@ -124,7 +117,7 @@ func TestParseUrlLong(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorSecret(t *testing.T) {
-	server := httptest.NewServer(NewController(&osClient{}, nil))
+	server := httptest.NewServer(NewController(&okClient{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/wrongsecret/somePlugin",
@@ -140,7 +133,7 @@ func TestInvokeWebhookErrorSecret(t *testing.T) {
 }
 
 func TestInvokeWebhookMissingPlugin(t *testing.T) {
-	server := httptest.NewServer(NewController(&osClient{}, nil))
+	server := httptest.NewServer(NewController(&okClient{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/missingplugin",
@@ -193,7 +186,7 @@ func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
-	server := httptest.NewServer(NewController(&osClient{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okClient{}, map[string]Plugin{
 		"errPlugin": &errPlugin{},
 	}))
 	defer server.Close()
@@ -211,20 +204,20 @@ func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	}
 }
 
-type mockOsClient struct {
+type mockOkClient struct {
 	testBuildInterface
 }
 
 type testBuildInterface struct {
-	CreateBuildFunc    func(ctx kapi.Context, build *api.Build) (*api.Build, error)
-	GetBuildConfigFunc func(ctx kapi.Context, id string) (*api.BuildConfig, error)
+	CreateBuildFunc    func(namespace string, build *api.Build) (*api.Build, error)
+	GetBuildConfigFunc func(namespace, name string) (*api.BuildConfig, error)
 }
 
-func (i *testBuildInterface) CreateBuild(ctx kapi.Context, build *api.Build) (*api.Build, error) {
-	return i.CreateBuildFunc(ctx, build)
+func (i *testBuildInterface) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
+	return i.CreateBuildFunc(namespace, build)
 }
-func (i *testBuildInterface) GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error) {
-	return i.GetBuildConfigFunc(ctx, id)
+func (i *testBuildInterface) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+	return i.GetBuildConfigFunc(namespace, name)
 }
 
 func TestInvokeWebhookOk(t *testing.T) {
@@ -233,13 +226,13 @@ func TestInvokeWebhookOk(t *testing.T) {
 		Parameters: api.BuildParameters{},
 	}
 
-	server := httptest.NewServer(NewController(&mockOsClient{
+	server := httptest.NewServer(NewController(&mockOkClient{
 		testBuildInterface: testBuildInterface{
-			CreateBuildFunc: func(ctx kapi.Context, build *api.Build) (*api.Build, error) {
+			CreateBuildFunc: func(namespace string, build *api.Build) (*api.Build, error) {
 				buildRequest = build
 				return build, nil
 			},
-			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*api.BuildConfig, error) {
+			GetBuildConfigFunc: func(namespace, name string) (*api.BuildConfig, error) {
 				buildConfig.Name = name
 				return buildConfig, nil
 			},

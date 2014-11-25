@@ -22,8 +22,8 @@ type DeploymentConfigController struct {
 
 // dccDeploymentInterface is a small private interface for dealing with Deployments.
 type dccDeploymentInterface interface {
-	GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error)
-	CreateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
+	GetDeployment(namespace, name string) (*deployapi.Deployment, error)
+	CreateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
 
 // Process DeploymentConfig events one at a time.
@@ -34,8 +34,7 @@ func (c *DeploymentConfigController) Run() {
 // Process a single DeploymentConfig event.
 func (c *DeploymentConfigController) HandleDeploymentConfig() {
 	config := c.NextDeploymentConfig()
-	ctx := kapi.WithNamespace(kapi.NewContext(), config.Namespace)
-	deploy, err := c.shouldDeploy(ctx, config)
+	deploy, err := c.shouldDeploy(config)
 	if err != nil {
 		// TODO: better error handling
 		glog.V(2).Infof("Error determining whether to redeploy deploymentConfig %v: %#v", config.Name, err)
@@ -47,20 +46,20 @@ func (c *DeploymentConfigController) HandleDeploymentConfig() {
 		return
 	}
 
-	err = c.deploy(ctx, config)
+	err = c.deploy(config)
 	if err != nil {
 		glog.V(2).Infof("Error deploying config %s: %v", config.Name, err)
 	}
 }
 
 // shouldDeploy returns true if the DeploymentConfig should have a new Deployment created.
-func (c *DeploymentConfigController) shouldDeploy(ctx kapi.Context, config *deployapi.DeploymentConfig) (bool, error) {
+func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentConfig) (bool, error) {
 	if config.LatestVersion == 0 {
 		glog.V(4).Infof("Shouldn't deploy config %s with LatestVersion=0", config.Name)
 		return false, nil
 	}
 
-	deployment, err := c.latestDeploymentForConfig(ctx, config)
+	deployment, err := c.latestDeploymentForConfig(config)
 	if deployment != nil {
 		glog.V(4).Infof("Shouldn't deploy because a deployment '%s' already exists for latest config %s", deployment.Name, config.Name)
 		return false, nil
@@ -81,9 +80,9 @@ func (c *DeploymentConfigController) shouldDeploy(ctx kapi.Context, config *depl
 }
 
 // TODO: reduce code duplication between trigger and config controllers
-func (c *DeploymentConfigController) latestDeploymentForConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.Deployment, error) {
+func (c *DeploymentConfigController) latestDeploymentForConfig(config *deployapi.DeploymentConfig) (*deployapi.Deployment, error) {
 	latestDeploymentId := deployutil.LatestDeploymentIDForConfig(config)
-	deployment, err := c.DeploymentInterface.GetDeployment(ctx, latestDeploymentId)
+	deployment, err := c.DeploymentInterface.GetDeployment(config.Namespace, latestDeploymentId)
 	if err != nil {
 		// TODO: probably some error / race handling to do here
 		return nil, err
@@ -93,7 +92,7 @@ func (c *DeploymentConfigController) latestDeploymentForConfig(ctx kapi.Context,
 }
 
 // deploy performs the work of actually creating a Deployment from the given DeploymentConfig.
-func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.DeploymentConfig) error {
+func (c *DeploymentConfigController) deploy(config *deployapi.DeploymentConfig) error {
 	deployment := &deployapi.Deployment{
 
 		ObjectMeta: kapi.ObjectMeta{
@@ -109,6 +108,6 @@ func (c *DeploymentConfigController) deploy(ctx kapi.Context, config *deployapi.
 	}
 
 	glog.V(4).Infof("Creating new deployment from config %s", config.Name)
-	_, err := c.DeploymentInterface.CreateDeployment(ctx, deployment)
+	_, err := c.DeploymentInterface.CreateDeployment(config.Namespace, deployment)
 	return err
 }

@@ -7,8 +7,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -62,7 +60,7 @@ func deploy(cfg *config) error {
 	}
 
 	var deployment *deployapi.Deployment
-	if deployment, err = osClient.GetDeployment(kapi.WithNamespace(kapi.NewContext(), cfg.Namespace), cfg.DeploymentName); err != nil {
+	if deployment, err = osClient.Deployments(cfg.Namespace).Get(cfg.DeploymentName); err != nil {
 		return err
 	}
 

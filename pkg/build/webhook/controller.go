@@ -28,16 +28,17 @@ type controller struct {
 }
 
 type webhookBuildInterface interface {
-	CreateBuild(ctx kapi.Context, build *api.Build) (*api.Build, error)
-	GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error)
+	CreateBuild(namespace string, build *api.Build) (*api.Build, error)
+	GetBuildConfig(namespace, name string) (*api.BuildConfig, error)
 }
 
 // urlVars holds parsed URL parts.
 type urlVars struct {
-	buildId string
-	secret  string
-	plugin  string
-	path    string
+	namespace string
+	buildName string
+	secret    string
+	plugin    string
+	path      string
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
@@ -47,13 +48,13 @@ func NewController(osClient webhookBuildInterface, plugins map[string]Plugin) ht
 
 // ServeHTTP main REST service method.
 func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx, uv, err := parseUrl(req)
+	uv, err := parseUrl(req)
 	if err != nil {
 		notFound(w, err.Error())
 		return
 	}
 
-	buildCfg, err := c.osClient.GetBuildConfig(kapi.WithNamespaceDefaultIfNone(ctx), uv.buildId)
+	buildCfg, err := c.osClient.GetBuildConfig(uv.namespace, uv.buildName)
 	if err != nil {
 		badRequest(w, err.Error())
 		return
@@ -73,7 +74,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	build := util.GenerateBuild(buildCfg, revision)
-	if _, err := c.osClient.CreateBuild(kapi.WithNamespaceDefaultIfNone(ctx), build); err != nil {
+	if _, err := c.osClient.CreateBuild(uv.namespace, build); err != nil {
 		badRequest(w, err.Error())
 	}
 }
@@ -81,16 +82,21 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // parseUrl retrieves the namespace from the query parameters and returns a context wrapping the namespace,
 // the parameters for the webhook call, and an error.
 // according to the docs (http://godoc.org/code.google.com/p/go.net/context) ctx is not supposed to be wrapped in another object
-func parseUrl(req *http.Request) (ctx kapi.Context, uv urlVars, err error) {
+func parseUrl(req *http.Request) (uv urlVars, err error) {
 	url := req.URL.Path
-	ctx = kapi.NewContext()
 
 	parts := splitPath(url)
 	if len(parts) < 3 {
 		err = fmt.Errorf("Unexpected URL %s", url)
 		return
 	}
-	uv = urlVars{parts[0], parts[1], parts[2], ""}
+	uv = urlVars{
+		namespace: kapi.NamespaceDefault,
+		buildName: parts[0],
+		secret:    parts[1],
+		plugin:    parts[2],
+		path:      "",
+	}
 	if len(parts) > 3 {
 		uv.path = strings.Join(parts[3:], "/")
 	}
@@ -101,7 +107,7 @@ func parseUrl(req *http.Request) (ctx kapi.Context, uv urlVars, err error) {
 	// for all other operations, if namespace is omitted, we will default to default namespace.
 	namespace := req.URL.Query().Get("namespace")
 	if len(namespace) > 0 {
-		ctx = kapi.WithNamespace(ctx, namespace)
+		uv.namespace = namespace
 	}
 
 	return

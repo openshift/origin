@@ -40,7 +40,7 @@ type DeploymentContainerCreator interface {
 }
 
 type dcDeploymentInterface interface {
-	UpdateDeployment(ctx kapi.Context, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
+	UpdateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 }
 
 type dcPodInterface interface {
@@ -68,7 +68,6 @@ func (dc *DeploymentController) HandleDeployment() {
 
 	deploymentPod := dc.makeDeploymentPod(deployment)
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), deployment.Namespace)
 	nextStatus := deployment.Status
 	if pod, err := dc.PodInterface.CreatePod(deployment.Namespace, deploymentPod); err != nil {
 		// If the pod already exists, it's possible that a previous CreatePod succeeded but
@@ -93,7 +92,7 @@ func (dc *DeploymentController) HandleDeployment() {
 	deployment.Status = nextStatus
 
 	glog.V(2).Infof("Updating deployment %s status %s -> %s", deployment.Name, deployment.Status, nextStatus)
-	if _, err := dc.DeploymentInterface.UpdateDeployment(ctx, deployment); err != nil {
+	if _, err := dc.DeploymentInterface.UpdateDeployment(deployment.Namespace, deployment); err != nil {
 		glog.V(2).Infof("Failed to update deployment %s: %v", deployment.Name, err)
 	}
 }
@@ -116,7 +115,6 @@ func (dc *DeploymentController) HandlePod() {
 		return
 	}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), pod.Namespace)
 	deployment := deploymentObj.(*deployapi.Deployment)
 	nextDeploymentStatus := deployment.Status
 
@@ -145,7 +143,7 @@ func (dc *DeploymentController) HandlePod() {
 	if deployment.Status != nextDeploymentStatus {
 		glog.V(2).Infof("Updating deployment %s status %s -> %s", deployment.Name, deployment.Status, nextDeploymentStatus)
 		deployment.Status = nextDeploymentStatus
-		if _, err := dc.DeploymentInterface.UpdateDeployment(ctx, deployment); err != nil {
+		if _, err := dc.DeploymentInterface.UpdateDeployment(pod.Namespace, deployment); err != nil {
 			glog.V(2).Infof("Failed to update deployment %v: %v", deployment.Name, err)
 		}
 	}

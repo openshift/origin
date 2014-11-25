@@ -15,11 +15,11 @@ func TestNewConfigWithoutTrigger(t *testing.T) {
 
 	controller := &DeploymentConfigChangeController{
 		ChangeStrategy: &testChangeStrategy{
-			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generated = true
 				return nil, nil
 			},
-			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = true
 				return config, nil
 			},
@@ -43,17 +43,17 @@ func TestNewConfigWithoutTrigger(t *testing.T) {
 
 func TestNewConfigWithTrigger(t *testing.T) {
 	var (
-		generatedId string
-		updated     *deployapi.DeploymentConfig
+		generatedName string
+		updated       *deployapi.DeploymentConfig
 	)
 
 	controller := &DeploymentConfigChangeController{
 		ChangeStrategy: &testChangeStrategy{
-			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
-				generatedId = id
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				generatedName = name
 				return generatedConfig(), nil
 			},
-			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = config
 				return config, nil
 			},
@@ -66,8 +66,8 @@ func TestNewConfigWithTrigger(t *testing.T) {
 
 	controller.HandleDeploymentConfig()
 
-	if generatedId != "test-deploy-config" {
-		t.Fatalf("Unexpected generated config id.  Expected test-deploy-config, got: %v", generatedId)
+	if generatedName != "test-deploy-config" {
+		t.Fatalf("Unexpected generated config id.  Expected test-deploy-config, got: %v", generatedName)
 	}
 
 	if updated.Name != "test-deploy-config" {
@@ -84,17 +84,17 @@ func TestNewConfigWithTrigger(t *testing.T) {
 // Test the controller's response when the pod template is changed
 func TestChangeWithTemplateDiff(t *testing.T) {
 	var (
-		generatedId string
-		updated     *deployapi.DeploymentConfig
+		generatedName string
+		updated       *deployapi.DeploymentConfig
 	)
 
 	controller := &DeploymentConfigChangeController{
 		ChangeStrategy: &testChangeStrategy{
-			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
-				generatedId = id
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				generatedName = name
 				return generatedExistingConfig(), nil
 			},
-			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = config
 				return config, nil
 			},
@@ -107,8 +107,8 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 
 	controller.HandleDeploymentConfig()
 
-	if generatedId != "test-deploy-config" {
-		t.Fatalf("Unexpected generated config id.  Expected test-deploy-config, got: %v", generatedId)
+	if generatedName != "test-deploy-config" {
+		t.Fatalf("Unexpected generated config id.  Expected test-deploy-config, got: %v", generatedName)
 	}
 
 	if updated.Name != "test-deploy-config" {
@@ -128,11 +128,11 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 
 	controller := &DeploymentConfigChangeController{
 		ChangeStrategy: &testChangeStrategy{
-			GenerateDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generated = true
 				return nil, nil
 			},
-			UpdateDeploymentConfigFunc: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = true
 				return config, nil
 			},
@@ -155,16 +155,16 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 }
 
 type testChangeStrategy struct {
-	GenerateDeploymentConfigFunc func(id string) (*deployapi.DeploymentConfig, error)
-	UpdateDeploymentConfigFunc   func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	GenerateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfigFunc   func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 }
 
-func (i *testChangeStrategy) GenerateDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-	return i.GenerateDeploymentConfigFunc(id)
+func (i *testChangeStrategy) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
+	return i.GenerateDeploymentConfigFunc(namespace, name)
 }
 
-func (i *testChangeStrategy) UpdateDeploymentConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	return i.UpdateDeploymentConfigFunc(config)
+func (i *testChangeStrategy) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	return i.UpdateDeploymentConfigFunc(namespace, config)
 }
 
 func existingConfigWithTrigger() *deployapi.DeploymentConfig {

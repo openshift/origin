@@ -45,23 +45,22 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	openshift := NewTestOpenshift(t)
 
 	config := manualDeploymentConfig()
-	ctx := kapi.NewContext()
 	var err error
 
-	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Deployments(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
 
-	if _, err := openshift.Client.CreateDeploymentConfig(ctx, config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.Name); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testNamespace).Generate(config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
-	if _, err := openshift.Client.UpdateDeploymentConfig(ctx, config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v %#v", err, config)
 	}
 
@@ -89,27 +88,26 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 
 	config := imageChangeDeploymentConfig()
-	ctx := kapi.NewContext()
 	var err error
 
-	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Deployments(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
 
-	if imageRepo, err = openshift.Client.CreateImageRepository(ctx, imageRepo); err != nil {
+	if imageRepo, err = openshift.Client.ImageRepositories(testNamespace).Create(imageRepo); err != nil {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
-	if _, err := openshift.Client.CreateDeploymentConfig(ctx, config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.Name); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testNamespace).Generate(config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
-	if _, err := openshift.Client.UpdateDeploymentConfig(ctx, config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
 	}
 
@@ -125,7 +123,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 
 	imageRepo.Tags["latest"] = "ref-2"
 
-	if _, err = openshift.Client.UpdateImageRepository(ctx, imageRepo); err != nil {
+	if _, err = openshift.Client.ImageRepositories(testNamespace).Update(imageRepo); err != nil {
 		t.Fatalf("Error updating imageRepo: %v", err)
 	}
 
@@ -145,16 +143,15 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	openshift := NewTestOpenshift(t)
 
 	config := changeDeploymentConfig()
-	ctx := kapi.NewContext()
 	var err error
 
-	watch, err := openshift.Client.WatchDeployments(ctx, labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Deployments(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
 
 	// submit the initial deployment config
-	if _, err := openshift.Client.CreateDeploymentConfig(ctx, config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
@@ -173,13 +170,13 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	assertEnvVarEquals("ENV_TEST", "ENV_VALUE1", deployment, t)
 
 	// submit a new config with an updated environment variable
-	if config, err = openshift.Client.GenerateDeploymentConfig(ctx, config.Name); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testNamespace).Generate(config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
 	config.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers[0].Env[0].Value = "UPDATED"
 
-	if _, err := openshift.Client.UpdateDeploymentConfig(ctx, config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
 	}
 

@@ -10,15 +10,15 @@ import (
 )
 
 type testIcDeploymentConfigInterface struct {
-	UpdateDeploymentConfigFunc   func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
-	GenerateDeploymentConfigFunc func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfigFunc   func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	GenerateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
 }
 
-func (i *testIcDeploymentConfigInterface) UpdateDeploymentConfig(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	return i.UpdateDeploymentConfigFunc(ctx, config)
+func (i *testIcDeploymentConfigInterface) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	return i.UpdateDeploymentConfigFunc(namespace, config)
 }
-func (i *testIcDeploymentConfigInterface) GenerateDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-	return i.GenerateDeploymentConfigFunc(ctx, id)
+func (i *testIcDeploymentConfigInterface) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
+	return i.GenerateDeploymentConfigFunc(namespace, name)
 }
 
 const (
@@ -31,11 +31,11 @@ func TestUnregisteredContainer(t *testing.T) {
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
@@ -56,11 +56,11 @@ func TestImageChangeForNonAutomaticTag(t *testing.T) {
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
@@ -80,11 +80,11 @@ func TestImageChangeForUnregisteredTag(t *testing.T) {
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
@@ -113,14 +113,14 @@ func TestImageChange(t *testing.T) {
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(ctx kapi.Context, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				updatedConfigNamespace = kapi.Namespace(ctx)
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				updatedConfigNamespace = namespace
 				updatedConfig = config
 				return updatedConfig, nil
 			},
-			GenerateDeploymentConfigFunc: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-				generatedConfigNamespace = kapi.Namespace(ctx)
-				generatedConfig = regeneratedConfig(ctx)
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				generatedConfigNamespace = namespace
+				generatedConfig = regeneratedConfig(namespace)
 				return generatedConfig, nil
 			},
 		},
@@ -238,9 +238,9 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 	}
 }
 
-func regeneratedConfig(ctx kapi.Context) *deployapi.DeploymentConfig {
+func regeneratedConfig(namespace string) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "image-change-deploy-config", Namespace: kapi.Namespace(ctx)},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-change-deploy-config", Namespace: namespace},
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
 				Type: deployapi.DeploymentTriggerOnImageChange,

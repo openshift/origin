@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -166,7 +167,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
 	osMux.Handle(whPrefix, http.StripPrefix(whPrefix,
-		webhook.NewController(c.OSClient, map[string]webhook.Plugin{
+		webhook.NewController(ClientWebhookInterface{c.OSClient}, map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
 		})))
@@ -341,4 +342,19 @@ func env(key string, defaultValue string) string {
 	} else {
 		return val
 	}
+}
+
+// ClientWebhookInterface is a webhookBuildInterface which delegates to the OpenShift client interfaces
+type ClientWebhookInterface struct {
+	Client osclient.Interface
+}
+
+// CreateBuild creates build using OpenShift client.
+func (c ClientWebhookInterface) CreateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
+	return c.Client.Builds(namespace).Create(build)
+}
+
+// GetBuildConfig returns buildConfig using OpenShift client.
+func (c ClientWebhookInterface) GetBuildConfig(namespace, name string) (*buildapi.BuildConfig, error) {
+	return c.Client.BuildConfigs(namespace).Get(name)
 }

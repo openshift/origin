@@ -48,7 +48,7 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 
 	return &controller.BuildController{
 		BuildStore:   factory.buildStore,
-		BuildUpdater: factory.Client,
+		BuildUpdater: ClientBuildUpdater{factory.Client},
 		PodCreator:   ClientPodCreator{factory.KubeClient},
 		NextBuild: func() *buildapi.Build {
 			return buildQueue.Pop().(*buildapi.Build)
@@ -126,12 +126,12 @@ type buildLW struct {
 
 // List lists all Builds.
 func (lw *buildLW) List() (runtime.Object, error) {
-	return lw.client.ListBuilds(kapi.NewContext(), labels.Everything())
+	return lw.client.Builds(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
 }
 
 // Watch watches all Builds.
 func (lw *buildLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.WatchBuilds(kapi.NewContext(), labels.Everything(), labels.Everything(), "0")
+	return lw.client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
 }
 
 // ClientPodCreator is a podCreator which delegates to the Kubernetes client interface.
@@ -142,4 +142,14 @@ type ClientPodCreator struct {
 // CreatePod creates a pod using the Kubernetes client.
 func (c ClientPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return c.KubeClient.Pods(namespace).Create(pod)
+}
+
+// ClientBuildUpdater is a buildUpdater which delegates to the OpenShift client interfaces
+type ClientBuildUpdater struct {
+	Client osclient.Interface
+}
+
+// UpdateBuild updates build using the OpenShift client.
+func (c ClientBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
+	return c.Client.Builds(namespace).Update(build)
 }

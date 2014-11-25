@@ -1,7 +1,6 @@
 package controller
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	cache "github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	util "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -21,8 +20,8 @@ type DeploymentConfigChangeController struct {
 }
 
 type changeStrategy interface {
-	GenerateDeploymentConfig(kapi.Context, string) (*deployapi.DeploymentConfig, error)
-	UpdateDeploymentConfig(kapi.Context, *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 }
 
 // Run watches for config change events.
@@ -72,8 +71,7 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 }
 
 func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig, deployment *deployapi.Deployment) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), config.Namespace)
-	newConfig, err := dc.ChangeStrategy.GenerateDeploymentConfig(ctx, config.Name)
+	newConfig, err := dc.ChangeStrategy.GenerateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
 		glog.V(2).Infof("Error generating new version of deploymentConfig %v: %#v", config.Name, err)
 		return
@@ -96,7 +94,7 @@ func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi
 	// This update is atomic. If it fails because a newer resource was already persisted, that's
 	// okay - we can just ignore the update for the old resource and any changes to the more
 	// current config will be captured in future events.
-	if _, err = dc.ChangeStrategy.UpdateDeploymentConfig(ctx, newConfig); err != nil {
+	if _, err = dc.ChangeStrategy.UpdateDeploymentConfig(config.Namespace, newConfig); err != nil {
 		glog.V(2).Infof("Error updating deploymentConfig %v: %#v", config.Name, err)
 	}
 }

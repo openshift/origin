@@ -29,7 +29,7 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).Run()
 
 	return &controller.DeploymentConfigController{
-		DeploymentInterface: factory.Client,
+		DeploymentInterface: ClientDeploymentInterace{factory.Client},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			return queue.Pop().(*deployapi.DeploymentConfig)
 		},
@@ -75,7 +75,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 
 	return &controller.DeploymentController{
 		ContainerCreator:    factory,
-		DeploymentInterface: factory.Client,
+		DeploymentInterface: ClientDeploymentInterace{factory.Client},
 		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
 		Environment:         factory.Environment,
 		NextDeployment: func() *deployapi.Deployment {
@@ -186,7 +186,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.Dep
 	cache.NewReflector(&deploymentLW{client: factory.Client, field: labels.Everything()}, &deployapi.Deployment{}, store).Run()
 
 	return &controller.DeploymentConfigChangeController{
-		ChangeStrategy: factory.Client,
+		ChangeStrategy: ClientDeploymentConfigInterace{factory.Client},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			return queue.Pop().(*deployapi.DeploymentConfig)
 		},
@@ -208,7 +208,7 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, store).Run()
 
 	return &controller.ImageChangeController{
-		DeploymentConfigInterface: factory.Client,
+		DeploymentConfigInterface: ClientDeploymentConfigInterace{factory.Client},
 		DeploymentConfigStore:     store,
 		NextImageRepository: func() *imageapi.ImageRepository {
 			return queue.Pop().(*imageapi.ImageRepository)
@@ -224,12 +224,12 @@ type deploymentLW struct {
 
 // List lists all Deployments which match the given field selector.
 func (lw *deploymentLW) List() (runtime.Object, error) {
-	return lw.client.ListDeployments(kapi.NewContext(), labels.Everything(), lw.field)
+	return lw.client.Deployments(kapi.NamespaceAll).List(labels.Everything(), lw.field)
 }
 
 // Watch watches all Deployments matching the given field selector.
 func (lw *deploymentLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.WatchDeployments(kapi.NewContext(), labels.Everything(), lw.field, "0")
+	return lw.client.Deployments(kapi.NamespaceAll).Watch(labels.Everything(), lw.field, "0")
 }
 
 // deploymentConfigLW is a ListWatcher implementation for DeploymentConfigs.
@@ -239,12 +239,12 @@ type deploymentConfigLW struct {
 
 // List lists all DeploymentConfigs.
 func (lw *deploymentConfigLW) List() (runtime.Object, error) {
-	return lw.client.ListDeploymentConfigs(kapi.NewContext(), labels.Everything(), labels.Everything())
+	return lw.client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
 }
 
 // Watch watches all DeploymentConfigs.
 func (lw *deploymentConfigLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.WatchDeploymentConfigs(kapi.NewContext(), labels.Everything(), labels.Everything(), "0")
+	return lw.client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
 }
 
 // imageRepositoryLW is a ListWatcher for ImageRepositories.
@@ -254,10 +254,45 @@ type imageRepositoryLW struct {
 
 // List lists all ImageRepositories.
 func (lw *imageRepositoryLW) List() (runtime.Object, error) {
-	return lw.client.ListImageRepositories(kapi.NewContext(), labels.Everything())
+	return lw.client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
 }
 
 // Watch watches all ImageRepositories.
 func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.WatchImageRepositories(kapi.NewContext(), labels.Everything(), labels.Everything(), "0")
+	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
+}
+
+// ClientDeploymentInterace is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
+type ClientDeploymentInterace struct {
+	Client osclient.Interface
+}
+
+// GetDeployment returns deployment using OpenShift client.
+func (c ClientDeploymentInterace) GetDeployment(namespace, name string) (*deployapi.Deployment, error) {
+	return c.Client.Deployments(namespace).Get(name)
+}
+
+// CreateDeployment creates deployment using OpenShift client.
+func (c ClientDeploymentInterace) CreateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+	return c.Client.Deployments(namespace).Create(deployment)
+}
+
+// UpdateDeployment creates deployment using OpenShift client.
+func (c ClientDeploymentInterace) UpdateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+	return c.Client.Deployments(namespace).Update(deployment)
+}
+
+// ClientDeploymentConfigInterace is a changeStrategy which delegates to the OpenShift client interfaces
+type ClientDeploymentConfigInterace struct {
+	Client osclient.Interface
+}
+
+// GenerateDeploymentConfig generates deploymentConfig using OpenShift client.
+func (c ClientDeploymentConfigInterace) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
+	return c.Client.DeploymentConfigs(namespace).Generate(name)
+}
+
+// UpdateDeploymentConfig creates deploymentConfig using OpenShift client.
+func (c ClientDeploymentConfigInterace) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	return c.Client.DeploymentConfigs(namespace).Update(config)
 }

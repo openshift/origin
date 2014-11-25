@@ -9,18 +9,17 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildtest "github.com/openshift/origin/pkg/build/controller/test"
-	osclient "github.com/openshift/origin/pkg/client"
 )
 
-type okOsClient struct{}
+type okBuildUpdater struct{}
 
-func (_ *okOsClient) UpdateBuild(kapi.Context, *buildapi.Build) (*buildapi.Build, error) {
+func (_ *okBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
 	return &buildapi.Build{}, nil
 }
 
-type errOsClient struct{}
+type errBuildUpdater struct{}
 
-func (_ *errOsClient) UpdateBuild(ctx kapi.Context, build *buildapi.Build) (*buildapi.Build, error) {
+func (_ *errBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
 	return &buildapi.Build{}, errors.New("UpdateBuild error!")
 }
 
@@ -84,7 +83,7 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 	}
 	controller = &BuildController{
 		BuildStore:    buildtest.NewFakeBuildStore(build),
-		BuildUpdater:  &osclient.Fake{},
+		BuildUpdater:  &okBuildUpdater{},
 		PodCreator:    &okPodCreator{},
 		NextBuild:     func() *buildapi.Build { return nil },
 		NextPod:       func() *kapi.Pod { return nil },
@@ -161,7 +160,7 @@ func TestHandleBuild(t *testing.T) {
 		{ // 9
 			inStatus:     buildapi.BuildStatusNew,
 			outStatus:    buildapi.BuildStatusPending,
-			buildUpdater: &errOsClient{},
+			buildUpdater: &errBuildUpdater{},
 		},
 	}
 
@@ -237,7 +236,7 @@ func TestHandlePod(t *testing.T) {
 			outStatus:    buildapi.BuildStatusComplete,
 			podStatus:    kapi.PodSucceeded,
 			exitCode:     0,
-			buildUpdater: &errOsClient{},
+			buildUpdater: &errBuildUpdater{},
 		},
 	}
 
