@@ -9,15 +9,15 @@ import (
 )
 
 type ClientAuthorizationRegistry struct {
-	Err                          error
-	ClientAuthorizations         *api.ClientAuthorizationList
-	ClientAuthorization          *api.ClientAuthorization
-	CreatedAuthorization         *api.ClientAuthorization
-	UpdatedAuthorization         *api.ClientAuthorization
-	DeletedClientAuthorizationId string
+	Err                            error
+	ClientAuthorizations           *api.ClientAuthorizationList
+	ClientAuthorization            *api.ClientAuthorization
+	CreatedAuthorization           *api.ClientAuthorization
+	UpdatedAuthorization           *api.ClientAuthorization
+	DeletedClientAuthorizationName string
 }
 
-func (r *ClientAuthorizationRegistry) ClientAuthorizationID(userName, clientName string) string {
+func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientName string) string {
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
@@ -25,7 +25,7 @@ func (r *ClientAuthorizationRegistry) ListClientAuthorizations(label, field labe
 	return r.ClientAuthorizations, r.Err
 }
 
-func (r *ClientAuthorizationRegistry) GetClientAuthorization(id string) (*api.ClientAuthorization, error) {
+func (r *ClientAuthorizationRegistry) GetClientAuthorization(name string) (*api.ClientAuthorization, error) {
 	return r.ClientAuthorization, r.Err
 }
 
@@ -39,7 +39,7 @@ func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(grant *api.Clien
 	return r.Err
 }
 
-func (r *ClientAuthorizationRegistry) DeleteClientAuthorization(id string) error {
-	r.DeletedClientAuthorizationId = id
+func (r *ClientAuthorizationRegistry) DeleteClientAuthorization(name string) error {
+	r.DeletedClientAuthorizationName = name
 	return r.Err
 }

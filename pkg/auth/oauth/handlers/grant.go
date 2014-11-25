@@ -91,7 +91,7 @@ func NewAutoGrant(authregistry clientauthorization.Registry) GrantHandler {
 
 // GrantNeeded implements the GrantHandler interface
 func (g *autoGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
-	clientAuthID := g.authregistry.ClientAuthorizationID(user.GetName(), grant.Client.GetId())
+	clientAuthID := g.authregistry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
 	clientAuth, err := g.authregistry.GetClientAuthorization(clientAuthID)
 	if err == nil {
 		// Add new scopes and update

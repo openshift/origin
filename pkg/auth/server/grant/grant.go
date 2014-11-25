@@ -149,7 +149,7 @@ func (l *Grant) handleGrant(user authapi.UserInfo, w http.ResponseWriter, req *h
 		return
 	}
 
-	clientAuthID := l.authregistry.ClientAuthorizationID(user.GetName(), client.Name)
+	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
 
 	clientAuth, err := l.authregistry.GetClientAuthorization(clientAuthID)
 	if err == nil && clientAuth != nil {

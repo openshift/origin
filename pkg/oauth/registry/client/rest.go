@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/api/validation"
 	//"github.com/openshift/origin/pkg/oauth/api/validation"
 )
 
@@ -56,10 +58,11 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 
 	client.CreationTimestamp = util.Now()
+	client.UID = util.NewUUID().String()
 
-	// if errs := validation.ValidateClient(client); len(errs) > 0 {
-	// 	return nil, errors.NewInvalid("client", client.Name, errs)
-	// }
+	if errs := validation.ValidateClient(client); len(errs) > 0 {
+		return nil, kerrors.NewInvalid("client", client.Name, errs)
+	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateClient(client); err != nil {

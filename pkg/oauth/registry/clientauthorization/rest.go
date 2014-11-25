@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/api/validation"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
@@ -53,12 +55,13 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, errors.New("invalid authorization")
 	}
 
-	authorization.Name = s.registry.ClientAuthorizationID(authorization.UserName, authorization.ClientName)
+	authorization.Name = s.registry.ClientAuthorizationName(authorization.UserName, authorization.ClientName)
 	authorization.CreationTimestamp = util.Now()
+	authorization.UID = util.NewUUID().String()
 
-	// if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
-	//  return nil, errors.NewInvalid("clientAuthorization", authorization.Name, errs)
-	// }
+	if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
+		return nil, kerrors.NewInvalid("clientAuthorization", authorization.Name, errs)
+	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateClientAuthorization(authorization); err != nil {
@@ -70,7 +73,29 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // Update modifies an existing client authorization
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return s.Create(ctx, obj)
+	authorization, ok := obj.(*api.ClientAuthorization)
+	if !ok {
+		return nil, fmt.Errorf("not an authorization: %#v", obj)
+	}
+
+	if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
+		return nil, kerrors.NewInvalid("clientAuthorization", authorization.Name, errs)
+	}
+
+	oldauth, err := s.registry.GetClientAuthorization(authorization.Name)
+	if err != nil {
+		return nil, err
+	}
+	if errs := validation.ValidateClientAuthorizationUpdate(authorization, oldauth); len(errs) > 0 {
+		return nil, kerrors.NewInvalid("clientAuthorization", authorization.Name, errs)
+	}
+
+	return apiserver.MakeAsync(func() (runtime.Object, error) {
+		if err := s.registry.UpdateClientAuthorization(authorization); err != nil {
+			return nil, err
+		}
+		return s.Get(ctx, authorization.Name)
+	}), nil
 }
 
 // Delete asynchronously deletes an ClientAuthorization specified by its id.

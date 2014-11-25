@@ -3,6 +3,7 @@ package etcd
 import (
 	"errors"
 	"fmt"
+	"path"
 
 	etcderrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -22,8 +23,27 @@ func New(helper tools.EtcdHelper) *Etcd {
 	}
 }
 
-func makeAccessTokenKey(id string) string {
-	return "/accessTokens/" + id
+const (
+	AccessTokenPath         = "/registry/oauth/accessTokens"
+	AuthorizeTokenPath      = "/registry/oauth/authorizeTokens"
+	ClientPath              = "/registry/oauth/clients"
+	ClientAuthorizationPath = "/registry/oauth/clientAuthorizations"
+)
+
+func makeAccessTokenKey(name string) string {
+	return path.Join(AccessTokenPath, name)
+}
+
+func makeAuthorizeTokenKey(name string) string {
+	return path.Join(AuthorizeTokenPath, name)
+}
+
+func makeClientKey(name string) string {
+	return path.Join(ClientPath, name)
+}
+
+func makeClientAuthorizationKey(name string) string {
+	return path.Join(ClientAuthorizationPath, name)
 }
 
 func (r *Etcd) GetAccessToken(name string) (token *api.AccessToken, err error) {
@@ -34,7 +54,7 @@ func (r *Etcd) GetAccessToken(name string) (token *api.AccessToken, err error) {
 
 func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.AccessTokenList, error) {
 	list := api.AccessTokenList{}
-	err := r.ExtractToList("/accessTokens", &list)
+	err := r.ExtractToList(AccessTokenPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
@@ -63,10 +83,6 @@ func (r *Etcd) DeleteAccessToken(name string) error {
 	return err
 }
 
-func makeAuthorizeTokenKey(id string) string {
-	return "/authorizeTokens/" + id
-}
-
 func (r *Etcd) GetAuthorizeToken(name string) (token *api.AuthorizeToken, err error) {
 	token = &api.AuthorizeToken{}
 	err = etcderrs.InterpretGetError(r.ExtractObj(makeAuthorizeTokenKey(name), token, false), "authorizeToken", name)
@@ -75,7 +91,7 @@ func (r *Etcd) GetAuthorizeToken(name string) (token *api.AuthorizeToken, err er
 
 func (r *Etcd) ListAuthorizeTokens(selector labels.Selector) (*api.AuthorizeTokenList, error) {
 	list := api.AuthorizeTokenList{}
-	err := r.ExtractToList("/authorizeTokens", &list)
+	err := r.ExtractToList(AuthorizeTokenPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
@@ -97,10 +113,6 @@ func (r *Etcd) DeleteAuthorizeToken(name string) error {
 	return err
 }
 
-func makeClientKey(id string) string {
-	return "/clients/" + id
-}
-
 func (r *Etcd) GetClient(name string) (client *api.Client, err error) {
 	client = &api.Client{}
 	err = etcderrs.InterpretGetError(r.ExtractObj(makeClientKey(name), client, false), "client", name)
@@ -109,7 +121,7 @@ func (r *Etcd) GetClient(name string) (client *api.Client, err error) {
 
 func (r *Etcd) ListClients(selector labels.Selector) (*api.ClientList, error) {
 	list := api.ClientList{}
-	err := r.ExtractToList("/clients", &list)
+	err := r.ExtractToList(ClientPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
@@ -138,11 +150,7 @@ func (r *Etcd) DeleteClient(name string) error {
 	return err
 }
 
-func makeClientAuthorizationKey(id string) string {
-	return "/clientAuthorizations/" + id
-}
-
-func (r *Etcd) ClientAuthorizationID(userName, clientName string) string {
+func (r *Etcd) ClientAuthorizationName(userName, clientName string) string {
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
@@ -154,7 +162,7 @@ func (r *Etcd) GetClientAuthorization(name string) (client *api.ClientAuthorizat
 
 func (r *Etcd) ListClientAuthorizations(label, field labels.Selector) (*api.ClientAuthorizationList, error) {
 	list := api.ClientAuthorizationList{}
-	err := r.ExtractToList("/clients", &list)
+	err := r.ExtractToList(ClientAuthorizationPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}

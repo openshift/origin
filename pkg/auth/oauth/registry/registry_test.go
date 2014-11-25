@@ -279,9 +279,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 		Err: nil,
 		AccessToken: &oapi.AccessToken{
 			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now().Add(-1 * time.Hour)}},
-			AuthorizeToken: oapi.AuthorizeToken{
-				ExpiresIn: 600, // 10 minutes
-			},
+			ExpiresIn:  600, // 10 minutes
 		},
 	}
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
@@ -302,9 +300,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 		Err: nil,
 		AccessToken: &oapi.AccessToken{
 			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now()}},
-			AuthorizeToken: oapi.AuthorizeToken{
-				ExpiresIn: 600, // 10 minutes
-			},
+			ExpiresIn:  600, // 10 minutes
 		},
 	}
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)

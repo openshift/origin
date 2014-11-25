@@ -7,17 +7,17 @@ import (
 )
 
 type ClientRegistry struct {
-	Err             error
-	Clients         *api.ClientList
-	Client          *api.Client
-	DeletedClientId string
+	Err               error
+	Clients           *api.ClientList
+	Client            *api.Client
+	DeletedClientName string
 }
 
 func (r *ClientRegistry) ListClients(labels labels.Selector) (*api.ClientList, error) {
 	return r.Clients, r.Err
 }
 
-func (r *ClientRegistry) GetClient(id string) (*api.Client, error) {
+func (r *ClientRegistry) GetClient(name string) (*api.Client, error) {
 	return r.Client, r.Err
 }
 
@@ -29,7 +29,7 @@ func (r *ClientRegistry) UpdateClient(client *api.Client) error {
 	return r.Err
 }
 
-func (r *ClientRegistry) DeleteClient(id string) error {
-	r.DeletedClientId = id
+func (r *ClientRegistry) DeleteClient(name string) error {
+	r.DeletedClientName = name
 	return r.Err
 }

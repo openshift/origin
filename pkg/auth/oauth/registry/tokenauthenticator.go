@@ -28,12 +28,12 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (api.UserInfo, bool
 	if err != nil {
 		return nil, false, err
 	}
-	if token.CreationTimestamp.Time.Add(time.Duration(token.AuthorizeToken.ExpiresIn) * time.Second).Before(time.Now()) {
+	if token.CreationTimestamp.Time.Add(time.Duration(token.ExpiresIn) * time.Second).Before(time.Now()) {
 		return nil, false, nil
 	}
 	return &api.DefaultUserInfo{
-		Name:  token.AuthorizeToken.UserName,
-		UID:   token.AuthorizeToken.UserUID,
-		Scope: scope.Join(token.AuthorizeToken.Scopes),
+		Name:  token.UserName,
+		UID:   token.UserUID,
+		Scope: scope.Join(token.Scopes),
 	}, true, nil
 }

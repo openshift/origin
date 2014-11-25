@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/api/validation"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
@@ -55,10 +57,11 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 
 	token.CreationTimestamp = util.Now()
+	token.UID = util.NewUUID().String()
 
-	// if errs := validation.ValidateAccessToken(token); len(errs) > 0 {
-	// 	return nil, errors.NewInvalid("token", token.Name, errs)
-	// }
+	if errs := validation.ValidateAccessToken(token); len(errs) > 0 {
+		return nil, kerrors.NewInvalid("token", token.Name, errs)
+	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateAccessToken(token); err != nil {

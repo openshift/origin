@@ -38,8 +38,8 @@ func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *api.AuthorizeTo
 }
 
 func (u *testUser) ConvertToAccessToken(_ interface{}, token *api.AccessToken) error {
-	token.AuthorizeToken.UserName = u.UserName
-	token.AuthorizeToken.UserUID = u.UserUID
+	token.UserName = u.UserName
+	token.UserUID = u.UserUID
 	return u.Err
 }
 
@@ -155,7 +155,7 @@ func TestOAuthStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if actualToken.AuthorizeToken.UserUID != "1" || actualToken.AuthorizeToken.UserName != "test" {
+	if actualToken.UserUID != "1" || actualToken.UserName != "test" {
 		t.Errorf("unexpected stored token: %#v", actualToken)
 	}
 }
