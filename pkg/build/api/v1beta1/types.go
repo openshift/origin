@@ -18,6 +18,9 @@ type Build struct {
 
 	// PodName is the name of the pod that is used to execute the build
 	PodName string `json:"podName,omitempty" yaml:"podName,omitempty"`
+
+	// Cancelled describes if a cancelling event was triggered for the build.
+	Cancelled bool `json:"cancelled,omitempty" yaml:"cancelled,omitempty"`
 }
 
 // BuildParameters encapsulates all the inputs necessary to represent a build.
@@ -59,6 +62,9 @@ const (
 
 	// BuildError indicates that an error prevented the build from executing.
 	BuildStatusError BuildStatus = "Error"
+
+	// BuildCancelled indicates that a running/pending build was stopped from executing.
+	BuildStatusCancelled BuildStatus = "Cancelled"
 )
 
 // BuildSourceType is the type of SCM used
