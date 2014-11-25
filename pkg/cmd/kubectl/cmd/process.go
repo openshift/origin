@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/client"
@@ -31,14 +30,7 @@ Examples:
 				usageError(cmd, "Must pass a filename to update")
 			}
 
-			data, err := kubecmd.ReadConfigData(filename)
-			checkErr(err)
-
-			// TODO: Wouldn't be necessary, in upstream it is builtin.
-			namespace := api.NamespaceDefault
-			if ns := kubecmd.GetFlagString(cmd, "namespace"); len(ns) > 0 {
-				namespace = ns
-			}
+			_, namespace, _, data := kubecmd.ResourceFromFile(filename, f.Typer, f.Mapper)
 
 			c, err := f.OriginClientFunc(cmd, nil)
 			checkErr(err)
