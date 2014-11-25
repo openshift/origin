@@ -189,7 +189,7 @@ if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
 
     echo "[INFO] Installing router with master ip of ${apiIP} and starting pod..."
     echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
-    "${OS_ROOT}/hack/install-router.sh" $apiIP $openshift
+    "${OS_ROOT}/hack/install-router.sh" "router1" $apiIP $openshift
     wait_for_command "$openshift kube list pods | grep router | grep -i Running" $((5*TIME_MIN))
 
     echo "[INFO] Validate routed app response doesn't exist"

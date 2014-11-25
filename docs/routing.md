@@ -30,7 +30,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ make clean && make
     [vagrant@openshiftdev origin]$ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
-    [vagrant@openshiftdev origin]$ hack/install-router.sh {master ip}
+    [vagrant@openshiftdev origin]$ hack/install-router.sh {router_id} {master ip}
     [vagrant@openshiftdev origin]$ openshift kube list pods
     
 #### Clustered vagrant environment    
@@ -39,7 +39,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ hack/install-router.sh {master ip}
+    [vagrant@openshift-master ~]$ hack/install-router.sh {router_id} {master ip}
   
 
 
@@ -51,8 +51,10 @@ In order to run the router in a deployed environment the following conditions mu
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
 * The machine must not have services running on it that bind to host port 80 since this is what the router uses for traffic
 
-To install the router pod you use the `images/router/haproxy/pod.json` template and update the `MASTER_IP`.  You may then
-use the `openshift kube -c <your file> create pods` command.
+To install the router pod you use the `hack/install-router.sh` script, passing it the router id, master ip, and, optionally,
+the OpenShift executable.  If the executable is not passed the script will try to find it via the `PATH`.  If the
+script is still unable to find the OpenShift executable then it will simply create the `/tmp/router.json` file and stop.
+It is then up to the user to issue the `openshift kube create pods` command manually.
 
 ### Manually   
 
@@ -142,6 +144,86 @@ route.json
       "host": "hello-openshift.v3.rhcloud.com",
       "serviceName": "hello-openshift"
     }
+    
+## Running HA Routers
+
+Highly available router setups can be accomplished by running multiple instances of the router pod and fronting them with
+a balancing tier.  This could be something as simple as DNS round robin or as complex as multiple load balancing layers.
+
+### DNS Round Robin
+
+As a simple example, you may create a zone file for a DNS server like [BIND](http://www.isc.org/downloads/bind/) that maps
+multiple A records for a single domain name.  When clients do a lookup they will be given one of the many records, in order
+as a round robin scheme.  The files below illustrate an example of using wild card DNS with multiple A records to achieve
+the desired round robin.  The wild card could be further distributed into shards with `*.<shard>`.  Finally, a test using
+`dig` (available in the `bind-utils` package) is shown from the vagrant environment that shows multiple answers for the 
+same lookup.  Doing multiple pings show the resolution swapping between IP addresses.
+
+#### named.conf - add a new zone that points to your file
+    zone "v3.rhcloud.com" IN {
+            type master;
+            file "v3.rhcloud.com.zone";
+    };
+    
+
+#### v3.rhcloud.com.zone - contains the round robin mappings for the DNS lookup
+    $ORIGIN v3.rhcloud.com.
+    
+    @       IN      SOA     . v3.rhcloud.com. (
+                         2009092001         ; Serial
+                             604800         ; Refresh
+                              86400         ; Retry
+                            1206900         ; Expire
+                                300 )       ; Negative Cache TTL
+            IN      NS      ns1.v3.rhcloud.com.
+    ns1     IN      A       127.0.0.1
+    *       IN      A       10.245.2.2
+            IN      A       10.245.2.3
+            
+
+#### Testing the entry
+            
+            
+    [vagrant@openshift-master ~]$ dig hello-openshift.shard1.v3.rhcloud.com
+        
+    ; <<>> DiG 9.9.4-P2-RedHat-9.9.4-16.P2.fc20 <<>> hello-openshift.shard1.v3.rhcloud.com
+    ;; global options: +cmd
+    ;; Got answer:
+    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 36389
+    ;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 1, ADDITIONAL: 2
+    ;; WARNING: recursion requested but not available
+    
+    ;; OPT PSEUDOSECTION:
+    ; EDNS: version: 0, flags:; udp: 4096
+    ;; QUESTION SECTION:
+    ;hello-openshift.shard1.v3.rhcloud.com. IN A
+    
+    ;; ANSWER SECTION:
+    hello-openshift.shard1.v3.rhcloud.com. 300 IN A	10.245.2.2
+    hello-openshift.shard1.v3.rhcloud.com. 300 IN A	10.245.2.3
+    
+    ;; AUTHORITY SECTION:
+    v3.rhcloud.com.		300	IN	NS	ns1.v3.rhcloud.com.
+    
+    ;; ADDITIONAL SECTION:
+    ns1.v3.rhcloud.com.	300	IN	A	127.0.0.1
+    
+    ;; Query time: 5 msec
+    ;; SERVER: 10.245.2.3#53(10.245.2.3)
+    ;; WHEN: Wed Nov 19 19:01:32 UTC 2014
+    ;; MSG SIZE  rcvd: 132
+    
+    [vagrant@openshift-master ~]$ ping hello-openshift.shard1.v3.rhcloud.com
+    PING hello-openshift.shard1.v3.rhcloud.com (10.245.2.3) 56(84) bytes of data.
+    ...
+    ^C
+    --- hello-openshift.shard1.v3.rhcloud.com ping statistics ---
+    2 packets transmitted, 2 received, 0% packet loss, time 1000ms
+    rtt min/avg/max/mdev = 0.272/0.573/0.874/0.301 ms
+    [vagrant@openshift-master ~]$ ping hello-openshift.shard1.v3.rhcloud.com
+    ...
+
+
 
 ## Dev - Building the haproxy router image
 
