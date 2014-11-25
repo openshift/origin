@@ -25,6 +25,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	. "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/cmd/client/build"
@@ -60,6 +61,7 @@ type KubeConfig struct {
 	TemplateStr    string
 	ID             string
 	Namespace      string
+	BuildConfigID  string
 
 	ImageName string
 
@@ -309,7 +311,7 @@ func (c *KubeConfig) Run() {
 		"projects":                {"Project", client.RESTClient, latest.Codec},
 	}
 
-	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeNamespaceRequest(method) || c.executeAPIRequest(method, clients)
+	matchFound := c.executeConfigRequest(method, clients) || c.executeBuildRequest(method, client) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeNamespaceRequest(method) || c.executeAPIRequest(method, clients)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -498,6 +500,40 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kclient.Cli
 	}
 	if err != nil {
 		glog.Fatalf("Error: %v", err)
+	}
+	return true
+}
+
+// executeBuildRequest will re-ran specified build or create a new one from specified buildConfig.
+// To re-run the build specify the buildID, from which the build parameters will be extracted.
+// E.g: openshift kube create builds --id="buildID"
+// To create a build from a buildConfig specify it's ID.
+// E.g: openshift kube create builds --from-build-cfg="buildConfigID"
+func (c *KubeConfig) executeBuildRequest(method string, client *osclient.Client) bool {
+	if method != "create" || c.Arg(1) != "builds" || (len(c.ID) == 0 && len(c.BuildConfigID) == 0) {
+		return false
+	}
+	build := &buildapi.Build{}
+	if len(c.ID) != 0 {
+		oldBuild := &buildapi.Build{}
+		request := client.Get().Namespace(c.getNamespace()).Path("/builds").Path(c.ID)
+		err := request.Do().Into(oldBuild)
+		if err != nil {
+			glog.Fatalf("failed to trigger build manually: %v", err)
+		}
+		build.Parameters = oldBuild.Parameters
+	} else {
+		buildConfig := &buildapi.BuildConfig{}
+		request := client.Get().Namespace(c.getNamespace()).Path("/buildConfigs").Path(c.BuildConfigID)
+		err := request.Do().Into(buildConfig)
+		if err != nil {
+			glog.Fatalf("failed to trigger build manually: %v", err)
+		}
+		build = buildutil.GenerateBuild(buildConfig, buildConfig.Parameters.Revision)
+	}
+	request := client.Post().Namespace(c.getNamespace()).Path("/builds").Body(build)
+	if err := request.Do().Error(); err != nil {
+		glog.Fatalf("failed to trigger build manually: %v", err)
 	}
 	return true
 }
