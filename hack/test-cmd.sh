@@ -82,7 +82,7 @@ echo "kube(imageRepositoryMappings): ok"
 
 ${KUBE_CMD} get routes
 ${KUBE_CMD} create -f test/integration/fixtures/test-route.json create routes
-${KUBE_CMD} delete routesa testroute
+${KUBE_CMD} delete routes testroute
 echo "kube(routes): ok"
 
 ${KUBE_CMD} get deploymentConfigs
