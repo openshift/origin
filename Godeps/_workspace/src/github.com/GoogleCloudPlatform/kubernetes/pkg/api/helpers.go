@@ -20,11 +20,9 @@ import (
 	"strings"
 )
 
+// TODO: Address these per #1502
+
 func IsPullAlways(p PullPolicy) bool {
-	// Default to pull always
-	if len(p) == 0 {
-		return true
-	}
 	return pullPoliciesEqual(p, PullAlways)
 }
 
@@ -33,6 +31,10 @@ func IsPullNever(p PullPolicy) bool {
 }
 
 func IsPullIfNotPresent(p PullPolicy) bool {
+	// Default to pull if not present
+	if len(p) == 0 {
+		return true
+	}
 	return pullPoliciesEqual(p, PullIfNotPresent)
 }
 

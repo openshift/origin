@@ -30,6 +30,7 @@ import (
 
 	"code.google.com/p/goauth2/compute/serviceaccount"
 	compute "code.google.com/p/google-api-go-client/compute/v1"
+	container "code.google.com/p/google-api-go-client/container/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resources"
@@ -39,10 +40,11 @@ import (
 
 // GCECloud is an implementation of Interface, TCPLoadBalancer and Instances for Google Compute Engine.
 type GCECloud struct {
-	service    *compute.Service
-	projectID  string
-	zone       string
-	instanceID string
+	service          *compute.Service
+	containerService *container.Service
+	projectID        string
+	zone             string
+	instanceID       string
 }
 
 func init() {
@@ -76,7 +78,7 @@ func getProjectAndZone() (string, string, error) {
 	}
 	parts := strings.Split(result, "/")
 	if len(parts) != 4 {
-		return "", "", fmt.Errorf("Unexpected response: %s", result)
+		return "", "", fmt.Errorf("unexpected response: %s", result)
 	}
 	return parts[1], parts[3], nil
 }
@@ -89,7 +91,7 @@ func getInstanceID() (string, error) {
 	}
 	parts := strings.Split(result, ".")
 	if len(parts) == 0 {
-		return "", fmt.Errorf("Unexpected response: %s", result)
+		return "", fmt.Errorf("unexpected response: %s", result)
 	}
 	return parts[0], nil
 }
@@ -115,12 +117,21 @@ func newGCECloud() (*GCECloud, error) {
 	if err != nil {
 		return nil, err
 	}
+	containerSvc, err := container.New(client)
+	if err != nil {
+		return nil, err
+	}
 	return &GCECloud{
-		service:    svc,
-		projectID:  projectID,
-		zone:       zone,
-		instanceID: instanceID,
+		service:          svc,
+		containerService: containerSvc,
+		projectID:        projectID,
+		zone:             zone,
+		instanceID:       instanceID,
 	}, nil
+}
+
+func (gce *GCECloud) Clusters() (cloudprovider.Clusters, bool) {
+	return gce, true
 }
 
 // TCPLoadBalancer returns an implementation of TCPLoadBalancer for Google Compute Engine.
@@ -181,10 +192,10 @@ func (gce *GCECloud) TCPLoadBalancerExists(name, region string) (bool, error) {
 }
 
 // CreateTCPLoadBalancer is an implementation of TCPLoadBalancer.CreateTCPLoadBalancer.
-func (gce *GCECloud) CreateTCPLoadBalancer(name, region string, port int, hosts []string) error {
+func (gce *GCECloud) CreateTCPLoadBalancer(name, region string, externalIP net.IP, port int, hosts []string) (net.IP, error) {
 	pool, err := gce.makeTargetPool(name, region, hosts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req := &compute.ForwardingRule{
 		Name:       name,
@@ -192,8 +203,22 @@ func (gce *GCECloud) CreateTCPLoadBalancer(name, region string, port int, hosts 
 		PortRange:  strconv.Itoa(port),
 		Target:     pool,
 	}
-	_, err = gce.service.ForwardingRules.Insert(gce.projectID, region, req).Do()
-	return err
+	if len(externalIP) > 0 {
+		req.IPAddress = externalIP.String()
+	}
+	op, err := gce.service.ForwardingRules.Insert(gce.projectID, region, req).Do()
+	if err != nil {
+		return nil, err
+	}
+	err = gce.waitForRegionOp(op, region)
+	if err != nil {
+		return nil, err
+	}
+	fwd, err := gce.service.ForwardingRules.Get(gce.projectID, region, name).Do()
+	if err != nil {
+		return nil, err
+	}
+	return net.ParseIP(fwd.IPAddress), nil
 }
 
 // UpdateTCPLoadBalancer is an implementation of TCPLoadBalancer.UpdateTCPLoadBalancer.
@@ -241,7 +266,7 @@ func (gce *GCECloud) IPAddress(instance string) (net.IP, error) {
 	}
 	ip := net.ParseIP(res.NetworkInterfaces[0].AccessConfigs[0].NatIP)
 	if ip == nil {
-		return nil, fmt.Errorf("Invalid network IP: %s", res.NetworkInterfaces[0].AccessConfigs[0].NatIP)
+		return nil, fmt.Errorf("invalid network IP: %s", res.NetworkInterfaces[0].AccessConfigs[0].NatIP)
 	}
 	return ip, nil
 }
@@ -384,4 +409,20 @@ func (gce *GCECloud) convertDiskToAttachedDisk(disk *compute.Disk, readWrite str
 		Source:     "https://" + path.Join("www.googleapis.com/compute/v1/projects/", gce.projectID, "zones", gce.zone, "disks", disk.Name),
 		Type:       "PERSISTENT",
 	}
+}
+
+func (gce *GCECloud) ListClusters() ([]string, error) {
+	list, err := gce.containerService.Projects.Clusters.List(gce.projectID).Do()
+	if err != nil {
+		return nil, err
+	}
+	result := []string{}
+	for _, cluster := range list.Clusters {
+		result = append(result, cluster.Name)
+	}
+	return result, nil
+}
+
+func (gce *GCECloud) Master(clusterName string) (string, error) {
+	return "k8s-" + clusterName + "-master.internal", nil
 }

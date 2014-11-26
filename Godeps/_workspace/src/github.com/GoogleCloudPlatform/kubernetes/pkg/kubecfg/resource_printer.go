@@ -123,16 +123,16 @@ func (h *HumanReadablePrinter) Handler(columns []string, printFunc interface{}) 
 
 func (h *HumanReadablePrinter) validatePrintHandlerFunc(printFunc reflect.Value) error {
 	if printFunc.Kind() != reflect.Func {
-		return fmt.Errorf("Invalid print handler. %#v is not a function.", printFunc)
+		return fmt.Errorf("invalid print handler. %#v is not a function.", printFunc)
 	}
 	funcType := printFunc.Type()
 	if funcType.NumIn() != 2 || funcType.NumOut() != 1 {
-		return fmt.Errorf("Invalid print handler." +
+		return fmt.Errorf("invalid print handler." +
 			"Must accept 2 parameters and return 1 value.")
 	}
 	if funcType.In(1) != reflect.TypeOf((*io.Writer)(nil)).Elem() ||
 		funcType.Out(0) != reflect.TypeOf((*error)(nil)).Elem() {
-		return fmt.Errorf("Invalid print handler. The expected signature is: "+
+		return fmt.Errorf("invalid print handler. The expected signature is: "+
 			"func handler(obj %v, w io.Writer) error", funcType.In(0))
 	}
 	return nil
@@ -141,7 +141,7 @@ func (h *HumanReadablePrinter) validatePrintHandlerFunc(printFunc reflect.Value)
 var podColumns = []string{"Name", "Image(s)", "Host", "Labels", "Status"}
 var replicationControllerColumns = []string{"Name", "Image(s)", "Selector", "Replicas"}
 var serviceColumns = []string{"Name", "Labels", "Selector", "IP", "Port"}
-var minionColumns = []string{"Minion identifier"}
+var minionColumns = []string{"Minion identifier", "Labels"}
 var statusColumns = []string{"Status"}
 var eventColumns = []string{"Name", "Kind", "Status", "Reason", "Message"}
 
@@ -177,9 +177,17 @@ func (h *HumanReadablePrinter) printHeader(columnNames []string, w io.Writer) er
 	return err
 }
 
-func makeImageList(manifest api.ContainerManifest) string {
+func makeImageList(manifest api.PodSpec) string {
 	var images []string
 	for _, container := range manifest.Containers {
+		images = append(images, container.Image)
+	}
+	return strings.Join(images, ",")
+}
+
+func makeImageListPodSpec(spec api.PodSpec) string {
+	var images []string
+	for _, container := range spec.Containers {
 		images = append(images, container.Image)
 	}
 	return strings.Join(images, ",")
@@ -194,9 +202,9 @@ func podHostString(host, ip string) string {
 
 func printPod(pod *api.Pod, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-		pod.Name, makeImageList(pod.DesiredState.Manifest),
-		podHostString(pod.CurrentState.Host, pod.CurrentState.HostIP),
-		labels.Set(pod.Labels), pod.CurrentState.Status)
+		pod.Name, makeImageList(pod.Spec),
+		podHostString(pod.Status.Host, pod.Status.HostIP),
+		labels.Set(pod.Labels), pod.Status.Phase)
 	return err
 }
 
@@ -211,8 +219,8 @@ func printPodList(podList *api.PodList, w io.Writer) error {
 
 func printReplicationController(controller *api.ReplicationController, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
-		controller.Name, makeImageList(controller.DesiredState.PodTemplate.DesiredState.Manifest),
-		labels.Set(controller.DesiredState.ReplicaSelector), controller.DesiredState.Replicas)
+		controller.Name, makeImageListPodSpec(controller.Spec.Template.Spec),
+		labels.Set(controller.Spec.Selector), controller.Spec.Replicas)
 	return err
 }
 
@@ -241,7 +249,7 @@ func printServiceList(list *api.ServiceList, w io.Writer) error {
 }
 
 func printMinion(minion *api.Minion, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\n", minion.Name)
+	_, err := fmt.Fprintf(w, "%s\t%s\n", minion.Name, labels.Set(minion.Labels))
 	return err
 }
 
@@ -313,7 +321,7 @@ func (h *HumanReadablePrinter) PrintObj(obj runtime.Object, output io.Writer) er
 			return resultValue.Interface().(error)
 		}
 	} else {
-		return fmt.Errorf("Error: unknown type %#v", obj)
+		return fmt.Errorf("unknown type %#v", obj)
 	}
 }
 

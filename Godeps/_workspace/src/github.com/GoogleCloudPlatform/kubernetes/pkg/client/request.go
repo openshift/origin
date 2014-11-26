@@ -51,6 +51,29 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// UnexpectedStatusError is returned as an error if a response's body and HTTP code don't
+// make sense together.
+type UnexpectedStatusError struct {
+	Request  *http.Request
+	Response *http.Response
+	Body     string
+}
+
+// Error returns a textual description of 'u'.
+func (u *UnexpectedStatusError) Error() string {
+	return fmt.Sprintf("request [%#v] failed (%d) %s: %s", u.Request, u.Response.StatusCode, u.Response.Status, u.Body)
+}
+
+// RequestConstructionError is returned when there's an error assembling a request.
+type RequestConstructionError struct {
+	Err error
+}
+
+// Error returns a textual description of 'r'.
+func (r *RequestConstructionError) Error() string {
+	return fmt.Sprintf("request construction error: '%v'", r.Err)
+}
+
 // Request allows for building up a request to a server in a chained fashion.
 // Any errors are stored until the end of your call, so you only have to
 // check once.
@@ -218,7 +241,7 @@ func (r *Request) Body(obj interface{}) *Request {
 		}
 		r.body = bytes.NewBuffer(data)
 	default:
-		r.err = fmt.Errorf("Unknown type used for body: %#v", obj)
+		r.err = fmt.Errorf("unknown type used for body: %#v", obj)
 	}
 	return r
 }
@@ -278,7 +301,11 @@ func (r *Request) Watch() (watch.Interface, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Got status: %v", resp.StatusCode)
+		var body []byte
+		if resp.Body != nil {
+			body, _ = ioutil.ReadAll(resp.Body)
+		}
+		return nil, fmt.Errorf("for request '%v', got status: %v\nbody: %v", req.URL, resp.StatusCode, string(body))
 	}
 	return watch.NewStreamWatcher(watchjson.NewDecoder(resp.Body, r.codec)), nil
 }
@@ -306,6 +333,13 @@ func (r *Request) Stream() (io.ReadCloser, error) {
 
 // Do formats and executes the request. Returns a Result object for easy response
 // processing. Handles polling the server in the event a continuation was sent.
+//
+// Error type:
+//  * If the request can't be constructed, or an error happened earlier while building its
+//    arguments: *RequestConstructionError
+//  * If the server responds with a status: *errors.StatusError or *errors.UnexpectedObjectError
+//  * If the status code and body don't make sense together: *UnexpectedStatusError
+//  * http.Client.Do errors are returned directly.
 func (r *Request) Do() Result {
 	client := r.client
 	if client == nil {
@@ -314,12 +348,12 @@ func (r *Request) Do() Result {
 
 	for {
 		if r.err != nil {
-			return Result{err: r.err}
+			return Result{err: &RequestConstructionError{r.err}}
 		}
 
 		req, err := http.NewRequest(r.verb, r.finalURL(), r.body)
 		if err != nil {
-			return Result{err: err}
+			return Result{err: &RequestConstructionError{err}}
 		}
 
 		resp, err := client.Do(req)
@@ -377,7 +411,11 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) ([]b
 	switch {
 	case resp.StatusCode < http.StatusOK || resp.StatusCode > http.StatusPartialContent:
 		if !isStatusResponse {
-			return nil, false, fmt.Errorf("request [%#v] failed (%d) %s: %s", req, resp.StatusCode, resp.Status, string(body))
+			return nil, false, &UnexpectedStatusError{
+				Request:  req,
+				Response: resp,
+				Body:     string(body),
+			}
 		}
 		return nil, false, errors.FromObject(&status)
 	}
@@ -431,6 +469,7 @@ func (r Result) WasCreated(wasCreated *bool) Result {
 }
 
 // Error returns the error executing the request, nil if no error occurred.
+// See the Request.Do() comment for what errors you might get.
 func (r Result) Error() error {
 	return r.err
 }

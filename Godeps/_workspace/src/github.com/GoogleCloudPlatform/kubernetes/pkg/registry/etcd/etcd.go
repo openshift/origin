@@ -18,7 +18,6 @@ package etcd
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -78,10 +77,10 @@ func MakeEtcdItemKey(ctx api.Context, prefix string, id string) (string, error) 
 	key := MakeEtcdListKey(ctx, prefix)
 	ns, ok := api.NamespaceFrom(ctx)
 	if !ok || len(ns) == 0 {
-		return "", fmt.Errorf("Invalid request.  Namespace parameter required.")
+		return "", fmt.Errorf("invalid request.  Namespace parameter required.")
 	}
 	if len(id) == 0 {
-		return "", fmt.Errorf("Invalid request.  Id parameter required.")
+		return "", fmt.Errorf("invalid request.  Id parameter required.")
 	}
 	key = key + "/" + id
 	return key, nil
@@ -95,21 +94,6 @@ func makePodListKey(ctx api.Context) string {
 // makePodKey constructs etcd paths to pod items enforcing namespace rules.
 func makePodKey(ctx api.Context, id string) (string, error) {
 	return MakeEtcdItemKey(ctx, PodPath, id)
-}
-
-// ParseWatchResourceVersion takes a resource version argument and converts it to
-// the etcd version we should pass to helper.Watch(). Because resourceVersion is
-// an opaque value, the default watch behavior for non-zero watch is to watch
-// the next value (if you pass "1", you will see updates from "2" onwards).
-func ParseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
-	if resourceVersion == "" || resourceVersion == "0" {
-		return 0, nil
-	}
-	version, err := strconv.ParseUint(resourceVersion, 10, 64)
-	if err != nil {
-		return 0, etcderr.InterpretResourceVersionError(err, kind, resourceVersion)
-	}
-	return version + 1, nil
 }
 
 // ListPods obtains a list of pods with labels that match selector.
@@ -130,10 +114,6 @@ func (r *Registry) ListPodsPredicate(ctx api.Context, filter func(*api.Pod) bool
 	filtered := []api.Pod{}
 	for _, pod := range allPods.Items {
 		if filter(&pod) {
-			// TODO: Currently nothing sets CurrentState.Host. We need a feedback loop that sets
-			// the CurrentState.Host and Status fields. Here we pretend that reality perfectly
-			// matches our desires.
-			pod.CurrentState.Host = pod.DesiredState.Host
 			filtered = append(filtered, pod)
 		}
 	}
@@ -143,7 +123,7 @@ func (r *Registry) ListPodsPredicate(ctx api.Context, filter func(*api.Pod) bool
 
 // WatchPods begins watching for new, changed, or deleted pods.
 func (r *Registry) WatchPods(ctx api.Context, resourceVersion string, filter func(*api.Pod) bool) (watch.Interface, error) {
-	version, err := ParseWatchResourceVersion(resourceVersion, "pod")
+	version, err := tools.ParseWatchResourceVersion(resourceVersion, "pod")
 	if err != nil {
 		return nil, err
 	}
@@ -169,25 +149,18 @@ func (r *Registry) GetPod(ctx api.Context, id string) (*api.Pod, error) {
 	if err = r.ExtractObj(key, &pod, false); err != nil {
 		return nil, etcderr.InterpretGetError(err, "pod", id)
 	}
-	// TODO: Currently nothing sets CurrentState.Host. We need a feedback loop that sets
-	// the CurrentState.Host and Status fields. Here we pretend that reality perfectly
-	// matches our desires.
-	pod.CurrentState.Host = pod.DesiredState.Host
 	return &pod, nil
 }
 
-func makeContainerKey(machine string) string {
+func makeBoundPodsKey(machine string) string {
 	return "/registry/nodes/" + machine + "/boundpods"
 }
 
 // CreatePod creates a pod based on a specification.
 func (r *Registry) CreatePod(ctx api.Context, pod *api.Pod) error {
 	// Set current status to "Waiting".
-	pod.CurrentState.Status = api.PodPending
-	pod.CurrentState.Host = ""
-	// DesiredState.Host == "" is a signal to the scheduler that this pod needs scheduling.
-	pod.DesiredState.Status = api.PodRunning
-	pod.DesiredState.Host = ""
+	pod.Status.Phase = api.PodPending
+	pod.Status.Host = ""
 	key, err := makePodKey(ctx, pod.Name)
 	if err != nil {
 		return err
@@ -213,10 +186,10 @@ func (r *Registry) setPodHostTo(ctx api.Context, podID, oldMachine, machine stri
 		if !ok {
 			return nil, fmt.Errorf("unexpected object: %#v", obj)
 		}
-		if pod.DesiredState.Host != oldMachine {
-			return nil, fmt.Errorf("pod %v is already assigned to host %v", pod.Name, pod.DesiredState.Host)
+		if pod.Status.Host != oldMachine {
+			return nil, fmt.Errorf("pod %v is already assigned to host %v", pod.Name, pod.Status.Host)
 		}
-		pod.DesiredState.Host = machine
+		pod.Status.Host = machine
 		finalPod = pod
 		return pod, nil
 	})
@@ -234,12 +207,12 @@ func (r *Registry) assignPod(ctx api.Context, podID string, machine string) erro
 		return err
 	}
 	// Doing the constraint check this way provides atomicity guarantees.
-	contKey := makeContainerKey(machine)
+	contKey := makeBoundPodsKey(machine)
 	err = r.AtomicUpdate(contKey, &api.BoundPods{}, func(in runtime.Object) (runtime.Object, error) {
 		boundPodList := in.(*api.BoundPods)
 		boundPodList.Items = append(boundPodList.Items, *boundPod)
 		if !constraint.Allowed(boundPodList.Items) {
-			return nil, fmt.Errorf("The assignment would cause a constraint violation")
+			return nil, fmt.Errorf("the assignment would cause a constraint violation")
 		}
 		return boundPodList, nil
 	})
@@ -264,9 +237,9 @@ func (r *Registry) UpdatePod(ctx api.Context, pod *api.Pod) error {
 	if err != nil {
 		return err
 	}
-	scheduled := podOut.DesiredState.Host != ""
+	scheduled := podOut.Status.Host != ""
 	if scheduled {
-		pod.DesiredState.Host = podOut.DesiredState.Host
+		pod.Status.Host = podOut.Status.Host
 		// If it's already been scheduled, limit the types of updates we'll accept.
 		errs := validation.ValidatePodUpdate(pod, &podOut)
 		if len(errs) != 0 {
@@ -283,18 +256,19 @@ func (r *Registry) UpdatePod(ctx api.Context, pod *api.Pod) error {
 		// never scheduled, just update.
 		return nil
 	}
-	containerKey := makeContainerKey(podOut.DesiredState.Host)
-	return r.AtomicUpdate(containerKey, &api.ContainerManifestList{}, func(in runtime.Object) (runtime.Object, error) {
-		manifests := in.(*api.ContainerManifestList)
-		for ix := range manifests.Items {
-			if manifests.Items[ix].ID == pod.Name {
-				manifests.Items[ix] = pod.DesiredState.Manifest
-				return manifests, nil
+
+	containerKey := makeBoundPodsKey(podOut.Status.Host)
+	return r.AtomicUpdate(containerKey, &api.BoundPods{}, func(in runtime.Object) (runtime.Object, error) {
+		boundPods := in.(*api.BoundPods)
+		for ix := range boundPods.Items {
+			if boundPods.Items[ix].Name == pod.Name {
+				boundPods.Items[ix].Spec = pod.Spec
+				return boundPods, nil
 			}
 		}
 		// This really shouldn't happen
-		glog.Warningf("Couldn't find: %s in %#v", pod.Name, manifests)
-		return manifests, fmt.Errorf("Failed to update pod, couldn't find %s in %#v", pod.Name, manifests)
+		glog.Warningf("Couldn't find: %s in %#v", pod.Name, boundPods)
+		return boundPods, fmt.Errorf("failed to update pod, couldn't find %s in %#v", pod.Name, boundPods)
 	})
 }
 
@@ -315,13 +289,13 @@ func (r *Registry) DeletePod(ctx api.Context, podID string) error {
 	if err != nil {
 		return etcderr.InterpretDeleteError(err, "pod", podID)
 	}
-	machine := pod.DesiredState.Host
+	machine := pod.Status.Host
 	if machine == "" {
 		// Pod was never scheduled anywhere, just return.
 		return nil
 	}
 	// Next, remove the pod from the machine atomically.
-	contKey := makeContainerKey(machine)
+	contKey := makeBoundPodsKey(machine)
 	return r.AtomicUpdate(contKey, &api.BoundPods{}, func(in runtime.Object) (runtime.Object, error) {
 		pods := in.(*api.BoundPods)
 		newPods := make([]api.BoundPod, 0, len(pods.Items))
@@ -354,7 +328,7 @@ func (r *Registry) ListControllers(ctx api.Context) (*api.ReplicationControllerL
 
 // WatchControllers begins watching for new, changed, or deleted controllers.
 func (r *Registry) WatchControllers(ctx api.Context, resourceVersion string) (watch.Interface, error) {
-	version, err := ParseWatchResourceVersion(resourceVersion, "replicationControllers")
+	version, err := tools.ParseWatchResourceVersion(resourceVersion, "replicationControllers")
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +395,7 @@ func makeServiceListKey(ctx api.Context) string {
 	return MakeEtcdListKey(ctx, ServicePath)
 }
 
-// makePodKey constructs etcd paths to service items enforcing namespace rules.
+// makeServiceKey constructs etcd paths to service items enforcing namespace rules.
 func makeServiceKey(ctx api.Context, name string) (string, error) {
 	return MakeEtcdItemKey(ctx, ServicePath, name)
 }
@@ -516,7 +490,7 @@ func (r *Registry) UpdateService(ctx api.Context, svc *api.Service) error {
 
 // WatchServices begins watching for new, changed, or deleted service configurations.
 func (r *Registry) WatchServices(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := ParseWatchResourceVersion(resourceVersion, "service")
+	version, err := tools.ParseWatchResourceVersion(resourceVersion, "service")
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +535,7 @@ func (r *Registry) UpdateEndpoints(ctx api.Context, endpoints *api.Endpoints) er
 
 // WatchEndpoints begins watching for new, changed, or deleted endpoint configurations.
 func (r *Registry) WatchEndpoints(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := ParseWatchResourceVersion(resourceVersion, "endpoints")
+	version, err := tools.ParseWatchResourceVersion(resourceVersion, "endpoints")
 	if err != nil {
 		return nil, err
 	}
@@ -595,6 +569,12 @@ func (r *Registry) CreateMinion(ctx api.Context, minion *api.Minion) error {
 	// TODO: Add some validations.
 	err := r.CreateObj(makeMinionKey(minion.Name), minion, 0)
 	return etcderr.InterpretCreateError(err, "minion", minion.Name)
+}
+
+func (r *Registry) UpdateMinion(ctx api.Context, minion *api.Minion) error {
+	// TODO: Add some validations.
+	err := r.SetObj(makeMinionKey(minion.Name), minion)
+	return etcderr.InterpretUpdateError(err, "minion", minion.Name)
 }
 
 func (r *Registry) GetMinion(ctx api.Context, minionID string) (*api.Minion, error) {

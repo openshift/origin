@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
 	"github.com/spf13/cobra"
 )
 
@@ -44,13 +45,13 @@ Examples:
   $ kubectl get replicationController 1234-56-7890-234234-456456
   <list single replication controller in ps output format>
 
-  $ kubectl get -f json pod 1234-56-7890-234234-456456
+  $ kubectl get -o json pod 1234-56-7890-234234-456456
   <list single pod in json output format>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			mapping, namespace, name := ResourceOrTypeFromArgs(cmd, args, f.Mapper)
 
 			selector := GetFlagString(cmd, "selector")
-			labels, err := labels.ParseSelector(selector)
+			labelSelector, err := labels.ParseSelector(selector)
 			checkErr(err)
 
 			client, err := f.Client(cmd, mapping)
@@ -61,24 +62,36 @@ Examples:
 			defaultPrinter, err := f.Printer(cmd, mapping, GetFlagBool(cmd, "no-headers"))
 			checkErr(err)
 
-			printer, versioned, err := kubectl.GetPrinter(outputFormat, templateFile, defaultPrinter)
-			checkErr(err)
-
-			obj, err := kubectl.NewRESTHelper(client, mapping).Get(namespace, name, labels)
-			checkErr(err)
-
-			if versioned {
-				outputVersion := GetFlagString(cmd, "output-version")
-				if len(outputVersion) == 0 {
-					outputVersion = mapping.APIVersion
-				}
-
-				obj, err = mapping.ObjectConvertor.ConvertToVersion(obj, outputVersion)
-				checkErr(err)
+			outputVersion := GetFlagString(cmd, "output-version")
+			if len(outputVersion) == 0 {
+				outputVersion = mapping.APIVersion
 			}
 
-			if err := printer.PrintObj(obj, out); err != nil {
-				checkErr(fmt.Errorf("Unable to output the provided object: %v", err))
+			printer, err := kubectl.GetPrinter(outputFormat, templateFile, outputVersion, mapping.ObjectConvertor, defaultPrinter)
+			checkErr(err)
+
+			restHelper := kubectl.NewRESTHelper(client, mapping)
+			obj, err := restHelper.Get(namespace, name, labelSelector)
+			checkErr(err)
+
+			isWatch, isWatchOnly := GetFlagBool(cmd, "watch"), GetFlagBool(cmd, "watch-only")
+
+			// print the current object
+			if !isWatchOnly {
+				if err := printer.PrintObj(obj, out); err != nil {
+					checkErr(fmt.Errorf("unable to output the provided object: %v", err))
+				}
+			}
+
+			// print watched changes
+			if isWatch || isWatchOnly {
+				rv, err := mapping.MetadataAccessor.ResourceVersion(obj)
+				checkErr(err)
+
+				w, err := restHelper.Watch(namespace, rv, labelSelector, labels.Everything())
+				checkErr(err)
+
+				kubectl.WatchLoop(w, printer, out)
 			}
 		},
 	}
@@ -87,5 +100,7 @@ Examples:
 	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers")
 	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when --output=template or --output=templatefile")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
+	cmd.Flags().BoolP("watch", "w", false, "After listing/getting the requested object, watch for changes.")
+	cmd.Flags().Bool("watch-only", false, "Watch for changes to the requseted object(s), without listing/getting first.")
 	return cmd
 }

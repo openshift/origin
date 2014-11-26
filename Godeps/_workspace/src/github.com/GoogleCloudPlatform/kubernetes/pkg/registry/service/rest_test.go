@@ -19,7 +19,6 @@ package service
 import (
 	"fmt"
 	"net"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -44,6 +43,8 @@ func TestServiceRegistryCreate(t *testing.T) {
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	storage := NewREST(registry, fakeCloud, registrytest.NewMinionRegistry(machines, api.NodeResources{}), makeIPNet(t))
+	storage.portalMgr.randomAttempts = 0
+
 	svc := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
 		Spec: api.ServiceSpec{
@@ -55,6 +56,9 @@ func TestServiceRegistryCreate(t *testing.T) {
 	c, _ := storage.Create(ctx, svc)
 	created_svc := <-c
 	created_service := created_svc.Object.(*api.Service)
+	if !api.HasObjectMetaSystemFieldValues(&created_service.ObjectMeta) {
+		t.Errorf("storage did not populate object meta field values")
+	}
 	if created_service.Name != "foo" {
 		t.Errorf("Expected foo, but got %v", created_service.Name)
 	}
@@ -283,79 +287,6 @@ func TestServiceRegistryDeleteExternal(t *testing.T) {
 	}
 }
 
-func TestServiceRegistryMakeLinkVariables(t *testing.T) {
-	ctx := api.NewDefaultContext()
-	registry := registrytest.NewServiceRegistry()
-	registry.List = api.ServiceList{
-		Items: []api.Service{
-			{
-				ObjectMeta: api.ObjectMeta{Name: "foo-bar"},
-				Spec: api.ServiceSpec{
-					Port:     8080,
-					Selector: map[string]string{"bar": "baz"},
-					Protocol: "TCP",
-					PortalIP: "1.2.3.4",
-				},
-			},
-			{
-				ObjectMeta: api.ObjectMeta{Name: "abc-123"},
-				Spec: api.ServiceSpec{
-					Port:     8081,
-					Selector: map[string]string{"bar": "baz"},
-					Protocol: "UDP",
-					PortalIP: "5.6.7.8",
-				},
-			},
-			{
-				ObjectMeta: api.ObjectMeta{Name: "q-u-u-x"},
-				Spec: api.ServiceSpec{
-					Port:     8082,
-					Selector: map[string]string{"bar": "baz"},
-					Protocol: "TCP",
-					PortalIP: "9.8.7.6",
-				},
-			},
-		},
-	}
-	machine := "machine"
-	vars, err := GetServiceEnvironmentVariables(ctx, registry, machine)
-	if err != nil {
-		t.Errorf("Unexpected err: %v", err)
-	}
-	expected := []api.EnvVar{
-		{Name: "FOO_BAR_SERVICE_HOST", Value: "1.2.3.4"},
-		{Name: "FOO_BAR_SERVICE_PORT", Value: "8080"},
-		{Name: "FOO_BAR_PORT", Value: "tcp://1.2.3.4:8080"},
-		{Name: "FOO_BAR_PORT_8080_TCP", Value: "tcp://1.2.3.4:8080"},
-		{Name: "FOO_BAR_PORT_8080_TCP_PROTO", Value: "tcp"},
-		{Name: "FOO_BAR_PORT_8080_TCP_PORT", Value: "8080"},
-		{Name: "FOO_BAR_PORT_8080_TCP_ADDR", Value: "1.2.3.4"},
-		{Name: "ABC_123_SERVICE_HOST", Value: "5.6.7.8"},
-		{Name: "ABC_123_SERVICE_PORT", Value: "8081"},
-		{Name: "ABC_123_PORT", Value: "udp://5.6.7.8:8081"},
-		{Name: "ABC_123_PORT_8081_UDP", Value: "udp://5.6.7.8:8081"},
-		{Name: "ABC_123_PORT_8081_UDP_PROTO", Value: "udp"},
-		{Name: "ABC_123_PORT_8081_UDP_PORT", Value: "8081"},
-		{Name: "ABC_123_PORT_8081_UDP_ADDR", Value: "5.6.7.8"},
-		{Name: "Q_U_U_X_SERVICE_HOST", Value: "9.8.7.6"},
-		{Name: "Q_U_U_X_SERVICE_PORT", Value: "8082"},
-		{Name: "Q_U_U_X_PORT", Value: "tcp://9.8.7.6:8082"},
-		{Name: "Q_U_U_X_PORT_8082_TCP", Value: "tcp://9.8.7.6:8082"},
-		{Name: "Q_U_U_X_PORT_8082_TCP_PROTO", Value: "tcp"},
-		{Name: "Q_U_U_X_PORT_8082_TCP_PORT", Value: "8082"},
-		{Name: "Q_U_U_X_PORT_8082_TCP_ADDR", Value: "9.8.7.6"},
-	}
-	if len(vars) != len(expected) {
-		t.Errorf("Expected %d env vars, got: %+v", len(expected), vars)
-		return
-	}
-	for i := range expected {
-		if !reflect.DeepEqual(vars[i], expected[i]) {
-			t.Errorf("expected %#v, got %#v", vars[i], expected[i])
-		}
-	}
-}
-
 func TestServiceRegistryGet(t *testing.T) {
 	ctx := api.NewDefaultContext()
 	registry := registrytest.NewServiceRegistry()
@@ -452,6 +383,7 @@ func TestServiceRegistryIPAllocation(t *testing.T) {
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	rest := NewREST(registry, fakeCloud, registrytest.NewMinionRegistry(machines, api.NodeResources{}), makeIPNet(t))
+	rest.portalMgr.randomAttempts = 0
 
 	svc1 := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -510,6 +442,7 @@ func TestServiceRegistryIPReallocation(t *testing.T) {
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	rest := NewREST(registry, fakeCloud, registrytest.NewMinionRegistry(machines, api.NodeResources{}), makeIPNet(t))
+	rest.portalMgr.randomAttempts = 0
 
 	svc1 := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -556,6 +489,7 @@ func TestServiceRegistryIPUpdate(t *testing.T) {
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	rest := NewREST(registry, fakeCloud, registrytest.NewMinionRegistry(machines, api.NodeResources{}), makeIPNet(t))
+	rest.portalMgr.randomAttempts = 0
 
 	svc := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -610,6 +544,7 @@ func TestServiceRegistryIPExternalLoadBalancer(t *testing.T) {
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	rest := NewREST(registry, fakeCloud, registrytest.NewMinionRegistry(machines, api.NodeResources{}), makeIPNet(t))
+	rest.portalMgr.randomAttempts = 0
 
 	svc := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -629,8 +564,16 @@ func TestServiceRegistryIPExternalLoadBalancer(t *testing.T) {
 	if created_service.Spec.PortalIP != "1.2.3.1" {
 		t.Errorf("Unexpected PortalIP: %s", created_service.Spec.PortalIP)
 	}
-	if created_service.Spec.ProxyPort != 6502 {
+	if created_service.Spec.ProxyPort != 0 {
 		t.Errorf("Unexpected ProxyPort: %d", created_service.Spec.ProxyPort)
+	}
+
+	update := new(api.Service)
+	*update = *created_service
+
+	_, err := rest.Update(ctx, update)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
 	}
 }
 
@@ -639,6 +582,7 @@ func TestServiceRegistryIPReloadFromStorage(t *testing.T) {
 	fakeCloud := &cloud.FakeCloud{}
 	machines := []string{"foo", "bar", "baz"}
 	rest1 := NewREST(registry, fakeCloud, registrytest.NewMinionRegistry(machines, api.NodeResources{}), makeIPNet(t))
+	rest1.portalMgr.randomAttempts = 0
 
 	svc := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -662,6 +606,7 @@ func TestServiceRegistryIPReloadFromStorage(t *testing.T) {
 
 	// This will reload from storage, finding the previous 2
 	rest2 := NewREST(registry, fakeCloud, registrytest.NewMinionRegistry(machines, api.NodeResources{}), makeIPNet(t))
+	rest2.portalMgr.randomAttempts = 0
 
 	svc = &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -692,7 +637,7 @@ func TestCreateServiceWithConflictingNamespace(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error, but we didn't get one")
 	} else if strings.Index(err.Error(), "Service.Namespace does not match the provided context") == -1 {
-		t.Errorf("Expected 'Service.Namespace does not match the provided context' error, got '%v'", err.Error())
+		t.Errorf("Expected 'Service.Namespace does not match the provided context' error, got '%s'", err.Error())
 	}
 }
 
@@ -710,6 +655,6 @@ func TestUpdateServiceWithConflictingNamespace(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error, but we didn't get one")
 	} else if strings.Index(err.Error(), "Service.Namespace does not match the provided context") == -1 {
-		t.Errorf("Expected 'Service.Namespace does not match the provided context' error, got '%v'", err.Error())
+		t.Errorf("Expected 'Service.Namespace does not match the provided context' error, got '%s'", err.Error())
 	}
 }

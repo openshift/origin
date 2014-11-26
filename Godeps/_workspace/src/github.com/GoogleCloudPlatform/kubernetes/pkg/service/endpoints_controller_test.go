@@ -30,126 +30,130 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-func newPodList(count int) api.PodList {
+func newPodList(count int) *api.PodList {
 	pods := []api.Pod{}
 	for i := 0; i < count; i++ {
 		pods = append(pods, api.Pod{
 			TypeMeta:   api.TypeMeta{APIVersion: testapi.Version()},
 			ObjectMeta: api.ObjectMeta{Name: fmt.Sprintf("pod%d", i)},
-			DesiredState: api.PodState{
-				Manifest: api.ContainerManifest{
-					Containers: []api.Container{
-						{
-							Ports: []api.Port{
-								{
-									ContainerPort: 8080,
-								},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					{
+						Ports: []api.Port{
+							{
+								ContainerPort: 8080,
 							},
 						},
 					},
 				},
 			},
-			CurrentState: api.PodState{
+			Status: api.PodStatus{
 				PodIP: "1.2.3.4",
 			},
 		})
 	}
-	return api.PodList{
+	return &api.PodList{
 		TypeMeta: api.TypeMeta{APIVersion: testapi.Version(), Kind: "PodList"},
 		Items:    pods,
 	}
 }
 
 func TestFindPort(t *testing.T) {
-	manifest := api.ContainerManifest{
-		Containers: []api.Container{
-			{
-				Ports: []api.Port{
-					{
-						Name:          "foo",
-						ContainerPort: 8080,
-						HostPort:      9090,
-					},
-					{
-						Name:          "bar",
-						ContainerPort: 8000,
-						HostPort:      9000,
+	pod := api.Pod{
+		Spec: api.PodSpec{
+			Containers: []api.Container{
+				{
+					Ports: []api.Port{
+						{
+							Name:          "foo",
+							ContainerPort: 8080,
+							HostPort:      9090,
+						},
+						{
+							Name:          "bar",
+							ContainerPort: 8000,
+							HostPort:      9000,
+						},
 					},
 				},
 			},
 		},
 	}
-	emptyPortsManifest := api.ContainerManifest{
-		Containers: []api.Container{
-			{
-				Ports: []api.Port{},
+
+	emptyPortsPod := api.Pod{
+		Spec: api.PodSpec{
+			Containers: []api.Container{
+				{
+					Ports: []api.Port{},
+				},
 			},
 		},
 	}
+
 	tests := []struct {
-		manifest api.ContainerManifest
+		pod      api.Pod
 		portName util.IntOrString
 
 		wport int
 		werr  bool
 	}{
 		{
-			manifest,
+			pod,
 			util.IntOrString{Kind: util.IntstrString, StrVal: "foo"},
 			8080,
 			false,
 		},
 		{
-			manifest,
+			pod,
 			util.IntOrString{Kind: util.IntstrString, StrVal: "bar"},
 			8000,
 			false,
 		},
 		{
-			manifest,
+			pod,
 			util.IntOrString{Kind: util.IntstrInt, IntVal: 8000},
 			8000,
 			false,
 		},
 		{
-			manifest,
+			pod,
 			util.IntOrString{Kind: util.IntstrInt, IntVal: 7000},
 			7000,
 			false,
 		},
 		{
-			manifest,
+			pod,
 			util.IntOrString{Kind: util.IntstrString, StrVal: "baz"},
 			0,
 			true,
 		},
 		{
-			manifest,
+			pod,
 			util.IntOrString{Kind: util.IntstrString, StrVal: ""},
 			8080,
 			false,
 		},
 		{
-			manifest,
+			pod,
 			util.IntOrString{Kind: util.IntstrInt, IntVal: 0},
 			8080,
 			false,
 		},
 		{
-			emptyPortsManifest,
+			emptyPortsPod,
 			util.IntOrString{Kind: util.IntstrString, StrVal: ""},
 			0,
 			true,
 		},
 		{
-			emptyPortsManifest,
+			emptyPortsPod,
 			util.IntOrString{Kind: util.IntstrInt, IntVal: 0},
 			0,
 			true,
 		},
 	}
 	for _, test := range tests {
-		port, err := findPort(&test.manifest, test.portName)
+		port, err := findPort(&test.pod, test.portName)
 		if port != test.wport {
 			t.Errorf("Expected port %d, Got %d", test.wport, port)
 		}
@@ -170,15 +174,15 @@ type serverResponse struct {
 func makeTestServer(t *testing.T, podResponse serverResponse, serviceResponse serverResponse, endpointsResponse serverResponse) (*httptest.Server, *util.FakeHandler) {
 	fakePodHandler := util.FakeHandler{
 		StatusCode:   podResponse.statusCode,
-		ResponseBody: util.EncodeJSON(podResponse.obj),
+		ResponseBody: runtime.EncodeOrDie(testapi.Codec(), podResponse.obj.(runtime.Object)),
 	}
 	fakeServiceHandler := util.FakeHandler{
 		StatusCode:   serviceResponse.statusCode,
-		ResponseBody: util.EncodeJSON(serviceResponse.obj),
+		ResponseBody: runtime.EncodeOrDie(testapi.Codec(), serviceResponse.obj.(runtime.Object)),
 	}
 	fakeEndpointsHandler := util.FakeHandler{
 		StatusCode:   endpointsResponse.statusCode,
-		ResponseBody: util.EncodeJSON(endpointsResponse.obj),
+		ResponseBody: runtime.EncodeOrDie(testapi.Codec(), endpointsResponse.obj.(runtime.Object)),
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/api/"+testapi.Version()+"/pods", &fakePodHandler)
@@ -195,8 +199,8 @@ func makeTestServer(t *testing.T, podResponse serverResponse, serviceResponse se
 func TestSyncEndpointsEmpty(t *testing.T) {
 	testServer, _ := makeTestServer(t,
 		serverResponse{http.StatusOK, newPodList(0)},
-		serverResponse{http.StatusOK, api.ServiceList{}},
-		serverResponse{http.StatusOK, api.Endpoints{}})
+		serverResponse{http.StatusOK, &api.ServiceList{}},
+		serverResponse{http.StatusOK, &api.Endpoints{}})
 	defer testServer.Close()
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
 	endpoints := NewEndpointController(client)
@@ -208,8 +212,8 @@ func TestSyncEndpointsEmpty(t *testing.T) {
 func TestSyncEndpointsError(t *testing.T) {
 	testServer, _ := makeTestServer(t,
 		serverResponse{http.StatusOK, newPodList(0)},
-		serverResponse{http.StatusInternalServerError, api.ServiceList{}},
-		serverResponse{http.StatusOK, api.Endpoints{}})
+		serverResponse{http.StatusInternalServerError, &api.ServiceList{}},
+		serverResponse{http.StatusOK, &api.Endpoints{}})
 	defer testServer.Close()
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
 	endpoints := NewEndpointController(client)
@@ -233,8 +237,8 @@ func TestSyncEndpointsItemsPreexisting(t *testing.T) {
 	}
 	testServer, endpointsHandler := makeTestServer(t,
 		serverResponse{http.StatusOK, newPodList(1)},
-		serverResponse{http.StatusOK, serviceList},
-		serverResponse{http.StatusOK, api.Endpoints{
+		serverResponse{http.StatusOK, &serviceList},
+		serverResponse{http.StatusOK, &api.Endpoints{
 			ObjectMeta: api.ObjectMeta{
 				Name:            "foo",
 				ResourceVersion: "1",
@@ -272,8 +276,8 @@ func TestSyncEndpointsItemsPreexistingIdentical(t *testing.T) {
 	}
 	testServer, endpointsHandler := makeTestServer(t,
 		serverResponse{http.StatusOK, newPodList(1)},
-		serverResponse{http.StatusOK, serviceList},
-		serverResponse{http.StatusOK, api.Endpoints{
+		serverResponse{http.StatusOK, &serviceList},
+		serverResponse{http.StatusOK, &api.Endpoints{
 			ObjectMeta: api.ObjectMeta{
 				ResourceVersion: "1",
 			},
@@ -303,8 +307,8 @@ func TestSyncEndpointsItems(t *testing.T) {
 	}
 	testServer, endpointsHandler := makeTestServer(t,
 		serverResponse{http.StatusOK, newPodList(1)},
-		serverResponse{http.StatusOK, serviceList},
-		serverResponse{http.StatusOK, api.Endpoints{}})
+		serverResponse{http.StatusOK, &serviceList},
+		serverResponse{http.StatusOK, &api.Endpoints{}})
 	defer testServer.Close()
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
 	endpoints := NewEndpointController(client)
@@ -333,9 +337,9 @@ func TestSyncEndpointsPodError(t *testing.T) {
 		},
 	}
 	testServer, _ := makeTestServer(t,
-		serverResponse{http.StatusInternalServerError, api.PodList{}},
-		serverResponse{http.StatusOK, serviceList},
-		serverResponse{http.StatusOK, api.Endpoints{}})
+		serverResponse{http.StatusInternalServerError, &api.PodList{}},
+		serverResponse{http.StatusOK, &serviceList},
+		serverResponse{http.StatusOK, &api.Endpoints{}})
 	defer testServer.Close()
 	client := client.NewOrDie(&client.Config{Host: testServer.URL, Version: testapi.Version()})
 	endpoints := NewEndpointController(client)

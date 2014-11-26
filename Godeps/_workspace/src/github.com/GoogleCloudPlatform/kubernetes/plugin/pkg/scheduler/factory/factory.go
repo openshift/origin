@@ -145,7 +145,7 @@ func parseSelectorOrDie(s string) labels.Selector {
 	return selector
 }
 
-// createUnassignedPodLW returns a listWatch that finds all pods that are
+// createAssignedPodLW returns a listWatch that finds all pods that are
 // already scheduled.
 func (factory *ConfigFactory) createAssignedPodLW() *listWatch {
 	return &listWatch{
@@ -192,7 +192,7 @@ func (factory *ConfigFactory) makeDefaultErrorFunc(backoff *podBackoff, podQueue
 				glog.Errorf("Error getting pod %v for retry: %v; abandoning", podID, err)
 				return
 			}
-			if pod.DesiredState.Host == "" {
+			if pod.Status.Host == "" {
 				podQueue.Add(pod.Name, pod)
 			}
 		}()
