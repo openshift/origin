@@ -123,6 +123,10 @@ From there, head to the https://github.com/openshift/kubernetes#development[Deve
 
 When you're ready to get your hands dirty, check out the roadmap info in the next section.
 
+=== Troubleshooting
+
+If you run into difficulties running OpenShift, start by reading through the https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md[troubleshooting guide].
+
 === The Roadmap
 The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/openshift-origin-roadmap[on Trello]. Of particular interest to those who want to get involved with the OpenShift 3 architecture are the following topics:
 

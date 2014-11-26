@@ -70,6 +70,10 @@ Remember, you can pass a URL to `-c` when using the `kube` command, so you can [
 release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you
 don't even need clone the source.
 
+### Troubleshooting
+
+If you run into difficulties running OpenShift, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
+
 ### Docker registry
 
 In order to use an image built from an OpenShift build, you'll need to push that image into a Docker registry.
