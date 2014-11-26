@@ -8,15 +8,14 @@ import (
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router"
-	testrouter "github.com/openshift/origin/pkg/router/controller/test"
+	testrouter "github.com/openshift/origin/pkg/router/test"
 )
 
-func TestHandleRouteAdded(t *testing.T) {
+func TestHandleRoute(t *testing.T) {
 	var (
 		testRouteName        = "testroute"
 		testRouteServiceName = "testservice"
 		testRouteHost        = "test.com"
-		testRouter           = testrouter.NewRouter(nil)
 		testRoute            = routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: testRouteName,
@@ -26,134 +25,81 @@ func TestHandleRouteAdded(t *testing.T) {
 		}
 	)
 
-	controller := RouterController{
-		Router: testRouter,
-		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-			panic("Unreachable")
-		},
-		NextRoute: func() (watch.EventType, *routeapi.Route) {
-			return watch.Added, &testRoute
-		},
+	cases := map[string]struct {
+		eventType       watch.EventType
+		existing        bool
+		frontendCreated bool
+		aliasAdded      bool
+		aliasRemoved    bool
+	}{
+		"added":    {eventType: watch.Added, frontendCreated: true, aliasAdded: true},
+		"modified": {eventType: watch.Modified, existing: true, aliasAdded: true},
+		"deleted":  {eventType: watch.Deleted, existing: true, aliasRemoved: true},
 	}
 
-	controller.HandleRoute()
-
-	if len(testRouter.CreatedFrontends) != 1 {
-		t.Fatal("Router should have had one frontend created")
-	}
-
-	addedAlias, ok := testRouter.AddedAliases[testRouteHost]
-	if !ok {
-		t.Fatalf("An alias should have been added for %v", testRouteHost)
-	}
-
-	if a, e := addedAlias, testRouteServiceName; a != e {
-		t.Fatalf("Expected added alias for host %v, got %v instead", e, a)
-	}
-
-	if !testRouter.RouterReloaded {
-		t.Fatal("Router should have been reloaded")
-	}
-}
-
-func TestHandleRouteModified(t *testing.T) {
-	var (
-		testRouteName        = "testroute"
-		testRouteServiceName = "testservice"
-		testRouteHost        = "test.com"
-		testRouter           = testrouter.NewRouter(map[string]router.Frontend{
-			testRouteServiceName: {},
-		})
-		testRoute = routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: testRouteName,
-			},
-			Host:        testRouteHost,
-			ServiceName: testRouteServiceName,
+	for name, c := range cases {
+		existingFrontends := map[string]router.Frontend{}
+		if c.existing {
+			existingFrontends[testRouteServiceName] = router.Frontend{}
 		}
-	)
 
-	controller := RouterController{
-		Router: testRouter,
-		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-			panic("Unreachable")
-		},
-		NextRoute: func() (watch.EventType, *routeapi.Route) {
-			return watch.Modified, &testRoute
-		},
-	}
-
-	controller.HandleRoute()
-
-	if len(testRouter.CreatedFrontends) != 0 {
-		t.Fatal("No router frontends should have been created")
-	}
-
-	addedAlias, ok := testRouter.AddedAliases[testRouteHost]
-	if !ok {
-		t.Fatalf("An alias should have been added for %v", testRouteHost)
-	}
-
-	if a, e := addedAlias, testRouteServiceName; a != e {
-		t.Fatalf("Expected added alias for host %v, got %v instead", e, a)
-	}
-
-	if !testRouter.RouterReloaded {
-		t.Fatal("Router should have been reloaded")
-	}
-}
-
-func TestHandleRouteDeleted(t *testing.T) {
-	var (
-		testRouteName        = "testroute"
-		testRouteServiceName = "testservice"
-		testRouteHost        = "test.com"
-		testRouter           = testrouter.NewRouter(map[string]router.Frontend{
-			testRouteServiceName: {},
-		})
-		testRoute = routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: testRouteName,
+		testRouter := testrouter.NewRouter(existingFrontends)
+		controller := RouterController{
+			Router: testRouter,
+			NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
+				panic("Unreachable")
 			},
-			Host:        testRouteHost,
-			ServiceName: testRouteServiceName,
+			NextRoute: func() (watch.EventType, *routeapi.Route) {
+				return c.eventType, &testRoute
+			},
 		}
-	)
 
-	controller := RouterController{
-		Router: testRouter,
-		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-			panic("Unreachable")
-		},
-		NextRoute: func() (watch.EventType, *routeapi.Route) {
-			return watch.Deleted, &testRoute
-		},
-	}
+		expectedFrontends := 0
+		if c.frontendCreated {
+			expectedFrontends = 1
+		}
 
-	controller.HandleRoute()
+		controller.HandleRoute()
 
-	if len(testRouter.CreatedFrontends) != 0 {
-		t.Fatal("No router frontends should have been created")
-	}
+		if e, a := expectedFrontends, len(testRouter.CreatedFrontends); e != a {
+			t.Errorf("Case %v: Frontend should have been created", name)
+		}
 
-	removedAlias, ok := testRouter.RemovedAliases[testRouteHost]
-	if !ok {
-		t.Fatalf("An alias should have been added for %v", testRouteHost)
-	}
+		if c.aliasAdded {
+			addedAlias, ok := testRouter.AddedAliases[testRouteHost]
+			if !ok {
+				t.Errorf("Case %v: An alias should have been added for %v", name, testRouteHost)
+			}
 
-	if a, e := removedAlias, testRouteServiceName; a != e {
-		t.Fatalf("Expected removed alias for host %v, got %v instead", e, a)
-	}
+			if a, e := addedAlias, testRouteServiceName; a != e {
+				t.Errorf("Case: %v: Expected added alias for host %v, got %v instead", name, e, a)
+			}
+		}
 
-	if !testRouter.RouterReloaded {
-		t.Fatal("Router should have been reloaded")
+		if c.aliasRemoved {
+			removedAlias, ok := testRouter.RemovedAliases[testRouteHost]
+			if !ok {
+				t.Errorf("Case %v: An alias should have been removed for %v", name, testRouteHost)
+			}
+
+			if a, e := removedAlias, testRouteServiceName; a != e {
+				t.Errorf("Case %v: Expected removed alias for host %v, got %v instead", name, e, a)
+			}
+		}
+
+		if !testRouter.ConfigWritten {
+			t.Errorf("Case %v: Router configs should have been written", name)
+		}
+
+		if !testRouter.RouterReloaded {
+			t.Errorf("Case %v: Router should have been reloaded", name)
+		}
 	}
 }
 
 func TestHandleEndpointsAdded(t *testing.T) {
 	var (
 		testEndpointsName = "testendpoints"
-		testRouter        = testrouter.NewRouter(nil)
 		testEndpoints     = kapi.Endpoints{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: testEndpointsName,
@@ -165,148 +111,68 @@ func TestHandleEndpointsAdded(t *testing.T) {
 		}
 	)
 
-	controller := RouterController{
-		Router: testRouter,
-		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-			return watch.Added, &testEndpoints
-		},
-		NextRoute: func() (watch.EventType, *routeapi.Route) {
-			panic("Unreachable")
-		},
+	cases := map[string]struct {
+		eventType       watch.EventType
+		existing        bool
+		frontendCreated bool
+		routesAdded     bool
+	}{
+		"added":    {eventType: watch.Added, frontendCreated: true, routesAdded: true},
+		"modified": {eventType: watch.Modified, existing: true, routesAdded: true},
+		"deleted":  {eventType: watch.Deleted, existing: true},
 	}
 
-	controller.HandleEndpoints()
+	for name, c := range cases {
+		existingFrontends := map[string]router.Frontend{}
+		if c.existing {
+			existingFrontends[testEndpointsName] = router.Frontend{}
+		}
 
-	if len(testRouter.CreatedFrontends) != 1 {
-		t.Fatal("Router should have had one frontend created")
-	}
-
-	if len(testRouter.DeletedBackends) != 1 {
-		t.Fatal("Router should have had one deleted backend")
-	}
-
-	if !testRouter.ConfigWritten {
-		t.Fatal("Router configs should have been written")
-	}
-
-	if !testRouter.RouterReloaded {
-		t.Fatal("Router should have been reloaded")
-	}
-
-	addedRoutes, ok := testRouter.AddedRoutes[testEndpointsName]
-	if !ok {
-		t.Fatalf("Two routes should have been added for %v", testEndpointsName)
-	}
-
-	if num := len(addedRoutes); num != 2 {
-		t.Fatalf("Actual added endpoints %v != 2", num)
-	}
-}
-
-func TestHandleEndpointsModified(t *testing.T) {
-	var (
-		testEndpointsName = "testendpoints"
-		testRouter        = testrouter.NewRouter(map[string]router.Frontend{
-			testEndpointsName: {},
-		})
-		testEndpoints = kapi.Endpoints{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: testEndpointsName,
+		testRouter := testrouter.NewRouter(existingFrontends)
+		controller := RouterController{
+			Router: testRouter,
+			NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
+				return c.eventType, &testEndpoints
 			},
-			Endpoints: []string{
-				"test1.com:8080",
-				"test2.com",
+			NextRoute: func() (watch.EventType, *routeapi.Route) {
+				panic("Unreachable")
 			},
 		}
-	)
 
-	controller := RouterController{
-		Router: testRouter,
-		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-			return watch.Modified, &testEndpoints
-		},
-		NextRoute: func() (watch.EventType, *routeapi.Route) {
-			panic("Unreachable")
-		},
-	}
-
-	controller.HandleEndpoints()
-
-	if len(testRouter.CreatedFrontends) != 0 {
-		t.Fatal("Router should have had one frontend created")
-	}
-
-	if len(testRouter.DeletedBackends) != 1 {
-		t.Fatal("Router should have had one deleted backend")
-	}
-
-	if !testRouter.ConfigWritten {
-		t.Fatal("Router configs should have been written")
-	}
-
-	if !testRouter.RouterReloaded {
-		t.Fatal("Router should have been reloaded")
-	}
-
-	addedRoutes, ok := testRouter.AddedRoutes[testEndpointsName]
-	if !ok {
-		t.Fatalf("Two routes should have been added for %v", testEndpointsName)
-	}
-
-	if num := len(addedRoutes); num != 2 {
-		t.Fatalf("Actual added endpoints %v != 2", num)
-	}
-}
-
-func TestHandleEndpointsDeleted(t *testing.T) {
-	var (
-		testEndpointsName = "testendpoints"
-		testRouter        = testrouter.NewRouter(map[string]router.Frontend{
-			testEndpointsName: {
-				Name: testEndpointsName,
-			},
-		})
-		testEndpoints = kapi.Endpoints{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: testEndpointsName,
-			},
-			Endpoints: []string{
-				"test1.com:8080",
-				"test2.com",
-			},
+		expectedFrontends := 0
+		if c.frontendCreated {
+			expectedFrontends = 1
 		}
-	)
 
-	controller := RouterController{
-		Router: testRouter,
-		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-			return watch.Deleted, &testEndpoints
-		},
-		NextRoute: func() (watch.EventType, *routeapi.Route) {
-			panic("Unreachable")
-		},
-	}
+		controller.HandleEndpoints()
 
-	controller.HandleEndpoints()
+		if e, a := expectedFrontends, len(testRouter.CreatedFrontends); e != a {
+			t.Errorf("Case %v: Frontend should have been created", name)
+		}
 
-	if len(testRouter.CreatedFrontends) != 0 {
-		t.Fatal("No frontends should have been created")
-	}
+		if len(testRouter.DeletedBackends) != 1 {
+			t.Errorf("Case %v: Router should have had one deleted backend", name)
+		}
 
-	if len(testRouter.DeletedBackends) != 1 {
-		t.Fatal("Router should have had one deleted backend")
-	}
+		addedRoutes, ok := testRouter.AddedRoutes[testEndpointsName]
+		if c.routesAdded {
+			if !ok {
+				t.Errorf("Case %v: Two routes should have been added for %v", name, testEndpointsName)
+			}
 
-	if !testRouter.ConfigWritten {
-		t.Fatal("Router configs should have been written")
-	}
+			if num := len(addedRoutes); num != 2 {
+				t.Errorf("Case %v: Actual added endpoints %v != 2", name, num)
+			}
+		} else if ok {
+			t.Errorf("Case %v: No routes should have been added for %v", name, testEndpointsName)
+		}
 
-	if !testRouter.RouterReloaded {
-		t.Fatal("Router should have been reloaded")
-	}
+		if !testRouter.ConfigWritten {
+			t.Errorf("Case %v: Router configs should have been written", name)
+		}
 
-	_, ok := testRouter.AddedRoutes[testEndpointsName]
-	if ok {
-		t.Fatalf("No routes should have been added for %v", testEndpointsName)
+		if !testRouter.RouterReloaded {
+			t.Errorf("Case %v: Router should have been reloaded", name)
+		}
 	}
 }

@@ -192,7 +192,7 @@ func (eq *EventQueue) List() []interface{} {
 	return list
 }
 
-// Contains returns a util.StringSet containing all IDs of the enqueued items.
+// ContainedIDs returns a util.StringSet containing all IDs of the enqueued items.
 // This is a snapshot of a moment in time, and one should keep in mind that
 // other go routines can add or remove items after you call this.
 func (eq *EventQueue) ContainedIDs() util.StringSet {
