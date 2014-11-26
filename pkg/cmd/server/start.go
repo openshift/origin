@@ -254,6 +254,7 @@ func start(cfg *config, args []string) error {
 			kmaster.RunScheduler()
 			kmaster.RunReplicationController()
 			kmaster.RunEndpointController()
+			time.Sleep(10 * time.Second)
 			kmaster.RunMinionController()
 
 		} else {
