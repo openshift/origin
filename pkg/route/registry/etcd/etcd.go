@@ -11,6 +11,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/util"
 )
 
 const (
@@ -39,7 +40,7 @@ func makeRouteKey(ctx kapi.Context, id string) (string, error) {
 }
 
 // ListRoutes obtains a list of Routes.
-func (registry *Etcd) ListRoutes(ctx kapi.Context, selector labels.Selector) (*api.RouteList, error) {
+func (registry *Etcd) ListRoutes(ctx kapi.Context, labelSelector labels.Selector, fieldSelector labels.Selector) (*api.RouteList, error) {
 	allRoutes := api.RouteList{}
 	err := registry.ExtractToList(makeRouteListKey(ctx), &allRoutes)
 	if err != nil {
@@ -47,7 +48,7 @@ func (registry *Etcd) ListRoutes(ctx kapi.Context, selector labels.Selector) (*a
 	}
 	filtered := []api.Route{}
 	for _, route := range allRoutes.Items {
-		if selector.Matches(labels.Set(route.Labels)) {
+		if labelSelector.Matches(labels.Set(route.Labels)) && util.FieldMatches(route, fieldSelector) {
 			filtered = append(filtered, route)
 		}
 	}

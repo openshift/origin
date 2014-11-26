@@ -55,7 +55,7 @@ func TestEtcdListEmptyRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything())
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestEtcdListErrorRoutes(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything())
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -104,7 +104,7 @@ func TestEtcdListEverythingRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything())
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestEtcdListFilteredRoutes(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}))
+	routes, err := registry.ListRoutes(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -342,7 +342,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 
-	routesAlfa, err := registry.ListRoutes(namespaceAlfa, labels.Everything())
+	routesAlfa, err := registry.ListRoutes(namespaceAlfa, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -350,7 +350,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 		t.Errorf("Unexpected builds list: %#v", routesAlfa)
 	}
 
-	routesBravo, err := registry.ListRoutes(namespaceBravo, labels.Everything())
+	routesBravo, err := registry.ListRoutes(namespaceBravo, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

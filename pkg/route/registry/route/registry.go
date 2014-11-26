@@ -11,7 +11,7 @@ import (
 // Registry is an interface for things that know how to store Routes.
 type Registry interface {
 	// ListRoutes obtains list of routes that match a selector.
-	ListRoutes(ctx kapi.Context, selector labels.Selector) (*api.RouteList, error)
+	ListRoutes(ctx kapi.Context, labelSelector labels.Selector, fieldSelector labels.Selector) (*api.RouteList, error)
 	// GetRoute retrieves a specific route.
 	GetRoute(ctx kapi.Context, routeID string) (*api.Route, error)
 	// CreateRoute creates a new route.
