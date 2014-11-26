@@ -6,12 +6,10 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/openshift/origin/pkg/api/latest"
-
-	clientapi "github.com/openshift/origin/pkg/cmd/client/api"
 	"github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -22,35 +20,6 @@ type ApplyResult struct {
 	Message string
 }
 
-// Set the default RESTMapper and ObjectTyper
-var (
-	defaultMapper = latest.RESTMapper
-	defaultTyper  = kapi.Scheme
-)
-
-// DecodeWithMapper decodes the RawExtension that holds the raw JSON/YAML into
-// the runtime Object. It also returns the REST mapping that can be used later
-// for encoding the Object back into JSON/YAML.
-// This function is Origin specific as it uses the Origin RESTMapper by default.
-func DecodeWithMapper(in runtime.RawExtension) (runtime.Object, *meta.RESTMapping, error) {
-	version, kind, err := defaultTyper.DataVersionAndKind(in.RawJSON)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	mapping, err := defaultMapper.RESTMapping(version, kind)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	obj, err := mapping.Codec.Decode(in.RawJSON)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return obj, mapping, nil
-}
-
 // reportError reports the single item validation error and properly set the
 // prefix and index to match the Config item JSON index
 func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
@@ -58,13 +27,13 @@ func reportError(allErrs *errs.ValidationErrorList, index int, err errs.Validati
 	*allErrs = append(*allErrs, append(i, err).PrefixIndex(index).Prefix("item")...)
 }
 
-// Apply creates and manages resources defined in the Config. The create process wont
-// stop on error, but it will finish the job and then return error and for each item
-// in the config a error and status message string.
-func Apply(namespace string, data []byte, storage clientapi.ClientMappings) ([]ApplyResult, error) {
-	confObj, _, err := DecodeWithMapper(runtime.RawExtension{RawJSON: data})
+// Apply creates and manages resources defined in the Config. The create process
+// won't stop on error, but it will finish the job and then return error and for
+// each item in the config an error and status message string.
+func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*kubectl.RESTHelper, error)) ([]ApplyResult, error) {
+	confObj, _, err := DecodeDataToObject(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decoding failed, %s", err.Error())
 	}
 
 	conf, ok := confObj.(*api.Config)
@@ -79,21 +48,23 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) ([]A
 	result := []ApplyResult{}
 	for i, item := range conf.Items {
 		itemErrors := errs.ValidationErrorList{}
+		message := ""
 
-		itemBase, mapping, err := DecodeWithMapper(item)
+		itemBase, mapping, err := DecodeDataToObject(item.RawJSON)
 		if err != nil {
 			reportError(&itemErrors, i, errs.ValidationError{
 				errs.ValidationErrorTypeInvalid,
 				"decode",
 				err,
 			})
+			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 			continue
 		}
 
-		// TODO: Use clientFunc here to match with upstream createall
-		client, path, err := getClientAndPath(mapping.Kind, storage)
-		if err != nil || client == nil {
-			reportError(&itemErrors, i, errs.NewFieldNotSupported("client", itemBase))
+		client, err := clientFunc(mapping)
+		if err != nil {
+			reportError(&itemErrors, i, errs.NewFieldNotSupported("client", err))
+			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 			continue
 		}
 
@@ -104,13 +75,11 @@ func Apply(namespace string, data []byte, storage clientapi.ClientMappings) ([]A
 				"encode",
 				err,
 			})
+			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 			continue
 		}
 
-		// TODO: Use Kubernetes client.Post()
-		request := client.Verb("POST").Namespace(namespace).Path(path).Body(jsonResource)
-		message := ""
-		if err = request.Do().Error(); err != nil {
+		if err := client.Create(namespace, true, jsonResource); err != nil {
 			reportError(&itemErrors, i, errs.ValidationError{
 				errs.ValidationErrorTypeInvalid,
 				"create",
@@ -184,7 +153,7 @@ func AddConfigLabel(obj runtime.Object, labels labels.Set) error {
 func AddConfigLabels(c *api.Config, labels labels.Set) errs.ValidationErrorList {
 	itemErrors := errs.ValidationErrorList{}
 	for i, in := range c.Items {
-		obj, mapping, err := DecodeWithMapper(in)
+		obj, mapping, err := DecodeDataToObject(in.RawJSON)
 		if err != nil {
 			reportError(&itemErrors, i, errs.NewFieldInvalid("decode", err))
 		}
@@ -267,15 +236,4 @@ func mergeMaps(dst, src interface{}, flags int) error {
 	}
 
 	return nil
-}
-
-// getClientAndPath returns the RESTClient and path defined for a given
-// resource kind. Returns an error when no RESTClient is found.
-func getClientAndPath(kind string, mappings clientapi.ClientMappings) (clientapi.RESTClient, string, error) {
-	for k, m := range mappings {
-		if m.Kind == kind {
-			return m.Client, k, nil
-		}
-	}
-	return nil, "", fmt.Errorf("No client found for 'kind=%v'", kind)
 }
