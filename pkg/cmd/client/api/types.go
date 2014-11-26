@@ -7,6 +7,10 @@ import (
 
 type RESTClient interface {
 	Verb(verb string) *client.Request
+	Put() *client.Request
+	Post() *client.Request
+	Delete() *client.Request
+	Get() *client.Request
 }
 
 type ClientMappings map[string]struct {
