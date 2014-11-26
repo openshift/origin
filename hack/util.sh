@@ -114,13 +114,14 @@ function wait_for_url {
 # $2 - a regular expression or text
 function validate_response {
   url=$1
-  response=$2
+  expected_response=$2
   wait=${3:-0.2}
   times=${4:-10}
 
   set +e
   for i in $(seq 1 $times); do
-    curl $url | grep -q "$response"
+    response=`curl $url`
+    echo $response | grep -q "$expected_response"
     if [ $? -eq 0 ]; then
       echo "[INFO] Response is valid."
       set -e
@@ -129,7 +130,7 @@ function validate_response {
     sleep $wait
   done
 
-  echo "[INFO] Response is invalid."
+  echo "[INFO] Response is invalid: $response"
   set -e
   return 1
 }

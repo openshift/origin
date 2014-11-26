@@ -42,25 +42,6 @@ FIXTURE_DIR="${OS_ROOT}/examples/sample-app"
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 openshift="${GO_OUT}/openshift"
 
-# Search for a regular expression in a HTTP response.
-#
-# $1 - a valid URL (e.g.: http://127.0.0.1:8080)
-# $2 - a regular expression or text
-function validate_response {
-    ip=$1
-    response=$2
-
-  curl $ip | grep -q "$response"
-  if [ $? -eq 0 ] ;then
-    echo "[INFO] Response is valid."
-    return 0
-  fi
-
-  echo "[INFO] Response is invalid."
-  set -e
-  return 1
-}
-
 # setup()
 function setup()
 {
