@@ -34,11 +34,11 @@ type webhookBuildInterface interface {
 
 // urlVars holds parsed URL parts.
 type urlVars struct {
-	namespace string
-	buildName string
-	secret    string
-	plugin    string
-	path      string
+	namespace       string
+	buildConfigName string
+	secret          string
+	plugin          string
+	path            string
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
@@ -54,7 +54,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	buildCfg, err := c.osClient.GetBuildConfig(uv.namespace, uv.buildName)
+	buildCfg, err := c.osClient.GetBuildConfig(uv.namespace, uv.buildConfigName)
 	if err != nil {
 		badRequest(w, err.Error())
 		return
@@ -91,11 +91,11 @@ func parseUrl(req *http.Request) (uv urlVars, err error) {
 		return
 	}
 	uv = urlVars{
-		namespace: kapi.NamespaceDefault,
-		buildName: parts[0],
-		secret:    parts[1],
-		plugin:    parts[2],
-		path:      "",
+		namespace:       kapi.NamespaceDefault,
+		buildConfigName: parts[0],
+		secret:          parts[1],
+		plugin:          parts[2],
+		path:            "",
 	}
 	if len(parts) > 3 {
 		uv.path = strings.Join(parts[3:], "/")
