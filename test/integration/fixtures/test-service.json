@@ -1,6 +1,6 @@
 {
   "kind": "Service",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1beta2",
   "metadata": {
     "name": "frontend"
   },
