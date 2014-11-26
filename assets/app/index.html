@@ -16,17 +16,19 @@
   </head>
   <body ng-app="openshiftConsole">
     <!-- Add your site or application content here -->
-    <div class="header rcue">
-        <div class="navbar utility">
-            <div class="navbar-inner">
-                <div class="container">
-                    <a class="brand" href="/"><img src="images/logo-origin.svg" alt="OpenShift Origin"></a>
+    <div id="wrap">
+        <div class="header rcue">
+            <div class="navbar utility">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <a class="brand" href="/"><img src="images/logo-origin.svg" alt="OpenShift Origin"></a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="container">
-      <div ng-view=""></div>
+        <div class="container">
+          <div ng-view=""></div>
+        </div>
     </div>
 
     <footer>
@@ -75,6 +77,7 @@
     <script src="bower_components/uri.js/src/URITemplate.js"></script>
     <script src="bower_components/uri.js/src/jquery.URI.js"></script>
     <script src="bower_components/uri.js/src/URI.fragmentURI.js"></script>
+    <script src="bower_components/moment/moment.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -84,6 +87,11 @@
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/project.js"></script>
         <script src="scripts/controllers/pods.js"></script>
+        <script src="scripts/directives/date.js"></script>
+        <script src="scripts/directives/resources.js"></script>
+        <script src="scripts/filters/date.js"></script>
+        <script src="scripts/filters/resources.js"></script>
+        <script src="scripts/filters/util.js"></script>
         <!-- endbuild -->
 </body>
 </html>
