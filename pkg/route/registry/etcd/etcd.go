@@ -48,9 +48,7 @@ func (registry *Etcd) ListRoutes(ctx kapi.Context, labelSelector labels.Selector
 	}
 	filtered := []api.Route{}
 	for _, route := range allRoutes.Items {
-		fields := util.FieldSet(route)
-
-		if labelSelector.Matches(labels.Set(route.Labels)) && fieldSelector.Matches(fields) {
+		if labelSelector.Matches(labels.Set(route.Labels)) && util.FieldMatches(route, fieldSelector) {
 			filtered = append(filtered, route)
 		}
 	}

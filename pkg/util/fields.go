@@ -53,3 +53,10 @@ func FieldSet(object interface{}) labels.Set {
 
 	return fieldSet
 }
+
+//matchers are used in List and Watch commands.  However, if the list/watch is returning n objects it means
+//we must construct n maps to run the selector.  This utility method avoids the map overhead if the field selector
+//is labels.Everything() which is a common use case
+func FieldMatches(obj interface{}, selector labels.Selector) bool{
+	return selector.Empty() || selector.Matches(FieldSet(obj))
+}
