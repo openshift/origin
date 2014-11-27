@@ -92,3 +92,9 @@ echo "kube(deploymentConfigs): ok"
 
 ${KUBE_CMD} process -f examples/guestbook/template.json | ${KUBE_CMD} apply -f -
 echo "kube(template+config): ok"
+
+${KUBE_CMD} process -f examples/sample-app/application-template-dockerbuild.json | ${KUBE_CMD} apply -f -
+echo "kube(buildConfig): ok"
+
+${KUBE_CMD} start-build ruby-sample-build
+echo "kube(start-build): ok"

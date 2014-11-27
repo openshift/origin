@@ -73,7 +73,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !proceed {
 		return
 	}
-	build := util.GenerateBuild(buildCfg, revision)
+	build := util.GenerateBuildFromConfig(buildCfg, revision)
 	if _, err := c.osClient.CreateBuild(uv.namespace, build); err != nil {
 		badRequest(w, err.Error())
 	}
