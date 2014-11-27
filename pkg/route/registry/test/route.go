@@ -9,10 +9,13 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
+// RouteRegistry provides an in-memory implementation of
+// the route.Registry interface.
 type RouteRegistry struct {
 	Routes *routeapi.RouteList
 }
 
+// NewRouteRegistry creates a new RouteRegistry.
 func NewRouteRegistry() *RouteRegistry {
 	return &RouteRegistry{}
 }
