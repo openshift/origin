@@ -25,54 +25,38 @@ import (
 func TestEventQueue_basic(t *testing.T) {
 	q := NewEventQueue()
 
-	q.Add("boo", 2)
-	q.Add("foo", 10)
-	q.Add("bar", 1)
-	q.Update("foo", 11)
-	q.Update("foo", 13)
-	q.Delete("bar")
-	q.Add("zab", 30)
+	const amount = 500
+	go func() {
+		for i := 0; i < amount; i++ {
+			q.Add(string([]rune{'a', rune(i)}), i+1)
+		}
+	}()
+	go func() {
+		for u := uint(0); u < amount; u++ {
+			q.Add(string([]rune{'b', rune(u)}), u+1)
+		}
+	}()
 
-	event, thing := q.Pop()
+	lastInt := int(0)
+	lastUint := uint(0)
+	for i := 0; i < amount*2; i++ {
+		_, obj := q.Pop()
 
-	if thing != 2 {
-		t.Fatalf("expected %v, got %v", 2, thing)
-	}
-
-	if event != watch.Added {
-		t.Fatalf("expected %s, got %s", watch.Added, event)
-	}
-
-	q.Update("boo", 3)
-
-	event, thing = q.Pop()
-
-	if thing != 13 {
-		t.Fatalf("expected %v, got %v", 13, thing)
-	}
-
-	if event != watch.Added {
-		t.Fatalf("expected %s, got %s", watch.Added, event)
-	}
-
-	event, thing = q.Pop()
-
-	if thing != 30 {
-		t.Fatalf("expected %v, got %v", 30, thing)
-	}
-
-	if event != watch.Added {
-		t.Fatalf("expected %s, got %s", watch.Added, event)
-	}
-
-	event, thing = q.Pop()
-
-	if thing != 3 {
-		t.Fatalf("expected %v, got %v", 3, thing)
-	}
-
-	if event != watch.Modified {
-		t.Fatalf("expected %s, got %s", watch.Modified, event)
+		switch obj.(type) {
+		case int:
+			if obj.(int) <= lastInt {
+				t.Errorf("got %v (int) out of order, last was %v", obj, lastInt)
+			}
+			lastInt = obj.(int)
+		case uint:
+			if obj.(uint) <= lastUint {
+				t.Errorf("got %v (uint) out of order, last was %v", obj, lastUint)
+			} else {
+				lastUint = obj.(uint)
+			}
+		default:
+			t.Fatalf("unexpected type %#v", obj)
+		}
 	}
 }
 

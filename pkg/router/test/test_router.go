@@ -20,6 +20,7 @@ type Router struct {
 	RouterReloaded   bool
 }
 
+// NewRouter creates a new Router.
 func NewRouter(registeredFrontends map[string]router.Frontend) *Router {
 	return &Router{
 		FrontendsToFind:  registeredFrontends,

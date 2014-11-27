@@ -131,6 +131,7 @@ func (routes *Routes) DeleteBackends(name string) {
 	}
 	frontend.Backends = make(map[string]Backend)
 	frontend.EndpointTable = make(map[string]Endpoint)
+
 	routes.GlobalRoutes[name] = frontend
 }
 
@@ -142,7 +143,6 @@ func (routes *Routes) CreateFrontend(name string, url string) (*Routes, error) {
 		HostAliases:   make([]string, 0),
 	}
 
-	frontend.HostAliases = make([]string, 0)
 	if url != "" {
 		frontend.HostAliases = append(frontend.HostAliases, url)
 	}
@@ -222,8 +222,6 @@ func (routes *Routes) AddRoute(frontendName string, fePath string, backendPath s
 		if !found {
 			id = makeID()
 			endpoint := Endpoint{id, newEndpoint.IP, newEndpoint.Port}
-			glog.V(4).Infof("Frontend  %+v\n", frontend)
-			glog.V(4).Infof("Endpoint %+v\n", endpoint)
 			glog.V(4).Infof("Routes %+v\n", frontend.EndpointTable[id])
 			frontend.EndpointTable[id] = endpoint
 			glog.V(4).Infof("Routes after %+v\n", frontend.EndpointTable[id])
