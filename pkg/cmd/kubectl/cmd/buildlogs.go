@@ -21,7 +21,7 @@ Examples:
 $ kubectl build-logs 566bed879d2d
 <stream logs from container to stdout>`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 2 {
+			if len(args) != 1 {
 				usageError(cmd, "<build> are required for log")
 			}
 
