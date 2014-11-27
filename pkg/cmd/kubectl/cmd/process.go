@@ -31,6 +31,12 @@ Examples:
 			}
 
 			_, namespace, _, data := kubecmd.ResourceFromFile(filename, f.Typer, f.Mapper)
+			if len(namespace) == 0 {
+				namespace = getOriginNamespace(cmd)
+			} else {
+				err := kubecmd.CompareNamespaceFromFile(cmd, namespace)
+				checkErr(err)
+			}
 
 			c, err := f.OriginClientFunc(cmd, nil)
 			checkErr(err)

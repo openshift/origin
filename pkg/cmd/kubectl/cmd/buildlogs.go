@@ -3,8 +3,6 @@ package cmd
 import (
 	"io"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 )
@@ -25,10 +23,7 @@ $ kubectl build-logs 566bed879d2d
 				usageError(cmd, "<build> are required for log")
 			}
 
-			namespace := api.NamespaceDefault
-			if ns := kubecmd.GetFlagString(cmd, "namespace"); len(ns) > 0 {
-				namespace = ns
-			}
+			namespace := getOriginNamespace(cmd)
 
 			c, err := f.OriginClientFunc(cmd, nil)
 			request := c.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(args[0])
