@@ -8,7 +8,7 @@ System Environment
 
 1. Run as root
 
-   Currently OpenShift v3 must be started as root in order to manipulate your iptables configuration.  The openshift commands (e.g. `openshift kube apply` and `openshift kubectl apply`) do not need to be run as root.
+   Currently OpenShift v3 must be started as root in order to manipulate your iptables configuration.  The openshift commands (e.g. `openshift kubectl apply`) do not need to be run as root.
 
 1. Properly configure or disable firewalld
 
@@ -33,11 +33,11 @@ Build Failures
 
 To investigate a build failure, first check the build logs.  You can view the build logs via
 
-    $ openshift kube buildLogs --id=[buildid]
+    $ openshift kubectl build-logs [build_id]
         
 and you can get the build id via:
 
-    $ openshift kube list builds
+    $ openshift kubectl get builds
 
 the build id is in the first column.
 
@@ -56,11 +56,11 @@ Docker Registry
 
 Most of the v3 flows today assume you are running a docker registry pod.  You should ensure that this local registry is running:
 
-    $ openshift kube list services | grep registry
+    $ openshift kubectl get services | grep registry
 
 If it's not running, you can launch it via:
 
-    $ openshift kube apply -c examples/sample-app/docker-registry-config.json
+    $ openshift kubectl apply -f examples/sample-app/docker-registry-config.json
 
 In addition, confirm the IP and Port reported in the services list matches the registry references in your configuration json (e.g. any image tags that contain a registry hostname).  
 
