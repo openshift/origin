@@ -99,8 +99,10 @@ func (b *Builder) Build() (*STIResult, error) {
 }
 
 func (h *buildHandler) PostExecute(containerID string, cmd []string) error {
-	var err error
-	var previousImageID = ""
+	var (
+		err             error
+		previousImageID string
+	)
 	if h.request.incremental && h.request.RemovePreviousImage {
 		if previousImageID, err = h.docker.GetImageId(h.request.Tag); err != nil {
 			glog.Errorf("Error retrieving previous image's metadata: %v", err)

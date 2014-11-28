@@ -45,9 +45,10 @@ func (c *callbackInvoker) ExecuteCallback(callbackUrl string, success bool, mess
 	jsonWriter.Encode(d)
 	writer.Flush()
 
-	var resp *http.Response
-	var err error
-
+	var (
+		resp *http.Response
+		err  error
+	)
 	for retries := 0; retries < 3; retries++ {
 		resp, err = c.postFunc(callbackUrl, "application/json", jsonBuffer)
 		if err != nil {
