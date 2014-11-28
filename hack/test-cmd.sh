@@ -48,53 +48,57 @@ OS_PID=$!
 wait_for_url "http://localhost:${KUBELET_PORT}/healthz" "kubelet: " 1 30
 wait_for_url "http://${API_HOST}:${API_PORT}/healthz" "apiserver: "
 
-# TODO: Replace KUBE_CMD with KUBECTL_CMD
-KUBE_CMD="${GO_OUT}/openshift kubectl --server=http://${API_HOST}:${API_PORT} --match-server-version"
+CLI_CMD="${GO_OUT}/openshift cli --server=http://${API_HOST}:${API_PORT} --match-server-version"
 
-${KUBE_CMD} get pods
-${KUBE_CMD} create -f examples/hello-openshift/hello-pod.json
-${KUBE_CMD} delete pods hello-openshift
-echo "kube(pods): ok"
+clients=( "$CLI_CMD" )
 
-${KUBE_CMD} get services
-${KUBE_CMD} create -f test/integration/fixtures/test-service.json
-${KUBE_CMD} delete services frontend
-echo "kube(services): ok"
+for cli in "${clients[@]}"
+do
+  ${cli} get pods
+  ${cli} create -f examples/hello-openshift/hello-pod.json
+  ${cli} delete pods hello-openshift
+  echo "kube(pods): ok"
 
-${KUBE_CMD} get minions
-echo "kube(minions): ok"
+  ${cli} get services
+  ${cli} create -f test/integration/fixtures/test-service.json
+  ${cli} delete services frontend
+  echo "kube(services): ok"
 
-${KUBE_CMD} get images
-${KUBE_CMD} create -f test/integration/fixtures/test-image.json
-${KUBE_CMD} delete images test
-echo "kube(images): ok"
+  ${cli} get minions
+  echo "kube(minions): ok"
 
-${KUBE_CMD} get imageRepositories
-${KUBE_CMD} create -f test/integration/fixtures/test-image-repository.json
-${KUBE_CMD} delete imageRepositories test
-echo "kube(imageRepositories): ok"
+  ${cli} get images
+  ${cli} create -f test/integration/fixtures/test-image.json
+  ${cli} delete images test
+  echo "kube(images): ok"
 
-${KUBE_CMD} create -f test/integration/fixtures/test-image-repository.json
-${KUBE_CMD} create -f test/integration/fixtures/test-mapping.json
-${KUBE_CMD} get images
-${KUBE_CMD} get imageRepositories
-echo "kube(imageRepositoryMappings): ok"
+  ${cli} get imageRepositories
+  ${cli} create -f test/integration/fixtures/test-image-repository.json
+  ${cli} delete imageRepositories test
+  echo "kube(imageRepositories): ok"
 
-${KUBE_CMD} get routes
-${KUBE_CMD} create -f test/integration/fixtures/test-route.json create routes
-${KUBE_CMD} delete routes testroute
-echo "kube(routes): ok"
+  ${cli} create -f test/integration/fixtures/test-image-repository.json
+  ${cli} create -f test/integration/fixtures/test-mapping.json
+  ${cli} get images
+  ${cli} get imageRepositories
+  echo "kube(imageRepositoryMappings): ok"
 
-${KUBE_CMD} get deploymentConfigs
-${KUBE_CMD} create -f test/integration/fixtures/test-deployment-config.json
-${KUBE_CMD} delete deploymentConfigs test-deployment-config
-echo "kube(deploymentConfigs): ok"
+  ${cli} get routes
+  ${cli} create -f test/integration/fixtures/test-route.json create routes
+  ${cli} delete routes testroute
+  echo "kube(routes): ok"
 
-${KUBE_CMD} process -f examples/guestbook/template.json | ${KUBE_CMD} apply -f -
-echo "kube(template+config): ok"
+  ${cli} get deploymentConfigs
+  ${cli} create -f test/integration/fixtures/test-deployment-config.json
+  ${cli} delete deploymentConfigs test-deployment-config
+  echo "kube(deploymentConfigs): ok"
 
-${KUBE_CMD} process -f examples/sample-app/application-template-dockerbuild.json | ${KUBE_CMD} apply -f -
-echo "kube(buildConfig): ok"
+  ${cli} process -f examples/guestbook/template.json | ${cli} apply -f -
+  echo "kube(template+config): ok"
 
-${KUBE_CMD} start-build ruby-sample-build
-echo "kube(start-build): ok"
+  ${cli} process -f examples/sample-app/application-template-dockerbuild.json | ${cli} apply -f -
+  echo "kube(buildConfig): ok"
+
+  ${cli} start-build ruby-sample-build
+  echo "kube(start-build): ok"
+done

@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/kubectl"
+	"github.com/openshift/origin/pkg/cmd/osc"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -48,6 +49,8 @@ func CommandFor(basename string) *cobra.Command {
 		return builder.NewCommandDockerBuilder(basename)
 	case "kubectl":
 		return kubectl.NewCommandKubectl(basename)
+	case "cli":
+		return osc.NewCommandDeveloper(basename)
 	default:
 		return NewCommandOpenShift()
 	}
@@ -67,6 +70,7 @@ func NewCommandOpenShift() *cobra.Command {
 	root.AddCommand(server.NewCommandStartServer("start"))
 	root.AddCommand(client.NewCommandKubecfg("kube"))
 	root.AddCommand(kubectl.NewCommandKubectl("kubectl"))
+	root.AddCommand(osc.NewCommandDeveloper("cli"))
 	root.AddCommand(newVersionCommand("version"))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
