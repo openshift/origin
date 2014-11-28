@@ -22,6 +22,7 @@ import (
 // DeploymentConfigs from a queue populated from a watch of all DeploymentConfigs.
 type DeploymentConfigControllerFactory struct {
 	Client *osclient.Client
+	Stop   <-chan struct{}
 }
 
 func (factory *DeploymentConfigControllerFactory) Create() *controller.DeploymentConfigController {
@@ -31,8 +32,11 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	return &controller.DeploymentConfigController{
 		DeploymentInterface: ClientDeploymentInterace{factory.Client},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			return queue.Pop().(*deployapi.DeploymentConfig)
+			config := queue.Pop().(*deployapi.DeploymentConfig)
+			panicIfStopped(factory.Stop, "deployment config controller stopped")
+			return config
 		},
+		Stop: factory.Stop,
 	}
 }
 
@@ -50,6 +54,8 @@ type DeploymentControllerFactory struct {
 	UseLocalImages bool
 	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
 	RecreateStrategyImage string
+	// Stop may be set to allow controllers created by this factory to be terminated.
+	Stop <-chan struct{}
 
 	// deploymentStore is maintained on the factory to support narrowing of the pod polling scope.
 	deploymentStore cache.Store
@@ -79,13 +85,18 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
 		Environment:         factory.Environment,
 		NextDeployment: func() *deployapi.Deployment {
-			return deploymentQueue.Pop().(*deployapi.Deployment)
+			deployment := deploymentQueue.Pop().(*deployapi.Deployment)
+			panicIfStopped(factory.Stop, "deployment controller stopped")
+			return deployment
 		},
 		NextPod: func() *kapi.Pod {
-			return podQueue.Pop().(*kapi.Pod)
+			pod := podQueue.Pop().(*kapi.Pod)
+			panicIfStopped(factory.Stop, "deployment controller stopped")
+			return pod
 		},
 		DeploymentStore: factory.deploymentStore,
 		UseLocalImages:  factory.UseLocalImages,
+		Stop:            factory.Stop,
 	}
 }
 
@@ -176,6 +187,8 @@ func (pe *podEnumerator) Get(index int) (string, interface{}) {
 // from a queue populated from a watch of all DeploymentConfigs.
 type DeploymentConfigChangeControllerFactory struct {
 	Client osclient.Interface
+	// Stop may be set to allow controllers created by this factory to be terminated.
+	Stop <-chan struct{}
 }
 
 func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.DeploymentConfigChangeController {
@@ -188,9 +201,12 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.Dep
 	return &controller.DeploymentConfigChangeController{
 		ChangeStrategy: ClientDeploymentConfigInterace{factory.Client},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			return queue.Pop().(*deployapi.DeploymentConfig)
+			config := queue.Pop().(*deployapi.DeploymentConfig)
+			panicIfStopped(factory.Stop, "deployment config change controller stopped")
+			return config
 		},
 		DeploymentStore: store,
+		Stop:            factory.Stop,
 	}
 }
 
@@ -198,6 +214,8 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.Dep
 // from a queue populated from a watch of all ImageRepositories.
 type ImageChangeControllerFactory struct {
 	Client *osclient.Client
+	// Stop may be set to allow controllers created by this factory to be terminated.
+	Stop <-chan struct{}
 }
 
 func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
@@ -211,8 +229,20 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 		DeploymentConfigInterface: ClientDeploymentConfigInterace{factory.Client},
 		DeploymentConfigStore:     store,
 		NextImageRepository: func() *imageapi.ImageRepository {
-			return queue.Pop().(*imageapi.ImageRepository)
+			repo := queue.Pop().(*imageapi.ImageRepository)
+			panicIfStopped(factory.Stop, "deployment config change controller stopped")
+			return repo
 		},
+		Stop: factory.Stop,
+	}
+}
+
+// panicIfStopped panics with the provided object if the channel is closed
+func panicIfStopped(ch <-chan struct{}, message interface{}) {
+	select {
+	case <-ch:
+		panic(message)
+	default:
 	}
 }
 

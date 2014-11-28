@@ -43,6 +43,7 @@ func init() {
 func TestSuccessfulManualDeployment(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
+	defer openshift.Close()
 
 	config := manualDeploymentConfig()
 	var err error
@@ -78,6 +79,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 func TestSimpleImageChangeTrigger(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
+	defer openshift.Close()
 
 	imageRepo := &imageapi.ImageRepository{
 		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-repo"},
@@ -141,6 +143,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 func TestSimpleConfigChangeTrigger(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
+	defer openshift.Close()
 
 	config := changeDeploymentConfig()
 	var err error
@@ -217,12 +220,15 @@ func (p *podInfoGetter) GetPodInfo(host, namespace, podID string) (kapi.PodInfo,
 type testOpenshift struct {
 	Client *osclient.Client
 	Server *httptest.Server
+	stop   chan struct{}
 }
 
 func NewTestOpenshift(t *testing.T) *testOpenshift {
 	glog.Info("Starting test openshift")
 
-	openshift := &testOpenshift{}
+	openshift := &testOpenshift{
+		stop: make(chan struct{}),
+	}
 
 	etcdClient := newEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
@@ -280,16 +286,30 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		t.Errorf("Expected %#v, got %#v", e, a)
 	}
 
-	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{Client: osClient}
+	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
+		Client: osClient,
+		Stop:   openshift.stop,
+	}
 	dccFactory.Create().Run()
 
-	cccFactory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{osClient}
+	cccFactory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{
+		Client: osClient,
+		Stop:   openshift.stop,
+	}
 	cccFactory.Create().Run()
 
-	iccFactory := deploycontrollerfactory.ImageChangeControllerFactory{osClient}
+	iccFactory := deploycontrollerfactory.ImageChangeControllerFactory{
+		Client: osClient,
+		Stop:   openshift.stop,
+	}
+
 	iccFactory.Create().Run()
 
 	return openshift
+}
+
+func (t *testOpenshift) Close() {
+	close(t.stop)
 }
 
 func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {

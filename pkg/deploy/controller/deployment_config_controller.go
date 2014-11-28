@@ -15,9 +15,10 @@ import (
 type DeploymentConfigController struct {
 	// DeploymentInterface provides access to Deployments.
 	DeploymentInterface dccDeploymentInterface
-
 	// NextDeploymentConfig blocks until the next DeploymentConfig is available.
 	NextDeploymentConfig func() *deployapi.DeploymentConfig
+	// Stop is an optional channel that controls when the controller exits
+	Stop <-chan struct{}
 }
 
 // dccDeploymentInterface is a small private interface for dealing with Deployments.
@@ -28,7 +29,7 @@ type dccDeploymentInterface interface {
 
 // Process DeploymentConfig events one at a time.
 func (c *DeploymentConfigController) Run() {
-	go util.Forever(c.HandleDeploymentConfig, 0)
+	go util.Until(c.HandleDeploymentConfig, 0, c.Stop)
 }
 
 // Process a single DeploymentConfig event.
