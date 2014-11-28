@@ -51,19 +51,25 @@ func HandleCrash() {
 
 // Forever loops forever running f every d.  Catches any panics, and keeps going.
 func Forever(f func(), period time.Duration) {
+	Until(f, period, nil)
+}
+
+// Until loops until stop channel is closed, running f every d.
+// Catches any panics, and keeps going. f may not be invoked if
+// stop channel is already closed.
+func Until(f func(), period time.Duration, stopCh <-chan struct{}) {
 	for {
+		select {
+		case <-stopCh:
+			return
+		default:
+		}
 		func() {
 			defer HandleCrash()
 			f()
 		}()
 		time.Sleep(period)
 	}
-}
-
-// EncodeJSON returns obj marshalled as a JSON string, ignoring any errors.
-func EncodeJSON(obj interface{}) string {
-	data, _ := json.Marshal(obj)
-	return string(data)
 }
 
 // IntOrString is a type that can hold an int or a string.  When used in

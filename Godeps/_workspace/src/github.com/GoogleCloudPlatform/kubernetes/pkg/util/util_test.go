@@ -24,37 +24,24 @@ import (
 	"gopkg.in/v1/yaml"
 )
 
-type FakeTypeMeta struct {
-	ID string
-}
-type FakePod struct {
-	FakeTypeMeta `json:",inline" yaml:",inline"`
-	Labels       map[string]string
-	Int          int
-	Str          string
-}
+func TestUntil(t *testing.T) {
+	ch := make(chan struct{})
+	close(ch)
+	Until(func() {
+		t.Fatal("should not have been invoked")
+	}, 0, ch)
 
-func TestEncodeJSON(t *testing.T) {
-	pod := FakePod{
-		FakeTypeMeta: FakeTypeMeta{ID: "foo"},
-		Labels: map[string]string{
-			"foo": "bar",
-			"baz": "blah",
-		},
-		Int: -6,
-		Str: "a string",
-	}
-
-	body := EncodeJSON(pod)
-
-	expectedBody, err := json.Marshal(pod)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if string(expectedBody) != body {
-		t.Errorf("JSON doesn't match.  Expected %s, saw %s", expectedBody, body)
-	}
+	ch = make(chan struct{})
+	called := make(chan struct{})
+	go func() {
+		Until(func() {
+			called <- struct{}{}
+		}, 0, ch)
+		close(called)
+	}()
+	<-called
+	close(ch)
+	<-called
 }
 
 func TestHandleCrash(t *testing.T) {
