@@ -19,6 +19,8 @@ type ImageChangeController struct {
 	DeploymentConfigInterface icDeploymentConfigInterface
 	NextImageRepository       func() *imageapi.ImageRepository
 	DeploymentConfigStore     cache.Store
+	// Stop is an optional channel that controls when the controller exits
+	Stop <-chan struct{}
 }
 
 type icDeploymentConfigInterface interface {
@@ -28,7 +30,7 @@ type icDeploymentConfigInterface interface {
 
 // Run processes ImageRepository events one by one.
 func (c *ImageChangeController) Run() {
-	go util.Forever(c.HandleImageRepo, 0)
+	go util.Until(c.HandleImageRepo, 0, c.Stop)
 }
 
 // HandleImageRepo processes the next ImageRepository event.
