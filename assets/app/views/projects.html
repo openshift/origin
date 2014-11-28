@@ -2,7 +2,7 @@
   <div>
     <h1 style="margin-top: 10px;">Projects</h1>
     <div ng-if="$.isEmpty(projects)">
-      You have no projects. For an example run <code>openshift kube create project -c examples/hello-openshift/hello-project.json</code>
+      You have no projects. For an example run <code>openshift kubectl create -f examples/hello-openshift/hello-project.json</code>
     </div>
     <div class="tile tile-click" ng-click="tileClickHandler($event)" style="margin-bottom: 10px;" ng-repeat="project in projects">
       <h3><a class="tile-target" href="#/project/{{project.metadata.name}}">{{project.displayName}}</a></h3>

@@ -22,7 +22,7 @@ The simplest way to start is to run OpenShift Origin in a Docker container:
 
 Note that this won't hold any data after a restart, so you'll need to use a data container or mount a volume at `/var/lib/openshift` to preserve that data.  Once the container is started, run:
 
-    $ docker run --net=host openshift/origin kube --help
+    $ docker run --net=host openshift/origin kubectl --help
 
 to see the command line options you can use (if you don't specify `--net=host`, you'll need to pass `-h <hostip>` to the CLI to connect).
 
@@ -45,7 +45,7 @@ Once setup, you can:
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ _output/local/go/bin/openshift kube create pods -c examples/hello-openshift/hello-pod.json
+        $ _output/local/go/bin/openshift kubectl create -f examples/hello-openshift/hello-pod.json
 
 Once that's done, open a browser on your machine and open [http://localhost:6061](http://localhost:6061); you should see a 'Welcome to OpenShift' message.
 
@@ -66,8 +66,7 @@ OpenShift brings all of these pieces (and a client) together in a single, easy t
 * [Kubernetes guestbook](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/guestbook)
 * [OpenShift guestbook template](https://github.com/openshift/origin/blob/master/examples/guestbook) takes the previous example and templatizes it
 
-Remember, you can pass a URL to `-c` when using the `kube` command, so you can [download the latest
-release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you
+Remember, you can pass a URL to `-f` when using the `kubectl` command, so you can [download the latest release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you
 don't even need clone the source.
 
 ### Docker registry

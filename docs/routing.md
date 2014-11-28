@@ -31,7 +31,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
     [vagrant@openshiftdev origin]$ hack/install-router.sh {router_id} {master ip}
-    [vagrant@openshiftdev origin]$ openshift kube list pods
+    [vagrant@openshiftdev origin]$ openshift kubectl get pods
     
 #### Clustered vagrant environment    
 
@@ -54,7 +54,7 @@ In order to run the router in a deployed environment the following conditions mu
 To install the router pod you use the `hack/install-router.sh` script, passing it the router id, master ip, and, optionally,
 the OpenShift executable.  If the executable is not passed the script will try to find it via the `PATH`.  If the
 script is still unable to find the OpenShift executable then it will simply create the `/tmp/router.json` file and stop.
-It is then up to the user to issue the `openshift kube create pods` command manually.
+It is then up to the user to issue the `openshift kubectl create` command manually.
 
 ### Manually   
 
@@ -78,19 +78,19 @@ To test your route independent of DNS you can send a host header to the router. 
 
     $ ..... vagrant up with single machine instructions .......
     $ ..... create config files listed below in ~ ........
-    [vagrant@openshiftdev origin]$ openshift kube -c ~/pod.json create pods
-    [vagrant@openshiftdev origin]$ openshift kube -c ~/service.json create services
-    [vagrant@openshiftdev origin]$ openshift kube -c ~/route.json create routes
+    [vagrant@openshiftdev origin]$ openshift kubectl create -f ~/pod.json
+    [vagrant@openshiftdev origin]$ openshift kubectl create -f ~/service.json
+    [vagrant@openshiftdev origin]$ openshift kubectl create -f ~/route.json
     [vagrant@openshiftdev origin]$ curl -H "Host:hello-openshift.v3.rhcloud.com" <vm ip>
     Hello OpenShift!
     
     $ ..... vagrant up with cluster instructions .....
     $ ..... create config files listed below in ~ ........
-    [vagrant@openshift-master ~]$ openshift kube -c ~/pod.json create pods
-    [vagrant@openshift-master ~]$ openshift kube -c ~/service.json create services
-    [vagrant@openshift-master ~]$ openshift kube -c ~/route.json create routes
+    [vagrant@openshift-master ~]$ openshift kubectl create -f ~/pod.json
+    [vagrant@openshift-master ~]$ openshift kubectl create -f ~/service.json
+    [vagrant@openshift-master ~]$ openshift kubectl create -f ~/route.json
     # take note of what minion number the router is deployed on
-    [vagrant@openshift-master ~]$ openshift kube list pods
+    [vagrant@openshift-master ~]$ openshift kubectl get pods
     [vagrant@openshift-master ~]$ curl -H "Host:hello-openshift.v3.rhcloud.com" openshift-minion-<1,2>
     Hello OpenShift!
     
