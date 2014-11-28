@@ -25,11 +25,11 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 3. Deploy the private docker registry within OpenShift:
 
-        $ openshift kube apply -c docker-registry-config.json
+        $ openshift kubectl apply -f docker-registry-config.json
 
 4. Confirm the registry is started (this can take a few mins):
 
-        $ openshift kube list pods
+        $ openshift kubectl get pods
 
     You should see:
 
@@ -39,7 +39,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 5. Confirm the registry service is running:
 
-        $ openshift kube list services
+        $ openshift kubectl get services
 
     You should see:
 
@@ -68,7 +68,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 9. Submit the application template for processing and create the application using the processed template:
 
-        $ openshift kube process -c application-template-stibuild.json | openshift kube apply -c -
+        $ openshift kubectl process -f application-template-stibuild.json | openshift kubectl apply -f -
 
 10. Trigger an initial build of your application
  * If you setup the github webhook in step 7, push a change to app.rb in your ruby sample repository from step 6.
@@ -78,7 +78,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 11. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
 
-        $ openshift kube list builds
+        $ openshift kubectl get builds
 
     Sample output:
 
@@ -90,15 +90,15 @@ All commands assume the `openshift` binary is in your path (normally located und
      in the buildcfg.json.  Note that the private docker registry is using ephemeral storage, so when it is stopped, the image will
      be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
 
-     If you want to see the build logs of a complete build, use this command (substituting your build id from the "openshift kube list builds" output):
+     If you want to see the build logs of a complete build, use this command (substituting your build id from the "openshift kubectl get builds" output):
 
-         $ openshift kube buildLogs --id=20f54507-3dcd-11e4-984b-3c970e3bf0b7
+         $ openshift kubectl build-logs 20f54507-3dcd-11e4-984b-3c970e3bf0b7
 
     The creation of the new image will automatically trigger a deployment of the application.
 
 12. Wait for the application's frontend pod and database pods to be started (this can take a few mins):
 
-        $ openshift kube list pods
+        $ openshift kubectl get pods
 
     Sample output:
 
@@ -110,7 +110,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 13. Determine the IP for the frontend service:
 
-        $ openshift kube list services
+        $ openshift kubectl get services
 
     Sample output:
 
@@ -140,7 +140,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - List the existing services:
 
-        $ openshift kube list services
+        $ openshift kubectl get services
 
     Sample output:
 
@@ -153,7 +153,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - To remove the **frontend** service use the command:
 
-        $ openshift kube delete services/frontend
+        $ openshift kubectl delete service frontend
 
     Sample output:
 
@@ -163,7 +163,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - Check the service was removed:
 
-        $ openshift kube list services
+        $ openshift kubectl get services
 
     Sample output:
 
@@ -185,7 +185,7 @@ Another interesting example is deleting a pod.
 
   - List available pods:
 
-        $ openshift kube list pods
+        $ openshift kubectl get pods
 
     Sample output:
 
@@ -197,7 +197,7 @@ Another interesting example is deleting a pod.
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ openshift kube delete pods/4a792f55-605f-11e4-b0db-3c970e3bf0b7
+        $ openshift kubectl delete pod 4a792f55-605f-11e4-b0db-3c970e3bf0b7
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 
