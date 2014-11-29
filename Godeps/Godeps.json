@@ -524,7 +524,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "b1e90a7943957b51bb96a13b44b844475bcf95c0"
+			"Rev": "b825817fc0fc59fc1657bc8202204a04ae3d679d"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
