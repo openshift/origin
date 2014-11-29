@@ -37,9 +37,9 @@ func TestHandleRoute(t *testing.T) {
 		"deleted":  {eventType: watch.Deleted, existing: true, aliasRemoved: true},
 	}
 
-	for name, c := range cases {
+	for name, tc := range cases {
 		existingFrontends := map[string]router.Frontend{}
-		if c.existing {
+		if tc.existing {
 			existingFrontends[testRouteServiceName] = router.Frontend{}
 		}
 
@@ -50,12 +50,12 @@ func TestHandleRoute(t *testing.T) {
 				panic("Unreachable")
 			},
 			NextRoute: func() (watch.EventType, *routeapi.Route) {
-				return c.eventType, &testRoute
+				return tc.eventType, &testRoute
 			},
 		}
 
 		expectedFrontends := 0
-		if c.frontendCreated {
+		if tc.frontendCreated {
 			expectedFrontends = 1
 		}
 
@@ -65,7 +65,7 @@ func TestHandleRoute(t *testing.T) {
 			t.Errorf("Case %v: Frontend should have been created", name)
 		}
 
-		if c.aliasAdded {
+		if tc.aliasAdded {
 			addedAlias, ok := testRouter.AddedAliases[testRouteHost]
 			if !ok {
 				t.Errorf("Case %v: An alias should have been added for %v", name, testRouteHost)
@@ -76,7 +76,7 @@ func TestHandleRoute(t *testing.T) {
 			}
 		}
 
-		if c.aliasRemoved {
+		if tc.aliasRemoved {
 			removedAlias, ok := testRouter.RemovedAliases[testRouteHost]
 			if !ok {
 				t.Errorf("Case %v: An alias should have been removed for %v", name, testRouteHost)
@@ -97,7 +97,7 @@ func TestHandleRoute(t *testing.T) {
 	}
 }
 
-func TestHandleEndpointsAdded(t *testing.T) {
+func TestHandleEndpoints(t *testing.T) {
 	var (
 		testEndpointsName = "testendpoints"
 		testEndpoints     = kapi.Endpoints{
@@ -122,9 +122,9 @@ func TestHandleEndpointsAdded(t *testing.T) {
 		"deleted":  {eventType: watch.Deleted, existing: true},
 	}
 
-	for name, c := range cases {
+	for name, tc := range cases {
 		existingFrontends := map[string]router.Frontend{}
-		if c.existing {
+		if tc.existing {
 			existingFrontends[testEndpointsName] = router.Frontend{}
 		}
 
@@ -132,7 +132,7 @@ func TestHandleEndpointsAdded(t *testing.T) {
 		controller := RouterController{
 			Router: testRouter,
 			NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-				return c.eventType, &testEndpoints
+				return tc.eventType, &testEndpoints
 			},
 			NextRoute: func() (watch.EventType, *routeapi.Route) {
 				panic("Unreachable")
@@ -140,7 +140,7 @@ func TestHandleEndpointsAdded(t *testing.T) {
 		}
 
 		expectedFrontends := 0
-		if c.frontendCreated {
+		if tc.frontendCreated {
 			expectedFrontends = 1
 		}
 
@@ -155,7 +155,7 @@ func TestHandleEndpointsAdded(t *testing.T) {
 		}
 
 		addedRoutes, ok := testRouter.AddedRoutes[testEndpointsName]
-		if c.routesAdded {
+		if tc.routesAdded {
 			if !ok {
 				t.Errorf("Case %v: Two routes should have been added for %v", name, testEndpointsName)
 			}
