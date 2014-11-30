@@ -31,8 +31,6 @@ func GenerateRandomStats(numStats, numCores int, duration time.Duration) []*info
 	}
 	for i := 0; i < numStats; i++ {
 		stats := new(info.ContainerStats)
-		stats.Cpu = new(info.CpuStats)
-		stats.Memory = new(info.MemoryStats)
 		stats.Timestamp = currentTime
 		currentTime = currentTime.Add(duration)
 
@@ -51,10 +49,10 @@ func GenerateRandomStats(numStats, numCores int, duration time.Duration) []*info
 	return ret
 }
 
-func GenerateRandomContainerSpec(numCores int) *info.ContainerSpec {
-	ret := &info.ContainerSpec{
-		Cpu:    &info.CpuSpec{},
-		Memory: &info.MemorySpec{},
+func GenerateRandomContainerSpec(numCores int) info.ContainerSpec {
+	ret := info.ContainerSpec{
+		Cpu:    info.CpuSpec{},
+		Memory: info.MemorySpec{},
 	}
 	ret.Cpu.Limit = uint64(1000 + rand.Int63n(2000))
 	ret.Cpu.MaxLimit = uint64(1000 + rand.Int63n(2000))
