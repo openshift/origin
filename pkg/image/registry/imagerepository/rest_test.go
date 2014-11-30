@@ -120,7 +120,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 }
 
 func TestCreateImageRepositoryBadObject(t *testing.T) {
-	storage := REST{}
+	storage := NewREST(nil, "")
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageList{})
 	if channel != nil {
@@ -133,9 +133,9 @@ func TestCreateImageRepositoryBadObject(t *testing.T) {
 
 func TestCreateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := NewREST(mockRepositoryRegistry, "test")
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{})
+	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -150,6 +150,12 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 	}
 	if repo.CreationTimestamp.IsZero() {
 		t.Error("Unexpected zero CreationTimestamp")
+	}
+	if repo.DockerImageRepository != "" {
+		t.Errorf("unexpected repository: %#v", repo)
+	}
+	if repo.Status.DockerImageRepository != "test/default/foo" {
+		t.Errorf("unexpected Status values: %#v", repo)
 	}
 }
 
