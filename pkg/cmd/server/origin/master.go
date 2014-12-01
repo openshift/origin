@@ -18,6 +18,8 @@ import (
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/golang/glog"
 
+	httpgzip "github.com/daaku/go.httpgzip"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
@@ -244,8 +246,8 @@ func (c *MasterConfig) RunAssetServer() {
 		http.Redirect(w, req, urlStr, http.StatusTemporaryRedirect)
 	}))
 
-	mux.Handle(prefix, http.StripPrefix(prefix, http.FileServer(
-		&assetfs.AssetFS{assets.Asset, assets.AssetDir, ""})))
+	mux.Handle(prefix, http.StripPrefix(prefix, httpgzip.NewHandler(http.FileServer(
+		&assetfs.AssetFS{assets.Asset, assets.AssetDir, ""}))))
 
 	server := &http.Server{
 		Addr:           c.AssetAddr,
