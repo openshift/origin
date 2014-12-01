@@ -416,6 +416,10 @@
 			"Rev": "2fb21b34171f083d46d66195caa7ec121d941ec5"
 		},
 		{
+			"ImportPath": "github.com/daaku/go.httpgzip",
+			"Rev": "3f59977b58c61991f5ed3670bbd141937d808b06"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/pkg/mount",
 			"Comment": "v1.1.1-402-g487a417",
 			"Rev": "487a417d9fd074d0e78876072c7d1ebfd398ea7a"
