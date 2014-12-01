@@ -9,6 +9,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router"
 	testrouter "github.com/openshift/origin/pkg/router/test"
+	"reflect"
 )
 
 func TestHandleRoute(t *testing.T) {
@@ -173,6 +174,49 @@ func TestHandleEndpoints(t *testing.T) {
 
 		if !testRouter.RouterReloaded {
 			t.Errorf("Case %v: Router should have been reloaded", name)
+		}
+	}
+}
+
+//test creation of endpoint from a string
+func TestEndpointFromString(t *testing.T) {
+	endpointFromStringTestCases := map[string]struct {
+		InputEndpoint    string
+		ExpectedEndpoint *router.Endpoint
+		ExpectedOk       bool
+	}{
+		"Empty String": {
+			InputEndpoint:    "",
+			ExpectedEndpoint: nil,
+			ExpectedOk:       false,
+		},
+		"Default Port": {
+			InputEndpoint: "test",
+			ExpectedEndpoint: &router.Endpoint{
+				IP:   "test",
+				Port: "80",
+			},
+			ExpectedOk: true,
+		},
+		"Non-default Port": {
+			InputEndpoint: "test:9999",
+			ExpectedEndpoint: &router.Endpoint{
+				IP:   "test",
+				Port: "9999",
+			},
+			ExpectedOk: true,
+		},
+	}
+
+	for k, tc := range endpointFromStringTestCases {
+		endpoint, ok := endpointFromString(tc.InputEndpoint)
+
+		if ok != tc.ExpectedOk {
+			t.Fatalf("%s failed, expected ok=%t but got %t", k, tc.ExpectedOk, ok)
+		}
+
+		if !reflect.DeepEqual(endpoint, tc.ExpectedEndpoint) {
+			t.Fatalf("%s failed, the returned endpoint didn't match the expected endpoint", k)
 		}
 	}
 }

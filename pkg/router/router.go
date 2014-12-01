@@ -67,7 +67,7 @@ type Router interface {
 	DeleteFrontend(name string)
 	AddAlias(alias, frontendName string)
 	RemoveAlias(alias, frontendName string)
-	AddRoute(frontendName, frontendPath, backendPath string, protocols []string, endpoints []Endpoint)
+	AddRoute(frontend *Frontend, backend *Backend, endpoints []Endpoint)
 	WriteConfig()
 	ReloadRouter() bool
 }
@@ -162,9 +162,9 @@ func (routes *Routes) RemoveAlias(alias, frontendName string) {
 	routes.WriteRoutes()
 }
 
-func (routes *Routes) AddRoute(frontendName, frontendPath, backendPath string, protocols []string, endpoints []Endpoint) {
+func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints []Endpoint) {
 	var id string
-	frontend := routes.GlobalRoutes[frontendName]
+	existingFrontend := routes.GlobalRoutes[frontend.Name]
 
 	epIDs := make([]string, 1)
 	for newEpId := range endpoints {
@@ -173,7 +173,7 @@ func (routes *Routes) AddRoute(frontendName, frontendPath, backendPath string, p
 			continue
 		}
 		found := false
-		for _, ep := range frontend.EndpointTable {
+		for _, ep := range existingFrontend.EndpointTable {
 			if ep.IP == newEndpoint.IP && ep.Port == newEndpoint.Port {
 				epIDs = append(epIDs, ep.ID)
 				found = true
@@ -183,27 +183,27 @@ func (routes *Routes) AddRoute(frontendName, frontendPath, backendPath string, p
 		if !found {
 			id = makeID()
 			ep := Endpoint{id, newEndpoint.IP, newEndpoint.Port}
-			frontend.EndpointTable[id] = ep
+			existingFrontend.EndpointTable[id] = ep
 			epIDs = append(epIDs, ep.ID)
 		}
 	}
 	// locate a backend that may already exist with this protocol and fe/be path
 	found := false
-	for _, be := range frontend.Backends {
-		if be.FePath == frontendPath && be.BePath == backendPath && cmpStrSlices(protocols, be.Protocols) {
+	for _, be := range existingFrontend.Backends {
+		if be.FePath == backend.FePath && be.BePath == backend.BePath && cmpStrSlices(backend.Protocols, be.Protocols) {
 			for _, epId := range epIDs {
 				be.EndpointIDs = append(be.EndpointIDs, epId)
 			}
-			frontend.Backends[be.ID] = be
+			existingFrontend.Backends[be.ID] = be
 			found = true
 			break
 		}
 	}
 	if !found {
 		id = makeID()
-		frontend.Backends[id] = Backend{id, frontendPath, backendPath, protocols, epIDs, TERM_EDGE, nil}
+		existingFrontend.Backends[id] = Backend{id, backend.FePath, backend.BePath, backend.Protocols, epIDs, TERM_EDGE, nil}
 	}
-	routes.GlobalRoutes[frontend.Name] = frontend
+	routes.GlobalRoutes[existingFrontend.Name] = existingFrontend
 	routes.WriteRoutes()
 }
 
