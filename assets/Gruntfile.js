@@ -238,7 +238,34 @@ module.exports = function (grunt) {
               js: ['concat', 'uglifyjs'],
               css: ['cssmin']
             },
-            post: {}
+            post: {
+              css: [{
+                name:'cssmin',
+                createConfig: function(context, block) {
+                  var generated = context.options.generated;
+                  generated.options = {
+                    keepBreaks: true,
+                  };
+                }
+              }],
+
+              js: [{
+                name:'uglify',
+                createConfig: function(context, block) {
+                  var generated = context.options.generated;
+                  generated.options = {
+                    compress: true,
+                    mangle: true,
+                    beautify: {
+                      beautify: true,
+                      indent_level: 0, // Don't waste characters indenting
+                      space_colon: false, // Don't waste characters 
+                      width: 1000,
+                    },
+                  };
+                }
+              }]
+            }
           }
         }
       }
