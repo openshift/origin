@@ -119,58 +119,74 @@ type FakeLabelsResource struct {
 func (*FakeLabelsResource) IsAnAPIObject() {}
 
 func TestAddConfigLabels(t *testing.T) {
+	var nilLabels map[string]string
+
 	testCases := []struct {
-		resource       runtime.Object
+		obj            runtime.Object
 		addLabels      map[string]string
-		shouldPass     bool
+		err            bool
 		expectedLabels map[string]string
 	}{
-		{ // Test empty labels
-			&kapi.Pod{},
-			map[string]string{},
-			true,
-			map[string]string{},
+		{ // [0] Test nil + nil => nil
+			obj:            &kapi.Pod{},
+			addLabels:      nilLabels,
+			err:            false,
+			expectedLabels: nilLabels,
 		},
-		{ // Test resource labels + 0 => expected labels
-			&kapi.Pod{
+		{ // [1] Test nil + empty labels => empty labels
+			obj:            &kapi.Pod{},
+			addLabels:      map[string]string{},
+			err:            false,
+			expectedLabels: map[string]string{},
+		},
+		{ // [2] Test obj.Labels + nil => obj.Labels
+			obj: &kapi.Pod{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
 			},
-			map[string]string{},
-			true,
-			map[string]string{"foo": "bar"},
+			addLabels:      nilLabels,
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar"},
 		},
-		{ // Test 0 + addLabels => expected labels
-			&kapi.Pod{},
-			map[string]string{"foo": "bar"},
-			true,
-			map[string]string{"foo": "bar"},
+		{ // [3] Test obj.Labels + empty labels => obj.Labels
+			obj: &kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
+			},
+			addLabels:      map[string]string{},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar"},
 		},
-		{ // Test resource labels + addLabels => expected labels
-			&kapi.Service{
+		{ // [4] Test nil + addLabels => addLabels
+			obj:            &kapi.Pod{},
+			addLabels:      map[string]string{"foo": "bar"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar"},
+		},
+		{ // [5] Test obj.labels + addLabels => expectedLabels
+			obj: &kapi.Service{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"baz": ""}},
 			},
-			map[string]string{"foo": "bar"},
-			true,
-			map[string]string{"foo": "bar", "baz": ""},
+			addLabels:      map[string]string{"foo": "bar"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar", "baz": ""},
 		},
-		{ // Test conflicting keys with the same value
-			&kapi.Service{
+		{ // [6] Test conflicting keys with the same value
+			obj: &kapi.Service{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "same value"}},
 			},
-			map[string]string{"foo": "same value"},
-			true,
-			map[string]string{"foo": "same value"},
+			addLabels:      map[string]string{"foo": "same value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "same value"},
 		},
-		{ // Test conflicting keys with a different value
-			&kapi.Service{
+		{ // [7] Test conflicting keys with a different value
+			obj: &kapi.Service{
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "first value"}},
 			},
-			map[string]string{"foo": "second value"},
-			false,
-			map[string]string{"foo": "first value"},
+			addLabels:      map[string]string{"foo": "second value"},
+			err:            true,
+			expectedLabels: map[string]string{"foo": "first value"},
 		},
-		{ // Test conflicting keys with the same value in the nested ReplicationController labels
-			&kapi.ReplicationController{
+		{ // [8] Test conflicting keys with the same value in ReplicationController nested labels
+			obj: &kapi.ReplicationController{
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "same value"},
 				},
@@ -180,12 +196,28 @@ func TestAddConfigLabels(t *testing.T) {
 					},
 				},
 			},
-			map[string]string{"foo": "same value"},
-			true,
-			map[string]string{"foo": "same value"},
+			addLabels:      map[string]string{"foo": "same value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "same value"},
 		},
-		{ // Test conflicting keys with a different value in the nested ReplicationController labels
-			&kapi.ReplicationController{
+		{ // [9] Test conflicting keys with a different value in ReplicationController nested labels
+			obj: &kapi.ReplicationController{
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: map[string]string{"foo": "bar"},
+				},
+				DesiredState: kapi.ReplicationControllerState{
+					PodTemplate: kapi.PodTemplate{
+						Labels: map[string]string{"foo": "bar"},
+					},
+					ReplicaSelector: map[string]string{"foo": "bar"},
+				},
+			},
+			addLabels:      map[string]string{"baz": ""},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar", "baz": ""},
+		},
+		{ // [10] Test conflicting keys with a different value in ReplicationController nested labels
+			obj: &kapi.ReplicationController{
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
 				},
@@ -193,14 +225,15 @@ func TestAddConfigLabels(t *testing.T) {
 					PodTemplate: kapi.PodTemplate{
 						Labels: map[string]string{"foo": "first value"},
 					},
+					ReplicaSelector: map[string]string{"foo": "first value"},
 				},
 			},
-			map[string]string{"foo": "second value"},
-			false,
-			map[string]string{"foo": "first value"},
+			addLabels:      map[string]string{"foo": "second value"},
+			err:            true,
+			expectedLabels: map[string]string{"foo": "first value"},
 		},
-		{ // Test merging into deployment object
-			&deployapi.Deployment{
+		{ // [11] Test adding labels to a Deployment object
+			obj: &deployapi.Deployment{
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
 				},
@@ -210,12 +243,12 @@ func TestAddConfigLabels(t *testing.T) {
 					},
 				},
 			},
-			map[string]string{"bar": "second value"},
-			true,
-			map[string]string{"foo": "first value", "bar": "second value"},
+			addLabels:      map[string]string{"bar": "second value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "first value", "bar": "second value"},
 		},
-		{ // Test merging into DeploymentConfig
-			&deployapi.DeploymentConfig{
+		{ // [12] Test adding labels to a DeploymentConfig object
+			obj: &deployapi.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
 				},
@@ -227,69 +260,53 @@ func TestAddConfigLabels(t *testing.T) {
 					},
 				},
 			},
-			map[string]string{"bar": "second value"},
-			true,
-			map[string]string{"foo": "first value", "bar": "second value"},
+			addLabels:      map[string]string{"bar": "second value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "first value", "bar": "second value"},
 		},
-		/*
-			* TODO: This is broken atm. because Labels are not longer part of Object
-			* but they are now in ObjectMeta. This will be fixed when Config will be
-			* refactored to use ObjectTyper.
-			*
-				{ // Test unknown Generic Object with Labels field
-					&FakeLabelsResource{
-						ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"baz": ""}},
-					},
-					map[string]string{"foo": "bar"},
-					true,
-					map[string]string{"foo": "bar", "baz": ""},
-				},
-		*/
+		{ // [13] Test unknown Generic Object with Labels field
+			obj: &FakeLabelsResource{
+				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"baz": ""}},
+			},
+			addLabels:      map[string]string{"foo": "bar"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar", "baz": ""},
+		},
 	}
 
 	for i, test := range testCases {
-		err := AddConfigLabel(test.resource, test.addLabels)
-		if err != nil && test.shouldPass {
-			t.Errorf("Unexpected error while setting labels on testCase[%v].", i)
-		}
-		if err == nil && !test.shouldPass {
+		err := AddObjectLabels(test.obj, test.addLabels)
+		if err != nil && !test.err {
+			t.Errorf("Unexpected error while setting labels on testCase[%v]: %v.", i, err)
+		} else if err == nil && test.err {
 			t.Errorf("Unexpected non-error while setting labels on testCase[%v].", i)
 		}
 
-		obj := reflect.ValueOf(test.resource)
-		if obj.Kind() == reflect.Interface || obj.Kind() == reflect.Ptr {
-			obj = obj.Elem()
+		accessor, err := kmeta.Accessor(test.obj)
+		if err != nil {
+			t.Error(err)
+		}
+		metaLabels := accessor.Labels()
+		if e, a := test.expectedLabels, metaLabels; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 		}
 
-		// Test Item[i].Labels.
-		rootLabels := obj.FieldByName("Labels").Interface().(map[string]string)
-		if !reflect.DeepEqual(rootLabels, test.expectedLabels) {
-			t.Errorf("Unexpected root labels on testCase[%v][%#v]. Expected: %v, got: %v.", i, test, test.expectedLabels, rootLabels)
-		}
-
-		// Test ReplicationController's nested labels.
-		if obj.Type().Name() == "ReplicationController" {
-			// Test Items[i].DesiredState.PodTemplate.Labels.
-			nestedLabels := obj.FieldByName("DesiredState").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
-			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
-				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
+		// Handle nested Labels
+		switch objType := test.obj.(type) {
+		case *kapi.ReplicationController:
+			if e, a := test.expectedLabels, objType.DesiredState.PodTemplate.Labels; !reflect.DeepEqual(e, a) {
+				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
-		}
-		// Test Deployment's nested labels.
-		if obj.Type().Name() == "Deployment" {
-			// Test Items[i].ControllerTemplate.PodTemplate.Labels.
-			nestedLabels := obj.FieldByName("ControllerTemplate").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
-			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
-				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
+			if e, a := test.expectedLabels, objType.DesiredState.ReplicaSelector; !reflect.DeepEqual(e, a) {
+				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
-		}
-
-		// Test DeploymentConfig's nested labels.
-		if obj.Type().Name() == "DeploymentConfig" {
-			// Test Items[i].ControllerTemplate.PodTemplate.Labels.
-			nestedLabels := obj.FieldByName("Template").FieldByName("ControllerTemplate").FieldByName("PodTemplate").FieldByName("Labels").Interface().(map[string]string)
-			if !reflect.DeepEqual(nestedLabels, test.expectedLabels) {
-				t.Errorf("Unexpected nested labels on testCase[%v]. Expected: %v, got: %v.", i, test.expectedLabels, nestedLabels)
+		case *deployapi.Deployment:
+			if e, a := test.expectedLabels, objType.ControllerTemplate.PodTemplate.Labels; !reflect.DeepEqual(e, a) {
+				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
+			}
+		case *deployapi.DeploymentConfig:
+			if e, a := test.expectedLabels, objType.Template.ControllerTemplate.PodTemplate.Labels; !reflect.DeepEqual(e, a) {
+				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 		}
 	}

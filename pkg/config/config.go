@@ -95,56 +95,79 @@ func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*
 	return result, nil
 }
 
-func addLabelError(kind string, err error) error {
-	return fmt.Errorf("Enable to add labels to Template.%s item: %v", kind, err)
+// addReplicationControllerNestedLabels adds new label(s) to a nested labels of a single ReplicationController object
+func addReplicationControllerNestedLabels(obj *kapi.ReplicationController, labels labels.Set) error {
+	if obj.DesiredState.PodTemplate.Labels == nil {
+		obj.DesiredState.PodTemplate.Labels = make(map[string]string)
+	}
+	if err := util.MergeInto(obj.DesiredState.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.DesiredState.PodTemplate: %v", err)
+	}
+	if err := util.MergeInto(obj.DesiredState.PodTemplate.Labels, obj.DesiredState.ReplicaSelector, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.DesiredState.PodTemplate: %v", err)
+	}
+	// ReplicaSelector and DesiredState.PodTemplate.Labels must be equal
+	if obj.DesiredState.ReplicaSelector == nil {
+		obj.DesiredState.ReplicaSelector = make(map[string]string)
+	}
+	if err := util.MergeInto(obj.DesiredState.ReplicaSelector, obj.DesiredState.PodTemplate.Labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.DesiredState.ReplicaSelector: %v", err)
+	}
+	return nil
 }
 
-// AddConfigLabel adds new label(s) to a single Object
-// TODO: AddConfigLabel should add labels into all objects that has ObjectMeta
-func AddConfigLabel(obj runtime.Object, labels labels.Set) error {
-	switch t := obj.(type) {
-	case *kapi.Pod:
-		if err := util.MergeInto(&t.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("Pod", err)
-		}
-	case *kapi.Service:
-		if err := util.MergeInto(&t.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("Service", err)
-		}
-	case *kapi.ReplicationController:
-		if err := util.MergeInto(&t.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("ReplicationController", err)
-		}
-		if err := util.MergeInto(&t.DesiredState.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("ReplicationController.PodTemplate", err)
-		}
-		if err := util.MergeInto(&t.DesiredState.PodTemplate.Labels, t.DesiredState.ReplicaSelector, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("ReplicationController.ReplicaSelector", err)
-		}
-		// The ReplicaSelector and DesiredState.PodTemplate.Labels need to make
-		// create succeed
-		if err := util.MergeInto(&t.DesiredState.ReplicaSelector, t.DesiredState.PodTemplate.Labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("ReplicationController.PodTemplate", err)
-		}
-	case *deployapi.Deployment:
-		if err := util.MergeInto(&t.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("Deployment", err)
-		}
-		if err := util.MergeInto(&t.ControllerTemplate.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("Deployment.ControllerTemplate.PodTemplate", err)
-		}
-	case *deployapi.DeploymentConfig:
-		if err := util.MergeInto(&t.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("DeploymentConfig", err)
-		}
-		if err := util.MergeInto(&t.Template.ControllerTemplate.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-			return addLabelError("DeploymentConfig.ControllerTemplate.PodTemplate", err)
-		}
-	default:
-		// TODO: For unknown objects we should rather skip adding Labels as we don't
-		//			 know where they are. Lets avoid using reflect for now and fix this
-		//			 properly using ObjectMeta/RESTMapper/MetaAccessor
+// addDeploymentNestedLabels adds new label(s) to a nested labels of a single Deployment object
+func addDeploymentNestedLabels(obj *deployapi.Deployment, labels labels.Set) error {
+	if obj.ControllerTemplate.PodTemplate.Labels == nil {
+		obj.ControllerTemplate.PodTemplate.Labels = make(map[string]string)
+	}
+	if err := util.MergeInto(obj.ControllerTemplate.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.Deployment.ControllerTemplate.PodTemplate: %v", err)
+	}
+	return nil
+}
+
+// addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
+func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set) error {
+	if obj.Template.ControllerTemplate.PodTemplate.Labels == nil {
+		obj.Template.ControllerTemplate.PodTemplate.Labels = make(map[string]string)
+	}
+	if err := util.MergeInto(obj.Template.ControllerTemplate.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.PodTemplate: %v", err)
+	}
+	return nil
+}
+
+// AddObjectLabels adds new label(s) to a single runtime.Object
+func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
+	if labels == nil {
+		// Nothing to add
 		return nil
+	}
+
+	accessor, err := kmeta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+
+	metaLabels := accessor.Labels()
+	if metaLabels == nil {
+		metaLabels = make(map[string]string)
+	}
+
+	if err := util.MergeInto(metaLabels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.%s: %v", accessor.Kind(), err)
+	}
+	accessor.SetLabels(metaLabels)
+
+	// Handle nested Labels
+	switch objType := obj.(type) {
+	case *kapi.ReplicationController:
+		return addReplicationControllerNestedLabels(objType, labels)
+	case *deployapi.Deployment:
+		return addDeploymentNestedLabels(objType, labels)
+	case *deployapi.DeploymentConfig:
+		return addDeploymentConfigNestedLabels(objType, labels)
 	}
 
 	return nil
@@ -158,7 +181,7 @@ func AddConfigLabels(c *api.Config, labels labels.Set) errs.ValidationErrorList 
 		if err != nil {
 			reportError(&itemErrors, i, errs.NewFieldInvalid("decode", err))
 		}
-		if err := AddConfigLabel(obj, labels); err != nil {
+		if err := AddObjectLabels(obj, labels); err != nil {
 			reportError(&itemErrors, i, errs.NewFieldInvalid("labels", err))
 		}
 		item, err := mapping.Encode(obj)
