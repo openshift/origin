@@ -38,7 +38,7 @@ Examples:
 			}
 
 			mapping, namespace, _ := kubecmd.ResourceOrTypeFromArgs(cmd, []string{resourceKind}, f.Mapper)
-			client, err := f.GetRESTHelperFunc(cmd)(mapping)
+			client, err := f.RESTHelper(cmd)(mapping)
 			checkErr(err)
 			resource, err := client.Get(namespace, resourceName, labels.Everything())
 			checkErr(err)
@@ -52,7 +52,7 @@ Examples:
 			}
 
 			mapping, namespace, _ = kubecmd.ResourceOrTypeFromArgs(cmd, []string{"build"}, f.Mapper)
-			client, err = f.GetRESTHelperFunc(cmd)(mapping)
+			client, err = f.RESTHelper(cmd)(mapping)
 			checkErr(err)
 			buildJSON, err := mapping.Codec.Encode(newBuild)
 			checkErr(err)

@@ -40,7 +40,7 @@ Examples:
 				checkErr(err)
 			}
 
-			result, err := config.Apply(namespace, data, f.GetRESTHelperFunc(cmd))
+			result, err := config.Apply(namespace, data, f.RESTHelper(cmd))
 			checkErr(err)
 
 			for _, itemResult := range result {
