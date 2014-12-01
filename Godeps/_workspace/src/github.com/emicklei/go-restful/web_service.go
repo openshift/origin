@@ -6,23 +6,28 @@ package restful
 
 import (
 	"log"
+	"sync"
 )
 
 // WebService holds a collection of Route values that bind a Http Method + URL Path to a function.
 type WebService struct {
-	rootPath       string
-	pathExpr       *pathExpression // cached compilation of rootPath as RegExp
-	routes         []Route
-	produces       []string
-	consumes       []string
-	pathParameters []*Parameter
-	filters        []FilterFunction
-	documentation  string
-	apiVersion     string
+	rootPath         string
+	pathExpr         *pathExpression // cached compilation of rootPath as RegExp
+	routes           []Route
+	produces         []string
+	consumes         []string
+	pathParameters   []*Parameter
+	filters          []FilterFunction
+	documentation    string
+	apiVersion       string
+	compilationMutex sync.Mutex
 }
 
 // compiledPathExpression ensures that the path is compiled into a RegEx for those routers that need it.
 func (w *WebService) compiledPathExpression() *pathExpression {
+	w.compilationMutex.Lock()
+	defer w.compilationMutex.Unlock()
+
 	if w.pathExpr == nil {
 		if len(w.rootPath) == 0 {
 			w.Path("/") // lazy initialize path
