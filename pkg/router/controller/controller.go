@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"strings"
 	"sync"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -11,6 +10,7 @@ import (
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router"
+	"strings"
 )
 
 // RouterController is responsible synchronizing the router backend state
@@ -84,24 +84,19 @@ func (c *RouterController) HandleEndpoints() {
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
-		routerEndpoints := make([]router.Endpoint, len(endpoints.Endpoints))
+		routerEndpoints := createRouterEndpoints(endpoints)
 
-		for i, e := range endpoints.Endpoints {
-			ep := router.Endpoint{}
-			if strings.Contains(e, ":") {
-				eArr := strings.Split(e, ":")
-				ep.IP = eArr[0]
-				ep.Port = eArr[1]
-			} else if e == "" {
-				continue
-			} else {
-				ep.IP = e
-				ep.Port = "80"
-			}
-			routerEndpoints[i] = ep
+		frontend := &router.Frontend{
+			Name: endpointsKey(*endpoints),
 		}
 
-		c.Router.AddRoute(key, "", "", nil, routerEndpoints)
+		backend := &router.Backend{
+			FePath:    "",
+			BePath:    "",
+			Protocols: nil,
+		}
+
+		c.Router.AddRoute(frontend, backend, routerEndpoints)
 	}
 
 	c.Router.WriteConfig()
@@ -120,4 +115,42 @@ func routeKey(route routeapi.Route) string {
 // endpointsKey returns the internal router key to use for the given Endpoints.
 func endpointsKey(endpoints kapi.Endpoints) string {
 	return endpoints.Name
+}
+
+//endpointFromString parses the string into host/port and create an endpoint from it.
+//if the string is empty then nil, false will be returned
+func endpointFromString(s string) (ep *router.Endpoint, ok bool) {
+	if len(s) == 0 {
+		return nil, false
+	}
+
+	ep = &router.Endpoint{}
+	//not using net.url here because it doesn't split the port out when parsing
+	if strings.Contains(s, ":") {
+		eArr := strings.Split(s, ":")
+		ep.IP = eArr[0]
+		ep.Port = eArr[1]
+	} else {
+		ep.IP = s
+		ep.Port = "80"
+	}
+
+	return ep, true
+}
+
+//createRouterEndpoints creates openshift router endpoints based on k8s endpoints
+func createRouterEndpoints(endpoints *kapi.Endpoints) []router.Endpoint {
+	routerEndpoints := make([]router.Endpoint, len(endpoints.Endpoints))
+
+	for i, e := range endpoints.Endpoints {
+		ep, ok := endpointFromString(e)
+
+		if !ok {
+			glog.Warningf("Unable to convert %s to endpoint", e)
+			continue
+		}
+		routerEndpoints[i] = *ep
+	}
+
+	return routerEndpoints
 }

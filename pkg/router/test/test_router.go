@@ -66,8 +66,8 @@ func (r *Router) RemoveAlias(alias, frontendName string) {
 	r.RemovedAliases[alias] = frontendName
 }
 
-func (r *Router) AddRoute(frontendName, fePath, bePath string, protocols []string, endpoints []router.Endpoint) {
-	r.AddedRoutes[frontendName] = endpoints
+func (r *Router) AddRoute(frontend *router.Frontend, backend *router.Backend, endpoints []router.Endpoint) {
+	r.AddedRoutes[frontend.Name] = endpoints
 }
 
 func (r *Router) WriteConfig() {
