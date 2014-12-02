@@ -7,12 +7,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// DEPRECATED, use NewCommandCLI instead
 func NewCommandKubecfg(name string) *cobra.Command {
 	cfg := &KubeConfig{}
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "The Kubernetes command line client",
+		Short: "DEPRECATED, use 'cli' instead",
 		Long: `
+DEPRECATED, use 'cli' instead
+
 Kubernetes Command Line - kubecfg
 
 OpenShift currently embeds the kubecfg command line for prototyping and debugging.
