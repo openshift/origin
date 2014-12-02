@@ -55,7 +55,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 		return nil, err
 	}
 
-	configPodTemplate := deploymentConfig.Template.ControllerTemplate.PodTemplate
+	configPodTemplateSpec := deploymentConfig.Template.ControllerTemplate.Template
 
 	referencedRepoNames := referencedRepoNames(deploymentConfig)
 	referencedRepos := imageReposByDockerImageRepo(ctx, g.ImageRepositoryInterface, referencedRepoNames)
@@ -75,7 +75,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 		}
 
 		newImage := repo.DockerImageRepository + ":" + tag
-		updateContainers(&configPodTemplate, util.NewStringSet(params.ContainerNames...), newImage)
+		updateContainers(configPodTemplateSpec, util.NewStringSet(params.ContainerNames...), newImage)
 	}
 
 	if deployment == nil {
@@ -85,7 +85,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 			// reset the details of the deployment trigger for this deploymentConfig
 			deploymentConfig.Details = nil
 		}
-	} else if !deployutil.PodTemplatesEqual(configPodTemplate, deployment.ControllerTemplate.PodTemplate) {
+	} else if !deployutil.PodSpecsEqual(configPodTemplateSpec.Spec, deployment.ControllerTemplate.Template.Spec) {
 		deploymentConfig.LatestVersion++
 		// reset the details of the deployment trigger for this deploymentConfig
 		deploymentConfig.Details = nil
@@ -94,8 +94,8 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 	return deploymentConfig, nil
 }
 
-func updateContainers(template *kapi.PodTemplate, containers util.StringSet, newImage string) {
-	for i, container := range template.DesiredState.Manifest.Containers {
+func updateContainers(template *kapi.PodTemplateSpec, containers util.StringSet, newImage string) {
+	for i, container := range template.Spec.Containers {
 		if !containers.Has(container.Name) {
 			continue
 		}
@@ -103,7 +103,7 @@ func updateContainers(template *kapi.PodTemplate, containers util.StringSet, new
 		// TODO: If we grow beyond this single mutation, diffing hashes of
 		// a clone of the original config vs the mutation would be more generic.
 		if newImage != container.Image {
-			template.DesiredState.Manifest.Containers[i].Image = newImage
+			template.Spec.Containers[i].Image = newImage
 		}
 	}
 }

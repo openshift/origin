@@ -23,10 +23,10 @@ func setupDockerSocket(podSpec *kapi.Pod) {
 		MountPath: "/var/run/docker.sock",
 	}
 
-	podSpec.DesiredState.Manifest.Volumes = append(podSpec.DesiredState.Manifest.Volumes,
+	podSpec.Spec.Volumes = append(podSpec.Spec.Volumes,
 		dockerSocketVolume)
-	podSpec.DesiredState.Manifest.Containers[0].VolumeMounts =
-		append(podSpec.DesiredState.Manifest.Containers[0].VolumeMounts,
+	podSpec.Spec.Containers[0].VolumeMounts =
+		append(podSpec.Spec.Containers[0].VolumeMounts,
 			dockerSocketVolumeMount)
 }
 
@@ -51,9 +51,9 @@ func setupDockerConfig(podSpec *kapi.Pod) {
 		MountPath: "/root/.dockercfg",
 	}
 
-	podSpec.DesiredState.Manifest.Volumes = append(podSpec.DesiredState.Manifest.Volumes,
+	podSpec.Spec.Volumes = append(podSpec.Spec.Volumes,
 		dockerConfigVolume)
-	podSpec.DesiredState.Manifest.Containers[0].VolumeMounts =
-		append(podSpec.DesiredState.Manifest.Containers[0].VolumeMounts,
+	podSpec.Spec.Containers[0].VolumeMounts =
+		append(podSpec.Spec.Containers[0].VolumeMounts,
 			dockerConfigVolumeMount)
 }

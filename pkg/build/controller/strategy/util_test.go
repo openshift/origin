@@ -8,21 +8,19 @@ import (
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
 	pod := kapi.Pod{
-		DesiredState: kapi.PodState{
-			Manifest: kapi.ContainerManifest{
-				Containers: []kapi.Container{
-					{},
-				},
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{},
 			},
 		},
 	}
 
 	setupDockerSocket(&pod)
 
-	if len(pod.DesiredState.Manifest.Volumes) != 1 {
-		t.Fatalf("Expected 1 volume, got: %#v", pod.DesiredState.Manifest.Volumes)
+	if len(pod.Spec.Volumes) != 1 {
+		t.Fatalf("Expected 1 volume, got: %#v", pod.Spec.Volumes)
 	}
-	volume := pod.DesiredState.Manifest.Volumes[0]
+	volume := pod.Spec.Volumes[0]
 	if e, a := "docker-socket", volume.Name; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
@@ -39,17 +37,17 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
 
-	if len(pod.DesiredState.Manifest.Containers[0].VolumeMounts) != 1 {
-		t.Fatalf("Expected 1 volume mount, got: %#v", pod.DesiredState.Manifest.Containers[0].VolumeMounts)
+	if len(pod.Spec.Containers[0].VolumeMounts) != 1 {
+		t.Fatalf("Expected 1 volume mount, got: %#v", pod.Spec.Containers[0].VolumeMounts)
 	}
-	mount := pod.DesiredState.Manifest.Containers[0].VolumeMounts[0]
+	mount := pod.Spec.Containers[0].VolumeMounts[0]
 	if e, a := "docker-socket", mount.Name; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
 	if e, a := "/var/run/docker.sock", mount.MountPath; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	if pod.DesiredState.Manifest.Containers[0].Privileged {
+	if pod.Spec.Containers[0].Privileged {
 		t.Error("Expected privileged to be false")
 	}
 }

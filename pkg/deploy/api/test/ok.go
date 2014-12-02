@@ -24,10 +24,10 @@ func OkCustomParams() *api.CustomDeploymentStrategyParams {
 	}
 }
 
-func OkControllerTemplate() kapi.ReplicationControllerState {
-	return kapi.ReplicationControllerState{
-		ReplicaSelector: OkSelector(),
-		PodTemplate:     OkPodTemplate(),
+func OkControllerTemplate() kapi.ReplicationControllerSpec {
+	return kapi.ReplicationControllerSpec{
+		Selector: OkSelector(),
+		Template: OkPodTemplate(),
 	}
 }
 
@@ -42,13 +42,11 @@ func OkSelector() map[string]string {
 	return map[string]string{"a": "b"}
 }
 
-func OkPodTemplate() kapi.PodTemplate {
-	return kapi.PodTemplate{
-		DesiredState: kapi.PodState{
-			Manifest: kapi.ContainerManifest{
-				Version: "v1beta1",
-			},
+func OkPodTemplate() *kapi.PodTemplateSpec {
+	return &kapi.PodTemplateSpec{
+		Spec: kapi.PodSpec{},
+		ObjectMeta: kapi.ObjectMeta{
+			Labels: OkSelector(),
 		},
-		Labels: OkSelector(),
 	}
 }

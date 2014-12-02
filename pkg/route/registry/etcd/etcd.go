@@ -10,6 +10,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
+	ktools "github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/openshift/origin/pkg/route/api"
 )
 
@@ -106,7 +107,7 @@ func (registry *Etcd) WatchRoutes(ctx kapi.Context, label, field labels.Selector
 		return nil, fmt.Errorf("label selectors are not supported on routes yet")
 	}
 
-	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "pod")
+	version, err := ktools.ParseWatchResourceVersion(resourceVersion, "pod")
 	if err != nil {
 		return nil, err
 	}

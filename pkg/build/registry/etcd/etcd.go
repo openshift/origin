@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	ktools "github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -60,7 +61,7 @@ func (r *Etcd) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.Buil
 
 // WatchBuilds begins watching for new, changed, or deleted Builds.
 func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "build")
+	version, err := ktools.ParseWatchResourceVersion(resourceVersion, "build")
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +196,7 @@ func (r *Etcd) DeleteBuildConfig(ctx kapi.Context, id string) error {
 
 // WatchBuildConfigs begins watching for new, changed, or deleted BuildConfigs.
 func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "buildConfig")
+	version, err := ktools.ParseWatchResourceVersion(resourceVersion, "buildConfig")
 	if err != nil {
 		return nil, err
 	}

@@ -135,7 +135,7 @@ func TestValidateSource(t *testing.T) {
 		if len(errors) != 1 {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}
-		err := errors[0].(errs.ValidationError)
+		err := errors[0].(*errs.ValidationError)
 		errDesc := string(err.Type) + err.Field
 		if desc != errDesc {
 			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
@@ -186,7 +186,7 @@ func TestValidateBuildParameters(t *testing.T) {
 		if len(errors) != 1 {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}
-		err := errors[0].(errs.ValidationError)
+		err := errors[0].(*errs.ValidationError)
 		errDesc := string(err.Type) + err.Field
 		if desc != errDesc {
 			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
@@ -197,22 +197,22 @@ func TestValidateBuildParameters(t *testing.T) {
 func TestValidateTrigger(t *testing.T) {
 	tests := map[string]struct {
 		trigger  buildapi.BuildTriggerPolicy
-		expected []errs.ValidationError
+		expected []*errs.ValidationError
 	}{
 		"trigger without type": {
 			trigger:  buildapi.BuildTriggerPolicy{},
-			expected: []errs.ValidationError{errs.NewFieldRequired("type", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("type", "")},
 		},
 		"github type with no github webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GithubWebHookType},
-			expected: []errs.ValidationError{errs.NewFieldRequired("github", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("github", "")},
 		},
 		"github trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:          buildapi.GithubWebHookType,
 				GithubWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []errs.ValidationError{errs.NewFieldRequired("github.secret", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("github.secret", "")},
 		},
 		"github trigger with generic webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -221,18 +221,18 @@ func TestValidateTrigger(t *testing.T) {
 					Secret: "secret101",
 				},
 			},
-			expected: []errs.ValidationError{errs.NewFieldInvalid("generic", "")},
+			expected: []*errs.ValidationError{errs.NewFieldInvalid("generic", "", "long description")},
 		},
 		"generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookType},
-			expected: []errs.ValidationError{errs.NewFieldRequired("generic", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("generic", "")},
 		},
 		"generic trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:           buildapi.GenericWebHookType,
 				GenericWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []errs.ValidationError{errs.NewFieldRequired("generic.secret", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("generic.secret", "")},
 		},
 		"generic trigger with github webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -241,7 +241,7 @@ func TestValidateTrigger(t *testing.T) {
 					Secret: "secret101",
 				},
 			},
-			expected: []errs.ValidationError{errs.NewFieldInvalid("github", "")},
+			expected: []*errs.ValidationError{errs.NewFieldInvalid("github", "", "long github description")},
 		},
 		"valid github trigger": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -269,7 +269,7 @@ func TestValidateTrigger(t *testing.T) {
 			continue
 		}
 		err := errors[0]
-		validationError := err.(errs.ValidationError)
+		validationError := err.(*errs.ValidationError)
 		if validationError.Type != test.expected[0].Type {
 			t.Errorf("%s: Unexpected error type: %s", desc, validationError.Type)
 		}

@@ -43,6 +43,12 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		c.Fuzz(&nsec)
 		j.CreationTimestamp = util.Unix(sec, nsec).Rfc3339Copy()
 	},
+	func(j *api.TypeMeta, c fuzz.Continue) {
+		// We have to customize the randomization of TypeMetas because their
+		// APIVersion and Kind must remain blank in memory.
+		j.APIVersion = ""
+		j.Kind = ""
+	},
 	func(j *api.ObjectMeta, c fuzz.Continue) {
 		// We have to customize the randomization of TypeMetas because their
 		// APIVersion and Kind must remain blank in memory.
@@ -57,6 +63,22 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		c.Fuzz(&sec)
 		c.Fuzz(&nsec)
 		j.CreationTimestamp = util.Unix(sec, nsec).Rfc3339Copy()
+	},
+	func(j *api.ReplicationControllerSpec, c fuzz.Continue) {
+		// We have to customize the randomization of ReplicationControllerSpecs because we are using the v1beta1 serialization of
+		// of ReplicationControllerState.  ReplicationControllerSpecs are transformed into ReplicationControllerStates, but you
+		// cannot perform that transformation if you have set the ReplicationControllerSpec.TemplateRef field
+		// TemplateRef must be nil for round trip
+		c.Fuzz(&j.Template)
+		if j.Template == nil {
+			// TODO: v1beta1/2 can't round trip a nil template correctly, fix by having v1beta1/2
+			// conversion compare converted object to nil via DeepEqual
+			j.Template = &api.PodTemplateSpec{}
+		}
+		j.Template.ObjectMeta = api.ObjectMeta{Labels: j.Template.ObjectMeta.Labels}
+		j.Template.Spec.NodeSelector = nil
+		c.Fuzz(&j.Selector)
+		j.Replicas = int(c.RandUint64())
 	},
 	func(intstr *util.IntOrString, c fuzz.Continue) {
 		// util.IntOrString will panic if its kind is set wrong.

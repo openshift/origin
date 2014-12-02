@@ -25,7 +25,7 @@ type ApplyResult struct {
 // prefix and index to match the Config item JSON index
 func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
 	i := errs.ValidationErrorList{}
-	*allErrs = append(*allErrs, append(i, err).PrefixIndex(index).Prefix("item")...)
+	*allErrs = append(*allErrs, append(i, &err).PrefixIndex(index).Prefix("item")...)
 }
 
 // Apply creates and manages resources defined in the Config. The create process
@@ -57,6 +57,7 @@ func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*
 				errs.ValidationErrorTypeInvalid,
 				"decode",
 				err,
+				fmt.Sprintf("unable to decode: %v", item),
 			})
 			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 			continue
@@ -64,7 +65,7 @@ func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*
 
 		client, err := clientFunc(mapping)
 		if err != nil {
-			reportError(&itemErrors, i, errs.NewFieldNotSupported("client", err))
+			reportError(&itemErrors, i, *errs.NewFieldNotSupported("client", itemBase))
 			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 			continue
 		}
@@ -75,6 +76,7 @@ func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*
 				errs.ValidationErrorTypeInvalid,
 				"encode",
 				err,
+				fmt.Sprintf("unable to encode: %v", item),
 			})
 			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 			continue
@@ -85,6 +87,7 @@ func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*
 				errs.ValidationErrorTypeInvalid,
 				"create",
 				err,
+				fmt.Sprintf("unable to create: %v", string(jsonResource)),
 			})
 		} else {
 			itemName, _ := mapping.MetadataAccessor.Name(itemBase)
@@ -97,43 +100,43 @@ func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*
 
 // addReplicationControllerNestedLabels adds new label(s) to a nested labels of a single ReplicationController object
 func addReplicationControllerNestedLabels(obj *kapi.ReplicationController, labels labels.Set) error {
-	if obj.DesiredState.PodTemplate.Labels == nil {
-		obj.DesiredState.PodTemplate.Labels = make(map[string]string)
+	if obj.Spec.Template.Labels == nil {
+		obj.Spec.Template.Labels = make(map[string]string)
 	}
-	if err := util.MergeInto(obj.DesiredState.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.ReplicationController.DesiredState.PodTemplate: %v", err)
+	if err := util.MergeInto(obj.Spec.Template.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
 	}
-	if err := util.MergeInto(obj.DesiredState.PodTemplate.Labels, obj.DesiredState.ReplicaSelector, util.ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.ReplicationController.DesiredState.PodTemplate: %v", err)
+	if err := util.MergeInto(obj.Spec.Template.Labels, obj.Spec.Selector, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
 	}
-	// ReplicaSelector and DesiredState.PodTemplate.Labels must be equal
-	if obj.DesiredState.ReplicaSelector == nil {
-		obj.DesiredState.ReplicaSelector = make(map[string]string)
+	// Selector and Spec.Template.Labels must be equal
+	if obj.Spec.Selector == nil {
+		obj.Spec.Selector = make(map[string]string)
 	}
-	if err := util.MergeInto(obj.DesiredState.ReplicaSelector, obj.DesiredState.PodTemplate.Labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.ReplicationController.DesiredState.ReplicaSelector: %v", err)
+	if err := util.MergeInto(obj.Spec.Selector, obj.Spec.Template.Labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Selector: %v", err)
 	}
 	return nil
 }
 
 // addDeploymentNestedLabels adds new label(s) to a nested labels of a single Deployment object
 func addDeploymentNestedLabels(obj *deployapi.Deployment, labels labels.Set) error {
-	if obj.ControllerTemplate.PodTemplate.Labels == nil {
-		obj.ControllerTemplate.PodTemplate.Labels = make(map[string]string)
+	if obj.ControllerTemplate.Template.Labels == nil {
+		obj.ControllerTemplate.Template.Labels = make(map[string]string)
 	}
-	if err := util.MergeInto(obj.ControllerTemplate.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.Deployment.ControllerTemplate.PodTemplate: %v", err)
+	if err := util.MergeInto(obj.ControllerTemplate.Template.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.Deployment.ControllerTemplate.Template: %v", err)
 	}
 	return nil
 }
 
 // addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
 func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set) error {
-	if obj.Template.ControllerTemplate.PodTemplate.Labels == nil {
-		obj.Template.ControllerTemplate.PodTemplate.Labels = make(map[string]string)
+	if obj.Template.ControllerTemplate.Template.Labels == nil {
+		obj.Template.ControllerTemplate.Template.Labels = make(map[string]string)
 	}
-	if err := util.MergeInto(obj.Template.ControllerTemplate.PodTemplate.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.PodTemplate: %v", err)
+	if err := util.MergeInto(obj.Template.ControllerTemplate.Template.Labels, labels, util.ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
 	}
 	return nil
 }
@@ -179,14 +182,14 @@ func AddConfigLabels(c *api.Config, labels labels.Set) errs.ValidationErrorList 
 	for i, in := range c.Items {
 		obj, mapping, err := DecodeDataToObject(in.RawJSON)
 		if err != nil {
-			reportError(&itemErrors, i, errs.NewFieldInvalid("decode", err))
+			reportError(&itemErrors, i, *errs.NewFieldInvalid("decode", err, fmt.Sprintf("error decoding %v", in)))
 		}
 		if err := AddObjectLabels(obj, labels); err != nil {
-			reportError(&itemErrors, i, errs.NewFieldInvalid("labels", err))
+			reportError(&itemErrors, i, *errs.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, obj)))
 		}
 		item, err := mapping.Encode(obj)
 		if err != nil {
-			reportError(&itemErrors, i, errs.NewFieldInvalid("encode", err))
+			reportError(&itemErrors, i, *errs.NewFieldInvalid("encode", err, fmt.Sprintf("error encoding %v", in)))
 		}
 		c.Items[i] = runtime.RawExtension{RawJSON: item}
 	}

@@ -177,23 +177,22 @@ func existingConfigWithTrigger() *deployapi.DeploymentConfig {
 		},
 		LatestVersion: 2,
 		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerState{
+			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
-				ReplicaSelector: map[string]string{
+				Selector: map[string]string{
 					"name": "test-pod",
 				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod",
+				Template: &kapi.PodTemplateSpec{
+					ObjectMeta: kapi.ObjectMeta{
+						Labels: map[string]string{
+							"name": "test-pod",
+						},
 					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-1",
-									Image: "registry:8080/openshift/test-image:ref-1",
-								},
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "container-1",
+								Image: "registry:8080/openshift/test-image:ref-1",
 							},
 						},
 					},
@@ -226,23 +225,22 @@ func diffedConfig() *deployapi.DeploymentConfig {
 		},
 		LatestVersion: 2,
 		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerState{
+			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
-				ReplicaSelector: map[string]string{
+				Selector: map[string]string{
 					"name": "test-pod-2",
 				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod-2",
+				Template: &kapi.PodTemplateSpec{
+					ObjectMeta: kapi.ObjectMeta{
+						Labels: map[string]string{
+							"name": "test-pod-2",
+						},
 					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-2",
-									Image: "registry:8080/openshift/test-image:ref-1",
-								},
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "container-2",
+								Image: "registry:8080/openshift/test-image:ref-1",
 							},
 						},
 					},
@@ -262,23 +260,22 @@ func generatedExistingConfig() *deployapi.DeploymentConfig {
 		},
 		LatestVersion: 3,
 		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerState{
+			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
-				ReplicaSelector: map[string]string{
+				Selector: map[string]string{
 					"name": "test-pod",
 				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod",
+				Template: &kapi.PodTemplateSpec{
+					ObjectMeta: kapi.ObjectMeta{
+						Labels: map[string]string{
+							"name": "test-pod",
+						},
 					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-1",
-									Image: "registry:8080/openshift/test-image:ref-2",
-								},
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "container-1",
+								Image: "registry:8080/openshift/test-image:ref-2",
 							},
 						},
 					},
@@ -298,23 +295,22 @@ func matchingInitialDeployment() *deployapi.Deployment {
 	return &deployapi.Deployment{
 		ObjectMeta: kapi.ObjectMeta{Name: "test-deploy-config-1"},
 		Status:     deployapi.DeploymentStatusNew,
-		ControllerTemplate: kapi.ReplicationControllerState{
+		ControllerTemplate: kapi.ReplicationControllerSpec{
 			Replicas: 1,
-			ReplicaSelector: map[string]string{
+			Selector: map[string]string{
 				"name": "test-pod",
 			},
-			PodTemplate: kapi.PodTemplate{
-				Labels: map[string]string{
-					"name": "test-pod",
+			Template: &kapi.PodTemplateSpec{
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: map[string]string{
+						"name": "test-pod",
+					},
 				},
-				DesiredState: kapi.PodState{
-					Manifest: kapi.ContainerManifest{
-						Version: "v1beta1",
-						Containers: []kapi.Container{
-							{
-								Name:  "container-1",
-								Image: "registry:8080/openshift/test-image:ref-1",
-							},
+				Spec: kapi.PodSpec{
+					Containers: []kapi.Container{
+						{
+							Name:  "container-1",
+							Image: "registry:8080/openshift/test-image:ref-1",
 						},
 					},
 				},

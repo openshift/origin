@@ -52,10 +52,10 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 			t.Errorf("Expected failure for scenario %s", k)
 		}
 		for i := range errs {
-			if errs[i].(errors.ValidationError).Type != v.T {
+			if errs[i].(*errors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(errors.ValidationError).Field != v.F {
+			if errs[i].(*errors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
@@ -171,10 +171,10 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			t.Errorf("Expected failure for scenario %s", k)
 		}
 		for i := range errs {
-			if errs[i].(errors.ValidationError).Type != v.T {
+			if errs[i].(*errors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(errors.ValidationError).Field != v.F {
+			if errs[i].(*errors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}

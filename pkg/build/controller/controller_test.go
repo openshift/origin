@@ -104,11 +104,11 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 	return
 }
 
-func mockPod(status kapi.PodCondition, exitCode int) *kapi.Pod {
+func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
-		CurrentState: kapi.PodState{
-			Status: status,
+		Status: kapi.PodStatus{
+			Phase: status,
 			Info: kapi.PodInfo{
 				"container1": kapi.ContainerStatus{
 					State: kapi.ContainerState{
@@ -201,7 +201,7 @@ func TestHandlePod(t *testing.T) {
 		matchID      bool
 		inStatus     buildapi.BuildStatus
 		outStatus    buildapi.BuildStatus
-		podStatus    kapi.PodCondition
+		podStatus    kapi.PodPhase
 		exitCode     int
 		buildUpdater buildUpdater
 	}
@@ -274,7 +274,7 @@ func TestCancelBuild(t *testing.T) {
 	type handleCancelBuildTest struct {
 		inStatus  buildapi.BuildStatus
 		outStatus buildapi.BuildStatus
-		podStatus kapi.PodCondition
+		podStatus kapi.PodPhase
 		exitCode  int
 	}
 

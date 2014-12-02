@@ -133,8 +133,14 @@ func (c *NodeConfig) RunProxy() {
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
 
+	// TODO clearly this needs fixing
+	protocol := iptables.ProtocolIpv4
+	// if net.IP(c.BindHost).To4() == nil {
+	// 	protocol = iptables.ProtocolIpv6
+	// }
+
 	var proxier pconfig.ServiceConfigHandler
-	proxier = proxy.NewProxier(loadBalancer, net.ParseIP(c.BindHost), iptables.New(exec.New()))
+	proxier = proxy.NewProxier(loadBalancer, net.ParseIP(c.BindHost), iptables.New(exec.New(), protocol))
 	if proxier == nil || reflect.ValueOf(proxier).IsNil() { // explicitly declared interfaces aren't plain nil, you must reflect inside to see if it's really nil or not
 		glog.Errorf("WARNING: Could not modify iptables.  iptables must be mutable by this process to use services.  Do you have root permissions?")
 		proxier = &service.FailingServiceConfigProxy{}

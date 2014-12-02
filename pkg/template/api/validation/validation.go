@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -17,7 +18,7 @@ func ValidateParameter(param *api.Parameter) (errs errors.ValidationErrorList) {
 		return
 	}
 	if !parameterNameExp.MatchString(param.Name) {
-		errs = append(errs, errors.NewFieldInvalid("name", param.Name))
+		errs = append(errs, errors.NewFieldInvalid("name", param.Name, fmt.Sprintf("does not match %v", parameterNameExp)))
 	}
 	return
 }
@@ -64,7 +65,7 @@ func filter(errs errors.ValidationErrorList, prefix string) errors.ValidationErr
 	}
 	next := errors.ValidationErrorList{}
 	for _, err := range errs {
-		ve, ok := err.(errors.ValidationError)
+		ve, ok := err.(*errors.ValidationError)
 		if ok && strings.HasPrefix(ve.Field, prefix) {
 			continue
 		}

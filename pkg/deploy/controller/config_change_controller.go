@@ -64,7 +64,7 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 
 	deployment := obj.(*deployapi.Deployment)
 
-	if deployutil.PodTemplatesEqual(config.Template.ControllerTemplate.PodTemplate, deployment.ControllerTemplate.PodTemplate) {
+	if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployment.ControllerTemplate.Template.Spec) {
 		glog.V(4).Infof("Ignoring updated config %s with LatestVersion=%d because it matches deployment %s", config.Name, config.LatestVersion, deployment.Name)
 		return
 	}

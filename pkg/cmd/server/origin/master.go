@@ -12,6 +12,7 @@ import (
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -178,7 +179,8 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	for _, i := range installers {
 		extra = append(extra, i.InstallAPI(osMux)...)
 	}
-	apiserver.NewAPIGroup(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(osMux, OpenShiftAPIPrefixV1Beta1)
+	handlerContainer := kmaster.NewHandlerContainer(osMux)
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(handlerContainer, "/osapi", "v1beta1")
 	//apiserver.InstallSupport(osMux)
 
 	handler := http.Handler(osMux)

@@ -5,7 +5,6 @@ package integration
 import (
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/golang/glog"
@@ -17,7 +16,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -177,7 +175,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
-	config.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers[0].Env[0].Value = "UPDATED"
+	config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
 
 	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
@@ -197,7 +195,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 }
 
 func assertEnvVarEquals(name string, value string, deployment *deployapi.Deployment, t *testing.T) {
-	env := deployment.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers[0].Env
+	env := deployment.ControllerTemplate.Template.Spec.Containers[0].Env
 
 	for _, e := range env {
 		if e.Name == name && e.Value == value {
@@ -273,18 +271,11 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
 	}
 
-	apiserver.NewAPIGroup(kmaster.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
-	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(osMux, osPrefix)
-	apiserver.InstallSupport(osMux)
+	handlerContainer := master.NewHandlerContainer(osMux)
+	apiserver.NewAPIGroupVersion(kmaster.API_v1beta1()).InstallREST(handlerContainer, "/api", "v1beta1")
 
-	info, err := kubeClient.ServerVersion()
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if e, a := version.Get(), *info; !reflect.DeepEqual(e, a) {
-		t.Errorf("Expected %#v, got %#v", e, a)
-	}
+	osPrefix := "/osapi/v1beta1"
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
 		Client: osClient,
@@ -332,27 +323,26 @@ func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
 			Strategy: deployapi.DeploymentStrategy{
 				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
-			ControllerTemplate: kapi.ReplicationControllerState{
+			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
-				ReplicaSelector: map[string]string{
+				Selector: map[string]string{
 					"name": "test-pod",
 				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod",
+				Template: &kapi.PodTemplateSpec{
+					ObjectMeta: kapi.ObjectMeta{
+						Labels: map[string]string{
+							"name": "test-pod",
+						},
 					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-1",
-									Image: "registry:8080/openshift/test-image:ref-1",
-								},
-								{
-									Name:  "container-2",
-									Image: "registry:8080/openshift/another-test-image:ref-1",
-								},
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "container-1",
+								Image: "registry:8080/openshift/test-image:ref-1",
+							},
+							{
+								Name:  "container-2",
+								Image: "registry:8080/openshift/another-test-image:ref-1",
 							},
 						},
 					},
@@ -369,23 +359,22 @@ func manualDeploymentConfig() *deployapi.DeploymentConfig {
 			Strategy: deployapi.DeploymentStrategy{
 				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
-			ControllerTemplate: kapi.ReplicationControllerState{
+			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
-				ReplicaSelector: map[string]string{
+				Selector: map[string]string{
 					"name": "test-pod",
 				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod",
+				Template: &kapi.PodTemplateSpec{
+					ObjectMeta: kapi.ObjectMeta{
+						Labels: map[string]string{
+							"name": "test-pod",
+						},
 					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-1",
-									Image: "registry:8080/openshift/test-image:ref-1",
-								},
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "container-1",
+								Image: "registry:8080/openshift/test-image:ref-1",
 							},
 						},
 					},
@@ -407,27 +396,26 @@ func changeDeploymentConfig() *deployapi.DeploymentConfig {
 			Strategy: deployapi.DeploymentStrategy{
 				Type: deployapi.DeploymentStrategyTypeRecreate,
 			},
-			ControllerTemplate: kapi.ReplicationControllerState{
+			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
-				ReplicaSelector: map[string]string{
+				Selector: map[string]string{
 					"name": "test-pod",
 				},
-				PodTemplate: kapi.PodTemplate{
-					Labels: map[string]string{
-						"name": "test-pod",
+				Template: &kapi.PodTemplateSpec{
+					ObjectMeta: kapi.ObjectMeta{
+						Labels: map[string]string{
+							"name": "test-pod",
+						},
 					},
-					DesiredState: kapi.PodState{
-						Manifest: kapi.ContainerManifest{
-							Version: "v1beta1",
-							Containers: []kapi.Container{
-								{
-									Name:  "container-1",
-									Image: "registry:8080/openshift/test-image:ref-1",
-									Env: []kapi.EnvVar{
-										{
-											Name:  "ENV_TEST",
-											Value: "ENV_VALUE1",
-										},
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "container-1",
+								Image: "registry:8080/openshift/test-image:ref-1",
+								Env: []kapi.EnvVar{
+									{
+										Name:  "ENV_TEST",
+										Value: "ENV_VALUE1",
 									},
 								},
 							},

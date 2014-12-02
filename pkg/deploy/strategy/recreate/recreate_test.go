@@ -53,15 +53,15 @@ func TestFirstDeployment(t *testing.T) {
 		t.Fatalf("expected controller with label %s, got %s", e, a)
 	}
 
-	if e, a := "deploymentConfig1", createdController.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel]; e != a {
+	if e, a := "deploymentConfig1", createdController.Spec.Template.Labels[deployapi.DeploymentConfigLabel]; e != a {
 		t.Fatalf("expected controller podtemplate label %s, got %s", e, a)
 	}
 
-	if e, a := "deploy1", createdController.DesiredState.PodTemplate.Labels[deployapi.DeploymentLabel]; e != a {
+	if e, a := "deploy1", createdController.Spec.Template.Labels[deployapi.DeploymentLabel]; e != a {
 		t.Fatalf("expected controller podtemplate label %s, got %s", e, a)
 	}
 
-	if e, a := 2, createdController.DesiredState.Replicas; e != a {
+	if e, a := 2, createdController.Spec.Replicas; e != a {
 		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
 	}
 }
@@ -117,11 +117,11 @@ func TestSecondDeployment(t *testing.T) {
 		t.Fatalf("expected controller with label %s, got %s", e, a)
 	}
 
-	if e, a := "deploymentConfig1", createdController.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel]; e != a {
+	if e, a := "deploymentConfig1", createdController.Spec.Template.Labels[deployapi.DeploymentConfigLabel]; e != a {
 		t.Fatalf("expected controller podtemplate label %s, got %s", e, a)
 	}
 
-	if e, a := 0, updatedController.DesiredState.Replicas; e != a {
+	if e, a := 0, updatedController.Spec.Replicas; e != a {
 		t.Fatalf("expected old controller replicas to be %d, got %d", e, a)
 	}
 
@@ -170,16 +170,14 @@ func okDeployment() *deployapi.Deployment {
 		Strategy: deployapi.DeploymentStrategy{
 			Type: deployapi.DeploymentStrategyTypeRecreate,
 		},
-		ControllerTemplate: kapi.ReplicationControllerState{
+		ControllerTemplate: kapi.ReplicationControllerSpec{
 			Replicas: 2,
-			PodTemplate: kapi.PodTemplate{
-				DesiredState: kapi.PodState{
-					Manifest: kapi.ContainerManifest{
-						Containers: []kapi.Container{
-							{
-								Name:  "container1",
-								Image: "registry:8080/repo1:ref1",
-							},
+			Template: &kapi.PodTemplateSpec{
+				Spec: kapi.PodSpec{
+					Containers: []kapi.Container{
+						{
+							Name:  "container1",
+							Image: "registry:8080/repo1:ref1",
 						},
 					},
 				},
@@ -197,19 +195,19 @@ func okReplicationController() kapi.ReplicationController {
 				deployapi.DeploymentConfigLabel: "deploymentConfig1",
 			},
 		},
-		DesiredState: kapi.ReplicationControllerState{
+		Spec: kapi.ReplicationControllerSpec{
 			Replicas: 1,
-			PodTemplate: kapi.PodTemplate{
-				Labels: map[string]string{
-					deployapi.DeploymentConfigLabel: "deploymentConfig1",
+			Template: &kapi.PodTemplateSpec{
+				ObjectMeta: kapi.ObjectMeta{
+					Labels: map[string]string{
+						deployapi.DeploymentConfigLabel: "deploymentConfig1",
+					},
 				},
-				DesiredState: kapi.PodState{
-					Manifest: kapi.ContainerManifest{
-						Containers: []kapi.Container{
-							{
-								Name:  "container1",
-								Image: "registry:8080/repo1:ref1",
-							},
+				Spec: kapi.PodSpec{
+					Containers: []kapi.Container{
+						{
+							Name:  "container1",
+							Image: "registry:8080/repo1:ref1",
 						},
 					},
 				},

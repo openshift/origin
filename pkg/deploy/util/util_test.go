@@ -7,24 +7,24 @@ import (
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 )
 
-func podTemplateA() kapi.PodTemplate {
+func podTemplateA() *kapi.PodTemplateSpec {
 	t := deploytest.OkPodTemplate()
-	t.DesiredState.Manifest.Containers = append(t.DesiredState.Manifest.Containers, kapi.Container{
+	t.Spec.Containers = append(t.Spec.Containers, kapi.Container{
 		Name:  "container1",
 		Image: "registry:8080/repo1:ref1",
 	})
 	return t
 }
 
-func podTemplateB() kapi.PodTemplate {
+func podTemplateB() *kapi.PodTemplateSpec {
 	t := podTemplateA()
 	t.Labels = map[string]string{"c": "d"}
 	return t
 }
 
-func podTemplateC() kapi.PodTemplate {
+func podTemplateC() *kapi.PodTemplateSpec {
 	t := podTemplateA()
-	t.DesiredState.Manifest.Containers[0] = kapi.Container{
+	t.Spec.Containers[0] = kapi.Container{
 		Name:  "container2",
 		Image: "registry:8080/repo1:ref3",
 	}
@@ -32,9 +32,9 @@ func podTemplateC() kapi.PodTemplate {
 	return t
 }
 
-func podTemplateD() kapi.PodTemplate {
+func podTemplateD() *kapi.PodTemplateSpec {
 	t := podTemplateA()
-	t.DesiredState.Manifest.Containers = append(t.DesiredState.Manifest.Containers, kapi.Container{
+	t.Spec.Containers = append(t.Spec.Containers, kapi.Container{
 		Name:  "container2",
 		Image: "registry:8080/repo1:ref4",
 	})
@@ -42,34 +42,34 @@ func podTemplateD() kapi.PodTemplate {
 	return t
 }
 
-func TestPodTemplatesEqualTrue(t *testing.T) {
-	result := PodTemplatesEqual(podTemplateA(), podTemplateA())
+func TestPodSpecsEqualTrue(t *testing.T) {
+	result := PodSpecsEqual(podTemplateA().Spec, podTemplateA().Spec)
 
 	if !result {
-		t.Fatalf("Unexpected false result for PodTemplatesEqual")
+		t.Fatalf("Unexpected false result for PodSpecsEqual")
 	}
 }
 
-func TestPodTemplatesJustLabelDiff(t *testing.T) {
-	result := PodTemplatesEqual(podTemplateA(), podTemplateB())
+func TestPodSpecsJustLabelDiff(t *testing.T) {
+	result := PodSpecsEqual(podTemplateA().Spec, podTemplateB().Spec)
 
 	if !result {
-		t.Fatalf("Unexpected false result for PodTemplatesEqual")
+		t.Fatalf("Unexpected false result for PodSpecsEqual")
 	}
 }
 
-func TestPodTemplatesEqualContainerImageChange(t *testing.T) {
-	result := PodTemplatesEqual(podTemplateA(), podTemplateC())
+func TestPodSpecsEqualContainerImageChange(t *testing.T) {
+	result := PodSpecsEqual(podTemplateA().Spec, podTemplateC().Spec)
 
 	if result {
-		t.Fatalf("Unexpected true result for PodTemplatesEqual")
+		t.Fatalf("Unexpected true result for PodSpecsEqual")
 	}
 }
 
-func TestPodTemplatesEqualAdditionalContainerInManifest(t *testing.T) {
-	result := PodTemplatesEqual(podTemplateA(), podTemplateD())
+func TestPodSpecsEqualAdditionalContainerInManifest(t *testing.T) {
+	result := PodSpecsEqual(podTemplateA().Spec, podTemplateD().Spec)
 
 	if result {
-		t.Fatalf("Unexpected true result for PodTemplatesEqual")
+		t.Fatalf("Unexpected true result for PodSpecsEqual")
 	}
 }
