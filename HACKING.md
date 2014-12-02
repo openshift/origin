@@ -153,3 +153,7 @@ both of these changes with message `bump(<pkgname>): <pkgcommit>`.
 To update the Kubernetes version, checkout the new "master" branch from openshift/kubernetes (within
 your regular GOPATH directory for Kubernetes), and run `godep restore ./...` from the Kubernetes
 dir.  Then switch to the OpenShift directory and run `godep save ./...`
+
+## Troubleshooting
+
+If you run into difficulties running OpenShift, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
