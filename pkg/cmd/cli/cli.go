@@ -1,20 +1,22 @@
-package osc
+package cli
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/cmd/kubectl/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/spf13/cobra"
 )
 
-func NewCommandDeveloper(name string) *cobra.Command {
+func NewCommandCLI(name string) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
-		Use:   name,
-		Short: "Client tools for OpenShift",
+		Use:     name,
+		Aliases: []string{"kubectl"},
+		Short:   "Client tools for OpenShift",
 		Long: `
 End-user client tool for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat.
 Note: This is an alpha release of OpenShift and will change significantly.  See
@@ -42,6 +44,16 @@ for the latest information on OpenShift.
 
 	factory.Factory.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
 		return NewHumanReadablePrinter(noHeaders), nil
+	}
+
+	// Initialize describer for Origin objects
+	factory.OriginDescriber = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
+		if c, err := factory.OriginClient(cmd, mapping); err == nil {
+			if describer, ok := DescriberFor(mapping.Kind, c, cmd); ok == true {
+				return describer, nil
+			}
+		}
+		return nil, fmt.Errorf("unable to describe %s type", mapping.Kind)
 	}
 
 	factory.AddCommands(cmds, os.Stdout)
