@@ -76,9 +76,11 @@ function teardown()
     echo "[INFO] Tearing down test"
     stop_openshift_server
     echo "[INFO] Stopping docker containers"; docker stop $(docker ps -a -q)
+    set +u
     if [ "$SKIP_IMAGE_CLEANUP" != "1" ]; then
       echo "[INFO] Removing docker containers"; docker rm $(docker ps -a -q)
     fi
+    set -u
     set -e
   fi
   set -u
