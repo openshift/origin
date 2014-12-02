@@ -16,7 +16,7 @@ Deploy
 
 2. Use the command line to transform the template, and then send each object to the server:
 
-        openshift kube process -c template.json | openshift kube apply -c -
+        openshift kubectl process -f template.json | openshift kubectl apply -f -
 
    Note: `-c -` tells the CLI to read a file from STDIN - you can use this in other places as well.
 

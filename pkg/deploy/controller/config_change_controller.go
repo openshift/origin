@@ -17,6 +17,8 @@ type DeploymentConfigChangeController struct {
 	ChangeStrategy       changeStrategy
 	NextDeploymentConfig func() *deployapi.DeploymentConfig
 	DeploymentStore      cache.Store
+	// Stop is an optional channel that controls when the controller exits
+	Stop <-chan struct{}
 }
 
 type changeStrategy interface {
@@ -26,7 +28,7 @@ type changeStrategy interface {
 
 // Run watches for config change events.
 func (dc *DeploymentConfigChangeController) Run() {
-	go util.Forever(func() { dc.HandleDeploymentConfig() }, 0)
+	go util.Until(func() { dc.HandleDeploymentConfig() }, 0, dc.Stop)
 }
 
 // HandleDeploymentConfig handles the next DeploymentConfig change that happens.

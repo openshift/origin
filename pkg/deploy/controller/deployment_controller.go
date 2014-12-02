@@ -31,6 +31,8 @@ type DeploymentController struct {
 	Environment []kapi.EnvVar
 	// UseLocalImages configures the ImagePullPolicy for containers in the deployment pod.
 	UseLocalImages bool
+	// Stop is an optional channel that controls when the controller exits
+	Stop <-chan struct{}
 }
 
 // DeploymentContainerCreator knows how to create a deployment pod's container based on
@@ -50,8 +52,8 @@ type dcPodInterface interface {
 
 // Run begins watching and synchronizing deployment states.
 func (dc *DeploymentController) Run() {
-	go util.Forever(func() { dc.HandleDeployment() }, 0)
-	go util.Forever(func() { dc.HandlePod() }, 0)
+	go util.Until(func() { dc.HandleDeployment() }, 0, dc.Stop)
+	go util.Until(func() { dc.HandlePod() }, 0, dc.Stop)
 }
 
 // HandleDeployment processes a new Deployment and creates a new Pod which implements the specific

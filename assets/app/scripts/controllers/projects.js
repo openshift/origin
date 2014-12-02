@@ -18,4 +18,20 @@ angular.module('openshiftConsole')
     };
 
     DataService.getList("projects", callback, $scope);
+
+    $scope.tileClickHandler = function(evt) {
+      var t = $(evt.target);
+      if (t && t.is('a')){
+        return;
+      }
+      var a = $('a.tile-target', t)[0];
+      if (a) {
+        if (evt.which === 2 || evt.ctrlKey || evt.shiftKey) {
+          window.open(a.href);
+        }
+        else {
+          window.location = a.href;
+        }
+      }
+    };
   });

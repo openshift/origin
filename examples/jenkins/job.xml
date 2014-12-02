@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>OPENSHIFT_HOST</name>
+          <description>host/port of openshift api server.</description>
+          <defaultValue>http://172.17.42.1:8080</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>
+TEST_ENDPOINT=`openshift kubectl get services -s $OPENSHIFT_HOST| grep frontend-test | awk &apos;{print $4&quot;:&quot;$5}&apos;`
+
+REGISTRY_ENDPOINT=`openshift kubectl get services -s $OPENSHIFT_HOST| grep docker-registry | awk &apos;{print $3&quot;:&quot;$4}&apos;`
+
+# clean up existing test deployment
+set +e
+echo &quot;Removing old test deployment&quot;
+TEST_RC_ID=`openshift kubectl get replicationController -s $OPENSHIFT_HOST | grep frontend-test | awk &apos;{print $1}&apos;`
+openshift kubectl delete replicationController $TEST_RC_ID -s $OPENSHIFT_HOST
+TEST_POD_ID=`openshift kubectl get pod -s $OPENSHIFT_HOST | grep frontend-test | awk &apos;{print $1}&apos;`
+openshift kubectl delete pod $TEST_POD_ID -s $OPENSHIFT_HOST
+set -e
+
+# wait for old pod to be torn down
+sleep 5
+
+# trigger a build
+echo &quot;Triggering new application build and deployment&quot;
+curl -X POST $OPENSHIFT_HOST/osapi/v1beta1/buildConfigHooks/ruby-test-build/secret101/generic
+
+# check that the build test image deployed successfully
+set +e
+rc=1
+count=0
+attempts=60
+
+echo &quot;Checking test deployment at $TEST_ENDPOINT&quot;
+while [ $rc -ne 0 -a $count -lt $attempts ]; do
+  curl -s --connect-timeout 2 $TEST_ENDPOINT
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    count=$(($count+1))
+    echo &quot;Attempt $count/$attempts&quot;
+    sleep 5
+  fi
+done
+set -e
+
+if [ $count -eq $attempts ]; then
+    echo &quot;Failed to reach test deployment&quot;
+    exit 1
+fi
+
+
+# Tag the image into production
+echo &quot;Test deployment succeeded, rolling out to production...&quot;
+
+COMMIT=`curl -s http://$REGISTRY_ENDPOINT/v1/repositories/openshift/origin-ruby-sample/tags/test`
+curl -s -X PUT  http://$REGISTRY_ENDPOINT/v1/repositories/openshift/origin-ruby-sample/tags/prod -d "$COMMIT"
+      </command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

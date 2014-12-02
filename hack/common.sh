@@ -60,20 +60,6 @@ os::build::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 
-os::build::current_platform() {
-  local os="${GOOS-}"
-  if [[ -z $os ]]; then
-    os=$(go env GOHOSTOS)
-  fi
-
-  local arch="${GOARCH-}"
-  if [[ -z $arch ]]; then
-    arch=$(go env GOHOSTARCH)
-  fi
-
-  echo "$os/$arch"
-}
-
 # Build binaries targets specified
 #
 # Input:
@@ -125,11 +111,12 @@ os::build::build_binaries() {
       go install "${goflags[@]:+${goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "${binaries[@]}"
+      os::build::unset_platform_envs "${platform}"
     done
   )
 }
 
-# Takes the the platform name ($1) and sets the appropriate golang env variables
+# Takes the platform name ($1) and sets the appropriate golang env variables
 # for that platform.
 os::build::set_platform_envs() {
   [[ -n ${1-} ]] || {
@@ -141,6 +128,8 @@ os::build::set_platform_envs() {
   export GOARCH=${platform##*/}
 }
 
+# Takes the platform name ($1) and resets the appropriate golang env variables
+# for that platform.
 os::build::unset_platform_envs() {
   unset GOOS
   unset GOARCH

@@ -310,13 +310,13 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 }
 
 func (c *MasterConfig) RunDeploymentConfigChangeController() {
-	factory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{c.OSClient}
+	factory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{Client: c.OSClient}
 	controller := factory.Create()
 	controller.Run()
 }
 
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
-	factory := deploycontrollerfactory.ImageChangeControllerFactory{c.OSClient}
+	factory := deploycontrollerfactory.ImageChangeControllerFactory{Client: c.OSClient}
 	controller := factory.Create()
 	controller.Run()
 }

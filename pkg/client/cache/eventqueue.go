@@ -60,7 +60,7 @@ const (
 // The watch event effect matrix defines the valid event sequences and what their effects are on
 // the state of the event queue.
 //
-// A watch event that produces an invalid sequence is dropped (but this should not happen).
+// A watch event that produces an invalid sequence results in a panic.
 var watchEventEffectMatrix = map[watch.EventType]map[watch.EventType]watchEventEffect{
 	watch.Added: {
 		watch.Modified: watchEventEffectCompress,
@@ -86,7 +86,7 @@ var watchEventCompressionMatrix = map[watch.EventType]map[watch.EventType]watch.
 }
 
 // handleEvent is called by Add, Update, and Delete to determine the effect
-// of an event of the queue, realize that effect, and update the underlying store
+// of an event of the queue, realize that effect, and update the underlying store.
 func (eq *EventQueue) handleEvent(id string, obj interface{}, newEventType watch.EventType) {
 	eq.lock.Lock()
 	defer eq.lock.Unlock()
@@ -127,8 +127,8 @@ func (eq *EventQueue) handleEvent(id string, obj interface{}, newEventType watch
 	}
 }
 
-// updateStore updates the stored value for the given id.  Notice that deletions are not handled
-// here - they are performed in Pop in order to provide the deleted value on watch.Deleted events.
+// updateStore updates the stored value for the given id.  Note that deletions are not handled
+// here; they are performed in Pop in order to provide the deleted value on watch.Deleted events.
 func (eq *EventQueue) updateStore(id string, obj interface{}, eventType watch.EventType) {
 	if eventType == watch.Deleted {
 		return
@@ -192,7 +192,7 @@ func (eq *EventQueue) List() []interface{} {
 	return list
 }
 
-// Contains returns a util.StringSet containing all IDs of the enqueued items.
+// ContainedIDs returns a util.StringSet containing all IDs of the enqueued items.
 // This is a snapshot of a moment in time, and one should keep in mind that
 // other go routines can add or remove items after you call this.
 func (eq *EventQueue) ContainedIDs() util.StringSet {

@@ -28,7 +28,7 @@ sed -i s/ROUTER_ID/${ROUTER_ID}/g /tmp/router.json
 if [ "${OPENSHIFT}" == "" ]; then
     echo "unable to find openshift binary"
     echo "/tmp/router.json has been created.  In order to start the router please run:"
-    echo "openshift kube -c /tmp/router.json create pods"
+    echo "openshift kubectl create -f /tmp/router.json"
 else
-    "${OPENSHIFT}" kube -c /tmp/router.json create pods
+    "${OPENSHIFT}" kubectl create -f /tmp/router.json
 fi

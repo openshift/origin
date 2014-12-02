@@ -41,25 +41,7 @@ BUILD_CONFIG_FILE="${LOG_DIR}/buildConfig.json"
 FIXTURE_DIR="${OS_ROOT}/examples/sample-app"
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 openshift="${GO_OUT}/openshift"
-
-# Search for a regular expression in a HTTP response.
-#
-# $1 - a valid URL (e.g.: http://127.0.0.1:8080)
-# $2 - a regular expression or text
-function validate_response {
-    ip=$1
-    response=$2
-
-  curl $ip | grep -q "$response"
-  if [ $? -eq 0 ] ;then
-    echo "[INFO] Response is valid."
-    return 0
-  fi
-
-  echo "[INFO] Response is invalid."
-  set -e
-  return 1
-}
+kubectl="${GO_OUT}/openshift --loglevel=0 kubectl"
 
 # setup()
 function setup()
@@ -75,7 +57,7 @@ function teardown()
 {
   if [ $? -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
-  else 
+  else
     echo "[INFO] Test Succeeded"
   fi
 
@@ -94,7 +76,11 @@ function teardown()
     echo "[INFO] Tearing down test"
     stop_openshift_server
     echo "[INFO] Stopping docker containers"; docker stop $(docker ps -a -q)
-    echo "[INFO] Removing docker containers"; docker rm $(docker ps -a -q)
+    set +u
+    if [ "$SKIP_IMAGE_CLEANUP" != "1" ]; then
+      echo "[INFO] Removing docker containers"; docker rm $(docker ps -a -q)
+    fi
+    set -u
     set -e
   fi
   set -u
@@ -113,15 +99,15 @@ wait_for_url "http://localhost:8080/healthz" "[INFO] apiserver: "
 
 # Deploy private docker registry
 echo "[INFO] Deploying private Docker registry"
-$openshift kube apply --ns=${NAMESPACE} -c ${FIXTURE_DIR}/docker-registry-config.json
+$kubectl apply -n ${NAMESPACE} -f ${FIXTURE_DIR}/docker-registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
+wait_for_command "$kubectl get -n ${NAMESPACE} pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
 
 echo "[INFO] Waiting for Docker registry service to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep registrypod"
+wait_for_command "$kubectl get -n ${NAMESPACE} services | grep registrypod"
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY_IP=`$openshift kube get --ns=${NAMESPACE} --yaml services/docker-registry | grep "portalIP" | awk '{print $2}'`
+DOCKER_REGISTRY_IP=`$kubectl get -n ${NAMESPACE} -o yaml service docker-registry | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Probing the docker-registry"
 wait_for_url_timed "http://${DOCKER_REGISTRY_IP}:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
@@ -141,39 +127,40 @@ echo "[INFO] Pushed centos7: $(($ENDTIME - $STARTTIME)) seconds"
 
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
-$openshift kube process --ns=${NAMESPACE} -c ${FIXTURE_DIR}/application-template-${BUILD_TYPE}build.json > $CONFIG_FILE
+$kubectl process -n ${NAMESPACE} -f ${FIXTURE_DIR}/application-template-${BUILD_TYPE}build.json > $CONFIG_FILE
 # substitute the default IP address with the address where we actually ended up
 sed -i "s,172.121.17.3,${DOCKER_REGISTRY_IP},g" $CONFIG_FILE
 
 echo "[INFO] Applying application config"
-$openshift kube apply --ns=${NAMESPACE} -c $CONFIG_FILE
+$kubectl apply -n ${NAMESPACE} -f $CONFIG_FILE
 
 # Trigger build
 echo "[INFO] Invoking generic web hook to trigger new build using curl"
-curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=${NAMESPACE}
+curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=${NAMESPACE} && sleep 3
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} builds | grep -i complete" $((10*TIME_MIN)) "$openshift kube list --ns=${NAMESPACE} builds | grep -i -e failed -e error"
-BUILD_ID=`$openshift kube list --ns=${NAMESPACE} builds --template="{{with index .items 0}}{{.id}}{{end}}"`
-$openshift kube buildLogs --ns=${NAMESPACE} --id=$BUILD_ID > $LOG_DIR/build.log
+wait_for_command "$kubectl get -n ${NAMESPACE} builds | grep -i complete" $((10*TIME_MIN)) "$kubectl get -n ${NAMESPACE} builds | grep -i -e failed -e error"
+BUILD_ID=`$kubectl get -n ${NAMESPACE} builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+echo "[INFO] Build ${BUILD_ID} finished"
+$kubectl build-logs -n ${NAMESPACE} $BUILD_ID > $LOG_DIR/build.log
 
 # STI builder doesn't currently report a useful success message
 #grep -q "Successfully built" $LOG_DIR/build.log
 
 echo "[INFO] Waiting for database pod to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep database | grep -i Running" $((30*TIME_SEC))
+wait_for_command "$kubectl get -n ${NAMESPACE} pods -l name=database | grep -i Running" $((30*TIME_SEC))
 
 echo "[INFO] Waiting for database service to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep database" $((20*TIME_SEC))
-DB_IP=`$openshift kube get --ns=${NAMESPACE} --yaml services/database | grep "portalIP" | awk '{print $2}'`
+wait_for_command "$kubectl get -n ${NAMESPACE} services | grep database" $((20*TIME_SEC))
+DB_IP=`$kubectl get -n ${NAMESPACE} -o yaml service database | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Waiting for frontend pod to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} pods | grep frontend | grep -i Running" $((120*TIME_SEC))
+wait_for_command "$kubectl get -n ${NAMESPACE} pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
 echo "[INFO] Waiting for frontend service to start"
-wait_for_command "$openshift kube list --ns=${NAMESPACE} services | grep frontend" $((20*TIME_SEC))
-FRONTEND_IP=`$openshift kube get --ns=${NAMESPACE} --yaml services/frontend | grep "portalIP" | awk '{print $2}'`
+wait_for_command "$kubectl get -n ${NAMESPACE} services | grep frontend" $((20*TIME_SEC))
+FRONTEND_IP=`$kubectl get -n ${NAMESPACE} -o yaml service frontend | grep "portalIP" | awk '{print $2}'`
 
 echo "[INFO] Waiting for database to start..."
 wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -190,13 +177,13 @@ if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     echo "[INFO] Installing router with master ip of ${apiIP} and starting pod..."
     echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
     "${OS_ROOT}/hack/install-router.sh" "router1" $apiIP $openshift
-    wait_for_command "$openshift kube list pods | grep router | grep -i Running" $((5*TIME_MIN))
+    wait_for_command "$kubectl get pods | grep router | grep -i Running" $((5*TIME_MIN))
 
     echo "[INFO] Validating routed app response doesn't exist"
     validate_response "-H Host:end-to-end --connect-timeout 10 http://${apiIP}" "503 Service Unavailable" 2 $((2*TIME_MIN))
 
     echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
-    $openshift kube create routes --ns=${NAMESPACE} -c "${ARTIFACT_DIR}/route.json"
+    $kubectl create -n ${NAMESPACE} routes -f "${ARTIFACT_DIR}/route.json"
 
     echo "[INFO] Validating routed app response..."
     validate_response "-H Host:end-to-end http://${apiIP}" "Hello from OpenShift"
