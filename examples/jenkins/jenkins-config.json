@@ -42,7 +42,7 @@
               "manifest":{
                 "containers":[
                   {
-                    "image":"bparees/jenkins",
+                    "image":"openshift/jenkins-1-centos",
                     "name":"jenkins-container",
                     "ports":[
                       {
