@@ -51,3 +51,7 @@ func (c *Fake) Users() UserInterface {
 func (c *Fake) UserIdentityMappings() UserIdentityMappingInterface {
 	return &FakeUserIdentityMappings{Fake: c}
 }
+
+func (c *Fake) Projects(namespace string) ProjectInterface {
+	return &FakeProjects{Fake: c, Namespace: namespace}
+}

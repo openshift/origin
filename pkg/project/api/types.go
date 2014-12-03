@@ -16,5 +16,4 @@ type Project struct {
 	kapi.TypeMeta   `json:",inline" yaml:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	DisplayName     string `json:"displayName,omitempty" yaml:"displayName,omitempty"`
-	Description     string `json:"description,omitempty" yaml:"description,omitempty"`
 }

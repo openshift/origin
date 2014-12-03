@@ -16,9 +16,13 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "missing id",
 			project: api.Project{
-				ObjectMeta:  kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: kapi.NamespaceDefault,
+					Annotations: map[string]string{
+						"description": "This is a description",
+					},
+				},
 				DisplayName: "hi",
-				Description: "This is a description",
 			},
 			// Should fail because the ID is missing.
 			numErrs: 1,
@@ -26,9 +30,14 @@ func TestValidateProject(t *testing.T) {
 		{
 			name: "invalid id",
 			project: api.Project{
-				ObjectMeta:  kapi.ObjectMeta{Name: "141-.124.$", Namespace: kapi.NamespaceDefault},
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "141-.124.$",
+					Namespace: kapi.NamespaceDefault,
+					Annotations: map[string]string{
+						"description": "This is a description",
+					},
+				},
 				DisplayName: "hi",
-				Description: "This is a description",
 			},
 			// Should fail because the ID is invalid.
 			numErrs: 1,
@@ -38,7 +47,6 @@ func TestValidateProject(t *testing.T) {
 			project: api.Project{
 				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: ""},
 				DisplayName: "hi",
-				Description: "This is a description",
 			},
 			// Should fail because the namespace is missing.
 			numErrs: 1,
@@ -48,19 +56,8 @@ func TestValidateProject(t *testing.T) {
 			project: api.Project{
 				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "141-.124.$"},
 				DisplayName: "hi",
-				Description: "This is a description",
 			},
 			// Should fail because the namespace is missing.
-			numErrs: 1,
-		},
-		{
-			name: "invalid description",
-			project: api.Project{
-				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},
-				DisplayName: "hi",
-				Description: "This is a \n description",
-			},
-			// Should fail because the description has a \n
 			numErrs: 1,
 		},
 		{
@@ -68,7 +65,6 @@ func TestValidateProject(t *testing.T) {
 			project: api.Project{
 				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},
 				DisplayName: "h\t\ni",
-				Description: "This is a description",
 			},
 			// Should fail because the display name has \t \n
 			numErrs: 1,
@@ -83,9 +79,14 @@ func TestValidateProject(t *testing.T) {
 	}
 
 	project := api.Project{
-		ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: kapi.NamespaceDefault},
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "foo",
+			Namespace: kapi.NamespaceDefault,
+			Annotations: map[string]string{
+				"description": "This is a description",
+			},
+		},
 		DisplayName: "hi",
-		Description: "This is a description",
 	}
 	errs := ValidateProject(&project)
 	if len(errs) != 0 {

@@ -18,6 +18,7 @@ type Interface interface {
 	RoutesNamespacer
 	UsersInterface
 	UserIdentityMappingsInterface
+	ProjectsInterface
 }
 
 func (c *Client) Builds(namespace string) BuildInterface {
@@ -58,6 +59,10 @@ func (c *Client) Users() UserInterface {
 
 func (c *Client) UserIdentityMappings() UserIdentityMappingInterface {
 	return newUserIdentityMappings(c)
+}
+
+func (c *Client) Projects(namespace string) ProjectInterface {
+	return newProjects(c, namespace)
 }
 
 // Client is an OpenShift client object

@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/project/api"
 )
 
-var projectColumns = []string{"Name", "Namespace", "Display Name", "Description"}
+var projectColumns = []string{"Name", "Namespace", "Display Name"}
 
 // RegisterPrintHandlers registers HumanReadablePrinter handlers for project resources.
 func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
@@ -17,7 +17,7 @@ func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
 }
 
 func printProject(project *api.Project, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", project.Name, project.Namespace, project.DisplayName, project.Description)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", project.Name, project.Namespace, project.DisplayName)
 	return err
 }
 

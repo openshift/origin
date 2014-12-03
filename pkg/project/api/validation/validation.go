@@ -22,9 +22,6 @@ func ValidateProject(project *api.Project) errors.ValidationErrorList {
 	if !validateNoNewLineOrTab(project.DisplayName) {
 		result = append(result, errors.NewFieldInvalid("DisplayName", project.DisplayName))
 	}
-	if !validateNoNewLineOrTab(project.Description) {
-		result = append(result, errors.NewFieldInvalid("Description", project.Description))
-	}
 	return result
 }
 
