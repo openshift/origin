@@ -192,7 +192,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 	case "auto":
 		grantHandler = handlers.NewAutoGrant(authregistry)
 	case "prompt":
-		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultGrantFormRenderer, clientregistry, authregistry)
+		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
 		grantServer.Install(mux, OpenShiftApprovePrefix)
 		grantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
 	default:

@@ -85,7 +85,7 @@ func TestCookieGenerate(t *testing.T) {
 				Path:     testCase.Path,
 				Domain:   testCase.Domain,
 				Secure:   testCase.Secure,
-				HTTPOnly: testCase.HTTPOnly,
+				HttpOnly: testCase.HTTPOnly,
 			}
 			if setCookie != protoCookie.String() {
 				t.Errorf("%s: Expected Set-Cookie header of \"%s\", got \"%s\"", k, protoCookie.String(), setCookie)

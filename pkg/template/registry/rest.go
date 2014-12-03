@@ -50,7 +50,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		generators := map[string]generator.Generator{
 			"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 		}
-		processor := template.NewTemplateProcessor(generators)
+		processor := template.NewProcessor(generators)
 		cfg, err := processor.Process(tpl)
 		if len(err) > 0 {
 			// TODO: We don't report the processing errors to users as there is no
