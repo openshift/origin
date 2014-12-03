@@ -95,10 +95,8 @@ func (c *RouterController) HandleEndpoints() {
 			BePath:    "",
 			Protocols: nil,
 		}
-
 		c.Router.AddRoute(frontend, backend, routerEndpoints)
 	}
-
 	c.Router.WriteConfig()
 	c.Router.ReloadRouter()
 }
