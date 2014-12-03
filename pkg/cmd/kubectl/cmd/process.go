@@ -38,7 +38,7 @@ Examples:
 				checkErr(err)
 			}
 
-			c, err := f.OriginClientFunc(cmd, nil)
+			c, err := f.OriginClient(cmd, nil)
 			checkErr(err)
 
 			request := c.Post().Namespace(namespace).Path("/templateConfigs").Body(data)

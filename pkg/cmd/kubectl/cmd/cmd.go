@@ -3,25 +3,24 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"os"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	client "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/client"
 	"github.com/spf13/cobra"
 )
-
-const OriginAPIPrefix = "/osapi"
 
 // OriginFactory provides a Factory which handles both Kubernetes and Origin
 // objects
 type OriginFactory struct {
-	KubeClientFunc func(*cobra.Command, *kmeta.RESTMapping) (kubectl.RESTClient, error)
+	KubeClient      func(*cobra.Command, *kmeta.RESTMapping) (kubectl.RESTClient, error)
+	KubeDescriber   func(cmd *cobra.Command, mapping *kmeta.RESTMapping) (kubectl.Describer, error)
+	OriginDescriber func(cmd *cobra.Command, mapping *kmeta.RESTMapping) (kubectl.Describer, error)
 	*kubecmd.Factory
 }
 
@@ -31,40 +30,44 @@ type OriginFactory struct {
 func (f *OriginFactory) MultiRESTClient(c *cobra.Command, m *kmeta.RESTMapping) (kubectl.RESTClient, error) {
 	mapper, ok := f.Factory.Mapper.(meta.MultiRESTMapper)
 	if !ok {
-		return nil, fmt.Errorf("Mapper '%v' is not a MultiRESTMapper", f.Factory.Mapper)
+		return nil, fmt.Errorf("the factory mapper must be MultiRESTMapper")
 	}
 	switch mapper.APINameForResource(m.APIVersion, m.Kind) {
 	case meta.OriginAPI:
-		glog.V(3).Infof("Resource identified as '%s', serving using origin client.", m.Kind)
-		return f.OriginClientFunc(c, m)
+		glog.V(3).Infof("Resource identified as '%s', serving using origin client", m.Kind)
+		return f.OriginClient(c, m)
 	case meta.KubernetesAPI:
-		glog.V(3).Infof("Resource identified as '%s', serving using kubernetes client.", m.Kind)
-		return f.KubeClientFunc(c, m)
+		glog.V(3).Infof("Resource identified as '%s', serving using kubernetes client", m.Kind)
+		return f.KubeClient(c, m)
 	default:
 		return nil, fmt.Errorf("Unable to acquire client for %v", m.Kind)
 	}
 }
 
-// OriginClientFunc provides the default REST client for Origin types
-func (f *OriginFactory) OriginClientFunc(cmd *cobra.Command, m *kmeta.RESTMapping) (*client.Client, error) {
-	config := kubecmd.GetKubeConfig(cmd)
-
-	// Set the OpenShift URI prefix
-	config.Prefix = OriginAPIPrefix
-
-	// Set the version for OpenShift object to latest version
-	config.Version = latest.Version
-
-	if c, err := client.RESTClientFor(config); err != nil {
-		return nil, err
-	} else {
-		return &client.Client{c}, nil
+// MultiDescriber provides descriptive informations about both Origin and
+// Kubernetes types.
+func (f *OriginFactory) MultiDescriber(cmd *cobra.Command, m *kmeta.RESTMapping) (kubectl.Describer, error) {
+	mapper, ok := f.Factory.Mapper.(meta.MultiRESTMapper)
+	if !ok {
+		return nil, fmt.Errorf("the factory mapper must be MultiRESTMapper")
+	}
+	switch mapper.APINameForResource(m.APIVersion, m.Kind) {
+	case meta.OriginAPI:
+		return f.OriginDescriber(cmd, m)
+	case meta.KubernetesAPI:
+		return f.KubeDescriber(cmd, m)
+	default:
+		return nil, fmt.Errorf("don't know how to describe type %s", m.Kind)
 	}
 }
 
-// GetRESTHelperFunc provides a helper to generate a client function in kubectl
-// commands.
-func (f *OriginFactory) GetRESTHelperFunc(cmd *cobra.Command) func(*kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+// OriginClient provides the REST client for all Origin types
+func (f *OriginFactory) OriginClient(c *cobra.Command, m *kmeta.RESTMapping) (*client.Client, error) {
+	return client.New(kubecmd.GetKubeConfig(c))
+}
+
+// RESTHelper provides a REST client for kubectl commands
+func (f *OriginFactory) RESTHelper(cmd *cobra.Command) func(*kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
 	return func(mapping *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
 		c, err := f.Client(cmd, mapping)
 		return kubectl.NewRESTHelper(c, mapping), err
@@ -100,7 +103,8 @@ func NewOriginFactory() *OriginFactory {
 	f := OriginFactory{Factory: kubecmd.NewFactory()}
 
 	// Save the original Kubernetes clientFunc
-	f.KubeClientFunc = f.Factory.Client
+	f.KubeClient = f.Factory.Client
+	f.KubeDescriber = f.Factory.Describer
 
 	// Replace Mapper, Typer and Client for kubectl Factory to support Origin
 	// objects
@@ -109,38 +113,6 @@ func NewOriginFactory() *OriginFactory {
 
 	// Use MultiRESTClient as a default REST client for this Factory
 	f.Factory.Client = f.MultiRESTClient
+	f.Factory.Describer = f.MultiDescriber
 	return &f
-}
-
-// TODO: Remove this when this func will be public in upstream
-func usageError(cmd *cobra.Command, format string, args ...interface{}) {
-	glog.Errorf(format, args...)
-	glog.Errorf("See '%s -h' for help.", cmd.CommandPath())
-	os.Exit(1)
-}
-
-// TODO: Remove this when this func will be public in upstream
-func checkErr(err error) {
-	if err != nil {
-		glog.Fatalf("%v", err)
-	}
-}
-
-// TODO: Make this public in upstream
-func getOriginNamespace(cmd *cobra.Command) string {
-	result := kapi.NamespaceDefault
-	if ns := kubecmd.GetFlagString(cmd, "namespace"); len(ns) > 0 {
-		result = ns
-		glog.V(2).Infof("Using namespace from -ns flag")
-	} else {
-		nsPath := kubecmd.GetFlagString(cmd, "ns-path")
-		nsInfo, err := kubectl.LoadNamespaceInfo(nsPath)
-		if err != nil {
-			glog.Fatalf("Error loading current namespace: %v", err)
-		}
-		result = nsInfo.Namespace
-	}
-	glog.V(2).Infof("Using namespace %s", result)
-	return result
-
 }

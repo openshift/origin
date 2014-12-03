@@ -25,7 +25,7 @@ $ kubectl build-logs 566bed879d2d
 
 			namespace := getOriginNamespace(cmd)
 
-			c, err := f.OriginClientFunc(cmd, nil)
+			c, err := f.OriginClient(cmd, nil)
 			request := c.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(args[0])
 			readCloser, err := request.Stream()
 			if err != nil {

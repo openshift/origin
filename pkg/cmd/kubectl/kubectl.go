@@ -1,6 +1,7 @@
 package kubectl
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -38,6 +39,16 @@ https://github.com/openshift/origin.`,
 
 	factory.Factory.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
 		return NewHumanReadablePrinter(noHeaders), nil
+	}
+
+	// Initialize describer for Origin objects
+	factory.OriginDescriber = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
+		if c, err := factory.OriginClient(cmd, mapping); err == nil {
+			if describer, ok := DescriberFor(mapping.Kind, c, cmd); ok == true {
+				return describer, nil
+			}
+		}
+		return nil, fmt.Errorf("unable to describe %s type", mapping.Kind)
 	}
 
 	factory.AddCommands(cmds, os.Stdout)
