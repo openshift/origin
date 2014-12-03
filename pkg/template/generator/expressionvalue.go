@@ -30,7 +30,7 @@ type ExpressionValueGenerator struct {
 const (
 	Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	Numerals = "0123456789"
-	Ascii    = Alphabet + Numerals + "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
+	ASCII    = Alphabet + Numerals + "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
 )
 
 var (
@@ -74,12 +74,12 @@ func (g ExpressionValueGenerator) GenerateValue(expression string) (interface{},
 // alphabetSlice produces a string slice that contains all characters within
 // a specified range.
 func alphabetSlice(from, to byte) (string, error) {
-	leftPos := strings.Index(Ascii, string(from))
-	rightPos := strings.LastIndex(Ascii, string(to))
+	leftPos := strings.Index(ASCII, string(from))
+	rightPos := strings.LastIndex(ASCII, string(to))
 	if leftPos > rightPos {
 		return "", fmt.Errorf("Invalid range specified: %s-%s", string(from), string(to))
 	}
-	return Ascii[leftPos:rightPos], nil
+	return ASCII[leftPos:rightPos], nil
 }
 
 // replaceWithGenerated replaces all occurences of the given expression
@@ -89,7 +89,7 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 	for _, r := range ranges {
 		switch string(r[0]) + string(r[1]) {
 		case `\w`:
-			alphabet += Ascii
+			alphabet += ASCII
 		case `\d`:
 			alphabet += Numerals
 		case `\a`:
