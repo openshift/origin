@@ -9,7 +9,7 @@ import (
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/openshift/origin/pkg/config"
+
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/template/api"
@@ -48,34 +48,21 @@ func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, 
 		return nil, append(templateErrors.Prefix("Template"), errs.NewFieldInvalid("parameters", err))
 	}
 
-	items := []runtime.RawExtension{}
-	for i, in := range template.Items {
-
-		item, mapping, err := config.DecodeDataToObject(in.RawJSON)
-		if err != nil {
-			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
-			continue
-		}
-
+	for i, item := range template.Items {
 		// TODO: Report failed parameter substitution for unknown objects
 		//			 These errors are no-fatal and the object returned is the same
 		//			 just without substitution.
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
 			reportError(&templateErrors, i, errs.NewFieldNotSupported("parameters", err))
-		}
-
-		jsonItem, err := mapping.Codec.Encode(newItem)
-		if err != nil {
-			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
 			continue
 		}
-		items = append(items, runtime.RawExtension{RawJSON: jsonItem})
+		template.Items[i] = newItem
 	}
 
 	config := &configapi.Config{
 		ObjectMeta: template.ObjectMeta,
-		Items:      items,
+		Items:      template.Items,
 	}
 	config.Kind = "Config"
 	config.ObjectMeta.CreationTimestamp = util.Now()

@@ -1,7 +1,6 @@
 package template
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -10,6 +9,7 @@ import (
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/generator"
@@ -27,8 +27,8 @@ func TestNewTemplate(t *testing.T) {
 	var template api.Template
 
 	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
-	if err := json.Unmarshal(jsonData, &template); err != nil {
-		t.Errorf("Unable to process the JSON template file: %v", err)
+	if err := latest.Codec.DecodeInto(jsonData, &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -36,7 +36,9 @@ func TestAddParameter(t *testing.T) {
 	var template api.Template
 
 	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
-	json.Unmarshal(jsonData, &template)
+	if err := latest.Codec.DecodeInto(jsonData, &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	processor := NewTemplateProcessor(nil)
 	processor.AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", ""))

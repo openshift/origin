@@ -10,6 +10,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -20,75 +22,80 @@ type ApplyResult struct {
 	Message string
 }
 
-// reportError reports the single item validation error and properly set the
+// appendError reports the single item validation error and properly set the
 // prefix and index to match the Config item JSON index
-func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
+func appendError(allErrs *errs.ValidationErrorList, index int, err error) errs.ValidationErrorList {
 	i := errs.ValidationErrorList{}
 	*allErrs = append(*allErrs, append(i, err).PrefixIndex(index).Prefix("item")...)
+	return *allErrs
 }
 
 // Apply creates and manages resources defined in the Config. The create process
 // won't stop on error, but it will finish the job and then return error and for
 // each item in the config an error and status message string.
 func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*kubectl.RESTHelper, error)) ([]ApplyResult, error) {
-	confObj, _, err := DecodeDataToObject(data)
+	obj, err := kapi.Scheme.Decode(data)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failed, %s", err.Error())
 	}
 
-	conf, ok := confObj.(*api.Config)
+	conf, ok := obj.(*api.Config)
 	if !ok {
 		return nil, fmt.Errorf("unable to convert object to Config")
-	}
-
-	if len(conf.Items) == 0 {
-		return nil, fmt.Errorf("Config items must be not empty")
 	}
 
 	result := []ApplyResult{}
 	for i, item := range conf.Items {
 		itemErrors := errs.ValidationErrorList{}
-		message := ""
 
-		itemBase, mapping, err := DecodeDataToObject(item.RawJSON)
+		var version, kind string
+		var data []byte
+		switch t := item.(type) {
+		case *runtime.Unknown:
+			version, kind = t.APIVersion, t.Kind
+			data = t.RawJSON
+		default:
+			// we ignore the error because we treat objects opaquely
+			version, kind, _ = kapi.Scheme.ObjectVersionAndKind(t)
+		}
+
+		if len(kind) == 0 {
+			appendError(&itemErrors, i, errs.NewFieldRequired("kind", ""))
+			result = append(result, ApplyResult{itemErrors.Prefix("Config"), ""})
+			continue
+		}
+
+		mapping, err := latest.RESTMapper.RESTMapping(version, kind)
 		if err != nil {
-			reportError(&itemErrors, i, errs.ValidationError{
-				errs.ValidationErrorTypeInvalid,
-				"decode",
-				err,
-			})
-			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
+			appendError(&itemErrors, i, fmt.Errorf("unable to save objects defined for %q and %q: %v", version, kind, err))
+			result = append(result, ApplyResult{itemErrors.Prefix("Config"), ""})
 			continue
 		}
 
 		client, err := clientFunc(mapping)
 		if err != nil {
-			reportError(&itemErrors, i, errs.NewFieldNotSupported("client", err))
-			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
+			result = append(result, ApplyResult{appendError(&itemErrors, i, err).Prefix("Config"), ""})
 			continue
 		}
 
-		jsonResource, err := mapping.Encode(itemBase)
+		if data == nil {
+			data, err = mapping.Encode(item)
+			if err != nil {
+				result = append(result, ApplyResult{appendError(&itemErrors, i, err).Prefix("Config"), ""})
+				continue
+			}
+		}
+
+		if err := client.Create(namespace, true, data); err != nil {
+			result = append(result, ApplyResult{appendError(&itemErrors, i, err).Prefix("Config"), ""})
+			continue
+		}
+
+		name, err := mapping.MetadataAccessor.Name(item)
 		if err != nil {
-			reportError(&itemErrors, i, errs.ValidationError{
-				errs.ValidationErrorTypeInvalid,
-				"encode",
-				err,
-			})
-			result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
-			continue
+			name = "<unknown>"
 		}
-
-		if err := client.Create(namespace, true, jsonResource); err != nil {
-			reportError(&itemErrors, i, errs.ValidationError{
-				errs.ValidationErrorTypeInvalid,
-				"create",
-				err,
-			})
-		} else {
-			itemName, _ := mapping.MetadataAccessor.Name(itemBase)
-			message = fmt.Sprintf("Creation succeeded for %s with name %s", mapping.Kind, itemName)
-		}
+		message := fmt.Sprintf("Creation succeeded for %s with name %s", mapping.Kind, name)
 		result = append(result, ApplyResult{itemErrors.Prefix("Config"), message})
 	}
 	return result, nil
@@ -153,18 +160,9 @@ func AddConfigLabel(obj runtime.Object, labels labels.Set) error {
 func AddConfigLabels(c *api.Config, labels labels.Set) errs.ValidationErrorList {
 	itemErrors := errs.ValidationErrorList{}
 	for i, in := range c.Items {
-		obj, mapping, err := DecodeDataToObject(in.RawJSON)
-		if err != nil {
-			reportError(&itemErrors, i, errs.NewFieldInvalid("decode", err))
+		if err := AddConfigLabel(in, labels); err != nil {
+			appendError(&itemErrors, i, errs.NewFieldInvalid("labels", err))
 		}
-		if err := AddConfigLabel(obj, labels); err != nil {
-			reportError(&itemErrors, i, errs.NewFieldInvalid("labels", err))
-		}
-		item, err := mapping.Encode(obj)
-		if err != nil {
-			reportError(&itemErrors, i, errs.NewFieldInvalid("encode", err))
-		}
-		c.Items[i] = runtime.RawExtension{RawJSON: item}
 	}
 	return itemErrors.Prefix("Config")
 }
