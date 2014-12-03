@@ -142,7 +142,9 @@ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-bu
 echo "[INFO] Waiting for build to complete"
 wait_for_command "${cli} get -n ${NAMESPACE} builds | grep -i complete" $((10*TIME_MIN)) "${cli} get -n ${NAMESPACE} builds | grep -i -e failed -e error"
 BUILD_ID=`${cli} get -n ${NAMESPACE} builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
-echo "[INFO] Build ${BUILD_ID} finished"
+
+echo "[INFO] Build '${BUILD_ID}' details:"
+${cli} describe -n ${NAMESPACE} build ${BUILD_ID}
 ${cli} build-logs -n ${NAMESPACE} $BUILD_ID > $LOG_DIR/build.log
 
 # STI builder doesn't currently report a useful success message
