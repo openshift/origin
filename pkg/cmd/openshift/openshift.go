@@ -48,6 +48,8 @@ func CommandFor(basename string) *cobra.Command {
 		return builder.NewCommandDockerBuilder(basename)
 	case "kubectl":
 		return kubectl.NewCommandKubectl(basename)
+	case "openshift-rollback":
+		return NewCommandRollback()
 	default:
 		return NewCommandOpenShift()
 	}
