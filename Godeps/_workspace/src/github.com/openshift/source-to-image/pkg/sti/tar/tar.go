@@ -76,24 +76,27 @@ func (t *stiTar) CreateTarStream(dir string, writer io.Writer) error {
 	defer tarWriter.Close()
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() && !t.shouldExclude(path) {
-			header, err := tar.FileInfoHeader(info, "")
-			if err != nil {
-				return err
+			// if file is a link just writing header info is enough
+			if info.Mode()&os.ModeSymlink != 0 {
+				if err := t.writeTarHeader(tarWriter, dir, path, info); err != nil {
+					glog.Errorf("	Error writing header for %s: %v", info.Name(), err)
+				}
+				return nil
 			}
 
-			header.Name = path[1+len(dir):]
-			glog.V(3).Infof("Adding to tar: %s as %s", path, header.Name)
-			if err = tarWriter.WriteHeader(header); err != nil {
-				return err
-			}
-
+			// regular files are copied into tar, if accessible
 			file, err := os.Open(path)
 			if err != nil {
-				return err
+				glog.Errorf("Ignoring file %s: %v", path, err)
+				return nil
 			}
 			defer file.Close()
-
+			if err := t.writeTarHeader(tarWriter, dir, path, info); err != nil {
+				glog.Errorf("Error writing header for %s: %v", info.Name(), err)
+				return nil
+			}
 			if _, err = io.Copy(tarWriter, file); err != nil {
+				glog.Errorf("Error copying file %s to tar: %v", path, err)
 				return err
 			}
 		}
@@ -102,6 +105,31 @@ func (t *stiTar) CreateTarStream(dir string, writer io.Writer) error {
 
 	if err != nil {
 		glog.Errorf("Error writing tar: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// writeTarHeader writes tar header for given file, returns error if operation fails
+func (t *stiTar) writeTarHeader(tarWriter *tar.Writer, dir string, path string, info os.FileInfo) error {
+	var (
+		link string
+		err  error
+	)
+	if info.Mode()&os.ModeSymlink != 0 {
+		link, err = os.Readlink(path)
+		if err != nil {
+			return err
+		}
+	}
+	header, err := tar.FileInfoHeader(info, link)
+	if err != nil {
+		return err
+	}
+	header.Name = path[1+len(dir):]
+	glog.V(3).Infof("Adding to tar: %s as %s", path, header.Name)
+	if err = tarWriter.WriteHeader(header); err != nil {
 		return err
 	}
 

@@ -16,7 +16,7 @@ It expects to be run inside of a container.
 `
 
 func NewCommandSTIBuilder(name string) *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   fmt.Sprintf("%s", name),
 		Short: "Run an OpenShift Source-to-Images build",
 		Long:  longCommandSTIDesc,
@@ -24,8 +24,6 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 			cmd.RunSTIBuild()
 		},
 	}
-
-	return cmd
 }
 
 const longCommandDockerDesc = `
@@ -36,7 +34,7 @@ It expects to be run inside of a container.
 `
 
 func NewCommandDockerBuilder(name string) *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   fmt.Sprintf("%s", name),
 		Short: "Run an OpenShift Docker build",
 		Long:  longCommandDockerDesc,
@@ -44,6 +42,4 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 			cmd.RunDockerBuild()
 		},
 	}
-
-	return cmd
 }
