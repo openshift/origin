@@ -13,7 +13,7 @@ func TestCookieGenerate(t *testing.T) {
 		Path           string
 		Domain         string
 		Secure         bool
-		HttpOnly       bool
+		HTTPOnly       bool
 		ExistingCookie *http.Cookie
 
 		ExpectToken     string
@@ -45,14 +45,14 @@ func TestCookieGenerate(t *testing.T) {
 			Path:     "/",
 			Domain:   "foo.com",
 			Secure:   true,
-			HttpOnly: true,
+			HTTPOnly: true,
 
 			ExpectSetCookie: true,
 		},
 	}
 
 	for k, testCase := range testCases {
-		csrf := NewCookieCSRF(testCase.Name, testCase.Path, testCase.Domain, testCase.Secure, testCase.HttpOnly)
+		csrf := NewCookieCSRF(testCase.Name, testCase.Path, testCase.Domain, testCase.Secure, testCase.HTTPOnly)
 
 		req, _ := http.NewRequest("GET", "/", nil)
 		if testCase.ExistingCookie != nil {
@@ -85,7 +85,7 @@ func TestCookieGenerate(t *testing.T) {
 				Path:     testCase.Path,
 				Domain:   testCase.Domain,
 				Secure:   testCase.Secure,
-				HttpOnly: testCase.HttpOnly,
+				HTTPOnly: testCase.HTTPOnly,
 			}
 			if setCookie != protoCookie.String() {
 				t.Errorf("%s: Expected Set-Cookie header of \"%s\", got \"%s\"", k, protoCookie.String(), setCookie)
