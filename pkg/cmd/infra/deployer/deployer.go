@@ -25,6 +25,7 @@ type config struct {
 	Namespace      string
 }
 
+// NewCommandDeployer provides a CLI handler for deploy
 func NewCommandDeployer(name string) *cobra.Command {
 	cfg := &config{
 		Config: clientcmd.NewConfig(),
