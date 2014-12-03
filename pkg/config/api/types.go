@@ -14,5 +14,5 @@ type Config struct {
 
 	// Required: Items is an array of Kubernetes resources of Service,
 	// Pod and/or ReplicationController kind.
-	Items []runtime.RawExtension `json:"items" yaml:"items"`
+	Items []runtime.Object `json:"items" yaml:"items"`
 }

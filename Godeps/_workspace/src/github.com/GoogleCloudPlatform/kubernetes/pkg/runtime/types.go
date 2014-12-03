@@ -16,9 +16,7 @@ limitations under the License.
 
 package runtime
 
-import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-)
+import ()
 
 // Note that the types provided in this file are not versioned and are intended to be
 // safe to use from within all versions of every API object.
@@ -37,13 +35,6 @@ import (
 type TypeMeta struct {
 	APIVersion string `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
 	Kind       string `json:"kind,omitempty" yaml:"kind,omitempty"`
-
-	Namespace         string    `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-	Name              string    `json:"name,omitempty" yaml:"name,omitempty"`
-	UID               string    `json:"uid,omitempty" yaml:"uid,omitempty"`
-	CreationTimestamp util.Time `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
-	SelfLink          string    `json:"selfLink,omitempty" yaml:"selfLink,omitempty"`
-	ResourceVersion   string    `json:"resourceVersion,omitempty" yaml:"resourceVersion,omitempty"`
 }
 
 // PluginBase is like TypeMeta, but it's intended for plugin objects that won't ever be encoded
