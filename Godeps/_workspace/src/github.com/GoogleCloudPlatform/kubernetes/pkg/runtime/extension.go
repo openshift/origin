@@ -17,9 +17,9 @@ limitations under the License.
 package runtime
 
 import (
+	"encoding/json"
 	"errors"
-
-	"gopkg.in/v1/yaml"
+	"fmt"
 )
 
 func (re *RawExtension) UnmarshalJSON(in []byte) error {
@@ -34,6 +34,30 @@ func (re *RawExtension) MarshalJSON() ([]byte, error) {
 	return re.RawJSON, nil
 }
 
+// asStringMap converts map[interface{}]interface{} to map[string]interface{},
+// dropping any keys that aren't strings already.
+func asStringMap(value interface{}) interface{} {
+	switch t := value.(type) {
+	case []interface{}:
+		for i := range t {
+			t[i] = asStringMap(t[i])
+		}
+		return t
+	case map[interface{}]interface{}:
+		out := make(map[string]interface{})
+		for k, v := range t {
+			v = asStringMap(v)
+			switch t := k.(type) {
+			case string:
+				out[t] = v
+			}
+		}
+		return out
+	default:
+		return value
+	}
+}
+
 // SetYAML implements the yaml.Setter interface.
 func (re *RawExtension) SetYAML(tag string, value interface{}) bool {
 	if value == nil {
@@ -42,13 +66,13 @@ func (re *RawExtension) SetYAML(tag string, value interface{}) bool {
 	}
 	// Why does the yaml package send value as a map[interface{}]interface{}?
 	// It's especially frustrating because encoding/json does the right thing
-	// by giving a []byte. So here we do the embarrasing thing of re-encode and
-	// de-encode the right way.
-	// TODO: Write a version of Decode that uses reflect to turn this value
-	// into an API object.
-	b, err := yaml.Marshal(value)
+	// by giving a []byte. So here we do the embarrasing thing of converting
+	// the map to map[string]
+	// TODO: Burn YAML with fire.
+	value = asStringMap(value)
+	b, err := json.Marshal(value)
 	if err != nil {
-		panic("yaml can't reverse its own object")
+		panic(fmt.Sprintf("unable to marshal raw json from yaml: %v\n%#v", err, value))
 	}
 	re.RawJSON = b
 	return true

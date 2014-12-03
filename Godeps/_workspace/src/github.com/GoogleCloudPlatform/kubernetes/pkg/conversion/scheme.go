@@ -192,6 +192,14 @@ func (s *Scheme) AddConversionFuncs(conversionFuncs ...interface{}) error {
 	return nil
 }
 
+// AddStructFieldConversion allows you to specify a mechanical copy for a moved
+// or renamed struct field without writing an entire conversion function. See
+// the comment in Converter.SetStructFieldCopy for parameter details.
+// Call as many times as needed, even on the same fields.
+func (s *Scheme) AddStructFieldConversion(srcFieldType interface{}, srcFieldName string, destFieldType interface{}, destFieldName string) error {
+	return s.converter.SetStructFieldCopy(srcFieldType, srcFieldName, destFieldType, destFieldName)
+}
+
 // Convert will attempt to convert in into out. Both must be pointers. For easy
 // testing of conversion functions. Returns an error if the conversion isn't
 // possible. You can call this with types that haven't been registered (for example,
@@ -207,7 +215,7 @@ func (s *Scheme) Convert(in, out interface{}) error {
 	if v, _, err := s.ObjectVersionAndKind(out); err == nil {
 		outVersion = v
 	}
-	return s.converter.Convert(in, out, 0, s.generateConvertMeta(inVersion, outVersion))
+	return s.converter.Convert(in, out, AllowDifferentFieldTypeNames, s.generateConvertMeta(inVersion, outVersion))
 }
 
 // ConvertToVersion attempts to convert an input object to its matching Kind in another

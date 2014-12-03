@@ -150,11 +150,16 @@ func (self *Scheme) runtimeObjectToRawExtensionArray(in *[]Object, out *[]RawExt
 	_, outVersion, scheme := self.fromScope(s)
 
 	for i := range src {
-		data, err := scheme.EncodeToVersion(src[i], outVersion)
-		if err != nil {
-			return err
+		switch t := src[i].(type) {
+		case *Unknown:
+			dest[i].RawJSON = t.RawJSON
+		default:
+			data, err := scheme.EncodeToVersion(src[i], outVersion)
+			if err != nil {
+				return err
+			}
+			dest[i].RawJSON = data
 		}
-		dest[i].RawJSON = data
 	}
 	*out = dest
 	return nil
@@ -171,7 +176,10 @@ func (self *Scheme) rawExtensionToRuntimeObjectArray(in *[]RawExtension, out *[]
 	for i := range src {
 		data := src[i].RawJSON
 		obj, err := scheme.Decode(data)
-		if IsNotRegisteredError(err) {
+		if err != nil {
+			if !IsNotRegisteredError(err) {
+				return err
+			}
 			version, kind, err := scheme.raw.DataVersionAndKind(data)
 			if err != nil {
 				return err
@@ -183,9 +191,6 @@ func (self *Scheme) rawExtensionToRuntimeObjectArray(in *[]RawExtension, out *[]
 				},
 				RawJSON: data,
 			}
-		}
-		if err != nil {
-			return err
 		}
 		dest[i] = obj
 	}
@@ -272,6 +277,14 @@ func (s *Scheme) Log(l conversion.DebugLogger) {
 // function for things with changed/removed fields.
 func (s *Scheme) AddConversionFuncs(conversionFuncs ...interface{}) error {
 	return s.raw.AddConversionFuncs(conversionFuncs...)
+}
+
+// AddStructFieldConversion allows you to specify a mechanical copy for a moved
+// or renamed struct field without writing an entire conversion function. See
+// the comment in conversion.Converter.SetStructFieldCopy for parameter details.
+// Call as many times as needed, even on the same fields.
+func (s *Scheme) AddStructFieldConversion(srcFieldType interface{}, srcFieldName string, destFieldType interface{}, destFieldName string) error {
+	return s.raw.AddStructFieldConversion(srcFieldType, srcFieldName, destFieldType, destFieldName)
 }
 
 // Convert will attempt to convert in into out. Both must be pointers.
