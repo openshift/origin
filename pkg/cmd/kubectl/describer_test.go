@@ -15,14 +15,12 @@ type describeClient struct {
 	*client.Fake
 }
 
-var testTypesList = []string{
-	"Build", "BuildConfig", "Deployment", "DeploymentConfig",
-	"Image", "ImageRepository", "Route",
-}
-
 func TestDescribeFor(t *testing.T) {
 	c := &client.Client{}
-
+	testTypesList := []string{
+		"Build", "BuildConfig", "Deployment", "DeploymentConfig",
+		"Image", "ImageRepository", "Route", "Project",
+	}
 	for _, o := range testTypesList {
 		_, ok := DescriberFor(o, c, nil)
 		if !ok {
@@ -43,6 +41,7 @@ func TestDescribers(t *testing.T) {
 		&ImageDescriber{c},
 		&ImageRepositoryDescriber{c},
 		&RouteDescriber{c},
+		&ProjectDescriber{c},
 	}
 
 	for _, d := range testDescriberList {

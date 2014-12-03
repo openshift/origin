@@ -29,7 +29,9 @@ func DescriberFor(kind string, c *client.Client, cmd *cobra.Command) (kctl.Descr
 	case "ImageRepository":
 		return &ImageRepositoryDescriber{c}, true
 	case "Route":
-		return &RouteDescriber{}, true
+		return &RouteDescriber{c}, true
+	case "Project":
+		return &ProjectDescriber{c}, true
 	}
 	return nil, false
 }
@@ -204,6 +206,25 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		fmt.Fprintf(out, "Host:\t%s\n", string(route.Host))
 		fmt.Fprintf(out, "Path:\t%s\n", string(route.Path))
 		fmt.Fprintf(out, "Service Name:\t%s\n", string(route.ServiceName))
+		return nil
+	})
+}
+
+// ProjectDescriber generates information about a Project
+type ProjectDescriber struct {
+	client.Interface
+}
+
+func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Projects(namespace)
+	project, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, project.ObjectMeta)
+		fmt.Fprintf(out, "Display Name:\t%s\n", string(project.DisplayName))
 		return nil
 	})
 }
