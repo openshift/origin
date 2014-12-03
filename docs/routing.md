@@ -127,7 +127,7 @@ service.json
 
     {
       "kind": "Service",
-      "apiversion": "v1beta1",
+      "apiVersion": "v1beta1",
       "id": "hello-openshift",
       "port": 27017,
       "selector": {
