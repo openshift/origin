@@ -44,8 +44,8 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	fmt.Fprintf(out, "Created:\t%s\n", m.CreationTimestamp)
 }
 
-// WebhookUrl assembles map with of webhook type as key and webhook url and value
-func webhookUrl(c *buildapi.BuildConfig, config *kclient.Config) (result map[string]string) {
+// webhookURL assembles map with of webhook type as key and webhook url and value
+func webhookURL(c *buildapi.BuildConfig, config *kclient.Config) (result map[string]string) {
 	for i, trigger := range c.Triggers {
 		whTrigger := ""
 		switch trigger.Type {
