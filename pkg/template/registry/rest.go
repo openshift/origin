@@ -44,7 +44,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, errors.New("Not a template config.")
 	}
 	if errs := validation.ValidateTemplate(tpl); len(errs) > 0 {
-		return nil, errors.New(fmt.Sprintf("Invalid template config: %#v", errs))
+		return nil, fmt.Errorf("Invalid template config: %#v", errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		generators := map[string]generator.Generator{
