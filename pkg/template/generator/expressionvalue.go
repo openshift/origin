@@ -95,11 +95,11 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 		case `\a`:
 			alphabet += Alphabet + Numerals
 		default:
-			if slice, err := alphabetSlice(r[0], r[1]); err != nil {
+			slice, err := alphabetSlice(r[0], r[1])
+			if err != nil {
 				return err
-			} else {
-				alphabet += slice
 			}
+			alphabet += slice
 		}
 	}
 	result := make([]byte, length)
@@ -134,7 +134,6 @@ func rangesAndLength(s string) (string, int, error) {
 	// TODO: We do need to set a better limit for the number of generated characters.
 	if length > 0 && length <= 255 {
 		return expr, length, nil
-	} else {
-		return "", 0, fmt.Errorf("Range must be within [1-255] characters (%d)", length)
 	}
+	return "", 0, fmt.Errorf("Range must be within [1-255] characters (%d)", length)
 }
