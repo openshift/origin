@@ -15,7 +15,7 @@ func TestFirstDeployment(t *testing.T) {
 		deployment        = okDeployment()
 	)
 
-	strategy := &RecreateDeploymentStrategy{
+	strategy := &DeploymentStrategy{
 		ReplicationController: &testControllerClient{
 			listReplicationControllersFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
 				return &kapi.ReplicationControllerList{}, nil
@@ -74,7 +74,7 @@ func TestSecondDeployment(t *testing.T) {
 		deployment          = okDeployment()
 	)
 
-	strategy := &RecreateDeploymentStrategy{
+	strategy := &DeploymentStrategy{
 		ReplicationController: &testControllerClient{
 			listReplicationControllersFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
 				return &kapi.ReplicationControllerList{
