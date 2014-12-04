@@ -13,6 +13,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
+const emptyString = "<none>"
+
 func tabbedString(f func(*tabwriter.Writer) error) (string, error) {
 	out := new(tabwriter.Writer)
 	b := make([]byte, 1024)
@@ -29,19 +31,30 @@ func tabbedString(f func(*tabwriter.Writer) error) (string, error) {
 	return str, nil
 }
 
-func formatLabels(labelMap map[string]string) string {
-	l := labels.Set(labelMap).String()
-	if l == "" {
-		l = "<none>"
+func toString(v interface{}) string {
+	value := fmt.Sprintf("%s", v)
+	if len(value) == 0 {
+		value = emptyString
 	}
-	return l
+	return value
+}
+
+func bold(v interface{}) string {
+	return "\033[1m" + toString(v) + "\033[0m"
+}
+
+func formatString(out *tabwriter.Writer, label string, v interface{}) {
+	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s\n", label, toString(v)))
+}
+
+func formatLabels(labelMap map[string]string) string {
+	return labels.Set(labelMap).String()
 }
 
 func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
-	fmt.Fprintf(out, "Name:\t%s\n", m.Name)
-	fmt.Fprintf(out, "Annotations:\t%s\n", formatLabels(m.Annotations))
-	fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(m.Labels))
-	fmt.Fprintf(out, "Created:\t%s\n", m.CreationTimestamp)
+	formatString(out, "Name", m.Name)
+	formatString(out, "Annotations", formatLabels(m.Annotations))
+	formatString(out, "Created", m.CreationTimestamp)
 }
 
 // webhookURL assembles map with of webhook type as key and webhook url and value

@@ -1,7 +1,6 @@
 package kubectl
 
 import (
-	"fmt"
 	"strings"
 	"text/tabwriter"
 
@@ -42,16 +41,16 @@ type BuildDescriber struct {
 }
 
 func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
-	fmt.Fprintf(out, "Strategy:\t%s\n", string(p.Strategy.Type))
-	fmt.Fprintf(out, "Source Type:\t%s\n", string(p.Source.Type))
+	formatString(out, "Strategy", p.Strategy.Type)
+	formatString(out, "Source Type", p.Source.Type)
 	if p.Source.Git != nil {
-		fmt.Fprintf(out, "URL:\t%s\n", string(p.Source.Git.URI))
+		formatString(out, "URL", p.Source.Git.URI)
 		if len(p.Source.Git.Ref) > 0 {
-			fmt.Fprintf(out, "Ref:\t%s\n", string(p.Source.Git.Ref))
+			formatString(out, "Ref", p.Source.Git.Ref)
 		}
 	}
-	fmt.Fprintf(out, "Output Image:\t%s\n", string(p.Output.ImageTag))
-	fmt.Fprintf(out, "Output Registry:\t%s\n", string(p.Output.Registry))
+	formatString(out, "Output Image", p.Output.ImageTag)
+	formatString(out, "Output Registry", p.Output.Registry)
 }
 
 func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
@@ -63,8 +62,8 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
-		fmt.Fprintf(out, "Status:\t%s\n", string(build.Status))
-		fmt.Fprintf(out, "Build Pod:\t%s\n", string(build.PodName))
+		formatString(out, "Status", bold(build.Status))
+		formatString(out, "Build Pod", build.PodName)
 		d.DescribeParameters(build.Parameters, out)
 		return nil
 	})
@@ -95,7 +94,8 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		formatMeta(out, buildConfig.ObjectMeta)
 		buildDescriber.DescribeParameters(buildConfig.Parameters, out)
 		for whType, whURL := range webhooks {
-			fmt.Fprintf(out, "Webhook %s:\t%s\n", strings.Title(string(whType)), string(whURL))
+			t := strings.Title(whType)
+			formatString(out, "Webhook "+t, whURL)
 		}
 		return nil
 	})
@@ -115,14 +115,15 @@ func (d *DeploymentDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, deployment.ObjectMeta)
-		fmt.Fprintf(out, "Status:\t%s\n", string(deployment.Status))
-		fmt.Fprintf(out, "Strategy:\t%s\n", string(deployment.Strategy.Type))
-		fmt.Fprintf(out, "Causes:\n")
+		formatString(out, "Status", bold(deployment.Status))
+		formatString(out, "Strategy", deployment.Strategy.Type)
+		causes := []string{}
 		if deployment.Details != nil {
 			for _, c := range deployment.Details.Causes {
-				fmt.Fprintf(out, "\t\t%s\n", string(c.Type))
+				causes = append(causes, string(c.Type))
 			}
 		}
+		formatString(out, "Causes", strings.Join(causes, ","))
 		return nil
 	})
 }
@@ -141,11 +142,12 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, deploymentConfig.ObjectMeta)
-		fmt.Fprintf(out, "Latest Version:\t%s\n", string(deploymentConfig.LatestVersion))
-		fmt.Fprintf(out, "Triggers:\t\n")
+		formatString(out, "Latest Version", deploymentConfig.LatestVersion)
+		triggers := []string{}
 		for _, t := range deploymentConfig.Triggers {
-			fmt.Fprintf(out, "Type:\t%s\n", t.Type)
+			triggers = append(triggers, string(t.Type))
 		}
+		formatString(out, "Triggers", strings.Join(triggers, ","))
 		return nil
 	})
 }
@@ -164,7 +166,7 @@ func (d *ImageDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, image.ObjectMeta)
-		fmt.Fprintf(out, "Docker Image:\t%s\n", string(image.DockerImageReference))
+		formatString(out, "Docker Image", image.DockerImageReference)
 		return nil
 	})
 }
@@ -183,8 +185,8 @@ func (d *ImageRepositoryDescriber) Describe(namespace, name string) (string, err
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageRepository.ObjectMeta)
-		fmt.Fprintf(out, "Tags:\t%s\n", formatLabels(imageRepository.Tags))
-		fmt.Fprintf(out, "Docker Repository:\t%s\n", string(imageRepository.DockerImageRepository))
+		formatString(out, "Tags", formatLabels(imageRepository.Tags))
+		formatString(out, "Registry", imageRepository.DockerImageRepository)
 		return nil
 	})
 }
@@ -203,9 +205,9 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, route.ObjectMeta)
-		fmt.Fprintf(out, "Host:\t%s\n", string(route.Host))
-		fmt.Fprintf(out, "Path:\t%s\n", string(route.Path))
-		fmt.Fprintf(out, "Service Name:\t%s\n", string(route.ServiceName))
+		formatString(out, "Host", route.Host)
+		formatString(out, "Path", route.Path)
+		formatString(out, "Service", route.ServiceName)
 		return nil
 	})
 }
@@ -224,7 +226,7 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
-		fmt.Fprintf(out, "Display Name:\t%s\n", string(project.DisplayName))
+		formatString(out, "Display Name", project.DisplayName)
 		return nil
 	})
 }
