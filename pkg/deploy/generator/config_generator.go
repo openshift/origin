@@ -86,7 +86,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 			deploymentConfig.Details = nil
 		}
 	} else if !deployutil.PodTemplatesEqual(configPodTemplate, deployment.ControllerTemplate.PodTemplate) {
-		deploymentConfig.LatestVersion += 1
+		deploymentConfig.LatestVersion++
 		// reset the details of the deployment trigger for this deploymentConfig
 		deploymentConfig.Details = nil
 	}

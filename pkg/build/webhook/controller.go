@@ -48,7 +48,7 @@ func NewController(osClient webhookBuildInterface, plugins map[string]Plugin) ht
 
 // ServeHTTP main REST service method.
 func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	uv, err := parseUrl(req)
+	uv, err := parseURL(req)
 	if err != nil {
 		notFound(w, err.Error())
 		return
@@ -79,10 +79,10 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// parseUrl retrieves the namespace from the query parameters and returns a context wrapping the namespace,
+// parseURL retrieves the namespace from the query parameters and returns a context wrapping the namespace,
 // the parameters for the webhook call, and an error.
 // according to the docs (http://godoc.org/code.google.com/p/go.net/context) ctx is not supposed to be wrapped in another object
-func parseUrl(req *http.Request) (uv urlVars, err error) {
+func parseURL(req *http.Request) (uv urlVars, err error) {
 	url := req.URL.Path
 
 	parts := splitPath(url)

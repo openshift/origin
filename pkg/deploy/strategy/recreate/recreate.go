@@ -12,12 +12,12 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-// RecreateDeploymentStrategy is a simple strategy appropriate as a default. Its behavior
+// DeploymentStrategy is a simple strategy appropriate as a default. Its behavior
 // is to create new replication controllers as defined on a Deployment, and delete any previously
 // existing replication controllers for the same DeploymentConfig associated with the deployment.
 //
 // A failure to remove any existing ReplicationController will be considered a deployment failure.
-type RecreateDeploymentStrategy struct {
+type DeploymentStrategy struct {
 	ReplicationController ReplicationControllerInterface
 }
 
@@ -53,7 +53,7 @@ func (r RealReplicationController) deleteReplicationController(namespace string,
 	return r.KubeClient.ReplicationControllers(namespace).Delete(id)
 }
 
-func (s *RecreateDeploymentStrategy) Deploy(deployment *deployapi.Deployment) error {
+func (s *DeploymentStrategy) Deploy(deployment *deployapi.Deployment) error {
 	controllers := &kapi.ReplicationControllerList{}
 	namespace := deployment.Namespace
 	var err error

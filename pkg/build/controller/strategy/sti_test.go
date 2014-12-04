@@ -47,9 +47,9 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if len(container.Env) != 1 {
 		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))
 	}
-	buildJson, _ := json.Marshal(expected)
+	buildJSON, _ := json.Marshal(expected)
 	errorCases := map[int][]string{
-		0: {"BUILD", string(buildJson)},
+		0: {"BUILD", string(buildJSON)},
 	}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {

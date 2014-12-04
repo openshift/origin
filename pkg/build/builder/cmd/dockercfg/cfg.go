@@ -29,12 +29,12 @@ func NewHelper() *Helper {
 
 // InstallFlags installs the Docker flag helper into a FlagSet with the default
 // options and default values from the Helper object.
-func (_ *Helper) InstallFlags(flags *pflag.FlagSet) {
+func (h *Helper) InstallFlags(flags *pflag.FlagSet) {
 }
 
 // GetDockerAuth returns a valid Docker AuthConfiguration entry, and whether it was read
 // from the local dockercfg file
-func (_ *Helper) GetDockerAuth(registry string) (docker.AuthConfiguration, bool) {
+func (h *Helper) GetDockerAuth(registry string) (docker.AuthConfiguration, bool) {
 	var authCfg docker.AuthConfiguration
 	dockercfgPath := getDockercfgFile("")
 	if _, err := os.Stat(dockercfgPath); err != nil {
