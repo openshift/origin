@@ -14,6 +14,14 @@ func (EmptyAuth) AuthenticationNeeded(client authapi.Client, w http.ResponseWrit
 	return false, nil
 }
 
+func (EmptyAuth) AuthenticationChallengeNeeded(req *http.Request) (header http.Header, err error) {
+	return http.Header{}, nil
+}
+
+func (EmptyAuth) AuthenticationRedirectNeeded(w http.ResponseWriter, req *http.Request) (err error) {
+	return nil
+}
+
 type EmptySuccess struct{}
 
 func (EmptySuccess) AuthenticationSucceeded(user authapi.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {

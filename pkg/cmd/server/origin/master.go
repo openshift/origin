@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
+	authauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
@@ -121,7 +122,7 @@ func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
 
 // RunAPI launches the OpenShift master. It takes an optional API installer that
 // may install additional endpoints into the server.
-func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
+func (c *MasterConfig) RunAPI(osMux *http.ServeMux, tokenAuthenticator authauthenticator.Token, installers ...APIInstaller) {
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	imageEtcd := imageetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
@@ -165,8 +166,6 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		"clientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 	}
 
-	osMux := http.NewServeMux()
-
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
 	osMux.Handle(whPrefix, http.StripPrefix(whPrefix,
 		webhook.NewController(ClientWebhookInterface{c.OSClient}, map[string]webhook.Plugin{
@@ -182,7 +181,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 
 	handler := http.Handler(osMux)
 	if c.RequireAuthentication {
-		handler = c.wireAuthenticationHandling(osMux, handler)
+		handler = c.wireAuthenticationHandling(osMux, tokenAuthenticator, handler)
 	}
 
 	if len(c.CORSAllowedOrigins) > 0 {
@@ -208,12 +207,12 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	}, 0)
 }
 
-func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler) http.Handler {
+func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, tokenAuthenticator authauthenticator.Token, handler http.Handler) http.Handler {
 	// this tracks requests back to users for authorization.  The same instance must be shared between writers and readers
 	requestsToUsers := authcontext.NewRequestContextMap()
 
 	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
-	handler = c.wrapHandlerWithAuthentication(handler, requestsToUsers)
+	handler = c.wrapHandlerWithAuthentication(handler, tokenAuthenticator, requestsToUsers)
 
 	// this requires the requests and users to be present
 	thisUserEndpoint := OpenShiftAPIPrefixV1Beta1 + "/users/~"
@@ -229,12 +228,8 @@ func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler 
 	return handler
 }
 
-func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler, requestsToUsers *authcontext.RequestContextMap) http.Handler {
+func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler, tokenAuthenticator authauthenticator.Token, requestsToUsers *authcontext.RequestContextMap) http.Handler {
 	// wrap with authenticated token check
-	tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
-	if err != nil {
-		glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
-	}
 	return authfilter.NewRequestAuthenticator(
 		requestsToUsers,
 		bearertoken.New(tokenAuthenticator),

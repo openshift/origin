@@ -1,0 +1,127 @@
+{
+	"identityMappers" : {
+		"googleIdentityMapper" : {
+			"type" : "autocreate",
+			"config" : {
+				"providerPrefix" : "google"
+			}
+		},
+		"autoCreateOpenShiftUser" : {
+			"type" : "autocreate",
+			"config" : {
+				"providerPrefix" : "empty-password"
+			}
+		},
+		"emptyIdentityMapper" : {
+			"type" : "autocreate",
+			"config" : {
+				"providerPrefix" : "empty-password"
+			}
+		},
+		"basicIdentityMapper" : {
+			"type" : "autocreate",
+			"config" : {
+				"providerPrefix" : "basic-password"
+			}
+		}
+	},
+
+	"passwordAuthenticators" :{
+		"anything-goes" : {
+			"type" : "empty",
+			"config" : {
+				"identityMapper" : "emptyIdentityMapper"
+			}
+		},
+		"basic": {
+			"type" : "openshift-basic",
+			"config" : {
+				"authenticatingURL" : "http://localhost:1234/",
+				"identityMapper" : "basicIdentityMapper"
+			}
+		}
+	},
+
+	"tokenAuthenticators" :{
+		"builtin-registry" :{
+			"type" : "etcd"
+		},
+		"hardcoded-registry" :{
+			"type" : "csv",
+			"config" : {
+				"fileLocation" : "authorizedTokens.csv"
+			}
+		}
+	},
+
+	"requestAuthenticators" :{
+		"etcd-bearer" : {
+			"type" : "bearer",
+			"config" : {
+				"tokenAuthenticator" : "builtin-registry"
+			}
+		},
+		"xRemoteUser" : {
+			"type" : "requestheader",
+			"config" : {
+				"headerName" : "X-Remote-User",
+				"identityMapper" : "autoCreateOpenShiftUser"
+			}
+		},
+		"basicauth" : {
+			"type" : "basicauth",
+			"config" : {
+				"passwordAuthenticator" : "anything-goes"
+			}
+		},
+		"session" : {
+			"type" : "session"
+		}
+	},
+
+	"authenticationSuccessHandlers" :{
+	},
+
+	"authorizeAuthenticationRedirectHandlers": {
+		"google" : {
+			"type" : "external-oauth", 
+			"config" : {
+				"flavor" : "google",
+				"clientId" : "my-client-id",
+				"clientSecret" : "my-client-secret",
+				"identityMapper" : "googleIdentityMapper"
+			}
+		},
+		"github" : {
+			"type" : "external-oauth", 
+			"config" : {
+				"flavor" : "github",
+				"clientId" : "my-client-id",
+				"clientSecret" : "my-client-secret",
+				"identityMapper" : "autoCreateOpenShiftUser"
+			}
+		},
+		"nothing-goes" : {
+			"type" : "empty"
+		},
+		"login" : {
+			"type" : "login",
+			"config" : {
+				"passwordAuthenticator" : "anything-goes"
+			}
+		}
+	},
+
+	"authorizeAuthenticationChallengeHandlers": {
+		"basicauth" : {
+			"type" : "basicauth",
+			"config" : {
+				"passwordAuthenticator" : "anything-goes"
+			}
+		}
+	},
+
+	"grantHandler" : {
+		"type" : "auto"
+	}
+}

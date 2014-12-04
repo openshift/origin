@@ -94,9 +94,16 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 			} else if len(authHandler.redirectHandlers) > 1 {
 				// TODO this clearly doesn't work right.  There should probably be a redirect to an interstitial page.
 				// however, this is just as good as we have now.
-				return false, fmt.Errorf("Too many potential redirect handlers: %v", authHandler.redirectHandlers)
-			}
+				// return false, fmt.Errorf("Too many potential redirect handlers: %v", authHandler.redirectHandlers)
+				for _, redirectHandler := range authHandler.redirectHandlers {
+					err := redirectHandler.AuthenticationRedirectNeeded(w, req)
+					if err != nil {
+						return authHandler.errorHandler.AuthenticationError(err, w, req)
+					}
+					return true, nil
+				}
 
+			}
 		}
 	}
 

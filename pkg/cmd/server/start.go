@@ -1,9 +1,12 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
@@ -19,6 +22,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/auth/server/session"
+	cmdauth "github.com/openshift/origin/pkg/cmd/auth"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -232,11 +237,16 @@ func start(cfg *config, args []string) error {
 		osmaster.EnsureOpenShiftClient()
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
-		auth := &origin.AuthConfig{
+		osMux := http.NewServeMux()
+		envInfo := &cmdauth.EnvInfo{
 			MasterAddr:     cfg.MasterAddr.URL.String(),
 			SessionSecrets: []string{"secret"},
+			SessionStore:   session.NewStore([]string{"secret"}...),
 			EtcdHelper:     etcdHelper,
+			Mux:            osMux,
 		}
+		authConfig := getAuthConfig(envInfo)
+		authApiInstaller := &origin.AuthConfig{authConfig, envInfo}
 
 		if startKube {
 			portalNet := net.IPNet(cfg.PortalNet)
@@ -250,7 +260,7 @@ func start(cfg *config, args []string) error {
 			}
 			kmaster.EnsurePortalFlags()
 
-			osmaster.RunAPI(kmaster, auth)
+			osmaster.RunAPI(osMux, authConfig.GetTokenAuthenticator(), kmaster, authApiInstaller)
 
 			kmaster.RunScheduler()
 			kmaster.RunReplicationController()
@@ -258,7 +268,7 @@ func start(cfg *config, args []string) error {
 			kmaster.RunMinionController()
 
 		} else {
-			osmaster.RunAPI(auth)
+			osmaster.RunAPI(osMux, authConfig.GetTokenAuthenticator(), authApiInstaller)
 		}
 
 		osmaster.RunAssetServer()
@@ -379,4 +389,26 @@ func env(key string, defaultValue string) string {
 		return defaultValue
 	}
 	return val
+}
+
+func getAuthConfig(envInfo *cmdauth.EnvInfo) *cmdauth.AuthConfig {
+	jsonBytes, err := ioutil.ReadFile("auth-config.json")
+	if err != nil {
+		glog.Errorf("Failed to read file due to %v", err)
+	}
+
+	var configInfo cmdauth.AuthConfigInfo
+	err = json.Unmarshal(jsonBytes, &configInfo)
+	if err != nil {
+		glog.Errorf("Failed to parse authConfig: %v", err)
+	}
+	fmt.Printf("AuthConfigInfo is\n%#v\n", configInfo)
+
+	authConfig, err := cmdauth.InstantiateAuthConfig(configInfo, envInfo)
+	if err != nil {
+		glog.Errorf("Failed to instantiate: %v", err)
+	}
+	fmt.Printf("AuthConfig is\n%#v\n", authConfig)
+
+	return authConfig
 }
