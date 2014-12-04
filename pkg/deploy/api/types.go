@@ -111,6 +111,13 @@ type DeploymentConfig struct {
 	// The reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
+	// Rollback indicates that this is a special deployment config intended to move
+	// from an existing deployment state to another previously defined state
+	Rollback *RollbackConfig `json:"rollback,omitempty" yaml:"rollback,omitempty"`
+}
+
+type RollbackConfig struct {
+	To string
 }
 
 // DeploymentTemplate contains all the necessary information to create a Deployment from a

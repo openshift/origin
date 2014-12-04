@@ -304,3 +304,67 @@ the new desired state.  The image must:
 5.  Determine and make the calls necessary to create the replication controller and pods associated
     with the new desired state
 6.  Ensure that the new replication controller and pod are actually created
+
+## Proposed Design - Rollbacks
+
+### Definitions
+* Pod rollback: rollback that includes only ControllerTemplate items
+* Process rollback: rollback that includes only labels, triggers, and Template.Strategy does not include ControllerTemplate 
+items
+* Full rollback: rollback of application and process
+* Deployment: point in time in OpenShift that was created from a deployment config and is tagged in the format of 
+<id>-<release number>
+    * Example: my-deployment-1, my-deployment-2
+    
+    
+### Validations
+* App rollback
+    * Validate that images exist
+* Process rollback
+    * Validate that deployment strategy is either a non-image based strategy or that the image exists
+* Application intelligence 
+    * Canary deployments: Provide the ability to do a pre-rollback evaluation of applications.  For instance if a user is rolling
+     back a single portion of the application (just the front end of a tiered application) we can use can use the selectors 
+     for the entire app and do an evaluation of the proposed config vs current config to provide details that may cause 
+     application errors like ENV variables being changed. 
+    * This would be used in the dry run use case or possibly displayed after the rollback so that administrators can 
+    fix issues
+    
+### Configuration
+A rollback configuration can be submitted to the deployment configuration endpoint.  It is just a special type of deployment. 
+
+
+    {
+        "id":"hello-deployment-config",
+        "kind":"DeploymentConfig",
+        "rollback": {
+            “release”: "hello-deployment-config-1",	#optional, if not set defaults to n-1
+            “process”:  true, 				        #optional, default true
+            “application”: true, 				    #optional, default true
+            “strategy”: TBD,				        #optional, tbd enhancement?
+            “notes”: “I messed up my app”		    #optional, default blank
+        }
+    }
+
+### Field Details
+
+Field                                       | Rollback When     | Notes |
+--------------------------------------------|-------------------|-------|----------------------------------------------
+TypeMeta                                    | never             |       |
+Labels                                      | process:true      |       |
+Triggers                                    | process:true      | All image change triggers will be set to non-auto.  Config change and manual change triggers will be retained. 
+Template.Strategy                           | process:true      |       |
+Template.ControllerTemplate.Replicas        | application:true  |       |
+Template.ControllerTemplate.ReplicaSelector | application:true  |       |
+Template.ControllerTemplate.PodTemplate     | application:true  |       |
+LatestVersion                               | never             | Will continue to be forward moving.  Example: v1 = deploy a, v2 = deploy b, v3 = rollback a, v4 = deploy c
+Details                                     | never             | Updated with rollback causes in DeploymentDetails and notes field for rollback config 
+
+### Deployment Triggers
+
+Rollback is meant to be a temporary fix to a incorrect environment.  In order to prevent that environment from changing 
+until the application administrator is ready all deployment triggers will be retained but suspended.  In order to 
+preserve the current state of triggers in place (rather than recording them somewhere) this would require a deployment 
+wide kill switch for all triggers.   This means that a user would have to manually request a follow up deployment that 
+changes the kill switch value to re-enable triggers but has the benefit of not requiring the user to remember the state 
+of individual triggers (as opposed to just switching all triggers to off and requiring them to change each one individually).
