@@ -16,3 +16,18 @@ func (c *FakeProjects) Get(name string) (*projectapi.Project, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-project"})
 	return &projectapi.Project{}, nil
 }
+
+func (c *FakeProjects) Create(project *projectapi.Project) (*projectapi.Project, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-project", Value: project})
+	return &projectapi.Project{}, nil
+}
+
+func (c *FakeProjects) Update(project *projectapi.Project) (*projectapi.Project, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-project"})
+	return &projectapi.Project{}, nil
+}
+
+func (c *FakeProjects) Delete(name string) error {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-project", Value: name})
+	return nil
+}

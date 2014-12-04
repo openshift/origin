@@ -35,6 +35,7 @@ func (c *projects) Get(name string) (result *projectapi.Project, err error) {
 	return
 }
 
+// List returns all projects matching the label selector
 func (c *projects) List(label, field labels.Selector) (result *projectapi.ProjectList, err error) {
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
@@ -43,5 +44,25 @@ func (c *projects) List(label, field labels.Selector) (result *projectapi.Projec
 		SelectorParam("fields", field).
 		Do().
 		Into(result)
+	return
+}
+
+// Create creates a new Project
+func (c *projects) Create(p *projectapi.Project) (result *projectapi.Project, err error) {
+	result = &projectapi.Project{}
+	err = c.r.Post().Path("projects").Body(p).Do().Into(result)
+	return
+}
+
+// Update updates the project on server
+func (c *projects) Update(p *projectapi.Project) (result *projectapi.Project, err error) {
+	result = &projectapi.Project{}
+	err = c.r.Put().Path("projects").Path(p.Name).Body(p).Do().Into(result)
+	return
+}
+
+// Delete removes the project on server
+func (c *projects) Delete(name string) (err error) {
+	err = c.r.Delete().Path("projects").Path(name).Do().Error()
 	return
 }
