@@ -33,12 +33,14 @@ func NewRouter(registeredFrontends map[string]router.Frontend) *Router {
 	}
 }
 
-func (r *Router) ReadRoutes() {
+func (r *Router) ReadRoutes() error {
 	r.RoutesRead = true
+	return nil
 }
 
-func (r *Router) WriteRoutes() {
+func (r *Router) WriteRoutes() error {
 	r.RoutesWritten = true
+	return nil
 }
 
 func (r *Router) FindFrontend(name string) (router.Frontend, bool) {
@@ -50,24 +52,35 @@ func (r *Router) DeleteBackends(name string) {
 	r.DeletedBackends = append(r.DeletedBackends, name)
 }
 
-func (r *Router) CreateFrontend(name, url string) {
+func (r *Router) CreateFrontend(name, url string) (*router.Frontend, error) {
+	frontend := router.Frontend{
+		Name:          name,
+		Backends:      make(map[string]router.Backend),
+		EndpointTable: make(map[string]router.Endpoint),
+		HostAliases:   make([]string, 0),
+	}
 	r.CreatedFrontends = append(r.CreatedFrontends, name)
+	return &frontend, nil
 }
 
-func (r *Router) DeleteFrontend(name string) {
+func (r *Router) DeleteFrontend(name string) error {
 	r.DeletedFrontends = append(r.DeletedFrontends, name)
+	return nil
 }
 
-func (r *Router) AddAlias(alias, frontendName string) {
+func (r *Router) AddAlias(alias, frontendName string) error {
 	r.AddedAliases[alias] = frontendName
+	return nil
 }
 
-func (r *Router) RemoveAlias(alias, frontendName string) {
+func (r *Router) RemoveAlias(alias, frontendName string) error {
 	r.RemovedAliases[alias] = frontendName
+	return nil
 }
 
-func (r *Router) AddRoute(frontend *router.Frontend, backend *router.Backend, endpoints []router.Endpoint) {
+func (r *Router) AddRoute(frontend *router.Frontend, backend *router.Backend, endpoints []router.Endpoint) error {
 	r.AddedRoutes[frontend.Name] = endpoints
+	return nil
 }
 
 func (r *Router) WriteConfig() {
