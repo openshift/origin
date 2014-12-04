@@ -21,18 +21,18 @@ const (
 )
 
 type provider struct {
-	client_id, client_secret string
+	clientID, clientSecret string
 }
 
-func NewProvider(client_id, client_secret string) external.Provider {
-	return provider{client_id, client_secret}
+func NewProvider(clientID, clientSecret string) external.Provider {
+	return provider{clientID, clientSecret}
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
 func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{
-		ClientId:                 p.client_id,
-		ClientSecret:             p.client_secret,
+		ClientId:                 p.clientID,
+		ClientSecret:             p.clientSecret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
 		AuthorizeUrl:             googleAuthorizeUrl,

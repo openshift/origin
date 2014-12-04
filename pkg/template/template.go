@@ -18,15 +18,15 @@ import (
 
 var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
 
-// TemplateProcessor transforms Template objects into Config objects.
-type TemplateProcessor struct {
+// Processor transforms Template objects into Config objects.
+type Processor struct {
 	Generators map[string]Generator
 }
 
-// NewTemplateProcessor creates new TemplateProcessor and initializes
+// NewProcessor creates new Processor and initializes
 // its set of generators.
-func NewTemplateProcessor(generators map[string]Generator) *TemplateProcessor {
-	return &TemplateProcessor{Generators: generators}
+func NewProcessor(generators map[string]Generator) *Processor {
+	return &Processor{Generators: generators}
 }
 
 // reportError reports the single item validation error and properly set the
@@ -41,7 +41,7 @@ func reportError(allErrs *errs.ValidationErrorList, index int, err errs.Validati
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurances with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, errs.ValidationErrorList) {
+func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.ValidationErrorList) {
 	templateErrors := errs.ValidationErrorList{}
 
 	if err := p.GenerateParameterValues(template); err != nil {
@@ -84,7 +84,7 @@ func (p *TemplateProcessor) Process(template *api.Template) (*configapi.Config, 
 
 // AddParameter adds new custom parameter to the Template. It overrides
 // the existing parameter, if already defined.
-func (p *TemplateProcessor) AddParameter(t *api.Template, param api.Parameter) {
+func (p *Processor) AddParameter(t *api.Template, param api.Parameter) {
 	if existing := p.GetParameterByName(t, param.Name); existing != nil {
 		*existing = param
 	} else {
@@ -94,7 +94,7 @@ func (p *TemplateProcessor) AddParameter(t *api.Template, param api.Parameter) {
 
 // GetParameterByName searches for a Parameter in the Template
 // based on it's name.
-func (p *TemplateProcessor) GetParameterByName(t *api.Template, name string) *api.Parameter {
+func (p *Processor) GetParameterByName(t *api.Template, name string) *api.Parameter {
 	for i, param := range t.Parameters {
 		if param.Name == name {
 			return &(t.Parameters[i])
@@ -111,7 +111,7 @@ func (p *TemplateProcessor) GetParameterByName(t *api.Template, name string) *ap
 //   - ${PARAMETER_NAME}
 //
 // TODO: Implement substitution for more types and fields.
-func (p *TemplateProcessor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
+func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
 	// Make searching for given parameter name/value more effective
 	paramMap := make(map[string]string, len(params))
 	for _, param := range params {
@@ -140,7 +140,7 @@ func (p *TemplateProcessor) SubstituteParameters(params []api.Parameter, item ru
 // substituteParametersInManifest is a helper function that iterates
 // over the given manifest and substitutes all Parameter expression
 // occurances with their corresponding values.
-func (p *TemplateProcessor) substituteParametersInManifest(manifest *kapi.ContainerManifest, paramMap map[string]string) {
+func (p *Processor) substituteParametersInManifest(manifest *kapi.ContainerManifest, paramMap map[string]string) {
 	for i := range manifest.Containers {
 		for e := range manifest.Containers[i].Env {
 			envValue := &manifest.Containers[i].Env[e].Value
@@ -168,16 +168,16 @@ func (p *TemplateProcessor) substituteParametersInManifest(manifest *kapi.Contai
 // "[0-1]{8}"       | "01001100"
 // "0x[A-F0-9]{4}"  | "0xB3AF"
 // "[a-zA-Z0-9]{8}" | "hW4yQU5i"
-func (p *TemplateProcessor) GenerateParameterValues(t *api.Template) error {
+func (p *Processor) GenerateParameterValues(t *api.Template) error {
 	for i := range t.Parameters {
 		param := &t.Parameters[i]
 		if param.Generate != "" {
 			generator, ok := p.Generators[param.Generate]
 			if !ok {
-				return fmt.Errorf("template.parameters[%v]: Unable to find the '%v' generator.", i, param.Generate)
+				return fmt.Errorf("template.parameters[%v]: Unable to find the '%v' generator", i, param.Generate)
 			}
 			if generator == nil {
-				return fmt.Errorf("template.parameters[%v]: Invalid '%v' generator.", i, param.Generate)
+				return fmt.Errorf("template.parameters[%v]: Invalid '%v' generator", i, param.Generate)
 			}
 			value, err := generator.GenerateValue(param.From)
 			if err != nil {
@@ -185,7 +185,7 @@ func (p *TemplateProcessor) GenerateParameterValues(t *api.Template) error {
 			}
 			param.Value, ok = value.(string)
 			if !ok {
-				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string.", i, value)
+				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string", i, value)
 			}
 		}
 	}

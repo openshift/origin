@@ -88,7 +88,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		kubeConfig = kubecmd.GetKubeConfig(d.Command)
 	}
 
-	webhooks := webhookUrl(buildConfig, kubeConfig)
+	webhooks := webhookURL(buildConfig, kubeConfig)
 	buildDescriber := &BuildDescriber{}
 
 	return tabbedString(func(out *tabwriter.Writer) error {

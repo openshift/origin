@@ -2,10 +2,11 @@ package haproxy
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
 	"os/exec"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/router"
 )
@@ -19,21 +20,24 @@ const (
 	HostMapWsFile    = "/var/lib/haproxy/conf/host_be_ws.map"
 )
 
-type HaproxyRouter struct {
+// Router is a HAProxy Router implementation
+type Router struct {
 	*router.Routes
 }
 
-func NewRouter() *HaproxyRouter {
-	r := &HaproxyRouter{&router.Routes{}}
+// NewRouter provides a new HAProxy Router
+func NewRouter() *Router {
+	r := &Router{&router.Routes{}}
 	r.ReadRoutes()
 	return r
 }
 
-func (hr *HaproxyRouter) writeServer(f *os.File, id string, endpoint *router.Endpoint) {
+func (hr *Router) writeServer(f *os.File, id string, endpoint *router.Endpoint) {
 	f.WriteString(fmt.Sprintf("  server %s %s:%s check inter 5000ms\n", id, endpoint.IP, endpoint.Port))
 }
 
-func (hr *HaproxyRouter) WriteConfig() {
+// WriteConfig writes the HAProxy config to disk
+func (hr *Router) WriteConfig() {
 	//ReadRoutes()
 	hf, herr := os.Create(HostMapFile)
 	if herr != nil {
@@ -78,7 +82,8 @@ func execCmd(cmd *exec.Cmd) (string, bool) {
 	return returnStr, err == nil
 }
 
-func (hr *HaproxyRouter) ReloadRouter() bool {
+// ReloadRouter reloads the HAProxy configuration
+func (hr *Router) ReloadRouter() bool {
 	oldPid, oerr := ioutil.ReadFile("/var/lib/haproxy/run/haproxy.pid")
 	cmd := exec.Command("/usr/local/sbin/haproxy", "-f", ConfigFile, "-p", "/var/lib/haproxy/run/haproxy.pid")
 	if oerr == nil {

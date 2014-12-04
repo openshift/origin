@@ -25,19 +25,19 @@ const (
 	redirectURIParam = "redirect_uri"
 )
 
-// GrantFormRenderer is responsible for rendering a GrantForm to prompt the user
+// FormRenderer is responsible for rendering a Form to prompt the user
 // to approve or reject a requested OAuth scope grant.
-type GrantFormRenderer interface {
-	Render(form GrantForm, w http.ResponseWriter, req *http.Request)
+type FormRenderer interface {
+	Render(form Form, w http.ResponseWriter, req *http.Request)
 }
 
-type GrantForm struct {
+type Form struct {
 	Action string
 	Error  string
-	Values GrantFormValues
+	Values FormValues
 }
 
-type GrantFormValues struct {
+type FormValues struct {
 	Then        string
 	CSRF        string
 	ClientID    string
@@ -49,12 +49,12 @@ type GrantFormValues struct {
 type Grant struct {
 	auth           authenticator.Request
 	csrf           csrf.CSRF
-	render         GrantFormRenderer
+	render         FormRenderer
 	clientregistry clientregistry.Registry
 	authregistry   clientauthorization.Registry
 }
 
-func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render GrantFormRenderer, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) *Grant {
+func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) *Grant {
 	return &Grant{
 		auth:           auth,
 		csrf:           csrf,
@@ -82,7 +82,7 @@ func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch req.Method {
 	case "GET":
-		l.handleGrantForm(user, w, req)
+		l.handleForm(user, w, req)
 	case "POST":
 		l.handleGrant(user, w, req)
 	default:
@@ -90,7 +90,7 @@ func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (l *Grant) handleGrantForm(user authapi.UserInfo, w http.ResponseWriter, req *http.Request) {
+func (l *Grant) handleForm(user authapi.UserInfo, w http.ResponseWriter, req *http.Request) {
 	q := req.URL.Query()
 	then := q.Get("then")
 	clientID := q.Get("client_id")
@@ -117,9 +117,9 @@ func (l *Grant) handleGrantForm(user authapi.UserInfo, w http.ResponseWriter, re
 		return
 	}
 
-	form := GrantForm{
+	form := Form{
 		Action: uri.String(),
-		Values: GrantFormValues{
+		Values: FormValues{
 			Then:        then,
 			CSRF:        csrf,
 			ClientID:    client.Name,
@@ -186,7 +186,7 @@ func (l *Grant) handleGrant(user authapi.UserInfo, w http.ResponseWriter, req *h
 }
 
 func (l *Grant) failed(reason string, w http.ResponseWriter, req *http.Request) {
-	form := GrantForm{
+	form := Form{
 		Error: reason,
 	}
 	l.render.Render(form, w, req)
@@ -211,13 +211,13 @@ func getBaseURL(req *http.Request) (*url.URL, error) {
 	return uri, nil
 }
 
-// DefaultGrantFormRenderer displays a page prompting the user to approve an OAuth grant.
+// DefaultFormRenderer displays a page prompting the user to approve an OAuth grant.
 // The requesting client id, requested scopes, and redirect URI are displayed to the user.
-var DefaultGrantFormRenderer = grantTemplateRenderer{}
+var DefaultFormRenderer = grantTemplateRenderer{}
 
 type grantTemplateRenderer struct{}
 
-func (r grantTemplateRenderer) Render(form GrantForm, w http.ResponseWriter, req *http.Request) {
+func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := grantTemplate.Execute(w, form); err != nil {

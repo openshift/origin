@@ -149,7 +149,7 @@ func TestLogin(t *testing.T) {
 			}
 			resp = r
 		} else {
-			r, err := getUrl(server.URL + testCase.Path)
+			r, err := getURL(server.URL + testCase.Path)
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", k, err)
 				continue

@@ -30,7 +30,7 @@ type ExpressionValueGenerator struct {
 const (
 	Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	Numerals = "0123456789"
-	Ascii    = Alphabet + Numerals + "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
+	ASCII    = Alphabet + Numerals + "~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:`"
 )
 
 var (
@@ -74,12 +74,12 @@ func (g ExpressionValueGenerator) GenerateValue(expression string) (interface{},
 // alphabetSlice produces a string slice that contains all characters within
 // a specified range.
 func alphabetSlice(from, to byte) (string, error) {
-	leftPos := strings.Index(Ascii, string(from))
-	rightPos := strings.LastIndex(Ascii, string(to))
+	leftPos := strings.Index(ASCII, string(from))
+	rightPos := strings.LastIndex(ASCII, string(to))
 	if leftPos > rightPos {
 		return "", fmt.Errorf("Invalid range specified: %s-%s", string(from), string(to))
 	}
-	return Ascii[leftPos:rightPos], nil
+	return ASCII[leftPos:rightPos], nil
 }
 
 // replaceWithGenerated replaces all occurences of the given expression
@@ -89,17 +89,17 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 	for _, r := range ranges {
 		switch string(r[0]) + string(r[1]) {
 		case `\w`:
-			alphabet += Ascii
+			alphabet += ASCII
 		case `\d`:
 			alphabet += Numerals
 		case `\a`:
 			alphabet += Alphabet + Numerals
 		default:
-			if slice, err := alphabetSlice(r[0], r[1]); err != nil {
+			slice, err := alphabetSlice(r[0], r[1])
+			if err != nil {
 				return err
-			} else {
-				alphabet += slice
 			}
+			alphabet += slice
 		}
 	}
 	result := make([]byte, length)
@@ -134,7 +134,6 @@ func rangesAndLength(s string) (string, int, error) {
 	// TODO: We do need to set a better limit for the number of generated characters.
 	if length > 0 && length <= 255 {
 		return expr, length, nil
-	} else {
-		return "", 0, fmt.Errorf("Range must be within [1-255] characters (%d)", length)
 	}
+	return "", 0, fmt.Errorf("Range must be within [1-255] characters (%d)", length)
 }

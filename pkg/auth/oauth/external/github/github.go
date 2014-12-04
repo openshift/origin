@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	githubAuthorizeUrl = "https://github.com/login/oauth/authorize"
-	githubTokenUrl     = "https://github.com/login/oauth/access_token"
-	githubUserApiUrl   = "https://api.github.com/user"
+	githubAuthorizeURL = "https://github.com/login/oauth/authorize"
+	githubTokenURL     = "https://github.com/login/oauth/access_token"
+	githubUserApiURL   = "https://api.github.com/user"
 	githubOauthScope   = "user:email"
 )
 
 type provider struct {
-	client_id, client_secret string
+	clientID, clientSecret string
 }
 
 type githubUser struct {
@@ -32,19 +32,19 @@ type githubUser struct {
 	Name  string
 }
 
-func NewProvider(client_id, client_secret string) external.Provider {
-	return provider{client_id, client_secret}
+func NewProvider(clientID, clientSecret string) external.Provider {
+	return provider{clientID, clientSecret}
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
 func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{
-		ClientId:                 p.client_id,
-		ClientSecret:             p.client_secret,
+		ClientId:                 p.clientID,
+		ClientSecret:             p.clientSecret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             githubAuthorizeUrl,
-		TokenUrl:                 githubTokenUrl,
+		AuthorizeUrl:             githubAuthorizeURL,
+		TokenUrl:                 githubTokenURL,
 		Scope:                    githubOauthScope,
 	}
 	return config, nil
@@ -56,7 +56,7 @@ func (p provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
 
 // GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
 func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
-	req, _ := http.NewRequest("GET", githubUserApiUrl, nil)
+	req, _ := http.NewRequest("GET", githubUserApiURL, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", data.AccessToken))
 
 	res, err := http.DefaultClient.Do(req)

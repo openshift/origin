@@ -82,6 +82,7 @@ type config struct {
 	RequireAuthentication bool
 }
 
+// NewCommandStartServer provides a CLI handler for 'start' command
 func NewCommandStartServer(name string) *cobra.Command {
 	hostname, err := defaultHostname()
 	if err != nil {
@@ -305,7 +306,7 @@ func getEtcdClient(cfg *config) (*etcdclient.Client, error) {
 	etcdServers := []string{cfg.EtcdAddr.URL.String()}
 	etcdClient := etcdclient.NewClient(etcdServers)
 
-	for i := 0; ; i += 1 {
+	for i := 0; ; i++ {
 		_, err := etcdClient.Get("/", false, false)
 		if err == nil || tools.IsEtcdNotFound(err) {
 			break

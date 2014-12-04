@@ -13,6 +13,8 @@ Kubernetes Command Line - kubecfg
 OpenShift currently embeds the kubecfg command line for prototyping and debugging.
 `
 
+// NewCommandKubecfg returns a CLI handler for 'kubecfg' command.
+// TODO: This command is obsoleted by 'kubectl'
 func NewCommandKubecfg(name string) *cobra.Command {
 	cfg := &KubeConfig{}
 	cmd := &cobra.Command{

@@ -6,7 +6,9 @@ import kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 type MultiRESTMapper []kmeta.RESTMapper
 
 const (
-	OriginAPI     = "origin"
+	// OriginAPI is a name for the OpenShift Origin REST API
+	OriginAPI = "origin"
+	// KubernetesAPI is a name for the Kubernetes REST API
 	KubernetesAPI = "kubernetes"
 )
 

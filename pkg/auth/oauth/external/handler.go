@@ -26,13 +26,13 @@ type Handler struct {
 	mapper       authapi.UserIdentityMapper
 }
 
-func NewHandler(provider Provider, state State, redirectUrl string, success handlers.AuthenticationSuccessHandler, errorHandler handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
+func NewHandler(provider Provider, state State, redirectURL string, success handlers.AuthenticationSuccessHandler, errorHandler handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
 	clientConfig, err := provider.NewConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	clientConfig.RedirectUrl = redirectUrl
+	clientConfig.RedirectUrl = redirectURL
 
 	client, err := osincli.NewClient(clientConfig)
 	if err != nil {
@@ -63,10 +63,10 @@ func (h *Handler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request)
 		return h.errorHandler.AuthenticationError(err, w, req)
 	}
 
-	oauthUrl := authReq.GetAuthorizeUrlWithParams(state)
-	glog.V(4).Infof("redirect to %v", oauthUrl)
+	oauthURL := authReq.GetAuthorizeUrlWithParams(state)
+	glog.V(4).Infof("redirect to %v", oauthURL)
 
-	http.Redirect(w, req, oauthUrl.String(), http.StatusFound)
+	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 	return true, nil
 }
 
