@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 	"text/tabwriter"
 
@@ -40,8 +41,37 @@ type BuildDescriber struct {
 	client.Interface
 }
 
+func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u buildapi.SourceControlUser) {
+	if len(u.Name) > 0 && len(u.Email) > 0 {
+		formatString(out, label, fmt.Sprintf("%s <%s>", u.Name, u.Email))
+		return
+	}
+	if len(u.Name) > 0 {
+		formatString(out, label, u.Name)
+		return
+	}
+	if len(u.Email) > 0 {
+		formatString(out, label, u.Email)
+	}
+}
+
 func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
 	formatString(out, "Strategy", p.Strategy.Type)
+	switch p.Strategy.Type {
+	case buildapi.DockerBuildStrategyType:
+		if p.Strategy.DockerStrategy != nil && len(p.Strategy.DockerStrategy.ContextDir) == 0 {
+			formatString(out, "Context Directory", p.Strategy.DockerStrategy.ContextDir)
+		}
+		if p.Strategy.DockerStrategy != nil && p.Strategy.DockerStrategy.NoCache {
+			formatString(out, "No Cache", "yes")
+		}
+
+	case buildapi.STIBuildStrategyType:
+		formatString(out, "Builder Image", p.Strategy.STIStrategy.BuilderImage)
+		if p.Strategy.STIStrategy.Clean {
+			formatString(out, "Clean Build", "yes")
+		}
+	}
 	formatString(out, "Source Type", p.Source.Type)
 	if p.Source.Git != nil {
 		formatString(out, "URL", p.Source.Git.URI)
@@ -51,6 +81,14 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 	}
 	formatString(out, "Output Image", p.Output.ImageTag)
 	formatString(out, "Output Registry", p.Output.Registry)
+	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
+		formatString(out, "Git Commit", p.Revision.Git.Commit)
+		d.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
+		d.DescribeUser(out, "Revision Committer", p.Revision.Git.Committer)
+		if len(p.Revision.Git.Message) > 0 {
+			formatString(out, "Revision Message", p.Revision.Git.Message)
+		}
+	}
 }
 
 func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
