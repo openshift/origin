@@ -1,4 +1,4 @@
-package kubectl
+package cli
 
 import (
 	"bytes"

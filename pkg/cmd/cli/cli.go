@@ -1,4 +1,4 @@
-package kubectl
+package cli
 
 import (
 	"fmt"
@@ -7,23 +7,28 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/cmd/kubectl/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/spf13/cobra"
 )
 
-func NewCommandKubectl(name string) *cobra.Command {
+func NewCommandCLI(name string) *cobra.Command {
+	// Main command
 	cmds := &cobra.Command{
-		Use:   name,
-		Short: name + " controls the Kubernetes cluster manager and OpenShift",
-		Long: `Controls the Kubernetes cluster manager.
-Find more information at https://github.com/GoogleCloudPlatform/kubernetes and
-https://github.com/openshift/origin.`,
+		Use:     name,
+		Aliases: []string{"kubectl"},
+		Short:   "Client tools for OpenShift",
+		Long: `
+End-user client tool for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat.
+Note: This is an alpha release of OpenShift and will change significantly.  See
+    https://github.com/openshift/origin
+for the latest information on OpenShift.
+`,
 		Run: func(c *cobra.Command, args []string) {
 			c.Help()
 		},
 	}
 
-	// TODO: Make this as a method in upstream and just consume this method
+	// TODO reuse
 	cmds.PersistentFlags().StringP("server", "s", "", "Kubernetes apiserver to connect to")
 	cmds.PersistentFlags().StringP("auth-path", "a", os.Getenv("HOME")+"/.kubernetes_auth", "Path to the auth info file. If missing, p rompt the user. Only used if using https.")
 	cmds.PersistentFlags().Bool("match-server-version", false, "Require server version to match client version")
@@ -52,5 +57,6 @@ https://github.com/openshift/origin.`,
 	}
 
 	factory.AddCommands(cmds, os.Stdout)
+
 	return cmds
 }
