@@ -13,43 +13,43 @@ import (
 
 type okBuildUpdater struct{}
 
-func (_ *okBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
+func (obu *okBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
 	return &buildapi.Build{}, nil
 }
 
 type errBuildUpdater struct{}
 
-func (_ *errBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
+func (ebu *errBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
 	return &buildapi.Build{}, errors.New("UpdateBuild error!")
 }
 
 type okStrategy struct{}
 
-func (_ *okStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
+func (os *okStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	return &kapi.Pod{}, nil
 }
 
 type errStrategy struct{}
 
-func (_ *errStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
+func (es *errStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	return nil, errors.New("CreateBuildPod error!")
 }
 
 type okPodCreator struct{}
 
-func (_ *okPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (opc *okPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, nil
 }
 
 type errPodCreator struct{}
 
-func (_ *errPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (epc *errPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, errors.New("CreatePod error!")
 }
 
 type errExistsPodCreator struct{}
 
-func (_ *errExistsPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (eepc *errExistsPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, kerrors.NewAlreadyExists("kind", "name")
 }
 
