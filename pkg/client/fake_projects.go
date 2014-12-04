@@ -4,8 +4,7 @@ import "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 import projectapi "github.com/openshift/origin/pkg/project/api"
 
 type FakeProjects struct {
-	Fake      *Fake
-	Namespace string
+	Fake *Fake
 }
 
 func (c *FakeProjects) List(label, field labels.Selector) (*projectapi.ProjectList, error) {

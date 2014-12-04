@@ -61,8 +61,8 @@ func (c *Client) UserIdentityMappings() UserIdentityMappingInterface {
 	return newUserIdentityMappings(c)
 }
 
-func (c *Client) Projects(namespace string) ProjectInterface {
-	return newProjects(c, namespace)
+func (c *Client) Projects() ProjectInterface {
+	return newProjects(c)
 }
 
 // Client is an OpenShift client object

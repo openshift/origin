@@ -216,7 +216,7 @@ type ProjectDescriber struct {
 }
 
 func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Projects(namespace)
+	c := d.Projects()
 	project, err := c.Get(name)
 	if err != nil {
 		return "", err
