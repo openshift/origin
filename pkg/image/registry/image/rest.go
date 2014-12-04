@@ -86,6 +86,6 @@ func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult,
 }
 
 // Watch begins watching for new or deleted Images.
-func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return r.registry.WatchImages(ctx, label, field, resourceVersion)
+func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return s.registry.WatchImages(ctx, label, field, resourceVersion)
 }
