@@ -22,7 +22,7 @@ func DescriberFor(kind string, c *client.Client, cmd *cobra.Command) (kctl.Descr
 	case "Deployment":
 		return &DeploymentDescriber{c}, true
 	case "DeploymentConfig":
-		return &DeploymentDescriber{c}, true
+		return &DeploymentConfigDescriber{c}, true
 	case "Image":
 		return &ImageDescriber{c}, true
 	case "ImageRepository":
