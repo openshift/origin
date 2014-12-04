@@ -58,7 +58,8 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 }
 
 // webhookURL assembles map with of webhook type as key and webhook url and value
-func webhookURL(c *buildapi.BuildConfig, config *kclient.Config) (result map[string]string) {
+func webhookURL(c *buildapi.BuildConfig, config *kclient.Config) map[string]string {
+	result := map[string]string{}
 	for i, trigger := range c.Triggers {
 		whTrigger := ""
 		switch trigger.Type {
@@ -87,5 +88,5 @@ func webhookURL(c *buildapi.BuildConfig, config *kclient.Config) (result map[str
 		)
 		result[string(trigger.Type)] = url
 	}
-	return
+	return result
 }
