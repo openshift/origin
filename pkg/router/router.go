@@ -15,9 +15,9 @@ const (
 )
 
 const (
-	TERM_EDGE  = "TERM_EDGE"
-	TERM_GEAR  = "TERM_GEAR"
-	TERM_RESSL = "TERM_RESSL"
+	TermEdge  = "TERM_EDGE"
+	TermGear  = "TERM_GEAR"
+	TermRessl = "TERM_RESSL"
 )
 
 const (
@@ -201,7 +201,7 @@ func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints [
 	}
 	if !found {
 		id = makeID()
-		existingFrontend.Backends[id] = Backend{id, backend.FePath, backend.BePath, backend.Protocols, epIDs, TERM_EDGE, nil}
+		existingFrontend.Backends[id] = Backend{id, backend.FePath, backend.BePath, backend.Protocols, epIDs, TermEdge, nil}
 	}
 	routes.GlobalRoutes[existingFrontend.Name] = existingFrontend
 	routes.WriteRoutes()
