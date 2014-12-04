@@ -27,7 +27,7 @@ func (s *REST) New() runtime.Object {
 }
 
 func (s *REST) List(ctx api.Context, labels, fields labels.Selector) (runtime.Object, error) {
-	return nil, errors.New("deploy/generator.REST.List() is not implemented.")
+	return nil, errors.New("deploy/generator.REST.List() is not implemented")
 }
 
 func (s *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
@@ -35,13 +35,13 @@ func (s *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
 }
 
 func (s *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.New("deploy/generator.REST.Delete() is not implemented.")
+	return nil, errors.New("deploy/generator.REST.Delete() is not implemented")
 }
 
 func (s *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.New("deploy/generator.REST.Update() is not implemented.")
+	return nil, errors.New("deploy/generator.REST.Update() is not implemented")
 }
 
 func (s *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.New("deploy/generator.REST.Create() is not implemented.")
+	return nil, errors.New("deploy/generator.REST.Create() is not implemented")
 }
