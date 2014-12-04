@@ -70,10 +70,9 @@ func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentCo
 		if errors.IsNotFound(err) {
 			glog.V(4).Infof("Should deploy config %s because there's no latest deployment", config.Name)
 			return true, nil
-		} else {
-			glog.V(4).Infof("Shouldn't deploy config %s because of an error looking up latest deployment", config.Name)
-			return false, err
 		}
+		glog.V(4).Infof("Shouldn't deploy config %s because of an error looking up latest deployment", config.Name)
+		return false, err
 	}
 
 	// TODO: what state would this represent?
@@ -82,8 +81,8 @@ func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentCo
 
 // TODO: reduce code duplication between trigger and config controllers
 func (c *DeploymentConfigController) latestDeploymentForConfig(config *deployapi.DeploymentConfig) (*deployapi.Deployment, error) {
-	latestDeploymentId := deployutil.LatestDeploymentIDForConfig(config)
-	deployment, err := c.DeploymentInterface.GetDeployment(config.Namespace, latestDeploymentId)
+	latestDeploymentID := deployutil.LatestDeploymentIDForConfig(config)
+	deployment, err := c.DeploymentInterface.GetDeployment(config.Namespace, latestDeploymentID)
 	if err != nil {
 		// TODO: probably some error / race handling to do here
 		return nil, err

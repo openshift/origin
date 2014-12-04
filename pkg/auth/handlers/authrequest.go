@@ -18,10 +18,8 @@ func NewRequestAuthenticator(context RequestContext, auth authenticator.Request,
 		if err != nil || !ok {
 			failed.ServeHTTP(w, req)
 			return
-		} else {
-			glog.V(1).Infof("Found user, %v, when accessing %v", user, req.URL)
-
 		}
+		glog.V(1).Infof("Found user, %v, when accessing %v", user, req.URL)
 
 		context.Set(req, user)
 		defer context.Remove(req)

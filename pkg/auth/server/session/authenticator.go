@@ -9,19 +9,19 @@ import (
 
 const UserNameKey = "user.name"
 
-type SessionAuthenticator struct {
+type Authenticator struct {
 	store Store
 	name  string
 }
 
-func NewSessionAuthenticator(store Store, name string) *SessionAuthenticator {
-	return &SessionAuthenticator{
+func NewAuthenticator(store Store, name string) *Authenticator {
+	return &Authenticator{
 		store: store,
 		name:  name,
 	}
 }
 
-func (a *SessionAuthenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
 		return nil, false, err
@@ -43,7 +43,7 @@ func (a *SessionAuthenticator) AuthenticateRequest(req *http.Request) (api.UserI
 	}, true, nil
 }
 
-func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (a *Authenticator) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
 		return false, err
@@ -53,7 +53,7 @@ func (a *SessionAuthenticator) AuthenticationSucceeded(user api.UserInfo, state 
 	return false, a.store.Save(w, req)
 }
 
-func (a *SessionAuthenticator) InvalidateAuthentication(context api.UserInfo, w http.ResponseWriter, req *http.Request) error {
+func (a *Authenticator) InvalidateAuthentication(context api.UserInfo, w http.ResponseWriter, req *http.Request) error {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
 		return err

@@ -24,8 +24,8 @@ func NewTestEtcd(client tools.EtcdClient) *Etcd {
 // expect it to. If someone changes the location of these resources by say moving all the resources to
 // "/origin/resources" (which is a really good idea), then they've made a breaking change and something should
 // fail to let them know they've change some significant change and that other dependent pieces may break.
-func makeTestUserIdentityMapping(providerId, userName string) string {
-	return fmt.Sprintf("/userIdentityMappings/%s:%s", providerId, userName)
+func makeTestUserIdentityMapping(providerID, userName string) string {
+	return fmt.Sprintf("/userIdentityMappings/%s:%s", providerID, userName)
 }
 
 func TestEtcdGetUser(t *testing.T) {

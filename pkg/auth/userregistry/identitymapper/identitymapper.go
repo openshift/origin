@@ -11,7 +11,7 @@ type alwaysCreateUserIdentityToUserMapper struct {
 	userIdentityRegistry useridentitymapping.Registry
 }
 
-// NewAlwaysCreateProvisioner always does a createOrUpdate for the passed identity while forcing the identity.Provider to the providerId supplied here
+// NewAlwaysCreateProvisioner always does a createOrUpdate for the passed identity while forcing the identity.Provider to the providerID supplied here
 func NewAlwaysCreateUserIdentityToUserMapper(providerID string, userIdentityRegistry useridentitymapping.Registry) authapi.UserIdentityMapper {
 	return &alwaysCreateUserIdentityToUserMapper{providerID, userIdentityRegistry}
 }

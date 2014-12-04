@@ -10,7 +10,7 @@ import (
 
 const (
 	ProtocolHTTP  = "http"
-	ProtocolHTTPs = "https"
+	ProtocolHTTPS = "https"
 	ProtocolTLS   = "tls"
 )
 
@@ -191,8 +191,8 @@ func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints [
 	found := false
 	for _, be := range existingFrontend.Backends {
 		if be.FePath == backend.FePath && be.BePath == backend.BePath && cmpStrSlices(backend.Protocols, be.Protocols) {
-			for _, epId := range epIDs {
-				be.EndpointIDs = append(be.EndpointIDs, epId)
+			for _, epID := range epIDs {
+				be.EndpointIDs = append(be.EndpointIDs, epID)
 			}
 			existingFrontend.Backends[be.ID] = be
 			found = true

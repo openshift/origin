@@ -5,22 +5,22 @@ import (
 	"path"
 )
 
-type UserInfo interface {
+type Info interface {
 	GetName() string
 	GetUID() string
 }
 
-type UserContext interface {
-	Get(*http.Request) (UserInfo, bool)
+type Context interface {
+	Get(*http.Request) (Info, bool)
 }
 
-type UserContextFunc func(*http.Request) (UserInfo, bool)
+type ContextFunc func(*http.Request) (Info, bool)
 
-func (f UserContextFunc) Get(req *http.Request) (UserInfo, bool) {
+func (f ContextFunc) Get(req *http.Request) (Info, bool) {
 	return f(req)
 }
 
-func NewCurrentUserContextFilter(requestPath string, context UserContext, handler http.Handler) http.Handler {
+func NewCurrentContextFilter(requestPath string, context Context, handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != requestPath {
 			handler.ServeHTTP(w, req)

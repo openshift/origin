@@ -14,7 +14,7 @@ import (
 
 type okClient struct{}
 
-func (_ *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+func (c *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -35,7 +35,7 @@ func (_ *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, err
 	}, nil
 }
 
-func (_ *okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
+func (c *okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
 	return &api.Build{}, nil
 }
 
@@ -173,7 +173,7 @@ func post(event string, data []byte, url string, expStatusCode int, t *testing.T
 }
 
 type testContext struct {
-	plugin   GitHubWebHook
+	plugin   WebHook
 	buildCfg *api.BuildConfig
 	req      *http.Request
 	path     string
@@ -181,7 +181,7 @@ type testContext struct {
 
 func setup(t *testing.T, filename, eventType string) *testContext {
 	context := testContext{
-		plugin: GitHubWebHook{},
+		plugin: WebHook{},
 		buildCfg: &api.BuildConfig{
 			Triggers: []api.BuildTriggerPolicy{
 				{

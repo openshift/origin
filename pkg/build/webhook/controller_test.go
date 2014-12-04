@@ -13,7 +13,7 @@ import (
 
 type okClient struct{}
 
-func (_ *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+func (*okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -26,7 +26,7 @@ func (_ *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, err
 	}, nil
 }
 
-func (_ *okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
+func (*okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
 	return &api.Build{}, nil
 }
 
@@ -34,7 +34,7 @@ type buildErrorClient struct {
 	okClient
 }
 
-func (_ *buildErrorClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
+func (*buildErrorClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
 	return &api.Build{}, errors.New("Build error!")
 }
 
@@ -42,7 +42,7 @@ type configErrorClient struct {
 	okClient
 }
 
-func (_ *configErrorClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+func (*configErrorClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{}, errors.New("BuildConfig error!")
 }
 
@@ -57,7 +57,7 @@ func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req
 
 type errPlugin struct{}
 
-func (_ *errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
+func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error) {
 	return nil, true, errors.New("Plugin error!")
 }
 
