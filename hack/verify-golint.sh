@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -o errexit
-set -o nounset
 set -o pipefail
 
 if ! which golint &>/dev/null; then
@@ -23,21 +22,31 @@ source "${OS_ROOT}/hack/common.sh"
 
 cd "${OS_ROOT}"
 
-find_files() {
-  find . -not \( \
-      \( \
-        -wholename './output' \
-        -o -wholename './_output' \
-        -o -wholename './release' \
-        -o -wholename './pkg/assets/bindata.go' \
-        -o -wholename './target' \
-        -o -wholename '*/third_party/*' \
-        -o -wholename '*/Godeps/*' \
-      \) -prune \
-    \) -name '*.go'
-}
+arg="${1:-""}"
+bad_files=""
 
-bad_files=$(find_files | xargs golint)
+if [ "$arg" == "-m" ]; then
+  head=$(git rev-parse --short HEAD | xargs echo -n)
+  bad_files=$(git diff-tree --no-commit-id --name-only -r master..$head | \
+    grep "^pkg" | grep ".go$" | grep -v "bindata.go$" | grep -v "Godeps" | \
+    grep -v "third_party" | xargs golint)
+else
+  find_files() {
+    find . -not \( \
+      \( \
+      -wholename './output' \
+      -o -wholename './_output' \
+      -o -wholename './release' \
+      -o -wholename './pkg/assets/bindata.go' \
+      -o -wholename './target' \
+      -o -wholename '*/third_party/*' \
+      -o -wholename '*/Godeps/*' \
+      \) -prune \
+      \) -name '*.go'
+  }
+  bad_files=$(find_files | xargs golint)
+fi
+
 if [[ -n "${bad_files}" ]]; then
   echo "golint detected following problems:"
   echo "${bad_files}"
