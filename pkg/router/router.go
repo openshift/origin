@@ -150,7 +150,7 @@ func (routes *Routes) AddAlias(alias, frontendName string) {
 
 func (routes *Routes) RemoveAlias(alias, frontendName string) {
 	frontend := routes.GlobalRoutes[frontendName]
-	newAliases := make([]string, 0)
+	newAliases := []string{}
 	for _, v := range frontend.HostAliases {
 		if v == alias || v == "" {
 			continue
