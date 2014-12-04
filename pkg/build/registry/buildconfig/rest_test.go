@@ -62,9 +62,9 @@ func TestGetConfigError(t *testing.T) {
 
 func TestDeleteBuild(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
-	configId := "test-config-id"
+	configID := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, err := storage.Delete(kapi.NewDefaultContext(), configId)
+	channel, err := storage.Delete(kapi.NewDefaultContext(), configID)
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
 	}
@@ -77,8 +77,8 @@ func TestDeleteBuild(t *testing.T) {
 		if status.Status != kapi.StatusSuccess {
 			t.Errorf("Unexpected failure status: %v", status)
 		}
-		if mockRegistry.DeletedConfigId != configId {
-			t.Errorf("Unexpected build id was deleted: %v", mockRegistry.DeletedConfigId)
+		if mockRegistry.DeletedConfigID != configID {
+			t.Errorf("Unexpected build id was deleted: %v", mockRegistry.DeletedConfigID)
 		}
 		// expected case
 	case <-time.After(time.Millisecond * 100):
@@ -88,9 +88,9 @@ func TestDeleteBuild(t *testing.T) {
 
 func TestDeleteBuildError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Delete error")}
-	configId := "test-config-id"
+	configID := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, _ := storage.Delete(kapi.NewDefaultContext(), configId)
+	channel, _ := storage.Delete(kapi.NewDefaultContext(), configID)
 	select {
 	case result := <-channel:
 		status, ok := result.Object.(*kapi.Status)

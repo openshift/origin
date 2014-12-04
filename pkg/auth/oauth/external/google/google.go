@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	googleAuthorizeUrl = "https://accounts.google.com/o/oauth2/auth"
-	googleTokenUrl     = "https://accounts.google.com/o/oauth2/token"
+	googleAuthorizeURL = "https://accounts.google.com/o/oauth2/auth"
+	googleTokenURL     = "https://accounts.google.com/o/oauth2/token"
 	googleOauthScope   = "profile email"
 )
 
@@ -35,8 +35,8 @@ func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 		ClientSecret:             p.clientSecret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             googleAuthorizeUrl,
-		TokenUrl:                 googleTokenUrl,
+		AuthorizeUrl:             googleAuthorizeURL,
+		TokenUrl:                 googleTokenURL,
 		Scope:                    googleOauthScope,
 	}
 	return config, nil

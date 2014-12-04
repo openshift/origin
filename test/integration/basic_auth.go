@@ -140,9 +140,9 @@ func (handler *xRemoteUserProxyingHandler) ServeHTTP(w http.ResponseWriter, r *h
 	handler.proxier.ServeHTTP(w, r)
 }
 
-func NewXRemoteUserProxyingHandler(rawUrl string) http.Handler {
-	parsedUrl, _ := url.Parse(rawUrl)
-	proxier := httputil.NewSingleHostReverseProxy(parsedUrl)
+func NewXRemoteUserProxyingHandler(rawURL string) http.Handler {
+	parsedURL, _ := url.Parse(rawURL)
+	proxier := httputil.NewSingleHostReverseProxy(parsedURL)
 	// proxier.Transport = NewBasicAuthRoundTripper(http.DefaultTransport)
 	return &xRemoteUserProxyingHandler{proxier}
 }

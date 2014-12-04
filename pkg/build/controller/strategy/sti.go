@@ -31,7 +31,7 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
 func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	buildJson, err := json.Marshal(build)
+	buildJSON, err := json.Marshal(build)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 						Name:  "sti-build",
 						Image: bs.BuilderImage,
 						Env: []kapi.EnvVar{
-							{Name: "BUILD", Value: string(buildJson)},
+							{Name: "BUILD", Value: string(buildJSON)},
 						},
 					},
 				},

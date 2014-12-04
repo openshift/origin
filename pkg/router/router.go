@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	ProtocolHttp  = "http"
-	ProtocolHttps = "https"
-	ProtocolTls   = "tls"
+	ProtocolHTTP  = "http"
+	ProtocolHTTPs = "https"
+	ProtocolTLS   = "tls"
 )
 
 const (
@@ -167,8 +167,8 @@ func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints [
 	existingFrontend := routes.GlobalRoutes[frontend.Name]
 
 	epIDs := make([]string, 1)
-	for newEpId := range endpoints {
-		newEndpoint := endpoints[newEpId]
+	for newEpID := range endpoints {
+		newEndpoint := endpoints[newEpID]
 		if newEndpoint.IP == "" || newEndpoint.Port == "" {
 			continue
 		}

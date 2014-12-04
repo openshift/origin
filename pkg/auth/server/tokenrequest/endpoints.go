@@ -45,9 +45,9 @@ func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 // this works for getting a token in your browser and seeing what your token is
 func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
 	authReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
-	oauthUrl := authReq.GetAuthorizeUrlWithParams("")
+	oauthURL := authReq.GetAuthorizeUrlWithParams("")
 
-	http.Redirect(w, req, oauthUrl.String(), http.StatusFound)
+	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 }
 
 func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
