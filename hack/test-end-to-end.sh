@@ -66,6 +66,10 @@ function teardown()
     docker logs $container >& $LOG_DIR/container-$container.log
   done
 
+  echo "[INFO] Dumping build log to $LOG_DIR"
+  BUILD_ID=`${cli} get -n ${NAMESPACE} builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+  ${cli} build-logs -n ${NAMESPACE} $BUILD_ID > $LOG_DIR/build.log
+
   curl -L http://localhost:4001/v2/keys/?recursive=true > $ARTIFACT_DIR/etcd_dump.json
 
   echo ""
