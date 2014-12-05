@@ -48,7 +48,7 @@ openshift kubectl start-build ruby-test-build -s $OPENSHIFT_HOST
 set +e
 rc=1
 count=0
-attempts=60
+attempts=100
 
 echo &quot;Checking test deployment at $TEST_ENDPOINT&quot;
 while [ $rc -ne 0 -a $count -lt $attempts ]; do
