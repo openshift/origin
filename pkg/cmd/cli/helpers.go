@@ -6,7 +6,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/api/latest"
@@ -72,9 +71,6 @@ func webhookURL(c *buildapi.BuildConfig, config *kclient.Config) map[string]stri
 			continue
 		}
 		apiVersion := latest.Version
-		if accessor, err := meta.Accessor(c); err == nil {
-			apiVersion = accessor.APIVersion()
-		}
 		host := "localhost"
 		if config != nil {
 			host = config.Host
