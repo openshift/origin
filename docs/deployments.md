@@ -308,8 +308,8 @@ the new desired state.  The image must:
 ## Proposed Design - Rollbacks
 
 ### Definitions
-* Pod rollback: rollback that includes only ControllerTemplate items
-* Process rollback: rollback that includes only labels, triggers, and Template.Strategy does not include ControllerTemplate 
+* Application rollback: rollback that includes only ControllerTemplate items
+* Configuration rollback: rollback that includes only labels, triggers, and Template.Strategy does not include ControllerTemplate 
 items
 * Full rollback: rollback of application and process
 * Deployment: point in time in OpenShift that was created from a deployment config and is tagged in the format of 
@@ -318,9 +318,9 @@ items
     
     
 ### Validations
-* App rollback
+* Application rollback
     * Validate that images exist
-* Process rollback
+* Configuration rollback
     * Validate that deployment strategy is either a non-image based strategy or that the image exists
 * Application intelligence 
     * Canary deployments: Provide the ability to do a pre-rollback evaluation of applications.  For instance if a user is rolling
@@ -339,7 +339,7 @@ A rollback configuration can be submitted to the deployment configuration endpoi
         "kind":"DeploymentConfig",
         "rollback": {
             “release”: "hello-deployment-config-1",	#optional, if not set defaults to n-1
-            “process”:  true, 				        #optional, default true
+            “config”:  true, 				        #optional, default true
             “application”: true, 				    #optional, default true
             “strategy”: TBD,				        #optional, tbd enhancement?
             “notes”: “I messed up my app”		    #optional, default blank
@@ -351,9 +351,9 @@ A rollback configuration can be submitted to the deployment configuration endpoi
 Field                                       | Rollback When     | Notes |
 --------------------------------------------|-------------------|-------|----------------------------------------------
 TypeMeta                                    | never             |       |
-Labels                                      | process:true      |       |
-Triggers                                    | process:true      | All image change triggers will be set to non-auto.  Config change and manual change triggers will be retained. 
-Template.Strategy                           | process:true      |       |
+Labels                                      | config:true       |       |
+Triggers                                    | config:true       | All image change triggers will be set to non-auto.  Config change and manual change triggers will be retained. 
+Template.Strategy                           | config:true       |       |
 Template.ControllerTemplate.Replicas        | application:true  |       |
 Template.ControllerTemplate.ReplicaSelector | application:true  |       |
 Template.ControllerTemplate.PodTemplate     | application:true  |       |
@@ -368,3 +368,18 @@ preserve the current state of triggers in place (rather than recording them some
 wide kill switch for all triggers.   This means that a user would have to manually request a follow up deployment that 
 changes the kill switch value to re-enable triggers but has the benefit of not requiring the user to remember the state 
 of individual triggers (as opposed to just switching all triggers to off and requiring them to change each one individually).
+
+### Rollback Phase 2 Implementation
+
+It is important to note that since a `DeploymentConfig` is a single `ReplicationController` the validation done by the rollback 
+mechanism is likely always going to find incompatabilities within a namespace.  
+
+For example, a common two tiered application (web frontend, db backend) you will have two `DeploymentConfigs`, one for the frontend 
+and one for the backend.  In the first phase of implementation you would need to rollback each `DeploymentConfig` separately with two 
+requests.  This means that if you have changed environment variables in the configuration you will naturally have validation errors 
+even though the intention is to rollback both the frontend and backend to the same state.
+
+This drives the idea that **a rollback should accept multiple deployment configurations** and be able to perform validation and 
+application intelligence checks on the group even if the rollback isn't guaranteed to be atomic.  
+
+
