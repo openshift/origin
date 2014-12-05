@@ -35,22 +35,34 @@ func (es *errStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) 
 	return nil, errors.New("CreateBuildPod error!")
 }
 
-type okPodCreator struct{}
+type okPodManager struct{}
 
-func (opc *okPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (_ *okPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, nil
 }
 
-type errPodCreator struct{}
+func (_ *okPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+	return nil
+}
 
-func (epc *errPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+type errPodManager struct{}
+
+func (_ *errPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, errors.New("CreatePod error!")
 }
 
-type errExistsPodCreator struct{}
+func (_ *errPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+	return errors.New("DeletePod error!")
+}
 
-func (eepc *errExistsPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+type errExistsPodManager struct{}
+
+func (_ *errExistsPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, kerrors.NewAlreadyExists("kind", "name")
+}
+
+func (_ *errExistsPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+	return kerrors.NewNotFound("kind", "name")
 }
 
 func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build, controller *BuildController) {
@@ -84,7 +96,7 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 	controller = &BuildController{
 		BuildStore:    buildtest.NewFakeBuildStore(build),
 		BuildUpdater:  &okBuildUpdater{},
-		PodCreator:    &okPodCreator{},
+		PodManager:    &okPodManager{},
 		NextBuild:     func() *buildapi.Build { return nil },
 		NextPod:       func() *kapi.Pod { return nil },
 		BuildStrategy: &okStrategy{},
@@ -114,7 +126,7 @@ func TestHandleBuild(t *testing.T) {
 		outStatus     buildapi.BuildStatus
 		buildStrategy BuildStrategy
 		buildUpdater  buildUpdater
-		podCreator    podCreator
+		podManager    podManager
 	}
 
 	tests := []handleBuildTest{
@@ -150,12 +162,12 @@ func TestHandleBuild(t *testing.T) {
 		{ // 7
 			inStatus:   buildapi.BuildStatusNew,
 			outStatus:  buildapi.BuildStatusFailed,
-			podCreator: &errPodCreator{},
+			podManager: &errPodManager{},
 		},
 		{ // 8
 			inStatus:   buildapi.BuildStatusNew,
 			outStatus:  buildapi.BuildStatusFailed,
-			podCreator: &errExistsPodCreator{},
+			podManager: &errExistsPodManager{},
 		},
 		{ // 9
 			inStatus:     buildapi.BuildStatusNew,
@@ -172,8 +184,8 @@ func TestHandleBuild(t *testing.T) {
 		if tc.buildUpdater != nil {
 			ctrl.BuildUpdater = tc.buildUpdater
 		}
-		if tc.podCreator != nil {
-			ctrl.PodCreator = tc.podCreator
+		if tc.podManager != nil {
+			ctrl.PodManager = tc.podManager
 		}
 
 		ctrl.HandleBuild(build)
@@ -251,6 +263,59 @@ func TestHandlePod(t *testing.T) {
 		}
 
 		ctrl.HandlePod(pod)
+
+		if build.Status != tc.outStatus {
+			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)
+		}
+	}
+}
+
+func TestCancelBuild(t *testing.T) {
+	type handleCancelBuildTest struct {
+		inStatus  buildapi.BuildStatus
+		outStatus buildapi.BuildStatus
+		podStatus kapi.PodCondition
+		exitCode  int
+	}
+
+	tests := []handleCancelBuildTest{
+		{ // 0
+			inStatus:  buildapi.BuildStatusNew,
+			outStatus: buildapi.BuildStatusNew,
+			podStatus: kapi.PodPending,
+			exitCode:  0,
+		},
+		{ // 1
+			inStatus:  buildapi.BuildStatusPending,
+			outStatus: buildapi.BuildStatusCancelled,
+			podStatus: kapi.PodRunning,
+			exitCode:  0,
+		},
+		{ // 2
+			inStatus:  buildapi.BuildStatusRunning,
+			outStatus: buildapi.BuildStatusCancelled,
+			podStatus: kapi.PodRunning,
+			exitCode:  0,
+		},
+		{ // 3
+			inStatus:  buildapi.BuildStatusComplete,
+			outStatus: buildapi.BuildStatusComplete,
+			podStatus: kapi.PodSucceeded,
+			exitCode:  0,
+		},
+		{ // 4
+			inStatus:  buildapi.BuildStatusFailed,
+			outStatus: buildapi.BuildStatusFailed,
+			podStatus: kapi.PodFailed,
+			exitCode:  1,
+		},
+	}
+
+	for i, tc := range tests {
+		build, ctrl := mockBuildAndController(tc.inStatus)
+		pod := mockPod(tc.podStatus, tc.exitCode)
+
+		ctrl.CancelBuild(build, pod)
 
 		if build.Status != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)

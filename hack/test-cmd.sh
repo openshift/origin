@@ -98,3 +98,7 @@ echo "buildConfig: ok"
 
 ${CLI_CMD} start-build ruby-sample-build
 echo "start-build: ok"
+
+BUILD_NAME=`${CLI_CMD} get builds | awk 'NR==2'  | awk '{print $1}'`
+${CLI_CMD} cancel-build ${BUILD_NAME} --dump-logs --restart
+echo "cancel-build: ok"
