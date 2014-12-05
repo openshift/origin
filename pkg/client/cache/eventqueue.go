@@ -251,16 +251,25 @@ func (eq *EventQueue) Pop() (watch.EventType, interface{}) {
 }
 
 // Replace initializes 'eq' with the state contained in the given map and
-// clears the internal queue of events.  The backing store takes ownership
-// of the map; you should not reference the map again after calling this
-// function.
+// populates the queue with a watch.Modified event for each of the replaced
+// objects.  The backing store takes ownership of idToObjs; you should not
+// reference the map again after calling this function.
 func (eq *EventQueue) Replace(idToObjs map[string]interface{}) {
 	eq.lock.Lock()
 	defer eq.lock.Unlock()
 
 	eq.events = map[string]watch.EventType{}
 	eq.queue = eq.queue[:0]
+
+	for id := range idToObjs {
+		eq.queue = append(eq.queue, id)
+		eq.events[id] = watch.Modified
+	}
 	eq.store.Replace(idToObjs)
+
+	if len(eq.queue) > 0 {
+		eq.cond.Broadcast()
+	}
 }
 
 // NewEventQueue returns a new EventQueue ready for action.

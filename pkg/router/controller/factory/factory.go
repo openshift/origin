@@ -61,5 +61,5 @@ func (lw *endpointsLW) List() (runtime.Object, error) {
 }
 
 func (lw *endpointsLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Endpoints(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "")
+	return lw.client.Endpoints(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }

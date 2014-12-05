@@ -178,16 +178,13 @@ if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     # this address is considered stable
     apiIP="172.17.42.1"
 
+    echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
+    ${cli} create -n ${NAMESPACE} routes -f "${ARTIFACT_DIR}/route.json"
+
     echo "[INFO] Installing router with master ip of ${apiIP} and starting pod..."
     echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
     "${OS_ROOT}/hack/install-router.sh" "router1" $apiIP $openshift
     wait_for_command "${cli} get pods | grep router | grep -i Running" $((5*TIME_MIN))
-
-    echo "[INFO] Validating routed app response doesn't exist"
-    validate_response "-H Host:end-to-end --connect-timeout 10 http://${apiIP}" "503 Service Unavailable" 2 $((2*TIME_MIN))
-
-    echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
-    ${cli} create -n ${NAMESPACE} routes -f "${ARTIFACT_DIR}/route.json"
 
     echo "[INFO] Validating routed app response..."
     validate_response "-H Host:end-to-end http://${apiIP}" "Hello from OpenShift"

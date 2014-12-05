@@ -68,7 +68,7 @@ func (c *RouterController) HandleEndpoints() {
 
 	key := endpointsKey(*endpoints)
 
-	glog.V(4).Infof("Processing %d Endpoints for Name : %s", len(endpoints.Endpoints), endpoints.Name)
+	glog.V(4).Infof("Processing %d Endpoints for key: %v (%v)", len(endpoints.Endpoints), key, eventType)
 
 	for i, e := range endpoints.Endpoints {
 		glog.V(4).Infof("  Endpoint %d : %s", i, e)
