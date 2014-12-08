@@ -131,16 +131,18 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 // CancelBuild updates a build status to Cancelled, after its associated pod is associated.
 func (bc *BuildController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) error {
 	if !isBuildCancellable(build) {
-		return fmt.Errorf("the build can be cancelled only if it has new/pending/running status, not %s.", build.Status)
+		glog.V(2).Infof("The build can be cancelled only if it has pending/running status, not %s.", build.Status)
+		return nil
 	}
 
-	if err := bc.PodManager.DeletePod(build.Namespace, pod); err != nil {
-		return fmt.Errorf("failed to delete build %s pod: %#v", build.Name, err)
+	err := bc.PodManager.DeletePod(build.Namespace, pod)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
 	}
 
 	build.Status = buildapi.BuildStatusCancelled
 	if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
-		return fmt.Errorf("failed to update build %s: %#v", build.Name, err)
+		return err
 	}
 
 	glog.V(2).Infof("Build %s was successfully cancelled.", build.Name)

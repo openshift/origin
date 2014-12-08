@@ -48,9 +48,7 @@ Examples:
 			checkErr(err)
 
 			build := resource.(*buildapi.Build)
-
-			if build.Cancelled {
-				glog.Errorf("A cancelled event was already triggered for the build %s.", buildName)
+			if !isBuildCancellable(build) {
 				return
 			}
 
@@ -80,4 +78,18 @@ Examples:
 	cmd.Flags().Bool("dump-logs", false, "Specify if the build logs should be printed after it's cancelled.")
 	cmd.Flags().Bool("restart", false, "Specify if the build should be restarted after it's cancelled.")
 	return cmd
+}
+
+// isBuildCancellable checks if another cancellation event was triggered, and if the build status is correct.
+func isBuildCancellable(build *buildapi.Build) bool {
+	if build.Status != buildapi.BuildStatusPending && build.Status != buildapi.BuildStatusRunning {
+		glog.V(2).Infof("A build can be cancelled only if it has pending/running status.")
+		return false
+	}
+
+	if build.Cancelled {
+		glog.V(2).Infof("A cancellation event was already triggered for the build %s.", build.Name)
+		return false
+	}
+	return true
 }
