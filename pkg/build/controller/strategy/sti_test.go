@@ -28,10 +28,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if actual.ObjectMeta.Name != expected.PodName {
 		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
 	}
-	if actual.DesiredState.Manifest.Version != "v1beta1" {
-		t.Error("Expected v1beta1, but got %s!, actual.DesiredState.Manifest.Version")
-	}
-	container := actual.DesiredState.Manifest.Containers[0]
+	container := actual.Spec.Containers[0]
 	if container.Name != "sti-build" {
 		t.Errorf("Expected sti-build, but got %s!", container.Name)
 	}
@@ -41,8 +38,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if container.ImagePullPolicy != kapi.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
 	}
-	if actual.DesiredState.Manifest.RestartPolicy.Never == nil {
-		t.Errorf("Expected never, got %#v", actual.DesiredState.Manifest.RestartPolicy)
+	if actual.Spec.RestartPolicy.Never == nil {
+		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	if len(container.Env) != 1 {
 		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))

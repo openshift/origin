@@ -17,49 +17,44 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"io"
 
-	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"gopkg.in/v1/yaml"
 )
 
 // DataToObjects converts the raw JSON data into API objects
-func DataToObjects(m meta.RESTMapper, t runtime.ObjectTyper, data []byte) (result []runtime.Object, errors errs.ValidationErrorList) {
+func DataToObjects(m meta.RESTMapper, t runtime.ObjectTyper, data []byte) (result []runtime.Object, errors util.ErrorList) {
 	configObj := []runtime.RawExtension{}
 
 	if err := yaml.Unmarshal(data, &configObj); err != nil {
-		errors = append(errors, errs.NewFieldInvalid("unmarshal", err))
-		return result, errors.Prefix("Config")
+		errors = append(errors, fmt.Errorf("config unmarshal: %v", err))
+		return result, errors
 	}
 
 	for i, in := range configObj {
 		version, kind, err := t.DataVersionAndKind(in.RawJSON)
 		if err != nil {
-			itemErrs := errs.ValidationErrorList{}
-			itemErrs = append(itemErrs, errs.NewFieldInvalid("kind", string(in.RawJSON)))
-			errors = append(errors, itemErrs.PrefixIndex(i).Prefix("item")...)
+			errors = append(errors, fmt.Errorf("item[%d] kind: %v", i, err))
 			continue
 		}
 
 		mapping, err := m.RESTMapping(version, kind)
 		if err != nil {
-			itemErrs := errs.ValidationErrorList{}
-			itemErrs = append(itemErrs, errs.NewFieldRequired("mapping", err))
-			errors = append(errors, itemErrs.PrefixIndex(i).Prefix("item")...)
+			errors = append(errors, fmt.Errorf("item[%d] mapping: %v", i, err))
 			continue
 		}
 
 		obj, err := mapping.Codec.Decode(in.RawJSON)
 		if err != nil {
-			itemErrs := errs.ValidationErrorList{}
-			itemErrs = append(itemErrs, errs.NewFieldInvalid("decode", err))
-			errors = append(errors, itemErrs.PrefixIndex(i).Prefix("item")...)
+			errors = append(errors, fmt.Errorf("item[%d] decode: %v", i, err))
 			continue
 		}
 		result = append(result, obj)
@@ -69,13 +64,16 @@ func DataToObjects(m meta.RESTMapper, t runtime.ObjectTyper, data []byte) (resul
 
 func (f *Factory) NewCmdCreateAll(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "createall -f filename",
-		Short: "Create all resources specified in filename or stdin",
-		Long: `Create all resources contained in JSON file specified in filename or stdin
+		Use:   "createall [-d directory] [-f filename]",
+		Short: "Create all resources specified in a directory, filename or stdin",
+		Long: `Create all resources contained in JSON file specified in a directory, filename or stdin
 
 JSON and YAML formats are accepted.
 
 Examples:
+  $ kubectl createall -d configs/
+  <creates all resources listed in JSON or YAML files, found recursively under the configs directory>
+
   $ kubectl createall -f config.json
   <creates all resources listed in config.json>
 
@@ -87,23 +85,36 @@ Examples:
 			}
 
 			filename := GetFlagString(cmd, "filename")
-			if len(filename) == 0 {
-				usageError(cmd, "Must pass a filename to update")
+			directory := GetFlagString(cmd, "directory")
+			if (len(filename) == 0 && len(directory) == 0) || (len(filename) != 0 && len(directory) != 0) {
+				usageError(cmd, "Must pass a directory or filename to update")
 			}
 
-			data, err := ReadConfigData(filename)
-			checkErr(err)
+			files := []string{}
+			if len(filename) != 0 {
+				files = append(files, filename)
 
-			items, errs := DataToObjects(f.Mapper, f.Typer, data)
-			applyErrs := config.CreateObjects(f.Typer, f.Mapper, clientFunc, items)
-			errs = append(errs, applyErrs...)
-			if len(errs) > 0 {
-				for _, e := range errs {
-					glog.Error(e)
+			} else {
+				files = append(GetFilesFromDir(directory, ".json"), GetFilesFromDir(directory, ".yaml")...)
+			}
+
+			for _, filename := range files {
+				data, err := ReadConfigData(filename)
+				checkErr(err)
+
+				items, errs := DataToObjects(f.Mapper, f.Typer, data)
+				applyErrs := config.CreateObjects(f.Typer, f.Mapper, clientFunc, items)
+
+				errs = append(errs, applyErrs...)
+				if len(errs) > 0 {
+					for _, e := range errs {
+						glog.Error(e)
+					}
 				}
 			}
 		},
 	}
+	cmd.Flags().StringP("directory", "d", "", "Directory of JSON or YAML files to use to update the resource")
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to update the resource")
 	return cmd
 }

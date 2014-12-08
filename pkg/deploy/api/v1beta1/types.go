@@ -1,19 +1,20 @@
 package v1beta1
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	v1beta1 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	v1beta3 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 )
 
 // A deployment represents a single configuration of a pod deployed into the cluster, and may
 // represent both a current deployment or a historical deployment.
 type Deployment struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	v1beta3.TypeMeta   `json:",inline" yaml:",inline"`
+	v1beta3.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
+	ControllerTemplate v1beta1.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 	// Status is the execution status of the deployment.
 	Status DeploymentStatus `json:"status,omitempty" yaml:"status,omitempty"`
 	// Details captures the causes for the creation of this deployment resource.
@@ -66,16 +67,16 @@ type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
 	Image string `json:"image,omitempty" yaml:"image,omitempty"`
 	// Environment holds the environment which will be given to the container for Image.
-	Environment []kapi.EnvVar `json:"environment,omitempty" yaml:"environment,omitempty"`
+	Environment []v1beta3.EnvVar `json:"environment,omitempty" yaml:"environment,omitempty"`
 	// Command is optional and overrides CMD in the container Image.
 	Command []string `json:"command,omitempty" yaml:"command,omitempty"`
 }
 
 // A DeploymentList is a collection of deployments.
 type DeploymentList struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []Deployment `json:"items" yaml:"items"`
+	v1beta3.TypeMeta `json:",inline" yaml:",inline"`
+	v1beta3.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Items            []Deployment `json:"items" yaml:"items"`
 }
 
 // These constants represent annotation keys used for correlating objects related to deployments.
@@ -97,8 +98,8 @@ const (
 // what the template is for the deployment, how new deployments are triggered, what the desired
 // deployment state is.
 type DeploymentConfig struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	v1beta3.TypeMeta   `json:",inline" yaml:",inline"`
+	v1beta3.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.
@@ -118,7 +119,7 @@ type DeploymentTemplate struct {
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
+	ControllerTemplate v1beta1.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new Deployment.
@@ -179,7 +180,7 @@ type DeploymentCauseImageTrigger struct {
 
 // A DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []DeploymentConfig `json:"items" yaml:"items"`
+	v1beta3.TypeMeta `json:",inline" yaml:",inline"`
+	v1beta3.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Items            []DeploymentConfig `json:"items" yaml:"items"`
 }

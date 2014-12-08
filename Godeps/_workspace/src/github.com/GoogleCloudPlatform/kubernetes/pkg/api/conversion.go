@@ -59,6 +59,8 @@ func init() {
 			}
 			return nil
 		},
+
+		// ContainerManifestList
 		func(in *ContainerManifestList, out *BoundPods, s conversion.Scope) error {
 			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
 				return err
@@ -79,7 +81,7 @@ func init() {
 
 		// Convert Pod to BoundPod
 		func(in *Pod, out *BoundPod, s conversion.Scope) error {
-			if err := s.Convert(&in.DesiredState.Manifest, out, 0); err != nil {
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
 				return err
 			}
 			// Only copy a subset of fields, and override manifest attributes with the pod
@@ -88,6 +90,33 @@ func init() {
 			out.Name = in.Name
 			out.Namespace = in.Namespace
 			out.CreationTimestamp = in.CreationTimestamp
+			return nil
+		},
+
+		// Conversion between Manifest and PodSpec
+		func(in *PodSpec, out *ContainerManifest, s conversion.Scope) error {
+			if err := s.Convert(&in.Volumes, &out.Volumes, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Containers, &out.Containers, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RestartPolicy, &out.RestartPolicy, 0); err != nil {
+				return err
+			}
+			out.Version = "v1beta2"
+			return nil
+		},
+		func(in *ContainerManifest, out *PodSpec, s conversion.Scope) error {
+			if err := s.Convert(&in.Volumes, &out.Volumes, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Containers, &out.Containers, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RestartPolicy, &out.RestartPolicy, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 	)

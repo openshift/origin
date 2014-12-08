@@ -12,7 +12,7 @@ import (
 
 func ValidateDeployment(deployment *deployapi.Deployment) errors.ValidationErrorList {
 	result := validateDeploymentStrategy(&deployment.Strategy).Prefix("strategy")
-	controllerStateErrors := validation.ValidateReplicationControllerState(&deployment.ControllerTemplate)
+	controllerStateErrors := validation.ValidateReplicationControllerSpec(&deployment.ControllerTemplate)
 	result = append(result, controllerStateErrors.Prefix("controllerTemplate")...)
 
 	return result
@@ -26,7 +26,7 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.Validat
 	}
 
 	result = append(result, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
-	controllerStateErrors := validation.ValidateReplicationControllerState(&config.Template.ControllerTemplate)
+	controllerStateErrors := validation.ValidateReplicationControllerSpec(&config.Template.ControllerTemplate)
 	result = append(result, controllerStateErrors.Prefix("template.controllerTemplate")...)
 
 	return result

@@ -10,6 +10,7 @@ import (
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	ktools "github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -111,7 +112,7 @@ func (r *Etcd) DeleteDeployment(ctx kapi.Context, id string) error {
 
 // WatchDeployments begins watching for new, changed, or deleted Deployments.
 func (r *Etcd) WatchDeployments(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "deployment")
+	version, err := ktools.ParseWatchResourceVersion(resourceVersion, "deployment")
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +154,7 @@ func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selec
 
 // WatchDeploymentConfigs begins watching for new, changed, or deleted DeploymentConfigs.
 func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "deploymentConfig")
+	version, err := ktools.ParseWatchResourceVersion(resourceVersion, "deploymentConfig")
 	if err != nil {
 		return nil, err
 	}

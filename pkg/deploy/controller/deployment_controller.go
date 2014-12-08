@@ -120,13 +120,13 @@ func (dc *DeploymentController) HandlePod() {
 	deployment := deploymentObj.(*deployapi.Deployment)
 	nextDeploymentStatus := deployment.Status
 
-	switch pod.CurrentState.Status {
+	switch pod.Status.Phase {
 	case kapi.PodRunning:
 		nextDeploymentStatus = deployapi.DeploymentStatusRunning
 	case kapi.PodSucceeded, kapi.PodFailed:
 		nextDeploymentStatus = deployapi.DeploymentStatusComplete
 		// Detect failure based on the container state
-		for _, info := range pod.CurrentState.Info {
+		for _, info := range pod.Status.Info {
 			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
 				nextDeploymentStatus = deployapi.DeploymentStatusFailed
 			}
@@ -171,26 +171,23 @@ func (dc *DeploymentController) makeDeploymentPod(deployment *deployapi.Deployme
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},
 		},
-		DesiredState: kapi.PodState{
-			Manifest: kapi.ContainerManifest{
-				Version: "v1beta1",
-				Containers: []kapi.Container{
-					{
-						Name:    "deployment",
-						Command: container.Command,
-						Image:   container.Image,
-						Env:     envVars,
-					},
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Name:    "deployment",
+					Command: container.Command,
+					Image:   container.Image,
+					Env:     envVars,
 				},
-				RestartPolicy: kapi.RestartPolicy{
-					Never: &kapi.RestartPolicyNever{},
-				},
+			},
+			RestartPolicy: kapi.RestartPolicy{
+				Never: &kapi.RestartPolicyNever{},
 			},
 		},
 	}
 
 	if dc.UseLocalImages {
-		pod.DesiredState.Manifest.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 	}
 
 	return pod

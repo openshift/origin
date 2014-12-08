@@ -156,3 +156,23 @@ func TestEventQueue_compressUpdateDelete(t *testing.T) {
 		t.Fatalf("expected %s, got %s", watch.Deleted, event)
 	}
 }
+
+func TestEventQueue_modifyEventsFromReplace(t *testing.T) {
+	q := NewEventQueue()
+
+	q.Replace(map[string]interface{}{
+		"foo": 2,
+	})
+
+	q.Update("foo", 2)
+
+	event, thing := q.Pop()
+
+	if thing != 2 {
+		t.Fatalf("expected %v, got %v", 3, thing)
+	}
+
+	if event != watch.Modified {
+		t.Fatalf("expected %s, got %s", watch.Modified, event)
+	}
+}

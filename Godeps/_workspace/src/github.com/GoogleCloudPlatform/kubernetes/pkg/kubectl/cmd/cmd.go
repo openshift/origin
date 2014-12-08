@@ -52,7 +52,7 @@ func NewFactory() *Factory {
 		Describer: func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
 			describer, ok := kubectl.DescriberFor(mapping.Kind, getKubeClient(cmd))
 			if !ok {
-				return nil, fmt.Errorf("No description has been implemented for %q", mapping.Kind)
+				return nil, fmt.Errorf("no description has been implemented for %q", mapping.Kind)
 			}
 			return describer, nil
 		},
@@ -106,11 +106,9 @@ Find more information at https://github.com/GoogleCloudPlatform/kubernetes.`,
 	}
 }
 
-// TODO: remove this function and references to it-- errors it prints are
-// very unhelpful because file/line number are wrong.
 func checkErr(err error) {
 	if err != nil {
-		glog.Fatalf("%v", err)
+		glog.FatalDepth(1, err)
 	}
 }
 
@@ -172,12 +170,14 @@ func GetKubeConfig(cmd *cobra.Command) *client.Config {
 	}
 	config.Host = host
 
-	if client.IsConfigTransportSecure(config) {
+	if client.IsConfigTransportTLS(config) {
 		// Get the values from the file on disk (or from the user at the
 		// command line). Override them with the command line parameters, if
 		// provided.
 		authPath := GetFlagString(cmd, "auth-path")
-		authInfo, err := kubectl.LoadAuthInfo(authPath, os.Stdin)
+		authInfo, err := kubectl.LoadClientAuthInfoOrPrompt(authPath, os.Stdin)
+		// TODO: handle the case where the file could not be written but
+		// we still got a user/pass from prompting.
 		if err != nil {
 			glog.Fatalf("Error loading auth: %v", err)
 		}

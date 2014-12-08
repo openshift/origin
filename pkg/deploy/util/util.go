@@ -58,7 +58,7 @@ func ReferencedImages(deployment *deployapi.Deployment) map[string]string {
 		return result
 	}
 
-	for _, container := range deployment.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers {
+	for _, container := range deployment.ControllerTemplate.Template.Spec.Containers {
 		name, version := ParseContainerImage(container.Image)
 		result[name] = version
 	}
@@ -71,7 +71,7 @@ func ParseContainerImage(image string) (string, string) {
 	return tokens[0], tokens[1]
 }
 
-func HashPodTemplate(t api.PodState) uint64 {
+func HashPodSpec(t api.PodSpec) uint64 {
 	jsonString, err := json.Marshal(t)
 	if err != nil {
 		glog.Errorf("An error occurred marshalling pod state: %v", err)
@@ -82,6 +82,6 @@ func HashPodTemplate(t api.PodState) uint64 {
 	return uint64(hash.Sum32())
 }
 
-func PodTemplatesEqual(a, b api.PodTemplate) bool {
-	return HashPodTemplate(a.DesiredState) == HashPodTemplate(b.DesiredState)
+func PodSpecsEqual(a, b api.PodSpec) bool {
+	return HashPodSpec(a) == HashPodSpec(b)
 }

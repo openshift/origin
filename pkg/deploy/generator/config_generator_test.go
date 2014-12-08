@@ -46,8 +46,8 @@ func TestGenerateFromConfigWithoutTagChange(t *testing.T) {
 		DeploymentInterface: &testDeploymentInterface{
 			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
 				return &deployapi.Deployment{
-					ControllerTemplate: kapi.ReplicationControllerState{
-						PodTemplate: basicPodTemplate(),
+					ControllerTemplate: kapi.ReplicationControllerSpec{
+						Template: basicPodTemplate(),
 					},
 				}, nil
 			},
@@ -118,8 +118,8 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 		DeploymentInterface: &testDeploymentInterface{
 			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
 				return &deployapi.Deployment{
-					ControllerTemplate: kapi.ReplicationControllerState{
-						PodTemplate: basicPodTemplate(),
+					ControllerTemplate: kapi.ReplicationControllerSpec{
+						Template: basicPodTemplate(),
 					},
 				}, nil
 			},
@@ -141,7 +141,7 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 	}
 
 	expected := "registry:8080/repo1:ref2"
-	actual := config.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers[0].Image
+	actual := config.Template.ControllerTemplate.Template.Spec.Containers[0].Image
 	if expected != actual {
 		t.Fatalf("Expected container image %s, got %s", expected, actual)
 	}
@@ -171,19 +171,17 @@ func (i *testImageRepositoryInterface) ListImageRepositories(ctx kapi.Context, l
 	return i.ListImageRepositoriesFunc(labels)
 }
 
-func basicPodTemplate() kapi.PodTemplate {
-	return kapi.PodTemplate{
-		DesiredState: kapi.PodState{
-			Manifest: kapi.ContainerManifest{
-				Containers: []kapi.Container{
-					{
-						Name:  "container1",
-						Image: "registry:8080/repo1:ref1",
-					},
-					{
-						Name:  "container2",
-						Image: "registry:8080/repo1:ref2",
-					},
+func basicPodTemplate() *kapi.PodTemplateSpec {
+	return &kapi.PodTemplateSpec{
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Name:  "container1",
+					Image: "registry:8080/repo1:ref1",
+				},
+				{
+					Name:  "container2",
+					Image: "registry:8080/repo1:ref2",
 				},
 			},
 		},
@@ -206,8 +204,8 @@ func basicDeploymentConfig() *deployapi.DeploymentConfig {
 			},
 		},
 		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerState{
-				PodTemplate: basicPodTemplate(),
+			ControllerTemplate: kapi.ReplicationControllerSpec{
+				Template: basicPodTemplate(),
 			},
 		},
 	}

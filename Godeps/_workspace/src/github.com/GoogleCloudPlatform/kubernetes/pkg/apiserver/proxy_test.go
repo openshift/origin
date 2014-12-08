@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.google.com/p/go.net/html"
+	"golang.org/x/net/html"
 )
 
 func parseURLOrDie(inURL string) *url.URL {
@@ -165,7 +165,7 @@ func TestProxy(t *testing.T) {
 		}
 		handler := Handle(map[string]RESTStorage{
 			"foo": simpleStorage,
-		}, codec, "/prefix/version", selfLinker)
+		}, codec, "/prefix", "version", selfLinker)
 		server := httptest.NewServer(handler)
 		defer server.Close()
 

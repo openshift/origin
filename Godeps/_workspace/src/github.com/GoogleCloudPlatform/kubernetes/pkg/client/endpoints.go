@@ -24,7 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
-// EndpointsNamespacer has methods to work with Endpoint resources in a namespace
+// EndpointsNamespacer has methods to work with Endpoints resources in a namespace
 type EndpointsNamespacer interface {
 	Endpoints(namespace string) EndpointsInterface
 }
@@ -38,7 +38,7 @@ type EndpointsInterface interface {
 	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
-// endpoints implements EndpointsNamespacer interface
+// endpoints implements EndpointsInterface
 type endpoints struct {
 	r  *Client
 	ns string

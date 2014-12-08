@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
 )
@@ -42,6 +43,9 @@ func TestMinionREST(t *testing.T) {
 		t.Errorf("insert failed")
 	}
 	obj := <-c
+	if !api.HasObjectMetaSystemFieldValues(&obj.Object.(*api.Minion).ObjectMeta) {
+		t.Errorf("storage did not populate object meta field values")
+	}
 	if m, ok := obj.Object.(*api.Minion); !ok || m.Name != "baz" {
 		t.Errorf("insert return value was weird: %#v", obj)
 	}
@@ -83,7 +87,7 @@ func TestMinionREST(t *testing.T) {
 	}
 }
 
-func TestMinionRESTWithHealthCheck(t *testing.T) {
+func TestMinionStorageWithHealthCheck(t *testing.T) {
 	minionRegistry := registrytest.NewMinionRegistry([]string{}, api.NodeResources{})
 	minionHealthRegistry := HealthyRegistry{
 		delegate: minionRegistry,
@@ -113,4 +117,74 @@ func contains(nodes *api.MinionList, nodeID string) bool {
 		}
 	}
 	return false
+}
+
+func TestMinionStorageInvalidUpdate(t *testing.T) {
+	storage := NewREST(registrytest.NewMinionRegistry([]string{"foo", "bar"}, api.NodeResources{}))
+	ctx := api.NewContext()
+	obj, err := storage.Get(ctx, "foo")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	minion, ok := obj.(*api.Minion)
+	if !ok {
+		t.Fatalf("Object is not a minion: %#v", obj)
+	}
+	minion.Status.HostIP = "1.2.3.4"
+	if _, err = storage.Update(ctx, minion); err == nil {
+		t.Error("Unexpected non-error.")
+	}
+}
+
+func TestMinionStorageValidUpdate(t *testing.T) {
+	storage := NewREST(registrytest.NewMinionRegistry([]string{"foo", "bar"}, api.NodeResources{}))
+	ctx := api.NewContext()
+	obj, err := storage.Get(ctx, "foo")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	minion, ok := obj.(*api.Minion)
+	if !ok {
+		t.Fatalf("Object is not a minion: %#v", obj)
+	}
+	minion.Labels = map[string]string{
+		"foo": "bar",
+		"baz": "home",
+	}
+	if _, err = storage.Update(ctx, minion); err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestMinionStorageValidatesCreate(t *testing.T) {
+	storage := NewREST(registrytest.NewMinionRegistry([]string{"foo", "bar"}, api.NodeResources{}))
+	ctx := api.NewContext()
+	validSelector := map[string]string{"a": "b"}
+	invalidSelector := map[string]string{"NoUppercaseOrSpecialCharsLike=Equals": "b"}
+	failureCases := map[string]api.Minion{
+		"zero-length Name": {
+			ObjectMeta: api.ObjectMeta{
+				Name:   "",
+				Labels: validSelector,
+			},
+			Status: api.NodeStatus{
+				HostIP: "something",
+			},
+		},
+		"invalid-labels": {
+			ObjectMeta: api.ObjectMeta{
+				Name:   "abc-123",
+				Labels: invalidSelector,
+			},
+		},
+	}
+	for _, failureCase := range failureCases {
+		c, err := storage.Create(ctx, &failureCase)
+		if c != nil {
+			t.Errorf("Expected nil channel")
+		}
+		if !errors.IsInvalid(err) {
+			t.Errorf("Expected to get an invalid resource error, got %v", err)
+		}
+	}
 }

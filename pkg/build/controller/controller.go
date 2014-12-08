@@ -104,14 +104,14 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 
 	nextStatus := build.Status
 
-	switch pod.CurrentState.Status {
+	switch pod.Status.Phase {
 	case kapi.PodRunning:
 		// The pod's still running
 		nextStatus = buildapi.BuildStatusRunning
 	case kapi.PodSucceeded, kapi.PodFailed:
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildStatusComplete
-		for _, info := range pod.CurrentState.Info {
+		for _, info := range pod.Status.Info {
 			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
 				nextStatus = buildapi.BuildStatusFailed
 				break

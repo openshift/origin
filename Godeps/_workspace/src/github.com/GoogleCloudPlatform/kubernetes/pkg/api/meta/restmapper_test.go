@@ -82,7 +82,7 @@ func TestRESTMapperVersionAndKindForResource(t *testing.T) {
 		v, k, err := mapper.VersionAndKindForResource(testCase.Resource)
 		hasErr := err != nil
 		if hasErr != testCase.Err {
-			t.Errorf("%d: unexpected error behavior %f: %v", i, testCase.Err, err)
+			t.Errorf("%d: unexpected error behavior %t: %v", i, testCase.Err, err)
 			continue
 		}
 		if v != testCase.APIVersion || k != testCase.Kind {
@@ -105,6 +105,8 @@ func TestKindToResource(t *testing.T) {
 		{Kind: "ReplicationController", MixedCase: true, Plural: "replicationControllers", Singular: "replicationController"},
 		// API convention changed with regard to capitalization for v1beta3
 		{Kind: "ReplicationController", MixedCase: false, Plural: "replicationcontrollers", Singular: "replicationcontroller"},
+
+		{Kind: "ImageRepository", MixedCase: true, Plural: "imageRepositories", Singular: "imageRepository"},
 
 		{Kind: "lowercase", MixedCase: false, Plural: "lowercases", Singular: "lowercase"},
 		// Don't add extra s if the original object is already plural
@@ -147,7 +149,7 @@ func TestRESTMapperRESTMapping(t *testing.T) {
 		mapping, err := mapper.RESTMapping(testCase.APIVersion, testCase.Kind)
 		hasErr := err != nil
 		if hasErr != testCase.Err {
-			t.Errorf("%d: unexpected error behavior %f: %v", i, testCase.Err, err)
+			t.Errorf("%d: unexpected error behavior %t: %v", i, testCase.Err, err)
 		}
 		if hasErr {
 			continue

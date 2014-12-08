@@ -66,7 +66,7 @@ func TestHandleNewDeploymentCreatePodOk(t *testing.T) {
 		t.Fatalf("expected pod deployment annotation %s, got %s", e, a)
 	}
 
-	actualContainer := createdPod.DesiredState.Manifest.Containers[0]
+	actualContainer := createdPod.Spec.Containers[0]
 
 	if e, a := expectedContainer.Image, actualContainer.Image; e != a {
 		t.Fatalf("expected container image %s, got %s", expectedContainer.Image, actualContainer.Image)
@@ -342,15 +342,13 @@ func basicDeployment() *deployapi.Deployment {
 		Strategy: deployapi.DeploymentStrategy{
 			Type: deployapi.DeploymentStrategyTypeRecreate,
 		},
-		ControllerTemplate: kapi.ReplicationControllerState{
-			PodTemplate: kapi.PodTemplate{
-				DesiredState: kapi.PodState{
-					Manifest: kapi.ContainerManifest{
-						Containers: []kapi.Container{
-							{
-								Name:  "container1",
-								Image: "registry:8080/repo1:ref1",
-							},
+		ControllerTemplate: kapi.ReplicationControllerSpec{
+			Template: &kapi.PodTemplateSpec{
+				Spec: kapi.PodSpec{
+					Containers: []kapi.Container{
+						{
+							Name:  "container1",
+							Image: "registry:8080/repo1:ref1",
 						},
 					},
 				},
@@ -392,7 +390,7 @@ func basicPod() *kapi.Pod {
 				deployapi.DeploymentAnnotation: "1234",
 			},
 		},
-		CurrentState: kapi.PodState{
+		Status: kapi.PodStatus{
 			Info: kapi.PodInfo{
 				"container1": kapi.ContainerStatus{},
 			},
@@ -402,14 +400,14 @@ func basicPod() *kapi.Pod {
 
 func succeededPod() *kapi.Pod {
 	p := basicPod()
-	p.CurrentState.Status = kapi.PodSucceeded
+	p.Status.Phase = kapi.PodSucceeded
 	return p
 }
 
 func failedPod() *kapi.Pod {
 	p := basicPod()
-	p.CurrentState.Status = kapi.PodFailed
-	p.CurrentState.Info["container1"] = kapi.ContainerStatus{
+	p.Status.Phase = kapi.PodFailed
+	p.Status.Info["container1"] = kapi.ContainerStatus{
 		State: kapi.ContainerState{
 			Termination: &kapi.ContainerStateTerminated{
 				ExitCode: 1,
@@ -421,6 +419,6 @@ func failedPod() *kapi.Pod {
 
 func runningPod() *kapi.Pod {
 	p := basicPod()
-	p.CurrentState.Status = kapi.PodRunning
+	p.Status.Phase = kapi.PodRunning
 	return p
 }

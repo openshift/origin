@@ -16,6 +16,7 @@ function cmd() {
   $cmd &> ${log_file} || rc=$?
   if [ "$rc" != "0" ]; then
     echo "[ERROR] Command '${cmd}' failed with ${rc}, logs:" && cat ${log_file}
+    exit $rc
   fi
 }
 

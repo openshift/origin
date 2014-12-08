@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"path"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -89,7 +90,7 @@ func (c *testClient) Validate(t *testing.T, received runtime.Object, err error) 
 	c.ValidateCommon(t, err)
 
 	if c.Response.Body != nil && !reflect.DeepEqual(c.Response.Body, received) {
-		t.Errorf("bad response for request %#v: expected %s, got %s", c.Request, c.Response.Body, received)
+		t.Errorf("bad response for request %#v: expected %#v, got %#v", c.Request, c.Response.Body, received)
 	}
 }
 
@@ -97,7 +98,7 @@ func (c *testClient) ValidateRaw(t *testing.T, received []byte, err error) {
 	c.ValidateCommon(t, err)
 
 	if c.Response.Body != nil && !reflect.DeepEqual(c.Response.Body, received) {
-		t.Errorf("bad response for request %#v: expected %s, got %s", c.Request, c.Response.Body, received)
+		t.Errorf("bad response for request %#v: expected %#v, got %#v", c.Request, c.Response.Body, received)
 	}
 }
 
@@ -121,6 +122,7 @@ func (c *testClient) ValidateCommon(t *testing.T, err error) {
 
 	requestBody := body(c.Request.Body, c.Request.RawBody)
 	actualQuery := c.handler.RequestReceived.URL.Query()
+	t.Logf("got query: %v", actualQuery)
 	// We check the query manually, so blank it out so that FakeHandler.ValidateRequest
 	// won't check it.
 	c.handler.RequestReceived.URL.RawQuery = ""
@@ -128,11 +130,17 @@ func (c *testClient) ValidateCommon(t *testing.T, err error) {
 	for key, values := range c.Request.Query {
 		validator, ok := c.QueryValidator[key]
 		if !ok {
-			validator = func(a, b string) bool { return a == b }
+			switch key {
+			case "labels", "fields":
+				validator = validateLabels
+			default:
+				validator = func(a, b string) bool { return a == b }
+			}
 		}
 		observed := actualQuery.Get(key)
-		if !validator(values[0], observed) {
-			t.Errorf("Unexpected query arg for key: %s.  Expected %s, Received %s", key, values[0], observed)
+		wanted := strings.Join(values, "")
+		if !validator(wanted, observed) {
+			t.Errorf("Unexpected query arg for key: %s.  Expected %s, Received %s", key, wanted, observed)
 		}
 	}
 	if c.Request.Header != "" {
@@ -164,8 +172,8 @@ func TestListPods(t *testing.T) {
 			Body: &api.PodList{
 				Items: []api.Pod{
 					{
-						CurrentState: api.PodState{
-							Status: api.PodRunning,
+						Status: api.PodStatus{
+							Phase: api.PodRunning,
 						},
 						ObjectMeta: api.ObjectMeta{
 							Labels: map[string]string{
@@ -197,8 +205,8 @@ func TestListPodsLabels(t *testing.T) {
 			Body: &api.PodList{
 				Items: []api.Pod{
 					{
-						CurrentState: api.PodState{
-							Status: api.PodRunning,
+						Status: api.PodStatus{
+							Phase: api.PodRunning,
 						},
 						ObjectMeta: api.ObjectMeta{
 							Labels: map[string]string{
@@ -225,8 +233,8 @@ func TestGetPod(t *testing.T) {
 		Response: Response{
 			StatusCode: 200,
 			Body: &api.Pod{
-				CurrentState: api.PodState{
-					Status: api.PodRunning,
+				Status: api.PodStatus{
+					Phase: api.PodRunning,
 				},
 				ObjectMeta: api.ObjectMeta{
 					Labels: map[string]string{
@@ -252,8 +260,8 @@ func TestDeletePod(t *testing.T) {
 
 func TestCreatePod(t *testing.T) {
 	requestPod := &api.Pod{
-		CurrentState: api.PodState{
-			Status: api.PodRunning,
+		Status: api.PodStatus{
+			Phase: api.PodRunning,
 		},
 		ObjectMeta: api.ObjectMeta{
 			Labels: map[string]string{
@@ -283,8 +291,8 @@ func TestUpdatePod(t *testing.T) {
 				"name": "baz",
 			},
 		},
-		CurrentState: api.PodState{
-			Status: api.PodRunning,
+		Status: api.PodStatus{
+			Phase: api.PodRunning,
 		},
 	}
 	c := &testClient{
@@ -309,8 +317,9 @@ func TestListControllers(t *testing.T) {
 								"name": "baz",
 							},
 						},
-						DesiredState: api.ReplicationControllerState{
+						Spec: api.ReplicationControllerSpec{
 							Replicas: 2,
+							Template: &api.PodTemplateSpec{},
 						},
 					},
 				},
@@ -335,8 +344,9 @@ func TestGetController(t *testing.T) {
 						"name": "baz",
 					},
 				},
-				DesiredState: api.ReplicationControllerState{
+				Spec: api.ReplicationControllerSpec{
 					Replicas: 2,
+					Template: &api.PodTemplateSpec{},
 				},
 			},
 		},
@@ -361,8 +371,9 @@ func TestUpdateController(t *testing.T) {
 						"name": "baz",
 					},
 				},
-				DesiredState: api.ReplicationControllerState{
+				Spec: api.ReplicationControllerSpec{
 					Replicas: 2,
+					Template: &api.PodTemplateSpec{},
 				},
 			},
 		},
@@ -396,8 +407,9 @@ func TestCreateController(t *testing.T) {
 						"name": "baz",
 					},
 				},
-				DesiredState: api.ReplicationControllerState{
+				Spec: api.ReplicationControllerSpec{
 					Replicas: 2,
+					Template: &api.PodTemplateSpec{},
 				},
 			},
 		},
@@ -580,8 +592,10 @@ func TestCreateMinion(t *testing.T) {
 		ObjectMeta: api.ObjectMeta{
 			Name: "minion-1",
 		},
-		HostIP: "123.321.456.654",
-		NodeResources: api.NodeResources{
+		Status: api.NodeStatus{
+			HostIP: "123.321.456.654",
+		},
+		Spec: api.NodeSpec{
 			Capacity: api.ResourceList{
 				resources.CPU:    util.NewIntOrStringFromInt(1000),
 				resources.Memory: util.NewIntOrStringFromInt(1024 * 1024),

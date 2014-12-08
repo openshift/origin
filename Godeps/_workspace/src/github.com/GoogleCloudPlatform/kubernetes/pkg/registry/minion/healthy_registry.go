@@ -62,6 +62,10 @@ func (r *HealthyRegistry) CreateMinion(ctx api.Context, minion *api.Minion) erro
 	return r.delegate.CreateMinion(ctx, minion)
 }
 
+func (r *HealthyRegistry) UpdateMinion(ctx api.Context, minion *api.Minion) error {
+	return r.delegate.UpdateMinion(ctx, minion)
+}
+
 func (r *HealthyRegistry) ListMinions(ctx api.Context) (currentMinions *api.MinionList, err error) {
 	result := &api.MinionList{}
 	list, err := r.delegate.ListMinions(ctx)
@@ -71,13 +75,13 @@ func (r *HealthyRegistry) ListMinions(ctx api.Context) (currentMinions *api.Mini
 	for _, minion := range list.Items {
 		status, err := r.client.HealthCheck(minion.Name)
 		if err != nil {
-			glog.V(1).Infof("%#v failed health check with error: %s", minion, err)
+			glog.V(1).Infof("%#v failed health check with error: %v", minion, err)
 			continue
 		}
 		if status == health.Healthy {
 			result.Items = append(result.Items, minion)
 		} else {
-			glog.Errorf("%s failed a health check, ignoring.", minion)
+			glog.Errorf("%#v failed a health check, ignoring.", minion)
 		}
 	}
 	return result, nil

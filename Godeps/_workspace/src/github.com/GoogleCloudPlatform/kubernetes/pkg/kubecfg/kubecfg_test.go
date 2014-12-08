@@ -26,6 +26,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/clientauth"
 )
 
 func validateAction(expectedAction, actualAction client.FakeAction, t *testing.T) {
@@ -74,13 +75,11 @@ func TestUpdateWithNewImage(t *testing.T) {
 			},
 		},
 		Ctrl: api.ReplicationController{
-			DesiredState: api.ReplicationControllerState{
-				PodTemplate: api.PodTemplate{
-					DesiredState: api.PodState{
-						Manifest: api.ContainerManifest{
-							Containers: []api.Container{
-								{Image: "fooImage:1"},
-							},
+			Spec: api.ReplicationControllerSpec{
+				Template: &api.PodTemplateSpec{
+					Spec: api.PodSpec{
+						Containers: []api.Container{
+							{Image: "fooImage:1"},
 						},
 					},
 				},
@@ -94,7 +93,7 @@ func TestUpdateWithNewImage(t *testing.T) {
 	validateAction(client.FakeAction{Action: "get-controller", Value: "foo"}, fakeClient.Actions[0], t)
 
 	newCtrl := api.Scheme.CopyOrDie(&fakeClient.Ctrl).(*api.ReplicationController)
-	newCtrl.DesiredState.PodTemplate.DesiredState.Manifest.Containers[0].Image = "fooImage:2"
+	newCtrl.Spec.Template.Spec.Containers[0].Image = "fooImage:2"
 	validateAction(client.FakeAction{Action: "update-controller", Value: newCtrl}, fakeClient.Actions[1], t)
 
 	validateAction(client.FakeAction{Action: "list-pods"}, fakeClient.Actions[2], t)
@@ -115,8 +114,8 @@ func TestRunController(t *testing.T) {
 	}
 	controller := fakeClient.Actions[0].Value.(*api.ReplicationController)
 	if controller.Name != name ||
-		controller.DesiredState.Replicas != replicas ||
-		controller.DesiredState.PodTemplate.DesiredState.Manifest.Containers[0].Image != image {
+		controller.Spec.Replicas != replicas ||
+		controller.Spec.Template.Spec.Containers[0].Image != image {
 		t.Errorf("Unexpected controller: %#v", controller)
 	}
 }
@@ -136,8 +135,8 @@ func TestRunControllerWithWrongArgs(t *testing.T) {
 	}
 	controller := fakeClient.Actions[0].Value.(*api.ReplicationController)
 	if controller.Name != name ||
-		controller.DesiredState.Replicas != replicas ||
-		controller.DesiredState.PodTemplate.DesiredState.Manifest.Containers[0].Image != image {
+		controller.Spec.Replicas != replicas ||
+		controller.Spec.Template.Spec.Containers[0].Image != image {
 		t.Errorf("Unexpected controller: %#v", controller)
 	}
 }
@@ -155,8 +154,8 @@ func TestRunControllerWithService(t *testing.T) {
 	}
 	controller := fakeClient.Actions[0].Value.(*api.ReplicationController)
 	if controller.Name != name ||
-		controller.DesiredState.Replicas != replicas ||
-		controller.DesiredState.PodTemplate.DesiredState.Manifest.Containers[0].Image != image {
+		controller.Spec.Replicas != replicas ||
+		controller.Spec.Template.Spec.Containers[0].Image != image {
 		t.Errorf("Unexpected controller: %#v", controller)
 	}
 }
@@ -174,7 +173,7 @@ func TestStopController(t *testing.T) {
 	}
 	controller := fakeClient.Actions[1].Value.(*api.ReplicationController)
 	if fakeClient.Actions[1].Action != "update-controller" ||
-		controller.DesiredState.Replicas != 0 {
+		controller.Spec.Replicas != 0 {
 		t.Errorf("Unexpected Action: %#v", fakeClient.Actions[1])
 	}
 }
@@ -193,7 +192,7 @@ func TestResizeController(t *testing.T) {
 	}
 	controller := fakeClient.Actions[1].Value.(*api.ReplicationController)
 	if fakeClient.Actions[1].Action != "update-controller" ||
-		controller.DesiredState.Replicas != 17 {
+		controller.Spec.Replicas != 17 {
 		t.Errorf("Unexpected Action: %#v", fakeClient.Actions[1])
 	}
 }
@@ -221,7 +220,7 @@ func TestCloudCfgDeleteController(t *testing.T) {
 func TestCloudCfgDeleteControllerWithReplicas(t *testing.T) {
 	fakeClient := client.Fake{
 		Ctrl: api.ReplicationController{
-			DesiredState: api.ReplicationControllerState{
+			Spec: api.ReplicationControllerSpec{
 				Replicas: 2,
 			},
 		},
@@ -292,15 +291,15 @@ func TestLoadNamespaceInfo(t *testing.T) {
 	}
 }
 
-func TestLoadAuthInfo(t *testing.T) {
+func TestLoadClientAuthInfoOrPrompt(t *testing.T) {
 	loadAuthInfoTests := []struct {
 		authData string
-		authInfo *AuthInfo
+		authInfo *clientauth.Info
 		r        io.Reader
 	}{
 		{
 			`{"user": "user", "password": "pass"}`,
-			&AuthInfo{User: "user", Password: "pass"},
+			&clientauth.Info{User: "user", Password: "pass"},
 			nil,
 		},
 		{
@@ -308,7 +307,7 @@ func TestLoadAuthInfo(t *testing.T) {
 		},
 		{
 			"missing",
-			&AuthInfo{User: "user", Password: "pass"},
+			&clientauth.Info{User: "user", Password: "pass"},
 			bytes.NewBufferString("user\npass"),
 		},
 	}
@@ -329,10 +328,10 @@ func TestLoadAuthInfo(t *testing.T) {
 			aifile.Close()
 			os.Remove(aifile.Name())
 		}
-		authInfo, err := LoadAuthInfo(aifile.Name(), tt.r)
+		authInfo, err := LoadClientAuthInfoOrPrompt(aifile.Name(), tt.r)
 		if len(tt.authData) == 0 && tt.authData != "missing" {
 			if err == nil {
-				t.Error("LoadAuthInfo didn't fail on empty file")
+				t.Error("LoadClientAuthInfoOrPrompt didn't fail on empty file")
 			}
 			continue
 		}

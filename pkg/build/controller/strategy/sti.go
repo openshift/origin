@@ -39,27 +39,24 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 		ObjectMeta: kapi.ObjectMeta{
 			Name: build.PodName,
 		},
-		DesiredState: kapi.PodState{
-			Manifest: kapi.ContainerManifest{
-				Version: "v1beta1",
-				Containers: []kapi.Container{
-					{
-						Name:  "sti-build",
-						Image: bs.BuilderImage,
-						Env: []kapi.EnvVar{
-							{Name: "BUILD", Value: string(buildJSON)},
-						},
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Name:  "sti-build",
+					Image: bs.BuilderImage,
+					Env: []kapi.EnvVar{
+						{Name: "BUILD", Value: string(buildJSON)},
 					},
 				},
-				RestartPolicy: kapi.RestartPolicy{
-					Never: &kapi.RestartPolicyNever{},
-				},
+			},
+			RestartPolicy: kapi.RestartPolicy{
+				Never: &kapi.RestartPolicyNever{},
 			},
 		},
 	}
 
 	if bs.UseLocalImages {
-		pod.DesiredState.Manifest.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 	}
 
 	setupDockerSocket(pod)

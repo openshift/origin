@@ -166,8 +166,9 @@ type Volume struct {
 	Source *VolumeSource `json:"source" yaml:"source"`
 }
 
+// VolumeSource represents the source location of a valume to mount.
+// Only one of its members may be specified.
 type VolumeSource struct {
-	// Only one of the following sources may be specified
 	// HostDir represents a pre-existing directory on the host machine that is directly
 	// exposed to the container. This is generally used for system agents or other privileged
 	// things that are allowed to see the host machine. Most containers will NOT need this.
@@ -200,7 +201,8 @@ const (
 	ProtocolUDP Protocol = "UDP"
 )
 
-// GCEPersistent Disk resource.
+// GCEPersistentDisk represents a Persistent Disk resource in Google Compute Engine.
+//
 // A GCE PD must exist and be formatted before mounting to a container.
 // The disk must also be in the same GCE project and zone as the kubelet.
 // A GCE PD can only be mounted as read/write once.
@@ -306,11 +308,11 @@ type LivenessProbe struct {
 type PullPolicy string
 
 const (
-	// Always attempt to pull the latest image.  Container will fail If the pull fails.
+	// PullAlways means that kubelet always attempts to pull the latest image.  Container will fail If the pull fails.
 	PullAlways PullPolicy = "PullAlways"
-	// Never pull an image, only use a local image.  Container will fail if the image isn't present
+	// PullNever means that kubelet never pulls an image, but only uses a local image.  Container will fail if the image isn't present
 	PullNever PullPolicy = "PullNever"
-	// Pull if the image isn't present on disk. Container will fail if the image isn't present and the pull fails.
+	// PullIfNotPresent means that kubelet pulls if the image isn't present on disk. Container will fail if the image isn't present and the pull fails.
 	PullIfNotPresent PullPolicy = "PullIfNotPresent"
 )
 
@@ -364,24 +366,24 @@ type Lifecycle struct {
 	PreStop *Handler `json:"preStop,omitempty" yaml:"preStop,omitempty"`
 }
 
-// PodCondition is a label for the condition of a pod at the current time.
-type PodCondition string
+// PodPhase is a label for the condition of a pod at the current time.
+type PodPhase string
 
 // These are the valid states of pods.
 const (
 	// PodPending means the pod has been accepted by the system, but one or more of the containers
 	// has not been started. This includes time before being bound to a node, as well as time spent
 	// pulling images onto the host.
-	PodPending PodCondition = "Pending"
+	PodPending PodPhase = "Pending"
 	// PodRunning means the pod has been bound to a node and all of the containers have been started.
 	// At least one container is still running or is in the process of being restarted.
-	PodRunning PodCondition = "Running"
+	PodRunning PodPhase = "Running"
 	// PodSucceeded means that all containers in the pod have voluntarily terminated
 	// with a container exit code of 0, and the system is not going to restart any of these containers.
-	PodSucceeded PodCondition = "Succeeded"
+	PodSucceeded PodPhase = "Succeeded"
 	// PodFailed means that all containers in the pod have terminated, and at least one container has
 	// terminated in a failure (exited with a non-zero exit code or was stopped by the system).
-	PodFailed PodCondition = "Failed"
+	PodFailed PodPhase = "Failed"
 )
 
 type ContainerStateWaiting struct {
@@ -402,9 +404,10 @@ type ContainerStateTerminated struct {
 	FinishedAt time.Time `json:"finishedAt,omitempty" yaml:"finishedAt,omitempty"`
 }
 
+// ContainerState holds a possible state of container.
+// Only one of its members may be specified.
+// If none of them is specified, the default one is ContainerStateWaiting.
 type ContainerState struct {
-	// Only one of the following ContainerState may be specified.
-	// If none of them is specified, the default one is ContainerStateWaiting.
 	Waiting     *ContainerStateWaiting    `json:"waiting,omitempty" yaml:"waiting,omitempty"`
 	Running     *ContainerStateRunning    `json:"running,omitempty" yaml:"running,omitempty"`
 	Termination *ContainerStateTerminated `json:"termination,omitempty" yaml:"termination,omitempty"`
@@ -419,8 +422,6 @@ type ContainerStatus struct {
 	RestartCount int `json:"restartCount" yaml:"restartCount"`
 	// TODO(dchen1107): Introduce our own NetworkSettings struct here?
 	// TODO(dchen1107): Which image the container is running with?
-	// TODO(dchen1107): Once we have done with integration with cadvisor, resource
-	// usage should be included.
 }
 
 // PodInfo contains one entry for every container with available info.
@@ -455,7 +456,9 @@ type PodSpec struct {
 // PodStatus represents information about the status of a pod. Status may trail the actual
 // state of a system.
 type PodStatus struct {
-	Condition PodCondition `json:"condition,omitempty" yaml:"condition,omitempty"`
+	Phase PodPhase `json:"phase,omitempty" yaml:"phase,omitempty"`
+	// A human readable message indicating details about why the pod is in this state.
+	Message string `json:"message,omitempty" yaml:"message,omitempty"`
 
 	// Host is the name of the node that this Pod is currently bound to, or empty if no
 	// assignment has been done.
@@ -611,6 +614,8 @@ type ServiceSpec struct {
 
 	// CreateExternalLoadBalancer indicates whether a load balancer should be created for this service.
 	CreateExternalLoadBalancer bool `json:"createExternalLoadBalancer,omitempty" yaml:"createExternalLoadBalancer,omitempty"`
+	// PublicIPs are used by external load balancers.
+	PublicIPs []string `json:"publicIPs,omitempty" yaml:"publicIPs,omitempty"`
 
 	// ContainerPort is the name of the port on the container to direct traffic to.
 	// Optional, if unspecified use the first port on the container.
@@ -659,24 +664,22 @@ type EndpointsList struct {
 
 // NodeSpec describes the attributes that a node is created with.
 type NodeSpec struct {
+	// Capacity represents the available resources of a node
+	// see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md for more details.
+	Capacity ResourceList `json:"capacity,omitempty" yaml:"capacity,omitempty"`
 }
 
 // NodeStatus is information about the current status of a node.
 type NodeStatus struct {
-}
-
-// NodeResources represents resources on a Kubernetes system node
-// see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md for more details.
-type NodeResources struct {
-	// Capacity represents the available resources.
-	Capacity ResourceList `json:"capacity,omitempty" yaml:"capacity,omitempty"`
+	// Queried from cloud provider, if available.
+	HostIP string `json:"hostIP,omitempty" yaml:"hostIP,omitempty"`
 }
 
 type ResourceName string
 
 type ResourceList map[ResourceName]util.IntOrString
 
-// Node is a worker node in Kubernetenes.
+// Node is a worker node in Kubernetes.
 // The name of the node according to etcd is in ID.
 type Node struct {
 	TypeMeta   `json:",inline" yaml:",inline"`
@@ -687,9 +690,6 @@ type Node struct {
 
 	// Status describes the current status of a Node
 	Status NodeStatus `json:"status,omitempty" yaml:"status,omitempty"`
-
-	// NodeResources describe the resoruces available on the node.
-	NodeResources NodeResources `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
 // NodeList is a list of minions.
@@ -852,7 +852,7 @@ const (
 	// CauseTypeFieldValueNotFound is used to report failure to find a requested value
 	// (e.g. looking up an ID).
 	CauseTypeFieldValueNotFound CauseType = "FieldValueNotFound"
-	// CauseTypeFieldValueInvalid is used to report required values that are not
+	// CauseTypeFieldValueRequired is used to report required values that are not
 	// provided (e.g. empty strings, null values, or empty arrays).
 	CauseTypeFieldValueRequired CauseType = "FieldValueRequired"
 	// CauseTypeFieldValueDuplicate is used to report collisions of values that must be

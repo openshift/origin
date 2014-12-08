@@ -225,8 +225,8 @@ func (c *KubeConfig) Run() {
 	}
 	clientConfig.Host = hosts[0]
 
-	if kclient.IsConfigTransportSecure(clientConfig) {
-		auth, err := kubecfg.LoadAuthInfo(c.AuthConfig, os.Stdin)
+	if kclient.IsConfigTransportTLS(clientConfig) {
+		auth, err := kubecfg.LoadClientAuthInfoOrPrompt(c.AuthConfig, os.Stdin)
 		if err != nil {
 			glog.Fatalf("Error loading auth: %v", err)
 		}
