@@ -32,6 +32,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         "ami_region" => "<AMI_REGION>",
         "ssh_user" => "<SSH_USER>",
         "machine_name" => "<AMI_NAME>"
+      },
+      "libvirt" => {
+        "box_name" => "fedora-20",
+        "box_url" => "https://download.gluster.org/pub/gluster/purpleidea/vagrant/fedora-20/fedora-20.box"
       }
     }
   end
@@ -54,8 +58,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # OS platform to box information
     kube_box = {
       "fedora" => {
-        "name" => "fedora20",
-        "box_url" => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/virtualbox/opscode_fedora-20_chef-provisionerless.box"
+        "name" => "fedora-20",
+        "box_url" => "https://download.gluster.org/pub/gluster/purpleidea/vagrant/fedora-20/fedora-20.box"
       }
     }
 
