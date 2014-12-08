@@ -11,7 +11,7 @@ import (
 
 func TestBuildValdationSuccess(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildId"},
+		ObjectMeta: kapi.ObjectMeta{Name: "buildID"},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,

@@ -276,7 +276,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler(sessionStore session.Store)
 		currType = strings.TrimSpace(currType)
 		switch currType {
 		case "session":
-			successHandlers = append(successHandlers, session.NewSessionAuthenticator(sessionStore, "ssn"))
+			successHandlers = append(successHandlers, session.NewAuthenticator(sessionStore, "ssn"))
 		}
 	}
 
@@ -310,7 +310,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = requesthandlers.NewBasicAuthAuthentication(passwordAuthenticator)
 	case "session":
-		authRequestHandler = session.NewSessionAuthenticator(sessionStore, "ssn")
+		authRequestHandler = session.NewAuthenticator(sessionStore, "ssn")
 	default:
 		glog.Fatalf("No AuthenticationRequestHandler found that matches %v.  The oauth server cannot start!", authRequestHandlerType)
 	}

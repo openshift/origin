@@ -12,7 +12,7 @@ type BuildRegistry struct {
 	Err            error
 	Builds         *buildapi.BuildList
 	Build          *buildapi.Build
-	DeletedBuildId string
+	DeletedBuildID string
 }
 
 func (r *BuildRegistry) ListBuilds(ctx kapi.Context, labels labels.Selector) (*buildapi.BuildList, error) {
@@ -32,7 +32,7 @@ func (r *BuildRegistry) UpdateBuild(ctx kapi.Context, build *buildapi.Build) err
 }
 
 func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
-	r.DeletedBuildId = id
+	r.DeletedBuildID = id
 	return r.Err
 }
 
