@@ -129,6 +129,9 @@ type BuildStrategy struct {
 
 	// STIStrategy holds the parameters to the STI build strategy.
 	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty" yaml:"stiStrategy,omitempty"`
+
+	// CustomStrategy holds the parameters to the Custom build strategy
+	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty" yaml:"customStrategy,omitempty"`
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -142,7 +145,25 @@ const (
 	// STIBuildStrategyType performs builds build using Source To Images with a Git repository
 	// and a builder image.
 	STIBuildStrategyType BuildStrategyType = "STI"
+
+	// CustomBuildStrategyType performs builds using custom builder Docker image.
+	CustomBuildStrategyType BuildStrategyType = "Custom"
 )
+
+// CustomBuildStrategy defines input parameter specific to Custom build.
+type CustomBuildStrategy struct {
+	// BuilderImage is the image required to execute the build. If not specified
+	// a validation error is returned.
+	BuilderImage string `json:"builderImage" yaml:"builderImage"`
+
+	// Additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar `json:"env,omitempty"`
+
+	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
+	// inside the Docker container.
+	// TODO: Allow admins to enforce 'false' for this option
+	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty" yaml:"exposeDockerSocket,omitempty"`
+}
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {

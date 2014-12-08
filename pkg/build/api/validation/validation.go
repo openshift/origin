@@ -33,15 +33,22 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ValidationErrorList 
 
 func validateBuildParameters(params *buildapi.BuildParameters) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
+	isCustomBuild := params.Strategy.Type == buildapi.CustomBuildStrategyType
+	// Validate 'source' and 'output' for all build types except Custom build
+	// where they are optional and validated only if present.
+	if !isCustomBuild || (isCustomBuild && len(params.Source.Type) != 0) {
+		allErrs = append(allErrs, validateSource(&params.Source).Prefix("source")...)
 
-	allErrs = append(allErrs, validateSource(&params.Source).Prefix("source")...)
+		if params.Revision != nil {
+			allErrs = append(allErrs, validateRevision(params.Revision).Prefix("revision")...)
+		}
+	}
 
-	if params.Revision != nil {
-		allErrs = append(allErrs, validateRevision(params.Revision).Prefix("revision")...)
+	if !isCustomBuild || (isCustomBuild && len(params.Output.ImageTag) != 0) {
+		allErrs = append(allErrs, validateOutput(&params.Output).Prefix("output")...)
 	}
 
 	allErrs = append(allErrs, validateStrategy(&params.Strategy).Prefix("strategy")...)
-	allErrs = append(allErrs, validateOutput(&params.Output).Prefix("output")...)
 
 	return allErrs
 }
@@ -94,6 +101,11 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 		}
 	case buildapi.DockerBuildStrategyType:
 		// DockerStrategy is currently optional
+	case buildapi.CustomBuildStrategyType:
+		// CustomBuildStrategy requires 'builderImage' to be specified in JSON
+		if len(strategy.CustomStrategy.BuilderImage) == 0 {
+			allErrs = append(allErrs, errs.NewFieldRequired("builderImage", strategy.CustomStrategy.BuilderImage))
+		}
 	default:
 		allErrs = append(allErrs, errs.NewFieldInvalid("type", strategy.Type, "type is not in the enumerated list"))
 	}

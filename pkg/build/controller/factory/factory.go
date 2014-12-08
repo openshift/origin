@@ -24,6 +24,7 @@ type BuildControllerFactory struct {
 	KubeClient          *kclient.Client
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	STIBuildStrategy    *strategy.STIBuildStrategy
+	CustomBuildStrategy *strategy.CustomBuildStrategy
 
 	buildStore cache.Store
 }
@@ -59,6 +60,7 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
 			STIBuildStrategy:    factory.STIBuildStrategy,
+			CustomBuildStrategy: factory.CustomBuildStrategy,
 		},
 	}
 }
@@ -106,6 +108,7 @@ func (pe *podEnumerator) Get(index int) (string, interface{}) {
 type typeBasedFactoryStrategy struct {
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	STIBuildStrategy    *strategy.STIBuildStrategy
+	CustomBuildStrategy *strategy.CustomBuildStrategy
 }
 
 func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
@@ -114,6 +117,8 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 		return f.DockerBuildStrategy.CreateBuildPod(build)
 	case buildapi.STIBuildStrategyType:
 		return f.STIBuildStrategy.CreateBuildPod(build)
+	case buildapi.CustomBuildStrategyType:
+		return f.CustomBuildStrategy.CreateBuildPod(build)
 	default:
 		return nil, errors.New("No strategy defined for type")
 	}

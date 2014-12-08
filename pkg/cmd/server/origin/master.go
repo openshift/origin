@@ -284,6 +284,9 @@ func (c *MasterConfig) RunBuildController() {
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       useLocalImages,
 		},
+		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
+			UseLocalImages: useLocalImages,
+		},
 	}
 
 	controller := factory.Create()

@@ -71,6 +71,14 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 		if p.Strategy.STIStrategy.Clean {
 			formatString(out, "Clean Build", "yes")
 		}
+	case buildapi.CustomBuildStrategyType:
+		formatString(out, "Builder Image", p.Strategy.CustomStrategy.BuilderImage)
+		if p.Strategy.CustomStrategy.ExposeDockerSocket {
+			formatString(out, "Expose Docker Socket", "yes")
+		}
+		if len(p.Strategy.CustomStrategy.Env) != 0 {
+			formatString(out, "Environment", formatLabels(convertEnv(p.Strategy.CustomStrategy.Env)))
+		}
 	}
 	formatString(out, "Source Type", p.Source.Type)
 	if p.Source.Git != nil {
