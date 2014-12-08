@@ -15,28 +15,28 @@ import (
 )
 
 const (
-	googleAuthorizeUrl = "https://accounts.google.com/o/oauth2/auth"
-	googleTokenUrl     = "https://accounts.google.com/o/oauth2/token"
+	googleAuthorizeURL = "https://accounts.google.com/o/oauth2/auth"
+	googleTokenURL     = "https://accounts.google.com/o/oauth2/token"
 	googleOauthScope   = "profile email"
 )
 
 type provider struct {
-	client_id, client_secret string
+	clientID, clientSecret string
 }
 
-func NewProvider(client_id, client_secret string) external.Provider {
-	return provider{client_id, client_secret}
+func NewProvider(clientID, clientSecret string) external.Provider {
+	return provider{clientID, clientSecret}
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
 func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{
-		ClientId:                 p.client_id,
-		ClientSecret:             p.client_secret,
+		ClientId:                 p.clientID,
+		ClientSecret:             p.clientSecret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             googleAuthorizeUrl,
-		TokenUrl:                 googleTokenUrl,
+		AuthorizeUrl:             googleAuthorizeURL,
+		TokenUrl:                 googleTokenURL,
 		Scope:                    googleOauthScope,
 	}
 	return config, nil

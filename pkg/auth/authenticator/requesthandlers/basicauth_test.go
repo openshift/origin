@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	USERNAME            = "frightened_donut"
-	PASSWORD            = "don't eat me!"
-	VALID_BASE64_STRING = "VGhpc0lzVmFsaWQK" // base64 -- ThisIsValid ctrl+d
+	Username          = "frightened_donut"
+	Password          = "don't eat me!"
+	ValidBase64String = "VGhpc0lzVmFsaWQK" // base64 -- ThisIsValid ctrl+d
 )
 
 type mockPasswordAuthenticator struct {
@@ -32,20 +32,20 @@ func TestAuthenticateRequestValid(t *testing.T) {
 	passwordAuthenticator := &mockPasswordAuthenticator{}
 	authRequestHandler := NewBasicAuthAuthentication(passwordAuthenticator)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
-	req.SetBasicAuth(USERNAME, PASSWORD)
+	req.SetBasicAuth(Username, Password)
 
 	_, _, _ = authRequestHandler.AuthenticateRequest(req)
-	if passwordAuthenticator.passedUser != USERNAME {
-		t.Errorf("Expected %v, got %v", USERNAME, passwordAuthenticator.passedUser)
+	if passwordAuthenticator.passedUser != Username {
+		t.Errorf("Expected %v, got %v", Username, passwordAuthenticator.passedUser)
 	}
-	if passwordAuthenticator.passedPassword != PASSWORD {
-		t.Errorf("Expected %v, got %v", PASSWORD, passwordAuthenticator.passedPassword)
+	if passwordAuthenticator.passedPassword != Password {
+		t.Errorf("Expected %v, got %v", Password, passwordAuthenticator.passedPassword)
 	}
 }
 
 func TestAuthenticateRequestInvalid(t *testing.T) {
 	const (
-		EXPECTED_ERROR = "No valid base64 data in basic auth scheme found"
+		ExpectedError = "No valid base64 data in basic auth scheme found"
 	)
 	passwordAuthenticator := &mockPasswordAuthenticator{isAuthenticated: true}
 	authRequestHandler := NewBasicAuthAuthentication(passwordAuthenticator)
@@ -54,10 +54,10 @@ func TestAuthenticateRequestInvalid(t *testing.T) {
 
 	userInfo, authenticated, err := authRequestHandler.AuthenticateRequest(req)
 	if err == nil {
-		t.Errorf("Expected error: %v", EXPECTED_ERROR)
+		t.Errorf("Expected error: %v", ExpectedError)
 	}
-	if err.Error() != EXPECTED_ERROR {
-		t.Errorf("Expected %v, got %v", EXPECTED_ERROR, err)
+	if err.Error() != ExpectedError {
+		t.Errorf("Expected %v, got %v", ExpectedError, err)
 	}
 	if userInfo != nil {
 		t.Errorf("Unexpected user: %v", userInfo)
@@ -69,17 +69,17 @@ func TestAuthenticateRequestInvalid(t *testing.T) {
 
 func TestGetBasicAuthInfo(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
-	req.SetBasicAuth(USERNAME, PASSWORD)
+	req.SetBasicAuth(Username, Password)
 
 	username, password, err := getBasicAuthInfo(req)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	if username != USERNAME {
-		t.Errorf("Expected %v, got %v", USERNAME, username)
+	if username != Username {
+		t.Errorf("Expected %v, got %v", Username, username)
 	}
-	if password != PASSWORD {
-		t.Errorf("Expected %v, got %v", PASSWORD, password)
+	if password != Password {
+		t.Errorf("Expected %v, got %v", Password, password)
 	}
 }
 
@@ -115,17 +115,17 @@ func TestGetBasicAuthInfoNotBasicHeader(t *testing.T) {
 }
 func TestGetBasicAuthInfoNotBase64Encoded(t *testing.T) {
 	const (
-		EXPECTED_ERROR = "No valid base64 data in basic auth scheme found"
+		ExpectedError = "No valid base64 data in basic auth scheme found"
 	)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.Header.Add("Authorization", "Basic invalid:string")
 
 	username, password, err := getBasicAuthInfo(req)
 	if err == nil {
-		t.Errorf("Expected error: %v", EXPECTED_ERROR)
+		t.Errorf("Expected error: %v", ExpectedError)
 	}
-	if err.Error() != EXPECTED_ERROR {
-		t.Errorf("Expected %v, got %v", EXPECTED_ERROR, err)
+	if err.Error() != ExpectedError {
+		t.Errorf("Expected %v, got %v", ExpectedError, err)
 	}
 	if len(username) != 0 {
 		t.Errorf("Unexpected username: %v", username)
@@ -136,17 +136,17 @@ func TestGetBasicAuthInfoNotBase64Encoded(t *testing.T) {
 }
 func TestGetBasicAuthInfoNotCredentials(t *testing.T) {
 	const (
-		EXPECTED_ERROR = "Invalid Authorization header"
+		ExpectedError = "Invalid Authorization header"
 	)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
-	req.Header.Add("Authorization", "Basic "+VALID_BASE64_STRING)
+	req.Header.Add("Authorization", "Basic "+ValidBase64String)
 
 	username, password, err := getBasicAuthInfo(req)
 	if err == nil {
-		t.Errorf("Expected error: %v", EXPECTED_ERROR)
+		t.Errorf("Expected error: %v", ExpectedError)
 	}
-	if err.Error() != EXPECTED_ERROR {
-		t.Errorf("Expected %v, got %v", EXPECTED_ERROR, err)
+	if err.Error() != ExpectedError {
+		t.Errorf("Expected %v, got %v", ExpectedError, err)
 	}
 	if len(username) != 0 {
 		t.Errorf("Unexpected username: %v", username)

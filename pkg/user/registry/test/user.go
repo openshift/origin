@@ -7,7 +7,7 @@ import (
 type UserRegistry struct {
 	Err           error
 	User          *api.User
-	DeletedUserId string
+	DeletedUserID string
 }
 
 func (r *UserRegistry) GetUser(id string) (*api.User, error) {

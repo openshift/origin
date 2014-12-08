@@ -19,6 +19,7 @@ This command launches a router connected to your OpenShift master. The router li
 created by users and keeps a local router configuration up to date with those changes.
 `
 
+// NewCommandRouter provides CLI handler for router command
 func NewCommandRouter(name string) *cobra.Command {
 	flag.Set("v", "4")
 	cfg := clientcmd.NewConfig()

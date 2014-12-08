@@ -9,15 +9,15 @@ import (
 )
 
 const (
-	ProtocolHttp  = "http"
-	ProtocolHttps = "https"
-	ProtocolTls   = "tls"
+	ProtocolHTTP  = "http"
+	ProtocolHTTPS = "https"
+	ProtocolTLS   = "tls"
 )
 
 const (
-	TERM_EDGE  = "TERM_EDGE"
-	TERM_GEAR  = "TERM_GEAR"
-	TERM_RESSL = "TERM_RESSL"
+	TermEdge  = "TERM_EDGE"
+	TermGear  = "TERM_GEAR"
+	TermRessl = "TERM_RESSL"
 )
 
 const (
@@ -150,7 +150,7 @@ func (routes *Routes) AddAlias(alias, frontendName string) {
 
 func (routes *Routes) RemoveAlias(alias, frontendName string) {
 	frontend := routes.GlobalRoutes[frontendName]
-	newAliases := make([]string, 0)
+	newAliases := []string{}
 	for _, v := range frontend.HostAliases {
 		if v == alias || v == "" {
 			continue
@@ -167,8 +167,8 @@ func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints [
 	existingFrontend := routes.GlobalRoutes[frontend.Name]
 
 	epIDs := make([]string, 1)
-	for newEpId := range endpoints {
-		newEndpoint := endpoints[newEpId]
+	for newEpID := range endpoints {
+		newEndpoint := endpoints[newEpID]
 		if newEndpoint.IP == "" || newEndpoint.Port == "" {
 			continue
 		}
@@ -191,8 +191,8 @@ func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints [
 	found := false
 	for _, be := range existingFrontend.Backends {
 		if be.FePath == backend.FePath && be.BePath == backend.BePath && cmpStrSlices(backend.Protocols, be.Protocols) {
-			for _, epId := range epIDs {
-				be.EndpointIDs = append(be.EndpointIDs, epId)
+			for _, epID := range epIDs {
+				be.EndpointIDs = append(be.EndpointIDs, epID)
 			}
 			existingFrontend.Backends[be.ID] = be
 			found = true
@@ -201,7 +201,7 @@ func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints [
 	}
 	if !found {
 		id = makeID()
-		existingFrontend.Backends[id] = Backend{id, backend.FePath, backend.BePath, backend.Protocols, epIDs, TERM_EDGE, nil}
+		existingFrontend.Backends[id] = Backend{id, backend.FePath, backend.BePath, backend.Protocols, epIDs, TermEdge, nil}
 	}
 	routes.GlobalRoutes[existingFrontend.Name] = existingFrontend
 	routes.WriteRoutes()

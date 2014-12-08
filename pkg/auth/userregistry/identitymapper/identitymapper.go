@@ -7,20 +7,20 @@ import (
 )
 
 type alwaysCreateUserIdentityToUserMapper struct {
-	providerId           string
+	providerID           string
 	userIdentityRegistry useridentitymapping.Registry
 }
 
-// NewAlwaysCreateProvisioner always does a createOrUpdate for the passed identity while forcing the identity.Provider to the providerId supplied here
-func NewAlwaysCreateUserIdentityToUserMapper(providerId string, userIdentityRegistry useridentitymapping.Registry) authapi.UserIdentityMapper {
-	return &alwaysCreateUserIdentityToUserMapper{providerId, userIdentityRegistry}
+// NewAlwaysCreateProvisioner always does a createOrUpdate for the passed identity while forcing the identity.Provider to the providerID supplied here
+func NewAlwaysCreateUserIdentityToUserMapper(providerID string, userIdentityRegistry useridentitymapping.Registry) authapi.UserIdentityMapper {
+	return &alwaysCreateUserIdentityToUserMapper{providerID, userIdentityRegistry}
 }
 
 // ProvisionUser implements UserIdentityMapper.UserFor
 func (p *alwaysCreateUserIdentityToUserMapper) UserFor(identityInfo authapi.UserIdentityInfo) (authapi.UserInfo, error) {
 	userIdentityMapping := &userapi.UserIdentityMapping{
 		Identity: userapi.Identity{
-			Provider: p.providerId, // Provider id is imposed
+			Provider: p.providerID, // Provider id is imposed
 			UserName: identityInfo.GetUserName(),
 			Extra:    identityInfo.GetExtra(),
 		},

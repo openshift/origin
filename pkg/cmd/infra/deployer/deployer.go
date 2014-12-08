@@ -25,6 +25,7 @@ type config struct {
 	Namespace      string
 }
 
+// NewCommandDeployer provides a CLI handler for deploy
 func NewCommandDeployer(name string) *cobra.Command {
 	cfg := &config{
 		Config: clientcmd.NewConfig(),
@@ -65,6 +66,6 @@ func deploy(cfg *config) error {
 	}
 
 	// TODO: Choose a strategy based on some input
-	strategy := &strategy.RecreateDeploymentStrategy{strategy.RealReplicationController{KubeClient: kClient}}
+	strategy := &strategy.DeploymentStrategy{strategy.RealReplicationController{KubeClient: kClient}}
 	return strategy.Deploy(deployment)
 }

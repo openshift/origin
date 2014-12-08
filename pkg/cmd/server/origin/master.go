@@ -341,9 +341,8 @@ func env(key string, defaultValue string) string {
 	val := os.Getenv(key)
 	if len(val) == 0 {
 		return defaultValue
-	} else {
-		return val
 	}
+	return val
 }
 
 // ClientWebhookInterface is a webhookBuildInterface which delegates to the OpenShift client interfaces

@@ -6,12 +6,12 @@ import (
 	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/client"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
-	"github.com/openshift/origin/pkg/cmd/kubectl"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -46,8 +46,8 @@ func CommandFor(basename string) *cobra.Command {
 		return builder.NewCommandSTIBuilder(basename)
 	case "openshift-docker-build":
 		return builder.NewCommandDockerBuilder(basename)
-	case "kubectl":
-		return kubectl.NewCommandKubectl(basename)
+	case "cli":
+		return cli.NewCommandCLI(basename)
 	default:
 		return NewCommandOpenShift()
 	}
@@ -65,8 +65,8 @@ func NewCommandOpenShift() *cobra.Command {
 	}
 
 	root.AddCommand(server.NewCommandStartServer("start"))
-	root.AddCommand(client.NewCommandKubecfg("kube"))
-	root.AddCommand(kubectl.NewCommandKubectl("kubectl"))
+	root.AddCommand(client.NewCommandKubecfg("kube")) // DEPRECATED, use cli instead
+	root.AddCommand(cli.NewCommandCLI("cli"))
 	root.AddCommand(newVersionCommand("version"))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users

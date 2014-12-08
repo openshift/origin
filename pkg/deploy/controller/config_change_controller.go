@@ -54,8 +54,8 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 		return
 	}
 
-	latestDeploymentId := deployutil.LatestDeploymentIDForConfig(config)
-	obj, exists := dc.DeploymentStore.Get(latestDeploymentId)
+	latestDeploymentID := deployutil.LatestDeploymentIDForConfig(config)
+	obj, exists := dc.DeploymentStore.Get(latestDeploymentID)
 
 	if !exists {
 		glog.V(4).Info("Ignoring config change due to lack of existing deployment")

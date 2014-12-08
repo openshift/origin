@@ -20,29 +20,54 @@ type fileDesc struct {
 	shouldSkip   bool
 }
 
+type linkDesc struct {
+	linkName string
+	fileName string
+}
+
 func createTestFiles(baseDir string, files []fileDesc) error {
 	for _, fd := range files {
-		filename := filepath.Join(baseDir, fd.name)
-		err := os.MkdirAll(filepath.Dir(filename), 0700)
+		fileName := filepath.Join(baseDir, fd.name)
+		if err := os.MkdirAll(filepath.Dir(fileName), 0700); err != nil {
+			return err
+		}
+		file, err := os.Create(fileName)
 		if err != nil {
 			return err
 		}
-		file, err := os.Create(filename)
 		file.WriteString(fd.content)
 		file.Chmod(fd.mode)
 		file.Close()
-		os.Chtimes(filename, fd.modifiedDate, fd.modifiedDate)
+		os.Chtimes(fileName, fd.modifiedDate, fd.modifiedDate)
 	}
 	return nil
 }
 
-func verifyTarFile(t *testing.T, filename string, files []fileDesc) {
+func createTestLinks(baseDir string, links []linkDesc) error {
+	for _, ld := range links {
+		linkName := filepath.Join(baseDir, ld.linkName)
+		if err := os.MkdirAll(filepath.Dir(linkName), 0700); err != nil {
+			return err
+		}
+		if err := os.Symlink(ld.fileName, linkName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifyTarFile(t *testing.T, filename string, files []fileDesc, links []linkDesc) {
 	filesToVerify := make(map[string]fileDesc)
 	for _, fd := range files {
 		if !fd.shouldSkip {
 			filesToVerify[fd.name] = fd
 		}
 	}
+	linksToVerify := make(map[string]linkDesc)
+	for _, ld := range links {
+		linksToVerify[ld.linkName] = ld
+	}
+
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
@@ -60,11 +85,11 @@ func verifyTarFile(t *testing.T, filename string, files []fileDesc) {
 		finfo := hdr.FileInfo()
 		if fd, ok := filesToVerify[hdr.Name]; ok {
 			delete(filesToVerify, hdr.Name)
-			if finfo.Mode() != fd.mode {
+			if finfo.Mode().Perm() != fd.mode {
 				t.Errorf("File %s from tar %s does not match expected mode. Expected: %v, actual: %v\n",
-					hdr.Name, filename, fd.mode, finfo.Mode())
+					hdr.Name, filename, fd.mode, finfo.Mode().Perm())
 			}
-			if finfo.ModTime().UTC() != fd.modifiedDate {
+			if !fd.modifiedDate.IsZero() && finfo.ModTime().UTC() != fd.modifiedDate {
 				t.Errorf("File %s from tar %s does not match expected modified date. Expected: %v, actual: %v\n",
 					hdr.Name, filename, fd.modifiedDate, finfo.ModTime().UTC())
 			}
@@ -77,14 +102,21 @@ func verifyTarFile(t *testing.T, filename string, files []fileDesc) {
 				t.Errorf("Content for file %s in tar %s doesn't match expected value. Expected: %s, Actual: %s",
 					finfo.Name(), filename, fd.content, fileContent)
 			}
-
+		} else if ld, ok := linksToVerify[hdr.Name]; ok {
+			delete(linksToVerify, hdr.Name)
+			if finfo.Mode()&os.ModeSymlink == 0 {
+				t.Errorf("Incorrect link %s", finfo.Name())
+			}
+			if hdr.Linkname != ld.fileName {
+				t.Errorf("Incorrect link location. Expected: %s, Actual %s", ld.fileName, hdr.Linkname)
+			}
 		} else {
 			t.Errorf("Cannot find file %s from tar in files to verify.\n", hdr.Name)
 		}
 	}
 
-	if len(filesToVerify) > 0 {
-		t.Errorf("Did not find all expected files in tar: %v", filesToVerify)
+	if len(filesToVerify) > 0 || len(linksToVerify) > 0 {
+		t.Errorf("Did not find all expected files in tar: %v, %v", filesToVerify, linksToVerify)
 	}
 }
 
@@ -102,16 +134,24 @@ func TestCreateTar(t *testing.T) {
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false},
 		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true},
 	}
-	err = createTestFiles(tempDir, testFiles)
-	if err != nil {
+	if err := createTestFiles(tempDir, testFiles); err != nil {
 		t.Fatalf("Cannot create test files: %v", err)
+	}
+	testLinks := []linkDesc{
+		{"link/okfilelink", "../dir01/dir02/test1.txt"},
+		{"link/errfilelink", "../dir01/missing.target"},
+		{"link/okdirlink", "../dir01/dir02"},
+		{"link/errdirlink", "../dir01/.git"},
+	}
+	if err := createTestLinks(tempDir, testLinks); err != nil {
+		t.Fatalf("Cannot create link files: %v", err)
 	}
 
 	tarFile, err := th.CreateTarFile("", tempDir)
 	if err != nil {
 		t.Fatalf("Unable to create new tar upload file: %v", err)
 	}
-	verifyTarFile(t, tarFile, testFiles)
+	verifyTarFile(t, tarFile, testFiles, testLinks)
 }
 
 func createTestTar(files []fileDesc, writer io.Writer) {
@@ -177,6 +217,7 @@ func TestExtractTarStream(t *testing.T) {
 		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false},
 		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false},
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false},
+		{"dir01/symlink", modificationDate, 0777, "", false},
 	}
 	reader, writer := io.Pipe()
 	destDir, err := ioutil.TempDir("", "testExtract")

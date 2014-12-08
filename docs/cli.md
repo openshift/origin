@@ -1,9 +1,9 @@
-kubectl command line interface
+cli command line interface
 ==============================
 
-The `kubectl` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s).
+The `cli` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s).
 
-Kubectl is *verb focused*. The base verbs are *get*, *create*, *delete*,
+cli is *verb focused*. The base verbs are *get*, *create*, *delete*,
 *update* and *describe*. These verbs can be used to manage both Kubernetes and
 OpenShift resources.
 
@@ -29,7 +29,7 @@ Common Flags
 | --insecure-skip-tls-verify | Skip SSL certificate validation (will make HTTPS insecure) |
 | -h (--help)                | Display help for specified command |
 
-kubectl get
+cli get
 -----------
 
 This command can be used for displaying one or many resources. Possible
@@ -41,16 +41,16 @@ events).
 ### Example Usage
 
 ```
-$ openshift kubectl get pods
-$ openshift kubectl get replicationController 1234-56-7890-234234-456456
-$ openshift kubectl get service database
-$ openshift kubectl get -f json pods
+$ openshift cli get pods
+$ openshift cli get replicationController 1234-56-7890-234234-456456
+$ openshift cli get service database
+$ openshift cli get -f json pods
 ```
 
 ### Output formatting
 
 You can control the output format by using the `-o format` flag for `get`.
-By default, `kubectl` uses human-friendly printer format for console.
+By default, `cli` uses human-friendly printer format for console.
 
 You can control what API version will be used to print the resource by using the
 `--output-version` flag. By default it uses the latest API version.
@@ -66,18 +66,18 @@ Available formats include:
 
 An example of using `-o template` to retrieve the *name* of the first build:
 
-`$ openshift kubectl get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+`$ openshift cli get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
 
 ### Selectors
 
-Kubectl `get` provides also 'selectors' that you can use to filter the output
+cli `get` provides also 'selectors' that you can use to filter the output
 by applying key-value pairs that will be matched with the resource labels:
 
-`$ openshift kubectl get pods -s template=production`
+`$ openshift clic get pods -s template=production`
 
 This command will return only pods whose `labels` include `"template": "production"`
 
-kubectl create
+cli create
 --------------
 
 This command can be used to create resources. It does not require pointers about
@@ -87,12 +87,12 @@ After successful creation, the resource name will be printed to the console.
 ### Example Usage
 
 ```
-$ openshift kubectl create -f pod.json
-$ cat pod.json | openshift kubectl create -f -
-$ openshift kubectl create -f http://server/pod.json
+$ openshift cli create -f pod.json
+$ cat pod.json | openshift cli create -f -
+$ openshift cli create -f http://server/pod.json
 ```
 
-kubectl update
+cli update
 ---------------
 
 This command can be used to update existing resources.
@@ -100,12 +100,12 @@ This command can be used to update existing resources.
 ### Example Usage
 
 ```
-$ openshift kubectl update -f pod.json
-$ cat pod.json | openshift kubectl update -f -
-$ openshift kubectl update -f http://server/pod.json
+$ openshift cli update -f pod.json
+$ cat pod.json | openshift cli update -f -
+$ openshift cli update -f http://server/pod.json
 ```
 
-kubectl delete
+cli delete
 --------------
 
 This command deletes the resource.
@@ -113,11 +113,11 @@ This command deletes the resource.
 ### Example Usage
 
 ```
-$ openshift kubectl delete -f pod.json
-$ openshift kubectl delete pod 1234-56-7890-234234-456456
+$ openshift cli delete -f pod.json
+$ openshift cli delete pod 1234-56-7890-234234-456456
 ```
 
-kubectl describe
+cli describe
 ----------------
 
 The `describe` command is a wordier version of `get` which also integrates other
@@ -125,9 +125,9 @@ information that's related to a given resource.
 
 ### Example Usage
 
-`$ openshift kubectl describe service frontend`
+`$ openshift cli describe service frontend`
 
-kubectl createall
+cli createall
 -----------------
 
 This command creates multiple resources defined in JSON or YAML file provided
@@ -136,33 +136,33 @@ using the `-f` option. The list of resources is defined as an 'array'.
 ### Example Usage
 
 ```
-$ openshift kubectl createall -f resources.json
-$ cat resources.json | openshift kubectl createall -f -
+$ openshift cli createall -f resources.json
+$ cat resources.json | openshift cli createall -f -
 ```
 
-kubectl namespace
+cli namespace
 -----------------
 
-You can use this command to set the default namespace used for all kubectl
+You can use this command to set the default namespace used for all cli
 commands.
 
 ### Example Usage
 
-`$ openshift kubectl namespace myuser`
+`$ openshift cli namespace myuser`
 
-kubectl log
+cli log
 ------------
 
 This command dumps the logs from a given Pod container. You can list the
 containers from a Pod using the following command:
 
-`$ openshift kubectl get -o yaml pod POD_ID`
+`$ openshift cli get -o yaml pod POD_ID`
 
 ### Example Usage
 
-`$ openshift kubectl log frontend-pod mysql-container`
+`$ openshift cli log frontend-pod mysql-container`
 
-kubectl apply
+cli apply
 -------------
 
 > **NOTE**: This command will be later replaced by upstream (see: [kubectl createall](https://github.com/openshift/origin/blob/master/docs/cli.md#kubectl-createall)).
@@ -174,11 +174,11 @@ create operation on them. Look at [examples/sample-app/docker-registry-config.js
 ### Example Usage
 
 ```
-$ openshift kubectl apply -f examples/sample-app/docker-registry-config.json
-$ cat config.json | openshift kubectl apply -f -
+$ openshift cli apply -f examples/sample-app/docker-registry-config.json
+$ cat config.json | openshift cli apply -f -
 ```
 
-kubectl process
+cli process
 ---------------
 
 This command processes a Template into a valid Config resource. The processing
@@ -189,11 +189,11 @@ found in [examples/guestbook/template.json](https://github.com/openshift/origin/
 ### Example Usage
 
 ```
-$ openshift kubectl process -f examples/guestbook/template.json > config.json
-$ openshift kubectl process -f template.json | openshift kubectl apply -f -
+$ openshift cli process -f examples/guestbook/template.json > config.json
+$ openshift cli process -f template.json | openshift cli apply -f -
 ```
 
-kubectl build-logs
+cli build-logs
 ------------------
 
 > **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/openshift/origin/blob/master/docs/cli.md#kubectl-log)).
@@ -202,8 +202,8 @@ This command will retrieve the logs from a Build container. It allows you to
 debug broken Build. If the build is still running, this command can stream the
 logs from the container to console. You can obtain a list of builds by using:
 
-`$ openshift kubectl get builds`
+`$ openshift cli get builds`
 
 ### Example Usage
 
-`$ openshift kubectl build-logs rubyapp-build`
+`$ openshift cli build-logs rubyapp-build`

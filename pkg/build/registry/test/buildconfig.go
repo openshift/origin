@@ -11,7 +11,7 @@ type BuildConfigRegistry struct {
 	Err             error
 	BuildConfigs    *api.BuildConfigList
 	BuildConfig     *api.BuildConfig
-	DeletedConfigId string
+	DeletedConfigID string
 }
 
 func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, labels labels.Selector) (*api.BuildConfigList, error) {
@@ -31,7 +31,7 @@ func (r *BuildConfigRegistry) UpdateBuildConfig(ctx kapi.Context, config *api.Bu
 }
 
 func (r *BuildConfigRegistry) DeleteBuildConfig(ctx kapi.Context, id string) error {
-	r.DeletedConfigId = id
+	r.DeletedConfigID = id
 	return r.Err
 }
 

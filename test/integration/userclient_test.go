@@ -112,7 +112,7 @@ func TestUserLookup(t *testing.T) {
 		Name: ":test",
 	}
 	userContext := context.NewRequestContextMap()
-	userContextFunc := userregistry.UserContextFunc(func(req *http.Request) (userregistry.UserInfo, bool) {
+	userContextFunc := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
 		obj, found := userContext.Get(req)
 		if user, ok := obj.(authapi.UserInfo); found && ok {
 			return user, true
@@ -126,7 +126,7 @@ func TestUserLookup(t *testing.T) {
 	}
 
 	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi/v1beta1", interfaces.MetadataAccessor)
-	apihandler = userregistry.NewCurrentUserContextFilter("/osapi/v1beta1/users/~", userContextFunc, apihandler)
+	apihandler = userregistry.NewCurrentContextFilter("/osapi/v1beta1/users/~", userContextFunc, apihandler)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		userContext.Set(req, userInfo)
 		apihandler.ServeHTTP(w, req)

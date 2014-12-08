@@ -6,7 +6,7 @@ import (
 )
 
 // NoDefaultIP means no suitable non-loopback address can be found.
-var NoDefaultIP = errors.New("no suitable IP address")
+var ErrorNoDefaultIP = errors.New("no suitable IP address")
 
 // DefaultLocalIP4 returns an IPv4 address that this host can be reached
 // on. Will return NoDefaultIP if no suitable address can be found.
@@ -30,5 +30,5 @@ func DefaultLocalIP4() (net.IP, error) {
 			}
 		}
 	}
-	return nil, NoDefaultIP
+	return nil, ErrorNoDefaultIP
 }

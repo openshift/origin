@@ -38,7 +38,7 @@ func TestAddParameter(t *testing.T) {
 	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
 	json.Unmarshal(jsonData, &template)
 
-	processor := NewTemplateProcessor(nil)
+	processor := NewProcessor(nil)
 	processor.AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", ""))
 	processor.AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", ""))
 
@@ -99,7 +99,7 @@ func TestParameterGenerators(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		processor := NewTemplateProcessor(test.generators)
+		processor := NewProcessor(test.generators)
 		template := api.Template{Parameters: []api.Parameter{test.parameter}}
 		err := processor.GenerateParameterValues(&template)
 		if err != nil && test.shouldPass {
@@ -123,7 +123,7 @@ func ExampleProcessTemplateParameters() {
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
 	}
-	processor := NewTemplateProcessor(generators)
+	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
 	processor.AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", ""))

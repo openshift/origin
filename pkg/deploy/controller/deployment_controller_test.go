@@ -234,7 +234,7 @@ func TestHandlePodRunning(t *testing.T) {
 
 func TestHandlePodTerminatedOk(t *testing.T) {
 	var updatedDeployment *deployapi.Deployment
-	var deletedPodId string
+	var deletedPodID string
 
 	controller := &DeploymentController{
 		DeploymentInterface: &testDcDeploymentInterface{
@@ -245,7 +245,7 @@ func TestHandlePodTerminatedOk(t *testing.T) {
 		},
 		PodInterface: &testDcPodInterface{
 			DeletePodFunc: func(namespace, name string) error {
-				deletedPodId = name
+				deletedPodID = name
 				return nil
 			},
 		},
@@ -264,7 +264,7 @@ func TestHandlePodTerminatedOk(t *testing.T) {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
 
-	if len(deletedPodId) == 0 {
+	if len(deletedPodID) == 0 {
 		t.Fatalf("expected pod to be deleted")
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 )
@@ -104,10 +105,14 @@ func getDownloader() (Downloader, *FakeSchemeReader) {
 func TestDownloadFile(t *testing.T) {
 	dl, fr := getDownloader()
 	fr.content = "test file content"
-	temp, _ := ioutil.TempFile("", "testdownload")
+	temp, err := ioutil.TempFile("", "testdownload")
+	if err != nil {
+		t.Fatalf("Cannot create temp directory for test: %v", err)
+	}
+	defer os.Remove(temp.Name())
 	u, _ := url.Parse("http://www.test.url/a/file")
 	temp.Close()
-	err := dl.DownloadFile(u, temp.Name())
+	err = dl.DownloadFile(u, temp.Name())
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

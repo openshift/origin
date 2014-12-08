@@ -40,7 +40,7 @@ func postForm(url string, body url.Values) (resp *http.Response, err error) {
 	return tr.RoundTrip(req)
 }
 
-func getUrl(url string) (resp *http.Response, err error) {
+func getURL(url string) (resp *http.Response, err error) {
 	tr := &http.Transport{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

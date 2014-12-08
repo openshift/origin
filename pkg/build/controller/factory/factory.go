@@ -49,7 +49,7 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	return &controller.BuildController{
 		BuildStore:   factory.buildStore,
 		BuildUpdater: ClientBuildUpdater{factory.Client},
-		PodCreator:   ClientPodCreator{factory.KubeClient},
+		PodManager:   ClientPodManager{factory.KubeClient},
 		NextBuild: func() *buildapi.Build {
 			return buildQueue.Pop().(*buildapi.Build)
 		},
@@ -134,13 +134,13 @@ func (lw *buildLW) Watch(resourceVersion string) (watch.Interface, error) {
 	return lw.client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
 }
 
-// ClientPodCreator is a podCreator which delegates to the Kubernetes client interface.
-type ClientPodCreator struct {
+// ClientPodManager is a PodManager which delegates to the Kubernetes client interface.
+type ClientPodManager struct {
 	KubeClient kclient.Interface
 }
 
 // CreatePod creates a pod using the Kubernetes client.
-func (c ClientPodCreator) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (c ClientPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return c.KubeClient.Pods(namespace).Create(pod)
 }
 
@@ -152,4 +152,9 @@ type ClientBuildUpdater struct {
 // UpdateBuild updates build using the OpenShift client.
 func (c ClientBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
 	return c.Client.Builds(namespace).Update(build)
+}
+
+// DeletePod destroys a pod using the Kubernetes client.
+func (c ClientPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+	return c.KubeClient.Pods(namespace).Delete(pod.Name)
 }

@@ -17,7 +17,7 @@ type DockerBuildStrategy struct {
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
 func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	buildJson, err := json.Marshal(build)
+	buildJSON, err := json.Marshal(build)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 						Name:  "docker-build",
 						Image: bs.BuilderImage,
 						Env: []kapi.EnvVar{
-							{Name: "BUILD", Value: string(buildJson)},
+							{Name: "BUILD", Value: string(buildJSON)},
 						},
 					},
 				},

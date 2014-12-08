@@ -89,8 +89,8 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	glog.Infof("oauth server is on %v\n", oauthServer.URL)
 
 	// set up a front proxy guarding the oauth server
-	proxyHttpHandler := NewBasicAuthChallenger("TestRegistryAndServer", validUsers, NewXRemoteUserProxyingHandler(oauthServer.URL))
-	proxyServer := httptest.NewServer(proxyHttpHandler)
+	proxyHTTPHandler := NewBasicAuthChallenger("TestRegistryAndServer", validUsers, NewXRemoteUserProxyingHandler(oauthServer.URL))
+	proxyServer := httptest.NewServer(proxyHTTPHandler)
 	glog.Infof("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid

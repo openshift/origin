@@ -13,29 +13,29 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
-// GitHubWebHook used for processing github webhook requests.
-type GitHubWebHook struct{}
+// WebHook used for processing github webhook requests.
+type WebHook struct{}
 
 // New returns github webhook plugin.
-func New() *GitHubWebHook {
-	return &GitHubWebHook{}
+func New() *WebHook {
+	return &WebHook{}
 }
 
-type gitHubCommit struct {
+type commit struct {
 	ID        string                `json:"id,omitempty" yaml:"id,omitempty"`
 	Author    api.SourceControlUser `json:"author,omitempty" yaml:"author,omitempty"`
 	Committer api.SourceControlUser `json:"committer,omitempty" yaml:"committer,omitempty"`
 	Message   string                `json:"message,omitempty" yaml:"message,omitempty"`
 }
 
-type gitHubPushEvent struct {
-	Ref        string       `json:"ref,omitempty" yaml:"ref,omitempty"`
-	After      string       `json:"after,omitempty" yaml:"after,omitempty"`
-	HeadCommit gitHubCommit `json:"head_commit,omitempty" yaml:"head_commit,omitempty"`
+type pushEvent struct {
+	Ref        string `json:"ref,omitempty" yaml:"ref,omitempty"`
+	After      string `json:"after,omitempty" yaml:"after,omitempty"`
+	HeadCommit commit `json:"head_commit,omitempty" yaml:"head_commit,omitempty"`
 }
 
 // Extract services webhooks from github.com
-func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
+func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
 	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookType, buildCfg)
 	if !ok {
 		err = fmt.Errorf("BuildConfig %s does not support the Github webhook trigger type", buildCfg.Name)
@@ -61,7 +61,7 @@ func (p *GitHubWebHook) Extract(buildCfg *api.BuildConfig, secret, path string, 
 	if err != nil {
 		return
 	}
-	var event gitHubPushEvent
+	var event pushEvent
 	if err = json.Unmarshal(body, &event); err != nil {
 		return
 	}

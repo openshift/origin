@@ -30,8 +30,8 @@ func NewServer(helper tools.EtcdHelper) *Server {
 	return s
 }
 
-// API_v1beta1 returns the resources and codec for API version v1beta1.
-func (s *Server) API_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec) {
+// APIV1beta1 returns the resources and codec for API version v1beta1.
+func (s *Server) APIV1beta1() (map[string]apiserver.RESTStorage, runtime.Codec) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range s.storage {
 		storage[k] = v

@@ -42,13 +42,13 @@ sleep 5
 
 # trigger a build
 echo &quot;Triggering new application build and deployment&quot;
-curl -X POST $OPENSHIFT_HOST/osapi/v1beta1/buildConfigHooks/ruby-test-build/secret101/generic
+openshift kubectl start-build ruby-test-build -s $OPENSHIFT_HOST
 
 # check that the build test image deployed successfully
 set +e
 rc=1
 count=0
-attempts=60
+attempts=100
 
 echo &quot;Checking test deployment at $TEST_ENDPOINT&quot;
 while [ $rc -ne 0 -a $count -lt $attempts ]; do

@@ -1,7 +1,6 @@
 package origin
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -124,6 +123,7 @@ func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
 	}
 }
 
+// NewOpenShiftOAuthClientConfig provides config for OpenShift OAuth client
 func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.Client) *osincli.ClientConfig {
 	config := &osincli.ClientConfig{
 		ClientId:                 client.Name,
@@ -192,7 +192,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 	case "auto":
 		grantHandler = handlers.NewAutoGrant(authregistry)
 	case "prompt":
-		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultGrantFormRenderer, clientregistry, authregistry)
+		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
 		grantServer.Install(mux, OpenShiftApprovePrefix)
 		grantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
 	default:
@@ -276,7 +276,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler(sessionStore session.Store)
 		currType = strings.TrimSpace(currType)
 		switch currType {
 		case "session":
-			successHandlers = append(successHandlers, session.NewSessionAuthenticator(sessionStore, "ssn"))
+			successHandlers = append(successHandlers, session.NewAuthenticator(sessionStore, "ssn"))
 		}
 	}
 
@@ -310,7 +310,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = requesthandlers.NewBasicAuthAuthentication(passwordAuthenticator)
 	case "session":
-		authRequestHandler = session.NewSessionAuthenticator(sessionStore, "ssn")
+		authRequestHandler = session.NewAuthenticator(sessionStore, "ssn")
 	default:
 		glog.Fatalf("No AuthenticationRequestHandler found that matches %v.  The oauth server cannot start!", authRequestHandlerType)
 	}
@@ -342,7 +342,7 @@ func GetTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, er
 	case "file":
 		return authfile.NewTokenAuthenticator(env("ORIGIN_AUTH_FILE_TOKEN_AUTHENTICATOR_PATH", "authorizedTokens.csv"))
 	default:
-		return nil, errors.New(fmt.Sprintf("No TokenAuthenticator found that matches %v.  The oauth server cannot start!", tokenAuthenticatorType))
+		return nil, fmt.Errorf("No TokenAuthenticator found that matches %v.  The oauth server cannot start!", tokenAuthenticatorType)
 	}
 }
 
@@ -352,6 +352,7 @@ type redirectAuthHandler struct {
 	ThenParam   string
 }
 
+// AuthenticationNeeded redirects HTTP request to authorization URL
 func (auth *redirectAuthHandler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
 	redirectURL, err := url.Parse(auth.RedirectURL)
 	if err != nil {
@@ -377,6 +378,7 @@ type callbackPasswordAuthenticator struct {
 // Redirects to the then param on successful authentication
 type redirectSuccessHandler struct{}
 
+// AuthenticationSuccess informs client when authentication was successful
 func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	if len(then) == 0 {
 		return false, fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)

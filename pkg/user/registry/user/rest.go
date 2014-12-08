@@ -16,7 +16,7 @@ type REST struct {
 	registry Registry
 }
 
-// NewStorage returns a new REST.
+// NewREST returns a new REST.
 func NewREST(registry Registry) apiserver.RESTStorage {
 	return &REST{registry}
 }
