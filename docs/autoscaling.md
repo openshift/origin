@@ -157,6 +157,13 @@ Auto-scaling config parameters will be added to the `ReplicationController`
     type ReplicationControllerState struct {
         AutoScaleConfig
     }
+    
+    type Route struct {
+        .... fields omitted ....
+        //selector for the replication controller that controls the underlying endpoints for the service
+        //used for scaling the application up and down if auto-scaling is enabled.
+        ReplicationControllerName string
+    }
 
 ## Implementations
 
