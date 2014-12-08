@@ -73,7 +73,7 @@ type EndpointsConfigHandler interface {
 // It accepts "set", "add" and "remove" operations of endpoints via channels, and invokes registered handlers on change.
 type EndpointsConfig struct {
 	mux     *config.Mux
-	watcher *config.Watcher
+	bcaster *config.Broadcaster
 	store   *endpointsStore
 }
 
@@ -83,13 +83,13 @@ func NewEndpointsConfig() *EndpointsConfig {
 	updates := make(chan struct{})
 	store := &endpointsStore{updates: updates, endpoints: make(map[string]map[string]api.Endpoints)}
 	mux := config.NewMux(store)
-	watcher := config.NewWatcher()
-	go watchForUpdates(watcher, store, updates)
-	return &EndpointsConfig{mux, watcher, store}
+	bcaster := config.NewBroadcaster()
+	go watchForUpdates(bcaster, store, updates)
+	return &EndpointsConfig{mux, bcaster, store}
 }
 
 func (c *EndpointsConfig) RegisterHandler(handler EndpointsConfigHandler) {
-	c.watcher.Add(config.ListenerFunc(func(instance interface{}) {
+	c.bcaster.Add(config.ListenerFunc(func(instance interface{}) {
 		handler.OnUpdate(instance.([]api.Endpoints))
 	}))
 }
@@ -125,17 +125,17 @@ func (s *endpointsStore) Merge(source string, change interface{}) error {
 	update := change.(EndpointsUpdate)
 	switch update.Op {
 	case ADD:
-		glog.V(4).Infof("Adding new endpoint from source %s : %v", source, update.Endpoints)
+		glog.V(4).Infof("Adding new endpoint from source %s : %+v", source, update.Endpoints)
 		for _, value := range update.Endpoints {
 			endpoints[value.Name] = value
 		}
 	case REMOVE:
-		glog.V(4).Infof("Removing an endpoint %v", update)
+		glog.V(4).Infof("Removing an endpoint %+v", update)
 		for _, value := range update.Endpoints {
 			delete(endpoints, value.Name)
 		}
 	case SET:
-		glog.V(4).Infof("Setting endpoints %v", update)
+		glog.V(4).Infof("Setting endpoints %+v", update)
 		// Clear the old map entries by just creating a new map
 		endpoints = make(map[string]api.Endpoints)
 		for _, value := range update.Endpoints {
@@ -168,7 +168,7 @@ func (s *endpointsStore) MergedState() interface{} {
 // It accepts "set", "add" and "remove" operations of services via channels, and invokes registered handlers on change.
 type ServiceConfig struct {
 	mux     *config.Mux
-	watcher *config.Watcher
+	bcaster *config.Broadcaster
 	store   *serviceStore
 }
 
@@ -178,13 +178,13 @@ func NewServiceConfig() *ServiceConfig {
 	updates := make(chan struct{})
 	store := &serviceStore{updates: updates, services: make(map[string]map[string]api.Service)}
 	mux := config.NewMux(store)
-	watcher := config.NewWatcher()
-	go watchForUpdates(watcher, store, updates)
-	return &ServiceConfig{mux, watcher, store}
+	bcaster := config.NewBroadcaster()
+	go watchForUpdates(bcaster, store, updates)
+	return &ServiceConfig{mux, bcaster, store}
 }
 
 func (c *ServiceConfig) RegisterHandler(handler ServiceConfigHandler) {
-	c.watcher.Add(config.ListenerFunc(func(instance interface{}) {
+	c.bcaster.Add(config.ListenerFunc(func(instance interface{}) {
 		handler.OnUpdate(instance.([]api.Service))
 	}))
 }
@@ -220,17 +220,17 @@ func (s *serviceStore) Merge(source string, change interface{}) error {
 	update := change.(ServiceUpdate)
 	switch update.Op {
 	case ADD:
-		glog.V(4).Infof("Adding new service from source %s : %v", source, update.Services)
+		glog.V(4).Infof("Adding new service from source %s : %+v", source, update.Services)
 		for _, value := range update.Services {
 			services[value.Name] = value
 		}
 	case REMOVE:
-		glog.V(4).Infof("Removing a service %v", update)
+		glog.V(4).Infof("Removing a service %+v", update)
 		for _, value := range update.Services {
 			delete(services, value.Name)
 		}
 	case SET:
-		glog.V(4).Infof("Setting services %v", update)
+		glog.V(4).Infof("Setting services %+v", update)
 		// Clear the old map entries by just creating a new map
 		services = make(map[string]api.Service)
 		for _, value := range update.Services {
@@ -259,10 +259,10 @@ func (s *serviceStore) MergedState() interface{} {
 	return services
 }
 
-// watchForUpdates invokes watcher.Notify() with the latest version of an object
+// watchForUpdates invokes bcaster.Notify() with the latest version of an object
 // when changes occur.
-func watchForUpdates(watcher *config.Watcher, accessor config.Accessor, updates <-chan struct{}) {
+func watchForUpdates(bcaster *config.Broadcaster, accessor config.Accessor, updates <-chan struct{}) {
 	for _ = range updates {
-		watcher.Notify(accessor.MergedState())
+		bcaster.Notify(accessor.MergedState())
 	}
 }

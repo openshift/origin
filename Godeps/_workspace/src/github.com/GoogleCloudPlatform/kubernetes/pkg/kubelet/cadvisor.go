@@ -42,6 +42,8 @@ func (kl *Kubelet) statsFromContainerPath(cc cadvisorInterface, containerPath st
 	return cinfo, nil
 }
 
+// This method takes a Docker container's ID and returns the stats for the
+// container.
 func (kl *Kubelet) statsFromDockerContainer(cc cadvisorInterface, containerId string, req *cadvisor.ContainerInfoRequest) (*cadvisor.ContainerInfo, error) {
 	cinfo, err := cc.DockerContainer(containerId, req)
 	if err != nil {
