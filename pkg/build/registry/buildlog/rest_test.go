@@ -20,19 +20,16 @@ func (p *podControl) getPod(namespace, name string) (*kapi.Pod, error) {
 			Name:      "foo",
 			Namespace: kapi.NamespaceDefault,
 		},
-		DesiredState: kapi.PodState{
-			Manifest: kapi.ContainerManifest{
-				Version: "v1beta1",
-				Containers: []kapi.Container{
-					{
-						Name: "foo-container",
-					},
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Name: "foo-container",
 				},
 			},
 		},
-		CurrentState: kapi.PodState{
-			Host:   "foo-host",
-			Status: kapi.PodRunning,
+		Status: kapi.PodStatus{
+			Host:  "foo-host",
+			Phase: kapi.PodRunning,
 		},
 	}
 	return pod, nil

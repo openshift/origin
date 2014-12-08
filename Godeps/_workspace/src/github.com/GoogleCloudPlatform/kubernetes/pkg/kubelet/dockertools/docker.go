@@ -25,15 +25,14 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
-	"os"
 	"os/exec"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 )
 
@@ -65,7 +64,7 @@ type DockerPuller interface {
 // dockerPuller is the default implementation of DockerPuller.
 type dockerPuller struct {
 	client  DockerInterface
-	keyring *dockerKeyring
+	keyring credentialprovider.DockerKeyring
 }
 
 type throttledDockerPuller struct {
@@ -77,19 +76,9 @@ type throttledDockerPuller struct {
 func NewDockerPuller(client DockerInterface, qps float32, burst int) DockerPuller {
 	dp := dockerPuller{
 		client:  client,
-		keyring: newDockerKeyring(),
+		keyring: credentialprovider.NewDockerKeyring(),
 	}
 
-	cfg, err := readDockerConfigFile()
-	if err == nil {
-		cfg.addToKeyring(dp.keyring)
-	} else if !os.IsNotExist(err) {
-		glog.V(1).Infof("Unable to parse Docker config file: %v", err)
-	}
-
-	if dp.keyring.count() == 0 {
-		glog.V(1).Infof("Continuing with empty Docker keyring")
-	}
 	if qps == 0.0 {
 		return dp
 	}
@@ -110,7 +99,7 @@ var dockerVersionWithExec = []uint{1, 1, 3}
 func (d *dockerContainerCommandRunner) getDockerServerVersion() ([]uint, error) {
 	env, err := d.client.Version()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get docker server version - %s", err)
+		return nil, fmt.Errorf("failed to get docker server version - %v", err)
 	}
 	version := []uint{}
 	for _, entry := range *env {
@@ -119,7 +108,7 @@ func (d *dockerContainerCommandRunner) getDockerServerVersion() ([]uint, error) 
 			for _, elem := range elems {
 				val, err := strconv.ParseUint(elem, 10, 32)
 				if err != nil {
-					return nil, fmt.Errorf("failed to parse docker server version (%s) - %s", entry, err)
+					return nil, fmt.Errorf("failed to parse docker server version %q: %v", entry, err)
 				}
 				version = append(version, uint(val))
 			}
@@ -180,7 +169,7 @@ func (d *dockerContainerCommandRunner) RunInContainer(containerID string, cmd []
 	}
 	execObj, err := d.client.CreateExec(createOpts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run in container - Exec setup failed - %s", err)
+		return nil, fmt.Errorf("failed to run in container - Exec setup failed - %v", err)
 	}
 	var buf bytes.Buffer
 	wrBuf := bufio.NewWriter(&buf)
@@ -218,7 +207,7 @@ func (p dockerPuller) Pull(image string) error {
 		Tag:        tag,
 	}
 
-	creds, ok := p.keyring.lookup(image)
+	creds, ok := p.keyring.Lookup(image)
 	if !ok {
 		glog.V(1).Infof("Pulling image %s without credentials", image)
 	}
@@ -245,6 +234,16 @@ func (p dockerPuller) IsImagePresent(name string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// RequireLatestImage returns if the user wants the latest image
+func RequireLatestImage(name string) bool {
+	_, tag := parseImageName(name)
+
+	if tag == "latest" {
+		return true
+	}
+	return false
 }
 
 func (p throttledDockerPuller) IsImagePresent(name string) (bool, error) {
@@ -312,6 +311,9 @@ func GetRecentDockerContainersWithNameAndUUID(client DockerInterface, podFullNam
 		return nil, err
 	}
 	for _, dockerContainer := range containers {
+		if len(dockerContainer.Names) == 0 {
+			continue
+		}
 		dockerPodName, dockerUUID, dockerContainerName, _ := ParseDockerName(dockerContainer.Names[0])
 		if dockerPodName != podFullName {
 			continue
@@ -334,6 +336,7 @@ func GetRecentDockerContainersWithNameAndUUID(client DockerInterface, podFullNam
 // By default the function will return snapshot of the container log
 // Log streaming is possible if 'follow' param is set to true
 // Log tailing is possible when number of tailed lines are set and only if 'follow' is false
+// TODO: Make 'RawTerminal' option  flagable.
 func GetKubeletDockerContainerLogs(client DockerInterface, containerID, tail string, follow bool, stdout, stderr io.Writer) (err error) {
 	opts := docker.LogsOptions{
 		Container:    containerID,
@@ -342,7 +345,7 @@ func GetKubeletDockerContainerLogs(client DockerInterface, containerID, tail str
 		OutputStream: stdout,
 		ErrorStream:  stderr,
 		Timestamps:   true,
-		RawTerminal:  true,
+		RawTerminal:  false,
 		Follow:       follow,
 	}
 
@@ -403,7 +406,7 @@ func inspectContainer(client DockerInterface, dockerID, containerName, tPath str
 			if found {
 				data, err := ioutil.ReadFile(path)
 				if err != nil {
-					glog.Errorf("Error on reading termination-log %s(%v)", path, err)
+					glog.Errorf("Error on reading termination-log %s: %v", path, err)
 				} else {
 					containerStatus.State.Termination.Message = string(data)
 				}
@@ -596,63 +599,4 @@ func parseImageName(image string) (string, string) {
 
 type ContainerCommandRunner interface {
 	RunInContainer(containerID string, cmd []string) ([]byte, error)
-}
-
-// dockerKeyring tracks a set of docker registry credentials, maintaining a
-// reverse index across the registry endpoints. A registry endpoint is made
-// up of a host (e.g. registry.example.com), but it may also contain a path
-// (e.g. registry.example.com/foo) This index is important for two reasons:
-// - registry endpoints may overlap, and when this happens we must find the
-//   most specific match for a given image
-// - iterating a map does not yield predictable results
-type dockerKeyring struct {
-	index []string
-	creds map[string]docker.AuthConfiguration
-}
-
-func newDockerKeyring() *dockerKeyring {
-	return &dockerKeyring{
-		index: make([]string, 0),
-		creds: make(map[string]docker.AuthConfiguration),
-	}
-}
-
-func (dk *dockerKeyring) add(registry string, creds docker.AuthConfiguration) {
-	dk.creds[registry] = creds
-
-	dk.index = append(dk.index, registry)
-	dk.reindex()
-}
-
-// reindex updates the index used to identify which credentials to use for
-// a given image. The index is reverse-sorted so more specific paths are
-// matched first. For example, if for the given image "quay.io/coreos/etcd",
-// credentials for "quay.io/coreos" should match before "quay.io".
-func (dk *dockerKeyring) reindex() {
-	sort.Sort(sort.Reverse(sort.StringSlice(dk.index)))
-}
-
-const defaultRegistryHost = "index.docker.io/v1/"
-
-func (dk *dockerKeyring) lookup(image string) (docker.AuthConfiguration, bool) {
-	// range over the index as iterating over a map does not provide
-	// a predictable ordering
-	for _, k := range dk.index {
-		if !strings.HasPrefix(image, k) {
-			continue
-		}
-
-		return dk.creds[k], true
-	}
-
-	// use credentials for the default registry if provided
-	if auth, ok := dk.creds[defaultRegistryHost]; ok {
-		return auth, true
-	}
-
-	return docker.AuthConfiguration{}, false
-}
-
-func (dk dockerKeyring) count() int {
-	return len(dk.creds)
 }

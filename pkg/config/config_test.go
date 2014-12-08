@@ -190,9 +190,11 @@ func TestAddConfigLabels(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "same value"},
 				},
-				DesiredState: kapi.ReplicationControllerState{
-					PodTemplate: kapi.PodTemplate{
-						Labels: map[string]string{"foo": "same value"},
+				Spec: kapi.ReplicationControllerSpec{
+					Template: &kapi.PodTemplateSpec{
+						ObjectMeta: kapi.ObjectMeta{
+							Labels: map[string]string{"foo": "same value"},
+						},
 					},
 				},
 			},
@@ -205,11 +207,13 @@ func TestAddConfigLabels(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "bar"},
 				},
-				DesiredState: kapi.ReplicationControllerState{
-					PodTemplate: kapi.PodTemplate{
-						Labels: map[string]string{"foo": "bar"},
+				Spec: kapi.ReplicationControllerSpec{
+					Template: &kapi.PodTemplateSpec{
+						ObjectMeta: kapi.ObjectMeta{
+							Labels: map[string]string{"foo": "bar"},
+						},
 					},
-					ReplicaSelector: map[string]string{"foo": "bar"},
+					Selector: map[string]string{"foo": "bar"},
 				},
 			},
 			addLabels:      map[string]string{"baz": ""},
@@ -221,11 +225,13 @@ func TestAddConfigLabels(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
 				},
-				DesiredState: kapi.ReplicationControllerState{
-					PodTemplate: kapi.PodTemplate{
-						Labels: map[string]string{"foo": "first value"},
+				Spec: kapi.ReplicationControllerSpec{
+					Template: &kapi.PodTemplateSpec{
+						ObjectMeta: kapi.ObjectMeta{
+							Labels: map[string]string{"foo": "first value"},
+						},
 					},
-					ReplicaSelector: map[string]string{"foo": "first value"},
+					Selector: map[string]string{"foo": "first value"},
 				},
 			},
 			addLabels:      map[string]string{"foo": "second value"},
@@ -237,9 +243,11 @@ func TestAddConfigLabels(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
 				},
-				ControllerTemplate: kapi.ReplicationControllerState{
-					PodTemplate: kapi.PodTemplate{
-						Labels: map[string]string{"foo": "first value"},
+				ControllerTemplate: kapi.ReplicationControllerSpec{
+					Template: &kapi.PodTemplateSpec{
+						ObjectMeta: kapi.ObjectMeta{
+							Labels: map[string]string{"foo": "first value"},
+						},
 					},
 				},
 			},
@@ -253,9 +261,11 @@ func TestAddConfigLabels(t *testing.T) {
 					Labels: map[string]string{"foo": "first value"},
 				},
 				Template: deployapi.DeploymentTemplate{
-					ControllerTemplate: kapi.ReplicationControllerState{
-						PodTemplate: kapi.PodTemplate{
-							Labels: map[string]string{"foo": "first value"},
+					ControllerTemplate: kapi.ReplicationControllerSpec{
+						Template: &kapi.PodTemplateSpec{
+							ObjectMeta: kapi.ObjectMeta{
+								Labels: map[string]string{"foo": "first value"},
+							},
 						},
 					},
 				},
@@ -294,18 +304,18 @@ func TestAddConfigLabels(t *testing.T) {
 		// Handle nested Labels
 		switch objType := test.obj.(type) {
 		case *kapi.ReplicationController:
-			if e, a := test.expectedLabels, objType.DesiredState.PodTemplate.Labels; !reflect.DeepEqual(e, a) {
+			if e, a := test.expectedLabels, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
-			if e, a := test.expectedLabels, objType.DesiredState.ReplicaSelector; !reflect.DeepEqual(e, a) {
+			if e, a := test.expectedLabels, objType.Spec.Selector; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 		case *deployapi.Deployment:
-			if e, a := test.expectedLabels, objType.ControllerTemplate.PodTemplate.Labels; !reflect.DeepEqual(e, a) {
+			if e, a := test.expectedLabels, objType.ControllerTemplate.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 		case *deployapi.DeploymentConfig:
-			if e, a := test.expectedLabels, objType.Template.ControllerTemplate.PodTemplate.Labels; !reflect.DeepEqual(e, a) {
+			if e, a := test.expectedLabels, objType.Template.ControllerTemplate.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 		}

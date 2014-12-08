@@ -55,15 +55,15 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		return "", fmt.Errorf("No such pod: %v", err)
 	}
 	buildPodID := build.PodName
-	buildPodHost := pod.CurrentState.Host
+	buildPodHost := pod.Status.Host
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
-	buildContainerName := pod.DesiredState.Manifest.Containers[0].Name
+	buildContainerName := pod.Spec.Containers[0].Name
 	location := &url.URL{
 		Host: fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
 		Path: fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
 	}
-	if pod.CurrentState.Status == kapi.PodRunning && (build.Status == api.BuildStatusPending || build.Status == api.BuildStatusRunning) {
+	if pod.Status.Phase == kapi.PodRunning && (build.Status == api.BuildStatusPending || build.Status == api.BuildStatusRunning) {
 		params := url.Values{"follow": []string{"1"}}
 		location.RawQuery = params.Encode()
 	}

@@ -32,6 +32,9 @@ type FakeCloud struct {
 	IP            net.IP
 	Machines      []string
 	NodeResources *api.NodeResources
+	ClusterList   []string
+	MasterName    string
+	ExternalIP    net.IP
 
 	cloudprovider.Zone
 }
@@ -45,8 +48,19 @@ func (f *FakeCloud) ClearCalls() {
 	f.Calls = []string{}
 }
 
+func (f *FakeCloud) ListClusters() ([]string, error) {
+	return f.ClusterList, f.Err
+}
+
+func (f *FakeCloud) Master(name string) (string, error) {
+	return f.MasterName, f.Err
+}
+
+func (f *FakeCloud) Clusters() (cloudprovider.Clusters, bool) {
+	return f, true
+}
+
 // TCPLoadBalancer returns a fake implementation of TCPLoadBalancer.
-//
 // Actually it just returns f itself.
 func (f *FakeCloud) TCPLoadBalancer() (cloudprovider.TCPLoadBalancer, bool) {
 	return f, true
@@ -70,9 +84,9 @@ func (f *FakeCloud) TCPLoadBalancerExists(name, region string) (bool, error) {
 
 // CreateTCPLoadBalancer is a test-spy implementation of TCPLoadBalancer.CreateTCPLoadBalancer.
 // It adds an entry "create" into the internal method call record.
-func (f *FakeCloud) CreateTCPLoadBalancer(name, region string, port int, hosts []string) error {
+func (f *FakeCloud) CreateTCPLoadBalancer(name, region string, externalIP net.IP, port int, hosts []string) (net.IP, error) {
 	f.addCall("create")
-	return f.Err
+	return f.ExternalIP, f.Err
 }
 
 // UpdateTCPLoadBalancer is a test-spy implementation of TCPLoadBalancer.UpdateTCPLoadBalancer.

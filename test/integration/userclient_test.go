@@ -43,7 +43,7 @@ func TestUserInitialization(t *testing.T) {
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi/v1beta1", interfaces.MetadataAccessor))
+	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor))
 
 	mapping := api.UserIdentityMapping{
 		Identity: api.Identity{
@@ -125,7 +125,7 @@ func TestUserLookup(t *testing.T) {
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi/v1beta1", interfaces.MetadataAccessor)
+	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor)
 	apihandler = userregistry.NewCurrentContextFilter("/osapi/v1beta1/users/~", userContextFunc, apihandler)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		userContext.Set(req, userInfo)

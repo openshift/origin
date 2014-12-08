@@ -79,16 +79,16 @@ func (s *DeploymentStrategy) Deploy(deployment *deployapi.Deployment) error {
 			Annotations: map[string]string{deployapi.DeploymentAnnotation: deployment.Name},
 			Labels:      map[string]string{deployapi.DeploymentConfigLabel: configID},
 		},
-		DesiredState: deploymentCopy.(*deployapi.Deployment).ControllerTemplate,
+		Spec: deploymentCopy.(*deployapi.Deployment).ControllerTemplate,
 	}
 
 	// Correlate pods created by the ReplicationController to the deployment objects
-	if controller.DesiredState.PodTemplate.Labels == nil {
-		controller.DesiredState.PodTemplate.Labels = make(map[string]string)
+	if controller.Spec.Template.Labels == nil {
+		controller.Spec.Template.Labels = make(map[string]string)
 	}
-	controller.DesiredState.PodTemplate.Labels[deployapi.DeploymentConfigLabel] = configID
+	controller.Spec.Template.Labels[deployapi.DeploymentConfigLabel] = configID
 	// TODO: Switch this to an annotation once upstream supports annotations on a PodTemplate
-	controller.DesiredState.PodTemplate.Labels[deployapi.DeploymentLabel] = deployment.Name
+	controller.Spec.Template.Labels[deployapi.DeploymentLabel] = deployment.Name
 
 	glog.Infof("Creating replicationController for deployment %s", deployment.Name)
 	if _, err := s.ReplicationController.createReplicationController(namespace, controller); err != nil {
@@ -102,7 +102,7 @@ func (s *DeploymentStrategy) Deploy(deployment *deployapi.Deployment) error {
 	for _, oldController := range controllers.Items {
 		glog.Infof("Stopping replication controller for previous deploymentConfig %s: %v", configID, oldController.Name)
 
-		oldController.DesiredState.Replicas = 0
+		oldController.Spec.Replicas = 0
 		glog.Infof("Settings Replicas=0 for replicationController %s for previous deploymentConfig %s", oldController.Name, configID)
 		if _, err := s.ReplicationController.updateReplicationController(namespace, &oldController); err != nil {
 			glog.Errorf("Unable to stop replication controller %s for previous deploymentConfig %s: %#v\n", oldController.Name, configID, err)

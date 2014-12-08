@@ -34,7 +34,7 @@ func NewProcessor(generators map[string]Generator) *Processor {
 // TODO: Move this into some 'utils' or 'helpers' package
 func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
 	i := errs.ValidationErrorList{}
-	*allErrs = append(*allErrs, append(i, err).PrefixIndex(index).Prefix("item")...)
+	*allErrs = append(*allErrs, append(i, &err).PrefixIndex(index).Prefix("item")...)
 }
 
 // Process transforms Template object into Config object. It generates
@@ -45,7 +45,7 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.Val
 	templateErrors := errs.ValidationErrorList{}
 
 	if err := p.GenerateParameterValues(template); err != nil {
-		return nil, append(templateErrors.Prefix("Template"), errs.NewFieldInvalid("parameters", err))
+		return nil, append(templateErrors.Prefix("Template"), errs.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
 	}
 
 	items := []runtime.RawExtension{}
@@ -53,7 +53,7 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.Val
 
 		item, mapping, err := config.DecodeDataToObject(in.RawJSON)
 		if err != nil {
-			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
+			reportError(&templateErrors, i, *errs.NewFieldInvalid("decode", err, fmt.Sprintf("decoding failure for %v", in)))
 			continue
 		}
 
@@ -62,12 +62,12 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.Val
 		//			 just without substitution.
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
-			reportError(&templateErrors, i, errs.NewFieldNotSupported("parameters", err))
+			reportError(&templateErrors, i, *errs.NewFieldNotSupported("parameters", err))
 		}
 
 		jsonItem, err := mapping.Codec.Encode(newItem)
 		if err != nil {
-			reportError(&templateErrors, i, errs.NewFieldInvalid("decode", err))
+			reportError(&templateErrors, i, *errs.NewFieldInvalid("decode", err, fmt.Sprintf("decoding failure for %v", newItem)))
 			continue
 		}
 		items = append(items, runtime.RawExtension{RawJSON: jsonItem})
@@ -120,16 +120,16 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 
 	switch obj := item.(type) {
 	case *kapi.ReplicationController:
-		p.substituteParametersInManifest(&obj.DesiredState.PodTemplate.DesiredState.Manifest, paramMap)
+		p.substituteParametersInManifest(obj.Spec.Template.Spec.Containers, paramMap)
 		return obj, nil
 	case *kapi.Pod:
-		p.substituteParametersInManifest(&obj.DesiredState.Manifest, paramMap)
+		p.substituteParametersInManifest(obj.Spec.Containers, paramMap)
 		return obj, nil
 	case *deployapi.Deployment:
-		p.substituteParametersInManifest(&obj.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
+		p.substituteParametersInManifest(obj.ControllerTemplate.Template.Spec.Containers, paramMap)
 		return obj, nil
 	case *deployapi.DeploymentConfig:
-		p.substituteParametersInManifest(&obj.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest, paramMap)
+		p.substituteParametersInManifest(obj.Template.ControllerTemplate.Template.Spec.Containers, paramMap)
 		return obj, nil
 	default:
 		return obj, fmt.Errorf("Parameter substitution not implemented for %T", obj)
@@ -140,10 +140,10 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 // substituteParametersInManifest is a helper function that iterates
 // over the given manifest and substitutes all Parameter expression
 // occurances with their corresponding values.
-func (p *Processor) substituteParametersInManifest(manifest *kapi.ContainerManifest, paramMap map[string]string) {
-	for i := range manifest.Containers {
-		for e := range manifest.Containers[i].Env {
-			envValue := &manifest.Containers[i].Env[e].Value
+func (p *Processor) substituteParametersInManifest(containers []kapi.Container, paramMap map[string]string) {
+	for i := range containers {
+		for e := range containers[i].Env {
+			envValue := &containers[i].Env[e].Value
 			// Match all parameter expressions found in the given env var
 			for _, match := range parameterExp.FindAllStringSubmatch(*envValue, -1) {
 				// Substitute expression with its value, if corresponding parameter found

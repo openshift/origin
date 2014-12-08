@@ -18,8 +18,9 @@ package kubectl
 
 import (
 	"fmt"
+	"io"
+	"sort"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -38,29 +39,13 @@ type Describer interface {
 func DescriberFor(kind string, c *client.Client) (Describer, bool) {
 	switch kind {
 	case "Pod":
-		return &PodDescriber{
-			PodClient: func(namespace string) (client.PodInterface, error) {
-				return c.Pods(namespace), nil
-			},
-			ReplicationControllerClient: func(namespace string) (client.ReplicationControllerInterface, error) {
-				return c.ReplicationControllers(namespace), nil
-			},
-		}, true
+		return &PodDescriber{c}, true
 	case "ReplicationController":
-		return &ReplicationControllerDescriber{
-			PodClient: func(namespace string) (client.PodInterface, error) {
-				return c.Pods(namespace), nil
-			},
-			ReplicationControllerClient: func(namespace string) (client.ReplicationControllerInterface, error) {
-				return c.ReplicationControllers(namespace), nil
-			},
-		}, true
+		return &ReplicationControllerDescriber{c}, true
 	case "Service":
-		return &ServiceDescriber{
-			ServiceClient: func(namespace string) (client.ServiceInterface, error) {
-				return c.Services(namespace), nil
-			},
-		}, true
+		return &ServiceDescriber{c}, true
+	case "Minion", "Node":
+		return &MinionDescriber{c}, true
 	}
 	return nil, false
 }
@@ -68,32 +53,51 @@ func DescriberFor(kind string, c *client.Client) (Describer, bool) {
 // PodDescriber generates information about a pod and the replication controllers that
 // create it.
 type PodDescriber struct {
-	PodClient                   func(namespace string) (client.PodInterface, error)
-	ReplicationControllerClient func(namespace string) (client.ReplicationControllerInterface, error)
+	client.Interface
 }
 
 func (d *PodDescriber) Describe(namespace, name string) (string, error) {
-	rc, err := d.ReplicationControllerClient(namespace)
-	if err != nil {
-		return "", err
-	}
-	pc, err := d.PodClient(namespace)
-	if err != nil {
-		return "", err
-	}
+	rc := d.ReplicationControllers(namespace)
+	pc := d.Pods(namespace)
 
 	pod, err := pc.Get(name)
 	if err != nil {
+		events, err2 := d.Events(namespace).List(
+			labels.Everything(),
+			labels.Set{
+				"involvedObject.name":      name,
+				"involvedObject.kind":      "Pod",
+				"involvedObject.namespace": namespace,
+			}.AsSelector(),
+		)
+		if err2 == nil && len(events.Items) > 0 {
+			return tabbedString(func(out io.Writer) error {
+				fmt.Fprintf(out, "Pod '%v': error '%v', but found events.\n", name, err)
+				describeEvents(events, out)
+				return nil
+			})
+		}
 		return "", err
 	}
 
-	return tabbedString(func(out *tabwriter.Writer) error {
+	// TODO: remove me when pods are converted
+	spec := &api.PodSpec{}
+	if err := api.Scheme.Convert(&pod.Spec, spec); err != nil {
+		glog.Errorf("Unable to convert pod manifest: %v", err)
+	}
+
+	events, _ := d.Events(namespace).Search(pod)
+
+	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", pod.Name)
-		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(pod.DesiredState.Manifest))
-		fmt.Fprintf(out, "Host:\t%s\n", pod.CurrentState.Host+"/"+pod.CurrentState.HostIP)
+		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(spec))
+		fmt.Fprintf(out, "Host:\t%s\n", pod.Status.Host+"/"+pod.Status.HostIP)
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(pod.Labels))
-		fmt.Fprintf(out, "Status:\t%s\n", string(pod.CurrentState.Status))
+		fmt.Fprintf(out, "Status:\t%s\n", string(pod.Status.Phase))
 		fmt.Fprintf(out, "Replication Controllers:\t%s\n", getReplicationControllersForLabels(rc, labels.Set(pod.Labels)))
+		if events != nil {
+			describeEvents(events, out)
+		}
 		return nil
 	})
 }
@@ -101,19 +105,12 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 // ReplicationControllerDescriber generates information about a replication controller
 // and the pods it has created.
 type ReplicationControllerDescriber struct {
-	ReplicationControllerClient func(namespace string) (client.ReplicationControllerInterface, error)
-	PodClient                   func(namespace string) (client.PodInterface, error)
+	client.Interface
 }
 
 func (d *ReplicationControllerDescriber) Describe(namespace, name string) (string, error) {
-	rc, err := d.ReplicationControllerClient(namespace)
-	if err != nil {
-		return "", err
-	}
-	pc, err := d.PodClient(namespace)
-	if err != nil {
-		return "", err
-	}
+	rc := d.ReplicationControllers(namespace)
+	pc := d.Pods(namespace)
 
 	controller, err := rc.Get(name)
 	if err != nil {
@@ -125,61 +122,89 @@ func (d *ReplicationControllerDescriber) Describe(namespace, name string) (strin
 		return "", err
 	}
 
-	return tabbedString(func(out *tabwriter.Writer) error {
+	events, _ := d.Events(namespace).Search(controller)
+
+	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", controller.Name)
-		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(controller.DesiredState.PodTemplate.DesiredState.Manifest))
-		fmt.Fprintf(out, "Selector:\t%s\n", formatLabels(controller.DesiredState.ReplicaSelector))
+		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&controller.Spec.Template.Spec))
+		fmt.Fprintf(out, "Selector:\t%s\n", formatLabels(controller.Spec.Selector))
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(controller.Labels))
-		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", controller.CurrentState.Replicas, controller.DesiredState.Replicas)
+		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", controller.Status.Replicas, controller.Spec.Replicas)
 		fmt.Fprintf(out, "Pods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
+		if events != nil {
+			describeEvents(events, out)
+		}
 		return nil
 	})
 }
 
 // ServiceDescriber generates information about a service.
 type ServiceDescriber struct {
-	ServiceClient func(namespace string) (client.ServiceInterface, error)
+	client.Interface
 }
 
 func (d *ServiceDescriber) Describe(namespace, name string) (string, error) {
-	c, err := d.ServiceClient(namespace)
-	if err != nil {
-		return "", err
-	}
+	c := d.Services(namespace)
 
 	service, err := c.Get(name)
 	if err != nil {
 		return "", err
 	}
 
-	return tabbedString(func(out *tabwriter.Writer) error {
+	events, _ := d.Events(namespace).Search(service)
+
+	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", service.Name)
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(service.Labels))
 		fmt.Fprintf(out, "Selector:\t%s\n", formatLabels(service.Spec.Selector))
 		fmt.Fprintf(out, "Port:\t%d\n", service.Spec.Port)
+		if events != nil {
+			describeEvents(events, out)
+		}
 		return nil
 	})
 }
 
 // MinionDescriber generates information about a minion.
 type MinionDescriber struct {
-	MinionClient func() (client.MinionInterface, error)
+	client.Interface
 }
 
 func (d *MinionDescriber) Describe(namespace, name string) (string, error) {
-	mc, err := d.MinionClient()
-	if err != nil {
-		return "", err
-	}
+	mc := d.Minions()
 	minion, err := mc.Get(name)
 	if err != nil {
 		return "", err
 	}
 
-	return tabbedString(func(out *tabwriter.Writer) error {
+	events, _ := d.Events(namespace).Search(minion)
+
+	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", minion.Name)
+		if events != nil {
+			describeEvents(events, out)
+		}
 		return nil
 	})
+}
+
+type sortableEvents []api.Event
+
+func (s sortableEvents) Len() int           { return len(s) }
+func (s sortableEvents) Less(i, j int) bool { return s[i].Timestamp.Before(s[j].Timestamp.Time) }
+func (s sortableEvents) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func describeEvents(el *api.EventList, w io.Writer) {
+	if len(el.Items) == 0 {
+		fmt.Fprint(w, "No events.")
+		return
+	}
+	sort.Sort(sortableEvents(el.Items))
+	fmt.Fprint(w, "Events:\nFrom\tSubobjectPath\tStatus\tReason\tMessage\n")
+	for _, e := range el.Items {
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
+			e.Source, e.InvolvedObject.FieldPath, e.Status, e.Reason, e.Message)
+	}
 }
 
 // Get all replication controllers whose selectors would match a given set of
@@ -197,7 +222,7 @@ func getReplicationControllersForLabels(c client.ReplicationControllerInterface,
 	// Find the ones that match labelsToMatch.
 	var matchingRCs []api.ReplicationController
 	for _, controller := range rcs.Items {
-		selector := labels.SelectorFromSet(controller.DesiredState.ReplicaSelector)
+		selector := labels.SelectorFromSet(controller.Spec.Selector)
 		if selector.Matches(labelsToMatch) {
 			matchingRCs = append(matchingRCs, controller)
 		}
@@ -206,7 +231,7 @@ func getReplicationControllersForLabels(c client.ReplicationControllerInterface,
 	// Format the matching RC's into strings.
 	var rcStrings []string
 	for _, controller := range matchingRCs {
-		rcStrings = append(rcStrings, fmt.Sprintf("%s (%d/%d replicas created)", controller.Name, controller.CurrentState.Replicas, controller.DesiredState.Replicas))
+		rcStrings = append(rcStrings, fmt.Sprintf("%s (%d/%d replicas created)", controller.Name, controller.Status.Replicas, controller.Spec.Replicas))
 	}
 
 	list := strings.Join(rcStrings, ", ")
@@ -217,12 +242,12 @@ func getReplicationControllersForLabels(c client.ReplicationControllerInterface,
 }
 
 func getPodStatusForReplicationController(c client.PodInterface, controller *api.ReplicationController) (running, waiting, succeeded, failed int, err error) {
-	rcPods, err := c.List(labels.SelectorFromSet(controller.DesiredState.ReplicaSelector))
+	rcPods, err := c.List(labels.SelectorFromSet(controller.Spec.Selector))
 	if err != nil {
 		return
 	}
 	for _, pod := range rcPods.Items {
-		switch pod.CurrentState.Status {
+		switch pod.Status.Phase {
 		case api.PodRunning:
 			running++
 		case api.PodPending:

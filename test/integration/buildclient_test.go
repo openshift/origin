@@ -5,7 +5,6 @@ package integration
 import (
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -15,11 +14,9 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -177,24 +174,17 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
 	}
 
-	apiserver.NewAPIGroup(kmaster.API_v1beta1()).InstallREST(osMux, "/api/v1beta1")
+	handlerContainer := master.NewHandlerContainer(osMux)
+	apiserver.NewAPIGroupVersion(kmaster.API_v1beta1()).InstallREST(handlerContainer, "/api", "v1beta1")
+
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroup(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(osMux, osPrefix)
-	apiserver.InstallSupport(osMux)
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
 		webhook.NewController(clientWebhookInterface{osClient}, map[string]webhook.Plugin{
 			"github": github.New(),
 		})))
-
-	info, err := kubeClient.ServerVersion()
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if e, a := version.Get(), *info; !reflect.DeepEqual(e, a) {
-		t.Errorf("Expected %#v, got %#v", e, a)
-	}
 
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		Client:     osClient,

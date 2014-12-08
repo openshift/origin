@@ -86,9 +86,26 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		j.ResourceVersion = strconv.FormatUint(c.RandUint64()>>8, 10)
 		j.SelfLink = c.RandString()
 	},
-	func(j *api.PodCondition, c fuzz.Continue) {
-		statuses := []api.PodCondition{api.PodPending, api.PodRunning, api.PodFailed}
+	func(j *api.PodPhase, c fuzz.Continue) {
+		statuses := []api.PodPhase{api.PodPending, api.PodRunning, api.PodFailed}
 		*j = statuses[c.Rand.Intn(len(statuses))]
+	},
+	func(j *api.ReplicationControllerSpec, c fuzz.Continue) {
+		// TemplateRef must be nil for round trip
+		c.Fuzz(&j.Template)
+		if j.Template == nil {
+			// TODO: v1beta1/2 can't round trip a nil template correctly, fix by having v1beta1/2
+			// conversion compare converted object to nil via DeepEqual
+			j.Template = &api.PodTemplateSpec{}
+		}
+		j.Template.ObjectMeta = api.ObjectMeta{Labels: j.Template.ObjectMeta.Labels}
+		j.Template.Spec.NodeSelector = nil
+		c.Fuzz(&j.Selector)
+		j.Replicas = int(c.RandUint64())
+	},
+	func(j *api.ReplicationControllerStatus, c fuzz.Continue) {
+		// only replicas round trips
+		j.Replicas = int(c.RandUint64())
 	},
 	func(intstr *util.IntOrString, c fuzz.Continue) {
 		// util.IntOrString will panic if its kind is set wrong.
@@ -143,22 +160,21 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 	if err != nil {
 		t.Errorf("%v: %v", name, err)
 		return
-	} else {
-		if !reflect.DeepEqual(source, obj2) {
-			t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v", name, util.ObjectDiff(source, obj2), codec, string(data), source)
-			return
-		}
 	}
+	if !reflect.DeepEqual(source, obj2) {
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v", name, util.ObjectDiff(source, obj2), codec, string(data), source)
+		return
+	}
+
 	obj3 := reflect.New(reflect.TypeOf(source).Elem()).Interface().(runtime.Object)
 	err = codec.DecodeInto(data, obj3)
 	if err != nil {
 		t.Errorf("2: %v: %v", name, err)
 		return
-	} else {
-		if !reflect.DeepEqual(source, obj3) {
-			t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(source, obj3), codec)
-			return
-		}
+	}
+	if !reflect.DeepEqual(source, obj3) {
+		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(source, obj3), codec)
+		return
 	}
 }
 
@@ -176,18 +192,21 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(nil)
 }
 
-func TestTypes(t *testing.T) {
+var nonRoundTrippableTypes = util.NewStringSet("ContainerManifest")
+
+func TestRoundTripTypes(t *testing.T) {
 	for kind := range api.Scheme.KnownTypes("") {
+		if nonRoundTrippableTypes.Has(kind) {
+			continue
+		}
 		// Try a few times, since runTest uses random values.
 		for i := 0; i < *fuzzIters; i++ {
 			item, err := api.Scheme.New("", kind)
 			if err != nil {
-				t.Errorf("Couldn't make a %v? %v", kind, err)
-				continue
+				t.Fatalf("Couldn't make a %v? %v", kind, err)
 			}
 			if _, err := meta.Accessor(item); err != nil {
-				t.Logf("%s is not a TypeMeta and cannot be round tripped: %v", kind, err)
-				continue
+				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
 			}
 			runTest(t, v1beta1.Codec, item)
 			runTest(t, v1beta2.Codec, item)

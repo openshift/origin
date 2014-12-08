@@ -13,7 +13,7 @@ type Deployment struct {
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
+	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 	// Status is the execution status of the deployment.
 	Status DeploymentStatus `json:"status,omitempty" yaml:"status,omitempty"`
 	// Details captures the causes for the creation of this deployment resource.
@@ -119,7 +119,7 @@ type DeploymentTemplate struct {
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
+	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new Deployment.

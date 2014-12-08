@@ -10,6 +10,7 @@ import (
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	ktools "github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
@@ -103,7 +104,7 @@ func (r *Etcd) DeleteImage(ctx kapi.Context, id string) error {
 
 // WatchImages begins watching for new or deleted Images.
 func (r *Etcd) WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "image")
+	version, err := ktools.ParseWatchResourceVersion(resourceVersion, "image")
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +162,7 @@ func (r *Etcd) GetImageRepository(ctx kapi.Context, id string) (*api.ImageReposi
 
 // WatchImageRepositories begins watching for new, changed, or deleted ImageRepositories.
 func (r *Etcd) WatchImageRepositories(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := kubeetcd.ParseWatchResourceVersion(resourceVersion, "imageRepository")
+	version, err := ktools.ParseWatchResourceVersion(resourceVersion, "imageRepository")
 	if err != nil {
 		return nil, err
 	}

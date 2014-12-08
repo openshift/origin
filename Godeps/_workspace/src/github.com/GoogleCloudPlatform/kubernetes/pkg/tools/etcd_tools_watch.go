@@ -17,13 +17,16 @@ limitations under the License.
 package tools
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 )
@@ -35,6 +38,22 @@ type FilterFunc func(obj runtime.Object) bool
 // Everything is a FilterFunc which accepts all objects.
 func Everything(runtime.Object) bool {
 	return true
+}
+
+// ParseWatchResourceVersion takes a resource version argument and converts it to
+// the etcd version we should pass to helper.Watch(). Because resourceVersion is
+// an opaque value, the default watch behavior for non-zero watch is to watch
+// the next value (if you pass "1", you will see updates from "2" onwards).
+func ParseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
+	if resourceVersion == "" || resourceVersion == "0" {
+		return 0, nil
+	}
+	version, err := strconv.ParseUint(resourceVersion, 10, 64)
+	if err != nil {
+		// TODO: Does this need to be a ValidationErrorList?  I can't convince myself it does.
+		return 0, errors.NewInvalid(kind, "", errors.ValidationErrorList{errors.NewFieldInvalid("resourceVersion", resourceVersion, err.Error())})
+	}
+	return version + 1, nil
 }
 
 // WatchList begins watching the specified key's items. Items are decoded into
@@ -149,7 +168,7 @@ func etcdGetInitialWatchState(client EtcdGetSet, key string, recursive bool, inc
 	resp, err := client.Get(key, false, recursive)
 	if err != nil {
 		if !IsEtcdNotFound(err) {
-			glog.Errorf("watch was unable to retrieve the current index for the provided key: %v (%#v)", err, key)
+			glog.Errorf("watch was unable to retrieve the current index for the provided key (%q): %v", key, err)
 			return resourceVersion, err
 		}
 		if index, ok := etcdErrorIndex(err); ok {

@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
 )
 
@@ -93,10 +94,17 @@ func (fake *fakeIptables) DeleteRule(table iptables.Table, chain iptables.Chain,
 	return nil
 }
 
+func (fake *fakeIptables) IsIpv6() bool {
+	return false
+}
+
 var tcpServerPort string
 var udpServerPort string
 
 func init() {
+	// Don't handle panics
+	util.ReallyCrash = true
+
 	// TCP setup.
 	tcp := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

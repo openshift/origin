@@ -56,7 +56,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 		for _, params := range triggersForConfig {
 			glog.V(4).Infof("Processing image triggers for deploymentConfig %s", config.Name)
 			containerNames := util.NewStringSet(params.ContainerNames...)
-			for _, container := range config.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers {
+			for _, container := range config.Template.ControllerTemplate.Template.Spec.Containers {
 				if !containerNames.Has(container.Name) {
 					continue
 				}

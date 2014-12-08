@@ -80,6 +80,10 @@ func newVagrantCloud() (*VagrantCloud, error) {
 	}, nil
 }
 
+func (aws *VagrantCloud) Clusters() (cloudprovider.Clusters, bool) {
+	return nil, false
+}
+
 // TCPLoadBalancer returns an implementation of TCPLoadBalancer for Vagrant cloud.
 func (v *VagrantCloud) TCPLoadBalancer() (cloudprovider.TCPLoadBalancer, bool) {
 	return nil, false
@@ -112,7 +116,7 @@ func (v *VagrantCloud) IPAddress(instance string) (net.IP, error) {
 			return net.ParseIP(minion.IP), nil
 		}
 	}
-	return nil, fmt.Errorf("Unable to find IP address for instance: %s", instance)
+	return nil, fmt.Errorf("unable to find IP address for instance: %s", instance)
 }
 
 // saltMinionsByRole filters a list of minions that have a matching role.

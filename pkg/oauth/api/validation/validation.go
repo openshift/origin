@@ -21,7 +21,7 @@ func ValidateAccessToken(accessToken *api.AccessToken) errs.ValidationErrorList 
 		allErrs = append(allErrs, errs.NewFieldRequired("useruid", accessToken.UserUID))
 	}
 	if len(accessToken.Namespace) != 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", accessToken.Namespace))
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", accessToken.Namespace, "namespace must be empty"))
 	}
 	allErrs = append(allErrs, validateLabels(accessToken.Labels)...)
 	return allErrs
@@ -42,7 +42,7 @@ func ValidateAuthorizeToken(authorizeToken *api.AuthorizeToken) errs.ValidationE
 		allErrs = append(allErrs, errs.NewFieldRequired("useruid", authorizeToken.UserUID))
 	}
 	if len(authorizeToken.Namespace) != 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", authorizeToken.Namespace))
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", authorizeToken.Namespace, "namespace must be empty"))
 	}
 	allErrs = append(allErrs, validateLabels(authorizeToken.Labels)...)
 	return allErrs
@@ -54,7 +54,7 @@ func ValidateClient(client *api.Client) errs.ValidationErrorList {
 		allErrs = append(allErrs, errs.NewFieldRequired("name", client.Name))
 	}
 	if len(client.Namespace) != 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", client.Namespace))
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", client.Namespace, "namespace must be empty"))
 	}
 	allErrs = append(allErrs, validateLabels(client.Labels)...)
 	return allErrs
@@ -75,7 +75,7 @@ func ValidateClientAuthorization(clientAuthorization *api.ClientAuthorization) e
 		allErrs = append(allErrs, errs.NewFieldRequired("useruid", clientAuthorization.UserUID))
 	}
 	if len(clientAuthorization.Namespace) != 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", clientAuthorization.Namespace))
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", clientAuthorization.Namespace, "namespace must be empty"))
 	}
 	allErrs = append(allErrs, validateLabels(clientAuthorization.Labels)...)
 	return allErrs
@@ -84,16 +84,16 @@ func ValidateClientAuthorization(clientAuthorization *api.ClientAuthorization) e
 func ValidateClientAuthorizationUpdate(newAuth *api.ClientAuthorization, oldAuth *api.ClientAuthorization) errs.ValidationErrorList {
 	allErrs := ValidateClientAuthorization(newAuth)
 	if oldAuth.Name != newAuth.Name {
-		allErrs = append(allErrs, errs.NewFieldInvalid("name", newAuth.Name))
+		allErrs = append(allErrs, errs.NewFieldInvalid("name", newAuth.Name, "name is not a mutable field"))
 	}
 	if oldAuth.ClientName != newAuth.ClientName {
-		allErrs = append(allErrs, errs.NewFieldInvalid("clientname", newAuth.ClientName))
+		allErrs = append(allErrs, errs.NewFieldInvalid("clientname", newAuth.ClientName, "clientname is not a mutable field"))
 	}
 	if oldAuth.UserName != newAuth.UserName {
-		allErrs = append(allErrs, errs.NewFieldInvalid("username", newAuth.UserName))
+		allErrs = append(allErrs, errs.NewFieldInvalid("username", newAuth.UserName, "username is not a mutable field"))
 	}
 	if oldAuth.UserUID != newAuth.UserUID {
-		allErrs = append(allErrs, errs.NewFieldInvalid("useruid", newAuth.UserUID))
+		allErrs = append(allErrs, errs.NewFieldInvalid("useruid", newAuth.UserUID, "useruid is not a mutable field"))
 	}
 	allErrs = append(allErrs, validateLabels(newAuth.Labels)...)
 	return allErrs
