@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/golang/glog"
@@ -63,7 +64,11 @@ func (f *OriginFactory) MultiDescriber(cmd *cobra.Command, m *kmeta.RESTMapping)
 
 // OriginClient provides the REST client for all Origin types
 func (f *OriginFactory) OriginClient(c *cobra.Command, m *kmeta.RESTMapping) (*client.Client, error) {
-	return client.New(kubecmd.GetKubeConfig(c))
+	config, err := f.ClientBuilder.Config()
+	if err != nil {
+		return nil, err
+	}
+	return client.New(config)
 }
 
 // RESTHelper provides a REST client for kubectl commands
@@ -81,7 +86,7 @@ func (f *OriginFactory) RESTHelper(cmd *cobra.Command) func(*kmeta.RESTMapping) 
 // be maintained manually.
 func (f *OriginFactory) AddCommands(cmds *cobra.Command, out io.Writer) {
 	// Kubernetes commands
-	cmds.AddCommand(kubecmd.NewCmdProxy(out))
+	cmds.AddCommand(f.Factory.NewCmdProxy(out))
 	cmds.AddCommand(f.Factory.NewCmdGet(out))
 	cmds.AddCommand(f.Factory.NewCmdDescribe(out))
 	cmds.AddCommand(f.Factory.NewCmdCreate(out))
@@ -89,7 +94,7 @@ func (f *OriginFactory) AddCommands(cmds *cobra.Command, out io.Writer) {
 	cmds.AddCommand(f.Factory.NewCmdDelete(out))
 	cmds.AddCommand(f.Factory.NewCmdCreateAll(out))
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
-	cmds.AddCommand(kubecmd.NewCmdLog(out))
+	cmds.AddCommand(f.Factory.NewCmdLog(out))
 	// Origin commands
 	cmds.AddCommand(f.NewCmdApply(out))
 	cmds.AddCommand(f.NewCmdProcess(out))
@@ -100,8 +105,8 @@ func (f *OriginFactory) AddCommands(cmds *cobra.Command, out io.Writer) {
 
 // NewFactory initialize the kubectl Factory that supports both Kubernetes and
 // Origin objects.
-func NewOriginFactory() *OriginFactory {
-	f := OriginFactory{Factory: kubecmd.NewFactory()}
+func NewOriginFactory(clientBuilder clientcmd.Builder) *OriginFactory {
+	f := OriginFactory{Factory: kubecmd.NewFactory(clientBuilder)}
 
 	// Save the original Kubernetes clientFunc
 	f.KubeClient = f.Factory.Client
