@@ -1,4 +1,4 @@
-package controller
+package templaterouter
 
 import (
 	"testing"
@@ -7,10 +7,71 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
-	"github.com/openshift/origin/pkg/router"
-	testrouter "github.com/openshift/origin/pkg/router/test"
 	"reflect"
 )
+
+// TestRouter provides an implementation of the plugin's router interface
+// suitable for unit testing.
+type TestRouter struct {
+	FrontendsToFind map[string]Frontend
+	ErrorOnCommit   error
+
+	DeletedBackends  []string
+	CreatedFrontends []string
+	DeletedFrontends []string
+	AddedAliases     map[string]string
+	RemovedAliases   map[string]string
+	AddedRoutes      map[string][]Endpoint
+	Commited         bool
+}
+
+// NewTestRouter creates a new TestRouter.
+func newTestRouter(registeredFrontends map[string]Frontend) *TestRouter {
+	return &TestRouter{
+		FrontendsToFind:  registeredFrontends,
+		DeletedBackends:  []string{},
+		CreatedFrontends: []string{},
+		DeletedFrontends: []string{},
+		AddedAliases:     map[string]string{},
+		RemovedAliases:   map[string]string{},
+		AddedRoutes:      map[string][]Endpoint{},
+	}
+}
+
+func (r *TestRouter) FindFrontend(name string) (Frontend, bool) {
+	f, ok := r.FrontendsToFind[name]
+	return f, ok
+}
+
+func (r *TestRouter) DeleteBackends(name string) {
+	r.DeletedBackends = append(r.DeletedBackends, name)
+}
+
+func (r *TestRouter) CreateFrontend(name, url string) {
+	r.CreatedFrontends = append(r.CreatedFrontends, name)
+}
+
+func (r *TestRouter) DeleteFrontend(name string) {
+	r.DeletedFrontends = append(r.DeletedFrontends, name)
+}
+
+func (r *TestRouter) AddAlias(name, alias string) {
+	r.AddedAliases[alias] = name
+}
+
+func (r *TestRouter) RemoveAlias(name, alias string) {
+	r.RemovedAliases[alias] = name
+}
+
+func (r *TestRouter) AddRoute(name string, backend *Backend, endpoints []Endpoint) {
+	r.AddedRoutes[name] = endpoints
+}
+
+func (r *TestRouter) Commit() error {
+	r.Commited = true
+
+	return r.ErrorOnCommit
+}
 
 func TestHandleRoute(t *testing.T) {
 	var (
@@ -39,20 +100,14 @@ func TestHandleRoute(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		existingFrontends := map[string]router.Frontend{}
+		existingFrontends := map[string]Frontend{}
 		if tc.existing {
-			existingFrontends[testRouteServiceName] = router.Frontend{}
+			existingFrontends[testRouteServiceName] = Frontend{}
 		}
 
-		testRouter := testrouter.NewRouter(existingFrontends)
-		controller := RouterController{
+		testRouter := newTestRouter(existingFrontends)
+		plugin := TemplatePlugin{
 			Router: testRouter,
-			NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-				panic("Unreachable")
-			},
-			NextRoute: func() (watch.EventType, *routeapi.Route) {
-				return tc.eventType, &testRoute
-			},
 		}
 
 		expectedFrontends := 0
@@ -60,7 +115,7 @@ func TestHandleRoute(t *testing.T) {
 			expectedFrontends = 1
 		}
 
-		controller.HandleRoute()
+		plugin.HandleRoute(tc.eventType, &testRoute)
 
 		if e, a := expectedFrontends, len(testRouter.CreatedFrontends); e != a {
 			t.Errorf("Case %v: Frontend should have been created", name)
@@ -88,12 +143,8 @@ func TestHandleRoute(t *testing.T) {
 			}
 		}
 
-		if !testRouter.ConfigWritten {
-			t.Errorf("Case %v: Router configs should have been written", name)
-		}
-
-		if !testRouter.RouterReloaded {
-			t.Errorf("Case %v: Router should have been reloaded", name)
+		if !testRouter.Commited {
+			t.Errorf("Case %v: Router changes should have been committed", name)
 		}
 	}
 }
@@ -124,20 +175,14 @@ func TestHandleEndpoints(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		existingFrontends := map[string]router.Frontend{}
+		existingFrontends := map[string]Frontend{}
 		if tc.existing {
-			existingFrontends[testEndpointsName] = router.Frontend{}
+			existingFrontends[testEndpointsName] = Frontend{}
 		}
 
-		testRouter := testrouter.NewRouter(existingFrontends)
-		controller := RouterController{
+		testRouter := newTestRouter(existingFrontends)
+		plugin := TemplatePlugin{
 			Router: testRouter,
-			NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-				return tc.eventType, &testEndpoints
-			},
-			NextRoute: func() (watch.EventType, *routeapi.Route) {
-				panic("Unreachable")
-			},
 		}
 
 		expectedFrontends := 0
@@ -145,7 +190,7 @@ func TestHandleEndpoints(t *testing.T) {
 			expectedFrontends = 1
 		}
 
-		controller.HandleEndpoints()
+		plugin.HandleEndpoints(tc.eventType, &testEndpoints)
 
 		if e, a := expectedFrontends, len(testRouter.CreatedFrontends); e != a {
 			t.Errorf("Case %v: Frontend should have been created", name)
@@ -168,12 +213,8 @@ func TestHandleEndpoints(t *testing.T) {
 			t.Errorf("Case %v: No routes should have been added for %v", name, testEndpointsName)
 		}
 
-		if !testRouter.ConfigWritten {
-			t.Errorf("Case %v: Router configs should have been written", name)
-		}
-
-		if !testRouter.RouterReloaded {
-			t.Errorf("Case %v: Router should have been reloaded", name)
+		if !testRouter.Commited {
+			t.Errorf("Case %v: Router changes should have been committed", name)
 		}
 	}
 }
@@ -182,7 +223,7 @@ func TestHandleEndpoints(t *testing.T) {
 func TestEndpointFromString(t *testing.T) {
 	endpointFromStringTestCases := map[string]struct {
 		InputEndpoint    string
-		ExpectedEndpoint *router.Endpoint
+		ExpectedEndpoint *Endpoint
 		ExpectedOk       bool
 	}{
 		"Empty String": {
@@ -192,7 +233,7 @@ func TestEndpointFromString(t *testing.T) {
 		},
 		"Default Port": {
 			InputEndpoint: "test",
-			ExpectedEndpoint: &router.Endpoint{
+			ExpectedEndpoint: &Endpoint{
 				IP:   "test",
 				Port: "80",
 			},
@@ -200,7 +241,7 @@ func TestEndpointFromString(t *testing.T) {
 		},
 		"Non-default Port": {
 			InputEndpoint: "test:9999",
-			ExpectedEndpoint: &router.Endpoint{
+			ExpectedEndpoint: &Endpoint{
 				IP:   "test",
 				Port: "9999",
 			},

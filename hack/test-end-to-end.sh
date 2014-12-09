@@ -190,7 +190,7 @@ if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     wait_for_command "osc get pods | grep router | grep -i Running" $((5*TIME_MIN))
 
     echo "[INFO] Validating routed app response..."
-    validate_response "-H Host:end-to-end http://${apiIP}" "Hello from OpenShift"
+    validate_response "-H Host:end-to-end http://${apiIP}" "Hello from OpenShift" 0.2 50
 else
     echo "[INFO] Validating app response..."
     validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
