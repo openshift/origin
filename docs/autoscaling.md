@@ -1,6 +1,6 @@
 ## Abstract
-Auto-scaling is a data-driven feature that allows users to increase or decrease capacity as needed by controlling the number of replicas deployed 
-within the system automatically.  
+Auto-scaling is a data-driven feature that allows users to increase or decrease capacity as needed by controlling the 
+number of pods deployed within the system automatically.  
 
 ## Motivation
 
@@ -10,38 +10,42 @@ done automatically based on statistical analysis and thresholds.
 
 ### Goals
 
-* Provide a concrete proposal for implementing auto-scaling components within Kubernetes
+* Provide a concrete proposal for implementing auto-scaling pods within Kubernetes
     * Implementation proposal should be in line with current discussions in existing issues: 
     * Resize verb - [1629](https://github.com/GoogleCloudPlatform/kubernetes/issues/1629)
     * Config conflicts - [Config](https://github.com/GoogleCloudPlatform/kubernetes/blob/c7cb991987193d4ca33544137a5cb7d0292cf7df/docs/config.md#automated-re-configuration-processes)
     * Rolling updates - [1353](https://github.com/GoogleCloudPlatform/kubernetes/issues/1353)
     * Multiple scalable types - [1624](https://github.com/GoogleCloudPlatform/kubernetes/issues/1624)  
-* Document the currently known use cases
 
 ## Constraints and Assumptions
 
-* The auto-scale component will not be part of a replication controller 
-* Data gathering semantics will not be part of an auto-scaler but an auto-scaler may use data to perform threshold checking
+* `ReplicationControllers` will not know about the auto-scaler, they are the target of the auto-scaler.  The `ReplicationController` responsibilities are 
+constrained to only ensuring that the desired number of pods are operational per the [Replication Controller Design](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/replication-controller.md#responsibilities-of-the-replication-controller)
+* Auto-scalers will be loosely coupled with data gathering components in order to allow a wide variety of input sources
 * Auto-scalable resources will support a resize verb ([1629](https://github.com/GoogleCloudPlatform/kubernetes/issues/1629)) 
 such that the auto-scaler does not directly manipulate the underlying resource.
-* Thresholds will be set by the application administrator
+* Initially, most thresholds will be set by application administrators. It should be possible for an autoscaler to be 
+written later that sets thresholds automatically based on past behavior (CPU used vs incoming requests).
 * The auto-scaler must be aware of user defined actions so it does not override them unintentionally (for instance someone 
 explicitly setting the replica count to 0 should mean that the auto-scaler does not try to scale the application up)
+* It should be possible to write and deploy a custom auto-scaler without modifying existing auto-scalers
 
 ## Use Cases
 
 ### Scaling based on traffic
 
-The current, most obvious use case, is scaling an application based on traffic.  Within the Kubernetes ecosystem there 
-are routing layers that serve to direct requests to underlying `endpoints`.  These routing layers are good examples of 
-candidates to provide data to the auto-scaler.
+The current, most obvious use case, is scaling an application based on network traffic like requests per second.  Most 
+applications will expose one or more network endpoints for clients to connect to. Many of those endpoints will be load 
+balanced or situated behind a proxy - the data from those proxies and load balancers can be used to estimate client to 
+server traffic for applications. This is the primary, but not sole, source of data for making decisions.
 
 Within Kubernetes a [kube proxy](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md#ips-and-portals) 
 running on each node directs service requests to the underlying implementation.  
 
-External to the Kubernetes core infrastructure (but still within the Kubernetes ecosystem) lies the OpenShift routing layer.  
-OpenShift routers are `pods` with externally exposed IP addresses that are used to map service requests from the external 
-world to internal `endpoints` via user defined host aliases known as `routes`.  
+While the proxy provides internal inter-pod connections, there will be L3 and L7 proxies and load balancers that manage 
+traffic to backends. OpenShift, for instance, adds a "route" resource for defining external to internal traffic flow. 
+The "routers" are HAProxy or Apache load balancers that aggregate many different services and pods and can serve as a 
+data source for the number of backends.
 
 ### Scaling based on predictive analysis
 
@@ -59,8 +63,8 @@ means the auto-scaler must be a configurable, extensible component.
 In order to facilitate talking about auto-scaling the following definitions are used:
 
 * `ReplicationController` - the first building block of auto scaling.  Pods are deployed and scaled by a `ReplicationController`.
-* kube proxy - a request control point.  The proxy handles internal inter-pod traffic
-* router - an OpenShift request control point.  The routing layer handles outside to inside traffic requests
+* kube proxy - The proxy handles internal inter-pod traffic, an example of a data source to drive an auto-scaler
+* L3/L7 proxies - A routing layer handling outside to inside traffic requests, an example of a data source to drive an auto-scaler
 * auto-scaler - scales replicas up and down by using the `resize` endpoint provided by scalable resources (`ReplicationController`)
 
 
@@ -71,6 +75,37 @@ and calling the `resize` endpoint to change the number of replicas.  The scaler 
 use a client/cache implementation to receive watch data from the data aggregators and respond to them by 
 scaling the application.  Auto-scalers are created and defined like other resources via REST endpoints and belong to the 
 namespace just as a `ReplicationController` or `Service`.
+
+There are two options for implementing the auto-scaler:
+
+1.  Annotations on a `ReplicationController`
+    
+    Pros:
+        
+      * uses an existing resource, not another component that must be defined separately
+      * easy to know what the target of the auto-scaler is since the config for the scaler is attached to the target      
+      
+    Cons:
+    
+      * May make configuration difficult when dealing with multiple auto-scalers that target the same `ReplicationController`
+      * Configuration collections of thresholds may be more cumbersome than json syntax. 
+      * The entry point to logic that creates an auto-scaler is tied to the resource with annotations. For example, when 
+       a replication controller is created either tooling that watches `ReplicationController`s needs to look for the annotations
+       and create a new auto-scaler OR the logic that creates the `ReplicationController` needs to do the work.
+      
+1.  As a new resource
+    
+    Pros:
+        
+      * auto-scalers are managed by the user independent of the `ReplicationController`
+      * flexible by using a selector to the scalable resource (that implements the `resize` verb), future implementations 
+      *may* require no extra work on the auto-scaler side
+      
+    Cons:
+    
+      * one more resource to store, manage, and monitor
+  
+For this proposal, the auto-scaler is a resource:
 
     //The auto scaler interface
     type AutoScalerInterface interface {        
@@ -89,8 +124,9 @@ namespace just as a `ReplicationController` or `Service`.
         //min replicas that the auto scaler can use, empty == 0 (idle) 
         MinAutoScaleCount int 
                        
-        //the selector that provides the scaler with access to the scalable component
-        Selector string
+        //the label selector that points to a resource implementing the resize verb.  Right now this is a ReplicationController
+        //in the future it could be a job or any resource that implements resize
+        ScalableTargetSelector string
      }
      
      
@@ -193,9 +229,8 @@ potentially can piggyback in this registry.
             "selector": "myapp-replcontroller"
          }
          
-1.  System creates new auto-scaler with defined thresholds.  
-1.  Periodically the system loops through defined thresholds calling `threshold.ShouldScale()`
-1.  The threshold looks for the `requestPerSecond` statistic for `myapp-rps` in the configured registry
+1.  The auto-scaler controller watches for new `AutoScaler` definitions and creates the resource   
+1.  Periodically the auto-scaler loops through defined thresholds and determine of a threshold has been exceeded
 1.  The threshold compares the historical data and current data and determines if the app should be scaled
 1.  If the app must be scaled the auto-scaler calls the `resize` endpoint for `myapp-replcontroller`
     
