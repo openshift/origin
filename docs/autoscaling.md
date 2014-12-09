@@ -193,7 +193,6 @@ potentially piggyback on this registry.
          }
          
 1.  The auto-scaler controller watches for new `AutoScaler` definitions and creates the resource   
-1.  Periodically the auto-scaler loops through defined thresholds and determine of a threshold has been exceeded
-1.  The threshold compares the historical data and current data and determines if the app should be scaled
+1.  Periodically the auto-scaler loops through defined thresholds and determine if a threshold has been exceeded
 1.  If the app must be scaled the auto-scaler calls the `resize` endpoint for `myapp-replcontroller`
     
