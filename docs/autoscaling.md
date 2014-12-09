@@ -87,11 +87,10 @@ There are two options for implementing the auto-scaler:
       
     Cons:
     
-      * May make configuration difficult when dealing with multiple auto-scalers that target the same `ReplicationController`
-      * Configuration collections of thresholds may be more cumbersome than json syntax. 
-      * The entry point to logic that creates an auto-scaler is tied to the resource with annotations. For example, when 
-       a replication controller is created either tooling that watches `ReplicationController`s needs to look for the annotations
-       and create a new auto-scaler OR the logic that creates the `ReplicationController` needs to do the work.
+      * Configuration in annotations is marginally more difficult than plain old json.  
+      * Rather than watching explicitly for new auto-scaler definitions, the auto-scaler controller must watch all 
+      `ReplicationController`s and create auto-scalers when appropriate.  As new, auto-scalable resources are defined the 
+      auto-scaler controller must also watch those resources.
       
 1.  As a new resource
     
