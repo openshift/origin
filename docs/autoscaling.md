@@ -11,7 +11,7 @@ done automatically based on statistical analysis and thresholds.
 ### Goals
 
 * Provide a concrete proposal for implementing auto-scaling pods within Kubernetes
-    * Implementation proposal should be in line with current discussions in existing issues: 
+* Implementation proposal should be in line with current discussions in existing issues: 
     * Resize verb - [1629](https://github.com/GoogleCloudPlatform/kubernetes/issues/1629)
     * Config conflicts - [Config](https://github.com/GoogleCloudPlatform/kubernetes/blob/c7cb991987193d4ca33544137a5cb7d0292cf7df/docs/config.md#automated-re-configuration-processes)
     * Rolling updates - [1353](https://github.com/GoogleCloudPlatform/kubernetes/issues/1353)
@@ -19,6 +19,7 @@ done automatically based on statistical analysis and thresholds.
 
 ## Constraints and Assumptions
 
+* This proposal is for horizontal scaling only.  Vertical scaling will be handled in by [issue 2072](https://github.com/GoogleCloudPlatform/kubernetes/issues/2072)
 * `ReplicationControllers` will not know about the auto-scaler, they are the target of the auto-scaler.  The `ReplicationController` responsibilities are 
 constrained to only ensuring that the desired number of pods are operational per the [Replication Controller Design](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/replication-controller.md#responsibilities-of-the-replication-controller)
 * Auto-scalers will be loosely coupled with data gathering components in order to allow a wide variety of input sources
@@ -108,7 +109,8 @@ For this proposal, the auto-scaler is a resource:
 
     //The auto scaler interface
     type AutoScalerInterface interface {        
-        //Adjust a resource's replica count.  Calls resize endpoint
+        //Adjust a resource's replica count.  Calls resize endpoint.  Args to this are based on what the endpoint
+        //can support.  See https://github.com/GoogleCloudPlatform/kubernetes/issues/1629
         ScaleApplication(num int) error
     }
 
@@ -135,11 +137,14 @@ For this proposal, the auto-scaler is a resource:
         //called by the auto-scaler to determine if this threshold is met or not
         ShouldScale() boolean
      }
+      
+     type StatisticType string
         
      //generic type definition
      type AutoScaleThreshold struct {
          //scale based on this threshold (see below for definition)
-         Type Statistic
+         //example: RequestsPerSecond StatisticType = "requestPerSecond"
+         Type StatisticType
          //after this duration
          Duration time.Duration
          //when this value is passed
@@ -148,59 +153,18 @@ For this proposal, the auto-scaler is a resource:
 
 ### Data Aggregator
 
+This section has intentionally been left empty.  I will defer to folks who have more experience gathering and analyzing 
+time series statistics.  
+
 Data aggregation is opaque to the the auto-scaler resource.  The auto-scaler is configured to use `AutoScaleThresholds` 
 that know how to work with the underlying data in order to know if an application must be scaled up or down.   Data aggregation 
 must feed a common data structure to ease the development of `AutoScaleThreshold`s but it does not matter to the 
-auto-scaler whether this occurs in a push or pull implementation.  For the purposes of this design I will propose a solution 
-for the existing routing layers that uses a pull mechanism.
+auto-scaler whether this occurs in a push or pull implementation, whether or not the data is stored at a granular level,
+or what algorithm is used to determine the final statistics value.  Ultimately, the auto-scaler only requires that a statistic 
+resolves to a value that can be checked against a configured threshold.
 
-
-    //common statistics type for monitoring routers that can be used by threshold implementations
-    type Statistics struct {
-        //resource type that this statistic belongs to: router, job, etc
-        ResourceType string
-        //resource name that stats are being reported for
-        ResourceName string
-        //reporter name, to indicate where the statistics came from.
-        ReporterName string
-        //interval start date/time
-        StartTime time.Time
-        //interval stop date/time
-        StopTime time.Time
-        //the statistics
-        Stats map[Statistic]float
-    }
-    
-    //some initial stat types geared toward the routing layer
-    type Statistic string
-    
-    const (
-        RequestsPerSecond Statistic = "requestPerSecond"
-        SessionsPerSecond Statistic = "sessionsPerSecond"
-        BytesIn Statistic = "bytesIn"
-        BytesOut Statistic = "bytesOut"
-        CPUUsage Statistic = "cpuUsage"
-        AvgRequestDuration Statistic = "avgRequestDuration"
-    )
-
-
-    //implementation for routing layers specified in use cases above
-    type StatsGatherer interface {
-        GatherStats() []Statistics
-    }
-    
-    //Gather stats from the proxy, uses configured minions to find proxies
-    type KubeProxyStatsController struct {}
-    
-    //OpenShift specific
-    type RouterStatsController struct {
-        //GatherStats delegates to router implementation which may be socket based, http based, etc.
-        RouterList []router.Router
-    }
-
-Not shown is the initialization of a `StatsGatherer`.  When creating a `StatsGatherer` a registry will be given so that 
-the gatherer can save data that the `AutoScaleThreshold`s act upon.  This means that other services storing statistics 
-potentially can piggyback in this registry.
+Of note: If the statistics gathering mechanisms can be initialized with a registry other components storing statistics can
+potentially piggyback on this registry.
 
 
 ## Use Case Realization
