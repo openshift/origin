@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
-	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
+	"github.com/openshift/origin/pkg/auth/authenticator/token/bearertoken"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
 	buildapi "github.com/openshift/origin/pkg/build/api"

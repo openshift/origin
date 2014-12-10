@@ -16,9 +16,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 
 	// for osinserver setup.
-	"github.com/openshift/origin/pkg/auth/authenticator/anyauthpassword"
-	authhandlers "github.com/openshift/origin/pkg/auth/authenticator/handlers"
-	"github.com/openshift/origin/pkg/auth/authenticator/requesthandlers"
+	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	oauthhandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 	oauthregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
@@ -47,9 +47,9 @@ func TestGetToken(t *testing.T) {
 	userRegistry := useretcd.New(etcdHelper, user.NewDefaultUserInitStrategy())
 	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper("front-proxy-test" /*for now*/, userRegistry)
 
-	authRequestHandler := requesthandlers.NewBasicAuthAuthentication(anyauthpassword.New(identityMapper))
+	authRequestHandler := basicauthrequest.NewBasicAuthAuthentication(allowanypassword.New(identityMapper))
 	authHandler := oauthhandlers.NewUnionAuthenticationHandler(
-		map[string]oauthhandlers.AuthenticationChallenger{"login": authhandlers.NewBasicAuthChallenger("openshift")}, nil, nil)
+		map[string]oauthhandlers.AuthenticationChallenger{"login": passwordchallenger.NewBasicAuthChallenger("openshift")}, nil, nil)
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, oauthregistry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()

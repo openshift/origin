@@ -14,13 +14,14 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	"github.com/openshift/origin/pkg/auth/authenticator/anyauthpassword"
-	"github.com/openshift/origin/pkg/auth/authenticator/basicauthpassword"
-	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
-	authfile "github.com/openshift/origin/pkg/auth/authenticator/file"
-	authhandlers "github.com/openshift/origin/pkg/auth/authenticator/handlers"
-	"github.com/openshift/origin/pkg/auth/authenticator/requesthandlers"
-	"github.com/openshift/origin/pkg/auth/authenticator/requestheader"
+	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
+	"github.com/openshift/origin/pkg/auth/authenticator/token/bearertoken"
+	"github.com/openshift/origin/pkg/auth/authenticator/token/filetoken"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
@@ -248,7 +249,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 	case "login":
 		passwordAuth := c.getPasswordAuthenticator()
 		authHandler = handlers.NewUnionAuthenticationHandler(
-			map[string]handlers.AuthenticationChallenger{"login": authhandlers.NewBasicAuthChallenger("openshift")},
+			map[string]handlers.AuthenticationChallenger{"login": passwordchallenger.NewBasicAuthChallenger("openshift")},
 			map[string]handlers.AuthenticationRedirector{"login": &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}},
 			errorHandler,
 		)
@@ -280,7 +281,7 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 		passwordAuth = basicauthpassword.New(basicAuthURL, identityMapper)
 	case "empty":
 		// Accepts any username and password
-		passwordAuth = anyauthpassword.New(identityMapper)
+		passwordAuth = allowanypassword.New(identityMapper)
 	default:
 		glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
 	}
@@ -325,10 +326,10 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 	case "requestheader":
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(authRequestHandlerType /*for now*/, userRegistry)
-		authRequestHandler = requestheader.NewAuthenticator(requestheader.NewDefaultConfig(), identityMapper)
+		authRequestHandler = headerrequest.NewAuthenticator(headerrequest.NewDefaultConfig(), identityMapper)
 	case "basicauth":
 		passwordAuthenticator := c.getPasswordAuthenticator()
-		authRequestHandler = requesthandlers.NewBasicAuthAuthentication(passwordAuthenticator)
+		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator)
 	case "session":
 		authRequestHandler = session.NewAuthenticator(sessionStore, "ssn")
 	default:
@@ -349,7 +350,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler(sessionStore session.Store)
 		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(currType, sessionStore))
 	}
 
-	authRequestHandler := requesthandlers.NewUnionAuthentication(authRequestHandlers)
+	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers)
 	return authRequestHandler
 }
 
@@ -360,7 +361,7 @@ func GetTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, er
 		oauthRegistry := oauthetcd.New(etcdHelper)
 		return authnregistry.NewTokenAuthenticator(oauthRegistry), nil
 	case "file":
-		return authfile.NewTokenAuthenticator(env("ORIGIN_AUTH_FILE_TOKEN_AUTHENTICATOR_PATH", "authorizedTokens.csv"))
+		return filetoken.NewTokenAuthenticator(env("ORIGIN_AUTH_FILE_TOKEN_AUTHENTICATOR_PATH", "authorizedTokens.csv"))
 	default:
 		return nil, fmt.Errorf("No TokenAuthenticator found that matches %v.  The oauth server cannot start!", tokenAuthenticatorType)
 	}

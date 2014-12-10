@@ -1,4 +1,4 @@
-package requesthandlers
+package basicauthrequest
 
 import (
 	"net/http"

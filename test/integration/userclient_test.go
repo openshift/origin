@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	oapauth "github.com/openshift/origin/pkg/auth/authenticator/oauthpassword/registry"
+	oapauth "github.com/openshift/origin/pkg/auth/authenticator/password/oauthpassword/registry"
 	"github.com/openshift/origin/pkg/auth/context"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/user"

@@ -1,4 +1,4 @@
-package anyauthpassword
+package allowanypassword
 
 import (
 	"fmt"

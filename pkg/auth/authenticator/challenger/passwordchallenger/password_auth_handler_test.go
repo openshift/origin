@@ -1,4 +1,4 @@
-package handlers
+package passwordchallenger
 
 import (
 	"net/http"

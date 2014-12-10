@@ -16,7 +16,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 
-	"github.com/openshift/origin/pkg/auth/authenticator/requestheader"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	oauthhandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 	oauthregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
@@ -53,7 +53,7 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper("front-proxy-test" /*for now*/, userRegistry)
 
 	// this auth request handler is the one that is supposed to recognize information from a front proxy
-	authRequestHandler := requestheader.NewAuthenticator(requestheader.NewDefaultConfig(), identityMapper)
+	authRequestHandler := headerrequest.NewAuthenticator(headerrequest.NewDefaultConfig(), identityMapper)
 	authHandler := &oauthhandlers.EmptyAuth{}
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, oauthregistry.NewUserConversion())
