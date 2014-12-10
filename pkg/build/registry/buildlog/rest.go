@@ -50,6 +50,10 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		return "", fmt.Errorf("No such build: %v", err)
 	}
 
+	if len(build.PodName) == 0 {
+		return "", fmt.Errorf("build %v, does not have an associated pod name", id)
+	}
+
 	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
 	if err != nil {
 		return "", fmt.Errorf("No such pod: %v", err)
