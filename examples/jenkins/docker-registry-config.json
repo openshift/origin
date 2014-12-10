@@ -55,10 +55,6 @@
                       {
                         "name":"STORAGE_PATH",
                         "value":"/tmp/openshift.local.registry"
-                      },
-                      {
-                        "name":"OPENSHIFT_URL",
-                        "value":"http://172.17.42.1:8080/osapi/v1beta1"
                       }
                     ],
                     "volumeMounts":[
@@ -68,7 +64,7 @@
                         "readOnly":false
                       }
                     ],
-                    "command": ["sh", "-c", "REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} exec docker-registry"]
+                    "command": ["sh", "-c", "REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=http://${KUBERNETES_SERVICE_HOST}:443/osapi/v1beta1 exec docker-registry"]
                   }
                 ],
                 "version":"v1beta1",
