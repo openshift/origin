@@ -26,7 +26,7 @@ Steps
 
         $ openshift kubectl get services docker-registry -o template --template="{{ .portalIP }}"
         
-5. Edit the application-template.json file by replacing all occurences of `172.121.17.3` with the IP address from the previous step.
+5. Edit the application-template.json file by replacing all occurences of `172.30.17.3` with the IP address from the previous step.
 
 5. Create the application configuration
 

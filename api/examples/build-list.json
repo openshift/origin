@@ -18,7 +18,7 @@
         },
         "output": {
           "imageTag": "openshift/origin-ruby-sample:latest",
-          "registry": "172.121.17.1:5001"
+          "registry": "172.30.17.1:5001"
         }
       },
       "resourceVersion": 114,

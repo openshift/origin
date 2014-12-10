@@ -16,7 +16,7 @@
             "parameters": {
                 "output": {
                     "imageTag": "openshift/origin-ruby-sample:test",
-                    "registry": "172.121.17.3:5001"
+                    "registry": "172.30.17.3:5001"
                 },
                 "source": {
                     "git": {
@@ -48,7 +48,7 @@
         },
         {
             "apiVersion": "v1beta1",
-            "dockerImageRepository": "172.121.17.3:5001/openshift/origin-ruby-sample",
+            "dockerImageRepository": "172.30.17.3:5001/openshift/origin-ruby-sample",
             "kind": "ImageRepository",
             "metadata": {
                 "name": "origin-ruby-sample",
@@ -106,7 +106,7 @@
                                                 "value": "production"
                                             }
                                         ],
-                                        "image": "172.121.17.3:5001/openshift/origin-ruby-sample:prod",
+                                        "image": "172.30.17.3:5001/openshift/origin-ruby-sample:prod",
                                         "name": "ruby-helloworld-prod",
                                         "ports": [
                                             {
@@ -138,7 +138,7 @@
                         "containerNames": [
                             "ruby-helloworld-prod"
                         ],
-                        "repositoryName": "172.121.17.3:5001/openshift/origin-ruby-sample",
+                        "repositoryName": "172.30.17.3:5001/openshift/origin-ruby-sample",
                         "tag": "prod"
                     },
                     "type": "ImageChange"
@@ -258,7 +258,7 @@
                                                 "value": "test"
                                             }
                                         ],
-                                        "image": "172.121.17.3:5001/openshift/origin-ruby-sample:test",
+                                        "image": "172.30.17.3:5001/openshift/origin-ruby-sample:test",
                                         "name": "ruby-helloworld-test",
                                         "ports": [
                                             {
@@ -290,7 +290,7 @@
                         "containerNames": [
                             "ruby-helloworld-test"
                         ],
-                        "repositoryName": "172.121.17.3:5001/openshift/origin-ruby-sample",
+                        "repositoryName": "172.30.17.3:5001/openshift/origin-ruby-sample",
                         "tag": "test"
                     },
                     "type": "ImageChange"

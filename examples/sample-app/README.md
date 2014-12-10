@@ -45,7 +45,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
         Name                Labels              Selector            IP                  Port
         ----------          ----------          ----------          ----------          ----------
-        docker-registry                         name=registrypod    172.121.17.3        5001
+        docker-registry                         name=registrypod    172.30.17.3        5001
 
 6. Confirm the registry is accessible (you may need to run this more than once):
 
@@ -65,7 +65,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 9. Edit application-template-stibuild.json
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
- * Replace occurences of `172.121.17.3` with the IP address of the docker-registry service as seen in step 5.
+ * Replace occurences of `172.30.17.3` with the IP address of the docker-registry service as seen in step 5.
 
 10. Submit the application template for processing and create the application using the processed template:
 
@@ -107,7 +107,7 @@ All commands assume the `openshift` binary is in your path (normally located und
         ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
         b8f087b7-605e-11e4-b0db-3c970e3bf0b7                openshift/docker-registry                                                                                         localhost.localdomain/   name=registrypod,replicationController=docker-registry                                                                                                       Running
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
-        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.121.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
+        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.30.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
 
 14. Determine the IP for the frontend service:
 
@@ -117,14 +117,14 @@ All commands assume the `openshift` binary is in your path (normally located und
 
         Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
-        database            template=ruby-helloworld-sample   name=database       172.121.17.5        5434
-        docker-registry                                       name=registrypod    172.121.17.3        5001
-        frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.4        5432
+        database            template=ruby-helloworld-sample   name=database       172.30.17.5        5434
+        docker-registry                                       name=registrypod    172.30.17.3        5001
+        frontend            template=ruby-helloworld-sample   name=frontend       172.30.17.4        5432
 
 
-    In this case, the IP for frontend is 172.121.17.4 and it is on port 5432.
+    In this case, the IP for frontend is 172.30.17.4 and it is on port 5432.
 
-15. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.121.17.4:5432 (or whatever IP address was reported above) in your browser.
+15. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser.
 
 You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
@@ -147,9 +147,9 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
         Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
-        docker-registry                                       name=registrypod    172.121.17.3        5001
-        frontend            template=ruby-helloworld-sample   name=frontend       172.121.17.4        5432
-        database            template=ruby-helloworld-sample   name=database       172.121.17.5        5434
+        docker-registry                                       name=registrypod    172.30.17.3        5001
+        frontend            template=ruby-helloworld-sample   name=frontend       172.30.17.4        5432
+        database            template=ruby-helloworld-sample   name=database       172.30.17.5        5434
 
 
   - To remove the **frontend** service use the command:
@@ -170,8 +170,8 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
         Name                Labels                            Selector            IP                  Port
         ----------          ----------                        ----------          ----------          ----------
-        docker-registry                                       name=registrypod    172.121.17.3        5001
-        database            template=ruby-helloworld-sample   name=database       172.121.17.5        5434
+        docker-registry                                       name=registrypod    172.30.17.3        5001
+        database            template=ruby-helloworld-sample   name=database       172.30.17.5        5434
 
 
   - You can also curl the application to check the service has terminated:
@@ -194,7 +194,7 @@ Another interesting example is deleting a pod.
         ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
         b8f087b7-605e-11e4-b0db-3c970e3bf0b7                openshift/docker-registry                                                                                         localhost.localdomain/   name=registrypod,replicationController=docker-registry                                                                                                       Running
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
-        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.121.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
+        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.30.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
 
   - Delete the **frontend** pod by specifying its ID:
 
