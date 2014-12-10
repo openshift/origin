@@ -18,7 +18,7 @@ func usageError(cmd *cobra.Command, format string, args ...interface{}) {
 
 func checkErr(err error) {
 	if err != nil {
-		glog.Fatalf("%v", err)
+		glog.FatalDepth(1, err)
 	}
 }
 
@@ -37,5 +37,4 @@ func getOriginNamespace(cmd *cobra.Command) string {
 	}
 	glog.V(2).Infof("Using namespace %s", result)
 	return result
-
 }
