@@ -20,6 +20,11 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
+	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
+	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
@@ -262,6 +267,8 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		ImageRepositoryInterface:  imageEtcd,
 	}
 
+	buildEtcd := buildetcd.New(etcdHelper)
+
 	storage := map[string]apiserver.RESTStorage{
 		"images":                    image.NewREST(imageEtcd),
 		"imageRepositories":         imagerepository.NewREST(imageEtcd, ""),
@@ -269,6 +276,8 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
+		"builds":                    buildregistry.NewREST(buildEtcd),
+		"buildConfigs":              buildconfigregistry.NewREST(buildEtcd),
 	}
 
 	handlerContainer := master.NewHandlerContainer(osMux)
@@ -295,6 +304,29 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 
 	iccFactory.Create().Run()
+
+	biccFactory := buildcontrollerfactory.ImageChangeControllerFactory{
+		Client: osClient,
+		Stop:   openshift.stop,
+	}
+
+	biccFactory.Create().Run()
+
+	bcFactory := buildcontrollerfactory.BuildControllerFactory{
+		Client:     osClient,
+		KubeClient: kubeClient,
+		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
+			Image:          "test-docker-builder",
+			UseLocalImages: false,
+		},
+		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
+			Image:                "test-sti-builder",
+			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
+			UseLocalImages:       false,
+		},
+	}
+
+	bcFactory.Create().Run()
 
 	return openshift
 }

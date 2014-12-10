@@ -92,7 +92,7 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 	buildConfig := &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GenericWebHookType,
+				Type: api.GenericWebHookBuildTriggerType,
 				GenericWebHook: &api.WebHookTrigger{
 					Secret: "secret100",
 				},
@@ -126,7 +126,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 	buildConfig := &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GenericWebHookType,
+				Type: api.GenericWebHookBuildTriggerType,
 				GenericWebHook: &api.WebHookTrigger{
 					Secret: "secret100",
 				},
@@ -161,7 +161,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 	buildConfig := &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GenericWebHookType,
+				Type: api.GenericWebHookBuildTriggerType,
 				GenericWebHook: &api.WebHookTrigger{
 					Secret: "secret100",
 				},

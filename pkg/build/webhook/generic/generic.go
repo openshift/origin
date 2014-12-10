@@ -32,7 +32,7 @@ type gitInfo struct {
 
 // Extract services generic webhooks.
 func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
-	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookType, buildCfg)
+	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookBuildTriggerType, buildCfg)
 	if !ok {
 		err = fmt.Errorf("BuildConfig %s does not support the Generic webhook trigger type", buildCfg.Name)
 		return

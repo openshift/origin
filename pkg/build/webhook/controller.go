@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/build/util"
 )
 
-// Webhook verification is dependent on the sending side, it can be
+// Plugin for Webhook verification is dependent on the sending side, it can be
 // eg. github, bitbucket or else, so there must be a separate Plugin
 // instance for each webhook provider.
 type Plugin interface {

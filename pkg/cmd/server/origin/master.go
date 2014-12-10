@@ -349,6 +349,12 @@ func (c *MasterConfig) RunBuildController() {
 	controller.Run()
 }
 
+// RunDeploymentController starts the build image change trigger controller process.
+func (c *MasterConfig) RunBuildImageChangeTriggerController() {
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: c.OSClient}
+	factory.Create().Run()
+}
+
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
 	factory := deploycontrollerfactory.DeploymentControllerFactory{
