@@ -82,8 +82,11 @@ Examples:
 
 // isBuildCancellable checks if another cancellation event was triggered, and if the build status is correct.
 func isBuildCancellable(build *buildapi.Build) bool {
-	if build.Status != buildapi.BuildStatusPending && build.Status != buildapi.BuildStatusRunning {
-		glog.V(2).Infof("A build can be cancelled only if it has pending/running status.")
+	if build.Status != buildapi.BuildStatusNew &&
+		build.Status != buildapi.BuildStatusPending &&
+		build.Status != buildapi.BuildStatusRunning {
+
+		glog.V(2).Infof("A build can be cancelled only if it has new/pending/running status.")
 		return false
 	}
 

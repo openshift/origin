@@ -54,20 +54,29 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 	nextStatus := buildapi.BuildStatusFailed
 	build.PodName = fmt.Sprintf("build-%s", build.Name)
 
-	var podSpec *kapi.Pod
-	var err error
-	if podSpec, err = bc.BuildStrategy.CreateBuildPod(build); err != nil {
-		glog.V(2).Infof("Strategy failed to create build pod definition: %v", err)
-		nextStatus = buildapi.BuildStatusFailed
+	// If a cancelling event was triggered for the build, update build status.
+	if build.Cancelled {
+		glog.V(2).Infof("Cancelling build %s.", build.Name)
+		nextStatus = buildapi.BuildStatusCancelled
+
 	} else {
-		if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
-			if !errors.IsAlreadyExists(err) {
-				glog.V(2).Infof("Failed to create pod for build %s: %#v", build.Name, err)
-				nextStatus = buildapi.BuildStatusFailed
-			}
+
+		var podSpec *kapi.Pod
+		var err error
+		if podSpec, err = bc.BuildStrategy.CreateBuildPod(build); err != nil {
+			glog.V(2).Infof("Strategy failed to create build pod definition: %v", err)
+			nextStatus = buildapi.BuildStatusFailed
 		} else {
-			glog.V(2).Infof("Created build pod: %#v", podSpec)
-			nextStatus = buildapi.BuildStatusPending
+
+			if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
+				if !errors.IsAlreadyExists(err) {
+					glog.V(2).Infof("Failed to create pod for build %s: %#v", build.Name, err)
+					nextStatus = buildapi.BuildStatusFailed
+				}
+			} else {
+				glog.V(2).Infof("Created build pod: %#v", podSpec)
+				nextStatus = buildapi.BuildStatusPending
+			}
 		}
 	}
 
@@ -151,5 +160,5 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) err
 
 // isBuildCancellable checks for build status and returns true if the condition is checked.
 func isBuildCancellable(build *buildapi.Build) bool {
-	return build.Status == buildapi.BuildStatusPending || build.Status == buildapi.BuildStatusRunning
+	return build.Status == buildapi.BuildStatusNew || build.Status == buildapi.BuildStatusPending || build.Status == buildapi.BuildStatusRunning
 }
