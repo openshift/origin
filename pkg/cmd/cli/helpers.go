@@ -42,6 +42,14 @@ func bold(v interface{}) string {
 	return "\033[1m" + toString(v) + "\033[0m"
 }
 
+func convertEnv(env []api.EnvVar) map[string]string {
+	result := make(map[string]string, len(env))
+	for _, e := range env {
+		result[e.Name] = toString(e.Value)
+	}
+	return result
+}
+
 func formatString(out *tabwriter.Writer, label string, v interface{}) {
 	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s\n", label, toString(v)))
 }

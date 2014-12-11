@@ -77,3 +77,39 @@ For these reasons, Docker-in-Docker is not considered a viable build strategy fo
 OpenShift also supports [Source-To-Images (sti)](https://github.com/openshift/geard/tree/master/cmd/sti) builds.
 
 Source-to-images (sti) is a tool for building reproducable Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. STI supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
+
+### Custom Builds
+
+The custom build strategy is very similar to *Docker build* strategy, but users might
+customize the builder image that will be used for build execution. The *Docker build* uses [openshift/docker-builder](https://registry.hub.docker.com/u/openshift/docker-builder/) image by default. Using your own builder image allows you to customize your build process.
+
+An example JSON of a custom build strategy:
+
+```json
+"strategy": {
+  "type": "Custom",
+    "customStrategy": {
+      "image": "my-custom-builder-image",
+      "exposeDockerSocket": true,
+      "env": [
+        { "name": "EXPOSE_PORT", "value": "8080" }
+      ]
+    }
+}
+```
+
+The `exposeDockerSocket` option will mount the Docker socket from host into your
+builder container and allows you to execute the `docker build` and `docker push` commands.
+Note that this might be restricted by the administrator in future.
+
+The `env` option allows you to specify additional environment variables that will
+be passed to the builder container environment. By default, these environment
+variables are passed to the build container:
+
+* `$BUILD` contains the JSON representation of the Build
+* `$OUTPUT_IMAGE` contains the output Docker image name as configured in Build
+* `$OUTPUT_REGISTRY` contains the output Docker registry as configured in Build
+* `$SOURCE_URI` contains the URL to the source code repository
+* `$SOURCE_REF` contains the branch, tag or ref for source repository
+* `$DOCKER_SOCKET` contains full path to the Docker socket
+

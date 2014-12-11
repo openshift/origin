@@ -162,7 +162,7 @@ func TestValidateBuildParameters(t *testing.T) {
 				ImageTag: "",
 			},
 		},
-		string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.builderImage": {
+		string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.image": {
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -175,7 +175,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.STIBuildStrategyType,
 				STIStrategy: &buildapi.STIBuildStrategy{
-					BuilderImage: "",
+					Image: "",
 				},
 			},
 		},

@@ -109,7 +109,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
-					BuilderImage: "builder/image",
+					Image: "builder/image",
 				},
 			},
 			Output: api.BuildOutput{
@@ -331,7 +331,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
-					BuilderImage: "builder/image",
+					Image: "builder/image",
 				},
 			},
 			Output: api.BuildOutput{

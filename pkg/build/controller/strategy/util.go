@@ -5,7 +5,12 @@ import (
 	"path"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
+
+// dockerSocketPath is the default path for the Docker socket inside the builder
+// container
+const dockerSocketPath = "/var/run/docker.sock"
 
 // setupDockerSocket configures the pod to support the host's Docker socket
 func setupDockerSocket(podSpec *kapi.Pod) {
@@ -13,14 +18,14 @@ func setupDockerSocket(podSpec *kapi.Pod) {
 		Name: "docker-socket",
 		Source: &kapi.VolumeSource{
 			HostDir: &kapi.HostDir{
-				Path: "/var/run/docker.sock",
+				Path: dockerSocketPath,
 			},
 		},
 	}
 
 	dockerSocketVolumeMount := kapi.VolumeMount{
 		Name:      "docker-socket",
-		MountPath: "/var/run/docker.sock",
+		MountPath: dockerSocketPath,
 	}
 
 	podSpec.Spec.Volumes = append(podSpec.Spec.Volumes,
@@ -56,4 +61,24 @@ func setupDockerConfig(podSpec *kapi.Pod) {
 	podSpec.Spec.Containers[0].VolumeMounts =
 		append(podSpec.Spec.Containers[0].VolumeMounts,
 			dockerConfigVolumeMount)
+}
+
+// setupBuildEnv injects human-friendly environment variables which provides
+// usefull informations about the current build.
+func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) {
+	vars := []kapi.EnvVar{}
+
+	switch build.Parameters.Source.Type {
+	case buildapi.BuildSourceGit:
+		vars = append(vars, kapi.EnvVar{"SOURCE_URI", build.Parameters.Source.Git.URI})
+		vars = append(vars, kapi.EnvVar{"SOURCE_REF", build.Parameters.Source.Git.Ref})
+	default:
+		// Do nothing for unknown source types
+	}
+	vars = append(vars, kapi.EnvVar{"OUTPUT_IMAGE", build.Parameters.Output.ImageTag})
+	vars = append(vars, kapi.EnvVar{"OUTPUT_REGISTRY", build.Parameters.Output.Registry})
+
+	if len(pod.Spec.Containers) > 0 {
+		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, vars...)
+	}
 }

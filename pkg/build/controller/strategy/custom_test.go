@@ -9,25 +9,31 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
-func TestDockerCreateBuildPod(t *testing.T) {
-	strategy := DockerBuildStrategy{
-		Image:          "docker-test-image",
+func TestCustomCreateBuildPod(t *testing.T) {
+	strategy := CustomBuildStrategy{
 		UseLocalImages: true,
 	}
 
-	expected := mockDockerBuild()
-	actual, _ := strategy.CreateBuildPod(expected)
+	expectedBad := mockCustomBuild()
+	expectedBad.Parameters.Strategy.CustomStrategy.Image = ""
+	if _, err := strategy.CreateBuildPod(expectedBad); err == nil {
+		t.Errorf("Expected error when Image is empty, got nothing")
+	}
+
+	expected := mockCustomBuild()
+	actual, err := strategy.CreateBuildPod(expected)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 
 	if actual.ObjectMeta.Name != expected.PodName {
 		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
 	}
 
 	container := actual.Spec.Containers[0]
-	if container.Name != "docker-build" {
-		t.Errorf("Expected docker-build, but got %s!", container.Name)
-	}
-	if container.Image != strategy.Image {
-		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)
+	if container.Name != "custom-build" {
+		t.Errorf("Expected custom-build, but got %s!", container.Name)
 	}
 	if container.ImagePullPolicy != kapi.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
@@ -35,26 +41,35 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 1 {
-		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))
-	}
 	buildJSON, _ := json.Marshal(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
+	standardEnv := []string{"SOURCE_URI", "SOURCE_REF", "OUTPUT_IMAGE", "OUTPUT_REGISTRY"}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
 			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)
 		}
 	}
+	for _, name := range standardEnv {
+		found := false
+		for _, item := range container.Env {
+			if (item.Name == name) && len(item.Value) != 0 {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("Expected %s variable to be set", name)
+		}
+	}
 }
 
-func mockDockerBuild() *buildapi.Build {
+func mockCustomBuild() *buildapi.Build {
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "dockerBuild",
+			Name: "customBuild",
 			Labels: map[string]string{
-				"name": "dockerBuild",
+				"name": "customBuild",
 			},
 		},
 		Parameters: buildapi.BuildParameters{
@@ -62,16 +77,24 @@ func mockDockerBuild() *buildapi.Build {
 				Git: &buildapi.GitSourceRevision{},
 			},
 			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+					Ref: "master",
 				},
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{ContextDir: "my/test/dir"},
+				Type: buildapi.CustomBuildStrategyType,
+				CustomStrategy: &buildapi.CustomBuildStrategy{
+					Image: "builder-image",
+					Env: []kapi.EnvVar{
+						{"FOO", "BAR"},
+					},
+					ExposeDockerSocket: true,
+				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/dockerBuild",
+				ImageTag: "repository/customBuild",
 				Registry: "docker-registry",
 			},
 		},

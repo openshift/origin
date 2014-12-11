@@ -190,11 +190,11 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		Client:     osClient,
 		KubeClient: kubeClient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			BuilderImage:   "test-docker-builder",
+			Image:          "test-docker-builder",
 			UseLocalImages: false,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
-			BuilderImage:         "test-sti-builder",
+			Image:                "test-sti-builder",
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       false,
 		},

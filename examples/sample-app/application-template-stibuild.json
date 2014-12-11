@@ -82,7 +82,7 @@
         "strategy": {
           "type": "STI",
           "stiStrategy": {
-            "builderImage": "openshift/ruby-20-centos"
+            "image": "openshift/ruby-20-centos"
           }
         },
         "output": {

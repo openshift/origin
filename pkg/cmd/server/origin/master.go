@@ -268,21 +268,24 @@ func (c *MasterConfig) RunAssetServer() {
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
 func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
-	dockerBuilderImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/origin-docker-builder")
-	stiBuilderImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/origin-sti-builder")
+	dockerImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/origin-docker-builder")
+	stiImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/origin-sti-builder")
 	useLocalImages := env("USE_LOCAL_IMAGES", "true") == "true"
 
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		Client:     c.OSClient,
 		KubeClient: c.KubeClient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			BuilderImage:   dockerBuilderImage,
+			Image:          dockerImage,
 			UseLocalImages: useLocalImages,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
-			BuilderImage:         stiBuilderImage,
+			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       useLocalImages,
+		},
+		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
+			UseLocalImages: useLocalImages,
 		},
 	}
 
