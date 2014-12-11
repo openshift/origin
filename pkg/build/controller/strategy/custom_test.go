@@ -15,9 +15,9 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	}
 
 	expectedBad := mockCustomBuild()
-	expectedBad.Parameters.Strategy.CustomStrategy.BuilderImage = ""
+	expectedBad.Parameters.Strategy.CustomStrategy.Image = ""
 	if _, err := strategy.CreateBuildPod(expectedBad); err == nil {
-		t.Errorf("Expected error when BuilderImage is empty, got nothing")
+		t.Errorf("Expected error when Image is empty, got nothing")
 	}
 
 	expected := mockCustomBuild()
@@ -86,7 +86,7 @@ func mockCustomBuild() *buildapi.Build {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.CustomBuildStrategyType,
 				CustomStrategy: &buildapi.CustomBuildStrategy{
-					BuilderImage: "builder-image",
+					Image: "builder-image",
 					Env: []kapi.EnvVar{
 						{"FOO", "BAR"},
 					},

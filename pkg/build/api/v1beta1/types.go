@@ -152,9 +152,9 @@ const (
 
 // CustomBuildStrategy defines input parameter specific to Custom build.
 type CustomBuildStrategy struct {
-	// BuilderImage is the image required to execute the build. If not specified
+	// Image is the image required to execute the build. If not specified
 	// a validation error is returned.
-	BuilderImage string `json:"builderImage" yaml:"builderImage"`
+	Image string `json:"image" yaml:"image"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -180,7 +180,11 @@ type DockerBuildStrategy struct {
 // STIBuildStrategy defines input parameters specific to an STI build.
 type STIBuildStrategy struct {
 	// BuilderImage is the image used to execute the build.
+	// Deprecated: will be removed in v1beta2, use Image.
 	BuilderImage string `json:"builderImage,omitempty" yaml:"builderImage,omitempty"`
+
+	// Image is the image used to execute the build.
+	Image string `json:"image,omitempty" yaml:"image,omitempty"`
 
 	// Clean flag forces the STI build to not do incremental builds if true.
 	Clean bool `json:"clean,omitempty" yaml:"clean,omitempty"`

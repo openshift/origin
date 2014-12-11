@@ -89,7 +89,7 @@ An example JSON of a custom build strategy:
 "strategy": {
   "type": "Custom",
     "customStrategy": {
-      "builderImage": "my-custom-builder-image",
+      "image": "my-custom-builder-image",
       "exposeDockerSocket": true,
       "env": [
         { "name": "EXPOSE_PORT", "value": "8080" }

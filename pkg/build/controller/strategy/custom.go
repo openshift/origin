@@ -28,8 +28,8 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
 	}
 
-	if strategy == nil || (strategy != nil && len(strategy.BuilderImage) == 0) {
-		return nil, errors.New("CustomBuildStrategy cannot be executed without builderImage")
+	if strategy == nil || (strategy != nil && len(strategy.Image) == 0) {
+		return nil, errors.New("CustomBuildStrategy cannot be executed without image")
 	}
 
 	if len(strategy.Env) > 0 {
@@ -49,7 +49,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",
-					Image: strategy.BuilderImage,
+					Image: strategy.Image,
 					Env:   containerEnv,
 				},
 			},

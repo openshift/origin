@@ -10,7 +10,7 @@ import (
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
 type DockerBuildStrategy struct {
-	BuilderImage   string
+	Image          string
 	UseLocalImages bool
 }
 
@@ -30,7 +30,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Containers: []kapi.Container{
 				{
 					Name:  "docker-build",
-					Image: bs.BuilderImage,
+					Image: bs.Image,
 					Env: []kapi.EnvVar{
 						{Name: "BUILD", Value: string(buildJSON)},
 					},

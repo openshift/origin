@@ -102,9 +102,9 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 	case buildapi.DockerBuildStrategyType:
 		// DockerStrategy is currently optional
 	case buildapi.CustomBuildStrategyType:
-		// CustomBuildStrategy requires 'builderImage' to be specified in JSON
-		if len(strategy.CustomStrategy.BuilderImage) == 0 {
-			allErrs = append(allErrs, errs.NewFieldRequired("builderImage", strategy.CustomStrategy.BuilderImage))
+		// CustomBuildStrategy requires 'image' to be specified in JSON
+		if len(strategy.CustomStrategy.Image) == 0 {
+			allErrs = append(allErrs, errs.NewFieldRequired("image", strategy.CustomStrategy.Image))
 		}
 	default:
 		allErrs = append(allErrs, errs.NewFieldInvalid("type", strategy.Type, "type is not in the enumerated list"))
@@ -115,8 +115,8 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 
 func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if len(strategy.BuilderImage) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("builderImage", strategy.BuilderImage))
+	if len(strategy.Image) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("image", strategy.Image))
 	}
 	return allErrs
 }

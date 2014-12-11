@@ -11,7 +11,7 @@ import (
 
 // STIBuildStrategy creates STI(source to image) builds
 type STIBuildStrategy struct {
-	BuilderImage         string
+	Image                string
 	TempDirectoryCreator TempDirectoryCreator
 	UseLocalImages       bool
 }
@@ -43,7 +43,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 			Containers: []kapi.Container{
 				{
 					Name:  "sti-build",
-					Image: bs.BuilderImage,
+					Image: bs.Image,
 					Env: []kapi.EnvVar{
 						{Name: "BUILD", Value: string(buildJSON)},
 					},

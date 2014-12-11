@@ -270,7 +270,7 @@ func mockBuildConfig() *api.BuildConfig {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
-					BuilderImage: "builder/image",
+					Image: "builder/image",
 				},
 			},
 			Output: api.BuildOutput{
@@ -346,7 +346,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 				Strategy: api.BuildStrategy{
 					Type: api.STIBuildStrategyType,
 					STIStrategy: &api.STIBuildStrategy{
-						BuilderImage: "builder/image",
+						Image: "builder/image",
 					},
 				},
 				Output: api.BuildOutput{
@@ -368,7 +368,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 				},
 			},
 		},
-		"blank BuilderImage": {
+		"blank Image": {
 			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
@@ -380,7 +380,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 				Strategy: api.BuildStrategy{
 					Type: api.STIBuildStrategyType,
 					STIStrategy: &api.STIBuildStrategy{
-						BuilderImage: "",
+						Image: "",
 					},
 				},
 				Output: api.BuildOutput{
@@ -430,7 +430,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 				Strategy: api.BuildStrategy{
 					Type: api.STIBuildStrategyType,
 					STIStrategy: &api.STIBuildStrategy{
-						BuilderImage: "builder/image",
+						Image: "builder/image",
 					},
 				},
 				Output: api.BuildOutput{
@@ -452,7 +452,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 				},
 			},
 		},
-		"blank BuilderImage on STIBuildType": {
+		"blank Image on STIBuildType": {
 			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
@@ -464,7 +464,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 				Strategy: api.BuildStrategy{
 					Type: api.STIBuildStrategyType,
 					STIStrategy: &api.STIBuildStrategy{
-						BuilderImage: "",
+						Image: "",
 					},
 				},
 				Output: api.BuildOutput{

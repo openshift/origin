@@ -39,7 +39,7 @@
       "strategy": {
         "type": "STI",
         "stiStrategy": {
-          "builderImage": "openshift/sti-builder"
+          "image": "openshift/sti-builder"
         }
       },
       "output": {
