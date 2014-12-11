@@ -56,9 +56,15 @@ Examples:
 
 			// Print build logs before cancelling build.
 			if kubecmd.GetFlagBool(cmd, "dump-logs") {
-				response, err := client.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(buildName).Do().Raw()
-				checkErr(err)
-				glog.V(2).Infof("Build logs for %s: %v", buildName, string(response))
+				// in order to dump logs, you must have a pod assigned to the build.  Since build pod creation is asynchronous, it is possible to cancel a build without a pod being assigned.
+				if len(build.PodName) == 0 {
+					glog.V(2).Infof("Build %v, does not have a pod assigned, so it does not have any logs.", buildName)
+
+				} else {
+					response, err := client.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(buildName).Do().Raw()
+					checkErr(err)
+					glog.V(2).Infof("Build logs for %s:\n%v", buildName, string(response))
+				}
 			}
 
 			// Mark build to be cancelled.
