@@ -37,6 +37,8 @@ type BuildParameters struct {
 
 	// Output describes the Docker image the Strategy should produce.
 	Output BuildOutput `json:"output,omitempty" yaml:"output,omitempty"`
+
+	UpstreamImage string `json:"upstreamImage,omitempty" yaml:"upstreamImage,omitempty"`
 }
 
 // BuildStatus represents the status of a build at a point in time.
