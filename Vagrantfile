@@ -93,9 +93,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Single VM dev environment
     # Set VirtualBox provider settings
     config.vm.provider "virtualbox" do |v, override|
-      override.vm.box     = vagrant_openshift_config['virtualbox']['box_name']
-      override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url']
-
+      if vagrant_openshift_config['virtualbox']
+        override.vm.box     = vagrant_openshift_config['virtualbox']['box_name']
+        override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url']
+      end
       v.memory            = vagrant_openshift_config['memory']
       v.cpus              = vagrant_openshift_config['cpus']
       v.customize ["modifyvm", :id, "--cpus", "2"]
@@ -108,8 +109,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
     config.vm.provider "libvirt" do |libvirt, override|
-      override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
-      override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
+      if vagrant_openshift_config['libvirt']
+        override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
+        override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
+      end
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory']
       libvirt.cpus        = vagrant_openshift_config['cpus']
