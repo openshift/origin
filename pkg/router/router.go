@@ -3,7 +3,9 @@ package router
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
 	"io/ioutil"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -21,7 +23,7 @@ const (
 )
 
 const (
-	RouteFile = "/var/lib/containers/router/routes.json"
+	DefaultRouteFile = "/var/lib/containers/router/routes.json"
 )
 
 type Frontend struct {
@@ -56,20 +58,29 @@ type Endpoint struct {
 
 type Routes struct {
 	GlobalRoutes map[string]Frontend
+	RouteFile    string
 }
 
 type Router interface {
-	ReadRoutes()
-	WriteRoutes()
+	ReadRoutes() error
+	WriteRoutes() error
 	FindFrontend(name string) (v Frontend, ok bool)
 	DeleteBackends(name string)
-	CreateFrontend(name, url string)
-	DeleteFrontend(name string)
-	AddAlias(alias, frontendName string)
-	RemoveAlias(alias, frontendName string)
-	AddRoute(frontend *Frontend, backend *Backend, endpoints []Endpoint)
+	CreateFrontend(name string, url string) (*Frontend, error)
+	DeleteFrontend(frontendName string) error
+	AddAlias(alias string, frontendName string) error
+	RemoveAlias(alias string, frontendName string) error
+	AddRoute(frontend *Frontend, backend *Backend, endpoints []Endpoint) error
 	WriteConfig()
 	ReloadRouter() bool
+}
+
+func NewRoutes(filename ...string) *Routes {
+	file := DefaultRouteFile
+	if filename != nil && len(filename) > 0 {
+		file = filename[0]
+	}
+	return &Routes{make(map[string]Frontend), file}
 }
 
 func makeID() string {
@@ -78,30 +89,38 @@ func makeID() string {
 	return s
 }
 
-func (routes *Routes) ReadRoutes() {
-	//fmt.Printf("Reading routes file (%s)\n", RouteFile)
-	dat, err := ioutil.ReadFile(RouteFile)
+func (routes *Routes) ReadRoutes() error {
+	file := routes.RouteFile
+	glog.V(4).Infof("Reading routes file (%s)\n", file)
+	dat, err := ioutil.ReadFile(file)
 	if err != nil {
+		glog.Errorf("Error while reading file %v (%s)", file, err)
 		routes.GlobalRoutes = make(map[string]Frontend)
-		return
+		return err
 	}
 	json.Unmarshal(dat, &routes.GlobalRoutes)
+	glog.V(4).Infof("Marshall result %+v", routes.GlobalRoutes)
+	return nil
 }
 
-func (routes *Routes) WriteRoutes() {
+func (routes *Routes) WriteRoutes() error {
 	dat, err := json.MarshalIndent(routes.GlobalRoutes, "", "  ")
 	if err != nil {
-		fmt.Println("Failed to marshal routes - %s", err.Error())
+		glog.Errorf("Failed to marshal routes - %s", err.Error())
+		return err
 	}
-	err = ioutil.WriteFile(RouteFile, dat, 0644)
+	file := routes.RouteFile
+	glog.V(4).Infof("Writing routes tofile (%s)", file)
+	err = ioutil.WriteFile(file, dat, 0644)
 	if err != nil {
-		fmt.Println("Failed to write to routes file - %s", err.Error())
+		glog.Errorf("Failed to write to routes file - %s", err.Error())
 	}
+	return err
 }
 
 func (routes *Routes) FindFrontend(name string) (v Frontend, ok bool) {
 	v, ok = routes.GlobalRoutes[name]
-	return
+	return v, ok
 }
 
 func (routes *Routes) DeleteBackends(name string) {
@@ -115,7 +134,7 @@ func (routes *Routes) DeleteBackends(name string) {
 	routes.GlobalRoutes[name] = frontend
 }
 
-func (routes *Routes) CreateFrontend(name string, url string) {
+func (routes *Routes) CreateFrontend(name string, url string) (*Frontend, error) {
 	frontend := Frontend{
 		Name:          name,
 		Backends:      make(map[string]Backend),
@@ -127,29 +146,38 @@ func (routes *Routes) CreateFrontend(name string, url string) {
 		frontend.HostAliases = append(frontend.HostAliases, url)
 	}
 	routes.GlobalRoutes[frontend.Name] = frontend
-	routes.WriteRoutes()
+	return &frontend, nil
 }
 
-func (routes *Routes) DeleteFrontend(name string) {
-	delete(routes.GlobalRoutes, name)
-	routes.WriteRoutes()
+func (routes *Routes) DeleteFrontend(frontendName string) error {
+	delete(routes.GlobalRoutes, frontendName)
+	return routes.WriteRoutes()
 }
 
-func (routes *Routes) AddAlias(alias, frontendName string) {
-	frontend := routes.GlobalRoutes[frontendName]
+func (routes *Routes) AddAlias(alias string, frontendName string) error {
+	frontend, ok := routes.GlobalRoutes[frontendName]
+	if !ok {
+		err := fmt.Errorf("Error getting frontend with name: %v, ensure that the frontend has backenden previously created using the CreateFronted method", frontendName)
+		glog.Errorf("%s", err.Error())
+		return err
+	}
 	for _, v := range frontend.HostAliases {
 		if v == alias {
-			return
+			return nil
 		}
 	}
-
 	frontend.HostAliases = append(frontend.HostAliases, alias)
 	routes.GlobalRoutes[frontendName] = frontend
-	routes.WriteRoutes()
+	return routes.WriteRoutes()
 }
 
-func (routes *Routes) RemoveAlias(alias, frontendName string) {
-	frontend := routes.GlobalRoutes[frontendName]
+func (routes *Routes) RemoveAlias(alias string, frontendName string) error {
+	frontend, ok := routes.GlobalRoutes[frontendName]
+	if !ok {
+		err := fmt.Errorf("Error getting frontend with name: %v, ensure that the frontend has backenden previously created using the CreateFronted method", frontendName)
+		glog.Errorf("%s\n", err.Error())
+		return err
+	}
 	newAliases := []string{}
 	for _, v := range frontend.HostAliases {
 		if v == alias || v == "" {
@@ -160,11 +188,17 @@ func (routes *Routes) RemoveAlias(alias, frontendName string) {
 	frontend.HostAliases = newAliases
 	routes.GlobalRoutes[frontendName] = frontend
 	routes.WriteRoutes()
+	return nil
 }
 
-func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints []Endpoint) {
+func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints []Endpoint) error {
 	var id string
-	existingFrontend := routes.GlobalRoutes[frontend.Name]
+	existingFrontend, ok := routes.GlobalRoutes[frontend.Name]
+	if !ok {
+		err := fmt.Errorf("Error getting frontend with name: %v, ensure that the frontend has backenden previously created using the CreateFronted method", frontend.Name)
+		glog.Errorf("%s\n", err.Error())
+		return err
+	}
 
 	epIDs := make([]string, 1)
 	for newEpID := range endpoints {
@@ -205,23 +239,14 @@ func (routes *Routes) AddRoute(frontend *Frontend, backend *Backend, endpoints [
 	}
 	routes.GlobalRoutes[existingFrontend.Name] = existingFrontend
 	routes.WriteRoutes()
+
+	return nil
 }
 
 func cmpStrSlices(first []string, second []string) bool {
-	if len(first) != len(second) {
-		return false
-	}
-	for _, fi := range first {
-		found := false
-		for _, si := range second {
-			if fi == si {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
+	sort.Strings(first)
+	sort.Strings(second)
+	strFirst := fmt.Sprintf("%v", first)
+	strSecond := fmt.Sprintf("%v", second)
+	return strFirst == strSecond
 }
