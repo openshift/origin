@@ -54,20 +54,29 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 	nextStatus := buildapi.BuildStatusFailed
 	build.PodName = fmt.Sprintf("build-%s", build.Name)
 
-	var podSpec *kapi.Pod
-	var err error
-	if podSpec, err = bc.BuildStrategy.CreateBuildPod(build); err != nil {
-		glog.V(2).Infof("Strategy failed to create build pod definition: %v", err)
-		nextStatus = buildapi.BuildStatusFailed
+	// If a cancelling event was triggered for the build, update build status.
+	if build.Cancelled {
+		glog.V(2).Infof("Cancelling build %s.", build.Name)
+		nextStatus = buildapi.BuildStatusCancelled
+
 	} else {
-		if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
-			if !errors.IsAlreadyExists(err) {
-				glog.V(2).Infof("Failed to create pod for build %s: %#v", build.Name, err)
-				nextStatus = buildapi.BuildStatusFailed
-			}
+
+		var podSpec *kapi.Pod
+		var err error
+		if podSpec, err = bc.BuildStrategy.CreateBuildPod(build); err != nil {
+			glog.V(2).Infof("Strategy failed to create build pod definition: %v", err)
+			nextStatus = buildapi.BuildStatusFailed
 		} else {
-			glog.V(2).Infof("Created build pod: %#v", podSpec)
-			nextStatus = buildapi.BuildStatusPending
+
+			if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
+				if !errors.IsAlreadyExists(err) {
+					glog.V(2).Infof("Failed to create pod for build %s: %#v", build.Name, err)
+					nextStatus = buildapi.BuildStatusFailed
+				}
+			} else {
+				glog.V(2).Infof("Created build pod: %#v", podSpec)
+				nextStatus = buildapi.BuildStatusPending
+			}
 		}
 	}
 
@@ -131,16 +140,18 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 // CancelBuild updates a build status to Cancelled, after its associated pod is associated.
 func (bc *BuildController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) error {
 	if !isBuildCancellable(build) {
-		return fmt.Errorf("the build can be cancelled only if it has new/pending/running status, not %s.", build.Status)
+		glog.V(2).Infof("The build can be cancelled only if it has pending/running status, not %s.", build.Status)
+		return nil
 	}
 
-	if err := bc.PodManager.DeletePod(build.Namespace, pod); err != nil {
-		return fmt.Errorf("failed to delete build %s pod: %#v", build.Name, err)
+	err := bc.PodManager.DeletePod(build.Namespace, pod)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
 	}
 
 	build.Status = buildapi.BuildStatusCancelled
 	if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
-		return fmt.Errorf("failed to update build %s: %#v", build.Name, err)
+		return err
 	}
 
 	glog.V(2).Infof("Build %s was successfully cancelled.", build.Name)
@@ -149,5 +160,5 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) err
 
 // isBuildCancellable checks for build status and returns true if the condition is checked.
 func isBuildCancellable(build *buildapi.Build) bool {
-	return build.Status == buildapi.BuildStatusPending || build.Status == buildapi.BuildStatusRunning
+	return build.Status == buildapi.BuildStatusNew || build.Status == buildapi.BuildStatusPending || build.Status == buildapi.BuildStatusRunning
 }
