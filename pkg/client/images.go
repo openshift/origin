@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -47,6 +49,10 @@ func (c *images) List(label, field labels.Selector) (result *imageapi.ImageList,
 
 // Get returns information about a particular image and error if one occurs.
 func (c *images) Get(name string) (result *imageapi.Image, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &imageapi.Image{}
 	err = c.r.Get().Namespace(c.ns).Path("images").Path(name).Do().Into(result)
 	return

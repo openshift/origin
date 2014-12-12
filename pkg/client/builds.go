@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -51,6 +53,10 @@ func (c *builds) List(label, field labels.Selector) (result *buildapi.BuildList,
 
 // Get returns information about a particular build and error if one occurs.
 func (c *builds) Get(name string) (result *buildapi.Build, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &buildapi.Build{}
 	err = c.r.Get().Path("builds").Path(name).Do().Into(result)
 	return

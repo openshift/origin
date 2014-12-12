@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -51,6 +53,10 @@ func (c *routes) List(label, field labels.Selector) (result *routeapi.RouteList,
 
 // Get takes the name of the route, and returns the corresponding Route object, and an error if it occurs
 func (c *routes) Get(name string) (result *routeapi.Route, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &routeapi.Route{}
 	err = c.r.Get().Namespace(c.ns).Path("routes").Path(name).Do().Into(result)
 	return

@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
@@ -30,6 +32,10 @@ func newProjects(c *Client) *projects {
 
 // Get returns information about a particular user or an error
 func (c *projects) Get(name string) (result *projectapi.Project, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &projectapi.Project{}
 	err = c.r.Get().Path("projects").Path(name).Do().Into(result)
 	return

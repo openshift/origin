@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	userapi "github.com/openshift/origin/pkg/user/api"
 	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
@@ -29,6 +31,10 @@ func newUsers(c *Client) *users {
 
 // Get returns information about a particular user or an error
 func (c *users) Get(name string) (result *userapi.User, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &userapi.User{}
 	err = c.r.Get().Path("users").Path(name).Do().Into(result)
 	return

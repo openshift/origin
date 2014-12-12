@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -51,6 +53,10 @@ func (c *buildConfigs) List(label, field labels.Selector) (result *buildapi.Buil
 
 // Get returns information about a particular buildconfig and error if one occurs.
 func (c *buildConfigs) Get(name string) (result *buildapi.BuildConfig, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &buildapi.BuildConfig{}
 	err = c.r.Get().Namespace(c.ns).Path("buildConfigs").Path(name).Do().Into(result)
 	return

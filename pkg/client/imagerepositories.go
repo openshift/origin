@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -50,6 +52,10 @@ func (c *imageRepositories) List(label, field labels.Selector) (result *imageapi
 
 // Get returns information about a particular imagerepository and error if one occurs.
 func (c *imageRepositories) Get(name string) (result *imageapi.ImageRepository, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &imageapi.ImageRepository{}
 	err = c.r.Get().Namespace(c.ns).Path("imageRepositories").Path(name).Do().Into(result)
 	return

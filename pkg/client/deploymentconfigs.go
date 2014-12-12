@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -52,6 +54,10 @@ func (c *deploymentConfigs) List(label, field labels.Selector) (result *deployap
 
 // Get returns information about a particular deploymentConfig
 func (c *deploymentConfigs) Get(name string) (result *deployapi.DeploymentConfig, err error) {
+	if len(name) == 0 {
+		return nil, errors.New("name is required parameter to Get")
+	}
+
 	result = &deployapi.DeploymentConfig{}
 	err = c.r.Get().Namespace(c.ns).Path("deploymentConfigs").Path(name).Do().Into(result)
 	return
