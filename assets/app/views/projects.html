@@ -6,7 +6,7 @@
     </div>
     <div class="tile tile-click" ng-click="tileClickHandler($event)" style="margin-bottom: 10px;" ng-repeat="project in projects">
       <h3><a class="tile-target" href="#/project/{{project.metadata.name}}">{{project.displayName}}</a></h3>
-      <div class="muted" style="margin-top: -5px;" ng-if="project.description">{{project.description}}</div>
+      <div class="muted" style="margin-top: -5px;" ng-if="project | annotation : 'description'">{{project | annotation : 'description'}}</div>
     </div>
   </div>
 </div>
