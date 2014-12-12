@@ -38,24 +38,8 @@ type serviceInfo struct {
 	proxyPort  int
 	socket     proxySocket
 	timeout    time.Duration
-	mu         sync.Mutex // protects active
-	active     bool
 	// TODO: make this an net.IP address
 	publicIP []string
-}
-
-func (si *serviceInfo) isActive() bool {
-	si.mu.Lock()
-	defer si.mu.Unlock()
-	return si.active
-}
-
-func (si *serviceInfo) setActive(val bool) bool {
-	si.mu.Lock()
-	defer si.mu.Unlock()
-	tmp := si.active
-	si.active = val
-	return tmp
 }
 
 // How long we wait for a connection to a backend in seconds
@@ -69,7 +53,7 @@ type proxySocket interface {
 	// on the impact of calling Close while sessions are active.
 	Close() error
 	// ProxyLoop proxies incoming connections for the specified service to the service endpoints.
-	ProxyLoop(service string, info *serviceInfo, proxier *Proxier)
+	ProxyLoop(service string, proxier *Proxier)
 }
 
 // tcpProxySocket implements proxySocket.  Close() is implemented by net.Listener.  When Close() is called,
@@ -98,15 +82,21 @@ func tryConnect(service string, srcAddr net.Addr, protocol string, proxier *Prox
 	return nil, fmt.Errorf("failed to connect to an endpoint.")
 }
 
-func (tcp *tcpProxySocket) ProxyLoop(service string, info *serviceInfo, proxier *Proxier) {
+func (tcp *tcpProxySocket) ProxyLoop(service string, proxier *Proxier) {
 	for {
-		if !info.isActive() {
+		_, exists := proxier.getServiceInfo(service)
+		if !exists {
 			break
 		}
 
 		// Block until a connection is made.
 		inConn, err := tcp.Accept()
 		if err != nil {
+			_, exists := proxier.getServiceInfo(service)
+			if !exists {
+				// Then the service port was just closed so the accept failure is to be expected.
+				return
+			}
 			glog.Errorf("Accept failed: %v", err)
 			continue
 		}
@@ -168,11 +158,12 @@ func newClientCache() *clientCache {
 	return &clientCache{clients: map[string]net.Conn{}}
 }
 
-func (udp *udpProxySocket) ProxyLoop(service string, info *serviceInfo, proxier *Proxier) {
+func (udp *udpProxySocket) ProxyLoop(service string, proxier *Proxier) {
 	activeClients := newClientCache()
 	var buffer [4096]byte // 4KiB should be enough for most whole-packets
 	for {
-		if !info.isActive() {
+		info, exists := proxier.getServiceInfo(service)
+		if !exists {
 			break
 		}
 
@@ -224,6 +215,10 @@ func (udp *udpProxySocket) getBackendConn(activeClients *clientCache, cliAddr ne
 		var err error
 		svrConn, err = tryConnect(service, cliAddr, "udp", proxier)
 		if err != nil {
+			return nil, err
+		}
+		if err = svrConn.SetDeadline(time.Now().Add(timeout)); err != nil {
+			glog.Errorf("SetDeadline failed: %v", err)
 			return nil, err
 		}
 		activeClients.clients[cliAddr.String()] = svrConn
@@ -372,9 +367,6 @@ func (proxier *Proxier) stopProxy(service string, info *serviceInfo) error {
 
 // This assumes proxier.mu is locked.
 func (proxier *Proxier) stopProxyInternal(service string, info *serviceInfo) error {
-	if !info.setActive(false) {
-		return nil
-	}
 	delete(proxier.serviceMap, service)
 	return info.socket.Close()
 }
@@ -413,17 +405,16 @@ func (proxier *Proxier) addServiceOnPort(service string, protocol api.Protocol, 
 	si := &serviceInfo{
 		proxyPort: portNum,
 		protocol:  protocol,
-		active:    true,
 		socket:    sock,
 		timeout:   timeout,
 	}
 	proxier.setServiceInfo(service, si)
 
 	glog.V(1).Infof("Proxying for service %q on %s port %d", service, protocol, portNum)
-	go func(service string, info *serviceInfo, proxier *Proxier) {
+	go func(service string, proxier *Proxier) {
 		defer util.HandleCrash()
-		sock.ProxyLoop(service, info, proxier)
-	}(service, si, proxier)
+		sock.ProxyLoop(service, proxier)
+	}(service, proxier)
 
 	return si, nil
 }
@@ -442,10 +433,10 @@ func (proxier *Proxier) OnUpdate(services []api.Service) {
 		info, exists := proxier.getServiceInfo(service.Name)
 		serviceIP := net.ParseIP(service.Spec.PortalIP)
 		// TODO: check health of the socket?  What if ProxyLoop exited?
-		if exists && info.isActive() && info.portalPort == service.Spec.Port && info.portalIP.Equal(serviceIP) {
+		if exists && info.portalPort == service.Spec.Port && info.portalIP.Equal(serviceIP) {
 			continue
 		}
-		if exists && (info.portalPort != service.Spec.Port || !info.portalIP.Equal(serviceIP) || service.Spec.CreateExternalLoadBalancer != (len(info.publicIP) > 0)) {
+		if exists && (info.portalPort != service.Spec.Port || !info.portalIP.Equal(serviceIP) || !ipsEqual(service.Spec.PublicIPs, info.publicIP)) {
 			glog.V(4).Infof("Something changed for service %q: stopping it", service.Name)
 			err := proxier.closePortal(service.Name, info)
 			if err != nil {
@@ -464,9 +455,7 @@ func (proxier *Proxier) OnUpdate(services []api.Service) {
 		}
 		info.portalIP = serviceIP
 		info.portalPort = service.Spec.Port
-		if service.Spec.CreateExternalLoadBalancer {
-			info.publicIP = service.Spec.PublicIPs
-		}
+		info.publicIP = service.Spec.PublicIPs
 		err = proxier.openPortal(service.Name, info)
 		if err != nil {
 			glog.Errorf("Failed to open portal for %q: %v", service.Name, err)
@@ -487,6 +476,18 @@ func (proxier *Proxier) OnUpdate(services []api.Service) {
 			}
 		}
 	}
+}
+
+func ipsEqual(lhs, rhs []string) bool {
+	if len(lhs) != len(rhs) {
+		return false
+	}
+	for i := range lhs {
+		if lhs[i] != rhs[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (proxier *Proxier) openPortal(service string, info *serviceInfo) error {
@@ -578,11 +579,20 @@ var localhostIPv6 = net.ParseIP("::1")
 
 // Build a slice of iptables args for a portal rule.
 func iptablesPortalArgs(destIP net.IP, destPort int, protocol api.Protocol, proxyIP net.IP, proxyPort int, service string) []string {
+	// This list needs to include all fields as they are eventually spit out
+	// by iptables-save.  This is because some systems do not support the
+	// 'iptables -C' arg, and so fall back on parsing iptables-save output.
+	// If this does not match, it will not pass the check.  For example:
+	// adding the /32 on the destination IP arg is not strictly required,
+	// but causes this list to not match the final iptables-save output.
+	// This is fragile and I hope one day we can stop supporting such old
+	// iptables versions.
 	args := []string{
 		"-m", "comment",
 		"--comment", service,
 		"-p", strings.ToLower(string(protocol)),
-		"-d", destIP.String(),
+		"-m", strings.ToLower(string(protocol)),
+		"-d", fmt.Sprintf("%s/32", destIP.String()),
 		"--dport", fmt.Sprintf("%d", destPort),
 	}
 	// This is tricky.  If the proxy is bound (see Proxier.listenAddress)

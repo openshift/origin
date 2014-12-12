@@ -1,9 +1,12 @@
 package yaml
 
 import (
+	"encoding"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,6 +21,7 @@ func newEncoder() (e *encoder) {
 	e = &encoder{}
 	e.must(yaml_emitter_initialize(&e.emitter))
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
+	yaml_emitter_set_unicode(&e.emitter, true)
 	e.must(yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING))
 	e.emit()
 	e.must(yaml_document_start_event_initialize(&e.event, nil, nil, true))
@@ -48,21 +52,35 @@ func (e *encoder) must(ok bool) {
 	if !ok {
 		msg := e.emitter.problem
 		if msg == "" {
-			msg = "Unknown problem generating YAML content"
+			msg = "unknown problem generating YAML content"
 		}
-		panic(msg)
+		failf("%s", msg)
 	}
 }
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
-	var value interface{}
-	if getter, ok := in.Interface().(Getter); ok {
-		tag, value = getter.GetYAML()
-		if value == nil {
+	if !in.IsValid() {
+		e.nilv()
+		return
+	}
+	iface := in.Interface()
+	if m, ok := iface.(Marshaler); ok {
+		v, err := m.MarshalYAML()
+		if err != nil {
+			fail(err)
+		}
+		if v == nil {
 			e.nilv()
 			return
 		}
-		in = reflect.ValueOf(value)
+		in = reflect.ValueOf(v)
+	}
+	if m, ok := iface.(encoding.TextMarshaler); ok {
+		text, err := m.MarshalText()
+		if err != nil {
+			fail(err)
+		}
+		in = reflect.ValueOf(string(text))
 	}
 	switch in.Kind() {
 	case reflect.Interface:
@@ -82,12 +100,16 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Struct:
 		e.structv(tag, in)
 	case reflect.Slice:
-		e.slicev(tag, in)
+		if in.Type().Elem() == mapItemType {
+			e.itemsv(tag, in)
+		} else {
+			e.slicev(tag, in)
+		}
 	case reflect.String:
 		e.stringv(tag, in)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if in.Type() == durationType {
-			e.stringv(tag, reflect.ValueOf(in.Interface().(time.Duration).String()))
+			e.stringv(tag, reflect.ValueOf(iface.(time.Duration).String()))
 		} else {
 			e.intv(tag, in)
 		}
@@ -98,7 +120,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Bool:
 		e.boolv(tag, in)
 	default:
-		panic("Can't marshal type yet: " + in.Type().String())
+		panic("cannot marshal type: " + in.Type().String())
 	}
 }
 
@@ -109,6 +131,16 @@ func (e *encoder) mapv(tag string, in reflect.Value) {
 		for _, k := range keys {
 			e.marshal("", k)
 			e.marshal("", in.MapIndex(k))
+		}
+	})
+}
+
+func (e *encoder) itemsv(tag string, in reflect.Value) {
+	e.mappingv(tag, func() {
+		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
+		for _, item := range slice {
+			e.marshal("", reflect.ValueOf(item.Key))
+			e.marshal("", reflect.ValueOf(item.Value))
 		}
 	})
 }
@@ -167,11 +199,46 @@ func (e *encoder) slicev(tag string, in reflect.Value) {
 	e.emit()
 }
 
+// isBase60 returns whether s is in base 60 notation as defined in YAML 1.1.
+//
+// The base 60 float notation in YAML 1.1 is a terrible idea and is unsupported
+// in YAML 1.2 and by this package, but these should be marshalled quoted for
+// the time being for compatibility with other parsers.
+func isBase60Float(s string) (result bool) {
+	// Fast path.
+	if s == "" {
+		return false
+	}
+	c := s[0]
+	if !(c == '+' || c == '-' || c >= '0' && c <= '9') || strings.IndexByte(s, ':') < 0 {
+		return false
+	}
+	// Do the full match.
+	return base60float.MatchString(s)
+}
+
+// From http://yaml.org/type/float.html, except the regular expression there
+// is bogus. In practice parsers do not enforce the "\.[0-9_]*" suffix.
+var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
+
 func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style yaml_scalar_style_t
 	s := in.String()
-	if rtag, _ := resolve("", s); rtag != "!!str" {
+	rtag, rs := resolve("", s)
+	if rtag == yaml_BINARY_TAG {
+		if tag == "" || tag == yaml_STR_TAG {
+			tag = rtag
+			s = rs.(string)
+		} else if tag == yaml_BINARY_TAG {
+			failf("explicitly tagged !!binary data must be base64-encoded")
+		} else {
+			failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
+		}
+	}
+	if tag == "" && (rtag != yaml_STR_TAG || isBase60Float(s)) {
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+	} else if strings.Contains(s, "\n") {
+		style = yaml_LITERAL_SCALAR_STYLE
 	} else {
 		style = yaml_PLAIN_SCALAR_STYLE
 	}
@@ -218,9 +285,6 @@ func (e *encoder) nilv() {
 
 func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t) {
 	implicit := tag == ""
-	if !implicit {
-		style = yaml_PLAIN_SCALAR_STYLE
-	}
 	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
 	e.emit()
 }

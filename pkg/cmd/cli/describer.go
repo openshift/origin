@@ -5,21 +5,17 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/spf13/cobra"
-
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 )
 
-func DescriberFor(kind string, c *client.Client, cmd *cobra.Command) (kctl.Describer, bool) {
+func DescriberFor(kind string, c *client.Client, host string) (kctl.Describer, bool) {
 	switch kind {
 	case "Build":
 		return &BuildDescriber{c}, true
 	case "BuildConfig":
-		return &BuildConfigDescriber{c, cmd}, true
+		return &BuildConfigDescriber{c, host}, true
 	case "Deployment":
 		return &DeploymentDescriber{c}, true
 	case "DeploymentConfig":
@@ -118,7 +114,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 // BuildConfigDescriber generates information about a buildConfig
 type BuildConfigDescriber struct {
 	client.Interface
-	*cobra.Command
+	host string
 }
 
 func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
@@ -128,12 +124,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	var kubeConfig *kclient.Config
-	if d.Command != nil {
-		kubeConfig = kubecmd.GetKubeConfig(d.Command)
-	}
-
-	webhooks := webhookURL(buildConfig, kubeConfig)
+	webhooks := webhookURL(buildConfig, d.host)
 	buildDescriber := &BuildDescriber{}
 
 	return tabbedString(func(out *tabwriter.Writer) error {

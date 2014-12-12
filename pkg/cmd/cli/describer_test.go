@@ -22,7 +22,7 @@ func TestDescribeFor(t *testing.T) {
 		"Image", "ImageRepository", "Route", "Project",
 	}
 	for _, o := range testTypesList {
-		_, ok := DescriberFor(o, c, nil)
+		_, ok := DescriberFor(o, c, "")
 		if !ok {
 			t.Errorf("Unable to obtain describer for %s", o)
 		}
@@ -35,7 +35,7 @@ func TestDescribers(t *testing.T) {
 
 	testDescriberList := []kubectl.Describer{
 		&BuildDescriber{c},
-		&BuildConfigDescriber{c, nil},
+		&BuildConfigDescriber{c, ""},
 		&DeploymentDescriber{c},
 		&DeploymentConfigDescriber{c},
 		&ImageDescriber{c},

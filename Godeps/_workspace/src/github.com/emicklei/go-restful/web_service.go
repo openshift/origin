@@ -4,41 +4,31 @@ package restful
 // Use of this source code is governed by a license
 // that can be found in the LICENSE file.
 
-import (
-	"log"
-	"sync"
-)
+import "log"
 
 // WebService holds a collection of Route values that bind a Http Method + URL Path to a function.
 type WebService struct {
-	rootPath         string
-	pathExpr         *pathExpression // cached compilation of rootPath as RegExp
-	routes           []Route
-	produces         []string
-	consumes         []string
-	pathParameters   []*Parameter
-	filters          []FilterFunction
-	documentation    string
-	apiVersion       string
-	compilationMutex sync.Mutex
+	rootPath       string
+	pathExpr       *pathExpression // cached compilation of rootPath as RegExp
+	routes         []Route
+	produces       []string
+	consumes       []string
+	pathParameters []*Parameter
+	filters        []FilterFunction
+	documentation  string
+	apiVersion     string
 }
 
-// compiledPathExpression ensures that the path is compiled into a RegEx for those routers that need it.
-func (w *WebService) compiledPathExpression() *pathExpression {
-	w.compilationMutex.Lock()
-	defer w.compilationMutex.Unlock()
-
-	if w.pathExpr == nil {
-		if len(w.rootPath) == 0 {
-			w.Path("/") // lazy initialize path
-		}
-		compiled, err := newPathExpression(w.rootPath)
-		if err != nil {
-			log.Fatalf("[restful] Invalid path:%s because:%v", w.rootPath, err)
-		}
-		w.pathExpr = compiled
+// compilePathExpression ensures that the path is compiled into a RegEx for those routers that need it.
+func (w *WebService) compilePathExpression() {
+	if len(w.rootPath) == 0 {
+		w.Path("/") // lazy initialize path
 	}
-	return w.pathExpr
+	compiled, err := newPathExpression(w.rootPath)
+	if err != nil {
+		log.Fatalf("[restful] invalid path:%s because:%v", w.rootPath, err)
+	}
+	w.pathExpr = compiled
 }
 
 // ApiVersion sets the API version for documentation purposes.
@@ -54,6 +44,7 @@ func (w WebService) Version() string { return w.apiVersion }
 // All Routes will be relative to this path.
 func (w *WebService) Path(root string) *WebService {
 	w.rootPath = root
+	w.compilePathExpression()
 	return w
 }
 

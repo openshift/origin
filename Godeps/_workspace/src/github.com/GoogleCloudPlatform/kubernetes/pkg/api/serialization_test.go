@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -49,10 +50,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		j.Kind = ""
 
 		j.Name = c.RandString()
-		// TODO: Fix JSON/YAML packages and/or write custom encoding
-		// for uint64's. Somehow the LS *byte* of this is lost, but
-		// only when all 8 bytes are set.
-		j.ResourceVersion = strconv.FormatUint(c.RandUint64()>>8, 10)
+		j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 		j.SelfLink = c.RandString()
 
 		var sec, nsec int64
@@ -68,10 +66,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 	},
 	func(j *api.ObjectMeta, c fuzz.Continue) {
 		j.Name = c.RandString()
-		// TODO: Fix JSON/YAML packages and/or write custom encoding
-		// for uint64's. Somehow the LS *byte* of this is lost, but
-		// only when all 8 bytes are set.
-		j.ResourceVersion = strconv.FormatUint(c.RandUint64()>>8, 10)
+		j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 		j.SelfLink = c.RandString()
 
 		var sec, nsec int64
@@ -80,10 +75,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		j.CreationTimestamp = util.Unix(sec, nsec).Rfc3339Copy()
 	},
 	func(j *api.ListMeta, c fuzz.Continue) {
-		// TODO: Fix JSON/YAML packages and/or write custom encoding
-		// for uint64's. Somehow the LS *byte* of this is lost, but
-		// only when all 8 bytes are set.
-		j.ResourceVersion = strconv.FormatUint(c.RandUint64()>>8, 10)
+		j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 		j.SelfLink = c.RandString()
 	},
 	func(j *api.PodPhase, c fuzz.Continue) {
@@ -119,10 +111,6 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 			intstr.StrVal = c.RandString()
 		}
 	},
-	func(u64 *uint64, c fuzz.Continue) {
-		// TODO: uint64's are NOT handled right.
-		*u64 = c.RandUint64() >> 8
-	},
 	func(pb map[docker.Port][]docker.PortBinding, c fuzz.Continue) {
 		// This is necessary because keys with nil values get omitted.
 		// TODO: Is this a bug?
@@ -137,6 +125,14 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		pm[c.RandString()] = docker.PortMapping{
 			c.RandString(): c.RandString(),
 		}
+	},
+	func(t *time.Time, c fuzz.Continue) {
+		// This is necessary because the standard fuzzed time.Time object is
+		// completely nil, but when JSON unmarshals dates it fills in the
+		// unexported loc field with the time.UTC object, resulting in
+		// reflect.DeepEqual returning false in the round trip tests. We solve it
+		// by using a date that will be identical to the one JSON unmarshals.
+		*t = time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)
 	},
 )
 
@@ -162,7 +158,7 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 		return
 	}
 	if !reflect.DeepEqual(source, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v", name, util.ObjectDiff(source, obj2), codec, string(data), source)
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v", name, util.ObjectGoPrintDiff(source, obj2), codec, string(data), source)
 		return
 	}
 

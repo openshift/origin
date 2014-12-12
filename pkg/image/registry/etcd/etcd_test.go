@@ -343,9 +343,9 @@ func TestEtcdWatchImagesOK(t *testing.T) {
 		{
 			labels.Everything(),
 			[]*api.Image{
-				{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "b"}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "c"}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a"}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b"}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c"}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
 			},
 			[]bool{
 				true,
@@ -356,9 +356,9 @@ func TestEtcdWatchImagesOK(t *testing.T) {
 		{
 			labels.SelectorFromSet(labels.Set{"color": "blue"}),
 			[]*api.Image{
-				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: map[string]string{"color": "blue"}}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: map[string]string{"color": "green"}}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: map[string]string{"color": "blue"}}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: map[string]string{"color": "green"}}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
 			},
 			[]bool{
 				true,

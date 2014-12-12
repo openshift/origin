@@ -6,7 +6,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -65,7 +64,7 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 }
 
 // webhookURL assembles map with of webhook type as key and webhook url and value
-func webhookURL(c *buildapi.BuildConfig, config *kclient.Config) map[string]string {
+func webhookURL(c *buildapi.BuildConfig, configHost string) map[string]string {
 	result := map[string]string{}
 	for i, trigger := range c.Triggers {
 		whTrigger := ""
@@ -80,8 +79,8 @@ func webhookURL(c *buildapi.BuildConfig, config *kclient.Config) map[string]stri
 		}
 		apiVersion := latest.Version
 		host := "localhost"
-		if config != nil {
-			host = config.Host
+		if len(configHost) > 0 {
+			host = configHost
 		}
 		url := fmt.Sprintf("%s/osapi/%s/buildConfigHooks/%s/%s/%s",
 			host,
