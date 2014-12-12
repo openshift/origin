@@ -60,7 +60,7 @@ func (w *clientWrapper) GetRedirectUri() string {
 }
 
 func (w *clientWrapper) GetUserData() interface{} {
-	return nil
+	return w.client
 }
 
 // Clone the storage if needed. For example, using mgo, you can clone the session with session.Clone

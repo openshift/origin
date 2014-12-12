@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
-	"github.com/openshift/origin/pkg/auth/authenticator/bearertoken"
+	"github.com/openshift/origin/pkg/auth/authenticator/token/bearertoken"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -181,12 +181,12 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	}
 	handlerContainer := kmaster.NewHandlerContainer(osMux)
 	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(handlerContainer, "/osapi", "v1beta1")
-	//apiserver.InstallSupport(osMux)
 
 	handler := http.Handler(osMux)
 	if c.RequireAuthentication {
-		handler = c.wrapHandlerWithAuthentication(handler)
+		handler = c.wireAuthenticationHandling(osMux, handler)
 	}
+
 	if len(c.CORSAllowedOrigins) > 0 {
 		handler = apiserver.CORS(handler, c.CORSAllowedOrigins, nil, nil, "true")
 	}
@@ -210,9 +210,37 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	}, 0)
 }
 
-func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler) http.Handler {
+// wireAuthenticationHandling creates and binds all the objects that we only care about if authentication is turned on.  It's pulled out
+// just to make the RunAPI method easier to read.  These resources include the requestsToUsers map that allows callers to know which user
+// is requesting an operation, the handler wrapper that protects the passed handler behind a handler that requires valid authentication
+// information on the request, and an endpoint that only functions properly with an authenticated user.
+func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler) http.Handler {
+	// this tracks requests back to users for authorization.  The same instance must be shared between writers and readers
+	requestsToUsers := authcontext.NewRequestContextMap()
+
+	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
+	handler = c.wrapHandlerWithAuthentication(handler, requestsToUsers)
+
+	// this requires the requests and users to be present
+	thisUserEndpoint := OpenShiftAPIPrefixV1Beta1 + "/users/~"
+	userContextMap := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
+		obj, found := requestsToUsers.Get(req)
+		if user, ok := obj.(userregistry.Info); found && ok {
+			return user, true
+		}
+		return nil, false
+	})
+	userregistry.InstallThisUser(osMux, thisUserEndpoint, userContextMap, handler)
+
+	return handler
+}
+
+// wrapHandlerWithAuthentication takes a handler and protects it behind a handler that tests to make sure that a user is authenticated.
+// if the request does have value auth information, then the request is allowed through the passed handler.  If the request does not have
+// valid auth information, then the request is passed to a failure handler.  Until we get authentication for system componenets, the
+// failure handler logs and passes through.
+func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler, requestsToUsers *authcontext.RequestContextMap) http.Handler {
 	// wrap with authenticated token check
-	requestsToUsers := authcontext.NewRequestContextMap() // this tracks requests back to users for authorization
 	tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
 	if err != nil {
 		glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)

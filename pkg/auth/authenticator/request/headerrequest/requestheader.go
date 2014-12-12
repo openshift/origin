@@ -1,4 +1,4 @@
-package requestheader
+package headerrequest
 
 import (
 	"net/http"

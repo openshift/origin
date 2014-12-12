@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
+	"github.com/openshift/origin/pkg/cmd/infra/experimental"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
@@ -48,6 +49,8 @@ func CommandFor(basename string) *cobra.Command {
 		return builder.NewCommandDockerBuilder(basename)
 	case "cli":
 		return cli.NewCommandCLI(basename)
+	case "openshift-experimental":
+		return experimental.NewCommandExperimental(basename)
 	default:
 		return NewCommandOpenShift()
 	}
@@ -79,6 +82,7 @@ func NewCommandOpenShift() *cobra.Command {
 		deployer.NewCommandDeployer("deploy"),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
+		experimental.NewCommandExperimental("experimental"),
 	)
 	root.AddCommand(infra)
 

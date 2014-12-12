@@ -5,18 +5,18 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	authapi "github.com/openshift/origin/pkg/auth/api"
 )
 
 type EmptyAuth struct{}
 
-func (EmptyAuth) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
+func (EmptyAuth) AuthenticationNeeded(client authapi.Client, w http.ResponseWriter, req *http.Request) (bool, error) {
 	return false, nil
 }
 
 type EmptySuccess struct{}
 
-func (EmptySuccess) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (EmptySuccess) AuthenticationSucceeded(user authapi.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	glog.V(4).Infof("AuthenticationSucceeded: %v (state=%s)", user, state)
 	return false, nil
 }

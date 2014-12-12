@@ -38,7 +38,7 @@ type testHandlers struct {
 	HandledErr error
 }
 
-func (h *testHandlers) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
+func (h *testHandlers) AuthenticationNeeded(client api.Client, w http.ResponseWriter, req *http.Request) (bool, error) {
 	h.AuthNeed = true
 	return h.AuthNeedHandled, h.AuthNeedErr
 }

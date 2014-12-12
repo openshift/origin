@@ -7,5 +7,5 @@ import (
 )
 
 func TestHandler(t *testing.T) {
-	_ = handlers.AuthenticationHandler(&Handler{})
+	_ = handlers.NewUnionAuthenticationHandler(nil, map[string]handlers.AuthenticationRedirector{"handler": &Handler{}}, nil)
 }

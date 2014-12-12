@@ -1,4 +1,4 @@
-package file
+package filetoken
 
 import (
 	"encoding/csv"

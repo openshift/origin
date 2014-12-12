@@ -26,7 +26,7 @@ type Handler struct {
 	mapper       authapi.UserIdentityMapper
 }
 
-func NewHandler(provider Provider, state State, redirectURL string, success handlers.AuthenticationSuccessHandler, errorHandler handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
+func NewExternalOAuthRedirector(provider Provider, state State, redirectURL string, success handlers.AuthenticationSuccessHandler, errorHandler handlers.AuthenticationErrorHandler, mapper authapi.UserIdentityMapper) (*Handler, error) {
 	clientConfig, err := provider.NewConfig()
 	if err != nil {
 		return nil, err
@@ -50,8 +50,8 @@ func NewHandler(provider Provider, state State, redirectURL string, success hand
 	}, nil
 }
 
-// Implements oauth.handlers.AuthenticationHandler
-func (h *Handler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (bool, error) {
+// Implements oauth.handlers.RedirectAuthHandler
+func (h *Handler) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
 	glog.V(4).Infof("Authentication needed for %v", h)
 
 	authReq := h.client.NewAuthorizeRequest(osincli.CODE)
@@ -60,14 +60,14 @@ func (h *Handler) AuthenticationNeeded(w http.ResponseWriter, req *http.Request)
 	state, err := h.state.Generate(w, req)
 	if err != nil {
 		glog.V(4).Infof("Error generating state: %v", err)
-		return h.errorHandler.AuthenticationError(err, w, req)
+		return err
 	}
 
 	oauthURL := authReq.GetAuthorizeUrlWithParams(state)
 	glog.V(4).Infof("redirect to %v", oauthURL)
 
 	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
-	return true, nil
+	return nil
 }
 
 // Handles the callback request in response to an external oauth flow
