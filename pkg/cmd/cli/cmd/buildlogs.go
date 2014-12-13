@@ -3,11 +3,11 @@ package cmd
 import (
 	"io"
 
-	"github.com/golang/glog"
+	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
 )
 
-func (f *OriginFactory) NewCmdBuildLogs(out io.Writer) *cobra.Command {
+func NewCmdBuildLogs(f *kubecmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build-logs <build>",
 		Short: "Show container logs from the build container",
@@ -20,21 +20,25 @@ $ kubectl build-logs 566bed879d2d
 <stream logs from container to stdout>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
-				usageError(cmd, "<build> are required for log")
+				usageError(cmd, "<build> is a required argument")
 			}
 
 			namespace := getOriginNamespace(cmd)
 
-			c, err := f.OriginClient(cmd, nil)
-			request := c.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(args[0])
+			mapping, err := f.Mapper.RESTMapping(kubecmd.GetFlagString(cmd, "api-version"), "BuildLog")
+			checkErr(err)
+			c, err := f.Client(cmd, mapping)
+			checkErr(err)
+
+			// TODO: This should be a method on the origin Client - BuildLogs(namespace).Redirect(args[0])
+			request := c.Get().Namespace(namespace).Path("redirect").Path(mapping.Resource).Path(args[0])
+
 			readCloser, err := request.Stream()
-			if err != nil {
-				glog.Fatalf("Error: %v", err)
-			}
+			checkErr(err)
 			defer readCloser.Close()
-			if _, err := io.Copy(out, readCloser); err != nil {
-				glog.Fatalf("Error: %v", err)
-			}
+
+			_, err = io.Copy(out, readCloser)
+			checkErr(err)
 		},
 	}
 	return cmd

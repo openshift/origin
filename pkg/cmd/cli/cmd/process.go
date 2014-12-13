@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (f *OriginFactory) NewCmdProcess(out io.Writer) *cobra.Command {
+func NewCmdProcess(f *kubecmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
 		Short: "Process template into config",
@@ -38,10 +38,12 @@ Examples:
 				checkErr(err)
 			}
 
-			c, err := f.OriginClient(cmd, nil)
+			mapping, err := f.Mapper.RESTMapping(kubecmd.GetFlagString(cmd, "api-version"), "TemplateConfig")
+			checkErr(err)
+			c, err := f.Client(cmd, mapping)
 			checkErr(err)
 
-			request := c.Post().Namespace(namespace).Path("/templateConfigs").Body(data)
+			request := c.Post().Namespace(namespace).Path(mapping.Resource).Body(data)
 			result := request.Do()
 			body, err := result.Raw()
 			checkErr(err)

@@ -1,28 +1,11 @@
 package meta
 
-import kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+import (
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+)
 
 // MultiRESTMapper is a wrapper for multiple RESTMappers.
 type MultiRESTMapper []kmeta.RESTMapper
-
-const (
-	// OriginAPI is a name for the OpenShift Origin REST API
-	OriginAPI = "origin"
-	// KubernetesAPI is a name for the Kubernetes REST API
-	KubernetesAPI = "kubernetes"
-)
-
-// TODO: This list have to be maintained manually if a new API resource is added
-// into the Origin API.
-var OriginTypes = []string{
-	"Build", "BuildConfig",
-	"Deployment", "DeploymentConfig",
-	"Image", "ImageRepository", "ImageRepositoryMapping",
-	"Route",
-	"Project",
-	"User",
-	"OAuth",
-}
 
 // VersionAndKindForResource provides the Version and Kind  mappings for the
 // REST resources. This implementation supports multiple REST schemas and return
@@ -48,15 +31,4 @@ func (m MultiRESTMapper) RESTMapping(version, kind string) (mapping *kmeta.RESTM
 		}
 	}
 	return
-}
-
-// APINameForResource provides information about the API name that manages the
-// given resource and version.
-func (m MultiRESTMapper) APINameForResource(version, kind string) string {
-	for _, t := range OriginTypes {
-		if t == kind {
-			return OriginAPI
-		}
-	}
-	return KubernetesAPI
 }

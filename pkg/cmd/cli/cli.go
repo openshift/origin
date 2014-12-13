@@ -4,13 +4,27 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
-	"github.com/spf13/cobra"
 )
+
+const longDesc = `
+OpenShift Client
+
+The OpenShift client exposes commands for managing your applications, as well as lower level
+tools to interact with each component of your system.
+
+At the present time, the CLI wraps many of the upstream Kubernetes commands and works generically
+on all resources.  Some commands you can try:
+
+    $ %[0] get pods
+
+Note: This is an alpha release of OpenShift and will change significantly.  See
+    https://github.com/openshift/origin for the latest information on OpenShift.
+`
 
 func NewCommandCLI(name string) *cobra.Command {
 	// Main command
@@ -18,46 +32,43 @@ func NewCommandCLI(name string) *cobra.Command {
 		Use:     name,
 		Aliases: []string{"kubectl"},
 		Short:   "Client tools for OpenShift",
-		Long: `
-End-user client tool for OpenShift, the hybrid Platform as a Service by the open source leader Red Hat.
-Note: This is an alpha release of OpenShift and will change significantly.  See
-    https://github.com/openshift/origin
-for the latest information on OpenShift.
-`,
+		Long:    fmt.Sprintf(longDesc, name),
 		Run: func(c *cobra.Command, args []string) {
 			c.Help()
 		},
 	}
 
+	// TODO: there should be two client builders, one for OpenShift, and one for Kubernetes
 	clientBuilder := clientcmd.NewBuilder(clientcmd.NewPromptingAuthLoader(os.Stdin))
-
 	clientBuilder.BindFlags(cmds.PersistentFlags())
 
-	// TODO reuse
 	cmds.PersistentFlags().String("ns-path", os.Getenv("HOME")+"/.kubernetes_ns", "Path to the namespace info file that holds the name space context to use for CLI requests.")
 	cmds.PersistentFlags().StringP("namespace", "n", "", "If present, the namespace scope for this CLI request.")
 
-	factory := cmd.NewOriginFactory(clientBuilder)
+	f := cmd.NewFactory(clientBuilder)
+	out := os.Stdout
 
-	factory.Factory.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
-		return NewHumanReadablePrinter(noHeaders), nil
-	}
+	// Kubernetes CRUD commands
+	cmds.AddCommand(f.NewCmdGet(out))
+	cmds.AddCommand(f.NewCmdDescribe(out))
+	cmds.AddCommand(f.NewCmdCreate(out))
+	cmds.AddCommand(f.NewCmdCreateAll(out))
+	cmds.AddCommand(f.NewCmdUpdate(out))
+	cmds.AddCommand(f.NewCmdDelete(out))
+	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
 
-	// Initialize describer for Origin objects
-	factory.OriginDescriber = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
-		if c, err := factory.OriginClient(cmd, mapping); err == nil {
-			config, err := factory.ClientBuilder.Config()
-			if err != nil {
-				return nil, err
-			}
-			if describer, ok := DescriberFor(mapping.Kind, c, config.Host); ok == true {
-				return describer, nil
-			}
-		}
-		return nil, fmt.Errorf("unable to describe %s type", mapping.Kind)
-	}
+	// Kubernetes support commands
+	cmds.AddCommand(f.NewCmdLog(out))
+	cmds.AddCommand(f.NewCmdProxy(out))
 
-	factory.AddCommands(cmds, os.Stdout)
+	// Origin commands
+	cmds.AddCommand(cmd.NewCmdApply(f.Factory, out))
+	cmds.AddCommand(cmd.NewCmdProcess(f.Factory, out))
+
+	// Origin build commands
+	cmds.AddCommand(cmd.NewCmdBuildLogs(f.Factory, out))
+	cmds.AddCommand(cmd.NewCmdStartBuild(f, out))
+	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
 
 	return cmds
 }

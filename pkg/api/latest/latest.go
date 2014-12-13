@@ -66,8 +66,30 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 	}
 }
 
-func init() {
+// originTypes are the hardcoded types defined by the OpenShift API.
+var originTypes = []string{
+	"Build", "BuildConfig", "BuildLog",
+	"Deployment", "DeploymentConfig",
+	"Image", "ImageRepository", "ImageRepositoryMapping",
+	"Template", "TemplateConfig",
+	"Route",
+	"Project",
+	"User",
+	"OAuth",
+}
 
+// OriginKind returns true if OpenShift owns the kind described in a given apiVersion.
+// TODO: make this based on scheme information or other behavior
+func OriginKind(kind, apiVersion string) bool {
+	for _, t := range originTypes {
+		if t == kind {
+			return true
+		}
+	}
+	return false
+}
+
+func init() {
 	kubeMapper := klatest.RESTMapper
 	originMapper := kmeta.NewDefaultRESTMapper(
 		Versions,
