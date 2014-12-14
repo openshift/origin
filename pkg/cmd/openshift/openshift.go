@@ -38,22 +38,25 @@ for the latest information on OpenShift.
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
 func CommandFor(basename string) *cobra.Command {
+	var cmd *cobra.Command
 	switch basename {
 	case "openshift-router":
-		return router.NewCommandRouter(basename)
+		cmd = router.NewCommandRouter(basename)
 	case "openshift-deploy":
-		return deployer.NewCommandDeployer(basename)
+		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-sti-build":
-		return builder.NewCommandSTIBuilder(basename)
+		cmd = builder.NewCommandSTIBuilder(basename)
 	case "openshift-docker-build":
-		return builder.NewCommandDockerBuilder(basename)
-	case "cli":
-		return cli.NewCommandCLI(basename)
+		cmd = builder.NewCommandDockerBuilder(basename)
+	case "osc":
+		cmd = cli.NewCommandCLI(basename)
 	case "openshift-experimental":
-		return experimental.NewCommandExperimental(basename)
+		cmd = experimental.NewCommandExperimental(basename)
 	default:
-		return NewCommandOpenShift()
+		cmd = NewCommandOpenShift()
 	}
+	flagtypes.GLog(cmd.PersistentFlags())
+	return cmd
 }
 
 // NewCommandOpenShift creates the standard OpenShift command
@@ -86,7 +89,6 @@ func NewCommandOpenShift() *cobra.Command {
 	)
 	root.AddCommand(infra)
 
-	flagtypes.GLog(root.PersistentFlags())
 	return root
 }
 

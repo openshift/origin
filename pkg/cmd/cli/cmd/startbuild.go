@@ -1,22 +1,23 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
 
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	build "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/util"
 )
 
-func (f *OriginFactory) NewCmdStartBuild(out io.Writer) *cobra.Command {
+func NewCmdStartBuild(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start-build <buildConfig>",
-		Short: "Starts build from existing build or buildConfig",
-		Long: `Manually starts build from existing build or buildConfig
+		Use:   "start-build (<buildConfig>|--from-build=<build>)",
+		Short: "Starts a new build from existing build or buildConfig",
+		Long: `
+Manually starts build from existing build or buildConfig
 
 NOTE: This command is experimental and is subject to change in the future.
 
@@ -32,32 +33,28 @@ Examples:
 				usageError(cmd, "Must pass a name of buildConfig or specify build name with '--from-build' flag")
 			}
 
-			resourceName, resourceKind := buildName, "build"
-			if len(resourceName) == 0 {
-				resourceName, resourceKind = args[0], "buildConfig"
+			client, _, err := f.Clients(cmd)
+			checkErr(err)
+
+			namespace := getOriginNamespace(cmd)
+
+			var newBuild *build.Build
+			if len(buildName) == 0 {
+				// from build config
+				config, err := client.BuildConfigs(namespace).Get(args[0])
+				checkErr(err)
+
+				newBuild = util.GenerateBuildFromConfig(config, nil)
+			} else {
+				build, err := client.Builds(namespace).Get(buildName)
+				checkErr(err)
+
+				newBuild = util.GenerateBuildFromBuild(build)
 			}
 
-			mapping, namespace, _ := kubecmd.ResourceOrTypeFromArgs(cmd, []string{resourceKind}, f.Mapper)
-			client, err := f.RESTHelper(cmd)(mapping)
+			newBuild, err = client.Builds(namespace).Create(newBuild)
 			checkErr(err)
-			resource, err := client.Get(namespace, resourceName, labels.Everything())
-			checkErr(err)
-
-			var newBuild *buildapi.Build
-			switch resourceKind {
-			case "build":
-				newBuild = util.GenerateBuildFromBuild(resource.(*buildapi.Build))
-			case "buildConfig":
-				newBuild = util.GenerateBuildFromConfig(resource.(*buildapi.BuildConfig), nil)
-			}
-
-			mapping, namespace, _ = kubecmd.ResourceOrTypeFromArgs(cmd, []string{"build"}, f.Mapper)
-			client, err = f.RESTHelper(cmd)(mapping)
-			checkErr(err)
-			buildJSON, err := mapping.Codec.Encode(newBuild)
-			checkErr(err)
-			err = client.Create(namespace, true, buildJSON)
-			checkErr(err)
+			fmt.Fprintf(out, "%s\n", newBuild.Name)
 		},
 	}
 	cmd.Flags().StringP("from-build", "", "", "Specify the name of a build which should be re-run")

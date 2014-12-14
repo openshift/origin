@@ -167,16 +167,6 @@ function start_etcd {
   wait_for_url "http://127.0.0.1:4001/v2/keys/" "etcd: "
 }
 
-# start up openshift server
-# $1 - volume dir
-# $2 - etcd data dir
-# $3 - log dir
-function start_openshift_server()
-{
-  "${openshift}" start --volume-dir="${1}" --etcd-dir="${2}" --loglevel=4 &> "${3}/openshift.log" &
-  export OS_PID=$!
-}
-
 # stop_openshift_server utility function to terminate an
 # all-in-one running instance of OpenShift
 function stop_openshift_server()
@@ -185,7 +175,7 @@ function stop_openshift_server()
     set +u
     if [ -n $OS_PID ] ; then
       echo "[INFO] Found running OpenShift Server instance"
-      kill $OS_PID 1>&2 2>/dev/null
+      sudo kill $OS_PID 1>&2 2>/dev/null
       echo "[INFO] Terminated OpenShift Server"
     fi
     set -u

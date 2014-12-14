@@ -3,13 +3,16 @@ package cmd
 import (
 	"io"
 
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	kubectl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/config"
 	"github.com/spf13/cobra"
+
+	"github.com/openshift/origin/pkg/config"
 )
 
-func (f *OriginFactory) NewCmdApply(out io.Writer) *cobra.Command {
+func NewCmdApply(f *kubecmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply -f filename",
 		Short: "Perform bulk create operation on set of resources",
@@ -40,7 +43,13 @@ Examples:
 				checkErr(err)
 			}
 
-			result, err := config.Apply(namespace, data, f.RESTHelper(cmd))
+			result, err := config.Apply(namespace, data, func(m *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+				client, err := f.Client(cmd, m)
+				if err != nil {
+					return nil, err
+				}
+				return kubectl.NewRESTHelper(client, m), nil
+			})
 			checkErr(err)
 
 			for _, itemResult := range result {

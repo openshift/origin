@@ -11,6 +11,7 @@ func init() {
 		&BuildConfig{},
 		&BuildConfigList{},
 	)
+	api.Scheme.AddKnownTypeWithName("v1beta1", "BuildLog", &Build{})
 }
 
 func (*Build) IsAnAPIObject()           {}

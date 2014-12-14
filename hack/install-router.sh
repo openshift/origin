@@ -13,8 +13,8 @@ OPENSHIFT="${3}"
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 if [[ "${OPENSHIFT}" == "" ]]; then
-    if [[ "$(which openshift)" != "" ]]; then
-        OPENSHIFT=$(which openshift)
+    if [[ "$(which osc)" != "" ]]; then
+        OPENSHIFT=$(which osc)
     fi
 fi
 
@@ -30,5 +30,5 @@ if [ "${OPENSHIFT}" == "" ]; then
     echo "/tmp/router.json has been created.  In order to start the router please run:"
     echo "openshift kubectl create -f /tmp/router.json"
 else
-    "${OPENSHIFT}" kubectl create -f /tmp/router.json
+    "${OPENSHIFT}" create -f /tmp/router.json
 fi

@@ -1,4 +1,4 @@
-package cli
+package describe
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 )
@@ -114,6 +115,8 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 // BuildConfigDescriber generates information about a buildConfig
 type BuildConfigDescriber struct {
 	client.Interface
+	// TODO: this is broken, webhook URL generation should be done by client interface using
+	// the string value
 	host string
 }
 

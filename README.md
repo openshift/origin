@@ -209,9 +209,12 @@ $ hack/test-cmd.sh
 
 # run the integration server test suite
 $ hack/test-integration.sh
+
+# run the end-to-end test suite
+$ hack/test-end-to-end.sh
 ```
 
-You'll need [etcd](https://github.com/coreos/etcd) installed and on your path for the last step to run.  To install etcd you should be able to run:
+You'll need [etcd](https://github.com/coreos/etcd) installed and on your path for the integration tests to run.  To install etcd you should be able to run:
 
 ```
 $ hack/install-etcd.sh

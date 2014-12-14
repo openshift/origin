@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/meta"
 )
 
 func TestMultiRESTMapperVersionAndKindForResource(t *testing.T) {
@@ -45,23 +44,5 @@ func TestMultiRESTMapperRESTMapping(t *testing.T) {
 	mapping, err = mapper.RESTMapping("v1beta1", "Unknown")
 	if err == nil {
 		t.Errorf("Expected error for 'unknown' Kind")
-	}
-}
-
-func TestObjectOwner(t *testing.T) {
-	mapper := latest.RESTMapper.(meta.MultiRESTMapper)
-
-	if o := mapper.APINameForResource("v1beta2", "Pod"); o != meta.KubernetesAPI {
-		t.Errorf("The owner of Pod resource should be kubernetes, is %s", o)
-	}
-
-	for _, s := range meta.OriginTypes {
-		if o := mapper.APINameForResource("v1beta1", s); o != meta.OriginAPI {
-			t.Errorf("The owner of %s resource should be origin, is %s", s, o)
-		}
-	}
-
-	if o := mapper.APINameForResource("v1beta1", "Unknown"); o != meta.KubernetesAPI {
-		t.Errorf("The owner of Unknown resource should be kubernetes, is %s", o)
 	}
 }
