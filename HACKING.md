@@ -124,8 +124,6 @@ tests. e2e tests can also test external components working together.
 
 End to end tests should be Go tests with the build tag `e2e` in the `test/e2e` directory.
 
-TODO: implement
-
 Run the end to end tests with:
 
     $ hack/test-e2e.sh
