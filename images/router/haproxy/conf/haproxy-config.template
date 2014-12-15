@@ -1,3 +1,5 @@
+{{/* begin haproxy config template */}}
+{{ define "/var/lib/haproxy/conf/haproxy.config" }}
 global
   # maxconn 4096
   user haproxy
@@ -69,3 +71,23 @@ backend openshift_default
 
 ##-------------- app level backends ----------------
 
+{{   range $id, $frontend := . }}
+backend be_{{$id}} mode http
+  balance leastconn
+  timeout check 5000ms
+{{     range $endpointID, $endpoint := $frontend.EndpointTable }}
+  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+{{     end }}
+{{   end }}
+{{ end }}{{/* end haproxy config template */}}
+
+{{/* begin host map template */}}
+{{ define "/var/lib/haproxy/conf/host_be.map" }}
+{{   range $id, $frontend := . }}
+{{     range $idx, $host := $frontend.HostAliases }}
+{{       if ne $host "" }}
+{{$host}} {{$id}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end host map template */}}
