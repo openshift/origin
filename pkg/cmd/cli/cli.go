@@ -20,7 +20,7 @@ tools to interact with each component of your system.
 At the present time, the CLI wraps many of the upstream Kubernetes commands and works generically
 on all resources.  Some commands you can try:
 
-    $ %[0] get pods
+    $ %[1]s get pods
 
 Note: This is an alpha release of OpenShift and will change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
