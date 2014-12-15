@@ -1,18 +1,4 @@
-# DRAFT #
-# OpenShift v3 REST API (Alpha) 
+The API documentation has moved
+-------------------------------
 
-## Viewing the documentation ##
-Use htmlpreview for github with a URL like:
-[http://rawgit.com/openshift/origin/master/api/openshift3.html] (http://rawgit.com/openshift/origin/master/api/openshift3.html)
-
-## Generating the API document
-```
-make api
-```
-
-or:
-```
-hack/build-api-docs-image.sh
-```
-
-For additional documentation on raml go to [http://raml.org/](http://raml.org/)
+See https://github.com/openshift/origin/blob/master/README.md#api for instructions on how to use the new Swagger based UI
