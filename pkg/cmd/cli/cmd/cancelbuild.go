@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/util"
 )
 
@@ -43,14 +44,12 @@ Examples:
 
 			client, _, err := f.Clients(cmd)
 			checkErr(err)
-
 			buildClient := client.Builds(namespace)
-
 			build, err := buildClient.Get(buildName)
 			checkErr(err)
 
-			if build.Cancelled {
-				checkErr(fmt.Errorf("This build has already been cancelled."))
+			if !isBuildCancellable(build) {
+				return
 			}
 
 			// Print build logs before cancelling build.
@@ -96,4 +95,21 @@ Examples:
 	cmd.Flags().Bool("dump-logs", false, "Specify if the build logs for the cancelled build should be shown.")
 	cmd.Flags().Bool("restart", false, "Specify if a new build should be created after the current build is cancelled.")
 	return cmd
+}
+
+// isBuildCancellable checks if another cancellation event was triggered, and if the build status is correct.
+func isBuildCancellable(build *buildapi.Build) bool {
+	if build.Status != buildapi.BuildStatusNew &&
+		build.Status != buildapi.BuildStatusPending &&
+		build.Status != buildapi.BuildStatusRunning {
+
+		glog.V(2).Infof("A build can be cancelled only if it has new/pending/running status.")
+		return false
+	}
+
+	if build.Cancelled {
+		glog.V(2).Infof("A cancellation event was already triggered for the build %s.", build.Name)
+		return false
+	}
+	return true
 }

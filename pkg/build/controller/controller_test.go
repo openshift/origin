@@ -281,8 +281,7 @@ func TestCancelBuild(t *testing.T) {
 	tests := []handleCancelBuildTest{
 		{ // 0
 			inStatus:  buildapi.BuildStatusNew,
-			outStatus: buildapi.BuildStatusNew,
-			podStatus: kapi.PodPending,
+			outStatus: buildapi.BuildStatusCancelled,
 			exitCode:  0,
 		},
 		{ // 1
