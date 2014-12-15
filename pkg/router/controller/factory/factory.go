@@ -20,7 +20,7 @@ type RouterControllerFactory struct {
 	OSClient osclient.Interface
 }
 
-func (factory *RouterControllerFactory) Create(r router.Router) *controller.RouterController {
+func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller.RouterController {
 	routeEventQueue := oscache.NewEventQueue()
 	cache.NewReflector(&routeLW{factory.OSClient}, &routeapi.Route{}, routeEventQueue).Run()
 
@@ -28,7 +28,7 @@ func (factory *RouterControllerFactory) Create(r router.Router) *controller.Rout
 	cache.NewReflector(&endpointsLW{factory.KClient}, &kapi.Endpoints{}, endpointsEventQueue).Run()
 
 	return &controller.RouterController{
-		Router: r,
+		Plugin: plugin,
 		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
 			eventType, obj := endpointsEventQueue.Pop()
 			return eventType, obj.(*kapi.Endpoints)

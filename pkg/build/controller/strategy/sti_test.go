@@ -17,7 +17,7 @@ func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
 
 func TestSTICreateBuildPod(t *testing.T) {
 	strategy := &STIBuildStrategy{
-		BuilderImage:         "sti-test-image",
+		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
 		UseLocalImages:       true,
 	}
@@ -32,8 +32,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if container.Name != "sti-build" {
 		t.Errorf("Expected sti-build, but got %s!", container.Name)
 	}
-	if container.Image != strategy.BuilderImage {
-		t.Errorf("Expected %s image, got %s!", container.Image, strategy.BuilderImage)
+	if container.Image != strategy.Image {
+		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)
 	}
 	if container.ImagePullPolicy != kapi.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
@@ -74,7 +74,7 @@ func mockSTIBuild() *buildapi.Build {
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type:        buildapi.STIBuildStrategyType,
-				STIStrategy: &buildapi.STIBuildStrategy{BuilderImage: "repository/sti-builder"},
+				STIStrategy: &buildapi.STIBuildStrategy{Image: "repository/sti-builder"},
 			},
 			Output: buildapi.BuildOutput{
 				ImageTag: "repository/stiBuild",

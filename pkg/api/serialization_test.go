@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -92,6 +93,14 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 			intstr.StrVal = c.RandString()
 		}
 	},
+	func(t *time.Time, c fuzz.Continue) {
+		// This is necessary because the standard fuzzed time.Time object is
+		// completely nil, but when JSON unmarshals dates it fills in the
+		// unexported loc field with the time.UTC object, resulting in
+		// reflect.DeepEqual returning false in the round trip tests. We solve it
+		// by using a date that will be identical to the one JSON unmarshals.
+		*t = time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)
+	},
 	func(u64 *uint64, c fuzz.Continue) {
 		// TODO: uint64's are NOT handled right.
 		*u64 = c.RandUint64() >> 8
@@ -135,7 +144,7 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 		return
 	}
 	if !reflect.DeepEqual(source, obj2) {
-		t.Errorf("1: %v: diff: %v", name, util.ObjectDiff(source, obj2))
+		t.Errorf("1: %v: diff: %v", name, util.ObjectGoPrintDiff(source, obj2))
 		return
 	}
 	obj3 := reflect.New(reflect.TypeOf(source).Elem()).Interface().(runtime.Object)
@@ -145,7 +154,7 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 		return
 	}
 	if !reflect.DeepEqual(source, obj3) {
-		t.Errorf("3: %v: diff: %v", name, util.ObjectDiff(source, obj3))
+		t.Errorf("3: %v: diff: %v", name, util.ObjectGoPrintDiff(source, obj3))
 		return
 	}
 }

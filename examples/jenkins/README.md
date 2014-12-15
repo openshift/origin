@@ -22,33 +22,39 @@ Steps
 
         $ openshift kubectl apply -f jenkins-config.json
 
-4. Create the application configuration
+4. Determine the IP address of the docker-registry service:
+
+        $ openshift kubectl get services docker-registry -o template --template="{{ .portalIP }}"
+        
+5. Edit the application-template.json file by replacing all occurences of `172.30.17.3` with the IP address from the previous step.
+
+5. Create the application configuration
 
         $ openshift kubectl process -f application-template.json | openshift kubectl apply -f -
  
-5. Locate the Jenkins service endpoint and go to it in your browser:
+6. Locate the Jenkins service endpoint and go to it in your browser:
 
         $ openshift kubectl get services | grep jenkins | awk '{print $3":"$4}'
 
     Once it is available, proceed to the next step.
     
-6. Create the Jenkins job named rubyJob:
+7. Create the Jenkins job named rubyJob:
 
         $ JENKINS_ENDPOINT=`openshift kubectl get services | grep jenkins | awk '{print $3":"$4}'`
         $ cat job.xml | curl -X POST -H "Content-Type: application/xml" -H "Expect: " --data-binary @- http://$JENKINS_ENDPOINT/createItem?name=rubyJob
 
-7. Run the Jenkins build
+8. Run the Jenkins build
    
     Go back to your browser, refresh and select the rubyJob build job and choose `Build with parameters`. 
     You should not need to modify the `OPENSHIFT_HOST`.
 
-8. Watch the job output
+9. Watch the job output
 
    It will trigger an OpenShift build of the application, wait for the build to result in a deployment,
    confirm the new deployment works, and re-tag the image for production.  This re-tagging will trigger
    another deployment, this time creating/updated the production service.
 
-9. Confirm both the test and production services are available by browsing to both services:
+10. Confirm both the test and production services are available by browsing to both services:
 
         $ openshift kubectl get services | grep frontend
    

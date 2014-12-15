@@ -11,7 +11,7 @@ import (
 
 func TestDockerCreateBuildPod(t *testing.T) {
 	strategy := DockerBuildStrategy{
-		BuilderImage:   "docker-test-image",
+		Image:          "docker-test-image",
 		UseLocalImages: true,
 	}
 
@@ -26,8 +26,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if container.Name != "docker-build" {
 		t.Errorf("Expected docker-build, but got %s!", container.Name)
 	}
-	if container.Image != strategy.BuilderImage {
-		t.Errorf("Expected %s image, got %s!", container.Image, strategy.BuilderImage)
+	if container.Image != strategy.Image {
+		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)
 	}
 	if container.ImagePullPolicy != kapi.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)

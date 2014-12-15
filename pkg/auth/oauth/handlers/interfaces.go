@@ -9,7 +9,19 @@ import (
 // AuthenticationHandler reacts to unauthenticated requests
 type AuthenticationHandler interface {
 	// AuthenticationNeeded reacts to unauthenticated requests, and returns true if the response was written,
-	AuthenticationNeeded(w http.ResponseWriter, req *http.Request) (handled bool, err error)
+	AuthenticationNeeded(client api.Client, w http.ResponseWriter, req *http.Request) (handled bool, err error)
+}
+
+// AuthenticationChallenger reacts to unauthenticated requests with challenges
+type AuthenticationChallenger interface {
+	// AuthenticationChallenge take a request and return whatever challenge headers are appropriate.  If none are appropriate, it should return an empty map, not nil.
+	AuthenticationChallenge(req *http.Request) (header http.Header, err error)
+}
+
+// AuthenticationRedirector reacts to unauthenticated requests with redirects
+type AuthenticationRedirector interface {
+	// AuthenticationRedirect is expected to write a redirect to the ResponseWriter or to return an error.
+	AuthenticationRedirect(w http.ResponseWriter, req *http.Request) (err error)
 }
 
 // AuthenticationErrorHandler reacts to authentication errors

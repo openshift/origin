@@ -37,7 +37,7 @@ const (
 	storageScopePrefix = "https://www.googleapis.com/auth/devstorage"
 )
 
-var containerRegistryUrls = []string{"container.cloud.google.com"}
+var containerRegistryUrls = []string{"container.cloud.google.com", "gcr.io"}
 
 var metadataHeader = &http.Header{
 	"Metadata-Flavor": []string{"Google"},
@@ -105,7 +105,9 @@ func (g *metadataProvider) Enabled() bool {
 func (g *dockerConfigKeyProvider) Provide() credentialprovider.DockerConfig {
 	// Read the contents of the google-dockercfg metadata key and
 	// parse them as an alternate .dockercfg
-	if cfg, err := credentialprovider.ReadDockerConfigFileFromUrl(dockerConfigKey, g.Client, metadataHeader); err == nil {
+	if cfg, err := credentialprovider.ReadDockerConfigFileFromUrl(dockerConfigKey, g.Client, metadataHeader); err != nil {
+		glog.Errorf("while reading 'google-dockercfg' metadata: %v", err)
+	} else {
 		return cfg
 	}
 
@@ -115,9 +117,13 @@ func (g *dockerConfigKeyProvider) Provide() credentialprovider.DockerConfig {
 // Provide implements DockerConfigProvider
 func (g *dockerConfigUrlKeyProvider) Provide() credentialprovider.DockerConfig {
 	// Read the contents of the google-dockercfg-url key and load a .dockercfg from there
-	if url, err := credentialprovider.ReadUrl(dockerConfigUrlKey, g.Client, metadataHeader); err == nil {
+	if url, err := credentialprovider.ReadUrl(dockerConfigUrlKey, g.Client, metadataHeader); err != nil {
+		glog.Errorf("while reading 'google-dockercfg-url' metadata: %v", err)
+	} else {
 		if strings.HasPrefix(string(url), "http") {
-			if cfg, err := credentialprovider.ReadDockerConfigFileFromUrl(string(url), g.Client, nil); err == nil {
+			if cfg, err := credentialprovider.ReadDockerConfigFileFromUrl(string(url), g.Client, nil); err != nil {
+				glog.Errorf("while reading 'google-dockercfg-url'-specified url: %s, %v", string(url), err)
+			} else {
 				return cfg
 			}
 		} else {
@@ -162,11 +168,13 @@ func (g *containerRegistryProvider) Provide() credentialprovider.DockerConfig {
 
 	tokenJsonBlob, err := credentialprovider.ReadUrl(metadataToken, g.Client, metadataHeader)
 	if err != nil {
+		glog.Errorf("while reading access token endpoint: %v", err)
 		return cfg
 	}
 
 	email, err := credentialprovider.ReadUrl(metadataEmail, g.Client, metadataHeader)
 	if err != nil {
+		glog.Errorf("while reading email endpoint: %v", err)
 		return cfg
 	}
 

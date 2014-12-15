@@ -34,17 +34,18 @@ else
   find_files() {
     find . -not \( \
       \( \
-      -wholename './output' \
-      -o -wholename './_output' \
-      -o -wholename './release' \
-      -o -wholename './pkg/assets/bindata.go' \
-      -o -wholename './target' \
-      -o -wholename '*/third_party/*' \
-      -o -wholename '*/Godeps/*' \
+        -wholename './Godeps' \
+        -o -wholename './release' \
+        -o -wholename './target' \
+        -o -wholename './test' \
+        -o -wholename './pkg/assets/bindata.go' \
+        -o -wholename '*/Godeps/*' \
+        -o -wholename '*/third_party/*' \
+        -o -wholename '*/_output/*' \
       \) -prune \
-      \) -name '*.go'
+    \) -name '*.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
   }
-  bad_files=$(find_files | xargs golint)
+  bad_files=$(find_files | xargs -n1 golint)
 fi
 
 if [[ -n "${bad_files}" ]]; then

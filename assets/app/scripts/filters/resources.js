@@ -1,4 +1,20 @@
 angular.module('openshiftConsole')
+  .filter('annotation', function() {
+    return function(resource, key) {
+      if (resource && resource.metadata && resource.metadata.annotations) {
+        return resource.metadata.annotations[key];
+      }
+      return null;
+    };
+  })
+  .filter('label', function() {
+    return function(resource, key) {
+      if (resource && resource.metadata && resource.metadata.labels) {
+        return resource.metadata.labels[key];
+      }
+      return null;
+    };
+  })  
   .filter('imageName', function() {
     return function(image) {
       // TODO move this parsing method into a utility method

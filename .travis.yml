@@ -2,10 +2,16 @@ language: go
 
 go:
   - 1.3
+  - 1.4
 
 env:
  - TEST_ASSETS=true
  - TEST_ASSETS=false
+
+matrix:
+  exclude:
+    - go: 1.4
+      env: TEST_ASSETS=true
 
 before_install:
   - ./hack/before-install-assets.sh
@@ -14,7 +20,7 @@ install:
   - ./hack/verify-gofmt.sh
   - ./hack/install-etcd.sh
   - ./hack/install-std-race.sh
-  - go get code.google.com/p/go.tools/cmd/cover
+  - ./hack/install-tools.sh
   - ./hack/build-go.sh
   - ./hack/install-assets.sh
 

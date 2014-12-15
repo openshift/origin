@@ -97,7 +97,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 		BindAddr:       flagtypes.Addr{Value: "0.0.0.0:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
 		EtcdAddr:       flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
 		KubernetesAddr: flagtypes.Addr{DefaultScheme: "http", DefaultPort: 8080}.Default(),
-		PortalNet:      flagtypes.DefaultIPNet("172.121.17.0/24"),
+		PortalNet:      flagtypes.DefaultIPNet("172.30.17.0/24"),
 
 		Hostname: hostname,
 		NodeList: flagtypes.StringList{"127.0.0.1"},

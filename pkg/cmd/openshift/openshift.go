@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
+	"github.com/openshift/origin/pkg/cmd/infra/experimental"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
@@ -37,20 +38,25 @@ for the latest information on OpenShift.
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
 func CommandFor(basename string) *cobra.Command {
+	var cmd *cobra.Command
 	switch basename {
 	case "openshift-router":
-		return router.NewCommandRouter(basename)
+		cmd = router.NewCommandTemplateRouter(basename)
 	case "openshift-deploy":
-		return deployer.NewCommandDeployer(basename)
+		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-sti-build":
-		return builder.NewCommandSTIBuilder(basename)
+		cmd = builder.NewCommandSTIBuilder(basename)
 	case "openshift-docker-build":
-		return builder.NewCommandDockerBuilder(basename)
-	case "cli":
-		return cli.NewCommandCLI(basename)
+		cmd = builder.NewCommandDockerBuilder(basename)
+	case "osc":
+		cmd = cli.NewCommandCLI(basename)
+	case "openshift-experimental":
+		cmd = experimental.NewCommandExperimental(basename)
 	default:
-		return NewCommandOpenShift()
+		cmd = NewCommandOpenShift()
 	}
+	flagtypes.GLog(cmd.PersistentFlags())
+	return cmd
 }
 
 // NewCommandOpenShift creates the standard OpenShift command
@@ -75,14 +81,14 @@ func NewCommandOpenShift() *cobra.Command {
 		Use: "infra", // Because this command exposes no description, it will not be shown in help
 	}
 	infra.AddCommand(
-		router.NewCommandRouter("router"),
+		router.NewCommandTemplateRouter("router"),
 		deployer.NewCommandDeployer("deploy"),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
+		experimental.NewCommandExperimental("experimental"),
 	)
 	root.AddCommand(infra)
 
-	flagtypes.GLog(root.PersistentFlags())
 	return root
 }
 
