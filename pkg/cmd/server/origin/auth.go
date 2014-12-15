@@ -10,6 +10,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/RangelReale/osincli"
+	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/auth/api"
@@ -81,8 +82,11 @@ type AuthConfig struct {
 // into the provided mux, then returns an array of strings indicating what
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
-func (c *AuthConfig) InstallAPI(mux cmdutil.Mux) []string {
+func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
+
+	// TODO: register these items with go-restful
+	mux := container.ServeMux
 
 	authRequestHandler, authHandler := c.getAuthorizeAuthenticationHandlers(mux)
 

@@ -8,6 +8,12 @@ import (
 	"strings"
 	"time"
 
+	etcdclient "github.com/coreos/go-etcd/etcd"
+	httpgzip "github.com/daaku/go.httpgzip"
+	"github.com/elazarl/go-bindata-assetfs"
+	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -15,11 +21,6 @@ import (
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	etcdclient "github.com/coreos/go-etcd/etcd"
-	"github.com/elazarl/go-bindata-assetfs"
-	"github.com/golang/glog"
-
-	httpgzip "github.com/daaku/go.httpgzip"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
@@ -38,7 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -66,7 +66,8 @@ import (
 )
 
 const (
-	OpenShiftAPIPrefixV1Beta1 = "/osapi/v1beta1"
+	OpenShiftAPIPrefix        = "/osapi"
+	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/v1beta1"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -87,7 +88,7 @@ type MasterConfig struct {
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
 	// Returns an array of strings describing what was installed
-	InstallAPI(cmdutil.Mux) []string
+	InstallAPI(*restful.Container) []string
 }
 
 // EnsureKubernetesClient creates a Kubernetes client or exits if the client cannot be created.
@@ -120,9 +121,7 @@ func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
 	}
 }
 
-// RunAPI launches the OpenShift master. It takes an optional API installer that
-// may install additional endpoints into the server.
-func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
+func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	imageEtcd := imageetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
@@ -168,32 +167,56 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		"clientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 	}
 
-	osMux := http.NewServeMux()
-
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
-	osMux.Handle(whPrefix, http.StripPrefix(whPrefix,
+	container.ServeMux.Handle(whPrefix, http.StripPrefix(whPrefix,
 		webhook.NewController(ClientWebhookInterface{c.OSClient}, map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
 		})))
 
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(container, OpenShiftAPIPrefix, "v1beta1")
+
+	var root *restful.WebService
+	for _, svc := range container.RegisteredWebServices() {
+		switch svc.RootPath() {
+		case "/":
+			root = svc
+		case OpenShiftAPIPrefixV1Beta1:
+			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
+		}
+	}
+	if root == nil {
+		root = new(restful.WebService)
+		container.Add(root)
+	}
+	versionHandler := apiserver.APIVersionHandler("v1beta1")
+	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).Doc("list supported server API versions"))
+
+	return []string{
+		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta1),
+	}
+}
+
+// RunAPI launches the OpenShift master. It takes optional API installers that
+// may install additional endpoints into the server.
+func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
+	container := kmaster.NewHandlerContainer(http.NewServeMux())
+
 	var extra []string
 	for _, i := range installers {
-		extra = append(extra, i.InstallAPI(osMux)...)
+		extra = append(extra, i.InstallAPI(container)...)
 	}
-	handlerContainer := kmaster.NewHandlerContainer(osMux)
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
-	handler := http.Handler(osMux)
+	glog.Infof("container: %#v", container)
+
+	handler := http.Handler(container)
 	if c.RequireAuthentication {
-		handler = c.wireAuthenticationHandling(osMux, handler)
+		handler = c.wireAuthenticationHandling(container.ServeMux, handler)
 	}
 
 	if len(c.CORSAllowedOrigins) > 0 {
 		handler = apiserver.CORS(handler, c.CORSAllowedOrigins, nil, nil, "true")
 	}
-
-	handler = apiserver.RecoverPanics(handler)
 
 	server := &http.Server{
 		Addr:           c.BindAddr,
@@ -207,7 +230,6 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		for _, s := range extra {
 			glog.Infof(s, c.MasterAddr)
 		}
-		glog.Infof("Started OpenShift API at %s%s", c.MasterAddr, OpenShiftAPIPrefixV1Beta1)
 		glog.Fatal(server.ListenAndServe())
 	}, 0)
 }
@@ -224,7 +246,6 @@ func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler 
 	handler = c.wrapHandlerWithAuthentication(handler, requestsToUsers)
 
 	// this requires the requests and users to be present
-	thisUserEndpoint := OpenShiftAPIPrefixV1Beta1 + "/users/~"
 	userContextMap := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
 		obj, found := requestsToUsers.Get(req)
 		if user, ok := obj.(userregistry.Info); found && ok {
@@ -232,6 +253,8 @@ func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler 
 		}
 		return nil, false
 	})
+	// TODO: this is flawed, needs to be able to identify the right endpoints
+	thisUserEndpoint := OpenShiftAPIPrefixV1Beta1 + "/users/~"
 	userregistry.InstallThisUser(osMux, thisUserEndpoint, userContextMap, handler)
 
 	return handler
