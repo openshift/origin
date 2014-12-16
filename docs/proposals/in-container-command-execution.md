@@ -99,7 +99,7 @@ Cons:
 
 - Requires access to host's PID namespace
 	- Needs this [Docker PR](https://github.com/docker/docker/pull/9339) if running in a container
-- Requires some set of elevated privileges (TODO: confirm minimal set)
+- Requires at least `CAP_SYS_PTRACE`, `CAP_SYS_CHROOT`, and `CAP_SYS_ADMIN` capabilities
 
 
 ### Port Forwarding
@@ -120,7 +120,7 @@ Notes about this approach:
 
 - Requires access to host's PID namespace
 	- Needs this [Docker PR](https://github.com/docker/docker/pull/9339) if running in a container
-- Requires some set of elevated privileges (TODO: confirm minimal set)
+- Requires `CAP_SYS_PTRACE` and `CAP_SYS_ADMIN` capabilities
 
 #### Port Forwarding Command: `docker exec` + in-container helper
 
@@ -132,7 +132,6 @@ When the container command executor receives a port forwarding request, it
 Notes about this approach:
 
 - Requires access to host's Docker socket
-- Does not require elevated privileges (other than access to the Docker socket)
 - Requires `socat` or the like to exist in the container; not all containers will support this
 
 #### Port Forwarding Command: nsinit
@@ -146,7 +145,7 @@ Notes about this approach:
 
 - Requires access to host's PID namespace
 	- Needs this [Docker PR](https://github.com/docker/docker/pull/9339) if running in a container
-- Requires some set of elevated privileges (TODO: confirm minimal set)
+- Requires `CAP_SYS_PTRACE` and `CAP_SYS_ADMIN` capabilities
 - Requires a patch to nsinit to add a new registered function for port forwarding (here is the list of [currently supported functions](https://github.com/docker/libcontainer/blob/master/nsinit/main.go#L16-L31))
 
 ## Potential Issues / Questions
