@@ -1,44 +1,84 @@
 # Idling OpenShift Pods
 ## Problem
 
-Not all containers in an OpenShift cluster will be active at all times.  Stopping inactive containers and creating new ones in response to demand allows for greater deployment densities. Removing unused pods from nodes also simplifies administration.  We refer to the process of determining which containers to stop and stopping them as "idling".  The process of creating new pods for an idled service in response to a new request to that service is called "unidling".
+Not all containers in an OpenShift cluster will be active at all times.  Stopping inactive
+containers and creating new ones in response to demand allows for greater deployment densities.
+Removing unused pods from nodes also simplifies administration.  We refer to the process of
+determining which containers to stop and stopping them as "idling".  The process of creating new
+pods for an idled service in response to a new request to that service is called "unidling".
+
+## Lexicon
+
+- **Route**: a rule linking a connection to a service 
+- **Destination pods**: the pods resolve to a service; service endpoints
+- **Idled service**: a service with zero pods that resolve to it
+- **Idled route**: a route that points to an idled service
 
 ## Use Cases
 
 The following use cases should be explored by this proposal:
 
-1.  As a PaaS operator, I want pods associated with a service receiving no requests to be idled
-2.  As a PaaS operator, I want a new request to an idled service to trigger the creation of new pods for that service
-3.  As an application author, I want requests to my idled services to be buffered while the service is being unidled
-3.  As a PaaS operator, I want to define how events (eg, deployment of new versions) to idled services are handled 
+1.  As a PaaS operator, I want destination pods for a service receiving no requests to be idled
+2.  As a PaaS operator, I want a new requests that are routed to an idled service or made directly
+    to the kube-proxy to trigger the creation of new destination pods for that service
+3.  As a PaaS operator, I want requests to an idled route to be buffered while the service is
+    being unidled
 
-## The `Idler` State Reconciler
+## Idling Design
 
-The `Idler` consumes request statistics from the edge routing layer and determines whether which services are receiving no requests currently and can be idled.  The `Idler` will set the replica count of the correct replication controller(s?) to zero to trigger idling.
+A service is idle when it has no pods that resolve to it.  The autoscaler component described
+in [kubernetes/2863](https://github.com/GoogleCloudPlatform/kubernetes/pull/2863) would provide the
+functionality necessary to scale replication controllers down to zero in response to a lack of
+requests for a certain time.
 
-## Edge Routing Layer Concerns
+The flow of events when the autoscaler idles a service S and a replication controller R whose
+pods resolve to D is as follows:
 
-When the edge router detects that a service has been idled (has zero endpoints), it must configure the backend to send requests for that service to the kube-proxy to be unidled.  This will require the edge router backend implementations to contain logic for handling services with zero endpoints.
+1.  The autoscaler determines that R should be scaled down to zero replicas.
+2.  The autoscaler resizes R to zero
+3.  The pods for R are deleted, which is reflected as Endpoint changes for S
+4.  The routing layer receives a watch event with the updated state of S's endpoints
+5.  The routing layer determines that S is idle
+6.  The routing later takes some action to prepare to unidle S by resizing R
 
-## The role of the kube-proxy
+This proposal will assume that the proposed autoscaler is available.  As the autoscaler proposal
+progresses this propsal will be updated with any changes that will be required to the autoscaler.
 
-The kube-proxy is an ideal candidate to implement the unidling behavior for the following reasons:
+## Unidling Design
 
-1.  It is a true network proxy and handles packets directly
-2.  It does not cut across multiple backend router/proxy packages
+The requirements for unidling an idle service S with replication controller R are
+as follows:
 
-### HA configuration
+1.  The request to S after it has become idle must:
+    1.  Trigger unidling of S
+    2.  Be buffered until a destination pod is available
+2.  R must be resized to *n* > 1
+3.  Subsequent requests while to S while S is being unidled must be buffered until a
+    destination pod is available
 
-TODO (Andy?)
+#### A note on systemd socket activation
 
-## Where should unidling be triggered?
+Our prior work on geard investigated using systemd socket activation as an unidle trigger.  The key
+challenge with this approach is that it requires the interface/ports has to be defined before a pod
+is started, which today is the pod being scheduled to the host. However, the pod has to be stopped
+which complicates resource scheduling. In this model the scheduler cannot make resource decisions
+without double checking to see if pods have been unidled, and you could potentially wake too many
+pods.
 
-Our prior work on geard investigated using systemd socket activation as an unidle trigger.  The key challenge with this approach is that it requires the interface/ports has to be defined before a pod is started, which today is the pod being scheduled to the host. However, the pod has to be stopped which complicates resource scheduling. In this model the scheduler cannot make resource decisions without double checking to see if pods have been unidled, and potentially you would wake too many things. 
+### Unidling from the service proxy
 
-The edge routing layer receives endpoint information for services in order to load balance across the endpoints for that service.  This makes the edge routing layer an attractive candidate to drive the unidle process because it already will have all of the information it needs. This will also allow idled pods to be deleted since unidling can occur from a state where no pods exist for a service and has less effects on resource scheduling than socket activation.  
+### Edge Unidling Design Options
 
-## Example Unidle workflow
+#### Edge Unidling: Idle proxy embedded in router 
 
-1.  Request is made to the edge router for an idled service; the edge router forwards the request to the kube-proxy
-2.  The kube-proxy buffers the request while unidling the service by changing the replica count
-3.  The kube-proxy waits until there is a scheduled endpoint for the service and forwards the request directly to the first available endpoint (NOTE: this defeats load balancing, but if that's important the kube-proxy could forward back to the edge)
+#### Edge Unidling: Router redirects to idle proxy; proxy uses virtual IPs to resolve service
+
+#### Edge Unidling: Router redirects to idle proxy; proxy uses ports to resolve service
+
+#### Edge Unidling: Router redirects to idle proxy and rewrites tcp stream to include service
+
+## Proposed Design
+
+### Modifications to kube-proxy
+
+### Modifications to OpenShift router
