@@ -46,7 +46,7 @@ The edge routing layer and kube-proxy layer both have to be aware of service in 
 themselves appropiately to unidle the service.  Actions to be taken upon idleness will be described
 in the unidling design.
 
-## Unidling design
+## Unidling Design
 
 The requirements for unidling an idle service S with replication controller R are
 as follows:
@@ -113,10 +113,6 @@ The edge routing layer must:
 1.  Perform unidle in response to a request to an idled service
 1.  Buffer requests to a service it is unidling, regardless of backend
 1.  Buffer requests to a service the edge router is idling, regardless of backend
-
-### Unidling from the service proxy
-
-### Edge Unidling Design Options
 
 #### Edge Unidling: Idle proxy embedded in router 
 
