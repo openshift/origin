@@ -14,6 +14,7 @@ pods for an idled service in response to a new request to that service is called
 - **Idled service**: a service with zero pods that resolve to it
 - **Idled route**: a route that points to an idled service
 
+
 ## Use Cases
 
 The following use cases should be explored by this proposal:
@@ -42,19 +43,47 @@ pods resolve to D is as follows:
 6.  The routing later takes some action to prepare to unidle S by resizing R
 
 This proposal will assume that the proposed autoscaler is available.  As the autoscaler proposal
-progresses this propsal will be updated with any changes that will be required to the autoscaler.
+progresses this proposal will be updated with any changes that will be required to the autoscaler.
 
-## Unidling Design
+## Correlating Services and ReplicationControllers
+
+Unidling, unlike idling, requires the routing / proxy layers to be able to resolve a service to a
+replication controller that manages that service's destination pods.  When a service needs to be
+unidled, the components of the system that perform unidling must be able to perform this resolution
+in order to know which replication controller to resize to create destination pods.
+
+This needs to be explored further.  At this time, replication controllers and services are
+intentionally decoupled.  We do not want to change the model for services or replication
+controllers.
+
+One possibility for resolving services to replication controllers would be to query the autoscaler
+configuration.  The algorithm would roughly be as follows, given a service S in a namespace N:
+
+1.  List all `AutoscalerSpec` resources in a namespace
+2.  Find every `AutoscalerThreshold` that references the named service
+3.  For each threshold, add each target that depends on the named service to scale to the list
+
+The above approach is imperfect in a couple of ways:
+
+1.  There may be multiple replication controllers that depend on a service's statistics but which
+    do not actually create destination pods
+2.  There may be multiple replication controllers that manage destination pods for a service; how
+    should the one to resize be chosen?
+
+## Proxy Layer Unidling Design
+
+## Edge layer Unidling Design
 
 The requirements for unidling an idle service S with replication controller R are
 as follows:
 
 1.  The request to S after it has become idle must:
-    1.  Trigger unidling of S
-    2.  Be buffered until a destination pod is available
-2.  R must be resized to *n* > 1
-3.  Subsequent requests while to S while S is being unidled must be buffered until a
-    destination pod is available
+    1.  trigger unidling of S
+    2.  be buffered until a destination pod is available
+2.  R must be resized to *n* >= 1
+3.  Subsequent requests while to S while S is being unidled must:
+    1.  cause no more unidling
+    2.  be buffered until a destination pod is available
 
 #### A note on systemd socket activation
 
