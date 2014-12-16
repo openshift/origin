@@ -8,8 +8,8 @@ Users are accustomed to accessing remote servers via SSH to run commands and for
 
 The following use cases should be explored by this proposal:
 
-- As an OpenShift user, I want to be able to execute commands in one or more of the containers I am allowed to access, including getting shell access
-- As an OpenShift user, I want to be able to forward one or more ports from my local machine to a container I am allowed to access
+- As a user, I want to be able to execute commands in one or more of the containers I am allowed to access, including getting shell access
+- As a user, I want to be able to forward one or more ports from my local machine to a container I am allowed to access
 
 The following use case is not being considered at this time:
 
@@ -25,9 +25,9 @@ Here are possible ways to specify one or more containers:
 1. A reference to exactly 1 container, which requires an exact match on namespace, pod name, and container name
 2. A reference to a group of containers, which requires an exact match on namespace, a label selector match for pods, and an exact match on container name
 
-Question:
+**Question:**
 
-- Would we want to target containers spanning multiple namespaces?
+- Would we want to target containers spanning multiple namespaces? i.e. would we want to be able to run a command in all pods with label name=foo, container=bar, across all namespaces I have access to?
 
 ## Protocol 
 
@@ -50,9 +50,9 @@ Each node has at least one container command executor. It is responsible for:
 
 All connections must be encrypted using TLS.
 
-**TODO**
+**Question:**
 
-- connection isolation
+- Do we need to fork and assign a distinct SELinux process context to each client connection to isolate connections from each other?
 
 ### Authentication
 
