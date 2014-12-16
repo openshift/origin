@@ -116,11 +116,11 @@ The edge routing layer must:
 
 #### Edge Unidling: Idle proxy embedded in router 
 
-#### Edge Unidling: Router redirects to idle proxy; proxy uses virtual IPs to resolve service
+#### Edge Unidling: Separate idle proxy; proxy uses virtual IPs to resolve service
 
-#### Edge Unidling: Router redirects to idle proxy; proxy uses ports to resolve service
+#### Edge Unidling: Separate idle proxy; proxy uses ports to resolve service
 
-#### Edge Unidling: Router redirects to idle proxy and rewrites tcp stream to include service
+#### Edge Unidling: Separate idle proxy; router rewrites tcp stream to include service
 
 ## Proposed Design
 
