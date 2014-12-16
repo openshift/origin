@@ -137,6 +137,8 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		ImageRepositoryInterface:  imageEtcd,
 	}
 
+	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "")
+
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildEtcd),
@@ -144,7 +146,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.KubeClient),
 
 		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd),
+		"imageRepositories":       imagerepository.NewREST(imageEtcd, defaultRegistry),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 
 		"deployments":               deployregistry.NewREST(deployEtcd),

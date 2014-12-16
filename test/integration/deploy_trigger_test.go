@@ -264,7 +264,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	storage := map[string]apiserver.RESTStorage{
 		"images":                    image.NewREST(imageEtcd),
-		"imageRepositories":         imagerepository.NewREST(imageEtcd),
+		"imageRepositories":         imagerepository.NewREST(imageEtcd, ""),
 		"imageRepositoryMappings":   imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),

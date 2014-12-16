@@ -18,12 +18,18 @@ import (
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	registry Registry
+	registry        Registry
+	defaultRegistry string
 }
 
-// NewREST returns a new REST.
-func NewREST(registry Registry) apiserver.RESTStorage {
-	return &REST{registry}
+// NewREST returns a new REST.  Default registry is the prefix that will be
+// applied to the Status.DockerImageRepository field if the repository does not
+// have a real DockerImageRepository.
+func NewREST(registry Registry, defaultRegistry string) apiserver.RESTStorage {
+	return &REST{
+		registry:        registry,
+		defaultRegistry: defaultRegistry,
+	}
 }
 
 // New returns a new ImageRepository for use with Create and Update.
@@ -37,6 +43,9 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 	if err != nil {
 		return nil, err
 	}
+	for i := range imageRepositories.Items {
+		s.fillRepository(&imageRepositories.Items[i])
+	}
 	return imageRepositories, err
 }
 
@@ -46,6 +55,7 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.fillRepository(repo)
 	return repo, nil
 }
 
@@ -73,6 +83,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 
 	repo.CreationTimestamp = util.Now()
+	repo.Status = api.ImageRepositoryStatus{}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateImageRepository(ctx, repo); err != nil {
@@ -95,6 +106,8 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
 	}
 
+	repo.Status = api.ImageRepositoryStatus{}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := s.registry.UpdateImageRepository(ctx, repo)
 		if err != nil {
@@ -109,4 +122,15 @@ func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult,
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImageRepository(ctx, id)
 	}), nil
+}
+
+// fillRepository sets the status information of a repository
+func (s *REST) fillRepository(repo *api.ImageRepository) {
+	var value string
+	if len(repo.DockerImageRepository) != 0 {
+		value = repo.DockerImageRepository
+	} else {
+		value = api.JoinDockerPullSpec(s.defaultRegistry, repo.Namespace, repo.Name, "")
+	}
+	repo.Status.DockerImageRepository = value
 }
