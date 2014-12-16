@@ -38,14 +38,40 @@ pods resolve to D is as follows:
 1.  The autoscaler determines that R should be scaled down to zero replicas.
 2.  The autoscaler resizes R to zero
 3.  The pods for R are deleted, which is reflected as Endpoint changes for S
-4.  The routing layer receives a watch event with the updated state of S's endpoints
-5.  The routing layer determines that S is idle
-6.  The routing later takes some action to prepare to unidle S by resizing R
 
 This proposal will assume that the proposed autoscaler is available.  As the autoscaler proposal
 progresses this proposal will be updated with any changes that will be required to the autoscaler.
 
-## Correlating Services and ReplicationControllers
+The edge routing layer and kube-proxy layer both have to be aware of service in order to configure
+themselves appropiately to unidle the service.  Actions to be taken upon idleness will be described
+in the unidling design.
+
+## Unidling design
+
+The requirements for unidling an idle service S with replication controller R are
+as follows:
+
+1.  The first request to S after it has become idle must:
+    1.  trigger unidling of S
+    2.  be buffered until a destination pod is available
+2.  R must be resized to *n* >= 1
+3.  Subsequent requests while to S while S is being unidled must:
+    1.  cause no more unidling
+    2.  be buffered until a destination pod is available
+
+The edge routing layer and the kube-proxy layer must both implement these behaviors, and these two
+layers must also effectively buffer while the unidle is occuring at the other layer.
+
+#### A note on systemd socket activation
+
+Our prior work on geard investigated using systemd socket activation as an unidle trigger.  The key
+challenge with this approach is that it requires the interface/ports has to be defined before a pod
+is started, which today is the pod being scheduled to the host. However, the pod has to be stopped
+which complicates resource scheduling. In this model the scheduler cannot make resource decisions
+without double checking to see if pods have been unidled, and you could potentially wake too many
+pods.
+
+### Correlating Services and ReplicationControllers
 
 Unidling, unlike idling, requires the routing / proxy layers to be able to resolve a service to a
 replication controller that manages that service's destination pods.  When a service needs to be
@@ -70,29 +96,23 @@ The above approach is imperfect in a couple of ways:
 2.  There may be multiple replication controllers that manage destination pods for a service; how
     should the one to resize be chosen?
 
-## Proxy Layer Unidling Design
+### Proxy Layer Unidling Concerns
 
-## Edge layer Unidling Design
+The kube-proxy layer must:
 
-The requirements for unidling an idle service S with replication controller R are
-as follows:
+1.  Track idleness of services
+1.  Perform unidle in response to a request to an idled service
+1.  Buffer requests to a service it is unidling
+1.  Buffer requests to a service the edge router is idling
 
-1.  The request to S after it has become idle must:
-    1.  trigger unidling of S
-    2.  be buffered until a destination pod is available
-2.  R must be resized to *n* >= 1
-3.  Subsequent requests while to S while S is being unidled must:
-    1.  cause no more unidling
-    2.  be buffered until a destination pod is available
+### Edge layer Unidling Concerns
 
-#### A note on systemd socket activation
+The edge routing layer must:
 
-Our prior work on geard investigated using systemd socket activation as an unidle trigger.  The key
-challenge with this approach is that it requires the interface/ports has to be defined before a pod
-is started, which today is the pod being scheduled to the host. However, the pod has to be stopped
-which complicates resource scheduling. In this model the scheduler cannot make resource decisions
-without double checking to see if pods have been unidled, and you could potentially wake too many
-pods.
+1.  Track idleness of services
+1.  Perform unidle in response to a request to an idled service
+1.  Buffer requests to a service it is unidling, regardless of backend
+1.  Buffer requests to a service the edge router is idling, regardless of backend
 
 ### Unidling from the service proxy
 
