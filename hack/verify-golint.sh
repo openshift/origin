@@ -43,7 +43,7 @@ else
         -o -wholename '*/third_party/*' \
         -o -wholename '*/_output/*' \
       \) -prune \
-    \) -name '*.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
+    \) -name '*.go' | sort -u | sed 's/^.{2}//' | xargs -n1 printf "${GOPATH}/src/${OS_GO_PACKAGE}/%s\n"
   }
   bad_files=$(find_files | xargs -n1 golint)
 fi
