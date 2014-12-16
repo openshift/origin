@@ -61,8 +61,8 @@ func (m *RESTHelper) Watch(namespace, resourceVersion string, labelSelector, fie
 		Watch()
 }
 
-func (m *RESTHelper) Delete(namespace, name string) error {
-	return m.RESTClient.Delete().Path(m.Resource).Namespace(namespace).Path(name).Do().Error()
+func (m *RESTHelper) Delete(namespace, name string, selector labels.Selector) error {
+	return m.RESTClient.Delete().Path(m.Resource).Namespace(namespace).SelectorParam("labels", selector).Path(name).Do().Error()
 }
 
 func (m *RESTHelper) Create(namespace string, modify bool, data []byte) error {

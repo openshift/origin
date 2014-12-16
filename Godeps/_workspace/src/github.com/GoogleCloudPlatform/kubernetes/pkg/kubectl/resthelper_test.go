@@ -86,7 +86,7 @@ func TestRESTHelperDelete(t *testing.T) {
 		modifier := &RESTHelper{
 			RESTClient: client,
 		}
-		err := modifier.Delete("bar", "foo")
+		err := modifier.Delete("bar", "foo", labels.Everything())
 		if (err != nil) != test.Err {
 			t.Errorf("unexpected error: %t %v", test.Err, err)
 		}
