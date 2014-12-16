@@ -113,7 +113,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory']
       libvirt.cpus        = vagrant_openshift_config['cpus']
-      override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
+      override.vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh"
     end
 
     # Set VMware Fusion provider settings
@@ -123,7 +123,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["memsize"]    = vagrant_openshift_config['memory'].to_s
       v.vmx["numvcpus"]   = vagrant_openshift_config['cpus'].to_s
       v.gui               = false
-      override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
+      override.vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh"
     end
 
     # Set AWS provider settings
@@ -172,7 +172,7 @@ runcmd:
       if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
-      config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
+      config.vm.provision "setup", type: "shell", path: "hack/vm-provision.sh"
       config.vm.synced_folder ".", "/vagrant", disabled: true
       config.vm.synced_folder sync_from, sync_to, :rsync__args => ["--verbose", "--archive", "--delete", "-z"]
     end
