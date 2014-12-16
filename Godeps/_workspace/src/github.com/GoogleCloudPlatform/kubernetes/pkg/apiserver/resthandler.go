@@ -17,11 +17,13 @@ limitations under the License.
 package apiserver
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -214,17 +216,44 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 		h.finishReq(op, req, w)
 
 	case "DELETE":
-		if len(parts) != 2 {
-			notFound(w, req)
-			return
-		}
-		out, err := storage.Delete(api.WithNamespaceDefaultIfNone(ctx), parts[1])
+		label, err := labels.ParseSelector(req.URL.Query().Get("labels"))
 		if err != nil {
 			errorJSON(err, h.codec, w)
 			return
 		}
-		op := h.createOperation(out, sync, timeout, nil)
-		h.finishReq(op, req, w)
+		switch len(parts) {
+		case 1:
+			// list, err := storage.List(ctx, label, labels.Everything())
+			// if err != nil {
+			// 	errorJSON(err, h.codec, w)
+			// 	return
+			// }
+		case 2:
+			item, err := storage.Get(api.WithNamespaceDefaultIfNone(ctx), parts[1])
+			if err != nil {
+				errorJSON(err, h.codec, w)
+				return
+			}
+			accessor, err := meta.Accessor(item)
+			if err != nil {
+				errorJSON(err, h.codec, w)
+				return
+			}
+			if !label.Matches(labels.Set(accessor.Labels())) {
+				err = fmt.Errorf("%v \"%v\" doesn't match specified selector \"%v\"", accessor.Kind(), accessor.Name(), label.String())
+				errorJSON(err, h.codec, w)
+				return
+			}
+			out, err := storage.Delete(api.WithNamespaceDefaultIfNone(ctx), parts[1])
+			if err != nil {
+				errorJSON(err, h.codec, w)
+				return
+			}
+			op := h.createOperation(out, sync, timeout, nil)
+			h.finishReq(op, req, w)
+		default:
+			notFound(w, req)
+		}
 
 	case "PUT":
 		if len(parts) != 2 {

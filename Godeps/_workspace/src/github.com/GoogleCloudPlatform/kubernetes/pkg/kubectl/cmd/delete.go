@@ -21,6 +21,7 @@ import (
 	"io"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/spf13/cobra"
 )
 
@@ -49,16 +50,21 @@ Examples:
   $ kubectl delete pod 1234-56-7890-234234-456456
   <delete a pod with ID 1234-56-7890-234234-456456>`,
 		Run: func(cmd *cobra.Command, args []string) {
+			selector := GetFlagString(cmd, "selector")
+			labelSelector, err := labels.ParseSelector(selector)
+			checkErr(err)
+
 			filename := GetFlagString(cmd, "filename")
 			mapping, namespace, name := ResourceFromArgsOrFile(cmd, args, filename, f.Typer, f.Mapper)
 			client, err := f.Client(cmd, mapping)
 			checkErr(err)
 
-			err = kubectl.NewRESTHelper(client, mapping).Delete(namespace, name)
+			err = kubectl.NewRESTHelper(client, mapping).Delete(namespace, name, labelSelector)
 			checkErr(err)
 			fmt.Fprintf(out, "%s\n", name)
 		},
 	}
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to delete the resource")
+	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
 	return cmd
 }
