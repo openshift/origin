@@ -250,7 +250,7 @@ func start(cfg *config, args []string) error {
 			}
 			kmaster.EnsurePortalFlags()
 
-			osmaster.RunAPI(kmaster, auth)
+			osmaster.RunAPI(kmaster, auth, osmaster, &origin.SwaggerAPI{})
 
 			kmaster.RunScheduler()
 			kmaster.RunReplicationController()
@@ -258,7 +258,7 @@ func start(cfg *config, args []string) error {
 			kmaster.RunMinionController()
 
 		} else {
-			osmaster.RunAPI(auth)
+			osmaster.RunAPI(auth, osmaster, &origin.SwaggerAPI{})
 		}
 
 		osmaster.RunAssetServer()

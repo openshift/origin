@@ -138,7 +138,11 @@ The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta2/*`:
 * `http://localhost:8080/api/v1beta2/replicationControllers`
 * `http://localhost:8080/api/v1beta2/operations`
 
-A draft of the proposed API is available at http://rawgit.com/openshift/origin/master/api/openshift3.html and is developed under the [api](./api) directory.  Expect significant changes.
+OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `http://localhost:8080/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:
+
+    $ openshift start --cors-allowed-origins=.*
+
+and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1beta1 to see the schemas (and to try the API directly).
 
 
 FAQ

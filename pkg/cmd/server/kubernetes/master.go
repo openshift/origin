@@ -5,6 +5,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -17,9 +20,6 @@ import (
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
-	"github.com/golang/glog"
-
-	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 const (
@@ -50,7 +50,7 @@ func (c *MasterConfig) EnsurePortalFlags() {
 // into the provided mux, then returns an array of strings indicating what
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
-func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
+func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	kubeletClient, err := kclient.NewKubeletClient(
 		&kclient.KubeletConfig{
 			Port: 10250,
@@ -73,12 +73,11 @@ func (c *MasterConfig) InstallAPI(mux util.Mux) []string {
 
 		PortalNet: c.PortalNet,
 
-		KubeletClient: kubeletClient,
-		APIPrefix:     KubeAPIPrefix,
+		RestfulContainer: container,
+		KubeletClient:    kubeletClient,
+		APIPrefix:        KubeAPIPrefix,
 	}
-	m := master.New(masterConfig)
-
-	mux.Handle("/", m.Handler)
+	_ = master.New(masterConfig)
 
 	return []string{
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),

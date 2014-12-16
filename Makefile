@@ -62,10 +62,3 @@ clean:
 	rm -rf $(OUT_DIR) $(OUT_PKG_DIR)
 .PHONY: clean
 
-# Generate api docs from .raml to .html.
-#
-# Example:
-#   make api
-api:
-	hack/build-api-docs-image.sh
-.PHONY: api
