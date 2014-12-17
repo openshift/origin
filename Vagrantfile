@@ -7,6 +7,17 @@ VAGRANTFILE_API_VERSION = "2"
 # Require a recent version of vagrant otherwise some have reported errors setting host names on boxes
 Vagrant.require_version ">= 1.6.2"
 
+def pre_vagrant_171
+  @pre_vagrant_171 ||= begin
+    req = Gem::Requirement.new("< 1.7.1")
+    if req.satisfied_by?(Gem::Version.new(Vagrant::VERSION))
+      true
+    else
+      false
+    end
+  end
+end
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   if File.exist?('.vagrant-openshift.json')
@@ -113,7 +124,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory']
       libvirt.cpus        = vagrant_openshift_config['cpus']
-      override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
+      if pre_vagrant_171
+        override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
+      else
+        override.vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh"
+      end
     end
 
     # Set VMware Fusion provider settings
@@ -123,7 +138,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["memsize"]    = vagrant_openshift_config['memory'].to_s
       v.vmx["numvcpus"]   = vagrant_openshift_config['cpus'].to_s
       v.gui               = false
-      override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
+      if pre_vagrant_171
+        override.vm.provision "shell", path: "hack/vm-provision-full.sh", id: "setup"
+      else
+        override.vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh"
+      end
     end
 
     # Set AWS provider settings
@@ -172,7 +191,11 @@ runcmd:
       if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
-      config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
+      if pre_vagrant_171
+        config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
+      else
+        config.vm.provision "setup", type: "shell", path: "hack/vm-provision.sh"
+      end
       config.vm.synced_folder ".", "/vagrant", disabled: true
       config.vm.synced_folder sync_from, sync_to, :rsync__args => ["--verbose", "--archive", "--delete", "-z"]
     end
