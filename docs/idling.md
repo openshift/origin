@@ -71,7 +71,7 @@ which complicates resource scheduling. In this model the scheduler cannot make r
 without double checking to see if pods have been unidled, and you could potentially wake too many
 pods.
 
-### Correlating Services and ReplicationControllers
+### Correlating services and replication controllers
 
 Unidling, unlike idling, requires the routing / proxy layers to be able to resolve a service to a
 replication controller that manages that service's destination pods.  When a service needs to be
@@ -96,31 +96,53 @@ The above approach is imperfect in a couple of ways:
 2.  There may be multiple replication controllers that manage destination pods for a service; how
     should the one to resize be chosen?
 
-### Proxy Layer Unidling Concerns
+### Unidling holistically considered
 
-The kube-proxy layer must:
+The in order to support unidling service from the kube-proxy layer, we know that that layer must:
 
 1.  Track idleness of services
 1.  Perform unidle in response to a request to an idled service
 1.  Buffer requests to a service it is unidling
-1.  Buffer requests to a service the edge router is idling
 
-### Edge layer Unidling Concerns
-
-The edge routing layer must:
+We also know that the edge routing layer must:
 
 1.  Track idleness of services
-1.  Perform unidle in response to a request to an idled service
-1.  Buffer requests to a service it is unidling, regardless of backend
-1.  Buffer requests to a service the edge router is idling, regardless of backend
+1.  Initiate an unidle in response to a request to an idled service
+1.  Allow buffering of requests to idled services.
 
-#### Edge Unidling: Idle proxy embedded in router 
+#### Should the edge router buffer requests or always delegate?
 
-#### Edge Unidling: Separate idle proxy; proxy uses virtual IPs to resolve service
+There are many possible scenarios for how unidling functionality should be implemented across the
+edge routing and kube-proxy layers.  Fundamentally they decompose into two cases: the edge
+routing layer handles buffering of requests in addition to the kube-proxy layer or delegates to the
+kube-proxy layer to buffer connections.  The problem with having both layers independently buffer
+requests when the other has initiated the unidle is that it introduces shared state.  If the edge
+routing layer delegates to the kube-proxy layer for idled services, requests to unidling services
+will be buffered by the kube-proxy layer.  For this reason, we recommend that the edge routing
+layer not buffer requests itself.
 
-#### Edge Unidling: Separate idle proxy; proxy uses ports to resolve service
+#### Preparing to unidle
 
-#### Edge Unidling: Separate idle proxy; router rewrites tcp stream to include service
+Both the kube-proxy and the edge routing layers need to respond to service idleness to support
+unidling.  The edge routing layer must remove the last endpoints from the routing table for a
+service becoming idle and route future connections for that service's IP through the kube-proxy
+layer.
+
+The kube-proxy layer is more complex; it must change the socket handler for an idling service to
+implement the following behavior:
+
+1.  Resolve the idling service S to some replication controller R
+2.  Resize R to *n* >= 1
+3.  Block until the kube-proxy receives endpoint information for S
+4.  Dispatch requests to S
+
+#### Limits for kube-proxy number of services
+
+Density is ultimately limited by an upper bound on the number of services that can be handled by a
+single kube-proxy.  Currently that limitation is governed by the maximum number of iptables rules
+that can be handled performantly, which is around 30K (**source?**).  In the future the kube-proxy
+layer may be decoupled from the nodes and not be bound to any particular machines.  Non-overlapping
+subnets could align to a blocks of hosts handled by different kube-proxy shards.
 
 ## Proposed Design
 
