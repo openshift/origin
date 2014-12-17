@@ -109,6 +109,6 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 }
 
 // Watch begins watching for new, changed, or deleted Builds.
-func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return s.registry.WatchBuilds(ctx, label, field, resourceVersion)
+func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.registry.WatchBuilds(ctx, label, field, resourceVersion)
 }

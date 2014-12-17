@@ -46,7 +46,7 @@ func validateToken(token string, clientCfg *clientcmd.Config) {
 	jsonResponse, _, err := getTokenInfo(token, osClient)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		fmt.Println("Try visiting " + getRequestTokenUrl(clientCfg) + " for a new token.")
+		fmt.Println("Try visiting " + getRequestTokenURL(clientCfg) + " for a new token.")
 		return
 	}
 	fmt.Printf("%v\n", string(jsonResponse))
@@ -56,12 +56,12 @@ func validateToken(token string, clientCfg *clientcmd.Config) {
 		fmt.Printf("Error making whoami request: %v\n", err)
 		return
 	}
-	whoamiJson, err := json.Marshal(whoami)
+	whoamiJSON, err := json.Marshal(whoami)
 	if err != nil {
 		fmt.Printf("Error interpretting whoami response: %v\n", err)
 		return
 	}
-	fmt.Printf("%v\n", string(whoamiJson))
+	fmt.Printf("%v\n", string(whoamiJSON))
 }
 
 func getTokenInfo(token string, osClient *osclient.Client) (string, *osintypes.InfoResponseData, error) {

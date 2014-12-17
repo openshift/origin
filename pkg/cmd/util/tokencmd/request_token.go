@@ -52,8 +52,8 @@ func RequestToken(clientCfg *clientcmd.Config, reader io.Reader) (string, error)
 	_ = kubeClient.Get().AbsPath("oauth").Path("authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
 
 	if len(tokenGetter.accessToken) == 0 {
-		requestTokenUrl := kubeCfg.Host + "/oauth" /* clean up after auth.go dies */ + tokenrequest.RequestTokenEndpoint
-		return "", errors.New("Unable to get token.  Try visiting " + requestTokenUrl + " for a new token.")
+		requestTokenURL := kubeCfg.Host + "/oauth" /* clean up after auth.go dies */ + tokenrequest.RequestTokenEndpoint
+		return "", errors.New("Unable to get token.  Try visiting " + requestTokenURL + " for a new token.")
 	}
 
 	return tokenGetter.accessToken, nil
