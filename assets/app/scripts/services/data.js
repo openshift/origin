@@ -12,7 +12,8 @@ angular.module('openshiftConsole')
     images : "osapi",
     projects : "osapi",
     pods : "api",
-    services : "api"
+    services : "api",
+    replicationControllers: "api"
   };
 
   function DataService() {

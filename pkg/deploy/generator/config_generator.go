@@ -8,6 +8,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -22,10 +23,11 @@ type DeploymentConfigGenerator struct {
 	DeploymentInterface       deploymentInterface
 	DeploymentConfigInterface deploymentConfigInterface
 	ImageRepositoryInterface  imageRepositoryInterface
+	Codec                     runtime.Codec
 }
 
 type deploymentInterface interface {
-	GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error)
+	GetDeployment(ctx kapi.Context, id string) (*kapi.ReplicationController, error)
 }
 
 type deploymentConfigInterface interface {
@@ -54,6 +56,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 		glog.V(2).Infof("Error getting deployment: %#v", err)
 		return nil, err
 	}
+	deploymentExists := !errors.IsNotFound(err)
 
 	configPodTemplateSpec := deploymentConfig.Template.ControllerTemplate.Template
 
@@ -78,17 +81,27 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigI
 		updateContainers(configPodTemplateSpec, util.NewStringSet(params.ContainerNames...), newImage)
 	}
 
-	if deployment == nil {
+	if deploymentExists {
+		if deployedConfig, err := deployutil.DecodeDeploymentConfig(deployment, g.Codec); err == nil {
+			if !deployutil.PodSpecsEqual(configPodTemplateSpec.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
+				deploymentConfig.LatestVersion++
+				// reset the details of the deployment trigger for this deploymentConfig
+				deploymentConfig.Details = nil
+				glog.V(4).Infof("Incremented deploymentConfig %s to %d due to template inequality with deployed config", deploymentConfig.Name, deploymentConfig.LatestVersion)
+			} else {
+				glog.V(4).Infof("No diff detected between deploymentConfig %s and deployed config %s", deploymentConfig.Name, deployedConfig.Name)
+			}
+		} else {
+			glog.V(0).Infof("Failed to decode DeploymentConfig from deployment %s: %v", deployment.Name, err)
+		}
+	} else {
 		if deploymentConfig.LatestVersion == 0 {
 			// If the latest version is zero, and the generation's being called, bump it.
 			deploymentConfig.LatestVersion = 1
 			// reset the details of the deployment trigger for this deploymentConfig
 			deploymentConfig.Details = nil
+			glog.V(4).Infof("Set deploymentConfig %s to version %d for initial deployment", deploymentConfig.Name, deploymentConfig.LatestVersion)
 		}
-	} else if !deployutil.PodSpecsEqual(configPodTemplateSpec.Spec, deployment.ControllerTemplate.Template.Spec) {
-		deploymentConfig.LatestVersion++
-		// reset the details of the deployment trigger for this deploymentConfig
-		deploymentConfig.Details = nil
 	}
 
 	return deploymentConfig, nil
