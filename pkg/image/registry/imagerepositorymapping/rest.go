@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -73,7 +72,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 	image := mapping.Image
 
-	image.CreationTimestamp = util.Now()
+	kapi.FillObjectMetaSystemFields(ctx, &image.ObjectMeta)
 
 	//TODO apply metadata overrides
 	if repo.Tags == nil {

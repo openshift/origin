@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
@@ -70,7 +69,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, kerrors.NewConflict("deployment", deployment.Namespace, fmt.Errorf("Deployment.Namespace does not match the provided context"))
 	}
 
-	deployment.CreationTimestamp = util.Now()
+	kapi.FillObjectMetaSystemFields(ctx, &deployment.ObjectMeta)
 
 	if len(deployment.Name) == 0 {
 		deployment.Name = uuid.NewUUID().String()

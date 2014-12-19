@@ -10,7 +10,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
@@ -73,7 +72,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, fmt.Errorf("not a deploymentConfig: %#v", obj)
 	}
 
-	deploymentConfig.CreationTimestamp = util.Now()
+	kapi.FillObjectMetaSystemFields(ctx, &deploymentConfig.ObjectMeta)
 
 	if len(deploymentConfig.Name) == 0 {
 		deploymentConfig.Name = uuid.NewUUID().String()

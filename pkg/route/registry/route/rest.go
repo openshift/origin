@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/route/api"
@@ -77,7 +76,7 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 		route.Name = uuid.NewUUID().String()
 	}
 
-	route.CreationTimestamp = util.Now()
+	kapi.FillObjectMetaSystemFields(ctx, &route.ObjectMeta)
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.CreateRoute(ctx, route)

@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/api/validation"
@@ -57,8 +56,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, fmt.Errorf("not an client: %#v", obj)
 	}
 
-	client.CreationTimestamp = util.Now()
-	client.UID = util.NewUUID().String()
+	kapi.FillObjectMetaSystemFields(ctx, &client.ObjectMeta)
 
 	if errs := validation.ValidateClient(client); len(errs) > 0 {
 		return nil, kerrors.NewInvalid("client", client.Name, errs)

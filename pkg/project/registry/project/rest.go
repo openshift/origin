@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/project/api/validation"
@@ -61,8 +60,9 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		project.Namespace = project.Name
 	}
 
+	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
+
 	// TODO set an id if not provided?, set a Namespace attribute if not provided?
-	project.CreationTimestamp = util.Now()
 
 	if errs := validation.ValidateProject(project); len(errs) > 0 {
 		return nil, errors.NewInvalid("project", project.Name, errs)

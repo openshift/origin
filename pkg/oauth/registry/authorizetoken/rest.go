@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/api/validation"
@@ -57,8 +56,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, fmt.Errorf("not an token: %#v", obj)
 	}
 
-	token.CreationTimestamp = util.Now()
-	token.UID = util.NewUUID().String()
+	kapi.FillObjectMetaSystemFields(ctx, &token.ObjectMeta)
 
 	if errs := validation.ValidateAuthorizeToken(token); len(errs) > 0 {
 		return nil, kerrors.NewInvalid("token", token.Name, errs)

@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -69,7 +68,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	if len(buildConfig.Name) == 0 {
 		buildConfig.Name = uuid.NewUUID().String()
 	}
-	buildConfig.CreationTimestamp = util.Now()
+	kapi.FillObjectMetaSystemFields(ctx, &buildConfig.ObjectMeta)
 	if errs := validation.ValidateBuildConfig(buildConfig); len(errs) > 0 {
 		return nil, errors.NewInvalid("buildConfig", buildConfig.Name, errs)
 	}
