@@ -49,6 +49,6 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 	return f.Value.String()
 }
 
-func getRequestTokenUrl(clientCfg *clientcmd.Config) string {
+func getRequestTokenURL(clientCfg *clientcmd.Config) string {
 	return clientCfg.KubeConfig().Host + origin.OpenShiftLoginPrefix + tokenrequest.RequestTokenEndpoint
 }
