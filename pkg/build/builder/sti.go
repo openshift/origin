@@ -29,12 +29,17 @@ func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.Auth
 // Build executes the STI build
 func (s *STIBuilder) Build() error {
 	request := &sti.STIRequest{
-		BaseImage:    s.build.Parameters.Strategy.STIStrategy.Image,
 		DockerSocket: s.dockerSocket,
 		Source:       s.build.Parameters.Source.Git.URI,
 		Tag:          imageTag(s.build),
 		Environment:  getBuildEnvVars(s.build),
 		Clean:        s.build.Parameters.Strategy.STIStrategy.Clean,
+	}
+
+	if s.build.Parameters.UpstreamImage != "" {
+		request.BaseImage = s.build.Parameters.UpstreamImage
+	} else {
+		request.BaseImage = s.build.Parameters.Strategy.STIStrategy.Image
 	}
 	if s.build.Parameters.Revision != nil && s.build.Parameters.Revision.Git != nil &&
 		s.build.Parameters.Revision.Git.Commit != "" {
