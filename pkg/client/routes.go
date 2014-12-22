@@ -78,8 +78,8 @@ func (c *routes) Update(route *routeapi.Route) (result *routeapi.Route, err erro
 // Watch returns a watch.Interface that watches the requested routes.
 func (c *routes) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Namespace(c.ns).
 		Path("watch").
+		Namespace(c.ns).
 		Path("routes").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
