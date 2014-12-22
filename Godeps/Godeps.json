@@ -414,10 +414,6 @@
 			"Rev": "23142f6773a676cc2cae8dd0cb90b2ea761c853f"
 		},
 		{
-			"ImportPath": "github.com/daaku/go.httpgzip",
-			"Rev": "3f59977b58c61991f5ed3670bbd141937d808b06"
-		},
-		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
 			"Rev": "83f84dc933714d51504ceed59f43ead21d096fe7"
 		},

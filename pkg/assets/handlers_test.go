@@ -1,8 +1,7 @@
-package httpgzip_test
+package assets
 
 import (
 	"bytes"
-	"github.com/daaku/go.httpgzip"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +17,7 @@ func stubHandler(response string) http.Handler {
 
 func TestWithoutGzip(t *testing.T) {
 	const resp = "hello"
-	handler := httpgzip.NewHandler(stubHandler(resp))
+	handler := GzipHandler(stubHandler(resp))
 	writer := httptest.NewRecorder()
 	handler.ServeHTTP(writer, &http.Request{Method: "GET"})
 	if writer.Body == nil {
@@ -35,7 +34,7 @@ func TestWithoutGzip(t *testing.T) {
 
 func TestWithoutGzipWithMultipleVaryHeaders(t *testing.T) {
 	const resp = "hello"
-	handler := httpgzip.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := GzipHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Foo")
 		w.Write([]byte(resp))
 	}))
@@ -54,7 +53,7 @@ func TestWithoutGzipWithMultipleVaryHeaders(t *testing.T) {
 }
 
 func TestWithGzip(t *testing.T) {
-	handler := httpgzip.NewHandler(stubHandler("hello"))
+	handler := GzipHandler(stubHandler("hello"))
 	writer := httptest.NewRecorder()
 	handler.ServeHTTP(writer, &http.Request{
 		Method: "GET",
@@ -75,7 +74,7 @@ func TestWithGzip(t *testing.T) {
 }
 
 func TestWithGzipAndMultipleVaryHeader(t *testing.T) {
-	handler := httpgzip.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := GzipHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Foo")
 		w.Write([]byte("hello"))
 	}))
@@ -100,7 +99,7 @@ func TestWithGzipAndMultipleVaryHeader(t *testing.T) {
 
 func TestWithGzipReal(t *testing.T) {
 	const raw = "hello"
-	handler := httpgzip.NewHandler(stubHandler(raw))
+	handler := GzipHandler(stubHandler(raw))
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	resp, err := http.Get(server.URL)
@@ -120,7 +119,7 @@ func TestWithGzipReal(t *testing.T) {
 
 func TestWithGzipRealAndMultipleVaryHeaders(t *testing.T) {
 	const raw = "hello"
-	handler := httpgzip.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := GzipHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Foo")
 		w.Write([]byte(raw))
 	}))
@@ -142,7 +141,7 @@ func TestWithGzipRealAndMultipleVaryHeaders(t *testing.T) {
 }
 
 func TestWithGzipDoubleWrite(t *testing.T) {
-	handler := httpgzip.NewHandler(
+	handler := GzipHandler(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write(bytes.Repeat([]byte("foo"), 1000))
 			w.Write(bytes.Repeat([]byte("bar"), 1000))
@@ -159,5 +158,65 @@ func TestWithGzipDoubleWrite(t *testing.T) {
 	}
 	if l := writer.Body.Len(); l != 54 {
 		t.Fatalf("invalid body length, got %d", l)
+	}
+}
+
+func TestGenerateEtag(t *testing.T) {
+	etag := generateEtag(
+		&http.Request{
+			Method: "GET",
+			Header: http.Header{
+				"Foo": []string{"123"},
+				"Bar": []string{"456"},
+				"Baz": []string{"789"},
+			},
+		},
+		"1234",
+		[]string{"Foo", "Bar"},
+	)
+	expected := "W/\"1234_313233343536\""
+	if etag != expected {
+		t.Fatalf("Expected %s, got %s", expected, etag)
+	}
+}
+
+func TestCacheWithoutEtag(t *testing.T) {
+	handler := CacheControlHandler("1234", stubHandler("hello"))
+	writer := httptest.NewRecorder()
+	handler.ServeHTTP(writer, &http.Request{
+		Method: "GET",
+		Header: http.Header{},
+	})
+	if writer.Header().Get("ETag") == "" {
+		t.Fatal("ETag header was not set")
+	}
+}
+
+func TestCacheWithInvalidEtag(t *testing.T) {
+	handler := CacheControlHandler("1234", stubHandler("hello"))
+	writer := httptest.NewRecorder()
+	handler.ServeHTTP(writer, &http.Request{
+		Method: "GET",
+		Header: http.Header{
+			"If-None-Match": []string{"123"},
+		},
+	})
+	if writer.Code == 304 {
+		t.Fatal("Set status to Not Modified (304) on an invalid etag")
+	}
+}
+
+func TestCacheWithValidEtag(t *testing.T) {
+	handler := CacheControlHandler("1234", stubHandler("hello"))
+	writer := httptest.NewRecorder()
+	r := http.Request{
+		Method: "GET",
+		Header: http.Header{},
+	}
+	etag := generateEtag(&r, "1234", []string{})
+	r.Header.Set("If-None-Match", etag)
+	handler.ServeHTTP(writer, &r)
+	if writer.Code != 304 {
+		t.Fatalf("Expected status to be Not Modified (304), got %d.  Expected etag was %s, actual was %s", writer.Code, etag, writer.Header().Get("ETag"))
 	}
 }
