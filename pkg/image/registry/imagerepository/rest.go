@@ -10,7 +10,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -82,7 +81,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		repo.Tags = make(map[string]string)
 	}
 
-	repo.CreationTimestamp = util.Now()
+	kapi.FillObjectMetaSystemFields(ctx, &repo.ObjectMeta)
 	repo.Status = api.ImageRepositoryStatus{}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {

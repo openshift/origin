@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -59,7 +58,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, errors.NewConflict("image", image.Namespace, fmt.Errorf("Image.Namespace does not match the provided context"))
 	}
 
-	image.CreationTimestamp = util.Now()
+	kapi.FillObjectMetaSystemFields(ctx, &image.ObjectMeta)
 
 	if errs := validation.ValidateImage(image); len(errs) > 0 {
 		return nil, errors.NewInvalid("image", image.Name, errs)

@@ -43,6 +43,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	if !ok {
 		return nil, errors.New("Not a template config.")
 	}
+	kapi.FillObjectMetaSystemFields(ctx, &tpl.ObjectMeta)
 	if errs := validation.ValidateTemplate(tpl); len(errs) > 0 {
 		return nil, fmt.Errorf("Invalid template config: %#v", errs)
 	}

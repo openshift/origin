@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/api/validation"
@@ -56,8 +55,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 
 	authorization.Name = s.registry.ClientAuthorizationName(authorization.UserName, authorization.ClientName)
-	authorization.CreationTimestamp = util.Now()
-	authorization.UID = util.NewUUID().String()
+	kapi.FillObjectMetaSystemFields(ctx, &authorization.ObjectMeta)
 
 	if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
 		return nil, kerrors.NewInvalid("clientAuthorization", authorization.Name, errs)
