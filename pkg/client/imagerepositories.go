@@ -72,8 +72,8 @@ func (c *imageRepositories) Update(repo *imageapi.ImageRepository) (result *imag
 // Watch returns a watch.Interface that watches the requested imagerepositories.
 func (c *imageRepositories) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Namespace(c.ns).
 		Path("watch").
+		Namespace(c.ns).
 		Path("imageRepositories").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).

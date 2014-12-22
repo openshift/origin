@@ -79,8 +79,8 @@ func (c *deploymentConfigs) Delete(name string) error {
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
 func (c *deploymentConfigs) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Namespace(c.ns).
 		Path("watch").
+		Namespace(c.ns).
 		Path("deploymentConfigs").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).

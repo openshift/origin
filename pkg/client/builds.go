@@ -52,7 +52,7 @@ func (c *builds) List(label, field labels.Selector) (result *buildapi.BuildList,
 // Get returns information about a particular build and error if one occurs.
 func (c *builds) Get(name string) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
-	err = c.r.Get().Path("builds").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Path("builds").Path(name).Do().Into(result)
 	return
 }
 
@@ -79,8 +79,8 @@ func (c *builds) Delete(name string) (err error) {
 // Watch returns a watch.Interfac that watches the requested builds
 func (c *builds) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Namespace(c.ns).
 		Path("watch").
+		Namespace(c.ns).
 		Path("builds").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
