@@ -132,7 +132,7 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 		p.substituteParametersInManifest(obj.Template.ControllerTemplate.Template.Spec.Containers, paramMap)
 		return obj, nil
 	default:
-		return obj, fmt.Errorf("Parameter substitution not implemented for %T", obj)
+		return obj, nil
 	}
 
 }
