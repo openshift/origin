@@ -43,7 +43,9 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	if !ok {
 		return nil, apierr.NewBadRequest("not a template")
 	}
-
+	if len(tpl.Name) == 0 {
+		tpl.Name = "default"
+	}
 	if errs := validation.ValidateTemplate(tpl); len(errs) > 0 {
 		return nil, apierr.NewInvalid("template", tpl.Name, errs)
 	}
