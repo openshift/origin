@@ -1,6 +1,6 @@
 <div>
-  <h1 style="margin-top: 10px;">Project {{project.displayName || project.id}}</h1>
-  <div class="small muted" style="margin-top: -15px; margin-bottom: 20px" ng-if="project.description">{{project.description}}</div>
+  <h1 style="margin-top: 10px;">Project {{project.displayName || project.metadata.name}}</h1>
+  <div class="small muted" style="margin-top: -15px; margin-bottom: 20px" ng-if="project | annotation : 'description'">{{project | annotation : 'description'}}</div>
   <!-- TODO handle things that don't live under services -->
   <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
   <section ng-repeat="(serviceId, servicePodsByLabel) in podsByServiceByLabel">

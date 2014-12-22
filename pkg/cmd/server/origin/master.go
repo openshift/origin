@@ -62,7 +62,6 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -287,21 +286,10 @@ func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler, reque
 
 // RunAssetServer starts the asset server for the OpenShift UI.
 func (c *MasterConfig) RunAssetServer() {
-	// TODO prefix should be able to be overridden at the command line
-	// move this out to a helper / config
-	prefix := fmt.Sprintf("/assets/%s/", version.Get().GitCommit)
-
+	// TODO use	version.Get().GitCommit as an etag cache header
 	mux := http.NewServeMux()
 
-	// TODO - For now redirect requests to the root to the commit-based index.html URL
-	// Next step is to have the root page served without redirecting.  May require build
-	// changes or altering index.html while serving.
-	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		urlStr := fmt.Sprintf("%sindex.html", prefix)
-		http.Redirect(w, req, urlStr, http.StatusTemporaryRedirect)
-	}))
-
-	mux.Handle(prefix, http.StripPrefix(prefix, httpgzip.NewHandler(http.FileServer(
+	mux.Handle("/", httpgzip.NewHandler(assets.HTML5ModeHandler(http.FileServer(
 		&assetfs.AssetFS{assets.Asset, assets.AssetDir, ""}))))
 
 	server := &http.Server{

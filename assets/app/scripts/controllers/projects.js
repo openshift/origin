@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, DataService) {   
+  .controller('ProjectsController', function ($scope, $location, DataService) {   
     $scope.projects = [];
 
     var callback = function(projects) {
@@ -24,13 +24,23 @@ angular.module('openshiftConsole')
       if (t && t.is('a')){
         return;
       }
-      var a = $('a.tile-target', t)[0];
-      if (a) {
-        if (evt.which === 2 || evt.ctrlKey || evt.shiftKey) {
-          window.open(a.href);
-        }
-        else {
-          window.location = a.href;
+      var tile = t.closest(".tile");
+      if (tile) {
+        var a = $('a.tile-target', tile)[0];
+        if (a) {
+          if (evt.which === 2 || evt.ctrlKey || evt.shiftKey) {
+            window.open(a.href);
+          }
+          else {
+            // Must use getAttribute or the browser will make the URL absolute before returning it
+            var href = a.getAttribute("href");
+            if (URI(href).is("absolute")) {
+              window.location = href;
+            }
+            else {
+              $location.url(href);
+            }
+          }
         }
       }
     };

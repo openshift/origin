@@ -36,7 +36,8 @@
     "karma-jasmine": "0.1.5",
     "grunt-karma": "0.9.0",
     "karma-coverage": "0.2.6",
-    "grunt-istanbul-coverage": "0.0.5"
+    "grunt-istanbul-coverage": "0.0.5",
+    "connect-modrewrite": "0.7.9"
   },
   "engines": {
     "node": ">=0.10.0"
