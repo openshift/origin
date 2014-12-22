@@ -66,6 +66,7 @@
       "id": "redis-master",
       "kind": "Pod",
       "apiVersion": "v1beta1",
+      "labels": {"name": "redis-master"},
       "desiredState": {
         "manifest": {
           "version": "v1beta1",
