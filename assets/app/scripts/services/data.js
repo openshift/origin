@@ -18,7 +18,9 @@ angular.module('openshiftConsole')
   function DataService() {
     this._subscriptions = {};
     this._subscriptionsPolling = {};
+    this._subscriptionsPollingTimeouts = {};    
     this._openConnections = {};
+    this._eventsOnOpenConnections = {};
   }
 
   // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
@@ -87,6 +89,7 @@ angular.module('openshiftConsole')
       this._listenForUpdates(type, context);
     }
     else {
+      this._fireExistingEventsForType(type, callback);
       this._subscriptions[type].add(callback);
     }
     return callback;
@@ -96,6 +99,7 @@ angular.module('openshiftConsole')
     if (this._subscriptions[type] && this._subscriptions[type].has()){
       this._subscriptions[type].remove(callback);
       if (!this._subscriptions[type].has()) {
+        delete this._subscriptions[type];
         this._stopListeningForUpdates(type);
       }
     }
@@ -123,6 +127,7 @@ angular.module('openshiftConsole')
       this._subscriptionsPolling[type].remove(callback);
       if (!this._subscriptionsPolling[type].has()) {
         this._stopListeningForUpdatesPolling(type);
+        delete this._subscriptionsPolling[type];
       }
     }
   };
@@ -154,7 +159,7 @@ angular.module('openshiftConsole')
           map[key] = {};
         }
         if (secondaryAttr) {
-          if (action == "DELETED") {
+          if (action === "DELETED") {
             delete map[key][val][secondaryAttr];
           }
           else {
@@ -165,7 +170,7 @@ angular.module('openshiftConsole')
           }
         }
         else {
-          if (action == "DELETED") {
+          if (action === "DELETED") {
             delete map[key][val];
           }
           else {
@@ -175,7 +180,7 @@ angular.module('openshiftConsole')
       }
     }
     else {
-      if (action == "DELETED") {
+      if (action === "DELETED") {
         if (secondaryAttr) {
           delete map[attrValue][obj[secondaryAttr]];
         }
@@ -200,9 +205,11 @@ angular.module('openshiftConsole')
 
   DataService.prototype._stopListeningForUpdates = function(type) {
     if (this._openConnections[type]) {
-     this._openConnections[type].close();
-     // TODO can we use delete here instead, or will that screw up the onclose event
-     this._openConnections[type] = null;
+      var connection = this._openConnections[type];
+      // TODO can we use delete here instead, or will that screw up the onclose event
+      this._openConnections[type] = null;
+      connection.close();
+      delete this._eventsOnOpenConnections[type];
     }
   };
 
@@ -237,19 +244,24 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._stopListeningForUpdatesPolling = function(type) {
-    //TODO implement this
+    if (this._subscriptionsPollingTimeouts[type]) {
+      clearTimeout(this._subscriptionsPollingTimeouts[type]);
+      delete this._subscriptionsPollingTimeouts[type];
+    }
   };
 
   DataService.prototype._listenForUpdatesPolling = function(type, context) {
     this.getList(type, this._subscriptionsPolling[type], context);
-    setTimeout($.proxy(this, "_listenForUpdatesPolling", type, context), 5000);
+    this._subscriptionsPollingTimeouts[type] = setTimeout($.proxy(this, "_listenForUpdatesPolling", type, context), 5000);
   };
 
   DataService.prototype._onSocketClose = function(type, context, event) {
     // Attempt to re-establish the connection in cases
     // where the socket close was unexpected, i.e. the event's
-    // wasClean attribute is false
-    if (!event.wasClean) {
+    // wasClean attribute is false.  Except us triggering the close
+    // seems to also show up as wasClean false, so don't re-open if
+    // we don't need it anymore.
+    if (!event.wasClean && this._openConnections[type]) {
       // TODO should track latest resourceVersion we know about
       // for a type so we only reload what we need
       this._listenForUpdates(type, context);
@@ -263,9 +275,25 @@ angular.module('openshiftConsole')
         // eventData.type will be one of ADDED, MODIFIED, DELETED
         this._subscriptions[type].fire(eventData.type, eventData.object);
       }
+      if (!this._eventsOnOpenConnections[type]) {
+        this._eventsOnOpenConnections[type] = [];
+      }
+      this._eventsOnOpenConnections[type].push(eventData);
     }
     catch (e) {
       // TODO report the JSON parsing exception
+    }
+  };
+
+  DataService.prototype._fireExistingEventsForType = function(type, callback) {
+    if (this._eventsOnOpenConnections[type]) {
+      for (var i = 0; i < this._eventsOnOpenConnections[type].length; i++) {
+        var event = this._eventsOnOpenConnections[type][i];
+        if (this._subscriptions[type].has()) {
+          // eventData.type will be one of ADDED, MODIFIED, DELETED
+          callback(event.type, event.object);
+        }        
+      }
     }
   };
 

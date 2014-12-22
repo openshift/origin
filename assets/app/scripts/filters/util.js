@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .filter('hashSize', function() {
     return function(hash) {
