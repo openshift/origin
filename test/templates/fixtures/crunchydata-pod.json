@@ -1,0 +1,68 @@
+{
+  "id": "node",
+  "kind": "Template",
+  "apiVersion": "v1beta1",
+  "name": "node-example",
+  "description": "
+    Example shows how to build a CPM node.
+
+    // This example demonstrates an early beta version of a template. It does not validate
+    // because it lacks `metadata.name` (as opposed to the earlier `.name`).  However, it
+    // is still valid input to /templateConfigs.
+  ",
+  "items": [
+    {
+      "id": "pg-standalone-1",
+      "kind": "Pod",
+      "apiVersion": "v1beta1",
+      "desiredState": {
+        "manifest": {
+          "version": "v1beta1",
+          "id": "pg-standalone-1",
+          "volumes": [
+            {
+              "name": "pgdata",
+              "source": {
+                "hostDir": {
+                  "path": "/var/lib/pgsql/exampleuser"
+                }
+              }
+            }
+          ],
+          "containers": [
+            {
+              "name": "master",
+              "image": "registry:5000/crunchy-node",
+              "volumeMounts": [
+                {
+                  "name": "pgdata",
+                  "mountPath": "/pgdata",
+                  "readOnly": false
+                }
+              ],
+              "env": [
+                {
+                  "name": "PG_USERNAME",
+                  "value": "exampleuser"
+                },
+                {
+                  "name": "PG_PASSWORD",
+                  "value": "example"
+                }
+              ],
+              "ports": [
+                {
+                  "hostPort": 9000,
+                  "containerPort": 5432
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "labels": {
+        "name": "crunchy-node"
+      }
+    }
+  ]
+}

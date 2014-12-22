@@ -206,8 +206,6 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		extra = append(extra, i.InstallAPI(container)...)
 	}
 
-	glog.Infof("container: %#v", container)
-
 	handler := http.Handler(container)
 	if c.RequireAuthentication {
 		handler = c.wireAuthenticationHandling(container.ServeMux, handler)
