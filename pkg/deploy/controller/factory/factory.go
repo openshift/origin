@@ -30,7 +30,7 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).Run()
 
 	return &controller.DeploymentConfigController{
-		DeploymentInterface: ClientDeploymentInterace{factory.Client},
+		DeploymentInterface: ClientDeploymentInterface{factory.Client},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			config := queue.Pop().(*deployapi.DeploymentConfig)
 			panicIfStopped(factory.Stop, "deployment config controller stopped")
@@ -81,7 +81,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 
 	return &controller.DeploymentController{
 		ContainerCreator:    factory,
-		DeploymentInterface: ClientDeploymentInterace{factory.Client},
+		DeploymentInterface: ClientDeploymentInterface{factory.Client},
 		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
 		Environment:         factory.Environment,
 		NextDeployment: func() *deployapi.Deployment {
@@ -199,7 +199,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.Dep
 	cache.NewReflector(&deploymentLW{client: factory.Client, field: labels.Everything()}, &deployapi.Deployment{}, store).Run()
 
 	return &controller.DeploymentConfigChangeController{
-		ChangeStrategy: ClientDeploymentConfigInterace{factory.Client},
+		ChangeStrategy: ClientDeploymentConfigInterface{factory.Client},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			config := queue.Pop().(*deployapi.DeploymentConfig)
 			panicIfStopped(factory.Stop, "deployment config change controller stopped")
@@ -226,7 +226,7 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, store).Run()
 
 	return &controller.ImageChangeController{
-		DeploymentConfigInterface: ClientDeploymentConfigInterace{factory.Client},
+		DeploymentConfigInterface: ClientDeploymentConfigInterface{factory.Client},
 		DeploymentConfigStore:     store,
 		NextImageRepository: func() *imageapi.ImageRepository {
 			repo := queue.Pop().(*imageapi.ImageRepository)
@@ -292,37 +292,37 @@ func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, err
 	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
 }
 
-// ClientDeploymentInterace is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
-type ClientDeploymentInterace struct {
+// ClientDeploymentInterface is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
+type ClientDeploymentInterface struct {
 	Client osclient.Interface
 }
 
 // GetDeployment returns deployment using OpenShift client.
-func (c ClientDeploymentInterace) GetDeployment(namespace, name string) (*deployapi.Deployment, error) {
+func (c ClientDeploymentInterface) GetDeployment(namespace, name string) (*deployapi.Deployment, error) {
 	return c.Client.Deployments(namespace).Get(name)
 }
 
 // CreateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterace) CreateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+func (c ClientDeploymentInterface) CreateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 	return c.Client.Deployments(namespace).Create(deployment)
 }
 
 // UpdateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterace) UpdateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
+func (c ClientDeploymentInterface) UpdateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
 	return c.Client.Deployments(namespace).Update(deployment)
 }
 
-// ClientDeploymentConfigInterace is a changeStrategy which delegates to the OpenShift client interfaces
-type ClientDeploymentConfigInterace struct {
+// ClientDeploymentConfigInterface is a changeStrategy which delegates to the OpenShift client interfaces
+type ClientDeploymentConfigInterface struct {
 	Client osclient.Interface
 }
 
 // GenerateDeploymentConfig generates deploymentConfig using OpenShift client.
-func (c ClientDeploymentConfigInterace) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
+func (c ClientDeploymentConfigInterface) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
 	return c.Client.DeploymentConfigs(namespace).Generate(name)
 }
 
 // UpdateDeploymentConfig creates deploymentConfig using OpenShift client.
-func (c ClientDeploymentConfigInterace) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+func (c ClientDeploymentConfigInterface) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	return c.Client.DeploymentConfigs(namespace).Update(config)
 }
