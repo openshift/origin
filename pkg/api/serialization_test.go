@@ -18,6 +18,8 @@ import (
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	config "github.com/openshift/origin/pkg/config/api"
+	template "github.com/openshift/origin/pkg/template/api"
 )
 
 var fuzzIters = flag.Int("fuzz_iters", 30, "How many fuzzing iterations to do.")
@@ -80,6 +82,17 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		j.Template.Spec.NodeSelector = nil
 		c.Fuzz(&j.Selector)
 		j.Replicas = int(c.RandUint64())
+	},
+	func(j *template.Template, c fuzz.Continue) {
+		c.Fuzz(&j.ObjectMeta)
+		c.Fuzz(&j.Parameters)
+		// TODO: replace with structured type definition
+		j.Items = []runtime.RawExtension{}
+	},
+	func(j *config.Config, c fuzz.Continue) {
+		c.Fuzz(&j.ObjectMeta)
+		// TODO: replace with structured type definition
+		j.Items = []runtime.RawExtension{}
 	},
 	func(intstr *util.IntOrString, c fuzz.Continue) {
 		// util.IntOrString will panic if its kind is set wrong.
@@ -162,10 +175,6 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 func TestTypes(t *testing.T) {
 	for kind, reflectType := range api.Scheme.KnownTypes("") {
 		if !strings.Contains(reflectType.PkgPath(), "/origin/") {
-			continue
-		}
-		// TODO: gofuzz chokes on the round trip of RawExtension
-		if kind == "Config" || kind == "Template" {
 			continue
 		}
 		t.Logf("About to test %v", reflectType)

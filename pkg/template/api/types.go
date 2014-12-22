@@ -28,6 +28,9 @@ type Parameter struct {
 	// Items using ${PARAMETER_NAME}
 	Name string `json:"name" yaml:"name"`
 
+	// Optional: Parameter can have description
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+
 	// Optional: Generate specifies the generator to be used to generate
 	// random string from an input value specified by From field. The result
 	// string is stored into Value field. If empty, no generator is being
