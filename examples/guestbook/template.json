@@ -94,6 +94,7 @@
         "replicas": 3,
         "replicaSelector": {"name": "frontend"},
         "podTemplate": {
+          "labels": {"name": "frontend"},
           "desiredState": {
             "manifest": {
               "version": "v1beta1",
@@ -130,6 +131,7 @@
         "replicas": 2,
         "replicaSelector": {"name": "redis-slave"},
         "podTemplate": {
+          "labels": {"name": "redis-slave"},
           "desiredState": {
             "manifest": {
               "version": "v1beta1",
