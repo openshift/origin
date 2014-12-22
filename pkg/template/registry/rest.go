@@ -2,11 +2,11 @@ package template
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -41,10 +41,11 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {
-		return nil, errors.New("Not a template config.")
+		return nil, apierr.NewBadRequest("not a template")
 	}
+
 	if errs := validation.ValidateTemplate(tpl); len(errs) > 0 {
-		return nil, fmt.Errorf("Invalid template config: %#v", errs)
+		return nil, apierr.NewInvalid("template", tpl.Name, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		generators := map[string]generator.Generator{
