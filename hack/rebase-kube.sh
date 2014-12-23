@@ -34,7 +34,7 @@ godep restore
 pushd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes > /dev/null
 git checkout stable_proposed
 echo "Restoring any newer Kubernetes dependencies ..."
-make clean
+rm -rf _output Godeps/_workspace/pkg
 godep restore
 popd > /dev/null
 
