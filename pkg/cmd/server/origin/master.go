@@ -9,7 +9,6 @@ import (
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
-	httpgzip "github.com/daaku/go.httpgzip"
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -62,6 +61,7 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
+	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -287,8 +287,25 @@ func (c *MasterConfig) RunAssetServer() {
 	// TODO use	version.Get().GitCommit as an etag cache header
 	mux := http.NewServeMux()
 
-	mux.Handle("/", httpgzip.NewHandler(assets.HTML5ModeHandler(http.FileServer(
-		&assetfs.AssetFS{assets.Asset, assets.AssetDir, ""}))))
+	mux.Handle("/",
+		// Gzip first so that inner handlers can react to the addition of the Vary header
+		assets.GzipHandler(
+			// Cache control should happen after all Vary headers are added, but before
+			// any asset related routing (HTML5ModeHandler and FileServer)
+			assets.CacheControlHandler(
+				version.Get().GitCommit,
+				assets.HTML5ModeHandler(
+					http.FileServer(
+						&assetfs.AssetFS{
+							assets.Asset,
+							assets.AssetDir,
+							"",
+						},
+					),
+				),
+			),
+		),
+	)
 
 	server := &http.Server{
 		Addr:           c.AssetAddr,
