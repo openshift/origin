@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .filter('dateRelative', function() {
     return function(timestamp) {
@@ -8,5 +10,5 @@ angular.module('openshiftConsole')
     // ex:  amt = 5  and unit = 'minutes'
     return function(timestamp, amt, unit) {
       return moment().subtract(amt, unit).diff(moment(timestamp)) < 0;
-    }
+    };
   });

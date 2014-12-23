@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .filter('annotation', function() {
     return function(resource, key) {

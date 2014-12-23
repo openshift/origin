@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectController', function ($scope, $routeParams, DataService, $filter) {
+  .controller('ProjectController', function ($scope, $routeParams, DataService) {
     $scope.projectName = $routeParams.project;
     $scope.project = {};
     $scope.projectPromise = $.Deferred();
@@ -26,6 +26,9 @@ angular.module('openshiftConsole')
     $scope.images = {};
     $scope.imagesByDockerReference = {};
     $scope.podsByServiceByLabel = {};
+
+    var subscriptions = [];
+    var subscriptionsPolling = [];
 
     var projectCallback = function(project) {
       $scope.$apply(function(){
@@ -109,8 +112,8 @@ angular.module('openshiftConsole')
         servicesCallback(services);
         podsCallback(pods);
 
-        DataService.subscribe("services", servicesSubscribeCallback, $scope);
-        DataService.subscribePolling("pods", podsCallback, $scope);
+        subscriptions.push(["services", DataService.subscribe("services", servicesSubscribeCallback, $scope)]);
+        subscriptionsPolling.push(["pods", DataService.subscribePolling("pods", podsCallback, $scope)]);
       }, this));
     }, this));
 
@@ -124,7 +127,7 @@ angular.module('openshiftConsole')
       console.log("deployments (subscribe)", $scope.deployments);
       console.log("deploymentsByConfig (subscribe)", $scope.deploymentsByConfig);
     };
-    DataService.subscribe("deployments", deploymentsCallback, $scope);
+    subscriptions.push(["deployments", DataService.subscribe("deployments", deploymentsCallback, $scope)]);
 
     // Sets up subscription for images and imagesByDockerReference
     var imagesCallback = function(action, image) {
@@ -135,7 +138,7 @@ angular.module('openshiftConsole')
 
       console.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
     };
-    DataService.subscribe("images", imagesCallback, $scope);
+    subscriptions.push(["images", DataService.subscribe("images", imagesCallback, $scope)]);
 
 
     var associateDeploymentConfigTriggersToBuild = function(deploymentConfig, build) {
@@ -173,7 +176,7 @@ angular.module('openshiftConsole')
 
       console.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
     };
-    DataService.subscribe("deploymentConfigs", deploymentConfigsCallback, $scope);  
+    subscriptions.push(["deploymentConfigs", DataService.subscribe("deploymentConfigs", deploymentConfigsCallback, $scope)]);
 
     // Sets up subscription for builds, associates builds to triggers on deploymentConfigs
     var buildsCallback = function(action, build) {
@@ -191,5 +194,16 @@ angular.module('openshiftConsole')
 
       console.log("builds (subscribe)", $scope.builds);
     };
-    DataService.subscribe("builds", buildsCallback, $scope);
+    subscriptions.push(["builds", DataService.subscribe("builds", buildsCallback, $scope)]);
+
+    $scope.$on('$destroy', function(){
+      for (var i = 0; i < subscriptions.length; i++) {
+        var sub = subscriptions[i];
+        DataService.unsubscribe(sub[0], sub[1]);
+      }
+      for (var j = 0; j < subscriptionsPolling.length; j++) {
+        var subPoll = subscriptionsPolling[j];
+        DataService.unsubscribePolling(subPoll[0], subPoll[1]);
+      }
+    });
   });

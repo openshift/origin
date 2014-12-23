@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .directive("relativeTimestamp", function() {
     return {
