@@ -12,16 +12,17 @@ func init() {
 		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
 			out.BuilderImage = in.Image
 			out.Image = in.Image
+			out.Scripts = in.Scripts
 			out.Clean = in.Clean
 			return nil
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
+			out.Scripts = in.Scripts
+			out.Clean = in.Clean
 			if len(in.Image) != 0 {
 				out.Image = in.Image
-				out.Clean = in.Clean
 			} else {
 				out.Image = in.BuilderImage
-				out.Clean = in.Clean
 			}
 			return nil
 		},

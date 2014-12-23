@@ -73,8 +73,11 @@ func mockSTIBuild() *buildapi.Build {
 				},
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:        buildapi.STIBuildStrategyType,
-				STIStrategy: &buildapi.STIBuildStrategy{Image: "repository/sti-builder"},
+				Type: buildapi.STIBuildStrategyType,
+				STIStrategy: &buildapi.STIBuildStrategy{
+					Image:   "repository/sti-builder",
+					Scripts: "http://my.build.com/the/sti/scripts",
+				},
 			},
 			Output: buildapi.BuildOutput{
 				ImageTag: "repository/stiBuild",
