@@ -76,13 +76,14 @@
         "source" : {
           "type" : "Git",
           "git" : {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"        
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
           "type": "STI",
           "stiStrategy": {
-            "image": "openshift/ruby-20-centos"
+            "image": "openshift/ruby-20-centos",
+            "scripts": "http://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
           }
         },
         "output": {

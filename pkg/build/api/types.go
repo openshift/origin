@@ -182,6 +182,9 @@ type STIBuildStrategy struct {
 	// Image is the image used to execute the build.
 	Image string `json:"image,omitempty" yaml:"image,omitempty"`
 
+	// Scripts is the location of STI scripts
+	Scripts string `json:"scripts,omitempty" yaml:"scripts,omitempty"`
+
 	// Clean flag forces the STI build to not do incremental builds if true.
 	Clean bool `json:"clean,omitempty" yaml:"clean,omitempty"`
 }

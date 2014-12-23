@@ -33,6 +33,7 @@ func (s *STIBuilder) Build() error {
 		DockerSocket: s.dockerSocket,
 		Source:       s.build.Parameters.Source.Git.URI,
 		Tag:          imageTag(s.build),
+		ScriptsUrl:   s.build.Parameters.Strategy.STIStrategy.Scripts,
 		Environment:  getBuildEnvVars(s.build),
 		Clean:        s.build.Parameters.Strategy.STIStrategy.Clean,
 	}
