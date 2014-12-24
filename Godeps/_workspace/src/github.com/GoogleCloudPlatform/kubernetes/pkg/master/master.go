@@ -64,7 +64,7 @@ import (
 	secretetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/secret/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
+	//"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/emicklei/go-restful"
@@ -482,9 +482,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	if c.EnableUISupport {
-		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
-	}
+	/*if c.EnableUISupport {
+		ui.InstallSupport(m.mux)
+	}*/
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
