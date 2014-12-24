@@ -30,7 +30,9 @@ Examples:
 				usageError(cmd, "Must pass a filename to update")
 			}
 
-			_, namespace, _, data := kubecmd.ResourceFromFile(filename, f.Typer, f.Mapper)
+			schema, err := f.Validator(cmd)
+			checkErr(err)
+			_, namespace, _, data := kubecmd.ResourceFromFile(filename, f.Typer, f.Mapper, schema)
 			if len(namespace) == 0 {
 				namespace = getOriginNamespace(cmd)
 			} else {

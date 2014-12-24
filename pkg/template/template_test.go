@@ -130,7 +130,7 @@ func ExampleProcessTemplateParameters() {
 
 	// Transform the template config into the result config
 	config, err := processor.Process(&template)
-	fmt.Println(err.ToError())
+	fmt.Println(util.SliceToError(err))
 	if config != nil {
 		// Reset the timestamp for the output comparison
 		config.ObjectMeta.CreationTimestamp = util.Date(1980, 1, 1, 0, 0, 0, 0, time.UTC)

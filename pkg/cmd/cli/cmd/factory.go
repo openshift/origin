@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
@@ -36,6 +37,9 @@ func NewFactory(builder clientcmd.Builder) *Factory {
 			Client:        w.Client,
 			Describer:     w.Describer,
 			Printer:       w.Printer,
+			Validator: func(cmd *cobra.Command) (validation.Schema, error) {
+				return validation.NullSchema{}, nil
+			},
 		},
 		// TODO: this should use a URL to the OpenShift server and api version, distinct
 		// from the Kubernetes client URL and api version (the two versions are distinct)

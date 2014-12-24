@@ -67,7 +67,7 @@ func TestApplySendsData(t *testing.T) {
 	}))
 
 	uri, _ := url.Parse(fakeServer.URL + "/api/v1beta1")
-	fakeClient := kclient.NewRESTClient(uri, kapi.Codec)
+	fakeClient := kclient.NewRESTClient(uri, kapi.Codec, false)
 	clients := clientapi.ClientMappings{
 		"pods": {"Pod", fakeClient, kapi.Codec},
 	}
