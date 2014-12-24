@@ -69,7 +69,7 @@ import (
 	ipallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/ipallocator"
 	serviceaccountetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/serviceaccount/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
+	//"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	sccetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/securitycontextconstraints/etcd"
@@ -577,9 +577,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	if c.EnableUISupport {
-		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
-	}
+	/*if c.EnableUISupport {
+		ui.InstallSupport(m.mux)
+	}*/
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
