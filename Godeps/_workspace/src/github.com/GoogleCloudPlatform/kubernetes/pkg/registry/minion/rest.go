@@ -29,14 +29,15 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
-// REST implements the RESTStorage interface, backed by a MinionRegistry.
+// REST adapts minion into apiserver's RESTStorage model.
 type REST struct {
 	registry Registry
 }
 
-// NewREST returns a new REST.
+// NewREST returns a new apiserver.RESTStorage implementation for minion.
 func NewREST(m Registry) *REST {
 	return &REST{
 		registry: m,
@@ -46,8 +47,9 @@ func NewREST(m Registry) *REST {
 var ErrDoesNotExist = errors.New("The requested resource does not exist.")
 var ErrNotHealty = errors.New("The requested minion is not healthy.")
 
+// Create satisfies the RESTStorage interface.
 func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	minion, ok := obj.(*api.Minion)
+	minion, ok := obj.(*api.Node)
 	if !ok {
 		return nil, fmt.Errorf("not a minion: %#v", obj)
 	}
@@ -67,6 +69,7 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RE
 	}), nil
 }
 
+// Delete satisfies the RESTStorage interface.
 func (rs *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult, error) {
 	minion, err := rs.registry.GetMinion(ctx, id)
 	if minion == nil {
@@ -80,27 +83,40 @@ func (rs *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult,
 	}), nil
 }
 
+// Get satisfies the RESTStorage interface.
 func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
 	minion, err := rs.registry.GetMinion(ctx, id)
+	if err != nil {
+		return minion, err
+	}
 	if minion == nil {
 		return nil, ErrDoesNotExist
 	}
 	return minion, err
 }
 
+// List satisfies the RESTStorage interface.
 func (rs *REST) List(ctx api.Context, label, field labels.Selector) (runtime.Object, error) {
 	return rs.registry.ListMinions(ctx)
 }
 
 func (rs *REST) New() runtime.Object {
-	return &api.Minion{}
+	return &api.Node{}
 }
 
+// Update satisfies the RESTStorage interface.
 func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	minion, ok := obj.(*api.Minion)
+	minion, ok := obj.(*api.Node)
 	if !ok {
 		return nil, fmt.Errorf("not a minion: %#v", obj)
 	}
+	// This is hacky, but minions don't really have a namespace, but kubectl currently automatically
+	// stuffs one in there.  Fix it here temporarily until we fix kubectl
+	if minion.Namespace == api.NamespaceDefault {
+		minion.Namespace = api.NamespaceNone
+	}
+	// Clear out the self link, if specified, since it's not in the registry either.
+	minion.SelfLink = ""
 
 	// TODO: GetMinion will health check the minion, but we shouldn't require the minion to be
 	// running for updating labels.
@@ -121,8 +137,10 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RE
 	}), nil
 }
 
-func (rs *REST) toApiMinion(name string) *api.Minion {
-	return &api.Minion{ObjectMeta: api.ObjectMeta{Name: name}}
+// Watch returns Minions events via a watch.Interface.
+// It implements apiserver.ResourceWatcher.
+func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return rs.registry.WatchMinions(ctx, label, field, resourceVersion)
 }
 
 // ResourceLocation returns a URL to which one can send traffic for the specified minion.
@@ -131,10 +149,7 @@ func (rs *REST) ResourceLocation(ctx api.Context, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	host := minion.Status.HostIP
-	if host == "" {
-		host = minion.Name
-	}
+	host := minion.Name
 	// TODO: Minion webservers should be secure!
 	return "http://" + net.JoinHostPort(host, strconv.Itoa(ports.KubeletPort)), nil
 }

@@ -38,6 +38,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/handlers"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/binding"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint"
@@ -318,25 +319,30 @@ func makeMinionRegistry(c *Config) minion.Registry {
 
 // init initializes master.
 func (m *Master) init(c *Config) {
-	podCache := NewPodCache(c.KubeletClient, m.podRegistry)
-	go util.Forever(func() { podCache.UpdateAllContainers() }, time.Second*30)
-
 	var userContexts = handlers.NewUserRequestContext()
 	var authenticator = c.Authenticator
+
+	nodeRESTStorage := minion.NewREST(m.minionRegistry)
+	ipCache := NewIPCache(c.Cloud, util.RealClock{}, 30*time.Second)
+	podCache := NewPodCache(
+		ipCache,
+		c.KubeletClient,
+		RESTStorageToNodes(nodeRESTStorage).Nodes(),
+		m.podRegistry,
+	)
+	go util.Forever(func() { podCache.UpdateAllContainers() }, time.Second*30)
 
 	// TODO: Factor out the core API registration
 	m.storage = map[string]apiserver.RESTStorage{
 		"pods": pod.NewREST(&pod.RESTConfig{
-			CloudProvider: c.Cloud,
-			PodCache:      podCache,
-			PodInfoGetter: c.KubeletClient,
-			Registry:      m.podRegistry,
-			Minions:       m.client.Minions(),
+			PodCache: podCache,
+			Registry: m.podRegistry,
 		}),
 		"replicationControllers": controller.NewREST(m.controllerRegistry, m.podRegistry),
 		"services":               service.NewREST(m.serviceRegistry, c.Cloud, m.minionRegistry, m.portalNet),
 		"endpoints":              endpoint.NewREST(m.endpointRegistry),
-		"minions":                minion.NewREST(m.minionRegistry),
+		"minions":                nodeRESTStorage,
+		"nodes":                  nodeRESTStorage,
 		"events":                 event.NewREST(m.eventRegistry),
 
 		// TODO: should appear only in scheduler API group.
@@ -353,8 +359,7 @@ func (m *Master) init(c *Config) {
 	apiserver.InstallSupport(m.handlerContainer, m.rootWebService)
 
 	// TODO: use go-restful
-	serversToValidate := m.getServersToValidate(c)
-	apiserver.InstallValidator(m.mux, serversToValidate)
+	apiserver.InstallValidator(m.mux, func() map[string]apiserver.Server { return m.getServersToValidate(c) })
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.mux)
 	}
@@ -388,8 +393,6 @@ func (m *Master) init(c *Config) {
 	if authenticator != nil {
 		handler = handlers.NewRequestAuthenticator(userContexts, authenticator, handlers.Unauthorized, handler)
 	}
-	// TODO: Remove temporary _whoami handler
-	m.rootWebService.Route(m.rootWebService.GET("/_whoami").To(handleWhoAmI(authenticator)))
 
 	// Install root web services
 	m.handlerContainer.Add(m.rootWebService)
@@ -414,18 +417,17 @@ func (m *Master) InstallSwaggerAPI() {
 	swaggerConfig := swagger.Config{
 		WebServices: m.handlerContainer.RegisteredWebServices(),
 		// TODO: Parameterize the path?
-		ApiPath: "/swaggerapi/",
-		// TODO: Distribute UI javascript and enable the UI
-		//SwaggerPath: "/swaggerui/",
-		//SwaggerFilePath: "/srv/apiserver/swagger/dist"
+		ApiPath:         "/swaggerapi/",
+		SwaggerPath:     "/swaggerui/",
+		SwaggerFilePath: "/static/swagger-ui/",
 	}
 	swagger.RegisterSwaggerService(swaggerConfig, m.handlerContainer)
 }
 
 func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 	serversToValidate := map[string]apiserver.Server{
-		"controller-manager": {Addr: "127.0.0.1", Port: 10252, Path: "/healthz"},
-		"scheduler":          {Addr: "127.0.0.1", Port: 10251, Path: "/healthz"},
+		"controller-manager": {Addr: "127.0.0.1", Port: ports.ControllerManagerPort, Path: "/healthz"},
+		"scheduler":          {Addr: "127.0.0.1", Port: ports.SchedulerPort, Path: "/healthz"},
 	}
 	for ix, machine := range c.EtcdHelper.Client.GetCluster() {
 		etcdUrl, err := url.Parse(machine)
@@ -454,7 +456,7 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 		glog.Errorf("Failed to list minions: %v", err)
 	}
 	for ix, node := range nodes.Items {
-		serversToValidate[fmt.Sprintf("node-%d", ix)] = apiserver.Server{Addr: node.Status.HostIP, Port: 10250, Path: "/healthz"}
+		serversToValidate[fmt.Sprintf("node-%d", ix)] = apiserver.Server{Addr: node.Name, Port: ports.KubeletPort, Path: "/healthz"}
 	}
 	return serversToValidate
 }

@@ -19,6 +19,7 @@ package apiserver
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -99,7 +100,7 @@ func indirectArbitraryPointer(ptrToObject interface{}) interface{} {
 	return reflect.Indirect(reflect.ValueOf(ptrToObject)).Interface()
 }
 
-func registerResourceHandlers(ws *restful.WebService, version string, path string, storage RESTStorage, kinds map[string]reflect.Type, h restful.RouteFunction) {
+func registerResourceHandlers(ws *restful.WebService, version string, path string, storage RESTStorage, kinds map[string]reflect.Type, h restful.RouteFunction, namespaceScope bool) {
 	glog.V(3).Infof("Installing /%s/%s\n", version, path)
 	object := storage.New()
 	_, kind, err := api.Scheme.ObjectVersionAndKind(object)
@@ -117,6 +118,11 @@ func registerResourceHandlers(ws *restful.WebService, version string, path strin
 
 	// See github.com/emicklei/go-restful/blob/master/jsr311.go for routing logic
 	// and status-code behavior
+	if namespaceScope {
+		path = "ns/{namespace}/" + path
+		ws.Param(ws.PathParameter("namespace", "object name and auth scope, such as for teams and projects").DataType("string"))
+	}
+	glog.V(3).Infof("Installing version=/%s, kind=/%s, path=/%s\n", version, kind, path)
 
 	ws.Route(ws.POST(path).To(h).
 		Doc("create a " + kind).
@@ -188,6 +194,7 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, root string,
 	ws.Produces(restful.MIME_JSON)
 	// TODO: require json on input
 	//ws.Consumes(restful.MIME_JSON)
+	ws.ApiVersion(version)
 
 	// TODO: add scheme to APIGroupVersion rather than using api.Scheme
 
@@ -220,7 +227,10 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, root string,
 	}
 
 	for path, storage := range g.handler.storage {
-		registerResourceHandlers(ws, version, path, storage, kinds, h)
+		// register legacy patterns where namespace is optional in path
+		registerResourceHandlers(ws, version, path, storage, kinds, h, false)
+		// register pattern where namespace is required in path
+		registerResourceHandlers(ws, version, path, storage, kinds, h, true)
 	}
 
 	// TODO: port the rest of these. Sadly, if we don't, we'll have inconsistent
@@ -238,7 +248,7 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, root string,
 }
 
 // TODO: Convert to go-restful
-func InstallValidator(mux Mux, servers map[string]Server) {
+func InstallValidator(mux Mux, servers func() map[string]Server) {
 	validator, err := NewValidator(servers)
 	if err != nil {
 		glog.Errorf("failed to set up validator: %v", err)
@@ -283,16 +293,14 @@ func APIVersionHandler(versions ...string) restful.RouteFunction {
 func writeJSON(statusCode int, codec runtime.Codec, object runtime.Object, w http.ResponseWriter) {
 	output, err := codec.Encode(object)
 	if err != nil {
-		// Note: If codec is broken, this results in an infinite recursion
-		errorJSON(err, codec, w)
+		errorJSONFatal(err, codec, w)
 		return
 	}
 	// PR #2243: Pretty-print JSON by default.
 	formatted := &bytes.Buffer{}
 	err = json.Indent(formatted, output, "", "  ")
 	if err != nil {
-		// Note: If codec is broken, this results in an infinite recursion
-		errorJSON(err, codec, w)
+		errorJSONFatal(err, codec, w)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -304,6 +312,20 @@ func writeJSON(statusCode int, codec runtime.Codec, object runtime.Object, w htt
 func errorJSON(err error, codec runtime.Codec, w http.ResponseWriter) {
 	status := errToAPIStatus(err)
 	writeJSON(status.Code, codec, status, w)
+}
+
+// errorJSONFatal renders an error to the response, and if codec fails will render plaintext
+func errorJSONFatal(err error, codec runtime.Codec, w http.ResponseWriter) {
+	status := errToAPIStatus(err)
+	output, err := codec.Encode(status)
+	if err != nil {
+		w.WriteHeader(status.Code)
+		fmt.Fprintf(w, "%s: %s", status.Reason, status.Message)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status.Code)
+	w.Write(output)
 }
 
 // writeRawJSON writes a non-API object in JSON.

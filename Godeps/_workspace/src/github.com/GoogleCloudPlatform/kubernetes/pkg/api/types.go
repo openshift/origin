@@ -17,8 +17,7 @@ limitations under the License.
 package api
 
 import (
-	"time"
-
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -130,6 +129,8 @@ const (
 	NamespaceDefault string = "default"
 	// NamespaceAll is the default argument to specify on a context when you want to list or filter resources across all namespaces
 	NamespaceAll string = ""
+	// NamespaceNone is the argument for a context when there is no namespace.
+	NamespaceNone string = ""
 	// TerminationMessagePathDefault means the default path to capture the application termination message running in a container
 	TerminationMessagePathDefault string = "/dev/termination-log"
 )
@@ -233,7 +234,7 @@ type VolumeMount struct {
 	// Optional: Defaults to false (read-write).
 	ReadOnly bool `json:"readOnly,omitempty"`
 	// Required.
-	MountPath string `json:"mountPath,omitempty"`
+	MountPath string `json:"mountPath"`
 }
 
 // EnvVar represents an environment variable present in a Container.
@@ -364,6 +365,9 @@ const (
 	// PodFailed means that all containers in the pod have terminated, and at least one container has
 	// terminated in a failure (exited with a non-zero exit code or was stopped by the system).
 	PodFailed PodPhase = "Failed"
+	// PodUnknown means that for some reason the state of the pod could not be obtained, typically due
+	// to an error in communicating with the host of the pod.
+	PodUnknown PodPhase = "Unknown"
 )
 
 type ContainerStateWaiting struct {
@@ -372,7 +376,7 @@ type ContainerStateWaiting struct {
 }
 
 type ContainerStateRunning struct {
-	StartedAt time.Time `json:"startedAt,omitempty"`
+	StartedAt util.Time `json:"startedAt,omitempty"`
 }
 
 type ContainerStateTerminated struct {
@@ -380,8 +384,8 @@ type ContainerStateTerminated struct {
 	Signal     int       `json:"signal,omitempty"`
 	Reason     string    `json:"reason,omitempty"`
 	Message    string    `json:"message,omitempty"`
-	StartedAt  time.Time `json:"startedAt,omitempty"`
-	FinishedAt time.Time `json:"finishedAt,omitempty"`
+	StartedAt  util.Time `json:"startedAt,omitempty"`
+	FinishedAt util.Time `json:"finishedAt,omitempty"`
 }
 
 // ContainerState holds a possible state of container.
@@ -404,11 +408,19 @@ type ContainerStatus struct {
 	// not just PodInfo. Now we need this to remove docker.Container from API
 	PodIP string `json:"podIP,omitempty"`
 	// TODO(dchen1107): Need to decide how to represent this in v1beta3
-	Image string `json:"image"`
+	Image       string `json:"image"`
+	ContainerID string `json:"containerID,omitempty" description:"container's ID in the format 'docker://<container_id>'"`
 }
 
 // PodInfo contains one entry for every container with available info.
 type PodInfo map[string]ContainerStatus
+
+// PodContainerInfo is a wrapper for PodInfo that can be encode/decoded
+type PodContainerInfo struct {
+	TypeMeta      `json:",inline"`
+	ObjectMeta    `json:"metadata,omitempty"`
+	ContainerInfo PodInfo `json:"containerInfo"`
+}
 
 type RestartPolicyAlways struct{}
 
@@ -428,25 +440,6 @@ type RestartPolicy struct {
 	Never     *RestartPolicyNever     `json:"never,omitempty"`
 }
 
-// PodState is the state of a pod, used as either input (desired state) or output (current state).
-type PodState struct {
-	Manifest ContainerManifest `json:"manifest,omitempty"`
-	Status   PodPhase          `json:"status,omitempty"`
-	// A human readable message indicating details about why the pod is in this state.
-	Message string `json:"message,omitempty"`
-	Host    string `json:"host,omitempty"`
-	HostIP  string `json:"hostIP,omitempty"`
-	PodIP   string `json:"podIP,omitempty"`
-
-	// The key of this map is the *name* of the container within the manifest; it has one
-	// entry per container in the manifest. The value of this map is currently the output
-	// of `docker inspect`. This output format is *not* final and should not be relied
-	// upon.
-	// TODO: Make real decisions about what our info should look like. Re-enable fuzz test
-	// when we have done this.
-	Info PodInfo `json:"info,omitempty"`
-}
-
 // PodList is a list of Pods.
 type PodList struct {
 	TypeMeta `json:",inline"`
@@ -462,12 +455,20 @@ type PodSpec struct {
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// Host is a request to schedule this pod onto a specific host.  If it is non-empty,
+	// the the scheduler simply schedules this pod onto that host, assuming that it fits
+	// resource requirements.
+	Host string `json:"host,omitempty"`
 }
 
 // PodStatus represents information about the status of a pod. Status may trail the actual
 // state of a system.
 type PodStatus struct {
 	Phase PodPhase `json:"phase,omitempty"`
+
+	// A human readable message indicating details about why the pod is in this state.
+	Message string `json:"message,omitempty"`
 
 	// Host is the name of the node that this Pod is currently bound to, or empty if no
 	// assignment has been done.
@@ -581,6 +582,17 @@ type ServiceList struct {
 	Items []Service `json:"items"`
 }
 
+// Session Affinity Type string
+type AffinityType string
+
+const (
+	// AffinityTypeClientIP is the Client IP based.
+	AffinityTypeClientIP AffinityType = "ClientIP"
+
+	// AffinityTypeNone - no session affinity.
+	AffinityTypeNone AffinityType = "None"
+)
+
 // ServiceStatus represents the current status of a service
 type ServiceStatus struct{}
 
@@ -593,8 +605,10 @@ type ServiceSpec struct {
 	// Optional: Supports "TCP" and "UDP".  Defaults to "TCP".
 	Protocol Protocol `json:"protocol,omitempty"`
 
-	// This service will route traffic to pods having labels matching this selector.
-	Selector map[string]string `json:"selector,omitempty"`
+	// This service will route traffic to pods having labels matching this selector. If empty or not present,
+	// the service is assumed to have endpoints set by an external process and Kubernetes will not modify
+	// those endpoints.
+	Selector map[string]string `json:"selector"`
 
 	// PortalIP is usually assigned by the master.  If specified by the user
 	// we will try to respect it or else fail the request.  This field can
@@ -613,6 +627,9 @@ type ServiceSpec struct {
 	// ContainerPort is the name of the port on the container to direct traffic to.
 	// Optional, if unspecified use the first port on the container.
 	ContainerPort util.IntOrString `json:"containerPort,omitempty"`
+
+	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
+	SessionAffinity *AffinityType `json:"sessionAffinity,omitempty"`
 }
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
@@ -656,6 +673,54 @@ type NodeSpec struct {
 type NodeStatus struct {
 	// Queried from cloud provider, if available.
 	HostIP string `json:"hostIP,omitempty"`
+	// NodePhase is the current lifecycle phase of the node.
+	Phase NodePhase `json:"phase,omitempty"`
+	// Conditions is an array of current node conditions.
+	Conditions []NodeCondition `json:"conditions,omitempty"`
+}
+
+type NodePhase string
+
+// These are the valid phases of node.
+const (
+	// NodePending means the node has been created/added by the system, but not configured.
+	NodePending NodePhase = "Pending"
+	// NodeRunning means the node has been configured and has Kubernetes components running.
+	NodeRunning NodePhase = "Running"
+	// NodeTerminated means the node has been removed from the cluster.
+	NodeTerminated NodePhase = "Terminated"
+)
+
+type NodeConditionKind string
+
+// These are valid conditions of node. Currently, we don't have enough information to decide
+// node condition. In the future, we will add more. The proposed set of conditions are:
+// NodeReachable, NodeLive, NodeReady, NodeSchedulable, NodeRunnable.
+const (
+	// NodeReachable means the node can be reached (in the sense of HTTP connection) from node controller.
+	NodeReachable NodeConditionKind = "Reachable"
+	// NodeReady means the node returns StatusOK for HTTP health check.
+	NodeReady NodeConditionKind = "Ready"
+)
+
+type NodeConditionStatus string
+
+// These are valid condition status. "ConditionFull" means node is in the condition;
+// "ConditionNone" means node is not in the condition; "ConditionUnknown" means kubernetes
+// can't decide if node is in the condition or not. In the future, we could add other
+// intermediate conditions, e.g. ConditionDegraded.
+const (
+	ConditionFull    NodeConditionStatus = "Full"
+	ConditionNone    NodeConditionStatus = "None"
+	ConditionUnknown NodeConditionStatus = "Unknown"
+)
+
+type NodeCondition struct {
+	Kind               NodeConditionKind   `json:"kind"`
+	Status             NodeConditionStatus `json:"status"`
+	LastTransitionTime util.Time           `json:"lastTransitionTime,omitempty"`
+	Reason             string              `json:"reason,omitempty"`
+	Message            string              `json:"message,omitempty"`
 }
 
 // NodeResources is an object for conveying resource information about a node.
@@ -670,10 +735,9 @@ type ResourceName string
 
 type ResourceList map[ResourceName]util.IntOrString
 
-// Minion is a worker node in Kubernetenes
-// The name of the minion according to etcd is in ObjectMeta.Name.
-// TODO: Rename to Node
-type Minion struct {
+// Node is a worker node in Kubernetenes
+// The name of the node according to etcd is in ObjectMeta.Name.
+type Node struct {
 	TypeMeta   `json:",inline"`
 	ObjectMeta `json:"metadata,omitempty"`
 
@@ -684,12 +748,12 @@ type Minion struct {
 	Status NodeStatus `json:"status,omitempty"`
 }
 
-// MinionList is a list of minions.
-type MinionList struct {
+// NodeList is a list of minions.
+type NodeList struct {
 	TypeMeta `json:",inline"`
 	ListMeta `json:"metadata,omitempty"`
 
-	Items []Minion `json:"items"`
+	Items []Node `json:"items"`
 }
 
 // Binding is written by a scheduler to cause a pod to be bound to a host.
@@ -705,8 +769,8 @@ type Binding struct {
 // TODO: this could go in apiserver, but I'm including it here so clients needn't
 // import both.
 type Status struct {
-	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty"`
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
 
 	// One of: "Success", "Failure", "Working" (for operations not yet completed)
 	Status string `json:"status,omitempty"`
@@ -871,18 +935,18 @@ const (
 	CauseTypeFieldValueNotSupported CauseType = "FieldValueNotSupported"
 )
 
-// ServerOp is an operation delivered to API clients.
-type ServerOp struct {
+// Operation is an operation delivered to API clients.
+type Operation struct {
 	TypeMeta   `json:",inline"`
 	ObjectMeta `json:"metadata,omitempty"`
 }
 
-// ServerOpList is a list of operations, as delivered to API clients.
-type ServerOpList struct {
+// OperationList is a list of operations, as delivered to API clients.
+type OperationList struct {
 	TypeMeta `json:",inline"`
 	ListMeta `json:"metadata,omitempty"`
 
-	Items []ServerOp `json:"items"`
+	Items []Operation `json:"items"`
 }
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
@@ -913,18 +977,18 @@ type Event struct {
 	// Required. The object that this event is about.
 	InvolvedObject ObjectReference `json:"involvedObject,omitempty"`
 
-	// Should be a short, machine understandable string that describes the current status
+	// Should be a short, machine understandable string that describes the current condition
 	// of the referred object. This should not give the reason for being in this state.
-	// Examples: "running", "cantStart", "cantSchedule", "deleted".
-	// It's OK for components to make up statuses to report here, but the same string should
-	// always be used for the same status.
+	// Examples: "Running", "CantStart", "CantSchedule", "Deleted".
+	// It's OK for components to make up conditions to report here, but the same string should
+	// always be used for the same conditions.
 	// TODO: define a way of making sure these are consistent and don't collide.
 	// TODO: provide exact specification for format.
-	Status string `json:"status,omitempty"`
+	Condition string `json:"condition,omitempty"`
 
 	// Optional; this should be a short, machine understandable string that gives the reason
-	// for the transition into the object's current status. For example, if ObjectStatus is
-	// "cantStart", StatusReason might be "imageNotFound".
+	// for the transition into the object's current condition. For example, if ObjectCondition is
+	// "CantStart", StatusReason might be "ImageNotFound".
 	// TODO: provide exact specification for format.
 	Reason string `json:"reason,omitempty"`
 
@@ -998,4 +1062,12 @@ type BoundPods struct {
 
 	// Items is the list of all pods bound to a given host.
 	Items []BoundPod `json:"items"`
+}
+
+// List holds a list of objects, which may not be known by the server.
+type List struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+
+	Items []runtime.Object `json:"items"`
 }

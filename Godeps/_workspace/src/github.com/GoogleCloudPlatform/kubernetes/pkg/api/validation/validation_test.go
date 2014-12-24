@@ -710,8 +710,8 @@ func TestValidateService(t *testing.T) {
 					Port: 8675,
 				},
 			},
-			// Should fail because the selector is missing.
-			numErrs: 1,
+			// Should be ok because the selector is missing.
+			numErrs: 0,
 		},
 		{
 			name: "valid 1",
@@ -825,11 +825,24 @@ func TestValidateService(t *testing.T) {
 					},
 				},
 				Spec: api.ServiceSpec{
+					Port: 8675,
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "invalid selector",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "abc123",
+					Namespace: api.NamespaceDefault,
+				},
+				Spec: api.ServiceSpec{
 					Port:     8675,
 					Selector: map[string]string{"foo": "bar", "NoUppercaseOrSpecialCharsLike=Equals": "bar"},
 				},
 			},
-			numErrs: 2,
+			numErrs: 1,
 		},
 	}
 
@@ -838,7 +851,7 @@ func TestValidateService(t *testing.T) {
 		registry.List = tc.existing
 		errs := ValidateService(&tc.svc, registry, api.NewDefaultContext())
 		if len(errs) != tc.numErrs {
-			t.Errorf("Unexpected error list for case %q: %v", tc.name, errs.ToError())
+			t.Errorf("Unexpected error list for case %q: %v", tc.name, util.SliceToError(errs))
 		}
 	}
 
@@ -1064,7 +1077,7 @@ func TestValidateBoundPodNoName(t *testing.T) {
 func TestValidateMinion(t *testing.T) {
 	validSelector := map[string]string{"a": "b"}
 	invalidSelector := map[string]string{"NoUppercaseOrSpecialCharsLike=Equals": "b"}
-	successCases := []api.Minion{
+	successCases := []api.Node{
 		{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "abc",
@@ -1087,7 +1100,7 @@ func TestValidateMinion(t *testing.T) {
 		}
 	}
 
-	errorCases := map[string]api.Minion{
+	errorCases := map[string]api.Node{
 		"zero-length Name": {
 			ObjectMeta: api.ObjectMeta{
 				Name:   "",
@@ -1121,48 +1134,120 @@ func TestValidateMinion(t *testing.T) {
 
 func TestValidateMinionUpdate(t *testing.T) {
 	tests := []struct {
-		oldMinion api.Minion
-		minion    api.Minion
+		oldMinion api.Node
+		minion    api.Node
 		valid     bool
 	}{
-		{api.Minion{}, api.Minion{}, true},
-		{api.Minion{
+		{api.Node{}, api.Node{}, true},
+		{api.Node{
 			ObjectMeta: api.ObjectMeta{
 				Name: "foo"}},
-			api.Minion{
+			api.Node{
 				ObjectMeta: api.ObjectMeta{
 					Name: "bar"},
 			}, false},
-		{api.Minion{
+		{api.Node{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "foo",
 				Labels: map[string]string{"foo": "bar"},
 			},
-		}, api.Minion{
+		}, api.Node{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "foo",
 				Labels: map[string]string{"foo": "baz"},
 			},
 		}, true},
-		{api.Minion{
+		{api.Node{
 			ObjectMeta: api.ObjectMeta{
 				Name: "foo",
 			},
-		}, api.Minion{
+		}, api.Node{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "foo",
 				Labels: map[string]string{"foo": "baz"},
 			},
 		}, true},
-		{api.Minion{
+		{api.Node{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "foo",
 				Labels: map[string]string{"bar": "foo"},
 			},
-		}, api.Minion{
+		}, api.Node{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "foo",
 				Labels: map[string]string{"foo": "baz"},
+			},
+		}, true},
+		{api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: api.NodeSpec{
+				Capacity: api.ResourceList{
+					"cpu":    util.NewIntOrStringFromInt(10000),
+					"memory": util.NewIntOrStringFromInt(100),
+				},
+			},
+		}, api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: api.NodeSpec{
+				Capacity: api.ResourceList{
+					"cpu":    util.NewIntOrStringFromInt(100),
+					"memory": util.NewIntOrStringFromInt(10000),
+				},
+			},
+		}, true},
+		{api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name:   "foo",
+				Labels: map[string]string{"bar": "foo"},
+			},
+			Spec: api.NodeSpec{
+				Capacity: api.ResourceList{
+					"cpu":    util.NewIntOrStringFromInt(10000),
+					"memory": util.NewIntOrStringFromInt(100),
+				},
+			},
+		}, api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name:   "foo",
+				Labels: map[string]string{"bar": "fooobaz"},
+			},
+			Spec: api.NodeSpec{
+				Capacity: api.ResourceList{
+					"cpu":    util.NewIntOrStringFromInt(100),
+					"memory": util.NewIntOrStringFromInt(10000),
+				},
+			},
+		}, true},
+		{api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name:   "foo",
+				Labels: map[string]string{"bar": "foo"},
+			},
+		}, api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name:   "foo",
+				Labels: map[string]string{"bar": "fooobaz"},
+			},
+			Status: api.NodeStatus{
+				HostIP: "1.2.3.4",
+			},
+		}, false},
+		{api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name:   "foo",
+				Labels: map[string]string{"bar": "foo"},
+			},
+			Status: api.NodeStatus{
+				HostIP: "1.2.3.4",
+			},
+		}, api.Node{
+			ObjectMeta: api.ObjectMeta{
+				Name:   "foo",
+				Labels: map[string]string{"bar": "fooobaz"},
 			},
 		}, true},
 	}

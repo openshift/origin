@@ -17,8 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
-	"time"
-
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -144,7 +143,7 @@ type VolumeMount struct {
 	// Optional: Defaults to false (read-write).
 	ReadOnly bool `json:"readOnly,omitempty" description:"mounted read-only if true, read-write otherwise (false or unspecified)"`
 	// Required.
-	MountPath string `json:"mountPath,omitempty" description:"path within the container at which the volume should be mounted"`
+	MountPath string `json:"mountPath" description:"path within the container at which the volume should be mounted"`
 }
 
 // EnvVar represents an environment variable present in a Container.
@@ -285,6 +284,10 @@ const (
 	PodRunning PodStatus = "Running"
 	// PodTerminated means that the pod has stopped.
 	PodTerminated PodStatus = "Terminated"
+	// PodUnknown means that we failed to obtain info about the pod.
+	PodUnknown PodStatus = "Unknown"
+	// PodSucceeded means that the pod has stopped without error(s)
+	PodSucceeded PodStatus = "Succeeded"
 )
 
 type ContainerStateWaiting struct {
@@ -293,19 +296,16 @@ type ContainerStateWaiting struct {
 }
 
 type ContainerStateRunning struct {
-	// TODO: change to util.Time
-	StartedAt time.Time `json:"startedAt,omitempty" description:"time at which the container was last (re-)started"`
+	StartedAt util.Time `json:"startedAt,omitempty" description:"time at which the container was last (re-)started"`
 }
 
 type ContainerStateTerminated struct {
-	ExitCode int    `json:"exitCode" description:"exit status from the last termination of the container"`
-	Signal   int    `json:"signal,omitempty" description:"signal from the last termination of the container"`
-	Reason   string `json:"reason,omitempty" description:"(brief) reason from the last termination of the container"`
-	Message  string `json:"message,omitempty" description:"message regarding the last termination of the container"`
-	// TODO: change to util.Time
-	StartedAt time.Time `json:"startedAt,omitempty" description:"time at which previous execution of the container started"`
-	// TODO: change to util.Time
-	FinishedAt time.Time `json:"finishedAt,omitempty" description:"time at which the container last terminated"`
+	ExitCode   int       `json:"exitCode" description:"exit status from the last termination of the container"`
+	Signal     int       `json:"signal,omitempty" description:"signal from the last termination of the container"`
+	Reason     string    `json:"reason,omitempty" description:"(brief) reason from the last termination of the container"`
+	Message    string    `json:"message,omitempty" description:"message regarding the last termination of the container"`
+	StartedAt  util.Time `json:"startedAt,omitempty" description:"time at which previous execution of the container started"`
+	FinishedAt util.Time `json:"finishedAt,omitempty" description:"time at which the container last terminated"`
 }
 
 // ContainerState holds a possible state of container.
@@ -328,11 +328,18 @@ type ContainerStatus struct {
 	// not just PodInfo. Now we need this to remove docker.Container from API
 	PodIP string `json:"podIP,omitempty" description:"pod's IP address"`
 	// TODO(dchen1107): Need to decide how to reprensent this in v1beta3
-	Image string `json:"image" description:"image of the container"`
+	Image       string `json:"image" description:"image of the container"`
+	ContainerID string `json:"containerID,omitempty" description:"container's ID in the format 'docker://<container_id>'"`
 }
 
 // PodInfo contains one entry for every container with available info.
 type PodInfo map[string]ContainerStatus
+
+// PodContainerInfo is a wrapper for PodInfo that can be encode/decoded
+type PodContainerInfo struct {
+	TypeMeta      `json:",inline"`
+	ContainerInfo PodInfo `json:"containerInfo" description:"information about each container in this pod"`
+}
 
 type RestartPolicyAlways struct{}
 
@@ -410,6 +417,17 @@ type PodTemplate struct {
 	Labels       map[string]string `json:"labels,omitempty" description:"map of string keys and values that can be used to organize and categorize the pods created from the template; must match the selector of the replication controller to which the template belongs; may match selectors of services"`
 }
 
+// Session Affinity Type string
+type AffinityType string
+
+const (
+	// AffinityTypeClientIP is the Client IP based.
+	AffinityTypeClientIP AffinityType = "ClientIP"
+
+	// AffinityTypeNone - no session affinity.
+	AffinityTypeNone AffinityType = "None"
+)
+
 // ServiceList holds a list of services.
 type ServiceList struct {
 	TypeMeta `json:",inline"`
@@ -430,9 +448,11 @@ type Service struct {
 	// This service's labels.
 	Labels map[string]string `json:"labels,omitempty" description:"map of string keys and values that can be used to organize and categorize services"`
 
-	// This service will route traffic to pods having labels matching this selector.
-	Selector                   map[string]string `json:"selector,omitempty" description:"label keys and values that must match in order to receive traffic for this service"`
-	CreateExternalLoadBalancer bool              `json:"createExternalLoadBalancer,omitempty" description:"set up a cloud-provider-specific load balancer on an external IP"`
+	// This service will route traffic to pods having labels matching this selector. If null, no endpoints will be automatically created. If empty, all pods will be selected.
+	Selector map[string]string `json:"selector" description:"label keys and values that must match in order to receive traffic for this service; if empty, all pods are selected, if not specified, endpoints must be manually specified"`
+	// An external load balancer should be set up via the cloud-provider
+	CreateExternalLoadBalancer bool `json:"createExternalLoadBalancer,omitempty" description:"set up a cloud-provider-specific load balancer on an external IP"`
+
 	// PublicIPs are used by external load balancers.
 	PublicIPs []string `json:"publicIPs,omitempty" description:"externally visible IPs from which to select the address for the external load balancer"`
 
@@ -447,6 +467,9 @@ type Service struct {
 
 	// ProxyPort is assigned by the master.  If specified by the user it will be ignored.
 	ProxyPort int `json:"proxyPort,omitempty" description:"if non-zero, a pre-allocated host port used for this service by the proxy on each node; assigned by the master and ignored on input"`
+
+	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
+	SessionAffinity *AffinityType `json:"sessionAffinity,omitempty" description:"enable client IP based session affinity; must be ClientIP or None; Disabled if unspecified"`
 }
 
 // Endpoints is a collection of endpoints that implement the actual service, for example:
@@ -460,6 +483,58 @@ type Endpoints struct {
 type EndpointsList struct {
 	TypeMeta `json:",inline"`
 	Items    []Endpoints `json:"items" description:"list of service endpoint lists"`
+}
+
+// NodeStatus is information about the current status of a node.
+type NodeStatus struct {
+	// NodePhase is the current lifecycle phase of the node.
+	Phase NodePhase `json:"phase,omitempty" description:"node phase is the current lifecycle phase of the node"`
+	// Conditions is an array of current node conditions.
+	Conditions []NodeCondition `json:"conditions,omitempty" description:"conditions is an array of current node conditions"`
+}
+
+type NodePhase string
+
+// These are the valid phases of node.
+const (
+	// NodePending means the node has been created/added by the system, but not configured.
+	NodePending NodePhase = "Pending"
+	// NodeRunning means the node has been configured and has Kubernetes components running.
+	NodeRunning NodePhase = "Running"
+	// NodeTerminated means the node has been removed from the cluster.
+	NodeTerminated NodePhase = "Terminated"
+)
+
+type NodeConditionKind string
+
+// These are valid conditions of node. Currently, we don't have enough information to decide
+// node condition. In the future, we will add more. The proposed set of conditions are:
+// NodeReachable, NodeLive, NodeReady, NodeSchedulable, NodeRunnable.
+const (
+	// NodeReachable means the node can be reached (in the sense of HTTP connection) from node controller.
+	NodeReachable NodeConditionKind = "Reachable"
+	// NodeReady means the node returns StatusOK for HTTP health check.
+	NodeReady NodeConditionKind = "Ready"
+)
+
+type NodeConditionStatus string
+
+// These are valid condition status. "ConditionFull" means node is in the condition;
+// "ConditionNone" means node is not in the condition; "ConditionUnknown" means kubernetes
+// can't decide if node is in the condition or not. In the future, we could add other
+// intermediate conditions, e.g. ConditionDegraded.
+const (
+	ConditionFull    NodeConditionStatus = "Full"
+	ConditionNone    NodeConditionStatus = "None"
+	ConditionUnknown NodeConditionStatus = "Unknown"
+)
+
+type NodeCondition struct {
+	Kind               NodeConditionKind   `json:"kind" description:"kind of the condition, one of reachable, ready"`
+	Status             NodeConditionStatus `json:"status" description:"status of the condition, one of full, none, unknown"`
+	LastTransitionTime util.Time           `json:"lastTransitionTime,omitempty" description:"last time the condition transit from one status to another"`
+	Reason             string              `json:"reason,omitempty" description:"(brief) reason for the condition's last transition"`
+	Message            string              `json:"message,omitempty" description:"human readable message indicating details about last transition"`
 }
 
 // NodeResources represents resources on a Kubernetes system node
@@ -481,6 +556,8 @@ type Minion struct {
 	HostIP string `json:"hostIP,omitempty" description:"IP address of the node"`
 	// Resources available on the node
 	NodeResources NodeResources `json:"resources,omitempty" description:"characterization of node resources"`
+	// Status describes the current status of a node
+	Status NodeStatus `json:"status,omitempty" description:"current status of node"`
 	// Labels for the node
 	Labels map[string]string `json:"labels,omitempty" description:"map of string keys and values that can be used to organize and categorize minions; labels of a minion assigned by the scheduler must match the scheduled pod's nodeSelector"`
 }
@@ -692,7 +769,7 @@ type Event struct {
 
 	// Should be a short, machine understandable string that describes the current status
 	// of the referred object. This should not give the reason for being in this state.
-	// Examples: "running", "cantStart", "cantSchedule", "deleted".
+	// Examples: "Running", "CantStart", "CantSchedule", "Deleted".
 	// It's OK for components to make up statuses to report here, but the same string should
 	// always be used for the same status.
 	// TODO: define a way of making sure these are consistent and don't collide.
@@ -701,7 +778,7 @@ type Event struct {
 
 	// Optional; this should be a short, machine understandable string that gives the reason
 	// for the transition into the object's current status. For example, if ObjectStatus is
-	// "cantStart", StatusReason might be "imageNotFound".
+	// "CantStart", Reason might be "ImageNotFound".
 	// TODO: provide exact specification for format.
 	Reason string `json:"reason,omitempty" description:"short, machine understandable string that gives the reason for the transition into the object's current status"`
 
@@ -758,6 +835,11 @@ type PodSpec struct {
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" description:"restart policy for all containers within the pod; one of RestartPolicyAlways, RestartPolicyOnFailure, RestartPolicyNever"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" description:"selector which must match a node's labels for the pod to be scheduled on that node"`
+
+	// Host is a request to schedule this pod onto a specific host.  If it is non-empty,
+	// the the scheduler simply schedules this pod onto that host, assuming that it fits
+	// resource requirements.
+	Host string `json:"host,omitempty" description:"host requested for this pod"`
 }
 
 // BoundPod is a collection of containers that should be run on a host. A BoundPod
@@ -780,4 +862,10 @@ type BoundPods struct {
 
 	// Items is the list of all pods bound to a given host.
 	Items []BoundPod `json:"items" description:"list of all pods bound to a given host"`
+}
+
+// List holds a list of objects, which may not be known by the server.
+type List struct {
+	TypeMeta `json:",inline"`
+	Items    []runtime.RawExtension `json:"items" description:"list of objects"`
 }

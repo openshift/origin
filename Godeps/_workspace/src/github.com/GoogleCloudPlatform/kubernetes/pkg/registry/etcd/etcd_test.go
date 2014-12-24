@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -705,6 +706,112 @@ func TestEtcdListPods(t *testing.T) {
 	}
 }
 
+func TestEtcdWatchPods(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchPods(ctx,
+		labels.Everything(),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	default:
+	}
+	fakeClient.WatchInjectError <- nil
+	if _, ok := <-watching.ResultChan(); ok {
+		t.Errorf("watching channel should be closed")
+	}
+	watching.Stop()
+}
+
+func TestEtcdWatchPodsMatch(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchPods(ctx,
+		labels.SelectorFromSet(labels.Set{"name": "foo"}),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	pod := &api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"name": "foo",
+			},
+		},
+	}
+	podBytes, _ := latest.Codec.Encode(pod)
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "create",
+		Node: &etcd.Node{
+			Value: string(podBytes),
+		},
+	}
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	case <-time.After(time.Millisecond * 100):
+		t.Error("unexpected timeout from result channel")
+	}
+	watching.Stop()
+}
+
+func TestEtcdWatchPodsNotMatch(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchPods(ctx,
+		labels.SelectorFromSet(labels.Set{"name": "foo"}),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	pod := &api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name: "bar",
+			Labels: map[string]string{
+				"name": "bar",
+			},
+		},
+	}
+	podBytes, _ := latest.Codec.Encode(pod)
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "create",
+		Node: &etcd.Node{
+			Value: string(podBytes),
+		},
+	}
+
+	select {
+	case <-watching.ResultChan():
+		t.Error("unexpected result from result channel")
+	case <-time.After(time.Millisecond * 100):
+		// expected case
+	}
+}
+
 func TestEtcdListControllersNotFound(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	ctx := api.NewDefaultContext()
@@ -931,6 +1038,114 @@ func TestEtcdUpdateController(t *testing.T) {
 	ctrl, err := registry.GetController(ctx, "foo")
 	if ctrl.Spec.Replicas != 2 {
 		t.Errorf("Unexpected controller: %#v", ctrl)
+	}
+}
+
+func TestEtcdWatchController(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchControllers(ctx,
+		labels.Everything(),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	default:
+	}
+	fakeClient.WatchInjectError <- nil
+	if _, ok := <-watching.ResultChan(); ok {
+		t.Errorf("watching channel should be closed")
+	}
+	watching.Stop()
+}
+
+func TestEtcdWatchControllersMatch(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.ExpectNotFoundGet(makePodListKey(ctx))
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchControllers(ctx,
+		labels.SelectorFromSet(labels.Set{"name": "foo"}),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	controller := &api.ReplicationController{
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"name": "foo",
+			},
+		},
+	}
+	controllerBytes, _ := latest.Codec.Encode(controller)
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "create",
+		Node: &etcd.Node{
+			Value: string(controllerBytes),
+		},
+	}
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	case <-time.After(time.Millisecond * 100):
+		t.Error("unexpected timeout from result channel")
+	}
+	watching.Stop()
+}
+
+func TestEtcdWatchControllersNotMatch(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.ExpectNotFoundGet(makePodListKey(ctx))
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchControllers(ctx,
+		labels.SelectorFromSet(labels.Set{"name": "foo"}),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	controller := &api.ReplicationController{
+		ObjectMeta: api.ObjectMeta{
+			Name: "bar",
+			Labels: map[string]string{
+				"name": "bar",
+			},
+		},
+	}
+	controllerBytes, _ := latest.Codec.Encode(controller)
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "create",
+		Node: &etcd.Node{
+			Value: string(controllerBytes),
+		},
+	}
+
+	select {
+	case <-watching.ResultChan():
+		t.Error("unexpected result from result channel")
+	case <-time.After(time.Millisecond * 100):
+		// expected case
 	}
 }
 
@@ -1364,12 +1579,12 @@ func TestEtcdListMinions(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Minion{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Node{
 							ObjectMeta: api.ObjectMeta{Name: "foo"},
 						}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Minion{
+						Value: runtime.EncodeOrDie(latest.Codec, &api.Node{
 							ObjectMeta: api.ObjectMeta{Name: "bar"},
 						}),
 					},
@@ -1393,7 +1608,7 @@ func TestEtcdCreateMinion(t *testing.T) {
 	ctx := api.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
-	err := registry.CreateMinion(ctx, &api.Minion{
+	err := registry.CreateMinion(ctx, &api.Node{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
 	})
 	if err != nil {
@@ -1405,7 +1620,7 @@ func TestEtcdCreateMinion(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	var minion api.Minion
+	var minion api.Node
 	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &minion)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1419,7 +1634,7 @@ func TestEtcdCreateMinion(t *testing.T) {
 func TestEtcdGetMinion(t *testing.T) {
 	ctx := api.NewContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set("/registry/minions/foo", runtime.EncodeOrDie(latest.Codec, &api.Minion{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/registry/minions/foo", runtime.EncodeOrDie(latest.Codec, &api.Node{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	minion, err := registry.GetMinion(ctx, "foo")
 	if err != nil {
@@ -1463,6 +1678,112 @@ func TestEtcdDeleteMinion(t *testing.T) {
 	key := "/registry/minions/foo"
 	if fakeClient.DeletedKeys[0] != key {
 		t.Errorf("Unexpected key: %s, expected %s", fakeClient.DeletedKeys[0], key)
+	}
+}
+
+func TestEtcdWatchMinion(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchMinions(ctx,
+		labels.Everything(),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	default:
+	}
+	fakeClient.WatchInjectError <- nil
+	if _, ok := <-watching.ResultChan(); ok {
+		t.Errorf("watching channel should be closed")
+	}
+	watching.Stop()
+}
+
+func TestEtcdWatchMinionsMatch(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchMinions(ctx,
+		labels.SelectorFromSet(labels.Set{"name": "foo"}),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	node := &api.Node{
+		ObjectMeta: api.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"name": "foo",
+			},
+		},
+	}
+	nodeBytes, _ := latest.Codec.Encode(node)
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "create",
+		Node: &etcd.Node{
+			Value: string(nodeBytes),
+		},
+	}
+	select {
+	case _, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+	case <-time.After(time.Millisecond * 100):
+		t.Error("unexpected timeout from result channel")
+	}
+	watching.Stop()
+}
+
+func TestEtcdWatchMinionsNotMatch(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	registry := NewTestEtcdRegistry(fakeClient)
+	watching, err := registry.WatchMinions(ctx,
+		labels.SelectorFromSet(labels.Set{"name": "foo"}),
+		labels.Everything(),
+		"1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeClient.WaitForWatchCompletion()
+
+	node := &api.Node{
+		ObjectMeta: api.ObjectMeta{
+			Name: "bar",
+			Labels: map[string]string{
+				"name": "bar",
+			},
+		},
+	}
+	nodeBytes, _ := latest.Codec.Encode(node)
+	fakeClient.WatchResponse <- &etcd.Response{
+		Action: "create",
+		Node: &etcd.Node{
+			Value: string(nodeBytes),
+		},
+	}
+
+	select {
+	case <-watching.ResultChan():
+		t.Error("unexpected result from result channel")
+	case <-time.After(time.Millisecond * 100):
+		// expected case
 	}
 }
 

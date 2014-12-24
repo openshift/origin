@@ -17,12 +17,13 @@ limitations under the License.
 package kubelet
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -76,23 +77,11 @@ func ConnectToDockerOrDie(dockerEndpoint string) *docker.Client {
 }
 
 // TODO: move this into the kubelet itself
-func GarbageCollectLoop(k *Kubelet) {
-	func() {
-		util.Forever(func() {
-			err := k.GarbageCollectContainers()
-			if err != nil {
-				glog.Errorf("Garbage collect failed: %v", err)
-			}
-		}, time.Minute*1)
-	}()
-}
-
-// TODO: move this into the kubelet itself
-func MonitorCAdvisor(k *Kubelet) {
+func MonitorCAdvisor(k *Kubelet, cp uint) {
 	defer util.HandleCrash()
 	// TODO: Monitor this connection, reconnect if needed?
 	glog.V(1).Infof("Trying to create cadvisor client.")
-	cadvisorClient, err := cadvisor.NewClient("http://127.0.0.1:4194")
+	cadvisorClient, err := cadvisor.NewClient("http://127.0.0.1:" + strconv.Itoa(int(cp)))
 	if err != nil {
 		glog.Errorf("Error on creating cadvisor client: %v", err)
 		return
@@ -158,6 +147,9 @@ func getApiserverClient(authPath string, apiServerList util.StringList) (*client
 	clientConfig, err := authInfo.MergeWithConfig(client.Config{})
 	if err != nil {
 		return nil, err
+	}
+	if len(apiServerList) < 1 {
+		return nil, fmt.Errorf("no apiservers specified.")
 	}
 	// TODO: adapt Kube client to support LB over several servers
 	if len(apiServerList) > 1 {

@@ -26,6 +26,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
+	"github.com/golang/glog"
 )
 
 // ServiceLister is an abstract interface for testing.
@@ -348,11 +350,6 @@ func validateRestartPolicy(restartPolicy *api.RestartPolicy) errs.ValidationErro
 	return allErrors
 }
 
-func ValidatePodState(podState *api.PodState) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList(ValidateManifest(&podState.Manifest)).Prefix("manifest")
-	return allErrs
-}
-
 // ValidatePod tests if required fields in the pod are set.
 func ValidatePod(pod *api.Pod) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -385,19 +382,7 @@ func ValidatePodSpec(spec *api.PodSpec) errs.ValidationErrorList {
 func validateLabels(labels map[string]string, field string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	for k := range labels {
-		var n, ns string
-		parts := strings.Split(k, "/")
-		switch len(parts) {
-		case 1:
-			n = parts[0]
-		case 2:
-			ns = parts[0]
-			n = parts[1]
-		default:
-			allErrs = append(allErrs, errs.NewFieldInvalid(field, k, ""))
-			continue
-		}
-		if (ns != "" && !util.IsDNSSubdomain(ns)) || !util.IsDNSLabel(n) {
+		if !util.IsQualifiedName(k) {
 			allErrs = append(allErrs, errs.NewFieldInvalid(field, k, ""))
 		}
 	}
@@ -431,6 +416,8 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) errs.ValidationErrorList {
 	return allErrs
 }
 
+var supportedSessionAffinityType = util.NewStringSet(string(api.AffinityTypeClientIP), string(api.AffinityTypeNone))
+
 // ValidateService tests if required fields in the service are set.
 func ValidateService(service *api.Service, lister ServiceLister, ctx api.Context) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -450,9 +437,12 @@ func ValidateService(service *api.Service, lister ServiceLister, ctx api.Context
 	} else if !supportedPortProtocols.Has(strings.ToUpper(string(service.Spec.Protocol))) {
 		allErrs = append(allErrs, errs.NewFieldNotSupported("spec.protocol", service.Spec.Protocol))
 	}
-	if labels.Set(service.Spec.Selector).AsSelector().Empty() {
-		allErrs = append(allErrs, errs.NewFieldRequired("spec.selector", service.Spec.Selector))
+
+	if service.Spec.Selector != nil {
+		allErrs = append(allErrs, validateLabels(service.Spec.Selector, "spec.selector")...)
 	}
+	allErrs = append(allErrs, validateLabels(service.Labels, "labels")...)
+
 	if service.Spec.CreateExternalLoadBalancer {
 		services, err := lister.ListServices(ctx)
 		if err != nil {
@@ -468,8 +458,12 @@ func ValidateService(service *api.Service, lister ServiceLister, ctx api.Context
 			}
 		}
 	}
-	allErrs = append(allErrs, validateLabels(service.Labels, "labels")...)
-	allErrs = append(allErrs, validateLabels(service.Spec.Selector, "selector")...)
+	if service.Spec.SessionAffinity != nil {
+		if !supportedSessionAffinityType.Has(string(*service.Spec.SessionAffinity)) {
+			allErrs = append(allErrs, errs.NewFieldNotSupported("spec.sessionAffinity", service.Spec.SessionAffinity))
+		}
+	}
+
 	return allErrs
 }
 
@@ -561,7 +555,7 @@ func ValidateBoundPod(pod *api.BoundPod) (errors []error) {
 }
 
 // ValidateMinion tests if required fields in the minion are set.
-func ValidateMinion(minion *api.Minion) errs.ValidationErrorList {
+func ValidateMinion(minion *api.Node) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(minion.Namespace) != 0 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", minion.Namespace, ""))
@@ -574,11 +568,22 @@ func ValidateMinion(minion *api.Minion) errs.ValidationErrorList {
 }
 
 // ValidateMinionUpdate tests to make sure a minion update can be applied.  Modifies oldMinion.
-func ValidateMinionUpdate(oldMinion *api.Minion, minion *api.Minion) errs.ValidationErrorList {
+func ValidateMinionUpdate(oldMinion *api.Node, minion *api.Node) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
+
+	if !reflect.DeepEqual(minion.Status, api.NodeStatus{}) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("status", minion.Status, "status must be empty"))
+	}
+
+	// Allow users to update labels and capacity
 	oldMinion.Labels = minion.Labels
+	oldMinion.Spec.Capacity = minion.Spec.Capacity
+	// Clear status
+	oldMinion.Status = minion.Status
+
 	if !reflect.DeepEqual(oldMinion, minion) {
-		allErrs = append(allErrs, fmt.Errorf("update contains more than labels changes"))
+		glog.V(4).Infof("Update failed validation %#v vs %#v", oldMinion, minion)
+		allErrs = append(allErrs, fmt.Errorf("update contains more than labels or capacity changes"))
 	}
 	return allErrs
 }

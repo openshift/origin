@@ -27,14 +27,14 @@ import (
 )
 
 type NodeInfo interface {
-	GetNodeInfo(nodeID string) (*api.Minion, error)
+	GetNodeInfo(nodeID string) (*api.Node, error)
 }
 
 type StaticNodeInfo struct {
-	*api.MinionList
+	*api.NodeList
 }
 
-func (nodes StaticNodeInfo) GetNodeInfo(nodeID string) (*api.Minion, error) {
+func (nodes StaticNodeInfo) GetNodeInfo(nodeID string) (*api.Node, error) {
 	for ix := range nodes.Items {
 		if nodes.Items[ix].Name == nodeID {
 			return &nodes.Items[ix], nil
@@ -47,8 +47,8 @@ type ClientNodeInfo struct {
 	*client.Client
 }
 
-func (nodes ClientNodeInfo) GetNodeInfo(nodeID string) (*api.Minion, error) {
-	return nodes.Minions().Get(nodeID)
+func (nodes ClientNodeInfo) GetNodeInfo(nodeID string) (*api.Node, error) {
+	return nodes.Nodes().Get(nodeID)
 }
 
 func isVolumeConflict(volume api.Volume, pod *api.Pod) bool {
@@ -160,6 +160,13 @@ func (n *NodeSelector) PodSelectorMatches(pod api.Pod, existingPods []api.Pod, n
 		return false, err
 	}
 	return selector.Matches(labels.Set(minion.Labels)), nil
+}
+
+func PodFitsHost(pod api.Pod, existingPods []api.Pod, node string) (bool, error) {
+	if len(pod.Spec.Host) == 0 {
+		return true, nil
+	}
+	return pod.Spec.Host == node, nil
 }
 
 func PodFitsPorts(pod api.Pod, existingPods []api.Pod, node string) (bool, error) {

@@ -25,10 +25,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-type FakeNodeInfo api.Minion
+type FakeNodeInfo api.Node
 
-func (n FakeNodeInfo) GetNodeInfo(nodeName string) (*api.Minion, error) {
-	node := api.Minion(n)
+func (n FakeNodeInfo) GetNodeInfo(nodeName string) (*api.Node, error) {
+	node := api.Node(n)
 	return &node, nil
 }
 
@@ -111,7 +111,7 @@ func TestPodFitsResources(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		node := api.Minion{Spec: api.NodeSpec{Capacity: makeResources(10, 20).Capacity}}
+		node := api.Node{Spec: api.NodeSpec{Capacity: makeResources(10, 20).Capacity}}
 
 		fit := ResourceFit{FakeNodeInfo(node)}
 		fits, err := fit.PodFitsResources(test.pod, test.existingPods, "machine")
@@ -120,6 +120,52 @@ func TestPodFitsResources(t *testing.T) {
 		}
 		if fits != test.fits {
 			t.Errorf("%s: expected: %v got %v", test.test, test.fits, fits)
+		}
+	}
+}
+
+func TestPodFitsHost(t *testing.T) {
+	tests := []struct {
+		pod  api.Pod
+		node string
+		fits bool
+		test string
+	}{
+		{
+			pod:  api.Pod{},
+			node: "foo",
+			fits: true,
+			test: "no host specified",
+		},
+		{
+			pod: api.Pod{
+				Spec: api.PodSpec{
+					Host: "foo",
+				},
+			},
+			node: "foo",
+			fits: true,
+			test: "host matches",
+		},
+		{
+			pod: api.Pod{
+				Spec: api.PodSpec{
+					Host: "bar",
+				},
+			},
+			node: "foo",
+			fits: false,
+			test: "host doesn't match",
+		},
+	}
+
+	for _, test := range tests {
+		result, err := PodFitsHost(test.pod, []api.Pod{}, test.node)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if result != test.fits {
+			t.Errorf("unexpected difference for %s: got: %v expected %v", test.test, test.fits, result)
 		}
 	}
 }
@@ -335,7 +381,7 @@ func TestPodFitsSelector(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		node := api.Minion{ObjectMeta: api.ObjectMeta{Labels: test.labels}}
+		node := api.Node{ObjectMeta: api.ObjectMeta{Labels: test.labels}}
 
 		fit := NodeSelector{FakeNodeInfo(node)}
 		fits, err := fit.PodSelectorMatches(test.pod, []api.Pod{}, "machine")
