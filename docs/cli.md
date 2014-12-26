@@ -16,18 +16,18 @@ Common Flags
 
 | Name                       | Description                                             |
 |:-------------------------- |:--------------------------------------------------------|
-| -n (--namespace)           | Namespace scope for the CLI request (default 'default') |
+| --namespace (-n)           | Namespace scope for the CLI request (default 'default') |
 | --ns-path                  | Path to a file with the default namespace |
 | --match-server-version     | Require server version to match client version        |
 | --loglevel                 | Set the log verbosity level between 0-5 (default '0') |
-| -s (--server)              | API server to connect to                              |
+| --server (-s)              | API server to connect to                              |
 | --client-certificate       | Path to a client certificate for TLS |
 | --client-key               | Path to a client key file for TLS |
 | --certificate-authority    | Path to a CA certificate file |
 | --auth-path                | Path to the auth info file (used for HTTPS) |
 | --api-version              | The version of the API to use against the server |
 | --insecure-skip-tls-verify | Skip SSL certificate validation (will make HTTPS insecure) |
-| -h (--help)                | Display help for specified command |
+| --help (-h)                | Display help for specified command |
 
 cli get
 -----------
