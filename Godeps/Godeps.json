@@ -437,6 +437,11 @@
 			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
 		},
 		{
+			"ImportPath": "github.com/docker/docker/pkg/units",
+			"Comment": "v1.4.1-108-g364720b",
+			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar",
 			"Comment": "v1.4.1-108-g364720b",
 			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
