@@ -19,6 +19,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 )
 
@@ -102,8 +103,11 @@ func (c *MasterConfig) RunEndpointController() {
 
 // RunScheduler starts the Kubernetes scheduler
 func (c *MasterConfig) RunScheduler() {
-	configFactory := &factory.ConfigFactory{Client: c.KubeClient}
-	config := configFactory.Create()
+	configFactory := factory.NewConfigFactory(c.KubeClient)
+	config, err := configFactory.Create()
+	if err != nil {
+		glog.Fatalf("Unable to start scheduler: %v", err)
+	}
 	s := scheduler.New(config)
 	s.Run()
 	glog.Infof("Started Kubernetes Scheduler")

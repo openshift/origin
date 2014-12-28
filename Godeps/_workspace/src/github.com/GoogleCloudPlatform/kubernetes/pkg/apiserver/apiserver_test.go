@@ -70,15 +70,15 @@ func interfacesFor(version string) (*meta.VersionInterfaces, error) {
 func init() {
 	// Certain API objects are returned regardless of the contents of storage:
 	// api.Status is returned in errors
-	// api.ServerOp/api.ServerOpList are returned by /operations
+	// api.Operation/api.OperationList are returned by /operations
 
 	// "internal" version
 	api.Scheme.AddKnownTypes("", &Simple{}, &SimpleList{},
-		&api.Status{}, &api.ServerOp{}, &api.ServerOpList{})
+		&api.Status{}, &api.Operation{}, &api.OperationList{})
 	// "version" version
 	// TODO: Use versioned api objects?
 	api.Scheme.AddKnownTypes(testVersion, &Simple{}, &SimpleList{},
-		&api.Status{}, &api.ServerOp{}, &api.ServerOpList{})
+		&api.Status{}, &api.Operation{}, &api.OperationList{})
 
 	defMapper := meta.NewDefaultRESTMapper(
 		versions,
@@ -683,7 +683,7 @@ func TestSyncCreate(t *testing.T) {
 		t:           t,
 		name:        "bar",
 		namespace:   "other",
-		expectedSet: "/prefix/version/foo/bar?namespace=other",
+		expectedSet: "/prefix/version/ns/other/foo/bar",
 	}
 	handler := Handle(map[string]RESTStorage{
 		"foo": &storage,
@@ -696,7 +696,7 @@ func TestSyncCreate(t *testing.T) {
 		Other: "bar",
 	}
 	data, _ := codec.Encode(simple)
-	request, err := http.NewRequest("POST", server.URL+"/prefix/version/foo?sync=true", bytes.NewBuffer(data))
+	request, err := http.NewRequest("POST", server.URL+"/prefix/version/ns/other/foo?sync=true", bytes.NewBuffer(data))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

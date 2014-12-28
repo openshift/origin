@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -35,22 +34,21 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
-	"github.com/ghodss/yaml"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/info"
 )
 
 // Server is a http.Handler which exposes kubelet functionality over HTTP.
 type Server struct {
-	host    HostInterface
-	updates chan<- interface{}
-	mux     *http.ServeMux
+	host HostInterface
+	mux  *http.ServeMux
 }
 
 // ListenAndServeKubeletServer initializes a server to respond to HTTP network requests on the Kubelet.
-func ListenAndServeKubeletServer(host HostInterface, updates chan<- interface{}, address net.IP, port uint, enableDebuggingHandlers bool) {
+func ListenAndServeKubeletServer(host HostInterface, address net.IP, port uint, enableDebuggingHandlers bool) {
 	glog.V(1).Infof("Starting to listen on %s:%d", address, port)
-	handler := NewServer(host, updates, enableDebuggingHandlers)
+	handler := NewServer(host, enableDebuggingHandlers)
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
 		Handler:        &handler,
@@ -75,11 +73,10 @@ type HostInterface interface {
 }
 
 // NewServer initializes and configures a kubelet.Server object to handle HTTP requests.
-func NewServer(host HostInterface, updates chan<- interface{}, enableDebuggingHandlers bool) Server {
+func NewServer(host HostInterface, enableDebuggingHandlers bool) Server {
 	server := Server{
-		host:    host,
-		updates: updates,
-		mux:     http.NewServeMux(),
+		host: host,
+		mux:  http.NewServeMux(),
 	}
 	server.InstallDefaultHandlers()
 	if enableDebuggingHandlers {
@@ -91,7 +88,8 @@ func NewServer(host HostInterface, updates chan<- interface{}, enableDebuggingHa
 // InstallDefaultHandlers registers the default set of supported HTTP request patterns with the mux.
 func (s *Server) InstallDefaultHandlers() {
 	healthz.InstallHandler(s.mux)
-	s.mux.HandleFunc("/podInfo", s.handlePodInfo)
+	s.mux.HandleFunc("/podInfo", s.handlePodInfoOld)
+	s.mux.HandleFunc("/api/v1beta1/podInfo", s.handlePodInfoVersioned)
 	s.mux.HandleFunc("/boundPods", s.handleBoundPods)
 	s.mux.HandleFunc("/stats/", s.handleStats)
 	s.mux.HandleFunc("/spec/", s.handleSpec)
@@ -99,9 +97,6 @@ func (s *Server) InstallDefaultHandlers() {
 
 // InstallDeguggingHandlers registers the HTTP request patterns that serve logs or run commands/containers
 func (s *Server) InstallDebuggingHandlers() {
-	// ToDo: /container, /run, and /containers aren't debugging options, should probably be handled separately
-	s.mux.HandleFunc("/container", s.handleContainer)
-	s.mux.HandleFunc("/containers", s.handleContainers)
 	s.mux.HandleFunc("/run/", s.handleRun)
 
 	s.mux.HandleFunc("/logs/", s.handleLogs)
@@ -111,61 +106,6 @@ func (s *Server) InstallDebuggingHandlers() {
 // error serializes an error object into an HTTP response.
 func (s *Server) error(w http.ResponseWriter, err error) {
 	http.Error(w, fmt.Sprintf("Internal Error: %v", err), http.StatusInternalServerError)
-}
-
-// handleContainer handles container requests against the Kubelet.
-func (s *Server) handleContainer(w http.ResponseWriter, req *http.Request) {
-	defer req.Body.Close()
-	data, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		s.error(w, err)
-		return
-	}
-	// This is to provide backward compatibility. It only supports a single manifest
-	var pod api.BoundPod
-	var containerManifest api.ContainerManifest
-	err = yaml.Unmarshal(data, &containerManifest)
-	if err != nil {
-		s.error(w, err)
-		return
-	}
-	pod.Name = containerManifest.ID
-	pod.UID = containerManifest.UUID
-	pod.Spec.Containers = containerManifest.Containers
-	pod.Spec.Volumes = containerManifest.Volumes
-	pod.Spec.RestartPolicy = containerManifest.RestartPolicy
-	//TODO: sha1 of manifest?
-	if pod.Name == "" {
-		pod.Name = "1"
-	}
-	if pod.UID == "" {
-		pod.UID = "1"
-	}
-	s.updates <- PodUpdate{[]api.BoundPod{pod}, SET}
-
-}
-
-// handleContainers handles containers requests against the Kubelet.
-func (s *Server) handleContainers(w http.ResponseWriter, req *http.Request) {
-	defer req.Body.Close()
-	data, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		s.error(w, err)
-		return
-	}
-	var specs []api.PodSpec
-	err = yaml.Unmarshal(data, &specs)
-	if err != nil {
-		s.error(w, err)
-		return
-	}
-	pods := make([]api.BoundPod, len(specs))
-	for i := range specs {
-		pods[i].Name = fmt.Sprintf("%d", i+1)
-		pods[i].Spec = specs[i]
-	}
-	s.updates <- PodUpdate{pods, SET}
-
 }
 
 // handleContainerLogs handles containerLogs request against the Kubelet
@@ -249,8 +189,16 @@ func (s *Server) handleBoundPods(w http.ResponseWriter, req *http.Request) {
 	w.Write(data)
 }
 
+func (s *Server) handlePodInfoOld(w http.ResponseWriter, req *http.Request) {
+	s.handlePodInfo(w, req, false)
+}
+
+func (s *Server) handlePodInfoVersioned(w http.ResponseWriter, req *http.Request) {
+	s.handlePodInfo(w, req, true)
+}
+
 // handlePodInfo handles podInfo requests against the Kubelet
-func (s *Server) handlePodInfo(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handlePodInfo(w http.ResponseWriter, req *http.Request, versioned bool) {
 	u, err := url.ParseRequestURI(req.RequestURI)
 	if err != nil {
 		s.error(w, err)
@@ -286,7 +234,7 @@ func (s *Server) handlePodInfo(w http.ResponseWriter, req *http.Request) {
 		s.error(w, err)
 		return
 	}
-	data, err := json.Marshal(info)
+	data, err := exportPodInfo(info, versioned)
 	if err != nil {
 		s.error(w, err)
 		return
@@ -367,6 +315,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	defer httplog.NewLogged(req, &w).StacktraceWhen(
 		httplog.StatusIsNot(
 			http.StatusOK,
+			http.StatusMovedPermanently,
+			http.StatusTemporaryRedirect,
 			http.StatusNotFound,
 		),
 	).Log()
@@ -436,4 +386,24 @@ func (s *Server) serveStats(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-type", "application/json")
 	w.Write(data)
 	return
+}
+
+func exportPodInfo(info api.PodInfo, versioned bool) ([]byte, error) {
+	if versioned {
+		// TODO: support arbitrary versions here
+		codec, err := findCodec("v1beta1")
+		if err != nil {
+			return nil, err
+		}
+		return codec.Encode(&api.PodContainerInfo{ContainerInfo: info})
+	}
+	return json.Marshal(info)
+}
+
+func findCodec(version string) (runtime.Codec, error) {
+	versions, err := latest.InterfacesFor(version)
+	if err != nil {
+		return nil, err
+	}
+	return versions.Codec, nil
 }

@@ -19,6 +19,8 @@ package kubelet
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -38,9 +40,16 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func init() {
+	api.ForTesting_ReferencesAllowBlankSelfLinks = true
+	util.ReallyCrash = true
+}
+
 func newTestKubelet(t *testing.T) (*Kubelet, *tools.FakeEtcdClient, *dockertools.FakeDockerClient) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
-	fakeDocker := &dockertools.FakeDockerClient{}
+	fakeDocker := &dockertools.FakeDockerClient{
+		RemovedImages: util.StringSet{},
+	}
 
 	kubelet := &Kubelet{}
 	kubelet.dockerClient = fakeDocker
@@ -48,6 +57,7 @@ func newTestKubelet(t *testing.T) (*Kubelet, *tools.FakeEtcdClient, *dockertools
 	kubelet.etcdClient = fakeEtcdClient
 	kubelet.rootDirectory = "/tmp/kubelet"
 	kubelet.podWorkers = newPodWorkers()
+	kubelet.sourcesReady = func() bool { return true }
 	return kubelet, fakeEtcdClient, fakeDocker
 }
 
@@ -75,6 +85,40 @@ func verifyStringArrayEquals(t *testing.T, actual, expected []string) {
 func verifyBoolean(t *testing.T, expected, value bool) {
 	if expected != value {
 		t.Errorf("Unexpected boolean.  Expected %t.  Found %t", expected, value)
+	}
+}
+
+func TestKubeletDirs(t *testing.T) {
+	kubelet, _, _ := newTestKubelet(t)
+	root := kubelet.rootDirectory
+	if err := os.MkdirAll(root, 0750); err != nil {
+		t.Fatalf("can't mkdir(%q): %s", root, err)
+	}
+
+	var exp, got string
+
+	got = kubelet.GetPodsDir()
+	exp = root
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.GetPodDir("abc123")
+	exp = path.Join(root, "abc123")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.GetPodVolumesDir("abc123")
+	exp = path.Join(root, "abc123/volumes")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.GetPodContainerDir("abc123", "def456")
+	exp = path.Join(root, "abc123/def456")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
 	}
 }
 
@@ -196,6 +240,7 @@ func TestSyncPodsWithTerminationLog(t *testing.T) {
 	err := kubelet.SyncPods([]api.BoundPod{
 		{
 			ObjectMeta: api.ObjectMeta{
+				UID:         "0123-45-67-89ab-cdef",
 				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
@@ -216,10 +261,11 @@ func TestSyncPodsWithTerminationLog(t *testing.T) {
 
 	fakeDocker.Lock()
 	parts := strings.Split(fakeDocker.Container.HostConfig.Binds[0], ":")
-	if fakeDocker.Container.HostConfig == nil ||
-		!matchString(t, "/tmp/kubelet/foo/bar/k8s_bar\\.[a-f0-9]", parts[0]) ||
-		parts[1] != "/dev/somepath" {
-		t.Errorf("Unexpected containers created %v", fakeDocker.Container)
+	if !matchString(t, kubelet.GetPodContainerDir("0123-45-67-89ab-cdef", "bar")+"/k8s_bar\\.[a-f0-9]", parts[0]) {
+		t.Errorf("Unexpected host path: %s", parts[0])
+	}
+	if parts[1] != "/dev/somepath" {
+		t.Errorf("Unexpected container path: %s", parts[1])
 	}
 	fakeDocker.Unlock()
 }
@@ -470,6 +516,49 @@ func TestSyncPodsDeletesWithNoNetContainer(t *testing.T) {
 	fakeDocker.Unlock()
 }
 
+func TestSyncPodsDeletesWhenSourcesAreReady(t *testing.T) {
+	ready := false
+	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet.sourcesReady = func() bool { return ready }
+
+	fakeDocker.ContainerList = []docker.APIContainers{
+		{
+			// the k8s prefix is required for the kubelet to manage the container
+			Names: []string{"/k8s_foo_bar.new.test"},
+			ID:    "1234",
+		},
+		{
+			// network container
+			Names: []string{"/k8s_net_foo.new.test_"},
+			ID:    "9876",
+		},
+	}
+	if err := kubelet.SyncPods([]api.BoundPod{}); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	// Validate nothing happened.
+	verifyCalls(t, fakeDocker, []string{"list"})
+	fakeDocker.ClearCalls()
+
+	ready = true
+	if err := kubelet.SyncPods([]api.BoundPod{}); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	verifyCalls(t, fakeDocker, []string{"list", "stop", "stop"})
+
+	// A map iteration is used to delete containers, so must not depend on
+	// order here.
+	expectedToStop := map[string]bool{
+		"1234": true,
+		"9876": true,
+	}
+	if len(fakeDocker.Stopped) != 2 ||
+		!expectedToStop[fakeDocker.Stopped[0]] ||
+		!expectedToStop[fakeDocker.Stopped[1]] {
+		t.Errorf("Wrong containers were stopped: %v", fakeDocker.Stopped)
+	}
+}
+
 func TestSyncPodsDeletes(t *testing.T) {
 	kubelet, _, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{
@@ -558,7 +647,7 @@ func TestSyncPodDeletesDuplicate(t *testing.T) {
 
 type FalseHealthChecker struct{}
 
-func (f *FalseHealthChecker) HealthCheck(podFullName, podUUID string, state api.PodState, container api.Container) (health.Status, error) {
+func (f *FalseHealthChecker) HealthCheck(podFullName, podUUID string, status api.PodStatus, container api.Container) (health.Status, error) {
 	return health.Unhealthy, nil
 }
 
@@ -808,29 +897,29 @@ func TestMakePortsAndBindings(t *testing.T) {
 			if !reflect.DeepEqual(docker.Port("80/tcp"), key) {
 				t.Errorf("Unexpected docker port: %#v", key)
 			}
-			if value[0].HostIp != "127.0.0.1" {
-				t.Errorf("Unexpected host IP: %s", value[0].HostIp)
+			if value[0].HostIP != "127.0.0.1" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
 			}
 		case "443":
 			if !reflect.DeepEqual(docker.Port("443/tcp"), key) {
 				t.Errorf("Unexpected docker port: %#v", key)
 			}
-			if value[0].HostIp != "" {
-				t.Errorf("Unexpected host IP: %s", value[0].HostIp)
+			if value[0].HostIP != "" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
 			}
 		case "444":
 			if !reflect.DeepEqual(docker.Port("444/udp"), key) {
 				t.Errorf("Unexpected docker port: %#v", key)
 			}
-			if value[0].HostIp != "" {
-				t.Errorf("Unexpected host IP: %s", value[0].HostIp)
+			if value[0].HostIP != "" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
 			}
 		case "445":
 			if !reflect.DeepEqual(docker.Port("445/tcp"), key) {
 				t.Errorf("Unexpected docker port: %#v", key)
 			}
-			if value[0].HostIp != "" {
-				t.Errorf("Unexpected host IP: %s", value[0].HostIp)
+			if value[0].HostIP != "" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
 			}
 		}
 	}
@@ -860,6 +949,42 @@ func TestCheckHostPortConflicts(t *testing.T) {
 	}
 	if actual := filterHostPortConflicts(append(failureCaseAll, failureCaseNew)); !reflect.DeepEqual(failureCaseAll, actual) {
 		t.Errorf("Expected %#v, Got %#v", expected, actual)
+	}
+}
+
+func TestFieldPath(t *testing.T) {
+	pod := &api.BoundPod{Spec: api.PodSpec{Containers: []api.Container{
+		{Name: "foo"},
+		{Name: "bar"},
+		{Name: "baz"},
+	}}}
+	table := map[string]struct {
+		pod       *api.BoundPod
+		container *api.Container
+		path      string
+		success   bool
+	}{
+		"basic":            {pod, &api.Container{Name: "foo"}, "spec.containers[0]", true},
+		"basic2":           {pod, &api.Container{Name: "baz"}, "spec.containers[2]", true},
+		"basicSamePointer": {pod, &pod.Spec.Containers[0], "spec.containers[0]", true},
+		"missing":          {pod, &api.Container{Name: "qux"}, "", false},
+	}
+
+	for name, item := range table {
+		res, err := fieldPath(item.pod, item.container)
+		if item.success == false {
+			if err == nil {
+				t.Errorf("%v: unexpected non-error", name)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("%v: unexpected error: %v", name, err)
+			continue
+		}
+		if e, a := item.path, res; e != a {
+			t.Errorf("%v: wanted %v, got %v", name, e, a)
+		}
 	}
 }
 
@@ -1574,4 +1699,27 @@ func TestSyncPodsWithPullPolicy(t *testing.T) {
 		t.Errorf("Unexpected containers created %v", fakeDocker.Created)
 	}
 	fakeDocker.Unlock()
+}
+
+func TestGarbageCollectImages(t *testing.T) {
+	kubelet, _, fakeDocker := newTestKubelet(t)
+
+	fakeDocker.Images = []docker.APIImages{
+		{
+			ID: "foo",
+		},
+		{
+			ID: "bar",
+		},
+	}
+
+	if err := kubelet.GarbageCollectImages(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if len(fakeDocker.RemovedImages) != 2 ||
+		!fakeDocker.RemovedImages.Has("foo") ||
+		!fakeDocker.RemovedImages.Has("bar") {
+		t.Errorf("unexpected images removed: %v", fakeDocker.RemovedImages)
+	}
 }

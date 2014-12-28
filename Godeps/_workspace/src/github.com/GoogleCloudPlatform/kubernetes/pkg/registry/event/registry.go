@@ -17,8 +17,6 @@ limitations under the License.
 package event
 
 import (
-	"path"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
@@ -35,7 +33,11 @@ type registry struct {
 
 // Create stores the object with a ttl, so that events don't stay in the system forever.
 func (r registry) Create(ctx api.Context, id string, obj runtime.Object) error {
-	err := r.Etcd.Helper.CreateObj(r.Etcd.KeyFunc(id), obj, r.ttl)
+	key, err := r.Etcd.KeyFunc(ctx, id)
+	if err != nil {
+		return err
+	}
+	err = r.Etcd.Helper.CreateObj(key, obj, r.ttl)
 	return etcderr.InterpretCreateError(err, r.Etcd.EndpointName, id)
 }
 
@@ -47,9 +49,11 @@ func NewEtcdRegistry(h tools.EtcdHelper, ttl uint64) generic.Registry {
 			NewFunc:      func() runtime.Object { return &api.Event{} },
 			NewListFunc:  func() runtime.Object { return &api.EventList{} },
 			EndpointName: "events",
-			KeyRoot:      "/registry/events",
-			KeyFunc: func(id string) string {
-				return path.Join("/registry/events", id)
+			KeyRootFunc: func(ctx api.Context) string {
+				return etcdgeneric.NamespaceKeyRootFunc(ctx, "/registry/events")
+			},
+			KeyFunc: func(ctx api.Context, id string) (string, error) {
+				return etcdgeneric.NamespaceKeyFunc(ctx, "/registry/events", id)
 			},
 			Helper: h,
 		},

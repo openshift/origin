@@ -18,39 +18,73 @@ package cmd
 
 import (
 	"io"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
 
 func (f *Factory) NewCmdLog(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "log <pod> <container>",
-		Short: "Print the logs for a container in a pod",
+		Use:   "log [-f] <pod> [<container>]",
+		Short: "Print the logs for a container in a pod.",
+		Long: `Print the logs for a container in a pod. If the pod has only one container, the container name is optional
+Examples:
+  $ kubectl log 123456-7890 ruby-container
+  <returns snapshot of ruby-container logs from pod 123456-7890>
+
+  $ kubectl log -f 123456-7890 ruby-container
+  <starts streaming of ruby-container logs from pod 123456-7890>`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 2 {
-				usageError(cmd, "<pod> and <container> are required for log")
+			if len(args) == 0 {
+				usageError(cmd, "<pod> is required for log")
+			}
+
+			if len(args) > 2 {
+				usageError(cmd, "log <pod> [<container>]")
 			}
 
 			namespace := GetKubeNamespace(cmd)
-
 			client, err := f.ClientBuilder.Client()
 			checkErr(err)
-			pod, err := client.Pods(namespace).Get(args[0])
+
+			podID := args[0]
+
+			pod, err := client.Pods(namespace).Get(podID)
 			checkErr(err)
 
-			data, err := client.RESTClient.Get().
+			var container string
+			if len(args) == 1 {
+				if len(pod.Spec.Containers) != 1 {
+					usageError(cmd, "<container> is required for pods with multiple containers")
+				}
+
+				// Get logs for the only container in the pod
+				container = pod.Spec.Containers[0].Name
+			} else {
+				container = args[1]
+			}
+
+			follow := false
+			if GetFlagBool(cmd, "follow") {
+				follow = true
+			}
+
+			readCloser, err := client.RESTClient.Get().
 				Path("proxy/minions").
 				Path(pod.Status.Host).
 				Path("containerLogs").
 				Path(namespace).
-				Path(args[0]).
-				Path(args[1]).
-				Do().
-				Raw()
+				Path(podID).
+				Path(container).
+				Param("follow", strconv.FormatBool(follow)).
+				Stream()
 			checkErr(err)
-			out.Write(data)
 
+			defer readCloser.Close()
+			_, err = io.Copy(out, readCloser)
+			checkErr(err)
 		},
 	}
+	cmd.Flags().BoolP("follow", "f", false, "Specify if the logs should be streamed.")
 	return cmd
 }

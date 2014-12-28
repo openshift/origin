@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -61,7 +62,7 @@ type UnexpectedStatusError struct {
 
 // Error returns a textual description of 'u'.
 func (u *UnexpectedStatusError) Error() string {
-	return fmt.Sprintf("request [%#v] failed (%d) %s: %s", u.Request, u.Response.StatusCode, u.Response.Status, u.Body)
+	return fmt.Sprintf("request [%+v] failed (%d) %s: %s", u.Request, u.Response.StatusCode, u.Response.Status, u.Body)
 }
 
 // RequestConstructionError is returned when there's an error assembling a request.
@@ -95,20 +96,23 @@ type Request struct {
 	sync     bool
 	timeout  time.Duration
 
+	// If true, put ns/<namespace> in path; if false, add "?namespace=<namespace>" as a query parameter
+	namespaceInPath bool
+
 	// output
 	err  error
 	body io.Reader
 }
 
 // NewRequest creates a new request with the core attributes.
-func NewRequest(client HTTPClient, verb string, baseURL *url.URL, codec runtime.Codec) *Request {
+func NewRequest(client HTTPClient, verb string, baseURL *url.URL, codec runtime.Codec, namespaceInPath bool) *Request {
 	return &Request{
-		client:  client,
-		verb:    verb,
-		baseURL: baseURL,
-		codec:   codec,
-
-		path: baseURL.Path,
+		client:          client,
+		verb:            verb,
+		baseURL:         baseURL,
+		codec:           codec,
+		namespaceInPath: namespaceInPath,
+		path:            baseURL.Path,
 	}
 }
 
@@ -135,8 +139,14 @@ func (r *Request) Namespace(namespace string) *Request {
 	if r.err != nil {
 		return r
 	}
+
 	if len(namespace) > 0 {
-		return r.setParam("namespace", namespace)
+		if r.namespaceInPath {
+			return r.Path("ns").Path(namespace)
+		} else {
+			return r.setParam("namespace", namespace)
+		}
+
 	}
 	return r
 }
@@ -241,7 +251,7 @@ func (r *Request) Body(obj interface{}) *Request {
 		}
 		r.body = bytes.NewBuffer(data)
 	default:
-		r.err = fmt.Errorf("unknown type used for body: %#v", obj)
+		r.err = fmt.Errorf("unknown type used for body: %+v", obj)
 	}
 	return r
 }
@@ -298,6 +308,9 @@ func (r *Request) Watch() (watch.Interface, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		if isProbableEOF(err) {
+			return watch.NewEmptyWatch(), nil
+		}
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -305,9 +318,28 @@ func (r *Request) Watch() (watch.Interface, error) {
 		if resp.Body != nil {
 			body, _ = ioutil.ReadAll(resp.Body)
 		}
-		return nil, fmt.Errorf("for request '%v', got status: %v\nbody: %v", req.URL, resp.StatusCode, string(body))
+		return nil, fmt.Errorf("for request '%+v', got status: %v\nbody: %v", req.URL, resp.StatusCode, string(body))
 	}
 	return watch.NewStreamWatcher(watchjson.NewDecoder(resp.Body, r.codec)), nil
+}
+
+// isProbableEOF returns true if the given error resembles a connection termination
+// scenario that would justify assuming that the watch is empty. The watch stream
+// mechanism handles many common partial data errors, so closed connections can be
+// retried in many cases.
+func isProbableEOF(err error) bool {
+	if uerr, ok := err.(*url.Error); ok {
+		err = uerr.Err
+	}
+	switch {
+	case err == io.EOF:
+		return true
+	case err.Error() == "http: can't write HTTP request on broken connection":
+		return true
+	case strings.Contains(err.Error(), "connection reset by peer"):
+		return true
+	}
+	return false
 }
 
 // Stream formats and executes the request, and offers streaming of the response.

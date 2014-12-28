@@ -45,7 +45,9 @@ type DockerInterface interface {
 	StopContainer(id string, timeout uint) error
 	RemoveContainer(opts docker.RemoveContainerOptions) error
 	InspectImage(image string) (*docker.Image, error)
+	ListImages(opts docker.ListImagesOptions) ([]docker.APIImages, error)
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
+	RemoveImage(image string) error
 	Logs(opts docker.LogsOptions) error
 	Version() (*docker.Env, error)
 	CreateExec(docker.CreateExecOptions) (*docker.Exec, error)
@@ -92,8 +94,8 @@ type dockerContainerCommandRunner struct {
 	client DockerInterface
 }
 
-// The first version of docker that supports exec natively is 1.1.3
-var dockerVersionWithExec = []uint{1, 1, 3}
+// The first version of docker that supports exec natively is 1.3.0 == API 1.15
+var dockerAPIVersionWithExec = []uint{1, 15}
 
 // Returns the major and minor version numbers of docker server.
 func (d *dockerContainerCommandRunner) getDockerServerVersion() ([]uint, error) {
@@ -103,7 +105,7 @@ func (d *dockerContainerCommandRunner) getDockerServerVersion() ([]uint, error) 
 	}
 	version := []uint{}
 	for _, entry := range *env {
-		if strings.Contains(strings.ToLower(entry), "server version") {
+		if strings.Contains(strings.ToLower(entry), "apiversion") || strings.Contains(strings.ToLower(entry), "api version") {
 			elems := strings.Split(strings.Split(entry, "=")[1], ".")
 			for _, elem := range elems {
 				val, err := strconv.ParseUint(elem, 10, 32)
@@ -123,10 +125,10 @@ func (d *dockerContainerCommandRunner) nativeExecSupportExists() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(dockerVersionWithExec) != len(version) {
-		return false, fmt.Errorf("unexpected docker version format. Expecting %v format, got %v", dockerVersionWithExec, version)
+	if len(dockerAPIVersionWithExec) != len(version) {
+		return false, fmt.Errorf("unexpected docker version format. Expecting %v format, got %v", dockerAPIVersionWithExec, version)
 	}
-	for idx, val := range dockerVersionWithExec {
+	for idx, val := range dockerAPIVersionWithExec {
 		if version[idx] < val {
 			return false, nil
 		}
@@ -182,7 +184,7 @@ func (d *dockerContainerCommandRunner) RunInContainer(containerID string, cmd []
 	}
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- d.client.StartExec(execObj.Id, startOpts)
+		errChan <- d.client.StartExec(execObj.ID, startOpts)
 	}()
 	wrBuf.Flush()
 	return buf.Bytes(), <-errChan
@@ -222,8 +224,7 @@ func (p throttledDockerPuller) Pull(image string) error {
 	return fmt.Errorf("pull QPS exceeded.")
 }
 
-func (p dockerPuller) IsImagePresent(name string) (bool, error) {
-	image, _ := parseImageName(name)
+func (p dockerPuller) IsImagePresent(image string) (bool, error) {
 	_, err := p.client.InspectImage(image)
 	if err == nil {
 		return true, nil
@@ -390,25 +391,34 @@ func inspectContainer(client DockerInterface, dockerID, containerName, tPath str
 
 	glog.V(3).Infof("Container inspect result: %+v", *inspectResult)
 	containerStatus := api.ContainerStatus{
-		Image: inspectResult.Config.Image,
+		Image:       inspectResult.Config.Image,
+		ContainerID: "docker://" + dockerID,
 	}
 
 	waiting := true
 	if inspectResult.State.Running {
 		containerStatus.State.Running = &api.ContainerStateRunning{
-			StartedAt: inspectResult.State.StartedAt,
+			StartedAt: util.NewTime(inspectResult.State.StartedAt),
 		}
 		if containerName == "net" && inspectResult.NetworkSettings != nil {
 			containerStatus.PodIP = inspectResult.NetworkSettings.IPAddress
 		}
 		waiting = false
 	} else if !inspectResult.State.FinishedAt.IsZero() {
-		// TODO(dchen1107): Integrate with event to provide a better reason
+		reason := ""
+		// Note: An application might handle OOMKilled gracefully.
+		// In that case, the container is oom killed, but the exit
+		// code could be 0.
+		if inspectResult.State.OOMKilled {
+			reason = "OOM Killed"
+		} else {
+			reason = inspectResult.State.Error
+		}
 		containerStatus.State.Termination = &api.ContainerStateTerminated{
 			ExitCode:   inspectResult.State.ExitCode,
-			Reason:     "",
-			StartedAt:  inspectResult.State.StartedAt,
-			FinishedAt: inspectResult.State.FinishedAt,
+			Reason:     reason,
+			StartedAt:  util.NewTime(inspectResult.State.StartedAt),
+			FinishedAt: util.NewTime(inspectResult.State.FinishedAt),
 		}
 		if tPath != "" {
 			path, found := inspectResult.Volumes[tPath]
@@ -611,4 +621,22 @@ func parseImageName(image string) (string, string) {
 
 type ContainerCommandRunner interface {
 	RunInContainer(containerID string, cmd []string) ([]byte, error)
+}
+
+func GetUnusedImages(client DockerInterface) ([]string, error) {
+	// IMPORTANT: this is _unsafe_ to do while there are active pulls
+	// See https://github.com/docker/docker/issues/8926 for details
+	images, err := client.ListImages(docker.ListImagesOptions{
+		Filters: map[string][]string{
+			"dangling": {"true"},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, len(images))
+	for ix := range images {
+		result[ix] = images[ix].ID
+	}
+	return result, nil
 }

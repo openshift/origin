@@ -26,6 +26,8 @@ func (re *RawExtension) UnmarshalJSON(in []byte) error {
 	return nil
 }
 
-func (re *RawExtension) MarshalJSON() ([]byte, error) {
+// Marshal may get called on pointers or values, so implement MarshalJSON on value.
+// http://stackoverflow.com/questions/21390979/custom-marshaljson-never-gets-called-in-go
+func (re RawExtension) MarshalJSON() ([]byte, error) {
 	return re.RawJSON, nil
 }

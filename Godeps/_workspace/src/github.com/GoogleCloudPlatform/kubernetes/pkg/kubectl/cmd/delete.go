@@ -55,9 +55,11 @@ Examples:
   <delete a pod with ID 1234-56-7890-234234-456456>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			filename := GetFlagString(cmd, "filename")
+			schema, err := f.Validator(cmd)
+			checkErr(err)
 			selector := GetFlagString(cmd, "selector")
 			found := 0
-			ResourcesFromArgsOrFile(cmd, args, filename, selector, f.Typer, f.Mapper, f.Client).Visit(func(r *ResourceInfo) error {
+			ResourcesFromArgsOrFile(cmd, args, filename, selector, f.Typer, f.Mapper, f.Client, schema).Visit(func(r *ResourceInfo) error {
 				found++
 				if err := kubectl.NewRESTHelper(r.Client, r.Mapping).Delete(r.Namespace, r.Name); err != nil {
 					return err

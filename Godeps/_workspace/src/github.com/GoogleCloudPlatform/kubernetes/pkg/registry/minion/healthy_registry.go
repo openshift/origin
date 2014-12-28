@@ -20,6 +20,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/health"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
 )
@@ -36,8 +38,11 @@ func NewHealthyRegistry(delegate Registry, client client.KubeletHealthChecker) R
 	}
 }
 
-func (r *HealthyRegistry) GetMinion(ctx api.Context, minionID string) (*api.Minion, error) {
+func (r *HealthyRegistry) GetMinion(ctx api.Context, minionID string) (*api.Node, error) {
 	minion, err := r.delegate.GetMinion(ctx, minionID)
+	if err != nil {
+		return minion, err
+	}
 	if minion == nil {
 		return nil, ErrDoesNotExist
 	}
@@ -58,16 +63,16 @@ func (r *HealthyRegistry) DeleteMinion(ctx api.Context, minionID string) error {
 	return r.delegate.DeleteMinion(ctx, minionID)
 }
 
-func (r *HealthyRegistry) CreateMinion(ctx api.Context, minion *api.Minion) error {
+func (r *HealthyRegistry) CreateMinion(ctx api.Context, minion *api.Node) error {
 	return r.delegate.CreateMinion(ctx, minion)
 }
 
-func (r *HealthyRegistry) UpdateMinion(ctx api.Context, minion *api.Minion) error {
+func (r *HealthyRegistry) UpdateMinion(ctx api.Context, minion *api.Node) error {
 	return r.delegate.UpdateMinion(ctx, minion)
 }
 
-func (r *HealthyRegistry) ListMinions(ctx api.Context) (currentMinions *api.MinionList, err error) {
-	result := &api.MinionList{}
+func (r *HealthyRegistry) ListMinions(ctx api.Context) (currentMinions *api.NodeList, err error) {
+	result := &api.NodeList{}
 	list, err := r.delegate.ListMinions(ctx)
 	if err != nil {
 		return result, err
@@ -85,4 +90,8 @@ func (r *HealthyRegistry) ListMinions(ctx api.Context) (currentMinions *api.Mini
 		}
 	}
 	return result, nil
+}
+
+func (r *HealthyRegistry) WatchMinions(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.delegate.WatchMinions(ctx, label, field, resourceVersion)
 }

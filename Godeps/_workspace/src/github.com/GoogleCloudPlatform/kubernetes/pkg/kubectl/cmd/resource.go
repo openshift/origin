@@ -26,6 +26,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -142,11 +143,12 @@ func ResourcesFromArgsOrFile(
 	typer runtime.ObjectTyper,
 	mapper meta.RESTMapper,
 	clientBuilder func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.RESTClient, error),
+	schema validation.Schema,
 ) ResourceVisitor {
 
 	// handling filename & resource id
 	if len(selector) == 0 {
-		mapping, namespace, name := ResourceFromArgsOrFile(cmd, args, filename, typer, mapper)
+		mapping, namespace, name := ResourceFromArgsOrFile(cmd, args, filename, typer, mapper, schema)
 		client, err := clientBuilder(cmd, mapping)
 		checkErr(err)
 
@@ -185,7 +187,7 @@ func ResourcesFromArgsOrFile(
 // ResourceFromArgsOrFile expects two arguments or a valid file with a given type, and extracts
 // the fields necessary to uniquely locate a resource. Displays a usageError if that contract is
 // not satisfied, or a generic error if any other problems occur.
-func ResourceFromArgsOrFile(cmd *cobra.Command, args []string, filename string, typer runtime.ObjectTyper, mapper meta.RESTMapper) (mapping *meta.RESTMapping, namespace, name string) {
+func ResourceFromArgsOrFile(cmd *cobra.Command, args []string, filename string, typer runtime.ObjectTyper, mapper meta.RESTMapper, schema validation.Schema) (mapping *meta.RESTMapping, namespace, name string) {
 	// If command line args are passed in, use those preferentially.
 	if len(args) > 0 && len(args) != 2 {
 		usageError(cmd, "If passing in command line parameters, must be resource and name")
@@ -214,7 +216,7 @@ func ResourceFromArgsOrFile(cmd *cobra.Command, args []string, filename string, 
 		usageError(cmd, "Must specify filename or command line params")
 	}
 
-	mapping, namespace, name, _ = ResourceFromFile(filename, typer, mapper)
+	mapping, namespace, name, _ = ResourceFromFile(filename, typer, mapper, schema)
 	if len(name) == 0 {
 		checkErr(fmt.Errorf("the resource in the provided file has no name (or ID) defined"))
 	}
@@ -278,7 +280,7 @@ func ResourceOrTypeFromArgs(cmd *cobra.Command, args []string, mapper meta.RESTM
 // ResourceFromFile retrieves the name and namespace from a valid file. If the file does not
 // resolve to a known type an error is returned. The returned mapping can be used to determine
 // the correct REST endpoint to modify this resource with.
-func ResourceFromFile(filename string, typer runtime.ObjectTyper, mapper meta.RESTMapper) (mapping *meta.RESTMapping, namespace, name string, data []byte) {
+func ResourceFromFile(filename string, typer runtime.ObjectTyper, mapper meta.RESTMapper, schema validation.Schema) (mapping *meta.RESTMapping, namespace, name string, data []byte) {
 	configData, err := ReadConfigData(filename)
 	checkErr(err)
 	data = configData
@@ -290,6 +292,9 @@ func ResourceFromFile(filename string, typer runtime.ObjectTyper, mapper meta.RE
 	if len(version) == 0 {
 		checkErr(fmt.Errorf("the resource in the provided file has no apiVersion defined"))
 	}
+
+	err = schema.ValidateBytes(data)
+	checkErr(err)
 
 	mapping, err = mapper.RESTMapping(version, kind)
 	checkErr(err)

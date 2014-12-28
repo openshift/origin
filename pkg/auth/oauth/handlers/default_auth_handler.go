@@ -44,7 +44,7 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 	}
 
 	if client.RespondWithChallenges {
-		var errors kutil.ErrorList
+		errors := []error{}
 		headers := http.Header(make(map[string][]string))
 		for _, challengingHandler := range authHandler.challengers {
 			currHeaders, err := challengingHandler.AuthenticationChallenge(req)
@@ -62,42 +62,40 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 			w.WriteHeader(http.StatusUnauthorized)
 			return true, nil
 
-		} else {
-			return false, errors.ToError()
+		}
+		return false, kutil.SliceToError(errors)
+
+	}
+
+	redirectHandlerName := req.URL.Query().Get("useRedirectHandler")
+
+	if len(redirectHandlerName) > 0 {
+		redirectHandler := authHandler.redirectors[redirectHandlerName]
+		if redirectHandler == nil {
+			return false, fmt.Errorf("Unable to locate redirect handler: %v", redirectHandlerName)
 		}
 
-	} else {
-		redirectHandlerName := req.URL.Query().Get("useRedirectHandler")
+		err := redirectHandler.AuthenticationRedirect(w, req)
+		if err != nil {
+			return authHandler.errorHandler.AuthenticationError(err, w, req)
+		}
+		return true, nil
 
-		if len(redirectHandlerName) > 0 {
-			redirectHandler := authHandler.redirectors[redirectHandlerName]
-			if redirectHandler == nil {
-				return false, fmt.Errorf("Unable to locate redirect handler: %v", redirectHandlerName)
-			}
+	}
 
+	if (len(authHandler.redirectors)) == 1 {
+		// there has to be a better way
+		for _, redirectHandler := range authHandler.redirectors {
 			err := redirectHandler.AuthenticationRedirect(w, req)
 			if err != nil {
 				return authHandler.errorHandler.AuthenticationError(err, w, req)
 			}
 			return true, nil
-
-		} else {
-			if (len(authHandler.redirectors)) == 1 {
-				// there has to be a better way
-				for _, redirectHandler := range authHandler.redirectors {
-					err := redirectHandler.AuthenticationRedirect(w, req)
-					if err != nil {
-						return authHandler.errorHandler.AuthenticationError(err, w, req)
-					}
-					return true, nil
-				}
-			} else if len(authHandler.redirectors) > 1 {
-				// TODO this clearly doesn't work right.  There should probably be a redirect to an interstitial page.
-				// however, this is just as good as we have now.
-				return false, fmt.Errorf("Too many potential redirect handlers: %v", authHandler.redirectors)
-			}
-
 		}
+	} else if len(authHandler.redirectors) > 1 {
+		// TODO this clearly doesn't work right.  There should probably be a redirect to an interstitial page.
+		// however, this is just as good as we have now.
+		return false, fmt.Errorf("Too many potential redirect handlers: %v", authHandler.redirectors)
 	}
 
 	return false, nil

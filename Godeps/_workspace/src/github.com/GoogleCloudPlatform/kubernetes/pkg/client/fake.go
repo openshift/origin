@@ -39,7 +39,7 @@ type Fake struct {
 	Ctrl          api.ReplicationController
 	ServiceList   api.ServiceList
 	EndpointsList api.EndpointsList
-	MinionsList   api.MinionList
+	MinionsList   api.NodeList
 	EventsList    api.EventList
 	Err           error
 	Watch         watch.Interface
@@ -49,8 +49,8 @@ func (c *Fake) ReplicationControllers(namespace string) ReplicationControllerInt
 	return &FakeReplicationControllers{Fake: c, Namespace: namespace}
 }
 
-func (c *Fake) Minions() MinionInterface {
-	return &FakeMinions{Fake: c}
+func (c *Fake) Nodes() NodeInterface {
+	return &FakeNodes{Fake: c}
 }
 
 func (c *Fake) Events(namespace string) EventInterface {
@@ -96,16 +96,16 @@ type FakeRESTClient struct {
 }
 
 func (c *FakeRESTClient) Get() *Request {
-	return NewRequest(c, "GET", &url.URL{Host: "localhost"}, c.Codec)
+	return NewRequest(c, "GET", &url.URL{Host: "localhost"}, c.Codec, true)
 }
 func (c *FakeRESTClient) Put() *Request {
-	return NewRequest(c, "PUT", &url.URL{Host: "localhost"}, c.Codec)
+	return NewRequest(c, "PUT", &url.URL{Host: "localhost"}, c.Codec, true)
 }
 func (c *FakeRESTClient) Post() *Request {
-	return NewRequest(c, "POST", &url.URL{Host: "localhost"}, c.Codec)
+	return NewRequest(c, "POST", &url.URL{Host: "localhost"}, c.Codec, true)
 }
 func (c *FakeRESTClient) Delete() *Request {
-	return NewRequest(c, "DELETE", &url.URL{Host: "localhost"}, c.Codec)
+	return NewRequest(c, "DELETE", &url.URL{Host: "localhost"}, c.Codec, true)
 }
 func (c *FakeRESTClient) Do(req *http.Request) (*http.Response, error) {
 	c.Req = req

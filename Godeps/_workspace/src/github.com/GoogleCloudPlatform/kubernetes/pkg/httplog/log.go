@@ -63,7 +63,7 @@ type passthroughLogger struct{}
 
 // Addf logs info immediately.
 func (passthroughLogger) Addf(format string, data ...interface{}) {
-	glog.Infof(format, data...)
+	glog.InfoDepth(1, fmt.Sprintf(format, data...))
 }
 
 // DefaultStacktracePred is the default implementation of StacktracePred.
@@ -148,7 +148,9 @@ func (rl *respLogger) Addf(format string, data ...interface{}) {
 // Log is intended to be called once at the end of your request handler, via defer
 func (rl *respLogger) Log() {
 	latency := time.Since(rl.startTime)
-	glog.V(2).Infof("%s %s: (%v) %v%v%v", rl.req.Method, rl.req.RequestURI, latency, rl.status, rl.statusStack, rl.addedInfo)
+	if glog.V(2) {
+		glog.InfoDepth(1, fmt.Sprintf("%s %s: (%v) %v%v%v", rl.req.Method, rl.req.RequestURI, latency, rl.status, rl.statusStack, rl.addedInfo))
+	}
 }
 
 // Header implements http.ResponseWriter.
@@ -166,8 +168,8 @@ func (rl *respLogger) Write(b []byte) (int, error) {
 func (rl *respLogger) Flush() {
 	if flusher, ok := rl.w.(http.Flusher); ok {
 		flusher.Flush()
-	} else {
-		glog.V(2).Infof("Unable to convert %v into http.Flusher", rl.w)
+	} else if glog.V(2) {
+		glog.InfoDepth(1, fmt.Sprintf("Unable to convert %+v into http.Flusher", rl.w))
 	}
 }
 

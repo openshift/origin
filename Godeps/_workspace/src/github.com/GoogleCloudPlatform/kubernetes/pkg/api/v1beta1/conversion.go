@@ -34,6 +34,10 @@ func init() {
 	newer.Scheme.AddStructFieldConversion(newer.ObjectMeta{}, "ObjectMeta", TypeMeta{}, "TypeMeta")
 	newer.Scheme.AddStructFieldConversion(newer.ListMeta{}, "ListMeta", TypeMeta{}, "TypeMeta")
 
+	// TODO: scope this to a specific type once that becomes available and remove the Event conversion functions below
+	// newer.Scheme.AddStructFieldConversion(string(""), "Status", string(""), "Condition")
+	// newer.Scheme.AddStructFieldConversion(string(""), "Condition", string(""), "Status")
+
 	newer.Scheme.AddConversionFuncs(
 		// TypeMeta must be split into two objects
 		func(in *newer.TypeMeta, out *TypeMeta, s conversion.Scope) error {
@@ -137,7 +141,7 @@ func init() {
 		},
 
 		// MinionList.Items had a wrong name in v1beta1
-		func(in *newer.MinionList, out *MinionList, s conversion.Scope) error {
+		func(in *newer.NodeList, out *MinionList, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -150,7 +154,7 @@ func init() {
 			out.Minions = out.Items
 			return nil
 		},
-		func(in *MinionList, out *newer.MinionList, s conversion.Scope) error {
+		func(in *MinionList, out *newer.NodeList, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -176,6 +180,7 @@ func init() {
 			if err := s.Convert(&in.Info, &out.Info, 0); err != nil {
 				return err
 			}
+			out.Message = in.Message
 			out.Host = in.Host
 			out.HostIP = in.HostIP
 			out.PodIP = in.PodIP
@@ -189,9 +194,24 @@ func init() {
 				return err
 			}
 
+			out.Message = in.Message
 			out.Host = in.Host
 			out.HostIP = in.HostIP
 			out.PodIP = in.PodIP
+			return nil
+		},
+		func(in *newer.PodSpec, out *PodState, s conversion.Scope) error {
+			if err := s.Convert(&in, &out.Manifest, 0); err != nil {
+				return err
+			}
+			out.Host = in.Host
+			return nil
+		},
+		func(in *PodState, out *newer.PodSpec, s conversion.Scope) error {
+			if err := s.Convert(&in.Manifest, &out, 0); err != nil {
+				return err
+			}
+			out.Host = in.Host
 			return nil
 		},
 
@@ -205,9 +225,11 @@ func init() {
 			case newer.PodRunning:
 				*out = PodRunning
 			case newer.PodSucceeded:
-				*out = PodTerminated
+				*out = PodSucceeded
 			case newer.PodFailed:
 				*out = PodTerminated
+			case newer.PodUnknown:
+				*out = PodUnknown
 			default:
 				return errors.New("The string provided is not a valid PodPhase constant value")
 			}
@@ -226,6 +248,10 @@ func init() {
 			case PodTerminated:
 				// Older API versions did not contain enough info to map to PodSucceeded
 				*out = newer.PodFailed
+			case PodSucceeded:
+				*out = newer.PodSucceeded
+			case PodUnknown:
+				*out = newer.PodUnknown
 			default:
 				return errors.New("The string provided is not a valid PodPhase constant value")
 			}
@@ -247,6 +273,7 @@ func init() {
 			if err := s.Convert(&in.Spec, &out.DesiredState.Manifest, 0); err != nil {
 				return err
 			}
+			out.DesiredState.Host = in.Spec.Host
 			if err := s.Convert(&in.Status, &out.CurrentState, 0); err != nil {
 				return err
 			}
@@ -268,6 +295,7 @@ func init() {
 			if err := s.Convert(&in.DesiredState.Manifest, &out.Spec, 0); err != nil {
 				return err
 			}
+			out.Spec.Host = in.DesiredState.Host
 			if err := s.Convert(&in.CurrentState, &out.Status, 0); err != nil {
 				return err
 			}
@@ -343,6 +371,7 @@ func init() {
 			if err := s.Convert(&in.Spec, &out.DesiredState.Manifest, 0); err != nil {
 				return err
 			}
+			out.DesiredState.Host = in.Spec.Host
 			if err := s.Convert(&in.ObjectMeta.Labels, &out.Labels, 0); err != nil {
 				return err
 			}
@@ -352,6 +381,7 @@ func init() {
 			if err := s.Convert(&in.DesiredState.Manifest, &out.Spec, 0); err != nil {
 				return err
 			}
+			out.Spec.Host = in.DesiredState.Host
 			if err := s.Convert(&in.Labels, &out.ObjectMeta.Labels, 0); err != nil {
 				return err
 			}
@@ -418,6 +448,10 @@ func init() {
 			out.ContainerPort = in.Spec.ContainerPort
 			out.PortalIP = in.Spec.PortalIP
 			out.ProxyPort = in.Spec.ProxyPort
+			if err := s.Convert(&in.Spec.SessionAffinity, &out.SessionAffinity, 0); err != nil {
+				return err
+			}
+
 			return nil
 		},
 		func(in *Service, out *newer.Service, s conversion.Scope) error {
@@ -441,10 +475,14 @@ func init() {
 			out.Spec.ContainerPort = in.ContainerPort
 			out.Spec.PortalIP = in.PortalIP
 			out.Spec.ProxyPort = in.ProxyPort
+			if err := s.Convert(&in.SessionAffinity, &out.Spec.SessionAffinity, 0); err != nil {
+				return err
+			}
+
 			return nil
 		},
 
-		func(in *newer.Minion, out *Minion, s conversion.Scope) error {
+		func(in *newer.Node, out *Minion, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -454,11 +492,17 @@ func init() {
 			if err := s.Convert(&in.ObjectMeta.Labels, &out.Labels, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.Status.Phase, &out.Status.Phase, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status.Conditions, &out.Status.Conditions, 0); err != nil {
+				return err
+			}
 
 			out.HostIP = in.Status.HostIP
 			return s.Convert(&in.Spec.Capacity, &out.NodeResources.Capacity, 0)
 		},
-		func(in *Minion, out *newer.Minion, s conversion.Scope) error {
+		func(in *Minion, out *newer.Node, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -466,6 +510,12 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.Labels, &out.ObjectMeta.Labels, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status.Phase, &out.Status.Phase, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status.Conditions, &out.Status.Conditions, 0); err != nil {
 				return err
 			}
 
@@ -486,7 +536,6 @@ func init() {
 			return nil
 		},
 		func(in *newer.ObjectReference, out *ObjectReference, s conversion.Scope) error {
-			out.ID = in.Name
 			out.Kind = in.Kind
 			out.Namespace = in.Namespace
 			out.ID = in.Name
@@ -495,6 +544,37 @@ func init() {
 			out.ResourceVersion = in.ResourceVersion
 			out.FieldPath = in.FieldPath
 			return nil
+		},
+
+		// Event Status -> Condition
+		// TODO: remove this when it becomes possible to specify a field name conversion on a specific type
+		func(in *newer.Event, out *Event, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			out.Status = in.Condition
+			out.Reason = in.Reason
+			out.Message = in.Message
+			out.Source = in.Source
+			out.Timestamp = in.Timestamp
+			return s.Convert(&in.InvolvedObject, &out.InvolvedObject, 0)
+		},
+		func(in *Event, out *newer.Event, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			out.Condition = in.Status
+			out.Reason = in.Reason
+			out.Message = in.Message
+			out.Source = in.Source
+			out.Timestamp = in.Timestamp
+			return s.Convert(&in.InvolvedObject, &out.InvolvedObject, 0)
 		},
 	)
 }
