@@ -5,6 +5,18 @@ This is a set of configuration files and scripts which work with OpenShift 3 to 
 
 This example assumes you have successfully built the `openshift` binary executable and have Docker installed/working.  See https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
+Setup
+-----
+Before running these steps, you'll need to configure the docker daemon on your host to trust the docker registry service you'll be starting.
+
+To do this, you need to add "--insecure-registry 172.30.17.0/24" to the docker daemon invocation, eg:
+        
+        $ docker -d --insecure-registry 172.30.17.0/24
+
+If you are running docker as a service via systemd, you can add this argument to the options value in `/etc/sysconfig/docker`
+
+This will instruct the docker daemon to trust any docker registry on the 172.30.17.0/24 subnet, rather than requiring a certificate.
+
 
 Application Build, Deploy, and Update Flow
 ------------------------------------------
