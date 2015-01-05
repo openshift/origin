@@ -28,7 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "instance_name"     => "origin-dev",
       "os"                => "fedora",
       "dev_cluster"       => false,
-      "num_minions"       => 2,
+      "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
       "rebuild_yum_cache" => false,
       "cpus"              => 2,
       "memory"            => 1024,
