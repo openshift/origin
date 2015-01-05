@@ -2,6 +2,7 @@ package app
 
 import (
 	"log"
+	"net/url"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -46,10 +47,11 @@ func TestWithType(t *testing.T) {
 }
 
 func TestSimpleBuildConfig(t *testing.T) {
-	source, err := SourceRefForGitURL("https://github.com/openshift/origin.git")
+	url, err := url.Parse("https://github.com/openshift/origin.git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	source := &SourceRef{URL: url}
 	build := &BuildRef{Source: source}
 	config, err := build.BuildConfig()
 	if err != nil {
@@ -72,12 +74,12 @@ func TestSimpleBuildConfig(t *testing.T) {
 
 func TestSimpleDeploymentConfig(t *testing.T) {
 	image := &ImageRef{Registry: "myregistry", Namespace: "openshift", Name: "origin"}
-	deploy := &DeploymentConfigRef{Images: []*ImageRef{image}}
+	deploy := &DeploymentConfigRef{Images: []*ImageInfo{{ImageRef: image}}}
 	config, err := deploy.DeploymentConfig()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.PodTemplate.DesiredState.Manifest.Containers[0].Image != image.pullSpec() {
+	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.Template.Spec.Containers[0].Image != image.pullSpec() {
 		t.Errorf("unexpected value: %#v", config)
 	}
 }
@@ -87,7 +89,8 @@ func ExampleGenerateSimpleDockerApp() {
 	// TODO: determine whether we want to clone this repo, or use it directly. Using it directly would require setting hooks
 	// if we have source, assume we are going to go into a build flow.
 	// TODO: get info about git url: does this need STI?
-	source, _ := SourceRefForGitURL("https://github.com/openshift/origin.git")
+	url, _ := url.Parse("https://github.com/openshift/origin.git")
+	source := &SourceRef{URL: url}
 	// generate a local name for the repo
 	name, _ := source.SuggestName()
 	// BUG: an image repo (if we want to create one) needs to tell other objects its pullspec, but we don't know what that will be
@@ -100,19 +103,21 @@ func ExampleGenerateSimpleDockerApp() {
 	// TODO: we might need to pick a base image if this is STI
 	build := &BuildRef{Source: source, Output: output}
 	// take the output image and wire it into a deployment config
-	deploy := &DeploymentConfigRef{[]*ImageRef{output}}
+	deploy := &DeploymentConfigRef{[]*ImageInfo{{ImageRef: output}}}
 
 	outputRepo, _ := output.ImageRepository()
 	buildConfig, _ := build.BuildConfig()
 	deployConfig, _ := deploy.DeploymentConfig()
+	items := []runtime.Object{
+		outputRepo,
+		buildConfig,
+		deployConfig,
+	}
+	rawItems := []runtime.RawExtension{}
+	kapi.Scheme.Convert(items, &rawItems)
 
 	out := &config.Config{
-		Items: []runtime.Object{
-			// TODO: source.Repository() if we are going to clone this source
-			outputRepo,
-			buildConfig,
-			deployConfig,
-		},
+		Items: rawItems,
 	}
 
 	data, err := latest.Codec.Encode(out)
