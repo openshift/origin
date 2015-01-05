@@ -39,7 +39,8 @@ frontend public_ssl
   mode tcp
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
-  use_backend be_sni_%[hdr(host),map(/var/lib/haproxy/conf/host_be_sni.map)] if { ssl_fc_has_sni }
+  # check if there is an sni header that matches those that want an sni based passthrough
+  use_backend be_sni_%[req_ssl_sni,map(/var/lib/haproxy/conf/host_be_sni.map)] if TRUE
   default_backend be_no_sni
 
 ##------------- helper frontends/backends to dissect ssl/sni ----
