@@ -13,6 +13,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 var (
@@ -24,6 +25,7 @@ var (
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST VERSION"}
+	parameterColumns        = []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}
 )
 
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
@@ -44,7 +46,22 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(deploymentColumns, printDeploymentList)
 	p.Handler(deploymentConfigColumns, printDeploymentConfig)
 	p.Handler(deploymentConfigColumns, printDeploymentConfigList)
+	p.Handler(parameterColumns, printParameters)
 	return p
+}
+
+func printParameters(t *templateapi.Template, w io.Writer) error {
+	for _, p := range t.Parameters {
+		value := p.Value
+		if len(p.Generate) != 0 {
+			value = p.From
+		}
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", p.Name, p.Description, p.Generate, value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func printBuild(build *buildapi.Build, w io.Writer) error {
