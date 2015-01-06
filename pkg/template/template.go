@@ -84,8 +84,8 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.Val
 
 // AddParameter adds new custom parameter to the Template. It overrides
 // the existing parameter, if already defined.
-func (p *Processor) AddParameter(t *api.Template, param api.Parameter) {
-	if existing := p.GetParameterByName(t, param.Name); existing != nil {
+func AddParameter(t *api.Template, param api.Parameter) {
+	if existing := GetParameterByName(t, param.Name); existing != nil {
 		*existing = param
 	} else {
 		t.Parameters = append(t.Parameters, param)
@@ -94,7 +94,7 @@ func (p *Processor) AddParameter(t *api.Template, param api.Parameter) {
 
 // GetParameterByName searches for a Parameter in the Template
 // based on it's name.
-func (p *Processor) GetParameterByName(t *api.Template, name string) *api.Parameter {
+func GetParameterByName(t *api.Template, name string) *api.Parameter {
 	for i, param := range t.Parameters {
 		if param.Name == name {
 			return &(t.Parameters[i])

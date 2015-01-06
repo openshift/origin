@@ -38,11 +38,10 @@ func TestAddParameter(t *testing.T) {
 	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
 	json.Unmarshal(jsonData, &template)
 
-	processor := NewProcessor(nil)
-	processor.AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", ""))
-	processor.AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", ""))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", ""))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", ""))
 
-	if p := processor.GetParameterByName(&template, "CUSTOM_PARAM"); p == nil {
+	if p := GetParameterByName(&template, "CUSTOM_PARAM"); p == nil {
 		t.Errorf("Unable to add a custom parameter to the template")
 	} else {
 		if p.Value != "2" {
@@ -126,7 +125,7 @@ func ExampleProcessTemplateParameters() {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	processor.AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", ""))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", ""))
 
 	// Transform the template config into the result config
 	config, err := processor.Process(&template)
