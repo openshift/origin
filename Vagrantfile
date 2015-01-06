@@ -150,7 +150,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       creds_file_path = ENV['AWS_CREDS'].nil? || ENV['AWS_CREDS'] == '' ? "~/.awscred" : ENV['AWS_CREDS']
       if File.exist?(File.expand_path(creds_file_path))
         aws_creds_file = Pathname.new(File.expand_path(creds_file_path))
-        aws_creds      = aws_creds_file.exist? ? Hash[*(File.open(aws_creds_file.to_s).readlines.map{ |l| l.split('=') }.flatten.map{ |i| i.strip })] : {}
+        aws_creds      = aws_creds_file.exist? ? Hash[*(File.open(aws_creds_file.to_s).readlines.map{ |l| l.strip!
+                                                          l.split('=') }.flatten)] : {}
 
         override.vm.box               = "dummy"
         override.vm.box_url           = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
