@@ -17,6 +17,9 @@ angular.module('openshiftConsole')
   })  
   .filter('imageName', function() {
     return function(image) {
+      if (!image) {
+        return "";
+      }
       // TODO move this parsing method into a utility method
       var slashSplit = image.split("/");
       var semiColonSplit;

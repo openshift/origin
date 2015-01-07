@@ -27,6 +27,8 @@ module.exports = function(config) {
       'bower_components/angular-sanitize/angular-sanitize.js',
       'bower_components/angular-touch/angular-touch.js',
       'bower_components/jquery/dist/jquery.js',
+      'bower_components/js-logger/src/logger.js',
+      'bower_components/hawtio-core/hawtio-core.js',
       'app/scripts/**/*.js',
       //'test/mock/**/*.js',
       'test/spec/**/*.js'
