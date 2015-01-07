@@ -76,7 +76,7 @@ For these reasons, Docker-in-Docker is not considered a viable build strategy fo
 
 OpenShift also supports [Source-To-Images (sti)](https://github.com/openshift/geard/tree/master/cmd/sti) builds.
 
-Source-to-images (sti) is a tool for building reproducable Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. STI supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
+Source-to-images (sti) is a tool for building reproducible Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. STI supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
 
 ### Custom Builds
 
