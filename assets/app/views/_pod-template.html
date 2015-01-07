@@ -12,7 +12,7 @@
             <div class="pod-template-image">                              
               <h4>{{container.name}}</h4>
               <div>
-                <span class="font-icon icon-app-box" aria-hidden="true"></span>
+                <span class="fa fa-cube" aria-hidden="true"></span>
                 <span>Image: {{container.image | imageName}}
                   <span ng-if="imagesByDockerReference[container.image]"> (<a href="#" class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name.substr(0, 10)}}</a>)</span>
                 </span>
@@ -20,11 +20,11 @@
               <div ng-if="imagesByDockerReference && (image = imagesByDockerReference[container.image])">
                 <div ng-if="build = (image | buildForImage : builds)">
                   <div>
-                    <span class="font-icon icon-app-code" aria-hidden="true"></span>
+                    <span class="fa fa-refresh" aria-hidden="true"></span>
                     <span>Build: {{build.metadata.labels.buildconfig}} (<a href="#" class="small" title="{{build.metadata.name}}">{{build.metadata.name.substr(0, 10)}}</a>)</span>
                   </div>
                   <div ng-if="build.parameters.source">
-                    <span class="font-icon icon-code" aria-hidden="true"></span>
+                    <span class="fa fa-code" aria-hidden="true"></span>
                     <span>Source: 
                       <span ng-if="build.parameters.source.type == 'Git'">{{build.parameters.revision.git.message}}
                         <span ng-if="build.parameters.revision">

@@ -17,8 +17,8 @@ if [[ "${TRAVIS-}" == "true" && "${TEST_ASSETS-}" == "false" ]]; then
 fi
 
 pushd "${OS_ROOT}/assets" > /dev/null
-  bundle exec grunt test
-  bundle exec grunt build
+  grunt test
+  grunt build
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
@@ -29,10 +29,6 @@ pushd "${OS_ROOT}" > /dev/null
     pushd "${OS_ROOT}/assets" > /dev/null
 
       if [[ "${TRAVIS-}" == "true" ]]; then
-        echo ""
-        echo "Bundler versions..."
-        bundle list
-
         echo ""
         echo "Bower versions..."
         bower list -o

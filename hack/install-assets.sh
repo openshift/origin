@@ -28,7 +28,7 @@ fi
 
 # Lock version of npm to work around https://github.com/npm/npm/issues/6309
 if [[ "${TRAVIS-}" == "true" ]]; then
-  cmd "npm install npm@2.1.3" "npm.log"
+  cmd "npm install -g npm@2.1.14" "npm.log"
 fi
 
 # Install bower if needed
@@ -55,8 +55,6 @@ pushd ${OS_ROOT}/assets > /dev/null
   # In case upstream components change things without incrementing versions
   cmd "bower cache clean"
   cmd "bower install"
-
-  cmd "bundle install --path ${OS_ROOT}/assets/.bundle"
 popd > /dev/null
 
 pushd ${OS_ROOT}/Godeps/_workspace > /dev/null

@@ -1,0 +1,13 @@
+<div ng-controller="ProjectController">
+  <project-page>
+    <h1>Deployments</h1>
+    <div style="margin-bottom: 10px;" ng-repeat="deployment in deployments">
+      <h3>{{deployment.annotations.deploymentConfig}} <span class="small">({{deployment.id}})</span></h3>
+      <div>Created: <relative-timestamp timestamp="deployment.creationTimestamp"></relative-timestamp></div>
+      <div>Status: {{deployment.annotations.deploymentStatus}}</div>
+      <div>Version: {{deployment.annotations.deploymentVersion}}</div>
+      <div>Replicas: {{deployment.desiredState.replicas}}</div>
+      <pod-template ng-init="podTemplate = deployment.desiredState.podTemplate"></pod-template>
+    </div>      
+  </project-page>
+</div>

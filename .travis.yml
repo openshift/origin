@@ -13,9 +13,6 @@ matrix:
     - go: 1.4
       env: TEST_ASSETS=true
 
-before_install:
-  - ./hack/before-install-assets.sh
-
 install:
   - ./hack/verify-gofmt.sh
   - ./hack/install-etcd.sh
