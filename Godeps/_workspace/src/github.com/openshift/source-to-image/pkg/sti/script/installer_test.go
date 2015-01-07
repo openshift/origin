@@ -11,6 +11,7 @@ import (
 type FakeScriptHandler struct {
 	DownloadScripts     []string
 	DownloadWorkingDir  string
+	DownloadResult      bool
 	DownloadError       error
 	DetermineScript     string
 	DetermineWorkingDir string
@@ -20,10 +21,10 @@ type FakeScriptHandler struct {
 	InstallError        error
 }
 
-func (f *FakeScriptHandler) download(scripts []string, workingDir string) error {
+func (f *FakeScriptHandler) download(scripts []string, workingDir string) (bool, error) {
 	f.DownloadScripts = scripts
 	f.DownloadWorkingDir = workingDir
-	return f.DownloadError
+	return f.DownloadResult, f.DownloadError
 }
 
 func (f *FakeScriptHandler) getPath(script string, workingDir string) string {
@@ -48,6 +49,7 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 	tests := map[string]test{
 		"successRequired": {
 			handler: &FakeScriptHandler{
+				DownloadResult: true,
 				DetermineResult: map[string]string{
 					"one":   "one",
 					"two":   "two",
@@ -59,6 +61,7 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		},
 		"successOptional": {
 			handler: &FakeScriptHandler{
+				DownloadResult: true,
 				DetermineResult: map[string]string{
 					"one":   "one",
 					"two":   "",
@@ -70,13 +73,15 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		},
 		"downloadError": {
 			handler: &FakeScriptHandler{
-				DownloadError: err,
+				DownloadResult: false,
+				DownloadError:  err,
 			},
 			required:    true,
 			errExpected: true,
 		},
 		"errorRequired": {
 			handler: &FakeScriptHandler{
+				DownloadResult: true,
 				DetermineResult: map[string]string{
 					"one":   "one",
 					"two":   "two",
@@ -88,6 +93,7 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		},
 		"installError": {
 			handler: &FakeScriptHandler{
+				DownloadResult: true,
 				DetermineResult: map[string]string{
 					"one":   "one",
 					"two":   "two",
@@ -98,17 +104,29 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 			required:    true,
 			errExpected: true,
 		},
+		"noDownload": {
+			handler: &FakeScriptHandler{
+				DownloadResult: false,
+				DetermineResult: map[string]string{
+					"one":   "one",
+					"two":   "two",
+					"three": "three",
+				},
+			},
+			required:    false,
+			errExpected: false,
+		},
 	}
 
 	for desc, test := range tests {
 		sh := &installer{
 			handler: test.handler,
 		}
-		err := sh.DownloadAndInstall([]string{"one", "two", "three"}, "/test-working-dir", test.required)
+		_, err := sh.DownloadAndInstall([]string{"one", "two", "three"}, "/test-working-dir", test.required)
 		if !test.errExpected && err != nil {
 			t.Errorf("%s: Unexpected error: %v", desc, err)
 		} else if test.errExpected && err == nil {
-			t.Errorf("%s: Error expected. Got nil.")
+			t.Errorf("%s: Error expected. Got nil.", desc)
 		}
 		if !reflect.DeepEqual(sh.handler.(*FakeScriptHandler).DownloadScripts,
 			[]string{"one", "two", "three"}) {
@@ -122,7 +140,7 @@ func getScriptHandler() *handler {
 	return &handler{
 		docker:     &test.FakeDocker{},
 		image:      "test-image",
-		scriptsUrl: "http://the.scripts.url/scripts",
+		scriptsURL: "http://the.scripts.url/scripts",
 		downloader: &test.FakeDownloader{},
 		fs:         &test.FakeFileSystem{},
 	}
@@ -149,8 +167,8 @@ func equalArrayContents(a []string, b []string) bool {
 func TestDownload(t *testing.T) {
 	sh := getScriptHandler()
 	dl := sh.downloader.(*test.FakeDownloader)
-	sh.docker.(*test.FakeDocker).DefaultUrlResult = "http://image.url/scripts"
-	err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	sh.docker.(*test.FakeDocker).DefaultURLResult = "http://image.url/scripts"
+	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
@@ -191,7 +209,7 @@ func TestDownload(t *testing.T) {
 func TestDownloadErrors1(t *testing.T) {
 	sh := getScriptHandler()
 	dl := sh.downloader.(*test.FakeDownloader)
-	sh.docker.(*test.FakeDocker).DefaultUrlResult = "http://image.url/scripts"
+	sh.docker.(*test.FakeDocker).DefaultURLResult = "http://image.url/scripts"
 	dlErr := fmt.Errorf("Download Error")
 	dl.Err = map[string]error{
 		"http://the.scripts.url/scripts/one":   dlErr,
@@ -201,7 +219,7 @@ func TestDownloadErrors1(t *testing.T) {
 		"http://image.url/scripts/two":         dlErr,
 		"http://image.url/scripts/three":       nil,
 	}
-	err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -210,7 +228,7 @@ func TestDownloadErrors1(t *testing.T) {
 func TestDownloadErrors2(t *testing.T) {
 	sh := getScriptHandler()
 	dl := sh.downloader.(*test.FakeDownloader)
-	sh.docker.(*test.FakeDocker).DefaultUrlResult = "http://image.url/scripts"
+	sh.docker.(*test.FakeDocker).DefaultURLResult = "http://image.url/scripts"
 	dlErr := fmt.Errorf("Download Error")
 	dl.Err = map[string]error{
 		"http://the.scripts.url/scripts/one":   dlErr,
@@ -220,7 +238,7 @@ func TestDownloadErrors2(t *testing.T) {
 		"http://image.url/scripts/two":         dlErr,
 		"http://image.url/scripts/three":       nil,
 	}
-	err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
 	if err == nil {
 		t.Errorf("Expected an error because script could not be downloaded")
 	}
@@ -229,7 +247,7 @@ func TestDownloadErrors2(t *testing.T) {
 func TestDownloadChmodError(t *testing.T) {
 	sh := getScriptHandler()
 	fsErr := fmt.Errorf("Chmod Error")
-	sh.docker.(*test.FakeDocker).DefaultUrlResult = "http://image.url/scripts"
+	sh.docker.(*test.FakeDocker).DefaultURLResult = "http://image.url/scripts"
 	sh.fs.(*test.FakeFileSystem).ChmodError = map[string]error{
 		"/working-dir/downloads/scripts/one":          nil,
 		"/working-dir/downloads/scripts/two":          nil,
@@ -238,7 +256,7 @@ func TestDownloadChmodError(t *testing.T) {
 		"/working-dir/downloads/defaultScripts/two":   nil,
 		"/working-dir/downloads/defaultScripts/three": nil,
 	}
-	err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
 	if err == nil {
 		t.Errorf("Expected an error because chmod returned an error.")
 	}

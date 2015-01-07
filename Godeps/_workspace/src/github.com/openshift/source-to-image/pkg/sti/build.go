@@ -8,20 +8,20 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/sti/docker"
 	"github.com/openshift/source-to-image/pkg/sti/errors"
-	"github.com/openshift/source-to-image/pkg/sti/git"
 	"github.com/openshift/source-to-image/pkg/sti/util"
 )
 
+// Builder provides a simple Build interface
 type Builder struct {
 	handler buildHandlerInterface
 }
 
 type buildHandlerInterface interface {
 	cleanup()
-	setup(required []string, optional []string) error
+	setup(requiredScripts, optionalScripts []string) error
 	determineIncremental() error
-	Request() *STIRequest
-	Result() *STIResult
+	Request() *Request
+	Result() *Result
 	saveArtifacts() error
 	fetchSource() error
 	execute(command string) error
@@ -29,11 +29,11 @@ type buildHandlerInterface interface {
 
 type buildHandler struct {
 	*requestHandler
-	git             git.Git
 	callbackInvoker util.CallbackInvoker
 }
 
-func NewBuilder(req *STIRequest) (*Builder, error) {
+// NewBuilder returns a new Builder
+func NewBuilder(req *Request) (*Builder, error) {
 	handler, err := newBuildHandler(req)
 	if err != nil {
 		return nil, err
@@ -43,14 +43,13 @@ func NewBuilder(req *STIRequest) (*Builder, error) {
 	}, nil
 }
 
-func newBuildHandler(req *STIRequest) (*buildHandler, error) {
+func newBuildHandler(req *Request) (*buildHandler, error) {
 	rh, err := newRequestHandler(req)
 	if err != nil {
 		return nil, err
 	}
 	bh := &buildHandler{
 		requestHandler:  rh,
-		git:             git.NewGit(),
 		callbackInvoker: util.NewCallbackInvoker(),
 	}
 	rh.postExecutor = bh
@@ -61,7 +60,7 @@ func newBuildHandler(req *STIRequest) (*buildHandler, error) {
 // An error represents a failure performing the build rather than a failure
 // of the build itself.  Callers should check the Success field of the result
 // to determine whether a build succeeded or not.
-func (b *Builder) Build() (*STIResult, error) {
+func (b *Builder) Build() (*Result, error) {
 	bh := b.handler
 	defer bh.cleanup()
 
@@ -83,12 +82,9 @@ func (b *Builder) Build() (*STIResult, error) {
 	glog.V(2).Infof("Performing source build from %s", bh.Request().Source)
 	if bh.Request().incremental {
 		if err = bh.saveArtifacts(); err != nil {
-			glog.Errorf("Error saving previous build artifacts: %v", err)
+			glog.Warning("Error saving previous build artifacts: %v", err)
+			glog.Warning("Clean build will be performed!")
 		}
-	}
-
-	if err = bh.fetchSource(); err != nil {
-		return nil, err
 	}
 
 	if err = bh.execute("assemble"); err != nil {
@@ -104,7 +100,7 @@ func (h *buildHandler) PostExecute(containerID string, cmd []string) error {
 		previousImageID string
 	)
 	if h.request.incremental && h.request.RemovePreviousImage {
-		if previousImageID, err = h.docker.GetImageId(h.request.Tag); err != nil {
+		if previousImageID, err = h.docker.GetImageID(h.request.Tag); err != nil {
 			glog.Errorf("Error retrieving previous image's metadata: %v", err)
 		}
 	}
@@ -117,7 +113,7 @@ func (h *buildHandler) PostExecute(containerID string, cmd []string) error {
 	}
 	imageID, err := h.docker.CommitContainer(opts)
 	if err != nil {
-		return errors.ErrBuildFailed
+		return errors.NewBuildError(h.request.Tag, err)
 	}
 
 	h.result.ImageID = imageID
@@ -130,8 +126,8 @@ func (h *buildHandler) PostExecute(containerID string, cmd []string) error {
 		}
 	}
 
-	if h.request.CallbackUrl != "" {
-		h.result.Messages = h.callbackInvoker.ExecuteCallback(h.request.CallbackUrl,
+	if h.request.CallbackURL != "" {
+		h.result.Messages = h.callbackInvoker.ExecuteCallback(h.request.CallbackURL,
 			h.result.Success, h.result.Messages)
 	}
 
@@ -146,18 +142,17 @@ func (h *buildHandler) determineIncremental() (err error) {
 	}
 
 	// can only do incremental build if runtime image exists
-	incremental, err := h.docker.IsImageInLocalRegistry(h.request.Tag)
+	previousImageExists, err := h.docker.IsImageInLocalRegistry(h.request.Tag)
 	if err != nil {
 		return
 	}
 
-	// check if a save-artifacts script exists in anything provided to the build
-	// without it, we cannot do incremental builds
-	if incremental && h.fs.Exists(
-		filepath.Join(h.request.workingDir, "upload", "scripts", "save-artifacts")) {
-		h.request.incremental = true
-	}
-
+	// we're assuming save-artifacts to exists for embedded scripts (if not we'll
+	// warn a user upon container failure and proceed with clean build)
+	// for external save-artifacts - check its existence
+	saveArtifactsExists := !h.request.externalOptionalScripts ||
+		h.fs.Exists(filepath.Join(h.request.workingDir, "upload", "scripts", "save-artifacts"))
+	h.request.incremental = previousImageExists && saveArtifactsExists
 	return nil
 }
 
@@ -184,43 +179,16 @@ func (h *buildHandler) saveArtifacts() (err error) {
 	}
 	err = h.docker.RunContainer(opts)
 	writer.Close()
-	if err != nil {
-		switch e := err.(type) {
-		case errors.StiContainerError:
-			glog.V(2).Infof("Exit code: %d", e.ExitCode)
-			return errors.ErrSaveArtifactsFailed
-		}
+	if _, ok := err.(errors.ContainerError); ok {
+		return errors.NewSaveArtifactsError(image, err)
 	}
 	return err
 }
 
-func (h *buildHandler) fetchSource() error {
-	targetSourceDir := filepath.Join(h.request.workingDir, "upload", "src")
-	glog.V(1).Infof("Downloading %s to directory %s", h.request.Source, targetSourceDir)
-	if h.git.ValidCloneSpec(h.request.Source) {
-		if err := h.git.Clone(h.request.Source, targetSourceDir); err != nil {
-			glog.Errorf("Git clone failed: %+v", err)
-			return err
-		}
-
-		if h.request.Ref != "" {
-			glog.V(1).Infof("Checking out ref %s", h.request.Ref)
-
-			if err := h.git.Checkout(targetSourceDir, h.request.Ref); err != nil {
-				return err
-			}
-		}
-	} else {
-		h.fs.Copy(h.request.Source, targetSourceDir)
-	}
-
-	return nil
-}
-
-func (h *buildHandler) Request() *STIRequest {
+func (h *buildHandler) Request() *Request {
 	return h.request
 }
 
-func (h *buildHandler) Result() *STIResult {
+func (h *buildHandler) Result() *Result {
 	return h.result
 }

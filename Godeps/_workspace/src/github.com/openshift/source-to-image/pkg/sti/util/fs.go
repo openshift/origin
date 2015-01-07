@@ -1,13 +1,14 @@
 package util
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/golang/glog"
+
+	"github.com/openshift/source-to-image/pkg/sti/errors"
 )
 
 // FileSystem allows STI to work with the file system and
@@ -95,7 +96,7 @@ func (h *fs) RemoveDirectory(dir string) error {
 func (h *fs) CreateWorkingDirectory() (directory string, err error) {
 	directory, err = ioutil.TempDir("", "sti")
 	if err != nil {
-		return "", fmt.Errorf("Error creating temporary directory '%s': %v", directory, err)
+		return "", errors.NewWorkDirError(directory, err)
 	}
 
 	return directory, err

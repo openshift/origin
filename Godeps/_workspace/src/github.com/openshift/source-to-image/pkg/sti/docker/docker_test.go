@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/sti/errors"
 )
 
-func getDocker(client DockerClient) *stiDocker {
+func getDocker(client Client) *stiDocker {
 	return &stiDocker{
 		client: client,
 	}
@@ -53,7 +53,7 @@ func TestCheckAndPull(t *testing.T) {
 	type testDef struct {
 		docker              test.FakeDockerClient
 		expectedImage       *docker.Image
-		expectedError       error
+		expectedError       int
 		expectedPullOptions docker.PullImageOptions
 	}
 	image := &docker.Image{}
@@ -79,7 +79,7 @@ func TestCheckAndPull(t *testing.T) {
 			InspectImageResult: []*docker.Image{nil},
 		},
 		expectedImage: nil,
-		expectedError: errors.ErrPullImageFailed,
+		expectedError: errors.ErrInspectImage,
 	}
 	pullErrorTest := testDef{
 		docker: test.FakeDockerClient{
@@ -88,7 +88,7 @@ func TestCheckAndPull(t *testing.T) {
 			InspectImageResult: []*docker.Image{nil},
 		},
 		expectedImage:       nil,
-		expectedError:       errors.ErrPullImageFailed,
+		expectedError:       errors.ErrPullImage,
 		expectedPullOptions: docker.PullImageOptions{Repository: imageName},
 	}
 	errorAfterPullTest := testDef{
@@ -97,7 +97,7 @@ func TestCheckAndPull(t *testing.T) {
 			InspectImageResult: []*docker.Image{nil, image},
 		},
 		expectedImage:       nil,
-		expectedError:       docker.ErrNoSuchImage,
+		expectedError:       errors.ErrInspectImage,
 		expectedPullOptions: docker.PullImageOptions{Repository: imageName},
 	}
 	tests := map[string]testDef{
@@ -114,7 +114,7 @@ func TestCheckAndPull(t *testing.T) {
 		if resultImage != def.expectedImage {
 			t.Errorf("%s: Unexpected image result -- %v", test, resultImage)
 		}
-		if resultErr != def.expectedError {
+		if e, ok := resultErr.(errors.Error); def.expectedError != 0 && (!ok || e.ErrorCode != def.expectedError) {
 			t.Errorf("%s: Unexpected error result -- %v", test, resultErr)
 		}
 		pullOpts := def.docker.PullImageOpts
@@ -127,13 +127,13 @@ func TestCheckAndPull(t *testing.T) {
 func TestRemoveContainer(t *testing.T) {
 	fakeDocker := &test.FakeDockerClient{}
 	dh := getDocker(fakeDocker)
-	containerId := "testContainerId"
+	containerID := "testContainerId"
 	expectedOpts := docker.RemoveContainerOptions{
-		ID:            containerId,
+		ID:            containerID,
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	dh.RemoveContainer(containerId)
+	dh.RemoveContainer(containerID)
 	if !reflect.DeepEqual(expectedOpts, fakeDocker.RemoveContainerOpts) {
 		t.Errorf("Unexpected removeContainerOpts. Expected: %#v, Got: %#v",
 			expectedOpts, fakeDocker.RemoveContainerOpts)
@@ -144,11 +144,11 @@ func TestCommitContainer(t *testing.T) {
 	expectedImageID := "test-1234"
 	fakeDocker := &test.FakeDockerClient{Image: &docker.Image{ID: expectedImageID}}
 	dh := getDocker(fakeDocker)
-	containerId := "test-container-id"
+	containerID := "test-container-id"
 	containerTag := "test-container-tag"
 
 	opt := CommitContainerOptions{
-		ContainerID: containerId,
+		ContainerID: containerID,
 		Repository:  containerTag,
 	}
 
@@ -165,18 +165,18 @@ func TestCommitContainerError(t *testing.T) {
 	expectedErr := fmt.Errorf("Test error")
 	fakeDocker := &test.FakeDockerClient{CommitContainerErr: expectedErr}
 	dh := getDocker(fakeDocker)
-	containerId := "test-container-id"
+	containerID := "test-container-id"
 	containerTag := "test-container-tag"
 
 	opt := CommitContainerOptions{
-		ContainerID: containerId,
+		ContainerID: containerID,
 		Repository:  containerTag,
 	}
 
 	_, err := dh.CommitContainer(opt)
 
 	expectedOpts := docker.CommitContainerOptions{
-		Container:  containerId,
+		Container:  containerID,
 		Repository: containerTag,
 	}
 	if !reflect.DeepEqual(expectedOpts, fakeDocker.CommitContainerOpts) {
@@ -195,7 +195,7 @@ func TestGetDefaultUrl(t *testing.T) {
 		errExpected bool
 	}
 	tests := map[string]urltest{
-		"not present": urltest{
+		"not present": {
 			image: docker.Image{
 				ContainerConfig: docker.Config{
 					Env: []string{"Env1=value1"},
@@ -207,7 +207,7 @@ func TestGetDefaultUrl(t *testing.T) {
 			result: "",
 		},
 
-		"in containerConfig": urltest{
+		"in containerConfig": {
 			image: docker.Image{
 				ContainerConfig: docker.Config{
 					Env: []string{"Env1=value1", "STI_SCRIPTS_URL=test_url_value"},
@@ -217,7 +217,7 @@ func TestGetDefaultUrl(t *testing.T) {
 			result: "test_url_value",
 		},
 
-		"in image config": urltest{
+		"in image config": {
 			image: docker.Image{
 				ContainerConfig: docker.Config{},
 				Config: &docker.Config{
@@ -231,7 +231,7 @@ func TestGetDefaultUrl(t *testing.T) {
 			result: "test_url_value_2",
 		},
 
-		"contains =": urltest{
+		"contains =": {
 			image: docker.Image{
 				ContainerConfig: docker.Config{
 					Env: []string{"STI_SCRIPTS_URL=http://my.test.url/test?param=one"},
@@ -241,7 +241,7 @@ func TestGetDefaultUrl(t *testing.T) {
 			result: "http://my.test.url/test?param=one",
 		},
 
-		"inspect error": urltest{
+		"inspect error": {
 			image:       docker.Image{},
 			inspectErr:  fmt.Errorf("Inspect error"),
 			errExpected: true,
@@ -255,7 +255,7 @@ func TestGetDefaultUrl(t *testing.T) {
 			fakeDocker.InspectImageErr = []error{tst.inspectErr}
 		}
 		dh := getDocker(fakeDocker)
-		url, err := dh.GetDefaultScriptsUrl("test/image")
+		url, err := dh.GetDefaultScriptsURL("test/image")
 		if err != nil && !tst.errExpected {
 			t.Errorf("%s: Unexpected error returned: %v", desc, err)
 		} else if err == nil && tst.errExpected {
@@ -271,7 +271,7 @@ func TestGetDefaultUrl(t *testing.T) {
 func TestRunContainer(t *testing.T) {
 	fakeDocker := &test.FakeDockerClient{
 		InspectImageResult: []*docker.Image{
-			&docker.Image{
+			{
 				Config: &docker.Config{
 					Cmd: []string{"test", "command"},
 				},
@@ -333,10 +333,10 @@ func TestRunContainer(t *testing.T) {
 
 func TestGetImageID(t *testing.T) {
 	fakeDocker := &test.FakeDockerClient{
-		InspectImageResult: []*docker.Image{&docker.Image{ID: "test-abcd"}},
+		InspectImageResult: []*docker.Image{{ID: "test-abcd"}},
 	}
 	dh := getDocker(fakeDocker)
-	id, err := dh.GetImageId("test/image")
+	id, err := dh.GetImageID("test/image")
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	} else if id != "test-abcd" {
@@ -350,7 +350,7 @@ func TestGetImageIDError(t *testing.T) {
 		InspectImageErr: []error{expected},
 	}
 	dh := getDocker(fakeDocker)
-	id, err := dh.GetImageId("test/image")
+	id, err := dh.GetImageID("test/image")
 	if err != expected {
 		t.Errorf("Unexpected error returned: %v", err)
 	}

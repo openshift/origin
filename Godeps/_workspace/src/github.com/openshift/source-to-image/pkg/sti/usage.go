@@ -3,7 +3,7 @@ package sti
 // UsageHandler handles a request to display usage
 type usageHandler interface {
 	cleanup()
-	setup(required []string, optional []string) error
+	setup(requiredScripts, optionalScripts []string) error
 	execute(command string) error
 }
 
@@ -13,12 +13,12 @@ type Usage struct {
 }
 
 // NewUsage creates a new instance of the default Usage implementation
-func NewUsage(req *STIRequest) (*Usage, error) {
-	if h, err := newRequestHandler(req); err != nil {
+func NewUsage(req *Request) (*Usage, error) {
+	h, err := newRequestHandler(req)
+	if err != nil {
 		return nil, err
-	} else {
-		return &Usage{handler: h}, nil
 	}
+	return &Usage{handler: h}, nil
 }
 
 // Show starts the builder container and invokes the usage script on it

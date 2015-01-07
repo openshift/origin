@@ -11,7 +11,7 @@ import (
 
 // CallbackInvoker posts results to a callback URL when a STI build is done.
 type CallbackInvoker interface {
-	ExecuteCallback(callbackUrl string, success bool, messages []string) []string
+	ExecuteCallback(callbackURL string, success bool, messages []string) []string
 }
 
 // NewCallbackInvoker creates an instance of the default CallbackInvoker implementation
@@ -26,7 +26,7 @@ type callbackInvoker struct {
 }
 
 // ExecuteCallback prepares a JSON payload and posts it to the specified callback URL
-func (c *callbackInvoker) ExecuteCallback(callbackUrl string, success bool, messages []string) []string {
+func (c *callbackInvoker) ExecuteCallback(callbackURL string, success bool, messages []string) []string {
 	buf := new(bytes.Buffer)
 	writer := bufio.NewWriter(buf)
 	for _, message := range messages {
@@ -50,7 +50,7 @@ func (c *callbackInvoker) ExecuteCallback(callbackUrl string, success bool, mess
 		err  error
 	)
 	for retries := 0; retries < 3; retries++ {
-		resp, err = c.postFunc(callbackUrl, "application/json", jsonBuffer)
+		resp, err = c.postFunc(callbackURL, "application/json", jsonBuffer)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Unable to invoke callback: %v", err)
 			messages = append(messages, errorMessage)

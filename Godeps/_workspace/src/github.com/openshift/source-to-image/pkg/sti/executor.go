@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/sti/docker"
+	"github.com/openshift/source-to-image/pkg/sti/git"
 	"github.com/openshift/source-to-image/pkg/sti/script"
 	"github.com/openshift/source-to-image/pkg/sti/tar"
 	"github.com/openshift/source-to-image/pkg/sti/util"
@@ -14,10 +15,11 @@ import (
 
 // requestHandler encapsulates dependencies needed to fulfill requests.
 type requestHandler struct {
-	request      *STIRequest
-	result       *STIResult
+	request      *Request
+	result       *Result
 	postExecutor postExecutor
 	installer    script.Installer
+	git          git.Git
 	fs           util.FileSystem
 	docker       docker.Docker
 	tar          tar.Tar
@@ -28,7 +30,7 @@ type postExecutor interface {
 }
 
 // newRequestHandler returns a new handler for a given request.
-func newRequestHandler(req *STIRequest) (*requestHandler, error) {
+func newRequestHandler(req *Request) (*requestHandler, error) {
 	glog.V(2).Infof("Using docker socket: %s", req.DockerSocket)
 
 	docker, err := docker.NewDocker(req.DockerSocket)
@@ -39,7 +41,8 @@ func newRequestHandler(req *STIRequest) (*requestHandler, error) {
 	return &requestHandler{
 		request:   req,
 		docker:    docker,
-		installer: script.NewInstaller(req.BaseImage, req.ScriptsUrl, docker),
+		installer: script.NewInstaller(req.BaseImage, req.ScriptsURL, docker),
+		git:       git.NewGit(),
 		fs:        util.NewFileSystem(),
 		tar:       tar.NewTar(),
 	}, nil
@@ -50,7 +53,7 @@ func (h *requestHandler) setup(requiredScripts, optionalScripts []string) (err e
 		return err
 	}
 
-	h.result = &STIResult{
+	h.result = &Result{
 		Success:    false,
 		WorkingDir: h.request.workingDir,
 	}
@@ -58,7 +61,19 @@ func (h *requestHandler) setup(requiredScripts, optionalScripts []string) (err e
 	// immediately pull the image if forcepull is true, that way later code that
 	// references the image will have it pre-pulled and can just inspect the image.
 	if h.request.ForcePull {
-		h.docker.PullImage(h.request.BaseImage)
+		err = h.docker.PullImage(h.request.BaseImage)
+	} else {
+		_, err = h.docker.CheckAndPull(h.request.BaseImage)
+	}
+	if err != nil {
+		return
+	}
+
+	// fetch sources, for theirs .sti/bin might contain sti scripts
+	if len(h.request.Source) > 0 {
+		if err = h.fetchSource(); err != nil {
+			return err
+		}
 	}
 
 	dirs := []string{"upload/scripts", "downloads/scripts", "downloads/defaultScripts"}
@@ -68,11 +83,12 @@ func (h *requestHandler) setup(requiredScripts, optionalScripts []string) (err e
 		}
 	}
 
-	if err = h.installer.DownloadAndInstall(requiredScripts, h.request.workingDir, true); err != nil {
+	if h.request.externalRequiredScripts, err = h.installer.DownloadAndInstall(
+		requiredScripts, h.request.workingDir, true); err != nil {
 		return err
 	}
-
-	if err = h.installer.DownloadAndInstall(optionalScripts, h.request.workingDir, false); err != nil {
+	if h.request.externalOptionalScripts, err = h.installer.DownloadAndInstall(
+		optionalScripts, h.request.workingDir, false); err != nil {
 		return err
 	}
 
@@ -133,4 +149,27 @@ func (h *requestHandler) cleanup() {
 	} else {
 		h.fs.RemoveDirectory(h.request.workingDir)
 	}
+}
+
+func (h *requestHandler) fetchSource() error {
+	targetSourceDir := filepath.Join(h.request.workingDir, "upload", "src")
+	glog.V(1).Infof("Downloading %s to directory %s", h.request.Source, targetSourceDir)
+	if h.git.ValidCloneSpec(h.request.Source) {
+		if err := h.git.Clone(h.request.Source, targetSourceDir); err != nil {
+			glog.Errorf("Git clone failed: %+v", err)
+			return err
+		}
+
+		if h.request.Ref != "" {
+			glog.V(1).Infof("Checking out ref %s", h.request.Ref)
+
+			if err := h.git.Checkout(targetSourceDir, h.request.Ref); err != nil {
+				return err
+			}
+		}
+	} else {
+		h.fs.Copy(h.request.Source, targetSourceDir)
+	}
+
+	return nil
 }

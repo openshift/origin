@@ -27,7 +27,7 @@ type stiGit struct {
 	runner util.CommandRunner
 }
 
-var gitSshUrlExp = regexp.MustCompile(`\A([\w\d\-_\.+]+@[\w\d\-_\.+]+:[\w\d\-_\.+%/]+\.git)$`)
+var gitSshURLExp = regexp.MustCompile(`\A([\w\d\-_\.+]+@[\w\d\-_\.+]+:[\w\d\-_\.+%/]+\.git)$`)
 
 var allowedSchemes = []string{"git", "http", "https", "file"}
 
@@ -55,7 +55,7 @@ func (h *stiGit) ValidCloneSpec(source string) bool {
 
 	// support 'git@' ssh urls and local protocol without 'file://' scheme
 	return url.Scheme == "" && (strings.HasSuffix(source, ".git") ||
-		(strings.HasPrefix(source, "git@") && gitSshUrlExp.MatchString(source)))
+		(strings.HasPrefix(source, "git@") && gitSshURLExp.MatchString(source)))
 }
 
 // Clone clones a git repository to a specific target directory
