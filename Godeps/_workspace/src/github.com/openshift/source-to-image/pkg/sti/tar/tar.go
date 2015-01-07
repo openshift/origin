@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
+	"github.com/openshift/source-to-image/pkg/sti/errors"
 )
 
 // defaultTimeout is the amount of time that the untar will wait for a tar
@@ -226,7 +228,7 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 			}
 			return err
 		case <-timeoutTimer.C:
-			return fmt.Errorf("Timeout waiting for tar stream")
+			return errors.NewTarTimeoutError()
 		}
 	}
 }

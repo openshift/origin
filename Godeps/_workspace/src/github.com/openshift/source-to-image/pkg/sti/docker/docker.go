@@ -15,19 +15,20 @@ import (
 // It contains higher level operations called from the STI
 // build or usage commands
 type Docker interface {
-	IsImageInLocalRegistry(imageName string) (bool, error)
+	IsImageInLocalRegistry(name string) (bool, error)
 	RemoveContainer(id string) error
-	GetDefaultScriptsUrl(image string) (string, error)
+	GetDefaultScriptsURL(name string) (string, error)
 	RunContainer(opts RunContainerOptions) error
-	GetImageId(image string) (string, error)
+	GetImageID(name string) (string, error)
 	CommitContainer(opts CommitContainerOptions) (string, error)
 	RemoveImage(name string) error
-	PullImage(imageName string) error
+	PullImage(name string) error
+	CheckAndPull(name string) (*docker.Image, error)
 }
 
-// DockerClient contains all methods called on the go Docker
+// Client contains all methods called on the go Docker
 // client.
-type DockerClient interface {
+type Client interface {
 	RemoveImage(name string) error
 	InspectImage(name string) (*docker.Image, error)
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
@@ -41,7 +42,7 @@ type DockerClient interface {
 }
 
 type stiDocker struct {
-	client DockerClient
+	client Client
 }
 
 type postExecutor interface {
@@ -82,47 +83,43 @@ func NewDocker(endpoint string) (Docker, error) {
 }
 
 // IsImageInLocalRegistry determines whether the supplied image is in the local registry.
-func (d *stiDocker) IsImageInLocalRegistry(imageName string) (bool, error) {
-	image, err := d.client.InspectImage(imageName)
+func (d *stiDocker) IsImageInLocalRegistry(name string) (bool, error) {
+	image, err := d.client.InspectImage(name)
 
 	if image != nil {
 		return true, nil
 	} else if err == docker.ErrNoSuchImage {
 		return false, nil
 	}
-
 	return false, err
 }
 
 // CheckAndPull pulls an image into the local registry if not present
 // and returns the image metadata
-func (d *stiDocker) CheckAndPull(imageName string) (image *docker.Image, err error) {
-	if image, err = d.client.InspectImage(imageName); err != nil &&
-		err != docker.ErrNoSuchImage {
-		glog.Errorf("Unable to get image metadata for %s: %v", imageName, err)
-		return nil, errors.ErrPullImageFailed
+func (d *stiDocker) CheckAndPull(name string) (image *docker.Image, err error) {
+	if image, err = d.client.InspectImage(name); err != nil && err != docker.ErrNoSuchImage {
+		return nil, errors.NewInspectImageError(name, err)
 	}
 	if image == nil {
-		if err = d.PullImage(imageName); err != nil {
+		if err = d.PullImage(name); err != nil {
 			return nil, err
 		}
-		if image, err = d.client.InspectImage(imageName); err != nil {
-			return nil, err
+		if image, err = d.client.InspectImage(name); err != nil {
+			return nil, errors.NewInspectImageError(name, err)
 		}
 	} else {
-		glog.V(2).Infof("Image %s available locally", imageName)
+		glog.V(2).Infof("Image %s available locally", name)
 	}
-
 	return
 }
 
 // PullImage pulls an image into the local registry
-func (d *stiDocker) PullImage(imageName string) (err error) {
-	glog.V(1).Infof("Pulling image %s", imageName)
+func (d *stiDocker) PullImage(name string) (err error) {
+	glog.V(1).Infof("Pulling image %s", name)
 	// TODO: Add authentication support
-	if err = d.client.PullImage(docker.PullImageOptions{Repository: imageName},
+	if err = d.client.PullImage(docker.PullImageOptions{Repository: name},
 		docker.AuthConfiguration{}); err != nil {
-		return errors.ErrPullImageFailed
+		return errors.NewPullImageError(name, err)
 	}
 	return nil
 }
@@ -133,21 +130,25 @@ func (d *stiDocker) RemoveContainer(id string) error {
 }
 
 // GetDefaultUrl finds a script URL in the given image's metadata
-func (d *stiDocker) GetDefaultScriptsUrl(image string) (string, error) {
-	imageMetadata, err := d.CheckAndPull(image)
+func (d *stiDocker) GetDefaultScriptsURL(name string) (string, error) {
+	imageMetadata, err := d.CheckAndPull(name)
 	if err != nil {
 		return "", err
 	}
-	var defaultScriptsUrl string
+	defaultScriptsURL := ""
 	env := append(imageMetadata.ContainerConfig.Env, imageMetadata.Config.Env...)
 	for _, v := range env {
 		if strings.HasPrefix(v, "STI_SCRIPTS_URL=") {
-			defaultScriptsUrl = v[len("STI_SCRIPTS_URL="):]
+			defaultScriptsURL = strings.TrimSpace((v[len("STI_SCRIPTS_URL="):]))
 			break
 		}
 	}
-	glog.V(2).Infof("Image contains default script URL '%s'", defaultScriptsUrl)
-	return defaultScriptsUrl, nil
+	if len(defaultScriptsURL) == 0 {
+		glog.Warningf("Image does not contain default script URL")
+	} else {
+		glog.V(2).Infof("Image contains default script URL '%s'", defaultScriptsURL)
+	}
+	return defaultScriptsURL, nil
 }
 
 // RunContainer creates and starts a container using the image specified in the options with the ability
@@ -259,7 +260,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	glog.V(2).Infof("Container exited")
 
 	if exitCode != 0 {
-		return errors.StiContainerError{exitCode}
+		return errors.NewContainerError(container.Name, exitCode, nil)
 	}
 
 	if opts.PostExec != nil {
@@ -271,13 +272,13 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	return nil
 }
 
-// GetImageId retrives the ID of the image identified by name
-func (d *stiDocker) GetImageId(imageName string) (string, error) {
-	if image, err := d.client.InspectImage(imageName); err == nil {
-		return image.ID, nil
-	} else {
+// GetImageID retrives the ID of the image identified by name
+func (d *stiDocker) GetImageID(name string) (string, error) {
+	image, err := d.client.InspectImage(name)
+	if err != nil {
 		return "", err
 	}
+	return image.ID, nil
 }
 
 // CommitContainer commits a container to an image with a specific tag.
@@ -299,11 +300,11 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 		glog.V(2).Infof("Commiting container with config: %+v", config)
 	}
 
-	if image, err := d.client.CommitContainer(dockerOpts); err == nil && image != nil {
+	image, err := d.client.CommitContainer(dockerOpts)
+	if err == nil && image != nil {
 		return image.ID, nil
-	} else {
-		return "", err
 	}
+	return "", err
 }
 
 // RemoveImage removes the image with specified ID

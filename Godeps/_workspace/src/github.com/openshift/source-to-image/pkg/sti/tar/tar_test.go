@@ -6,10 +6,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/openshift/source-to-image/pkg/sti/errors"
 )
 
 type fileDesc struct {
@@ -265,7 +266,7 @@ func TestExtractTarStreamTimeout(t *testing.T) {
 	}()
 	wg.Wait()
 	err = <-extractError
-	if err == nil || strings.Index(err.Error(), "Timeout") != 0 {
+	if e, ok := err.(errors.Error); err == nil || (ok && e.ErrorCode != errors.ErrTarTimeout) {
 		t.Errorf("Did not get the expected timeout error. err = %v\n", err)
 	}
 }

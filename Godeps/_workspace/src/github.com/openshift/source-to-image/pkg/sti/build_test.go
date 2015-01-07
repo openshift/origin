@@ -16,8 +16,8 @@ type FakeBuildHandler struct {
 	SetupError                 error
 	DetermineIncrementalCalled bool
 	DetermineIncrementalError  error
-	BuildRequest               *STIRequest
-	BuildResult                *STIResult
+	BuildRequest               *Request
+	BuildResult                *Result
 	SaveArtifactsCalled        bool
 	SaveArtifactsError         error
 	FetchSourceCalled          bool
@@ -41,11 +41,11 @@ func (f *FakeBuildHandler) determineIncremental() error {
 	return f.DetermineIncrementalError
 }
 
-func (f *FakeBuildHandler) Request() *STIRequest {
+func (f *FakeBuildHandler) Request() *Request {
 	return f.BuildRequest
 }
 
-func (f *FakeBuildHandler) Result() *STIResult {
+func (f *FakeBuildHandler) Result() *Result {
 	return f.BuildResult
 }
 
@@ -68,8 +68,8 @@ func TestBuild(t *testing.T) {
 	for _, incremental := range incrementalTest {
 
 		fh := &FakeBuildHandler{
-			BuildRequest: &STIRequest{incremental: incremental},
-			BuildResult:  &STIResult{},
+			BuildRequest: &Request{incremental: incremental},
+			BuildResult:  &Result{},
 		}
 		builder := Builder{
 			handler: fh,
@@ -105,15 +105,14 @@ func testBuildHandler() *buildHandler {
 	requestHandler := &requestHandler{
 		docker:    &test.FakeDocker{},
 		installer: &test.FakeInstaller{},
+		git:       &test.FakeGit{},
 		fs:        &test.FakeFileSystem{},
 		tar:       &test.FakeTar{},
-
-		request: &STIRequest{},
-		result:  &STIResult{},
+		request:   &Request{},
+		result:    &Result{},
 	}
 	buildHandler := &buildHandler{
 		requestHandler:  requestHandler,
-		git:             &test.FakeGit{},
 		callbackInvoker: &test.FakeCallbackInvoker{},
 	}
 
@@ -123,17 +122,17 @@ func testBuildHandler() *buildHandler {
 func TestPostExecute(t *testing.T) {
 	incrementalTest := []bool{true, false}
 	for _, incremental := range incrementalTest {
-		previousImageIdTest := []string{"", "test-image"}
-		for _, previousImageId := range previousImageIdTest {
+		previousImageIDTest := []string{"", "test-image"}
+		for _, previousImageID := range previousImageIDTest {
 			bh := testBuildHandler()
 			bh.result.Messages = []string{"one", "two"}
-			bh.request.CallbackUrl = "https://my.callback.org/test"
+			bh.request.CallbackURL = "https://my.callback.org/test"
 			bh.request.Tag = "test/tag"
 			dh := bh.docker.(*test.FakeDocker)
 			bh.request.incremental = incremental
-			if previousImageId != "" {
+			if previousImageID != "" {
 				bh.request.RemovePreviousImage = true
-				bh.docker.(*test.FakeDocker).GetImageIdResult = previousImageId
+				bh.docker.(*test.FakeDocker).GetImageIDResult = previousImageID
 			}
 			err := bh.PostExecute("test-container-id", []string{"cmd1", "arg1"})
 			if err != nil {
@@ -150,7 +149,7 @@ func TestPostExecute(t *testing.T) {
 					dh.CommitContainerOpts.Repository)
 			}
 
-			if incremental && previousImageId != "" {
+			if incremental && previousImageID != "" {
 				if dh.RemoveImageName != "test-image" {
 					t.Errorf("Previous image was not removed: %s",
 						dh.RemoveImageName)
@@ -168,44 +167,56 @@ func TestPostExecute(t *testing.T) {
 
 func TestDetermineIncremental(t *testing.T) {
 	type incrementalTest struct {
-		clean        bool
-		inLocal      bool
+		// clean flag was passed
+		clean bool
+		// previous image existence
+		previousImage bool
+		// script download happened -> external scripts
+		scriptDownload bool
+		// script exists
 		scriptExists bool
-		expected     bool
+		// expected result
+		expected bool
 	}
 
 	tests := []incrementalTest{
-		{
-			clean:        false,
-			inLocal:      true,
-			scriptExists: true,
-			expected:     true,
-		},
-		{
-			clean:        true,
-			inLocal:      true,
-			scriptExists: true,
-			expected:     false,
-		},
-		{
-			clean:        false,
-			inLocal:      false,
-			scriptExists: true,
-			expected:     false,
-		},
-		{
-			clean:        false,
-			inLocal:      true,
-			scriptExists: false,
-			expected:     false,
-		},
+		// 0: external, downloaded scripts and previously image available
+		{false, true, true, true, true},
+
+		// 1: previous image, script downloaded but no save-artifacts
+		{false, true, true, false, false},
+
+		// 2-9: clean build - should always return false no matter what other flags are
+		{true, false, false, false, false},
+		{true, false, false, true, false},
+		{true, false, true, false, false},
+		{true, false, true, true, false},
+		{true, true, false, false, false},
+		{true, true, false, true, false},
+		{true, true, true, false, false},
+		{true, true, true, true, false},
+
+		// 10-17: no previous image - should always return false not matter what other flags are
+		{false, false, false, false, false},
+		{false, false, false, true, false},
+		{false, false, true, false, false},
+		{false, false, true, true, false},
+		{true, false, false, false, false},
+		{true, false, false, true, false},
+		{true, false, true, false, false},
+		{true, false, true, true, false},
+
+		// 18-19: previous image, script inside the image, its existence does not matter
+		{false, true, false, true, true},
+		{false, true, false, false, true},
 	}
 
-	for _, ti := range tests {
+	for i, ti := range tests {
 		bh := testBuildHandler()
 		bh.request.workingDir = "/working-dir"
 		bh.request.Clean = ti.clean
-		bh.docker.(*test.FakeDocker).LocalRegistryResult = ti.inLocal
+		bh.request.externalOptionalScripts = ti.scriptDownload
+		bh.docker.(*test.FakeDocker).LocalRegistryResult = ti.previousImage
 		if ti.scriptExists {
 			bh.fs.(*test.FakeFileSystem).ExistsResult = map[string]bool{
 				"/working-dir/upload/scripts/save-artifacts": true,
@@ -213,15 +224,15 @@ func TestDetermineIncremental(t *testing.T) {
 		}
 		bh.determineIncremental()
 		if bh.request.incremental != ti.expected {
-			t.Errorf("Unexpected incremental result: %v. Expected: %v",
-				bh.request.incremental, ti.expected)
+			t.Errorf("(%d) Unexpected incremental result: %v. Expected: %v",
+				i, bh.request.incremental, ti.expected)
 		}
-		if !ti.clean && ti.inLocal {
+		if !ti.clean && ti.previousImage && ti.scriptDownload {
 			scriptChecked := bh.fs.(*test.FakeFileSystem).ExistsFile[0]
 			expectedScript := "/working-dir/upload/scripts/save-artifacts"
 			if scriptChecked != expectedScript {
-				t.Errorf("Unexpected script checked. Actual: %s. Expected: %s",
-					scriptChecked, expectedScript)
+				t.Errorf("(%d) Unexpected script checked. Actual: %s. Expected: %s",
+					i, scriptChecked, expectedScript)
 			}
 		}
 	}
@@ -255,15 +266,15 @@ func TestSaveArtifacts(t *testing.T) {
 func TestSaveArtifactsRunError(t *testing.T) {
 	tests := []error{
 		fmt.Errorf("Run error"),
-		errors.StiContainerError{-1},
+		errors.NewContainerError("", -1, nil),
 	}
 	expected := []error{
 		tests[0],
-		errors.ErrSaveArtifactsFailed,
+		errors.NewSaveArtifactsError("", tests[1]),
 	}
 	// test with tar extract error or not
 	tarError := []bool{true, false}
-	for i, _ := range tests {
+	for i := range tests {
 		for _, te := range tarError {
 			bh := testBuildHandler()
 			fd := bh.docker.(*test.FakeDocker)
