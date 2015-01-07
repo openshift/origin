@@ -5,6 +5,10 @@ This is a set of configuration files and scripts which work with OpenShift 3 to 
 
 This example assumes you have successfully built the `openshift` binary executable and have Docker installed/working.  See https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
+Alternatively, if you are using the openshift/origin Docker container, please
+make sure you follow these instructions first:
+https://github.com/openshift/origin/blob/master/examples/sample-app/container-setup.md
+
 Setup
 -----
 Before running these steps, you'll need to configure the docker daemon on your host to trust the docker registry service you'll be starting.
