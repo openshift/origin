@@ -43,6 +43,10 @@ type FakeFileSystem struct {
 	OpenError      error
 	OpenCloseError error
 
+	WriteFileName    string
+	WriteFileError   error
+	WriteFileContent string
+
 	mutex sync.Mutex
 }
 
@@ -122,4 +126,11 @@ func (f *FakeFileSystem) Open(file string) (io.ReadCloser, error) {
 		CloseError: f.OpenCloseError,
 	}
 	return f.OpenFileResult, f.OpenError
+}
+
+// Write writes a file
+func (f *FakeFileSystem) WriteFile(file string, data []byte) error {
+	f.WriteFileName = file
+	f.WriteFileContent = string(data)
+	return f.WriteFileError
 }

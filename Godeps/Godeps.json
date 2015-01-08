@@ -497,7 +497,7 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/sti",
-			"Rev": "48cf2e985b571ddc67cfb84a59a339be38b98a81"
+			"Rev": "5813879841b75b7eb88169d3265a0560fdf50b12"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",

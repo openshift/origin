@@ -5,29 +5,30 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/source-to-image/pkg/sti/api"
 	"github.com/openshift/source-to-image/pkg/sti/test"
 )
 
 type FakeScriptHandler struct {
-	DownloadScripts     []string
+	DownloadScripts     []api.Script
 	DownloadWorkingDir  string
 	DownloadResult      bool
 	DownloadError       error
-	DetermineScript     string
+	DetermineScript     api.Script
 	DetermineWorkingDir string
-	DetermineResult     map[string]string
+	DetermineResult     map[api.Script]string
 	InstallScriptPath   string
 	InstallWorkingDir   string
 	InstallError        error
 }
 
-func (f *FakeScriptHandler) download(scripts []string, workingDir string) (bool, error) {
+func (f *FakeScriptHandler) download(scripts []api.Script, workingDir string) (bool, error) {
 	f.DownloadScripts = scripts
 	f.DownloadWorkingDir = workingDir
 	return f.DownloadResult, f.DownloadError
 }
 
-func (f *FakeScriptHandler) getPath(script string, workingDir string) string {
+func (f *FakeScriptHandler) getPath(script api.Script, workingDir string) string {
 	f.DetermineScript = script
 	f.DetermineWorkingDir = workingDir
 	return f.DetermineResult[script]
@@ -50,10 +51,10 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		"successRequired": {
 			handler: &FakeScriptHandler{
 				DownloadResult: true,
-				DetermineResult: map[string]string{
-					"one":   "one",
-					"two":   "two",
-					"three": "three",
+				DetermineResult: map[api.Script]string{
+					api.Assemble:      "one",
+					api.Run:           "two",
+					api.SaveArtifacts: "three",
 				},
 			},
 			required:    true,
@@ -62,10 +63,10 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		"successOptional": {
 			handler: &FakeScriptHandler{
 				DownloadResult: true,
-				DetermineResult: map[string]string{
-					"one":   "one",
-					"two":   "",
-					"three": "three",
+				DetermineResult: map[api.Script]string{
+					api.Assemble:      "one",
+					api.Run:           "",
+					api.SaveArtifacts: "three",
 				},
 			},
 			required:    false,
@@ -82,10 +83,10 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		"errorRequired": {
 			handler: &FakeScriptHandler{
 				DownloadResult: true,
-				DetermineResult: map[string]string{
-					"one":   "one",
-					"two":   "two",
-					"three": "",
+				DetermineResult: map[api.Script]string{
+					api.Assemble:      "one",
+					api.Run:           "two",
+					api.SaveArtifacts: "",
 				},
 			},
 			required:    true,
@@ -94,10 +95,10 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		"installError": {
 			handler: &FakeScriptHandler{
 				DownloadResult: true,
-				DetermineResult: map[string]string{
-					"one":   "one",
-					"two":   "two",
-					"three": "three",
+				DetermineResult: map[api.Script]string{
+					api.Assemble:      "one",
+					api.Run:           "two",
+					api.SaveArtifacts: "three",
 				},
 				InstallError: err,
 			},
@@ -107,10 +108,10 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		"noDownload": {
 			handler: &FakeScriptHandler{
 				DownloadResult: false,
-				DetermineResult: map[string]string{
-					"one":   "one",
-					"two":   "two",
-					"three": "three",
+				DetermineResult: map[api.Script]string{
+					api.Assemble:      "one",
+					api.Run:           "two",
+					api.SaveArtifacts: "three",
 				},
 			},
 			required:    false,
@@ -122,15 +123,15 @@ func TestDownloadAndInstallScripts(t *testing.T) {
 		sh := &installer{
 			handler: test.handler,
 		}
-		_, err := sh.DownloadAndInstall([]string{"one", "two", "three"}, "/test-working-dir", test.required)
+		_, err := sh.DownloadAndInstall([]api.Script{api.Assemble, api.Run, api.SaveArtifacts}, "/test-working-dir", test.required)
 		if !test.errExpected && err != nil {
 			t.Errorf("%s: Unexpected error: %v", desc, err)
 		} else if test.errExpected && err == nil {
 			t.Errorf("%s: Error expected. Got nil.", desc)
 		}
 		if !reflect.DeepEqual(sh.handler.(*FakeScriptHandler).DownloadScripts,
-			[]string{"one", "two", "three"}) {
-			t.Errorf("%s: Unexpected downwload scripts: %#v",
+			[]api.Script{api.Assemble, api.Run, api.SaveArtifacts}) {
+			t.Errorf("%s: Unexpected downwload scripts: %#v", desc,
 				sh.handler.(*FakeScriptHandler).DownloadScripts)
 		}
 	}
@@ -168,7 +169,7 @@ func TestDownload(t *testing.T) {
 	sh := getScriptHandler()
 	dl := sh.downloader.(*test.FakeDownloader)
 	sh.docker.(*test.FakeDocker).DefaultURLResult = "http://image.url/scripts"
-	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	_, err := sh.download([]api.Script{api.Assemble, api.Run, api.SaveArtifacts}, "/working-dir")
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
@@ -177,12 +178,12 @@ func TestDownload(t *testing.T) {
 			len(dl.URL))
 	}
 	expectedUrls := []string{
-		"http://the.scripts.url/scripts/one",
-		"http://the.scripts.url/scripts/two",
-		"http://the.scripts.url/scripts/three",
-		"http://image.url/scripts/one",
-		"http://image.url/scripts/two",
-		"http://image.url/scripts/three",
+		fmt.Sprintf("http://the.scripts.url/scripts/%s", api.Assemble),
+		fmt.Sprintf("http://the.scripts.url/scripts/%s", api.Run),
+		fmt.Sprintf("http://the.scripts.url/scripts/%s", api.SaveArtifacts),
+		fmt.Sprintf("http://image.url/scripts/%s", api.Assemble),
+		fmt.Sprintf("http://image.url/scripts/%s", api.Run),
+		fmt.Sprintf("http://image.url/scripts/%s", api.SaveArtifacts),
 	}
 	actualUrls := []string{}
 	for _, u := range dl.URL {
@@ -193,12 +194,12 @@ func TestDownload(t *testing.T) {
 	}
 
 	expectedFiles := []string{
-		"/working-dir/downloads/scripts/one",
-		"/working-dir/downloads/scripts/two",
-		"/working-dir/downloads/scripts/three",
-		"/working-dir/downloads/defaultScripts/one",
-		"/working-dir/downloads/defaultScripts/two",
-		"/working-dir/downloads/defaultScripts/three",
+		fmt.Sprintf("/working-dir/downloads/scripts/%s", api.Assemble),
+		fmt.Sprintf("/working-dir/downloads/scripts/%s", api.Run),
+		fmt.Sprintf("/working-dir/downloads/scripts/%s", api.SaveArtifacts),
+		fmt.Sprintf("/working-dir/downloads/defaultScripts/%s", api.Assemble),
+		fmt.Sprintf("/working-dir/downloads/defaultScripts/%s", api.Run),
+		fmt.Sprintf("/working-dir/downloads/defaultScripts/%s", api.SaveArtifacts),
 	}
 
 	if !equalArrayContents(dl.File, expectedFiles) {
@@ -219,7 +220,7 @@ func TestDownloadErrors1(t *testing.T) {
 		"http://image.url/scripts/two":         dlErr,
 		"http://image.url/scripts/three":       nil,
 	}
-	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	_, err := sh.download([]api.Script{api.Assemble, api.Run, api.SaveArtifacts}, "/working-dir")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -231,14 +232,14 @@ func TestDownloadErrors2(t *testing.T) {
 	sh.docker.(*test.FakeDocker).DefaultURLResult = "http://image.url/scripts"
 	dlErr := fmt.Errorf("Download Error")
 	dl.Err = map[string]error{
-		"http://the.scripts.url/scripts/one":   dlErr,
-		"http://the.scripts.url/scripts/two":   nil,
-		"http://the.scripts.url/scripts/three": nil,
-		"http://image.url/scripts/one":         dlErr,
-		"http://image.url/scripts/two":         dlErr,
-		"http://image.url/scripts/three":       nil,
+		fmt.Sprintf("http://the.scripts.url/scripts/%s", api.Assemble):      dlErr,
+		fmt.Sprintf("http://the.scripts.url/scripts/%s", api.Run):           nil,
+		fmt.Sprintf("http://the.scripts.url/scripts/%s", api.SaveArtifacts): nil,
+		fmt.Sprintf("http://image.url/scripts/%s", api.Assemble):            dlErr,
+		fmt.Sprintf("http://image.url/scripts/%s", api.Run):                 dlErr,
+		fmt.Sprintf("http://image.url/scripts/%s", api.SaveArtifacts):       nil,
 	}
-	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	_, err := sh.download([]api.Script{api.Assemble, api.Run, api.SaveArtifacts}, "/working-dir")
 	if err == nil {
 		t.Errorf("Expected an error because script could not be downloaded")
 	}
@@ -249,14 +250,14 @@ func TestDownloadChmodError(t *testing.T) {
 	fsErr := fmt.Errorf("Chmod Error")
 	sh.docker.(*test.FakeDocker).DefaultURLResult = "http://image.url/scripts"
 	sh.fs.(*test.FakeFileSystem).ChmodError = map[string]error{
-		"/working-dir/downloads/scripts/one":          nil,
-		"/working-dir/downloads/scripts/two":          nil,
-		"/working-dir/downloads/scripts/three":        fsErr,
-		"/working-dir/downloads/defaultScripts/one":   nil,
-		"/working-dir/downloads/defaultScripts/two":   nil,
-		"/working-dir/downloads/defaultScripts/three": nil,
+		fmt.Sprintf("/working-dir/downloads/scripts/%s", api.Assemble):             nil,
+		fmt.Sprintf("/working-dir/downloads/scripts/%s", api.Run):                  nil,
+		fmt.Sprintf("/working-dir/downloads/scripts/%s", api.SaveArtifacts):        fsErr,
+		fmt.Sprintf("/working-dir/downloads/defaultScripts/%s", api.Assemble):      nil,
+		fmt.Sprintf("/working-dir/downloads/defaultScripts/%s", api.Run):           nil,
+		fmt.Sprintf("/working-dir/downloads/defaultScripts/%s", api.SaveArtifacts): nil,
 	}
-	_, err := sh.download([]string{"one", "two", "three"}, "/working-dir")
+	_, err := sh.download([]api.Script{api.Assemble, api.Run, api.SaveArtifacts}, "/working-dir")
 	if err == nil {
 		t.Errorf("Expected an error because chmod returned an error.")
 	}
@@ -295,7 +296,7 @@ func TestInstall(t *testing.T) {
 func TestPrepareDownload(t *testing.T) {
 	sh := getScriptHandler()
 	result := sh.prepareDownload(
-		[]string{"test1", "test2"},
+		[]api.Script{api.Assemble, api.Run},
 		"/working-dir/upload",
 		"http://my.url/base")
 

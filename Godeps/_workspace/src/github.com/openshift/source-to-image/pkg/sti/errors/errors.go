@@ -2,6 +2,8 @@ package errors
 
 import (
 	"fmt"
+
+	"github.com/openshift/source-to-image/pkg/sti/api"
 )
 
 // Common STI errors
@@ -11,7 +13,7 @@ const (
 	ErrScriptDownload
 	ErrSaveArtifacts
 	ErrBuild
-	ErrStiContainer
+	ErrSTIContainer
 	ErrTarTimeout
 	ErrWorkDir
 	ErrDownload
@@ -30,11 +32,11 @@ type Error struct {
 // ContainerError is an error returned when a container exits with a non-zero code.
 // ExitCode contains the exit code from the container
 type ContainerError struct {
-	Message    string
-	Details    error
-	ErrorCode  int
-	Suggestion string
-	ExitCode   int
+	Message       string
+	ExpectedError string
+	ErrorCode     int
+	Suggestion    string
+	ExitCode      int
 }
 
 // Error returns a string for a given error
@@ -71,7 +73,7 @@ func NewPullImageError(name string, err error) error {
 
 // NewScriptDownloadError returns a new error which indicates there was a problem
 // downloading a script
-func NewScriptDownloadError(name string, err error) error {
+func NewScriptDownloadError(name api.Script, err error) error {
 	return Error{
 		Message:    fmt.Sprintf("%s script download failed", name),
 		Details:    err,
@@ -159,12 +161,12 @@ func NewDefaultScriptsURLError(err error) error {
 
 // NewContainerError return a new error which indicates there was a problem
 // invoking command inside container
-func NewContainerError(name string, code int, err error) error {
+func NewContainerError(name string, code int, expected string) error {
 	return ContainerError{
-		Message:    fmt.Sprintf("non-zero (%d) exit code from %s", code, name),
-		Details:    err,
-		ErrorCode:  ErrStiContainer,
-		Suggestion: "check the container logs for more information on the failure",
-		ExitCode:   code,
+		Message:       fmt.Sprintf("non-zero (%d) exit code from %s", code, name),
+		ExpectedError: expected,
+		ErrorCode:     ErrSTIContainer,
+		Suggestion:    "check the container logs for more information on the failure",
+		ExitCode:      code,
 	}
 }
