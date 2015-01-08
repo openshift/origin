@@ -34,7 +34,7 @@ Steps
  
 6. Locate the Jenkins service endpoint and go to it in your browser:
 
-        $ openshift kubectl get services | grep jenkins | awk '{print $3":"$4}'
+        $ openshift kubectl get services | grep jenkins | awk '{print $4":"$5}'
 
     Once it is available, proceed to the next step.
     
