@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -223,11 +224,16 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	for _, s := range extra {
+		glog.Infof(s, c.MasterAddr)
+	}
+	listener, err := cmdutil.Listen(server)
+	if err != nil {
+		glog.Fatal(err)
+	}
+
 	go util.Forever(func() {
-		for _, s := range extra {
-			glog.Infof(s, c.MasterAddr)
-		}
-		glog.Fatal(server.ListenAndServe())
+		glog.Fatal(server.Serve(listener))
 	}, 0)
 }
 
@@ -315,9 +321,14 @@ func (c *MasterConfig) RunAssetServer() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	glog.Infof("Started OpenShift static asset server at http://%s", c.AssetAddr)
+	listener, err := cmdutil.Listen(server)
+	if err != nil {
+		glog.Fatal(err)
+	}
+
 	go util.Forever(func() {
-		glog.Infof("Started OpenShift static asset server at http://%s", c.AssetAddr)
-		glog.Fatal(server.ListenAndServe())
+		glog.Fatal(server.Serve(listener))
 	}, 0)
 }
 
