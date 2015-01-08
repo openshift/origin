@@ -31,17 +31,17 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 2. Launch `openshift`
 
-        $ sudo openshift start &> logs/openshift.log &
+        $ sudo openshift start --cors-allowed-origins=[host machine ip] &> logs/openshift.log &
 
     Note: sudo is required so the kubernetenes proxy can manipulate iptables rules to expose service ports.
 
 3. Deploy the private docker registry within OpenShift:
 
-        $ openshift kubectl apply -f docker-registry-config.json
+        $ openshift cli apply -f docker-registry-config.json
 
 4. Confirm the registry is started (this can take a few mins):
 
-        $ openshift kubectl get pods
+        $ openshift cli get pods
 
     You should see:
 
@@ -51,7 +51,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 5. Confirm the registry service is running.  Note that the actual IP address will vary.
 
-        $ openshift kubectl get services
+        $ openshift cli get services
 
     You should see:
 
@@ -61,37 +61,44 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 6. Confirm the registry is accessible (you may need to run this more than once):
 
-        $ curl `openshift kubectl get services docker-registry -o template --template="{{ .portalIP}}:{{ .port }}"`
+        $ curl `openshift cli get services docker-registry -o template --template="{{ .portalIP}}:{{ .port }}"`
 
     You should see:
 
         "docker-registry server (dev) (v0.9.0)"
 
 
-7. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+7. Create a new project in OpenShift
 
-8. *Optional:* Add the following webhook to your new github repository:
+        $ openshift cli create Project -f project.json
 
-        $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github
+8. *Optional:* View the OpenShift web console in your browser by browsing to `http://[host machine ip]:8081`
+    If you click the `Hello OpenShift` project and leave the tab open, you'll see the page update as you deploy objects into the project and run builds.
+
+9. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+
+10. *Optional:* Add the following webhook to your new github repository:
+
+        $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=hello-openshift-project
   * Note: Using the webhook requires your OpenShift server be publicly accessible so github can reach it to invoke the hook.
 
-9. Edit application-template-stibuild.json
+11. Edit application-template-stibuild.json
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
  * Replace occurences of `172.30.17.3` with the IP address of the docker-registry service as seen in step 5.
 
-10. Submit the application template for processing and create the application using the processed template:
+12. Submit the application template for processing and create the application using the processed template:
 
-        $ openshift kubectl process -f application-template-stibuild.json | openshift kubectl apply -f -
+        $ openshift cli process -f application-template-stibuild.json | openshift cli apply --namespace=hello-openshift-project -f -
 
-11. Trigger an initial build of your application
- * If you setup the github webhook in step 8, push a change to app.rb in your ruby sample repository from step 7.
+13. Trigger an initial build of your application
+ * If you setup the github webhook in step 10, push a change to app.rb in your ruby sample repository from step 9.
  * Otherwise you can simulate the webhook invocation by running:
 
-            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic
+            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=hello-openshift-project
 
-12. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
+14. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
 
-        $ openshift kubectl get builds
+        $ openshift cli get builds --namespace=hello-openshift-project
 
     Sample output:
 
@@ -103,27 +110,26 @@ All commands assume the `openshift` binary is in your path (normally located und
      in the buildcfg.json.  Note that the private docker registry is using ephemeral storage, so when it is stopped, the image will
      be lost.  An external volume can be used for storage, but is beyond the scope of this tutorial.
 
-     If you want to see the build logs of a complete build, use this command (substituting your build id from the "openshift kubectl get builds" output):
+     If you want to see the build logs of a complete build, use this command (substituting your build id from the "openshift cli get builds" output):
 
-         $ openshift kubectl build-logs 20f54507-3dcd-11e4-984b-3c970e3bf0b7
+         $ openshift cli build-logs 20f54507-3dcd-11e4-984b-3c970e3bf0b7 --namespace=hello-openshift-project
 
     The creation of the new image will automatically trigger a deployment of the application.
 
-13. Wait for the application's frontend pod and database pods to be started (this can take a few mins):
+15. Wait for the application's frontend pod and database pods to be started (this can take a few mins):
 
-        $ openshift kubectl get pods
+        $ openshift cli get pods --namespace=hello-openshift-project
 
     Sample output:
 
         Name                                                Image(s)                                                                                                          Host                     Labels                                                                                                                                                       Status
         ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
-        b8f087b7-605e-11e4-b0db-3c970e3bf0b7                openshift/docker-registry                                                                                         localhost.localdomain/   name=registrypod,replicationController=docker-registry                                                                                                       Running
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
         4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.30.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
 
-14. Determine the IP for the frontend service:
+16. Determine the IP for the frontend service:
 
-        $ openshift kubectl get services
+        $ openshift cli get services --namespace=hello-openshift-project
 
     Sample output:
 
@@ -136,16 +142,20 @@ All commands assume the `openshift` binary is in your path (normally located und
 
     In this case, the IP for frontend is 172.30.17.4 and it is on port 5432.
 
-15. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser.
+    *Note:* you can also get this information from the web console if you launched it in step 8.
 
-You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
+17. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser.
 
-16. Make a change to your ruby sample main.html file and push it.
+    You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
+
+18. Make a change to your ruby sample main.html file and push it.
+
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic
+            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=hello-openshift-project
 
-17. Repeat step 12 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
+
+19. Repeat step 14 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.  
 
@@ -153,7 +163,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - List the existing services:
 
-        $ openshift kubectl get services
+        $ openshift cli get services --namespace=hello-openshift-project
 
     Sample output:
 
@@ -166,7 +176,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - To remove the **frontend** service use the command:
 
-        $ openshift kubectl delete service frontend
+        $ openshift cli delete service frontend --namespace=hello-openshift-project
 
     Sample output:
 
@@ -176,7 +186,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - Check the service was removed:
 
-        $ openshift kubectl get services
+        $ openshift cli get services --namespace=hello-openshift-project
 
     Sample output:
 
@@ -198,7 +208,7 @@ Another interesting example is deleting a pod.
 
   - List available pods:
 
-        $ openshift kubectl get pods
+        $ openshift cli get pods --namespace=hello-openshift-project
 
     Sample output:
 
@@ -210,7 +220,7 @@ Another interesting example is deleting a pod.
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ openshift kubectl delete pod 4a792f55-605f-11e4-b0db-3c970e3bf0b7
+        $ openshift cli delete pod 4a792f55-605f-11e4-b0db-3c970e3bf0b7 --namespace=hello-openshift-project
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 
