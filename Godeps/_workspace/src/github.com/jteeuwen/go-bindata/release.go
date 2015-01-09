@@ -5,13 +5,10 @@
 package bindata
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"unicode/utf8"
 )
 
 // writeRelease writes the release code file.
@@ -73,19 +70,6 @@ func writeReleaseAsset(w io.Writer, c *Config, asset *Asset) error {
 			return compressed_memcopy(w, asset, fd)
 		}
 	}
-}
-
-// sanitize prepares a valid UTF-8 string as a raw string constant.
-// Based on https://code.google.com/p/go/source/browse/godoc/static/makestatic.go?repo=tools
-func sanitize(b []byte) []byte {
-	// Replace ` with `+"`"+`
-	b = bytes.Replace(b, []byte("`"), []byte("`+\"`\"+`"), -1)
-
-	// Replace BOM with `+"\xEF\xBB\xBF"+`
-	// (A BOM is valid UTF-8 but not permitted in Go source files.
-	// I wouldn't bother handling this, but for some insane reason
-	// jquery.js has a BOM somewhere in the middle.)
-	return bytes.Replace(b, []byte("\xEF\xBB\xBF"), []byte("`+\"\\xEF\\xBB\\xBF\"+`"), -1)
 }
 
 func header_compressed_nomemcopy(w io.Writer) error {
@@ -218,12 +202,14 @@ func %s() ([]byte, error) {
 }
 
 func compressed_memcopy(w io.Writer, asset *Asset, r io.Reader) error {
-	_, err := fmt.Fprintf(w, `var _%s = []byte("`, asset.Func)
+	_, err := fmt.Fprintf(w, `func %s() ([]byte, error) {
+	return bindata_read([]byte{`, asset.Func)
+
 	if err != nil {
-		return err
+		return nil
 	}
 
-	gz := gzip.NewWriter(&StringWriter{Writer: w})
+	gz := gzip.NewWriter(&ByteWriter{Writer: w})
 	_, err = io.Copy(gz, r)
 	gz.Close()
 
@@ -231,16 +217,13 @@ func compressed_memcopy(w io.Writer, asset *Asset, r io.Reader) error {
 		return err
 	}
 
-	_, err = fmt.Fprintf(w, `")
-
-func %s() ([]byte, error) {
-	return bindata_read(
-		_%s,
+	_, err = fmt.Fprintf(w, `
+	},
 		%q,
 	)
 }
 
-`, asset.Func, asset.Func, asset.Name)
+`, asset.Name)
 	return err
 }
 
@@ -269,27 +252,21 @@ func %s() ([]byte, error) {
 }
 
 func uncompressed_memcopy(w io.Writer, asset *Asset, r io.Reader) error {
-	_, err := fmt.Fprintf(w, `var _%s = []byte(`, asset.Func)
+	_, err := fmt.Fprintf(w, `func %s() ([]byte, error) {
+	return []byte{`, asset.Func)
 	if err != nil {
 		return err
 	}
 
-	b, err := ioutil.ReadAll(r)
+	_, err = io.Copy(&ByteWriter{Writer: w}, r)
 	if err != nil {
 		return err
 	}
-	if utf8.Valid(b) {
-		fmt.Fprintf(w, "`%s`", sanitize(b))
-	} else {
-		fmt.Fprintf(w, "%q", b)
-	}
 
-	_, err = fmt.Fprintf(w, `)
-
-func %s() ([]byte, error) {
-	return _%s, nil
+	_, err = fmt.Fprintf(w, `
+	}, nil
 }
 
-`, asset.Func, asset.Func)
+`)
 	return err
 }

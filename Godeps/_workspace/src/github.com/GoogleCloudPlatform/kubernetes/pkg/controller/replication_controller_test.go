@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
-	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -38,7 +37,7 @@ import (
 )
 
 func makeNamespaceURL(namespace, suffix string) string {
-	if client.NamespaceInPathFor(testapi.Version()) {
+	if !(testapi.Version() == "v1beta1" || testapi.Version() == "v1beta2") {
 		return makeURL("/ns/" + namespace + suffix)
 	}
 	return makeURL(suffix + "?namespace=" + namespace)
@@ -233,7 +232,7 @@ func TestCreateReplica(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
-	if !reflect.DeepEqual(&expectedPod, actualPod) {
+	if !api.Semantic.DeepEqual(&expectedPod, actualPod) {
 		t.Logf("Body: %s", fakeHandler.RequestBody)
 		t.Errorf("Unexpected mismatch.  Expected\n %#v,\n Got:\n %#v", &expectedPod, actualPod)
 	}
@@ -345,7 +344,7 @@ func TestWatchControllers(t *testing.T) {
 	var testControllerSpec api.ReplicationController
 	received := make(chan struct{})
 	manager.syncHandler = func(controllerSpec api.ReplicationController) error {
-		if !reflect.DeepEqual(controllerSpec, testControllerSpec) {
+		if !api.Semantic.DeepEqual(controllerSpec, testControllerSpec) {
 			t.Errorf("Expected %#v, but got %#v", testControllerSpec, controllerSpec)
 		}
 		close(received)

@@ -33,8 +33,9 @@ import (
 )
 
 type fakeKubelet struct {
+	podByNameFunc     func(namespace, name string) (*api.BoundPod, bool)
 	infoFunc          func(name string) (api.PodInfo, error)
-	containerInfoFunc func(podFullName, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error)
+	containerInfoFunc func(podFullName, uid, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error)
 	rootInfoFunc      func(query *info.ContainerInfoRequest) (*info.ContainerInfo, error)
 	machineInfoFunc   func() (*info.MachineInfo, error)
 	boundPodsFunc     func() ([]api.BoundPod, error)
@@ -43,12 +44,16 @@ type fakeKubelet struct {
 	containerLogsFunc func(podFullName, containerName, tail string, follow bool, stdout, stderr io.Writer) error
 }
 
+func (fk *fakeKubelet) GetPodByName(namespace, name string) (*api.BoundPod, bool) {
+	return fk.podByNameFunc(namespace, name)
+}
+
 func (fk *fakeKubelet) GetPodInfo(name, uuid string) (api.PodInfo, error) {
 	return fk.infoFunc(name)
 }
 
 func (fk *fakeKubelet) GetContainerInfo(podFullName, uuid, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
-	return fk.containerInfoFunc(podFullName, containerName, req)
+	return fk.containerInfoFunc(podFullName, uuid, containerName, req)
 }
 
 func (fk *fakeKubelet) GetRootInfo(req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
@@ -88,7 +93,19 @@ func newServerTest() *serverTestFramework {
 		updateChan: make(chan interface{}),
 	}
 	fw.updateReader = startReading(fw.updateChan)
-	fw.fakeKubelet = &fakeKubelet{}
+	fw.fakeKubelet = &fakeKubelet{
+		podByNameFunc: func(namespace, name string) (*api.BoundPod, bool) {
+			return &api.BoundPod{
+				ObjectMeta: api.ObjectMeta{
+					Namespace: namespace,
+					Name:      name,
+					Annotations: map[string]string{
+						ConfigSourceAnnotationKey: "etcd",
+					},
+				},
+			}, true
+		},
+	}
 	server := NewServer(fw.fakeKubelet, true)
 	fw.serverUnderTest = &server
 	fw.testHTTPServer = httptest.NewServer(fw.serverUnderTest)
@@ -144,7 +161,7 @@ func TestContainerInfo(t *testing.T) {
 	podID := "somepod"
 	expectedPodID := "somepod" + ".default.etcd"
 	expectedContainerName := "goodcontainer"
-	fw.fakeKubelet.containerInfoFunc = func(podID, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	fw.fakeKubelet.containerInfoFunc = func(podID, uid, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
 		if podID != expectedPodID || containerName != expectedContainerName {
 			return nil, fmt.Errorf("bad podID or containerName: podID=%v; containerName=%v", podID, containerName)
 		}
@@ -152,6 +169,36 @@ func TestContainerInfo(t *testing.T) {
 	}
 
 	resp, err := http.Get(fw.testHTTPServer.URL + fmt.Sprintf("/stats/%v/%v", podID, expectedContainerName))
+	if err != nil {
+		t.Fatalf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+	var receivedInfo info.ContainerInfo
+	err = json.NewDecoder(resp.Body).Decode(&receivedInfo)
+	if err != nil {
+		t.Fatalf("received invalid json data: %v", err)
+	}
+	if !reflect.DeepEqual(&receivedInfo, expectedInfo) {
+		t.Errorf("received wrong data: %#v", receivedInfo)
+	}
+}
+
+func TestContainerInfoWithUidNamespace(t *testing.T) {
+	fw := newServerTest()
+	expectedInfo := &info.ContainerInfo{}
+	podID := "somepod"
+	expectedNamespace := "custom"
+	expectedPodID := "somepod" + "." + expectedNamespace + ".etcd"
+	expectedContainerName := "goodcontainer"
+	expectedUid := "9b01b80f-8fb4-11e4-95ab-4200af06647"
+	fw.fakeKubelet.containerInfoFunc = func(podID, uid, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+		if podID != expectedPodID || uid != expectedUid || containerName != expectedContainerName {
+			return nil, fmt.Errorf("bad podID or uid or containerName: podID=%v; uid=%v; containerName=%v", podID, uid, containerName)
+		}
+		return expectedInfo, nil
+	}
+
+	resp, err := http.Get(fw.testHTTPServer.URL + fmt.Sprintf("/stats/%v/%v/%v/%v", expectedNamespace, podID, expectedUid, expectedContainerName))
 	if err != nil {
 		t.Fatalf("Got error GETing: %v", err)
 	}

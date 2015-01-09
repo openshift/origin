@@ -145,7 +145,7 @@ func TestRESTgetAttrs(t *testing.T) {
 		},
 		Condition: "Tested",
 		Reason:    "ForTesting",
-		Source:    "test",
+		Source:    api.EventSource{Component: "test"},
 	}
 	label, field, err := rest.getAttrs(eventA)
 	if err != nil {
@@ -169,20 +169,6 @@ func TestRESTgetAttrs(t *testing.T) {
 	}
 	if e, a := expect, field; !reflect.DeepEqual(e, a) {
 		t.Errorf("diff: %s", util.ObjectDiff(e, a))
-	}
-}
-
-func TestRESTUpdate(t *testing.T) {
-	_, rest := NewTestREST()
-	eventA := testEvent("foo")
-	c, err := rest.Create(api.NewDefaultContext(), eventA)
-	if err != nil {
-		t.Fatalf("Unexpected error %v", err)
-	}
-	<-c
-	_, err = rest.Update(api.NewDefaultContext(), eventA)
-	if err == nil {
-		t.Errorf("unexpected non-error")
 	}
 }
 

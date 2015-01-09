@@ -53,14 +53,14 @@ To ignore files, pass in regexes using -ignore, for example:
 
 ### Accessing an asset
 
-To access asset data, we use the `Asset(string) ([]byte, error)` function which
+To access asset data, we use the `Asset(string) []byte` function which
 is included in the generated output.
 
-	data, err := Asset("pub/style/foo.css")
-	if err != nil {
+	data := Asset("pub/style/foo.css")
+	if len(data) == 0 {
 		// Asset was not found.
 	}
-
+	
 	// use asset data
 
 

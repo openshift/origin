@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	apierrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -38,6 +39,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/deny"
 )
 
 func convert(obj runtime.Object) (runtime.Object, error) {
@@ -53,6 +56,7 @@ var accessor = meta.NewAccessor()
 var versioner runtime.ResourceVersioner = accessor
 var selfLinker runtime.SelfLinker = accessor
 var mapper meta.RESTMapper
+var admissionControl admission.Interface
 
 func interfacesFor(version string) (*meta.VersionInterfaces, error) {
 	switch version {
@@ -92,6 +96,7 @@ func init() {
 	)
 	defMapper.Add(api.Scheme, true, versions...)
 	mapper = defMapper
+	admissionControl = admit.NewAlwaysAdmit()
 }
 
 type Simple struct {
@@ -178,6 +183,10 @@ func (storage *SimpleRESTStorage) New() runtime.Object {
 	return &Simple{}
 }
 
+func (storage *SimpleRESTStorage) NewList() runtime.Object {
+	return &SimpleList{}
+}
+
 func (storage *SimpleRESTStorage) Create(ctx api.Context, obj runtime.Object) (<-chan RESTResult, error) {
 	storage.created = obj.(*Simple)
 	if err := storage.errors["create"]; err != nil {
@@ -262,7 +271,7 @@ func TestNotFound(t *testing.T) {
 	}
 	handler := Handle(map[string]RESTStorage{
 		"foo": &SimpleRESTStorage{},
-	}, codec, "/prefix", testVersion, selfLinker)
+	}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -283,8 +292,70 @@ func TestNotFound(t *testing.T) {
 	}
 }
 
+type UnimplementedRESTStorage struct{}
+
+func (UnimplementedRESTStorage) New() runtime.Object {
+	return &Simple{}
+}
+
+func TestMethodNotAllowed(t *testing.T) {
+	type T struct {
+		Method string
+		Path   string
+	}
+	cases := map[string]T{
+		"GET object":    {"GET", "/prefix/version/foo/bar"},
+		"GET list":      {"GET", "/prefix/version/foo"},
+		"POST list":     {"POST", "/prefix/version/foo"},
+		"PUT object":    {"PUT", "/prefix/version/foo/bar"},
+		"DELETE object": {"DELETE", "/prefix/version/foo/bar"},
+		//"watch list":      {"GET", "/prefix/version/watch/foo"},
+		//"watch object":    {"GET", "/prefix/version/watch/foo/bar"},
+		"proxy object":    {"GET", "/prefix/version/proxy/foo/bar"},
+		"redirect object": {"GET", "/prefix/version/redirect/foo/bar"},
+	}
+	handler := Handle(map[string]RESTStorage{
+		"foo": UnimplementedRESTStorage{},
+	}, codec, "/prefix", testVersion, selfLinker, admissionControl)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := http.Client{}
+	for k, v := range cases {
+		request, err := http.NewRequest(v.Method, server.URL+v.Path, bytes.NewReader([]byte(`{"kind":"Simple","apiVersion":"version"}`)))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+			continue
+		}
+		defer response.Body.Close()
+		data, _ := ioutil.ReadAll(response.Body)
+		t.Logf("resp: %s", string(data))
+		if response.StatusCode != http.StatusMethodNotAllowed {
+			t.Errorf("%s: expected %d for %s, Got %s", k, http.StatusMethodNotAllowed, v.Method, string(data))
+			continue
+		}
+		obj, err := codec.Decode(data)
+		if err != nil {
+			t.Errorf("%s: unexpected decode error: %v", k, err)
+			continue
+		}
+		status, ok := obj.(*api.Status)
+		if !ok {
+			t.Errorf("%s: unexpected object: %#v", k, obj)
+			continue
+		}
+		if status.Reason != api.StatusReasonMethodNotAllowed {
+			t.Errorf("%s: unexpected status: %#v", k, status)
+		}
+	}
+}
+
 func TestVersion(t *testing.T) {
-	handler := Handle(map[string]RESTStorage{}, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(map[string]RESTStorage{}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -319,7 +390,7 @@ func TestSimpleList(t *testing.T) {
 		namespace:   "other",
 		expectedSet: "/prefix/version/simple?namespace=other",
 	}
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -342,7 +413,7 @@ func TestErrorList(t *testing.T) {
 		errors: map[string]error{"list": fmt.Errorf("test Error")},
 	}
 	storage["simple"] = &simpleStorage
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -368,7 +439,7 @@ func TestNonEmptyList(t *testing.T) {
 		},
 	}
 	storage["simple"] = &simpleStorage
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -414,7 +485,7 @@ func TestGet(t *testing.T) {
 		expectedSet: "/prefix/version/simple/id",
 	}
 	storage["simple"] = &simpleStorage
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -439,7 +510,7 @@ func TestGetMissing(t *testing.T) {
 		errors: map[string]error{"get": apierrs.NewNotFound("simple", "id")},
 	}
 	storage["simple"] = &simpleStorage
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -458,7 +529,7 @@ func TestDelete(t *testing.T) {
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -474,6 +545,26 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestDeleteInvokesAdmissionControl(t *testing.T) {
+	storage := map[string]RESTStorage{}
+	simpleStorage := SimpleRESTStorage{}
+	ID := "id"
+	storage["simple"] = &simpleStorage
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, deny.NewAlwaysDeny())
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	client := http.Client{}
+	request, err := http.NewRequest("DELETE", server.URL+"/prefix/version/simple/"+ID, nil)
+	response, err := client.Do(request)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if response.StatusCode != http.StatusForbidden {
+		t.Errorf("Unexpected response %#v", response)
+	}
+}
+
 func TestDeleteMissing(t *testing.T) {
 	storage := map[string]RESTStorage{}
 	ID := "id"
@@ -481,7 +572,7 @@ func TestDeleteMissing(t *testing.T) {
 		errors: map[string]error{"delete": apierrs.NewNotFound("simple", ID)},
 	}
 	storage["simple"] = &simpleStorage
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -506,7 +597,7 @@ func TestUpdate(t *testing.T) {
 		t:           t,
 		expectedSet: "/prefix/version/simple/" + ID,
 	}
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -534,6 +625,39 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
+func TestUpdateInvokesAdmissionControl(t *testing.T) {
+	storage := map[string]RESTStorage{}
+	simpleStorage := SimpleRESTStorage{}
+	ID := "id"
+	storage["simple"] = &simpleStorage
+	selfLinker := &setTestSelfLinker{
+		t:           t,
+		expectedSet: "/prefix/version/simple/" + ID,
+	}
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, deny.NewAlwaysDeny())
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	item := &Simple{
+		Other: "bar",
+	}
+	body, err := codec.Encode(item)
+	if err != nil {
+		// The following cases will fail, so die now
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	client := http.Client{}
+	request, err := http.NewRequest("PUT", server.URL+"/prefix/version/simple/"+ID, bytes.NewReader(body))
+	response, err := client.Do(request)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if response.StatusCode != http.StatusForbidden {
+		t.Errorf("Unexpected response %#v", response)
+	}
+}
+
 func TestUpdateMissing(t *testing.T) {
 	storage := map[string]RESTStorage{}
 	ID := "id"
@@ -541,7 +665,7 @@ func TestUpdateMissing(t *testing.T) {
 		errors: map[string]error{"update": apierrs.NewNotFound("simple", ID)},
 	}
 	storage["simple"] = &simpleStorage
-	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(storage, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -576,7 +700,7 @@ func TestCreate(t *testing.T) {
 	}
 	handler := Handle(map[string]RESTStorage{
 		"foo": simpleStorage,
-	}, codec, "/prefix", testVersion, selfLinker)
+	}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	handler.(*defaultAPIServer).group.handler.asyncOpWait = 0
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -612,6 +736,41 @@ func TestCreate(t *testing.T) {
 	wait.Done()
 }
 
+func TestCreateInvokesAdmissionControl(t *testing.T) {
+	wait := sync.WaitGroup{}
+	wait.Add(1)
+	simpleStorage := &SimpleRESTStorage{
+		injectedFunction: func(obj runtime.Object) (returnObj runtime.Object, err error) {
+			wait.Wait()
+			return &Simple{}, nil
+		},
+	}
+	handler := Handle(map[string]RESTStorage{
+		"foo": simpleStorage,
+	}, codec, "/prefix", testVersion, selfLinker, deny.NewAlwaysDeny())
+	handler.(*defaultAPIServer).group.handler.asyncOpWait = 0
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := http.Client{}
+
+	simple := &Simple{
+		Other: "foo",
+	}
+	data, _ := codec.Encode(simple)
+	request, err := http.NewRequest("POST", server.URL+"/prefix/version/foo", bytes.NewBuffer(data))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if response.StatusCode != http.StatusForbidden {
+		t.Errorf("Unexpected response %#v", response)
+	}
+}
+
 func TestCreateNotFound(t *testing.T) {
 	handler := Handle(map[string]RESTStorage{
 		"simple": &SimpleRESTStorage{
@@ -619,7 +778,7 @@ func TestCreateNotFound(t *testing.T) {
 			// See https://github.com/GoogleCloudPlatform/kubernetes/pull/486#discussion_r15037092.
 			errors: map[string]error{"create": apierrs.NewNotFound("simple", "id")},
 		},
-	}, codec, "/prefix", testVersion, selfLinker)
+	}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -687,7 +846,7 @@ func TestSyncCreate(t *testing.T) {
 	}
 	handler := Handle(map[string]RESTStorage{
 		"foo": &storage,
-	}, codec, "/prefix", testVersion, selfLinker)
+	}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -760,7 +919,7 @@ func TestAsyncDelayReturnsError(t *testing.T) {
 			return nil, apierrs.NewAlreadyExists("foo", "bar")
 		},
 	}
-	handler := Handle(map[string]RESTStorage{"foo": &storage}, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(map[string]RESTStorage{"foo": &storage}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	handler.(*defaultAPIServer).group.handler.asyncOpWait = time.Millisecond / 2
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -784,7 +943,7 @@ func TestAsyncCreateError(t *testing.T) {
 		name:        "bar",
 		expectedSet: "/prefix/version/foo/bar",
 	}
-	handler := Handle(map[string]RESTStorage{"foo": &storage}, codec, "/prefix", testVersion, selfLinker)
+	handler := Handle(map[string]RESTStorage{"foo": &storage}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	handler.(*defaultAPIServer).group.handler.asyncOpWait = 0
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -884,7 +1043,7 @@ func TestSyncCreateTimeout(t *testing.T) {
 	}
 	handler := Handle(map[string]RESTStorage{
 		"foo": &storage,
-	}, codec, "/prefix", testVersion, selfLinker)
+	}, codec, "/prefix", testVersion, selfLinker, admissionControl)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -916,7 +1075,7 @@ func TestCORSAllowedOrigins(t *testing.T) {
 		}
 
 		handler := CORS(
-			Handle(map[string]RESTStorage{}, codec, "/prefix", testVersion, selfLinker),
+			Handle(map[string]RESTStorage{}, codec, "/prefix", testVersion, selfLinker, admissionControl),
 			allowedOriginRegexps, nil, nil, "true",
 		)
 		server := httptest.NewServer(handler)

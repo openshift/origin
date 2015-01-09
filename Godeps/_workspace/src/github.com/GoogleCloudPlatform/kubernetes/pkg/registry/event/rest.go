@@ -109,7 +109,7 @@ func (rs *REST) getAttrs(obj runtime.Object) (objLabels, objFields labels.Set, e
 		"condition":                      event.Condition,
 		"status":                         event.Condition, // TODO: remove me when we version fields
 		"reason":                         event.Reason,
-		"source":                         event.Source,
+		"source":                         event.Source.Component,
 	}, nil
 }
 
@@ -128,7 +128,6 @@ func (*REST) New() runtime.Object {
 	return &api.Event{}
 }
 
-// Update returns an error: Events are not mutable.
-func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("not allowed: 'Event' objects are not mutable")
+func (*REST) NewList() runtime.Object {
+	return &api.EventList{}
 }

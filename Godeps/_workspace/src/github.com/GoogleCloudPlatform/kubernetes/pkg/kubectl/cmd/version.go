@@ -19,8 +19,9 @@ package cmd
 import (
 	"io"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/spf13/cobra"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 )
 
 func (f *Factory) NewCmdVersion(out io.Writer) *cobra.Command {
@@ -30,12 +31,13 @@ func (f *Factory) NewCmdVersion(out io.Writer) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			if GetFlagBool(cmd, "client") {
 				kubectl.GetClientVersion(out)
-			} else {
-				client, err := f.ClientBuilder.Client()
-				checkErr(err)
-
-				kubectl.GetVersion(out, client)
+				return
 			}
+
+			client, err := f.Client(cmd)
+			checkErr(err)
+
+			kubectl.GetVersion(out, client)
 		},
 	}
 	cmd.Flags().BoolP("client", "c", false, "Client version only (no server required)")

@@ -14,7 +14,6 @@ import (
 	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/resources"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -116,8 +115,8 @@ func (c *MasterConfig) RunScheduler() {
 func (c *MasterConfig) RunMinionController() {
 	nodeResources := &kapi.NodeResources{
 		Capacity: kapi.ResourceList{
-			resources.CPU:    kubeutil.NewIntOrStringFromInt(int(1000)),
-			resources.Memory: kubeutil.NewIntOrStringFromInt(int(3 * 1024 * 1024 * 1024)),
+		//resources.CPU:    kubeutil.NewIntOrStringFromInt(int(1000)),
+		//resources.Memory: kubeutil.NewIntOrStringFromInt(int(3 * 1024 * 1024 * 1024)),
 		},
 	}
 

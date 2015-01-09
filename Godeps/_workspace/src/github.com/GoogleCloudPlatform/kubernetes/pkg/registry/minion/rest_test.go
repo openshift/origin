@@ -18,11 +18,13 @@ package minion
 
 import (
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func TestMinionRegistryREST(t *testing.T) {
@@ -34,8 +36,8 @@ func TestMinionRegistryREST(t *testing.T) {
 	if obj, err := ms.Get(ctx, "bar"); err != nil || obj.(*api.Node).Name != "bar" {
 		t.Errorf("missing expected object")
 	}
-	if _, err := ms.Get(ctx, "baz"); err != ErrDoesNotExist {
-		t.Errorf("has unexpected object")
+	if _, err := ms.Get(ctx, "baz"); !errors.IsNotFound(err) {
+		t.Errorf("has unexpected error: %v", err)
 	}
 
 	c, err := ms.Create(ctx, &api.Node{ObjectMeta: api.ObjectMeta{Name: "baz"}})
@@ -61,8 +63,8 @@ func TestMinionRegistryREST(t *testing.T) {
 	if s, ok := obj.Object.(*api.Status); !ok || s.Status != api.StatusSuccess {
 		t.Errorf("delete return value was weird: %#v", obj)
 	}
-	if _, err := ms.Get(ctx, "bar"); err != ErrDoesNotExist {
-		t.Errorf("delete didn't actually delete")
+	if _, err := ms.Get(ctx, "bar"); !errors.IsNotFound(err) {
+		t.Errorf("delete didn't actually delete: %v", err)
 	}
 
 	_, err = ms.Delete(ctx, "bar")
@@ -89,12 +91,14 @@ func TestMinionRegistryREST(t *testing.T) {
 
 func TestMinionRegistryHealthCheck(t *testing.T) {
 	minionRegistry := registrytest.NewMinionRegistry([]string{}, api.NodeResources{})
-	minionHealthRegistry := HealthyRegistry{
-		delegate: minionRegistry,
-		client:   &notMinion{minion: "m1"},
-	}
+	minionHealthRegistry := NewHealthyRegistry(
+		minionRegistry,
+		&notMinion{minion: "m1"},
+		&util.FakeClock{},
+		60*time.Second,
+	)
 
-	ms := NewREST(&minionHealthRegistry)
+	ms := NewREST(minionHealthRegistry)
 	ctx := api.NewContext()
 
 	c, err := ms.Create(ctx, &api.Node{ObjectMeta: api.ObjectMeta{Name: "m1"}})
@@ -105,8 +109,8 @@ func TestMinionRegistryHealthCheck(t *testing.T) {
 	if m, ok := result.Object.(*api.Node); !ok || m.Name != "m1" {
 		t.Errorf("insert return value was weird: %#v", result)
 	}
-	if _, err := ms.Get(ctx, "m1"); err == nil {
-		t.Errorf("node is unhealthy, expect no result from apiserver")
+	if _, err := ms.Get(ctx, "m1"); err != nil {
+		t.Errorf("node is unhealthy, expect no error: %v", err)
 	}
 }
 

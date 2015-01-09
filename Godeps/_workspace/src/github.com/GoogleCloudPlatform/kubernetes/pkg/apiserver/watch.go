@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -54,17 +55,21 @@ func (h *WatchHandler) setSelfLinkAddName(obj runtime.Object, req *http.Request)
 	return h.selfLinker.SetSelfLink(obj, newURL.String())
 }
 
-func getWatchParams(query url.Values) (label, field labels.Selector, resourceVersion string) {
-	if s, err := labels.ParseSelector(query.Get("labels")); err != nil {
-		label = labels.Everything()
-	} else {
-		label = s
+func getWatchParams(query url.Values) (label, field labels.Selector, resourceVersion string, err error) {
+	s, perr := labels.ParseSelector(query.Get("labels"))
+	if perr != nil {
+		err = perr
+		return
 	}
-	if s, err := labels.ParseSelector(query.Get("fields")); err != nil {
-		field = labels.Everything()
-	} else {
-		field = s
+	label = s
+
+	s, perr = labels.ParseSelector(query.Get("fields"))
+	if perr != nil {
+		err = perr
+		return
 	}
+	field = s
+
 	resourceVersion = query.Get("resourceVersion")
 	return
 }
@@ -94,30 +99,35 @@ func (h *WatchHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		notFound(w, req)
 		return
 	}
-	if watcher, ok := storage.(ResourceWatcher); ok {
-		label, field, resourceVersion := getWatchParams(req.URL.Query())
-		watching, err := watcher.Watch(ctx, label, field, resourceVersion)
-		if err != nil {
-			errorJSON(err, h.codec, w)
-			return
-		}
-
-		// TODO: This is one watch per connection. We want to multiplex, so that
-		// multiple watches of the same thing don't create two watches downstream.
-		watchServer := &WatchServer{watching, h.codec, func(obj runtime.Object) {
-			if err := h.setSelfLinkAddName(obj, req); err != nil {
-				glog.Errorf("Failed to set self link for object %#v", obj)
-			}
-		}}
-		if isWebsocketRequest(req) {
-			websocket.Handler(watchServer.HandleWS).ServeHTTP(httplog.Unlogged(w), req)
-		} else {
-			watchServer.ServeHTTP(w, req)
-		}
+	watcher, ok := storage.(ResourceWatcher)
+	if !ok {
+		errorJSON(errors.NewMethodNotSupported(kind, "watch"), h.codec, w)
 		return
 	}
 
-	notFound(w, req)
+	label, field, resourceVersion, err := getWatchParams(req.URL.Query())
+	if err != nil {
+		errorJSON(err, h.codec, w)
+		return
+	}
+	watching, err := watcher.Watch(ctx, label, field, resourceVersion)
+	if err != nil {
+		errorJSON(err, h.codec, w)
+		return
+	}
+
+	// TODO: This is one watch per connection. We want to multiplex, so that
+	// multiple watches of the same thing don't create two watches downstream.
+	watchServer := &WatchServer{watching, h.codec, func(obj runtime.Object) {
+		if err := h.setSelfLinkAddName(obj, req); err != nil {
+			glog.Errorf("Failed to set self link for object %#v", obj)
+		}
+	}}
+	if isWebsocketRequest(req) {
+		websocket.Handler(watchServer.HandleWS).ServeHTTP(httplog.Unlogged(w), req)
+	} else {
+		watchServer.ServeHTTP(w, req)
+	}
 }
 
 // WatchServer serves a watch.Interface over a websocket or vanilla HTTP.
