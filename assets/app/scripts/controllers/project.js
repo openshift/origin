@@ -117,14 +117,18 @@ angular.module('openshiftConsole')
     // Sets up subscription for deployments and deploymentsByConfig
     var deploymentsCallback = function(action, deployment) {
       $scope.$apply(function() {
-        DataService.objectByAttribute(deployment, "metadata.name", $scope.deployments, action);
-        DataService.objectByAttribute(deployment, "metadata.annotations.deploymentConfig", $scope.deploymentsByConfig, action, "id");
+        if (deployment.annotations && deployment.annotations.encodedDeploymentConfig) {
+          var depConfig = $.parseJSON(deployment.annotations.encodedDeploymentConfig);
+          deployment.details = depConfig.details;
+        }
+        DataService.objectByAttribute(deployment, "id", $scope.deployments, action);
+        DataService.objectByAttribute(deployment, "annotations.deploymentConfig", $scope.deploymentsByConfig, action, "id");
       });
 
       console.log("deployments (subscribe)", $scope.deployments);
       console.log("deploymentsByConfig (subscribe)", $scope.deploymentsByConfig);
     };
-    DataService.subscribe("deployments", deploymentsCallback, $scope);
+    DataService.subscribe("replicationControllers", deploymentsCallback, $scope);
 
     // Sets up subscription for images and imagesByDockerReference
     var imagesCallback = function(action, image) {

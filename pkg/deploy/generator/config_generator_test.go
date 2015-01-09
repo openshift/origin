@@ -7,12 +7,15 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
+	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func TestGenerateFromMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
+		Codec: api.Codec,
 		DeploymentConfigInterface: &testDeploymentConfigInterface{
 			GetDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound("deploymentConfig", id)
@@ -33,6 +36,7 @@ func TestGenerateFromMissingDeploymentConfig(t *testing.T) {
 
 func TestGenerateFromConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
+		Codec: api.Codec,
 		DeploymentConfigInterface: &testDeploymentConfigInterface{
 			GetDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
 				return basicDeploymentConfig(), nil
@@ -44,12 +48,8 @@ func TestGenerateFromConfigWithoutTagChange(t *testing.T) {
 			},
 		},
 		DeploymentInterface: &testDeploymentInterface{
-			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
-				return &deployapi.Deployment{
-					ControllerTemplate: kapi.ReplicationControllerSpec{
-						Template: basicPodTemplate(),
-					},
-				}, nil
+			GetDeploymentFunc: func(id string) (*kapi.ReplicationController, error) {
+				return basicDeployment(), nil
 			},
 		},
 	}
@@ -71,6 +71,7 @@ func TestGenerateFromConfigWithoutTagChange(t *testing.T) {
 
 func TestGenerateFromConfigWithNoDeployment(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
+		Codec: api.Codec,
 		DeploymentConfigInterface: &testDeploymentConfigInterface{
 			GetDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
 				return basicDeploymentConfig(), nil
@@ -82,8 +83,8 @@ func TestGenerateFromConfigWithNoDeployment(t *testing.T) {
 			},
 		},
 		DeploymentInterface: &testDeploymentInterface{
-			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
-				return nil, kerrors.NewNotFound("deployment", id)
+			GetDeploymentFunc: func(id string) (*kapi.ReplicationController, error) {
+				return nil, kerrors.NewNotFound("replicationController", id)
 			},
 		},
 	}
@@ -105,6 +106,7 @@ func TestGenerateFromConfigWithNoDeployment(t *testing.T) {
 
 func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
+		Codec: api.Codec,
 		DeploymentConfigInterface: &testDeploymentConfigInterface{
 			GetDeploymentConfigFunc: func(id string) (*deployapi.DeploymentConfig, error) {
 				return basicDeploymentConfig(), nil
@@ -116,12 +118,8 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 			},
 		},
 		DeploymentInterface: &testDeploymentInterface{
-			GetDeploymentFunc: func(id string) (*deployapi.Deployment, error) {
-				return &deployapi.Deployment{
-					ControllerTemplate: kapi.ReplicationControllerSpec{
-						Template: basicPodTemplate(),
-					},
-				}, nil
+			GetDeploymentFunc: func(id string) (*kapi.ReplicationController, error) {
+				return basicDeployment(), nil
 			},
 		},
 	}
@@ -148,10 +146,10 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 }
 
 type testDeploymentInterface struct {
-	GetDeploymentFunc func(id string) (*deployapi.Deployment, error)
+	GetDeploymentFunc func(id string) (*kapi.ReplicationController, error)
 }
 
-func (i *testDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*deployapi.Deployment, error) {
+func (i *testDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*kapi.ReplicationController, error) {
 	return i.GetDeploymentFunc(id)
 }
 
@@ -187,6 +185,7 @@ func basicPodTemplate() *kapi.PodTemplateSpec {
 		},
 	}
 }
+
 func basicDeploymentConfig() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		ObjectMeta:    kapi.ObjectMeta{Name: "deploy1"},
@@ -207,6 +206,26 @@ func basicDeploymentConfig() *deployapi.DeploymentConfig {
 			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Template: basicPodTemplate(),
 			},
+		},
+	}
+}
+
+func basicDeployment() *kapi.ReplicationController {
+	config := basicDeploymentConfig()
+	encodedConfig, _ := deployutil.EncodeDeploymentConfig(config, api.Codec)
+
+	return &kapi.ReplicationController{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: deployutil.LatestDeploymentIDForConfig(config),
+			Annotations: map[string]string{
+				deployapi.DeploymentConfigAnnotation:        config.Name,
+				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
+				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
+			},
+			Labels: config.Labels,
+		},
+		Spec: kapi.ReplicationControllerSpec{
+			Template: basicPodTemplate(),
 		},
 	}
 }

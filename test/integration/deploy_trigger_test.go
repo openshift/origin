@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"flag"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -46,7 +47,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	config := manualDeploymentConfig()
 	var err error
 
-	watch, err := openshift.Client.Deployments(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.KubeClient.ReplicationControllers(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -67,7 +68,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	deployment := event.Object.(*deployapi.Deployment)
+	deployment := event.Object.(*kapi.ReplicationController)
 
 	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
@@ -90,7 +91,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	config := imageChangeDeploymentConfig()
 	var err error
 
-	watch, err := openshift.Client.Deployments(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.KubeClient.ReplicationControllers(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -115,7 +116,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	deployment := event.Object.(*deployapi.Deployment)
+	deployment := event.Object.(*kapi.ReplicationController)
 
 	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
@@ -131,7 +132,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newDeployment := event.Object.(*deployapi.Deployment)
+	newDeployment := event.Object.(*kapi.ReplicationController)
 
 	if newDeployment.Name == deployment.Name {
 		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
@@ -146,7 +147,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	config := changeDeploymentConfig()
 	var err error
 
-	watch, err := openshift.Client.Deployments(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.KubeClient.ReplicationControllers(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -162,7 +163,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 
-	deployment := event.Object.(*deployapi.Deployment)
+	deployment := event.Object.(*kapi.ReplicationController)
 
 	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
@@ -185,7 +186,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	newDeployment := event.Object.(*deployapi.Deployment)
+	newDeployment := event.Object.(*kapi.ReplicationController)
 
 	assertEnvVarEquals("ENV_TEST", "UPDATED", newDeployment, t)
 
@@ -194,8 +195,8 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	}
 }
 
-func assertEnvVarEquals(name string, value string, deployment *deployapi.Deployment, t *testing.T) {
-	env := deployment.ControllerTemplate.Template.Spec.Containers[0].Env
+func assertEnvVarEquals(name string, value string, deployment *kapi.ReplicationController, t *testing.T) {
+	env := deployment.Spec.Template.Spec.Containers[0].Env
 
 	for _, e := range env {
 		if e.Name == name && e.Value == value {
@@ -216,12 +217,14 @@ func (p *podInfoGetter) GetPodInfo(host, namespace, podID string) (kapi.PodInfo,
 }
 
 type testOpenshift struct {
-	Client *osclient.Client
-	Server *httptest.Server
-	stop   chan struct{}
+	Client     *osclient.Client
+	KubeClient kclient.Interface
+	Server     *httptest.Server
+	stop       chan struct{}
 }
 
 func NewTestOpenshift(t *testing.T) *testOpenshift {
+	flag.Set("v", "4")
 	glog.Info("Starting test openshift")
 
 	openshift := &testOpenshift{
@@ -238,6 +241,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	osClient, _ := osclient.New(&client.Config{Host: openshift.Server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
+	openshift.KubeClient = kubeClient
 
 	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
 	if err != nil {
@@ -257,7 +261,8 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	imageEtcd := imageetcd.New(etcdHelper)
 	deployEtcd := deployetcd.New(etcdHelper)
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		DeploymentInterface:       deployEtcd,
+		Codec:                     latest.Codec,
+		DeploymentInterface:       &clientDeploymentInterface{kubeClient},
 		DeploymentConfigInterface: deployEtcd,
 		ImageRepositoryInterface:  imageEtcd,
 	}
@@ -278,14 +283,18 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
-		Client: osClient,
-		Stop:   openshift.stop,
+		Client:     osClient,
+		KubeClient: kubeClient,
+		Codec:      latest.Codec,
+		Stop:       openshift.stop,
 	}
 	dccFactory.Create().Run()
 
 	cccFactory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{
-		Client: osClient,
-		Stop:   openshift.stop,
+		Client:     osClient,
+		KubeClient: kubeClient,
+		Codec:      latest.Codec,
+		Stop:       openshift.stop,
 	}
 	cccFactory.Create().Run()
 
@@ -301,6 +310,14 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 func (t *testOpenshift) Close() {
 	close(t.stop)
+}
+
+type clientDeploymentInterface struct {
+	KubeClient kclient.Interface
+}
+
+func (c *clientDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*kapi.ReplicationController, error) {
+	return c.KubeClient.ReplicationControllers(kapi.Namespace(ctx)).Get(id)
 }
 
 func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {

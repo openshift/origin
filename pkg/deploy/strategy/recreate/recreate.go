@@ -8,8 +8,10 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // DeploymentStrategy is a simple strategy appropriate as a default. Its behavior
@@ -19,12 +21,12 @@ import (
 // A failure to remove any existing ReplicationController will be considered a deployment failure.
 type DeploymentStrategy struct {
 	ReplicationController ReplicationControllerInterface
+	Codec                 runtime.Codec
 }
 
 type ReplicationControllerInterface interface {
 	listReplicationControllers(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
 	getReplicationController(namespace, id string) (*kapi.ReplicationController, error)
-	createReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	deleteReplicationController(namespace string, id string) error
 }
@@ -41,10 +43,6 @@ func (r RealReplicationController) getReplicationController(namespace string, id
 	return r.KubeClient.ReplicationControllers(namespace).Get(id)
 }
 
-func (r RealReplicationController) createReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return r.KubeClient.ReplicationControllers(namespace).Create(ctrl)
-}
-
 func (r RealReplicationController) updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 	return r.KubeClient.ReplicationControllers(namespace).Update(ctrl)
 }
@@ -53,7 +51,7 @@ func (r RealReplicationController) deleteReplicationController(namespace string,
 	return r.KubeClient.ReplicationControllers(namespace).Delete(id)
 }
 
-func (s *DeploymentStrategy) Deploy(deployment *deployapi.Deployment) error {
+func (s *DeploymentStrategy) Deploy(deployment *kapi.ReplicationController) error {
 	controllers := &kapi.ReplicationControllerList{}
 	namespace := deployment.Namespace
 	var err error
@@ -69,30 +67,16 @@ func (s *DeploymentStrategy) Deploy(deployment *deployapi.Deployment) error {
 		return fmt.Errorf("Unable to get list of replication controllers for previous deploymentConfig %s: %v\n", configID, err)
 	}
 
-	deploymentCopy, err := kapi.Scheme.Copy(deployment)
-	if err != nil {
-		return fmt.Errorf("Unable to copy deployment %s: %v\n", deployment.Name, err)
+	var deploymentConfig *deployapi.DeploymentConfig
+	var decodeError error
+	if deploymentConfig, decodeError = deployutil.DecodeDeploymentConfig(deployment, s.Codec); decodeError != nil {
+		return fmt.Errorf("Couldn't decode DeploymentConfig from deployment %s: %v", deployment.Name, decodeError)
 	}
 
-	controller := &kapi.ReplicationController{
-		ObjectMeta: kapi.ObjectMeta{
-			Annotations: map[string]string{deployapi.DeploymentAnnotation: deployment.Name},
-			Labels:      map[string]string{deployapi.DeploymentConfigLabel: configID},
-		},
-		Spec: deploymentCopy.(*deployapi.Deployment).ControllerTemplate,
-	}
-
-	// Correlate pods created by the ReplicationController to the deployment objects
-	if controller.Spec.Template.Labels == nil {
-		controller.Spec.Template.Labels = make(map[string]string)
-	}
-	controller.Spec.Template.Labels[deployapi.DeploymentConfigLabel] = configID
-	// TODO: Switch this to an annotation once upstream supports annotations on a PodTemplate
-	controller.Spec.Template.Labels[deployapi.DeploymentLabel] = deployment.Name
-
-	glog.Infof("Creating replicationController for deployment %s", deployment.Name)
-	if _, err := s.ReplicationController.createReplicationController(namespace, controller); err != nil {
-		return fmt.Errorf("An error occurred creating the replication controller for deployment %s: %v", deployment.Name, err)
+	deployment.Spec.Replicas = deploymentConfig.Template.ControllerTemplate.Replicas
+	glog.Infof("Updating replicationController for deployment %s to replica count %d", deployment.Name, deployment.Spec.Replicas)
+	if _, err := s.ReplicationController.updateReplicationController(namespace, deployment); err != nil {
+		return fmt.Errorf("An error occurred updating the replication controller for deployment %s: %v", deployment.Name, err)
 	}
 
 	// For this simple deploy, remove previous replication controllers.

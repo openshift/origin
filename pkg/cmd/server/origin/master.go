@@ -130,9 +130,10 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		DeploymentInterface:       deployEtcd,
+		DeploymentInterface:       &clientDeploymentInterface{c.KubeClient},
 		DeploymentConfigInterface: deployEtcd,
 		ImageRepositoryInterface:  imageEtcd,
+		Codec: latest.Codec,
 	}
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "")
@@ -354,6 +355,7 @@ func (c *MasterConfig) RunDeploymentController() {
 	factory := deploycontrollerfactory.DeploymentControllerFactory{
 		Client:     c.OSClient,
 		KubeClient: c.KubeClient,
+		Codec:      latest.Codec,
 		Environment: []api.EnvVar{
 			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 			{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
@@ -367,13 +369,21 @@ func (c *MasterConfig) RunDeploymentController() {
 }
 
 func (c *MasterConfig) RunDeploymentConfigController() {
-	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{Client: c.OSClient}
+	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{
+		Client:     c.OSClient,
+		KubeClient: c.KubeClient,
+		Codec:      latest.Codec,
+	}
 	controller := factory.Create()
 	controller.Run()
 }
 
 func (c *MasterConfig) RunDeploymentConfigChangeController() {
-	factory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{Client: c.OSClient}
+	factory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{
+		Client:     c.OSClient,
+		KubeClient: c.KubeClient,
+		Codec:      latest.Codec,
+	}
 	controller := factory.Create()
 	controller.Run()
 }
@@ -419,4 +429,12 @@ func (c ClientWebhookInterface) CreateBuild(namespace string, build *buildapi.Bu
 // GetBuildConfig returns buildConfig using OpenShift client.
 func (c ClientWebhookInterface) GetBuildConfig(namespace, name string) (*buildapi.BuildConfig, error) {
 	return c.Client.BuildConfigs(namespace).Get(name)
+}
+
+type clientDeploymentInterface struct {
+	KubeClient kclient.Interface
+}
+
+func (c *clientDeploymentInterface) GetDeployment(ctx api.Context, id string) (*api.ReplicationController, error) {
+	return c.KubeClient.ReplicationControllers(api.Namespace(ctx)).Get(id)
 }

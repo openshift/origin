@@ -21,8 +21,10 @@ import (
 // DeploymentConfigControllerFactory can create a DeploymentConfigController which obtains
 // DeploymentConfigs from a queue populated from a watch of all DeploymentConfigs.
 type DeploymentConfigControllerFactory struct {
-	Client *osclient.Client
-	Stop   <-chan struct{}
+	Client     *osclient.Client
+	KubeClient kclient.Interface
+	Codec      runtime.Codec
+	Stop       <-chan struct{}
 }
 
 func (factory *DeploymentConfigControllerFactory) Create() *controller.DeploymentConfigController {
@@ -30,13 +32,14 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).Run()
 
 	return &controller.DeploymentConfigController{
-		DeploymentInterface: ClientDeploymentInterface{factory.Client},
+		DeploymentInterface: &ClientDeploymentInterace{factory.KubeClient},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			config := queue.Pop().(*deployapi.DeploymentConfig)
 			panicIfStopped(factory.Stop, "deployment config controller stopped")
 			return config
 		},
-		Stop: factory.Stop,
+		Codec: factory.Codec,
+		Stop:  factory.Stop,
 	}
 }
 
@@ -54,6 +57,8 @@ type DeploymentControllerFactory struct {
 	UseLocalImages bool
 	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
 	RecreateStrategyImage string
+	// Codec is used to decode DeploymentConfigs.
+	Codec runtime.Codec
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 
@@ -63,10 +68,10 @@ type DeploymentControllerFactory struct {
 
 func (factory *DeploymentControllerFactory) Create() *controller.DeploymentController {
 	deploymentQueue := cache.NewFIFO()
-	cache.NewReflector(&deploymentLW{client: factory.Client, field: labels.Everything()}, &deployapi.Deployment{}, deploymentQueue).Run()
+	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, deploymentQueue).Run()
 
 	factory.deploymentStore = cache.NewStore()
-	cache.NewReflector(&deploymentLW{client: factory.Client, field: labels.Everything()}, &deployapi.Deployment{}, factory.deploymentStore).Run()
+	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, factory.deploymentStore).Run()
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)
@@ -81,11 +86,11 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 
 	return &controller.DeploymentController{
 		ContainerCreator:    factory,
-		DeploymentInterface: ClientDeploymentInterface{factory.Client},
+		DeploymentInterface: &ClientDeploymentInterace{factory.KubeClient},
 		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
 		Environment:         factory.Environment,
-		NextDeployment: func() *deployapi.Deployment {
-			deployment := deploymentQueue.Pop().(*deployapi.Deployment)
+		NextDeployment: func() *kapi.ReplicationController {
+			deployment := deploymentQueue.Pop().(*kapi.ReplicationController)
 			panicIfStopped(factory.Stop, "deployment controller stopped")
 			return deployment
 		},
@@ -96,6 +101,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 		},
 		DeploymentStore: factory.deploymentStore,
 		UseLocalImages:  factory.UseLocalImages,
+		Codec:           factory.Codec,
 		Stop:            factory.Stop,
 	}
 }
@@ -129,9 +135,9 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 	list := &kapi.PodList{}
 
 	for _, obj := range factory.deploymentStore.List() {
-		deployment := obj.(*deployapi.Deployment)
+		deployment := obj.(*kapi.ReplicationController)
 
-		switch deployment.Status {
+		switch deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation]) {
 		case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
 			// Validate the correlating pod annotation
 			podID, hasPodID := deployment.Annotations[deployapi.DeploymentPodAnnotation]
@@ -186,7 +192,9 @@ func (pe *podEnumerator) Get(index int) (string, interface{}) {
 // DeploymentConfigChangeControllerFactory can create a DeploymentConfigChangeController which obtains DeploymentConfigs
 // from a queue populated from a watch of all DeploymentConfigs.
 type DeploymentConfigChangeControllerFactory struct {
-	Client osclient.Interface
+	Client     osclient.Interface
+	KubeClient kclient.Interface
+	Codec      runtime.Codec
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -196,16 +204,17 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.Dep
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).Run()
 
 	store := cache.NewStore()
-	cache.NewReflector(&deploymentLW{client: factory.Client, field: labels.Everything()}, &deployapi.Deployment{}, store).Run()
+	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, store).Run()
 
 	return &controller.DeploymentConfigChangeController{
-		ChangeStrategy: ClientDeploymentConfigInterface{factory.Client},
+		ChangeStrategy: &ClientDeploymentConfigInterface{factory.Client},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			config := queue.Pop().(*deployapi.DeploymentConfig)
 			panicIfStopped(factory.Stop, "deployment config change controller stopped")
 			return config
 		},
 		DeploymentStore: store,
+		Codec:           factory.Codec,
 		Stop:            factory.Stop,
 	}
 }
@@ -226,7 +235,7 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, store).Run()
 
 	return &controller.ImageChangeController{
-		DeploymentConfigInterface: ClientDeploymentConfigInterface{factory.Client},
+		DeploymentConfigInterface: &ClientDeploymentConfigInterface{factory.Client},
 		DeploymentConfigStore:     store,
 		NextImageRepository: func() *imageapi.ImageRepository {
 			repo := queue.Pop().(*imageapi.ImageRepository)
@@ -248,18 +257,18 @@ func panicIfStopped(ch <-chan struct{}, message interface{}) {
 
 // deploymentLW is a ListWatcher implementation for Deployments.
 type deploymentLW struct {
-	client osclient.Interface
+	client kclient.Interface
 	field  labels.Selector
 }
 
 // List lists all Deployments which match the given field selector.
 func (lw *deploymentLW) List() (runtime.Object, error) {
-	return lw.client.Deployments(kapi.NamespaceAll).List(labels.Everything(), lw.field)
+	return lw.client.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
 }
 
 // Watch watches all Deployments matching the given field selector.
 func (lw *deploymentLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Deployments(kapi.NamespaceAll).Watch(labels.Everything(), lw.field, "0")
+	return lw.client.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), lw.field, "0")
 }
 
 // deploymentConfigLW is a ListWatcher implementation for DeploymentConfigs.
@@ -292,24 +301,24 @@ func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, err
 	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
 }
 
-// ClientDeploymentInterface is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
-type ClientDeploymentInterface struct {
-	Client osclient.Interface
+// ClientDeploymentInterace is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
+type ClientDeploymentInterace struct {
+	Client kclient.Interface
 }
 
 // GetDeployment returns deployment using OpenShift client.
-func (c ClientDeploymentInterface) GetDeployment(namespace, name string) (*deployapi.Deployment, error) {
-	return c.Client.Deployments(namespace).Get(name)
+func (c ClientDeploymentInterace) GetDeployment(namespace, name string) (*kapi.ReplicationController, error) {
+	return c.Client.ReplicationControllers(namespace).Get(name)
 }
 
 // CreateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterface) CreateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	return c.Client.Deployments(namespace).Create(deployment)
+func (c ClientDeploymentInterace) CreateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return c.Client.ReplicationControllers(namespace).Create(deployment)
 }
 
 // UpdateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterface) UpdateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	return c.Client.Deployments(namespace).Update(deployment)
+func (c ClientDeploymentInterace) UpdateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return c.Client.ReplicationControllers(namespace).Update(deployment)
 }
 
 // ClientDeploymentConfigInterface is a changeStrategy which delegates to the OpenShift client interfaces

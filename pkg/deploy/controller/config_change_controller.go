@@ -1,7 +1,9 @@
 package controller
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	cache "github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	runtime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	util "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -17,6 +19,7 @@ type DeploymentConfigChangeController struct {
 	ChangeStrategy       changeStrategy
 	NextDeploymentConfig func() *deployapi.DeploymentConfig
 	DeploymentStore      cache.Store
+	Codec                runtime.Codec
 	// Stop is an optional channel that controls when the controller exits
 	Stop <-chan struct{}
 }
@@ -62,17 +65,21 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 		return
 	}
 
-	deployment := obj.(*deployapi.Deployment)
+	deployment := obj.(*kapi.ReplicationController)
 
-	if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployment.ControllerTemplate.Template.Spec) {
-		glog.V(4).Infof("Ignoring updated config %s with LatestVersion=%d because it matches deployment %s", config.Name, config.LatestVersion, deployment.Name)
-		return
+	if deployedConfig, err := deployutil.DecodeDeploymentConfig(deployment, dc.Codec); err == nil {
+		if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
+			glog.V(4).Infof("Ignoring updated config %s with LatestVersion=%d because it matches deployed config %s", config.Name, config.LatestVersion, deployment.Name)
+			return
+		}
+	} else {
+		glog.V(0).Infof("Error decoding deploymentConfig from deployment %s: %v", deployment.Name, err)
 	}
 
 	dc.generateDeployment(config, deployment)
 }
 
-func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig, deployment *deployapi.Deployment) {
+func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi.DeploymentConfig, deployment *kapi.ReplicationController) {
 	newConfig, err := dc.ChangeStrategy.GenerateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
 		glog.V(2).Infof("Error generating new version of deploymentConfig %v: %#v", config.Name, err)

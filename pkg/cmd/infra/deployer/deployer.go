@@ -7,9 +7,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strategy "github.com/openshift/origin/pkg/deploy/strategy/recreate"
 )
 
@@ -52,7 +54,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 // deploy starts the deployer
 func deploy(cfg *config) error {
-	kClient, osClient, err := cfg.Config.Clients()
+	kClient, _, err := cfg.Config.Clients()
 	if err != nil {
 		return err
 	}
@@ -60,12 +62,15 @@ func deploy(cfg *config) error {
 		return errors.New("No deployment name was specified.")
 	}
 
-	var deployment *deployapi.Deployment
-	if deployment, err = osClient.Deployments(cfg.Namespace).Get(cfg.DeploymentName); err != nil {
+	var deployment *kapi.ReplicationController
+	if deployment, err = kClient.ReplicationControllers(cfg.Namespace).Get(cfg.DeploymentName); err != nil {
 		return err
 	}
 
 	// TODO: Choose a strategy based on some input
-	strategy := &strategy.DeploymentStrategy{strategy.RealReplicationController{KubeClient: kClient}}
+	strategy := &strategy.DeploymentStrategy{
+		ReplicationController: strategy.RealReplicationController{KubeClient: kClient},
+		Codec: latest.Codec,
+	}
 	return strategy.Deploy(deployment)
 }
