@@ -9,15 +9,15 @@
  */
 angular.module('openshiftConsole')
   .controller('ProjectsController', function ($scope, $location, DataService) {   
-    $scope.projects = [];
+    $scope.projects = {};
 
     var callback = function(projects) {
       $scope.$apply(function(){
-        $scope.projects = projects.items;
+        $scope.projects = projects.by("metadata.name");
       });
     };
 
-    DataService.getList("projects", callback, $scope);
+    DataService.list("projects", $scope, callback);
 
     $scope.tileClickHandler = function(evt) {
       var t = $(evt.target);

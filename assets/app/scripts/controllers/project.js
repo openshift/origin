@@ -27,6 +27,8 @@ angular.module('openshiftConsole')
     $scope.imagesByDockerReference = {};
     $scope.podsByServiceByLabel = {};
 
+    $scope.watches = [];
+
     var projectCallback = function(project) {
       $scope.$apply(function(){
         $scope.project = project;
@@ -34,112 +36,95 @@ angular.module('openshiftConsole')
       });
     };
 
-    DataService.getObject("projects", $scope.projectName, projectCallback, $scope);
+    DataService.get("projects", $scope.projectName, $scope, projectCallback);
 
     var podsCallback = function(pods) {
       $scope.$apply(function() {
-        // Have to wipe the lists out because we get a brand new list every time when polling
-        $scope.pods = {};
-        $scope.podsByLabel = {};
-        DataService.objectsByAttribute(pods.items, "id", $scope.pods);
-        DataService.objectsByAttribute(pods.items, "labels", $scope.podsByLabel, null, "id");
+        $scope.pods = pods.by("metadata.name");
+        $scope.podsByLabel = pods.by("labels", "metadata.name");
+        podsByServiceByLabel();
       });
 
       console.log("podsByLabel (list)", $scope.podsByLabel);      
-
-      $scope.servicesPromise.done($.proxy(function() {
-        $scope.$apply(function() {
-          podsByServiceByLabel();
-        });
-      }));
     };
 
-    DataService.getList("pods", $scope.podsPromise, $scope);
+    $scope.watches.push(DataService.watch("pods", $scope, podsCallback, {poll: true}));
 
     var servicesCallback = function(services) {
       $scope.$apply(function() {
-        // TODO this is being fixed upstream so that items is never null
-        if (services.items) {
-          DataService.objectsByAttribute(services.items, "id", $scope.services);
-        }
-        if ($scope.servicesPromise.state() !== "resolved") {
-          $scope.servicesPromise.resolve();
-        }        
+        $scope.services = services.by("metadata.name");
+        podsByServiceByLabel();  
       });
 
       console.log("services (list)", $scope.services);
     };
 
-    DataService.getList("services", $scope.servicesPromise, $scope);    
-
-
-    var servicesSubscribeCallback = function(action, service) {
-      $scope.$apply(function() {
-        DataService.objectByAttribute(service, "id", $scope.services, action);
-        podsByServiceByLabel();
-      });
-
-      console.log("services (subscribe)", $scope.services);
-    };
+    $scope.watches.push(DataService.watch("services", $scope, servicesCallback));
 
     var podsByServiceByLabel = function() {
-      for (var serviceId in $scope.services) {
-        var service = $scope.services[serviceId];
+      $scope.podsByServiceByLabel = {};
+      $each($scope.services, function(name, service) {
         var servicePods = [];
-        for (var selectorKey in service.selector) {
-          var selectorValue = service.selector[selectorKey];
-          var pods = $scope.podsByLabel[selectorKey][selectorValue];
-          for (var podId in pods) {
-            var pod = pods[podId];
-            servicePods.push(pod);
+        $each(service.selector, function(selectorKey, selectorValue) {
+          if ($scope.podsByLabel[selectorKey]) {
+            var pods = $scope.podsByLabel[selectorKey][selectorValue] || {};
+            $each(pods, function(name, pod) {
+              servicePods.push(pod);
+            });
           }
-        }
-        $scope.podsByServiceByLabel[serviceId]  =  {};
-        DataService.objectsByAttribute(servicePods, "labels", $scope.podsByServiceByLabel[serviceId], null, "id");
-      }
+        });
+        $scope.podsByServiceByLabel[name]  =  {};
+        // TODO last remaining reference to this... 
+        DataService.objectsByAttribute(servicePods, "labels", $scope.podsByServiceByLabel[name], null, "metadata.name");
+      });
 
       console.log("podsByServiceByLabel", $scope.podsByServiceByLabel);      
     };
 
-    $scope.podsPromise.done($.proxy(function(pods){
-      $scope.servicesPromise.done($.proxy(function(services) {
-        //we've loaded the initial set of pods and services at this point
-        // TODO we'll restructure how we handle this data to prevent things from jumping around
-        // in crazy structural cases by service
-        servicesCallback(services);
-        podsCallback(pods);
-
-        DataService.subscribe("services", servicesSubscribeCallback, $scope);
-        DataService.subscribePolling("pods", podsCallback, $scope);
-      }, this));
-    }, this));
-
-    // Sets up subscription for deployments and deploymentsByConfig
-    var deploymentsCallback = function(action, deployment) {
-      $scope.$apply(function() {
-        if (deployment.annotations && deployment.annotations.encodedDeploymentConfig) {
+    function parseEncodedDeploymentConfig(deployment) {
+      if (deployment.annotations && deployment.annotations.encodedDeploymentConfig) {
+        try {
           var depConfig = $.parseJSON(deployment.annotations.encodedDeploymentConfig);
           deployment.details = depConfig.details;
         }
-        DataService.objectByAttribute(deployment, "id", $scope.deployments, action);
-        DataService.objectByAttribute(deployment, "annotations.deploymentConfig", $scope.deploymentsByConfig, action, "id");
+        catch (e) {
+          console.log("Failed to parse encoded deployment config", e);
+        }
+      }
+    }
+
+    // Sets up subscription for deployments and deploymentsByConfig
+    var deploymentsCallback = function(deployments, action, deployment) {
+      $scope.$apply(function() {
+        $scope.deployments = deployments.by("metadata.name");
+        $scope.deploymentsByConfig = deployments.by("annotations.deploymentConfig", "metadata.name");
+        if (deployment) {
+          if (action !== "DELETED") {
+            parseEncodedDeploymentConfig(deployment);
+          }
+        }
+        else {
+          $each($scope.deployments, function(name, dep) {
+            parseEncodedDeploymentConfig(dep);
+          });
+        }
       });
 
       console.log("deployments (subscribe)", $scope.deployments);
       console.log("deploymentsByConfig (subscribe)", $scope.deploymentsByConfig);
     };
-    DataService.subscribe("replicationControllers", deploymentsCallback, $scope);
+    $scope.watches.push(DataService.watch("replicationControllers", $scope, deploymentsCallback));
 
     // Sets up subscription for images and imagesByDockerReference
-    var imagesCallback = function(action, image) {
+    var imagesCallback = function(images) {
       $scope.$apply(function() {
-        DataService.objectByAttribute(image, "metadata.name", $scope.images, action);
-        DataService.objectByAttribute(image, "dockerImageReference", $scope.imagesByDockerReference, action);
+        $scope.images = images.by("metadata.name");
+        $scope.imagesByDockerReference = images.by("dockerImageReference");
       });
 
       console.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
     };
-    DataService.subscribe("images", imagesCallback, $scope);
+    $scope.watches.push(DataService.watch("images", $scope, imagesCallback));
 
 
     var associateDeploymentConfigTriggersToBuild = function(deploymentConfig, build) {
@@ -155,38 +140,49 @@ angular.module('openshiftConsole')
             if (!trigger.builds) {
               trigger.builds = {};
             }
-            trigger.builds[build.id] = build;
+            trigger.builds[build.metadata.name] = build;
           }          
         }
       }
     };
 
     // Sets up subscription for deploymentConfigs, associates builds to triggers on deploymentConfigs
-    var deploymentConfigsCallback = function(action, deploymentConfig) {
+    var deploymentConfigsCallback = function(deploymentConfigs, action, deploymentConfig) {
       $scope.$apply(function() {
-        DataService.objectByAttribute(deploymentConfig, "metadata.name", $scope.deploymentConfigs, action);
-        if (action === 'ADDED' || action === 'MODIFIED') {
-          for (var buildId in $scope.builds) {
-            associateDeploymentConfigTriggersToBuild(deploymentConfig, $scope.builds[buildId]);
-          }
+        $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
+        if (!action) {
+          $each($scope.deploymentConfigs, function(name, depConfig) {
+            $each($scope.builds, function(name, build) {
+              associateDeploymentConfigTriggersToBuild(depConfig, build);
+            });   
+          });
         }
-        else if (action === 'DELETED') {
-          // TODO
+        else if (action !== 'DELETED') {
+          $each($scope.builds, function(name, build) {
+            associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
+          });
         }
       });
 
       console.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
     };
-    DataService.subscribe("deploymentConfigs", deploymentConfigsCallback, $scope);  
+    $scope.watches.push(DataService.watch("deploymentConfigs", $scope, deploymentConfigsCallback));
 
     // Sets up subscription for builds, associates builds to triggers on deploymentConfigs
-    var buildsCallback = function(action, build) {
+    var buildsCallback = function(builds, action, build) {
       $scope.$apply(function() {
-        DataService.objectByAttribute(build, "metadata.name", $scope.builds, action);
-        if (action === 'ADDED' || action === 'MODIFIED') {
-          for (var depConfigId in $scope.deploymentConfigs) {
-            associateDeploymentConfigTriggersToBuild($scope.deploymentConfigs[depConfigId], build);
-          }
+        $scope.builds = builds.by("metadata.name");
+        if (!action) {
+          $each($scope.builds, function(name, bld) {
+            $each($scope.deploymentConfigs, function(name, depConfig) {
+              associateDeploymentConfigTriggersToBuild(depConfig, bld);
+            });
+          });
+        }        
+        else if (action === 'ADDED' || action === 'MODIFIED') {
+          $each($scope.deploymentConfigs, function(name, depConfig) {
+            associateDeploymentConfigTriggersToBuild(depConfig, build);
+          });
         }
         else if (action === 'DELETED'){
           // TODO
@@ -195,5 +191,11 @@ angular.module('openshiftConsole')
 
       console.log("builds (subscribe)", $scope.builds);
     };
-    DataService.subscribe("builds", buildsCallback, $scope);
+    $scope.watches.push(DataService.watch("builds", $scope, buildsCallback));
+
+    $scope.$on('$destroy', function(){
+      for (var i = 0; i < $scope.watches.length; i++) {
+        DataService.unwatch($scope.watches[i]);
+      }
+    });    
   });
