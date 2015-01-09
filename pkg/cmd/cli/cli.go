@@ -118,6 +118,7 @@ func applyToCreate(dst *cobra.Command) *cobra.Command {
 
 // Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
 func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
+	// TODO find and merge duplicates, this is also in other places
 	loadingRules := clientcmd.NewClientConfigLoadingRules()
 	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
 	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")

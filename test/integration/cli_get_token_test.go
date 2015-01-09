@@ -91,7 +91,8 @@ func TestGetToken(t *testing.T) {
 	flags.Parse(strings.Split("--master="+oauthServer.URL, " "))
 
 	reader := bytes.NewBufferString("user\npass")
-	accessToken, err := tokencmd.RequestToken(clientCfg, reader)
+
+	accessToken, err := tokencmd.RequestToken(clientCfg.OpenShiftConfig(), reader, "", "")
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
