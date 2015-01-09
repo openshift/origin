@@ -1,36 +1,41 @@
 package sti
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/openshift/source-to-image/pkg/sti/errors"
+	"github.com/openshift/source-to-image/pkg/sti/api"
+	stierr "github.com/openshift/source-to-image/pkg/sti/errors"
 	"github.com/openshift/source-to-image/pkg/sti/test"
 )
 
 type FakeBuildHandler struct {
 	CleanupCalled              bool
-	SetupRequired              []string
-	SetupOptional              []string
+	SetupRequired              []api.Script
+	SetupOptional              []api.Script
 	SetupError                 error
 	DetermineIncrementalCalled bool
 	DetermineIncrementalError  error
-	BuildRequest               *Request
-	BuildResult                *Result
+	BuildRequest               *api.Request
+	BuildResult                *api.Result
 	SaveArtifactsCalled        bool
 	SaveArtifactsError         error
 	FetchSourceCalled          bool
 	FetchSourceError           error
-	ExecuteCommand             string
+	ExecuteCommand             api.Script
 	ExecuteError               error
+	ExpectedError              bool
+	LayeredBuildCalled         bool
+	LayeredBuildError          error
 }
 
 func (f *FakeBuildHandler) cleanup() {
 	f.CleanupCalled = true
 }
 
-func (f *FakeBuildHandler) setup(required []string, optional []string) error {
+func (f *FakeBuildHandler) setup(required []api.Script, optional []api.Script) error {
 	f.SetupRequired = required
 	f.SetupOptional = optional
 	return f.SetupError
@@ -41,11 +46,11 @@ func (f *FakeBuildHandler) determineIncremental() error {
 	return f.DetermineIncrementalError
 }
 
-func (f *FakeBuildHandler) Request() *Request {
+func (f *FakeBuildHandler) Request() *api.Request {
 	return f.BuildRequest
 }
 
-func (f *FakeBuildHandler) Result() *Result {
+func (f *FakeBuildHandler) Result() *api.Result {
 	return f.BuildResult
 }
 
@@ -58,9 +63,18 @@ func (f *FakeBuildHandler) fetchSource() error {
 	return f.FetchSourceError
 }
 
-func (f *FakeBuildHandler) execute(command string) error {
+func (f *FakeBuildHandler) execute(command api.Script) error {
 	f.ExecuteCommand = command
 	return f.ExecuteError
+}
+
+func (f *FakeBuildHandler) wasExpectedError(text string) bool {
+	return f.ExpectedError
+}
+
+func (f *FakeBuildHandler) build() error {
+	f.LayeredBuildCalled = true
+	return f.LayeredBuildError
 }
 
 func TestBuild(t *testing.T) {
@@ -68,8 +82,8 @@ func TestBuild(t *testing.T) {
 	for _, incremental := range incrementalTest {
 
 		fh := &FakeBuildHandler{
-			BuildRequest: &Request{incremental: incremental},
-			BuildResult:  &Result{},
+			BuildRequest: &api.Request{Incremental: incremental},
+			BuildResult:  &api.Result{},
 		}
 		builder := Builder{
 			handler: fh,
@@ -77,10 +91,10 @@ func TestBuild(t *testing.T) {
 		builder.Build()
 
 		// Verify the right scripts were requested
-		if !reflect.DeepEqual(fh.SetupRequired, []string{"assemble", "run"}) {
+		if !reflect.DeepEqual(fh.SetupRequired, []api.Script{api.Assemble, api.Run}) {
 			t.Errorf("Unexpected required scripts requested: %#v", fh.SetupRequired)
 		}
-		if !reflect.DeepEqual(fh.SetupOptional, []string{"save-artifacts"}) {
+		if !reflect.DeepEqual(fh.SetupOptional, []api.Script{api.SaveArtifacts}) {
 			t.Errorf("Unexpected optional scripts requested: %#v", fh.SetupOptional)
 		}
 
@@ -95,8 +109,79 @@ func TestBuild(t *testing.T) {
 		}
 
 		// Verify that execute was called with the right script
-		if fh.ExecuteCommand != "assemble" {
+		if fh.ExecuteCommand != api.Assemble {
 			t.Errorf("Unexpected execute command: %s", fh.ExecuteCommand)
+		}
+	}
+}
+
+func TestLayeredBuild(t *testing.T) {
+	fh := &FakeBuildHandler{
+		BuildRequest: &api.Request{
+			BaseImage: "testimage",
+		},
+		BuildResult:   &api.Result{},
+		ExecuteError:  stierr.NewContainerError("", 1, `/bin/sh: tar: not found`),
+		ExpectedError: true,
+	}
+	builder := Builder{
+		handler: fh,
+	}
+	builder.Build()
+	// Verify layered build
+	if !fh.LayeredBuildCalled {
+		t.Errorf("Layered build was not called.")
+	}
+}
+
+func TestBuildErrorExecute(t *testing.T) {
+	fh := &FakeBuildHandler{
+		BuildRequest: &api.Request{
+			BaseImage: "testimage",
+		},
+		BuildResult:   &api.Result{},
+		ExecuteError:  errors.New("ExecuteError"),
+		ExpectedError: false,
+	}
+	builder := Builder{
+		handler: fh,
+	}
+	_, err := builder.Build()
+	if err == nil || err.Error() != "ExecuteError" {
+		t.Errorf("An error was expected, but got different %v", err)
+	}
+}
+
+func TestWasExpectedError(t *testing.T) {
+	type expErr struct {
+		text     string
+		expected bool
+	}
+
+	tests := []expErr{
+		{ // 0 - tar error
+			text:     `/bin/sh: tar: not found`,
+			expected: true,
+		},
+		{ // 1 - tar error
+			text:     `/bin/sh: tar: command not found`,
+			expected: true,
+		},
+		{ // 2 - /bin/sh error
+			text:     `exec: "/bin/sh": stat /bin/sh: no such file or directory`,
+			expected: true,
+		},
+		{ // 3 - non container error
+			text:     "other error",
+			expected: false,
+		},
+	}
+
+	for i, ti := range tests {
+		bh := &buildHandler{}
+		result := bh.wasExpectedError(ti.text)
+		if result != ti.expected {
+			t.Errorf("(%d) Unexpected result: %v. Expected: %v", i, result, ti.expected)
 		}
 	}
 }
@@ -108,8 +193,9 @@ func testBuildHandler() *buildHandler {
 		git:       &test.FakeGit{},
 		fs:        &test.FakeFileSystem{},
 		tar:       &test.FakeTar{},
-		request:   &Request{},
-		result:    &Result{},
+
+		request: &api.Request{},
+		result:  &api.Result{},
 	}
 	buildHandler := &buildHandler{
 		requestHandler:  requestHandler,
@@ -129,35 +215,30 @@ func TestPostExecute(t *testing.T) {
 			bh.request.CallbackURL = "https://my.callback.org/test"
 			bh.request.Tag = "test/tag"
 			dh := bh.docker.(*test.FakeDocker)
-			bh.request.incremental = incremental
+			bh.request.Incremental = incremental
 			if previousImageID != "" {
 				bh.request.RemovePreviousImage = true
 				bh.docker.(*test.FakeDocker).GetImageIDResult = previousImageID
 			}
-			err := bh.PostExecute("test-container-id", []string{"cmd1", "arg1"})
+			err := bh.PostExecute("test-container-id", "cmd1")
 			if err != nil {
 				t.Errorf("Unexpected errror from postExecute: %v", err)
 			}
 			// Ensure CommitContainer was called with the right parameters
-			if !reflect.DeepEqual(dh.CommitContainerOpts.Command,
-				[]string{"cmd1", "arg1", "run"}) {
-				t.Errorf("Unexpected commit container command: %#v",
-					dh.CommitContainerOpts.Command)
+			if !reflect.DeepEqual(dh.CommitContainerOpts.Command, []string{"cmd1/run"}) {
+				t.Errorf("Unexpected commit container command: %#v", dh.CommitContainerOpts.Command)
 			}
 			if dh.CommitContainerOpts.Repository != bh.request.Tag {
-				t.Errorf("Unexpected tag commited: %s",
-					dh.CommitContainerOpts.Repository)
+				t.Errorf("Unexpected tag commited: %s", dh.CommitContainerOpts.Repository)
 			}
 
 			if incremental && previousImageID != "" {
 				if dh.RemoveImageName != "test-image" {
-					t.Errorf("Previous image was not removed: %s",
-						dh.RemoveImageName)
+					t.Errorf("Previous image was not removed: %s", dh.RemoveImageName)
 				}
 			} else {
 				if dh.RemoveImageName != "" {
-					t.Errorf("Unexpected image removed: %s",
-						dh.RemoveImageName)
+					t.Errorf("Unexpected image removed: %s", dh.RemoveImageName)
 				}
 			}
 
@@ -213,9 +294,9 @@ func TestDetermineIncremental(t *testing.T) {
 
 	for i, ti := range tests {
 		bh := testBuildHandler()
-		bh.request.workingDir = "/working-dir"
+		bh.request.WorkingDir = "/working-dir"
 		bh.request.Clean = ti.clean
-		bh.request.externalOptionalScripts = ti.scriptDownload
+		bh.request.ExternalOptionalScripts = ti.scriptDownload
 		bh.docker.(*test.FakeDocker).LocalRegistryResult = ti.previousImage
 		if ti.scriptExists {
 			bh.fs.(*test.FakeFileSystem).ExistsResult = map[string]bool{
@@ -223,9 +304,9 @@ func TestDetermineIncremental(t *testing.T) {
 			}
 		}
 		bh.determineIncremental()
-		if bh.request.incremental != ti.expected {
+		if bh.request.Incremental != ti.expected {
 			t.Errorf("(%d) Unexpected incremental result: %v. Expected: %v",
-				i, bh.request.incremental, ti.expected)
+				i, bh.request.Incremental, ti.expected)
 		}
 		if !ti.clean && ti.previousImage && ti.scriptDownload {
 			scriptChecked := bh.fs.(*test.FakeFileSystem).ExistsFile[0]
@@ -240,7 +321,7 @@ func TestDetermineIncremental(t *testing.T) {
 
 func TestSaveArtifacts(t *testing.T) {
 	bh := testBuildHandler()
-	bh.request.workingDir = "/working-dir"
+	bh.request.WorkingDir = "/working-dir"
 	bh.request.Tag = "image/tag"
 	fs := bh.fs.(*test.FakeFileSystem)
 	fd := bh.docker.(*test.FakeDocker)
@@ -266,11 +347,11 @@ func TestSaveArtifacts(t *testing.T) {
 func TestSaveArtifactsRunError(t *testing.T) {
 	tests := []error{
 		fmt.Errorf("Run error"),
-		errors.NewContainerError("", -1, nil),
+		stierr.NewContainerError("", -1, ""),
 	}
 	expected := []error{
 		tests[0],
-		errors.NewSaveArtifactsError("", tests[1]),
+		stierr.NewSaveArtifactsError("", tests[1]),
 	}
 	// test with tar extract error or not
 	tarError := []bool{true, false}
@@ -354,7 +435,7 @@ func TestFetchSource(t *testing.T) {
 		gh := bh.git.(*test.FakeGit)
 		fh := bh.fs.(*test.FakeFileSystem)
 
-		bh.request.workingDir = "/working-dir"
+		bh.request.WorkingDir = "/working-dir"
 		gh.ValidCloneSpecResult = ft.validCloneSpec
 		if ft.refSpecified {
 			bh.request.Ref = "a-branch"

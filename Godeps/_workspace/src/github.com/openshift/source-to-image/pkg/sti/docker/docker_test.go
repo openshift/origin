@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
+
+	"github.com/openshift/source-to-image/pkg/sti/api"
 	"github.com/openshift/source-to-image/pkg/sti/docker/test"
 	"github.com/openshift/source-to-image/pkg/sti/errors"
 )
@@ -187,7 +189,7 @@ func TestCommitContainerError(t *testing.T) {
 	}
 }
 
-func TestGetDefaultUrl(t *testing.T) {
+func TestGetScriptsURL(t *testing.T) {
 	type urltest struct {
 		image       docker.Image
 		result      string
@@ -210,7 +212,7 @@ func TestGetDefaultUrl(t *testing.T) {
 		"in containerConfig": {
 			image: docker.Image{
 				ContainerConfig: docker.Config{
-					Env: []string{"Env1=value1", "STI_SCRIPTS_URL=test_url_value"},
+					Env: []string{"Env1=value1", ScriptsURL + "=test_url_value"},
 				},
 				Config: &docker.Config{},
 			},
@@ -223,7 +225,7 @@ func TestGetDefaultUrl(t *testing.T) {
 				Config: &docker.Config{
 					Env: []string{
 						"Env1=value1",
-						"STI_SCRIPTS_URL=test_url_value_2",
+						ScriptsURL + "=test_url_value_2",
 						"Env2=value2",
 					},
 				},
@@ -234,7 +236,7 @@ func TestGetDefaultUrl(t *testing.T) {
 		"contains =": {
 			image: docker.Image{
 				ContainerConfig: docker.Config{
-					Env: []string{"STI_SCRIPTS_URL=http://my.test.url/test?param=one"},
+					Env: []string{ScriptsURL + "=http://my.test.url/test?param=one"},
 				},
 				Config: &docker.Config{},
 			},
@@ -255,7 +257,7 @@ func TestGetDefaultUrl(t *testing.T) {
 			fakeDocker.InspectImageErr = []error{tst.inspectErr}
 		}
 		dh := getDocker(fakeDocker)
-		url, err := dh.GetDefaultScriptsURL("test/image")
+		url, err := dh.GetScriptsURL("test/image")
 		if err != nil && !tst.errExpected {
 			t.Errorf("%s: Unexpected error returned: %v", desc, err)
 		} else if err == nil && tst.errExpected {
@@ -269,64 +271,157 @@ func TestGetDefaultUrl(t *testing.T) {
 }
 
 func TestRunContainer(t *testing.T) {
-	fakeDocker := &test.FakeDockerClient{
-		InspectImageResult: []*docker.Image{
-			{
-				Config: &docker.Config{
-					Cmd: []string{"test", "command"},
-				},
+	type runtest struct {
+		image           docker.Image
+		cmd             api.Script
+		externalScripts bool
+		paramScriptsURL string
+		paramLocation   string
+		cmdExpected     []string
+	}
+
+	tests := map[string]runtest{
+		"default": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{},
+				Config:          &docker.Config{},
 			},
+			cmd:             api.Assemble,
+			externalScripts: true,
+			cmdExpected:     []string{"/bin/sh", "-c", fmt.Sprintf("tar -C /tmp -xf - && /tmp/scripts/%s", api.Assemble)},
 		},
-		Container: &docker.Container{
-			ID: "12345-test",
+		"paramLocation": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{},
+				Config:          &docker.Config{},
+			},
+			cmd:             api.Assemble,
+			externalScripts: true,
+			paramLocation:   "/opt/test",
+			cmdExpected:     []string{"/bin/sh", "-c", fmt.Sprintf("tar -C /opt/test -xf - && /opt/test/scripts/%s", api.Assemble)},
 		},
-		AttachToContainerSleep: 200 * time.Millisecond,
-	}
-	dh := getDocker(fakeDocker)
-	err := dh.RunContainer(RunContainerOptions{
-		Image:     "test/image",
-		PullImage: true,
-		Command:   "assemble",
-		Env:       []string{"Key1=Value1", "Key2=Value2"},
-		Stdin:     os.Stdin,
-		Stdout:    os.Stdout,
-		Stderr:    os.Stdout,
-	})
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	// Validate the CreateContainer parameters
-	createConfig := fakeDocker.CreateContainerOpts.Config
-	if createConfig.Image != "test/image" {
-		t.Errorf("Unexpected create config image: %s", createConfig.Image)
-	}
-	if !reflect.DeepEqual(createConfig.Cmd, []string{"test", "command", "assemble"}) {
-		t.Errorf("Unexpected create config command: %#v", createConfig.Cmd)
-	}
-	if !reflect.DeepEqual(createConfig.Env, []string{"Key1=Value1", "Key2=Value2"}) {
-		t.Errorf("Unexpected create config env: %#v", createConfig.Env)
-	}
-	if !createConfig.OpenStdin || !createConfig.StdinOnce {
-		t.Errorf("Unexpected stdin flags for createConfig: OpenStdin - %v"+
-			" StdinOnce - %v", createConfig.OpenStdin, createConfig.StdinOnce)
+		"paramLocation&paramScripts": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{},
+				Config:          &docker.Config{},
+			},
+			cmd:             api.Assemble,
+			externalScripts: true,
+			paramLocation:   "/opt/test",
+			paramScriptsURL: "http://my.test.url/test?param=one",
+			cmdExpected:     []string{"/bin/sh", "-c", fmt.Sprintf("tar -C /opt/test -xf - && /opt/test/scripts/%s", api.Assemble)},
+		},
+		"scriptsInsideImage": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{
+					Env: []string{ScriptsURL + "=image:///opt/bin/"},
+				},
+				Config: &docker.Config{},
+			},
+			cmd:             api.Assemble,
+			externalScripts: false,
+			cmdExpected:     []string{"/bin/sh", "-c", fmt.Sprintf("tar -C /tmp -xf - && /opt/bin/%s", api.Assemble)},
+		},
+		"scriptsInsideImageWithParamLocation": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{
+					Env: []string{ScriptsURL + "=image:///opt/bin"},
+				},
+				Config: &docker.Config{},
+			},
+			cmd:             api.Assemble,
+			externalScripts: false,
+			paramLocation:   "/opt/sti",
+			cmdExpected:     []string{"/bin/sh", "-c", fmt.Sprintf("tar -C /opt/sti -xf - && /opt/bin/%s", api.Assemble)},
+		},
+		"paramLocationFromImageVar": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{
+					Env: []string{Location + "=/opt", ScriptsURL + "=http://my.test.url/test?param=one"},
+				},
+				Config: &docker.Config{},
+			},
+			cmd:             api.Assemble,
+			externalScripts: true,
+			cmdExpected:     []string{"/bin/sh", "-c", fmt.Sprintf("tar -C /opt -xf - && /opt/scripts/%s", api.Assemble)},
+		},
+		"usageCommand": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{},
+				Config:          &docker.Config{},
+			},
+			cmd:             api.Usage,
+			externalScripts: true,
+			cmdExpected:     []string{"/bin/sh", "-c", fmt.Sprintf("tar -C /tmp -xf - && /tmp/scripts/%s", api.Usage)},
+		},
+		"otherCommand": {
+			image: docker.Image{
+				ContainerConfig: docker.Config{},
+				Config:          &docker.Config{},
+			},
+			cmd:             api.Run,
+			externalScripts: true,
+			cmdExpected:     []string{fmt.Sprintf("/tmp/scripts/%s", api.Run)},
+		},
 	}
 
-	// Verify that remove container was called
-	if fakeDocker.RemoveContainerOpts.ID != "12345-test" {
-		t.Errorf("RemoveContainer was not called with the expected container ID")
-	}
-
-	// Verify that AttachToContainer was called twice (Stdin/Stdout)
-	if len(fakeDocker.AttachToContainerOpts) != 2 {
-		t.Errorf("AttachToContainer was not called the expected number of times.")
-	}
-	// Make sure AttachToContainer was not called with both Stdin & Stdout
-	for _, opt := range fakeDocker.AttachToContainerOpts {
-		if opt.InputStream != nil && (opt.OutputStream != nil || opt.ErrorStream != nil) {
-			t.Errorf("AttachToContainer was called with both Stdin and Stdout: %#v", opt)
+	for desc, tst := range tests {
+		fakeDocker := &test.FakeDockerClient{
+			InspectImageResult: []*docker.Image{&tst.image},
+			Container: &docker.Container{
+				ID: "12345-test",
+			},
+			AttachToContainerSleep: 200 * time.Millisecond,
 		}
-		if opt.Stdin && (opt.Stdout || opt.Stderr) {
-			t.Errorf("AttachToContainer was called with both Stdin and Stdout flags: %#v", opt)
+		dh := getDocker(fakeDocker)
+		err := dh.RunContainer(RunContainerOptions{
+			Image:           "test/image",
+			PullImage:       true,
+			ExternalScripts: tst.externalScripts,
+			ScriptsURL:      tst.paramScriptsURL,
+			Location:        tst.paramLocation,
+			Command:         tst.cmd,
+			Env:             []string{"Key1=Value1", "Key2=Value2"},
+			Stdin:           os.Stdin,
+			Stdout:          os.Stdout,
+			Stderr:          os.Stdout,
+		})
+		if err != nil {
+			t.Errorf("%s: Unexpected error: %v", desc, err)
+		}
+		// Validate the CreateContainer parameters
+		createConfig := fakeDocker.CreateContainerOpts.Config
+		if createConfig.Image != "test/image" {
+			t.Errorf("%s: Unexpected create config image: %s", desc, createConfig.Image)
+		}
+		if !reflect.DeepEqual(createConfig.Cmd, tst.cmdExpected) {
+			t.Errorf("%s: Unexpected create config command: %#v", desc, createConfig.Cmd)
+		}
+		if !reflect.DeepEqual(createConfig.Env, []string{"Key1=Value1", "Key2=Value2"}) {
+			t.Errorf("%s: Unexpected create config env: %#v", desc, createConfig.Env)
+		}
+		if !createConfig.OpenStdin || !createConfig.StdinOnce {
+			t.Errorf("%s: Unexpected stdin flags for createConfig: OpenStdin - %v"+
+				" StdinOnce - %v", desc, createConfig.OpenStdin, createConfig.StdinOnce)
+		}
+
+		// Verify that remove container was called
+		if fakeDocker.RemoveContainerOpts.ID != "12345-test" {
+			t.Errorf("%s: RemoveContainer was not called with the expected container ID", desc)
+		}
+
+		// Verify that AttachToContainer was called twice (Stdin/Stdout)
+		if len(fakeDocker.AttachToContainerOpts) != 2 {
+			t.Errorf("%s: AttachToContainer was not called the expected number of times.", desc)
+		}
+		// Make sure AttachToContainer was not called with both Stdin & Stdout
+		for _, opt := range fakeDocker.AttachToContainerOpts {
+			if opt.InputStream != nil && (opt.OutputStream != nil || opt.ErrorStream != nil) {
+				t.Errorf("%s: AttachToContainer was called with both Stdin and Stdout: %#v", desc, opt)
+			}
+			if opt.Stdin && (opt.Stdout || opt.Stderr) {
+				t.Errorf("%s: AttachToContainer was called with both Stdin and Stdout flags: %#v", desc, opt)
+			}
 		}
 	}
 }

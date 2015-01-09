@@ -1,4 +1,4 @@
-package sti
+package api
 
 // Request contains essential fields for any request.
 type Request struct {
@@ -37,20 +37,26 @@ type Request struct {
 	// ScriptsURL is a URL describing the localization of STI scripts used during build process.
 	ScriptsURL string
 
+	// Location specifies a location where the untar operation will place its artifacts.
+	Location string
+
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
 
-	// incremental describes incremental status of current build
-	incremental bool
+	// Incremental describes incremental status of current build
+	Incremental bool
 
-	// workingDir describes temporary directory used for downloading sources, scripts and tar operations.
-	workingDir string
+	// WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.
+	WorkingDir string
 
-	// externalRequiredScripts describes if required scripts are from external URL.
-	externalRequiredScripts bool
+	// ExternalRequiredScripts describes if required scripts are from external URL.
+	ExternalRequiredScripts bool
 
-	// externalOptionalScripts describes if optional scripts are from external URL.
-	externalOptionalScripts bool
+	// ExternalOptionalScripts describes if optional scripts are from external URL.
+	ExternalOptionalScripts bool
+
+	// LayeredBuild describes if this is build which layered scripts and sources on top of BaseImage.
+	LayeredBuild bool
 }
 
 // Result structure contains information from build process.

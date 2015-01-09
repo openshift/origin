@@ -31,6 +31,8 @@ type FakeDocker struct {
 	CommitContainerError         error
 	RemoveImageName              string
 	RemoveImageError             error
+	BuildImageOpts               docker.BuildImageOptions
+	BuildImageError              error
 
 	mutex sync.Mutex
 }
@@ -47,8 +49,8 @@ func (f *FakeDocker) RemoveContainer(id string) error {
 	return f.RemoveContainerError
 }
 
-// GetDefaultScriptsURL returns a default STI scripts URL
-func (f *FakeDocker) GetDefaultScriptsURL(image string) (string, error) {
+// GetScriptsURL returns a default STI scripts URL
+func (f *FakeDocker) GetScriptsURL(image string) (string, error) {
 	f.DefaultURLImage = image
 	return f.DefaultURLResult, f.DefaultURLError
 }
@@ -65,7 +67,7 @@ func (f *FakeDocker) RunContainer(opts docker.RunContainerOptions) error {
 		}
 	}
 	if opts.PostExec != nil {
-		opts.PostExec.PostExecute(f.RunContainerContainerID, append(f.RunContainerCmd, opts.Command))
+		opts.PostExec.PostExecute(f.RunContainerContainerID, string(opts.Command))
 	}
 	return f.RunContainerError
 }
@@ -96,4 +98,10 @@ func (f *FakeDocker) PullImage(imageName string) error {
 // CheckAndPull pulls a fake docker image
 func (f *FakeDocker) CheckAndPull(name string) (*dockerclient.Image, error) {
 	return nil, nil
+}
+
+// BuildImage builds image
+func (f *FakeDocker) BuildImage(opts docker.BuildImageOptions) error {
+	f.BuildImageOpts = opts
+	return f.BuildImageError
 }

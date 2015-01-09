@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/source-to-image/pkg/sti/api"
 	"github.com/openshift/source-to-image/pkg/sti/docker"
 	"github.com/openshift/source-to-image/pkg/sti/errors"
 	"github.com/openshift/source-to-image/pkg/sti/util"
@@ -14,7 +15,7 @@ import (
 
 // Installer interface is responsible for installing scripts needed to run the build
 type Installer interface {
-	DownloadAndInstall(scripts []string, workingDir string, required bool) (bool, error)
+	DownloadAndInstall(scripts []api.Script, workingDir string, required bool) (bool, error)
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
@@ -42,21 +43,21 @@ type handler struct {
 }
 
 type scriptHandler interface {
-	download(scripts []string, workingDir string) (bool, error)
-	getPath(script string, workingDir string) string
+	download(scripts []api.Script, workingDir string) (bool, error)
+	getPath(script api.Script, workingDir string) string
 	install(scriptPath string, workingDir string) error
 }
 
 type scriptInfo struct {
 	url  *url.URL
-	name string
+	name api.Script
 }
 
 // DownloadAndInstall downloads and installs a set of scripts using the specified
 // working directory. If the required flag is specified and a particular script
 // cannot be found, an error is returned, additionally the method returns information
 // whether the download actually happened.
-func (i *installer) DownloadAndInstall(scripts []string, workingDir string, required bool) (bool, error) {
+func (i *installer) DownloadAndInstall(scripts []api.Script, workingDir string, required bool) (bool, error) {
 	download, err := i.handler.download(scripts, workingDir)
 	if err != nil {
 		return false, err
@@ -77,21 +78,21 @@ func (i *installer) DownloadAndInstall(scripts []string, workingDir string, requ
 	return true, nil
 }
 
-func (s *handler) download(scripts []string, workingDir string) (bool, error) {
+func (s *handler) download(scripts []api.Script, workingDir string) (bool, error) {
 	if len(scripts) == 0 {
 		return false, nil
 	}
 
 	wg := sync.WaitGroup{}
-	errs := make(map[string]chan error)
-	downloads := make(map[string]chan bool)
+	errs := make(map[api.Script]chan error)
+	downloads := make(map[api.Script]chan bool)
 
 	for _, s := range scripts {
 		errs[s] = make(chan error, 2)
 		downloads[s] = make(chan bool, 2)
 	}
 
-	downloadAsync := func(script string, scriptUrl *url.URL, targetFile string) {
+	downloadAsync := func(script api.Script, scriptUrl *url.URL, targetFile string) {
 		defer wg.Done()
 		download, err := s.downloader.DownloadFile(scriptUrl, targetFile)
 		if err != nil {
@@ -115,7 +116,7 @@ func (s *handler) download(scripts []string, workingDir string) (bool, error) {
 		}
 	}
 
-	defaultURL, err := s.docker.GetDefaultScriptsURL(s.image)
+	defaultURL, err := s.docker.GetScriptsURL(s.image)
 	if err != nil {
 		return false, errors.NewDefaultScriptsURLError(err)
 	}
@@ -148,7 +149,7 @@ func (s *handler) download(scripts []string, workingDir string) (bool, error) {
 	return true, nil
 }
 
-func (s *handler) getPath(script string, workingDir string) string {
+func (s *handler) getPath(script api.Script, workingDir string) string {
 	locations := []string{
 		"downloads/scripts",
 		"upload/src/.sti/bin",
@@ -161,7 +162,7 @@ func (s *handler) getPath(script string, workingDir string) string {
 	}
 
 	for i, location := range locations {
-		path := filepath.Join(workingDir, location, script)
+		path := filepath.Join(workingDir, location, string(script))
 		glog.V(2).Infof("Looking for %s script at %s", script, path)
 		if s.fs.Exists(path) {
 			glog.V(2).Infof("Found %s script from %s.", script, descriptions[i])
@@ -178,17 +179,17 @@ func (s *handler) install(path string, workingDir string) error {
 }
 
 // prepareScriptDownload turns the script name into proper URL
-func (s *handler) prepareDownload(scripts []string, targetDir, baseURL string) map[string]scriptInfo {
+func (s *handler) prepareDownload(scripts []api.Script, targetDir, baseURL string) map[string]scriptInfo {
 	s.fs.MkdirAll(targetDir)
 	info := make(map[string]scriptInfo)
 
 	for _, script := range scripts {
-		url, err := url.Parse(baseURL + "/" + script)
+		url, err := url.Parse(baseURL + "/" + string(script))
 		if err != nil {
 			glog.Warningf("Unable to parse script URL: %s/%s", baseURL, script)
 			continue
 		}
-		info[targetDir+"/"+script] = scriptInfo{url, script}
+		info[targetDir+"/"+string(script)] = scriptInfo{url, script}
 	}
 
 	return info

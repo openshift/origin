@@ -23,6 +23,7 @@ type FakeDockerClient struct {
 	RemoveContainerErr   error
 	CommitContainerErr   error
 	CopyFromContainerErr error
+	BuildImageErr        error
 
 	RemoveImageName          string
 	InspectImageName         []string
@@ -37,6 +38,7 @@ type FakeDockerClient struct {
 	RemoveContainerOpts      docker.RemoveContainerOptions
 	CommitContainerOpts      docker.CommitContainerOptions
 	CopyFromContainerOpts    docker.CopyFromContainerOptions
+	BuildImageOpts           docker.BuildImageOptions
 
 	mutex sync.Mutex
 }
@@ -123,4 +125,10 @@ func (d *FakeDockerClient) CommitContainer(opts docker.CommitContainerOptions) (
 func (d *FakeDockerClient) CopyFromContainer(opts docker.CopyFromContainerOptions) error {
 	d.CopyFromContainerOpts = opts
 	return d.CopyFromContainerErr
+}
+
+// BuildImage builds image
+func (d *FakeDockerClient) BuildImage(opts docker.BuildImageOptions) error {
+	d.BuildImageOpts = opts
+	return d.BuildImageErr
 }

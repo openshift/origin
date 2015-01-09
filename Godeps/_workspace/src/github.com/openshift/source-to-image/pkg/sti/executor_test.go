@@ -1,9 +1,13 @@
 package sti
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
 
+	"github.com/openshift/source-to-image/pkg/sti/api"
 	"github.com/openshift/source-to-image/pkg/sti/test"
 )
 
@@ -14,15 +18,16 @@ func testRequestHandler() *requestHandler {
 		git:       &test.FakeGit{},
 		fs:        &test.FakeFileSystem{},
 		tar:       &test.FakeTar{},
-		request:   &Request{},
-		result:    &Result{},
+
+		request: &api.Request{},
+		result:  &api.Result{},
 	}
 }
 
-func TestSetup(t *testing.T) {
+func TestSetupOK(t *testing.T) {
 	rh := testRequestHandler()
 	rh.fs.(*test.FakeFileSystem).WorkingDirResult = "/working-dir"
-	err := rh.setup([]string{"required1", "required2"}, []string{"optional1", "optional2"})
+	err := rh.setup([]api.Script{api.Assemble, api.Run}, []api.Script{api.SaveArtifacts})
 	if err != nil {
 		t.Errorf("An error occurred setting up the request handler: %v", err)
 	}
@@ -42,11 +47,47 @@ func TestSetup(t *testing.T) {
 		t.Errorf("Unexpected set of required flags: %#v", requiredFlags)
 	}
 	scripts := rh.installer.(*test.FakeInstaller).Scripts
-	if !reflect.DeepEqual(scripts[0], []string{"required1", "required2"}) {
+	if !reflect.DeepEqual(scripts[0], []api.Script{api.Assemble, api.Run}) {
 		t.Errorf("Unexpected set of required scripts: %#v", scripts[0])
 	}
-	if !reflect.DeepEqual(scripts[1], []string{"optional1", "optional2"}) {
+	if !reflect.DeepEqual(scripts[1], []api.Script{api.SaveArtifacts}) {
 		t.Errorf("Unexpected set of optional scripts: %#v", scripts[1])
+	}
+}
+
+func TestSetupErrorCreatingWorkingDir(t *testing.T) {
+	rh := testRequestHandler()
+	rh.fs.(*test.FakeFileSystem).WorkingDirError = errors.New("WorkingDirError")
+	err := rh.setup([]api.Script{api.Assemble, api.Run}, []api.Script{api.SaveArtifacts})
+	if err == nil || err.Error() != "WorkingDirError" {
+		t.Errorf("An error was expected for WorkingDir, but got different: %v", err)
+	}
+}
+
+func TestSetupErrorMkdirAll(t *testing.T) {
+	rh := testRequestHandler()
+	rh.fs.(*test.FakeFileSystem).MkdirAllError = errors.New("MkdirAllError")
+	err := rh.setup([]api.Script{api.Assemble, api.Run}, []api.Script{api.SaveArtifacts})
+	if err == nil || err.Error() != "MkdirAllError" {
+		t.Errorf("An error was expected for MkdirAll, but got different: %v", err)
+	}
+}
+
+func TestSetupErrorRequiredDownloadAndInstall(t *testing.T) {
+	rh := testRequestHandler()
+	rh.installer.(*test.FakeInstaller).ErrScript = api.Assemble
+	err := rh.setup([]api.Script{api.Assemble, api.Run}, []api.Script{api.SaveArtifacts})
+	if err == nil || err.Error() != string(api.Assemble) {
+		t.Errorf("An error was expected for required DownloadAndInstall, but got different: %v", err)
+	}
+}
+
+func TestSetupErrorOptionalDownloadAndInstall(t *testing.T) {
+	rh := testRequestHandler()
+	rh.installer.(*test.FakeInstaller).ErrScript = api.SaveArtifacts
+	err := rh.setup([]api.Script{api.Assemble, api.Run}, []api.Script{api.SaveArtifacts})
+	if err != nil {
+		t.Errorf("Unexpected error when downloading optional scripts: %v", err)
 	}
 }
 
@@ -86,21 +127,24 @@ func TestGenerateConfigEnv(t *testing.T) {
 
 type FakePostExecutor struct {
 	containerID string
-	cmd         []string
+	location    string
+	err         error
 }
 
-func (f *FakePostExecutor) PostExecute(id string, cmd []string) error {
+func (f *FakePostExecutor) PostExecute(id string, location string) error {
+	fmt.Errorf("Post execute called!!!!")
 	f.containerID = id
-	f.cmd = cmd
-	return nil
+	f.location = location
+	return f.err
 }
 
-func TestExecute(t *testing.T) {
+func TestExecuteOK(t *testing.T) {
 	rh := testRequestHandler()
 	pe := &FakePostExecutor{}
 	rh.postExecutor = pe
-	rh.request.workingDir = "/working-dir"
+	rh.request.WorkingDir = "/working-dir"
 	rh.request.BaseImage = "test/image"
+	rh.request.ForcePull = true
 	th := rh.tar.(*test.FakeTar)
 	th.CreateTarResult = "/working-dir/test.tar"
 	fd := rh.docker.(*test.FakeDocker)
@@ -146,14 +190,92 @@ func TestExecute(t *testing.T) {
 		t.Errorf("PostExecutor not called with expected ID: %s",
 			pe.containerID)
 	}
-	if !reflect.DeepEqual(pe.cmd, []string{"one", "two", "test-command"}) {
-		t.Errorf("PostExecutor not called with expected command: %#v", pe.cmd)
+	if !reflect.DeepEqual(pe.location, "test-command") {
+		t.Errorf("PostExecutor not called with expected command: %s", pe.location)
+	}
+}
+
+func TestExecuteErrorCreateTarFile(t *testing.T) {
+	rh := testRequestHandler()
+	rh.tar.(*test.FakeTar).CreateTarError = errors.New("CreateTarError")
+	err := rh.execute("test-command")
+	if err == nil || err.Error() != "CreateTarError" {
+		t.Errorf("An error was expected for CreateTarFile, but got different: %v", err)
+	}
+}
+
+func TestExecuteErrorOpenTarFile(t *testing.T) {
+	rh := testRequestHandler()
+	rh.fs.(*test.FakeFileSystem).OpenError = errors.New("OpenTarError")
+	err := rh.execute("test-command")
+	if err == nil || err.Error() != "OpenTarError" {
+		t.Errorf("An error was expected for OpenTarFile, but got different: %v", err)
+	}
+}
+
+func TestBuildOK(t *testing.T) {
+	rh := testRequestHandler()
+	rh.request.BaseImage = "test/image"
+	err := rh.build()
+	if err != nil {
+		t.Errorf("Unexpected error returned: %v", err)
+	}
+	if !rh.request.LayeredBuild {
+		t.Errorf("Expected LayeredBuild to be true!")
+	}
+	if m, _ := regexp.MatchString(`test/image-\d+`, rh.request.BaseImage); !m {
+		t.Errorf("Expected BaseImage test/image-withnumbers, but got %s", rh.request.BaseImage)
+	}
+	if rh.request.ExternalRequiredScripts {
+		t.Errorf("Expected ExternalRequiredScripts to be false!")
+	}
+	if rh.request.ScriptsURL != "image:///tmp/scripts" {
+		t.Error("Expected ScriptsURL image:///tmp/scripts, but got %s", rh.request.ScriptsURL)
+	}
+	if rh.request.Location != "/tmp/src" {
+		t.Errorf("Expected Location /tmp/src, but got %s", rh.request.Location)
+	}
+}
+
+func TestBuildErrorWriteDockerfile(t *testing.T) {
+	rh := testRequestHandler()
+	rh.fs.(*test.FakeFileSystem).WriteFileError = errors.New("WriteDockerfileError")
+	err := rh.build()
+	if err == nil || err.Error() != "WriteDockerfileError" {
+		t.Error("An error was expected for WriteDockerfile, but got different: %v", err)
+	}
+}
+
+func TestBuildErrorCreateTarFile(t *testing.T) {
+	rh := testRequestHandler()
+	rh.tar.(*test.FakeTar).CreateTarError = errors.New("CreateTarError")
+	err := rh.build()
+	if err == nil || err.Error() != "CreateTarError" {
+		t.Error("An error was expected for CreateTar, but got different: %v", err)
+	}
+}
+
+func TestBuildErrorOpenTarFile(t *testing.T) {
+	rh := testRequestHandler()
+	rh.fs.(*test.FakeFileSystem).OpenError = errors.New("OpenTarError")
+	err := rh.build()
+	if err == nil || err.Error() != "OpenTarError" {
+		t.Errorf("An error was expected for OpenTarFile, but got different: %v", err)
+	}
+}
+
+func TestBuildErrorBuildImage(t *testing.T) {
+	rh := testRequestHandler()
+	rh.docker.(*test.FakeDocker).BuildImageError = errors.New("BuildImageError")
+	err := rh.build()
+	if err == nil || err.Error() != "BuildImageError" {
+		t.Errorf("An error was expected for BuildImage, but got different: %v", err)
 	}
 }
 
 func TestCleanup(t *testing.T) {
 	rh := testRequestHandler()
-	rh.request.workingDir = "/working-dir"
+	rh.request.WorkingDir = "/working-dir"
 	preserve := []bool{false, true}
 	for _, p := range preserve {
 		rh.request.PreserveWorkingDir = p
