@@ -264,3 +264,18 @@ type BuildConfigList struct {
 	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items         []BuildConfig `json:"items" yaml:"items"`
 }
+
+// GenericWebHookEvent is the payload expected for a generic webhook post
+type GenericWebHookEvent struct {
+	// Type is the type of source repository
+	Type BuildSourceType `json:"type,omitempty" yaml:"type,omitempty"`
+
+	// Git is the git information if the Type is BuildSourceGit
+	Git *GitInfo `json:"git,omitempty" yaml:"git,omitempty"`
+}
+
+// GitInfo is the aggregated git information for a generic webhook post
+type GitInfo struct {
+	GitBuildSource    `json:",inline" yaml:",inline"`
+	GitSourceRevision `json:",inline" yaml:",inline"`
+}
