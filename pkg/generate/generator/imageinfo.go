@@ -21,24 +21,20 @@ type ImageInfoGenerator struct {
 }
 
 // FromImageRef generates an ImageInfo from an ImageRef
-func (g *ImageInfoGenerator) FromImageRef(imageRef app.ImageRef) *app.ImageInfo {
+func (g *ImageInfoGenerator) FromImageRef(imageRef app.ImageRef) *app.ImageRef {
 	info, err := g.retriever.Retrieve(imageRef.NameReference())
 	if err != nil {
 		// If image info could not be retrieved, return a simple image info
 		// without the additional image metadata
-		return &app.ImageInfo{
-			ImageRef: &imageRef,
-		}
+		return &imageRef
 	}
-	return &app.ImageInfo{
-		ImageRef: &imageRef,
-		Info:     info,
-	}
+	imageRef.Info = info
+	return &imageRef
 }
 
 // FromImageRefs generates an array of ImageInfo from an array of ImageRef
-func (g *ImageInfoGenerator) FromImageRefs(imageRefs []app.ImageRef) []*app.ImageInfo {
-	result := []*app.ImageInfo{}
+func (g *ImageInfoGenerator) FromImageRefs(imageRefs []app.ImageRef) []*app.ImageRef {
+	result := []*app.ImageRef{}
 	for _, ir := range imageRefs {
 		info := g.FromImageRef(ir)
 		result = append(result, info)

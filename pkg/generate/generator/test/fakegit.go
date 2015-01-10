@@ -12,8 +12,8 @@ func (g *FakeGit) GetRootDir(dir string) (string, error) {
 	return g.RootDir, nil
 }
 
-func (g *FakeGit) GetOriginURL(dir string) (string, error) {
-	return g.GitURL, nil
+func (g *FakeGit) GetOriginURL(dir string) (string, bool, error) {
+	return g.GitURL, true, nil
 }
 
 func (g *FakeGit) GetRef(dir string) string {

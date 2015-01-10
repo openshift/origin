@@ -52,9 +52,12 @@ func (g *SourceRefGenerator) FromDirectory(directory string) (*app.SourceRef, er
 	}
 
 	// Get URL
-	location, err := g.repository.GetOriginURL(gitRoot)
+	location, ok, err := g.repository.GetOriginURL(gitRoot)
 	if err != nil {
 		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("no origin remote defined for the provided Git repository")
 	}
 
 	// Get Branch Ref

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	cmdnew "github.com/openshift/origin/pkg/cmd/cli/cmd/new"
 )
 
 const longDesc = `

@@ -6,6 +6,28 @@ import (
 	"strings"
 )
 
+type Tester interface {
+	Has(dir string) (string, bool, error)
+}
+
+type StatFunc func(path string) (os.FileInfo, error)
+
+func (t StatFunc) Has(dir string) (string, bool, error) {
+	path := filepath.Join(dir, "Dockerfile")
+	_, err := t(path)
+	if os.IsNotExist(err) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return path, true, nil
+}
+
+func NewTester() Tester {
+	return StatFunc(os.Stat)
+}
+
 // Finder allows searching for Dockerfiles in a given directory
 type Finder interface {
 	Find(dir string) ([]string, error)
