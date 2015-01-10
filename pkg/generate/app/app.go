@@ -1,8 +1,9 @@
 package app
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"path"
@@ -113,13 +114,13 @@ func (r *SourceRef) BuildSource() (*build.BuildSource, []build.BuildTriggerPolic
 			{
 				Type: build.GithubWebHookType,
 				GithubWebHook: &build.WebHookTrigger{
-					Secret: generateSecret(),
+					Secret: generateSecret(20),
 				},
 			},
 			{
 				Type: build.GenericWebHookType,
 				GenericWebHook: &build.WebHookTrigger{
-					Secret: generateSecret(),
+					Secret: generateSecret(20),
 				},
 			},
 		}
@@ -164,6 +165,7 @@ type ImageRef struct {
 	AsImageRepository bool
 
 	Repository *image.ImageRepository
+	Info       *docker.Image
 }
 
 // pullSpec returns the string that can be passed to Docker to fetch this
@@ -238,29 +240,29 @@ func (r *ImageRef) ImageRepository() (*image.ImageRepository, error) {
 	return repo, nil
 }
 
-type ImageInfo struct {
-	*ImageRef
-	Info *docker.Image
-}
-
-func (r *ImageInfo) DeployableContainer() (*kapi.Container, []deploy.DeploymentTriggerPolicy, error) {
+func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []deploy.DeploymentTriggerPolicy, err error) {
+	if r.Info == nil {
+		return nil, nil, fmt.Errorf("image info for %q is required to generate a container definition", r.Name)
+	}
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.pullSpec())
 	}
-	triggers := []deploy.DeploymentTriggerPolicy{
-		{
-			Type: deploy.DeploymentTriggerOnImageChange,
-			ImageChangeParams: &deploy.DeploymentTriggerImageChangeParams{
-				Automatic:      true,
-				ContainerNames: []string{name},
-				RepositoryName: r.NameReference(),
-				Tag:            r.Tag,
+	if r.AsImageRepository {
+		triggers = []deploy.DeploymentTriggerPolicy{
+			{
+				Type: deploy.DeploymentTriggerOnImageChange,
+				ImageChangeParams: &deploy.DeploymentTriggerImageChangeParams{
+					Automatic:      true,
+					ContainerNames: []string{name},
+					RepositoryName: r.NameReference(),
+					Tag:            r.Tag,
+				},
 			},
-		},
+		}
 	}
 
-	container := &kapi.Container{
+	container = &kapi.Container{
 		Name:  name,
 		Image: r.NameReference(),
 	}
@@ -270,7 +272,7 @@ func (r *ImageInfo) DeployableContainer() (*kapi.Container, []deploy.DeploymentT
 		for p := range r.Info.Config.ExposedPorts {
 			port, err := strconv.Atoi(p.Port())
 			if err != nil {
-				log.Fatalf("failed to parse port %q: %v", p.Port(), err)
+				return nil, nil, fmt.Errorf("failed to parse port %q: %v", p.Port(), err)
 			}
 			container.Ports = append(container.Ports, kapi.Port{
 				Name:          strings.Join([]string{name, p.Proto(), p.Port()}, "-"),
@@ -287,6 +289,7 @@ func (r *ImageInfo) DeployableContainer() (*kapi.Container, []deploy.DeploymentT
 
 type BuildRef struct {
 	Source   *SourceRef
+	Input    *ImageRef
 	Strategy *BuildStrategyRef
 	Output   *ImageRef
 }
@@ -320,9 +323,11 @@ func (r *BuildRef) BuildConfig() (*build.BuildConfig, error) {
 }
 
 type DeploymentConfigRef struct {
-	Images []*ImageInfo
+	Images []*ImageRef
+	Env    Environment
 }
 
+// TODO: take a pod template spec as argument
 func (r *DeploymentConfigRef) DeploymentConfig() (*deploy.DeploymentConfig, error) {
 	suggestions := NameSuggestions{}
 	for i := range r.Images {
@@ -355,6 +360,10 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deploy.DeploymentConfig, erro
 	}
 	// TODO: populate volumes
 
+	for i := range template.Containers {
+		template.Containers[i].Env = append(template.Containers[i].Env, r.Env.List()...)
+	}
+
 	return &deploy.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
@@ -376,6 +385,12 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deploy.DeploymentConfig, erro
 }
 
 // generateSecret generates a random secret string
-func generateSecret() string {
-	return uuid.NewRandom().String()
+func generateSecret(n int) string {
+	n = n * 3 / 4
+	b := make([]byte, n)
+	read, _ := rand.Read(b)
+	if read != n {
+		return uuid.NewRandom().String()
+	}
+	return base64.URLEncoding.EncodeToString(b)
 }

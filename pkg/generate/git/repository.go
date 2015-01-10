@@ -1,9 +1,11 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 	"unicode"
 )
@@ -14,7 +16,7 @@ type execCmdFunc func(dir, name string, args ...string) (string, string, error)
 // Repository represents a git source repository
 type Repository interface {
 	GetRootDir(dir string) (string, error)
-	GetOriginURL(dir string) (string, error)
+	GetOriginURL(dir string) (string, bool, error)
 	GetRef(dir string) string
 	Clone(dir string, url string) error
 	Checkout(dir string, ref string) error
@@ -52,13 +54,35 @@ func (r *repository) GetRootDir(location string) (string, error) {
 	return dir, nil
 }
 
+var (
+	remoteURLExtract  = regexp.MustCompile("^remote\\.(.*)\\.url (.*?)$")
+	remoteOriginNames = []string{"origin", "upstream", "github", "openshift", "heroku"}
+)
+
 // GetOriginURL returns the origin branch URL for the git repository
-func (r *repository) GetOriginURL(location string) (string, error) {
-	url, _, err := r.exec(location, "git", "config", "--get", "remote.origin.url")
+func (r *repository) GetOriginURL(location string) (string, bool, error) {
+	text, _, err := r.exec(location, "git", "config", "--get-regexp", "^remote\\..*\\.url$")
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	return url, nil
+
+	remotes := make(map[string]string)
+	s := bufio.NewScanner(bytes.NewBufferString(text))
+	for s.Scan() {
+		if matches := remoteURLExtract.FindStringSubmatch(s.Text()); matches != nil {
+			remotes[matches[1]] = matches[2]
+		}
+	}
+	if err := s.Err(); err != nil {
+		return "", false, err
+	}
+	for _, remote := range remoteOriginNames {
+		if url, ok := remotes[remote]; ok {
+			return url, true, nil
+		}
+	}
+
+	return "", false, nil
 }
 
 // GetRef retrieves the current branch reference for the git repository

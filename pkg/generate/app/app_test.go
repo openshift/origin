@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/fsouza/go-dockerclient"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -12,6 +14,12 @@ import (
 	build "github.com/openshift/origin/pkg/build/api"
 	config "github.com/openshift/origin/pkg/config/api"
 )
+
+func testImageInfo() *docker.Image {
+	return &docker.Image{
+		Config: &docker.Config{},
+	}
+}
 
 func TestWithType(t *testing.T) {
 	out := &Generated{
@@ -73,8 +81,8 @@ func TestSimpleBuildConfig(t *testing.T) {
 }
 
 func TestSimpleDeploymentConfig(t *testing.T) {
-	image := &ImageRef{Registry: "myregistry", Namespace: "openshift", Name: "origin"}
-	deploy := &DeploymentConfigRef{Images: []*ImageInfo{{ImageRef: image}}}
+	image := &ImageRef{Registry: "myregistry", Namespace: "openshift", Name: "origin", Info: testImageInfo(), AsImageRepository: true}
+	deploy := &DeploymentConfigRef{Images: []*ImageRef{image}}
 	config, err := deploy.DeploymentConfig()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -103,7 +111,7 @@ func ExampleGenerateSimpleDockerApp() {
 	// TODO: we might need to pick a base image if this is STI
 	build := &BuildRef{Source: source, Output: output}
 	// take the output image and wire it into a deployment config
-	deploy := &DeploymentConfigRef{[]*ImageInfo{{ImageRef: output}}}
+	deploy := &DeploymentConfigRef{Images: []*ImageRef{output}}
 
 	outputRepo, _ := output.ImageRepository()
 	buildConfig, _ := build.BuildConfig()

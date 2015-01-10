@@ -141,7 +141,7 @@ func (g *BuildStrategyRefGenerator) detectDockerFile(dir string) (contextDir str
 		return "", false, err
 	}
 	if len(dockerFiles) > 1 {
-		return "", true, errors.MultipleDockerfiles(dockerFiles)
+		return "", true, errors.NewMultipleDockerfilesErr(dockerFiles)
 	}
 	if len(dockerFiles) == 1 {
 		return filepath.Dir(dockerFiles[0]), true, nil

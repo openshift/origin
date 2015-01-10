@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	cmdnew "github.com/openshift/origin/pkg/cmd/cli/cmd/new"
 )
 
 const longDesc = `
@@ -62,6 +63,7 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(f.NewCmdProxy(out))
 
 	// Origin commands
+	cmds.AddCommand(cmdnew.NewCmdNewApplication(f, out))
 	cmds.AddCommand(cmd.NewCmdApply(f.Factory, out))
 	cmds.AddCommand(cmd.NewCmdProcess(f.Factory, out))
 

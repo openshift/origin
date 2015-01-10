@@ -38,7 +38,7 @@ func (e GenerationError) Error() string {
 }
 
 // MultipleDockerfiles creates an error caused by multiple Dockerfiles existing in a repository
-func MultipleDockerfiles(paths []string) error {
+func NewMultipleDockerfilesErr(paths []string) error {
 	err := multipleDockerFilesError{}
 	err = append(err, paths...)
 	return err

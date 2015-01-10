@@ -31,14 +31,47 @@ func TestGetRootDir(t *testing.T) {
 }
 
 func TestGetOriginURL(t *testing.T) {
-	url := "https://test.com/a/repository/url"
+	url := "remote.origin.url https://test.com/a/repository/url"
 	r := &repository{exec: makeExecFunc(url, nil)}
-	result, err := r.GetOriginURL("/test/dir")
+	result, ok, err := r.GetOriginURL("/test/dir")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	if result != url {
+	if !ok {
+		t.Error("Unexpected not ok")
+	}
+	if result != "https://test.com/a/repository/url" {
 		t.Errorf("Unexpected result: %s. Expected: %s", result, url)
+	}
+}
+
+func TestGetAlterativeOriginURL(t *testing.T) {
+	url := "remote.foo.url https://test.com/a/repository/url\nremote.upstream.url https://test.com/b/repository/url"
+	r := &repository{exec: makeExecFunc(url, nil)}
+	result, ok, err := r.GetOriginURL("/test/dir")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if !ok {
+		t.Error("Unexpected not ok")
+	}
+	if result != "https://test.com/b/repository/url" {
+		t.Errorf("Unexpected result: %s. Expected: %s", result, url)
+	}
+}
+
+func TestGetMissingOriginURL(t *testing.T) {
+	url := "remote.foo.url https://test.com/a/repository/url\nremote.bar.url https://test.com/b/repository/url"
+	r := &repository{exec: makeExecFunc(url, nil)}
+	result, ok, err := r.GetOriginURL("/test/dir")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if ok {
+		t.Error("Unexpected ok")
+	}
+	if result != "" {
+		t.Errorf("Unexpected result: %s. Expected: %s", result, "")
 	}
 }
 

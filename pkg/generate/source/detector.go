@@ -10,6 +10,10 @@ type Info struct {
 	Version  string
 }
 
+type DetectSource interface {
+	DetectSource(dir string) (*Info, bool)
+}
+
 type DetectorFunc func(dir string) (*Info, bool)
 
 type Detectors []DetectorFunc
