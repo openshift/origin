@@ -3,8 +3,6 @@ package imagerepository
 import (
 	"fmt"
 
-	"code.google.com/p/go-uuid/uuid"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -13,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/api/validation"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
@@ -65,25 +64,17 @@ func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVer
 
 // Create registers the given ImageRepository.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	repo, ok := obj.(*api.ImageRepository)
-	if !ok {
-		return nil, fmt.Errorf("not an image repository: %#v", obj)
-	}
+	repo := obj.(*api.ImageRepository)
 	if !kapi.ValidNamespace(ctx, &repo.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
 	}
 
-	if len(repo.Name) == 0 {
-		repo.Name = uuid.NewUUID().String()
-	}
-
-	if repo.Tags == nil {
-		repo.Tags = make(map[string]string)
-	}
-
 	kapi.FillObjectMetaSystemFields(ctx, &repo.ObjectMeta)
-	repo.Status = api.ImageRepositoryStatus{}
+	if errs := validation.ValidateImageRepository(repo); len(errs) > 0 {
+		return nil, errors.NewInvalid("imageRepository", repo.Name, errs)
+	}
 
+	repo.Status = api.ImageRepositoryStatus{}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		if err := s.registry.CreateImageRepository(ctx, repo); err != nil {
 			return nil, err
@@ -94,15 +85,12 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // Update replaces an existing ImageRepository in the registry with the given ImageRepository.
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	repo, ok := obj.(*api.ImageRepository)
-	if !ok {
-		return nil, fmt.Errorf("not an image repository: %#v", obj)
-	}
-	if len(repo.Name) == 0 {
-		return nil, fmt.Errorf("id is unspecified: %#v", repo)
-	}
+	repo := obj.(*api.ImageRepository)
 	if !kapi.ValidNamespace(ctx, &repo.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
+	}
+	if errs := validation.ValidateImageRepository(repo); len(errs) > 0 {
+		return nil, errors.NewInvalid("imageRepository", repo.Name, errs)
 	}
 
 	repo.Status = api.ImageRepositoryStatus{}

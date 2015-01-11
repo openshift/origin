@@ -34,7 +34,7 @@ func (s *REST) New() runtime.Object {
 
 // List is not supported.
 func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", "list")
+	return nil, errors.NewNotFound("imageRepositoryMapping", "")
 }
 
 // Get is not supported.
@@ -44,35 +44,24 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	mapping, ok := obj.(*api.ImageRepositoryMapping)
-	if !ok {
-		return nil, fmt.Errorf("not an image repository mapping: %#v", obj)
-	}
+	mapping := obj.(*api.ImageRepositoryMapping)
 	if !kapi.ValidNamespace(ctx, &mapping.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepositoryMapping", mapping.Namespace, fmt.Errorf("ImageRepositoryMapping.Namespace does not match the provided context"))
 	}
-
-	repo, err := s.findImageRepository(ctx, mapping.DockerImageRepository)
-
-	if err != nil {
-		return nil, err
-	}
-	if repo == nil {
-		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.Name, errors.ValidationErrorList{
-			errors.NewFieldNotFound("DockerImageRepository", mapping.DockerImageRepository),
-		})
-	}
-
-	// you should not do this, but we have a bug right now that prevents us from trusting the ctx passed in
-	imageRepoCtx := kapi.WithNamespace(kapi.NewContext(), repo.Namespace)
-
+	kapi.FillObjectMetaSystemFields(ctx, &mapping.ObjectMeta)
+	kapi.FillObjectMetaSystemFields(ctx, &mapping.Image.ObjectMeta)
+	// TODO: allow cross namespace mappings if the user has access
+	mapping.Image.Namespace = ""
 	if errs := validation.ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
 		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.Name, errs)
 	}
 
-	image := mapping.Image
+	repo, err := s.findRepositoryForMapping(ctx, mapping)
+	if err != nil {
+		return nil, err
+	}
 
-	kapi.FillObjectMetaSystemFields(ctx, &image.ObjectMeta)
+	image := mapping.Image
 
 	//TODO apply metadata overrides
 	if repo.Tags == nil {
@@ -81,13 +70,10 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	repo.Tags[mapping.Tag] = image.Name
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err = s.imageRegistry.CreateImage(imageRepoCtx, &image)
-		if err != nil && !errors.IsAlreadyExists(err) {
+		if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
 			return nil, err
 		}
-
-		err = s.imageRepositoryRegistry.UpdateImageRepository(imageRepoCtx, repo)
-		if err != nil {
+		if err := s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo); err != nil {
 			return nil, err
 		}
 
@@ -95,25 +81,24 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}), nil
 }
 
-// findImageRepository retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
-func (s *REST) findImageRepository(ctx kapi.Context, dockerRepo string) (*api.ImageRepository, error) {
-	//TODO make this more efficient
-	// you should not do this, but we have a bug right now that prevents us from trusting the ctx passed in
-	allNamespaces := kapi.NewContext()
-	list, err := s.imageRepositoryRegistry.ListImageRepositories(allNamespaces, labels.Everything())
-	if err != nil {
-		return nil, err
-	}
-
-	var repo *api.ImageRepository
-	for _, r := range list.Items {
-		if dockerRepo == r.DockerImageRepository {
-			repo = &r
-			break
+// findByPullSpec retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
+func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepositoryMapping) (*api.ImageRepository, error) {
+	if len(mapping.DockerImageRepository) != 0 {
+		//TODO make this more efficient
+		list, err := s.imageRepositoryRegistry.ListImageRepositories(ctx, labels.Everything())
+		if err != nil {
+			return nil, err
 		}
+		for i := range list.Items {
+			if mapping.DockerImageRepository == list.Items[i].DockerImageRepository {
+				return &list.Items[i], nil
+			}
+		}
+		return nil, errors.NewInvalid("imageRepositoryMapping", "", errors.ValidationErrorList{
+			errors.NewFieldNotFound("dockerImageRepository", mapping.DockerImageRepository),
+		})
 	}
-
-	return repo, nil
+	return s.imageRepositoryRegistry.GetImageRepository(ctx, mapping.Name)
 }
 
 // Update is not supported.

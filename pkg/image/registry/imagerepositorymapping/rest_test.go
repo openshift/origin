@@ -85,23 +85,6 @@ func TestUpdateImageRepositoryMapping(t *testing.T) {
 	}
 }
 
-func TestCreateImageRepositoryMappingBadObject(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
-
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageList{})
-	if channel != nil {
-		t.Errorf("Unexpected non-nil channel %#v", channel)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if strings.Index(err.Error(), "not an image repository mapping") == -1 {
-		t.Errorf("Expected 'not an image repository mapping' error, got %#v", err)
-	}
-}
-
 func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 	imageRegistry := test.NewImageRegistry()
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
@@ -121,7 +104,7 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &mapping)
 	if channel != nil {
-		t.Errorf("Unexpected non-nil channel %#v", channel)
+		t.Fatalf("Unexpected non-nil channel %#v", channel)
 	}
 	if err == nil {
 		t.Fatal("Unexpected nil err")
