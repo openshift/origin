@@ -97,6 +97,14 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // findImageRepository retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
 func (s *REST) findImageRepository(ctx kapi.Context, dockerRepo string) (*api.ImageRepository, error) {
+	if registry, namespace, name, _, err := api.SplitOpenShiftPullSpec(dockerRepo); err == nil && len(registry) == 0 {
+		if namespace == kapi.NamespaceNone {
+			namespace = kapi.NamespaceDefault
+		}
+		ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
+		return s.imageRepositoryRegistry.GetImageRepository(ctx, name)
+	}
+
 	//TODO make this more efficient
 	// you should not do this, but we have a bug right now that prevents us from trusting the ctx passed in
 	allNamespaces := kapi.NewContext()
