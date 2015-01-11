@@ -39,7 +39,7 @@ Examples:
 			_, namespace, _, data := kubecmd.ResourceFromFile(filename, f.Typer, f.Mapper, schema)
 
 			if len(namespace) == 0 {
-				namespace = getOriginNamespace(cmd)
+				namespace = GetOriginNamespace(cmd)
 			} else {
 				err := kubecmd.CompareNamespaceFromFile(cmd, namespace)
 				checkErr(err)
