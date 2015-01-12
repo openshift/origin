@@ -7,8 +7,9 @@ import (
 )
 
 type FakeDocker struct {
-	pushImageFunc  func(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
-	buildImageFunc func(opts docker.BuildImageOptions) error
+	pushImageFunc   func(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
+	buildImageFunc  func(opts docker.BuildImageOptions) error
+	removeImageFunc func(name string) error
 }
 
 func (d *FakeDocker) BuildImage(opts docker.BuildImageOptions) error {
@@ -21,6 +22,13 @@ func (d *FakeDocker) BuildImage(opts docker.BuildImageOptions) error {
 func (d *FakeDocker) PushImage(opts docker.PushImageOptions, auth docker.AuthConfiguration) error {
 	if d.pushImageFunc != nil {
 		return d.pushImageFunc(opts, auth)
+	}
+	return nil
+}
+
+func (d *FakeDocker) RemoveImage(name string) error {
+	if d.removeImageFunc != nil {
+		return d.removeImageFunc(name)
 	}
 	return nil
 }

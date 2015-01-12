@@ -48,6 +48,7 @@ func (s *STIBuilder) Build() error {
 	if err != nil {
 		return err
 	}
+	defer removeImage(s.dockerClient, imageTag(s.build))
 	if _, err = builder.Build(); err != nil {
 		return err
 	}

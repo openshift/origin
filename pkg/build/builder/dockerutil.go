@@ -12,6 +12,7 @@ import (
 type DockerClient interface {
 	BuildImage(opts docker.BuildImageOptions) error
 	PushImage(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
+	RemoveImage(name string) error
 }
 
 // pushImage pushes a docker image to the registry specified in its tag
@@ -23,6 +24,10 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		OutputStream: os.Stdout,
 	}
 	return client.PushImage(opts, authConfig)
+}
+
+func removeImage(client DockerClient, name string) error {
+	return client.RemoveImage(name)
 }
 
 // buildImage invokes a docker build on a particular directory
