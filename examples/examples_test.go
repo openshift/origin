@@ -149,6 +149,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"docker-registry-config":           &configapi.Config{},
 			"application-template-stibuild":    &templateapi.Template{},
 			"application-template-dockerbuild": &templateapi.Template{},
+			"project":                          &projectapi.Project{},
 		},
 		"../examples/jenkins": {
 			"jenkins-config":         &configapi.Config{},
