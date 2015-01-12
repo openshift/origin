@@ -16,127 +16,43 @@ angular.module('openshiftConsole')
     replicationControllers: "api"
   };
 
-  function DataService() {
-    this._subscriptions = {};
-    this._subscriptionsPolling = {};
-    this._openConnections = {};
+  function Data(array) {
+    // TODO just need to check for id until v1beta3
+    this._data = {};
+    if (array.length > 0 && array[0].id) {
+      this._objectsByAttribute(array, "id", this._data);
+    }
+    else {
+      this._objectsByAttribute(array, "metadata.name", this._data);
+    }
   }
 
-  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
-  // for various things in the future
-  DataService.prototype.getList = function(type, callback, context, opts) { // jshint ignore:line
-    // TODO where do we track resourceVersion
-    // TODO how do we handle failures
-    // Check if the project deferred exists on the context, if it does then don't
-    // request the data till the project is known
-    if (callback.fire) {
-      // callback is a $.Callbacks() list
-      var callbackList = callback;
-      callback = function(data) {callbackList.fire(data);};
+  Data.prototype.by = function(attr, secondaryAttr) {
+    // TODO store already generated indices
+    if (attr == "id" || attr == "metadata.name") {
+      return this._data;
     }
-    else if (callback.resolve) {
-      // callback is a $.Deferred() promise
-      var deferred = callback;
-      callback = function(data) {deferred.resolve(data);};
+    var map = {};
+    for (var key in this._data) {
+      _objectByAttribute(this._data[key], attr, map, null, secondaryAttr);
     }
-    if (context.projectPromise && type !== "projects") {
-      context.projectPromise.done($.proxy(function(project) {
-        $.ajax({
-          url: this._urlForType(type, null, context, false, {namespace: project.metadata.namespace}),
-          success: callback
-        });
-      }, this));
-    }
-    else {
-      $.ajax({
-        url: this._urlForType(type, null, context),
-        success: callback
-      });
-    }
+    return map;
   };
 
-  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
-  // for various things in the future
-  DataService.prototype.getObject = function(type, id, callback, context, opts) { // jshint ignore:line
-    // TODO where do we track resourceVersion
-    // TODO how do we handle failures
-    if (context.projectPromise && type !== "projects") {
-      context.projectPromise.done($.proxy(function(project) {
-        $.ajax({
-          url: this._urlForType(type, id, context, false, {namespace: project.metadata.namespace}),
-          success: callback
-        });
-      }, this));
-    }
-    else {
-      $.ajax({
-        url: this._urlForType(type, id, context),
-        success: callback
-      });
-    }
+  Data.prototype.update = function(object, action) {
+    _objectByAttribute(object, object.id ? "id" : "metadata.name", this._data, action);
   };
 
-  // returns the object needed for unsubscribing, currently
-  // this is the callback itself
-  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
-  // for various things in the future  
-  DataService.prototype.subscribe = function(type, callback, context, opts) { // jshint ignore:line
-    if (!this._subscriptions[type]) {
-      this._subscriptions[type] = $.Callbacks();
-      this._subscriptions[type].add(callback);
-      // TODO restrict to resourceVersion that we get back from initial ajax request
-      this._listenForUpdates(type, context);
-    }
-    else {
-      this._subscriptions[type].add(callback);
-    }
-    return callback;
-  };
-
-  DataService.prototype.unsubscribe = function(type, callback) {
-    if (this._subscriptions[type] && this._subscriptions[type].has()){
-      this._subscriptions[type].remove(callback);
-      if (!this._subscriptions[type].has()) {
-        this._stopListeningForUpdates(type);
-      }
-    }
-  };
-
-  // returns the object needed for unsubscribing, currently
-  // this is the callback itself
-  // Note: temporarily supressing jshint warning for unused opts, since we intend to use opts
-  // for various things in the future  
-  DataService.prototype.subscribePolling = function(type, callback, context, opts) { // jshint ignore:line
-    if (!this._subscriptionsPolling[type]) {
-      this._subscriptionsPolling[type] = $.Callbacks();
-      this._subscriptionsPolling[type].add(callback);
-      // TODO restrict to resourceVersion that we get back from initial ajax request
-      this._listenForUpdatesPolling(type, context);
-    }
-    else {
-      this._subscriptionsPolling[type].add(callback);
-    }
-    return callback;
-  };
-
-  DataService.prototype.unsubscribePolling = function(type, callback) {
-    if (this._subscriptionsPolling[type] && this._subscriptionsPolling[type].has()){
-      this._subscriptionsPolling[type].remove(callback);
-      if (!this._subscriptionsPolling[type].has()) {
-        this._stopListeningForUpdatesPolling(type);
-      }
-    }
-  };
-
-  DataService.prototype.objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
+  Data.prototype._objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
     for (var i = 0; i < objects.length; i++) {
-      this.objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
+      _objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
     }
   };
 
   // Handles attr with dot notation
   // TODO write lots of tests for this helper
-  DataService.prototype.objectByAttribute = function(obj, attr, map, action, secondaryAttr) {
+  // Note: this lives outside the Data prototype for now so it can be used by the helper in DataService as well
+  var _objectByAttribute = function(obj, attr, map, action, secondaryAttr) {
     var subAttrs = attr.split(".");
     var attrValue = obj;
     for (var i = 0; i < subAttrs.length; i++) {
@@ -145,6 +61,22 @@ angular.module('openshiftConsole')
         return;
       }
     }
+
+    // Split the secondary attribute by dot notation if there is one
+    var secondaryAttrValue = obj;
+    if (secondaryAttr) {
+      // TODO remove this when we don't have to special case id
+      if (secondaryAttr == "metadata.name") {
+        if (obj.id) {
+          secondaryAttr = "id";
+        }
+      }
+      var subSecondaryAttrs = secondaryAttr.split(".");
+      for (var i = 0; i < subSecondaryAttrs.length; i++) {
+        secondaryAttrValue = secondaryAttrValue[subSecondaryAttrs[i]];
+      }
+    }
+
     if ($.isArray(attrValue)) {
       // TODO implement this when we actually need it
     }
@@ -156,13 +88,13 @@ angular.module('openshiftConsole')
         }
         if (secondaryAttr) {
           if (action == "DELETED") {
-            delete map[key][val][secondaryAttr];
+            delete map[key][val][secondaryAttrValue];
           }
           else {
             if (!map[key][val]) {
               map[key][val] = {};
             }
-            map[key][val][obj[secondaryAttr]] = obj;
+            map[key][val][secondaryAttrValue] = obj;
           }
         }
         else {
@@ -178,7 +110,7 @@ angular.module('openshiftConsole')
     else {
       if (action == "DELETED") {
         if (secondaryAttr) {
-          delete map[attrValue][obj[secondaryAttr]];
+          delete map[attrValue][secondaryAttrValue];
         }
         else {
           delete map[attrValue];
@@ -189,7 +121,7 @@ angular.module('openshiftConsole')
           if (!map[attrValue]) {
             map[attrValue] = {};
           }
-          map[attrValue][obj[secondaryAttr]] = obj;
+          map[attrValue][secondaryAttrValue] = obj;
         }
         else {
           map[attrValue] = obj;
@@ -199,15 +131,297 @@ angular.module('openshiftConsole')
   };
 
 
-  DataService.prototype._stopListeningForUpdates = function(type) {
-    if (this._openConnections[type]) {
-     this._openConnections[type].close();
-     // TODO can we use delete here instead, or will that screw up the onclose event
-     this._openConnections[type] = null;
+  function DataService() {
+    this._listCallbacksMap = {};
+    this._watchCallbacksMap = {};
+    this._watchOperationMap = {};
+    this._listOperationMap = {};
+    this._resourceVersionMap = {};
+    this._dataMap = {};
+    this._watchOptionsMap = {};
+    this._watchWebsocketsMap = {};
+    this._watchPollTimeoutsMap = {};
+  }
+
+// type:      API type (e.g. "pods")
+// context:   API context (e.g. {project: "..."})
+// callback:  function to be called with the list of the requested type and context,
+//            parameters passed to the callback:
+//            Data:   a Data object containing the (context-qualified) results
+//                    which includes a helper method for returning a map indexed
+//                    by attribute (e.g. data.by('metadata.name'))
+// opts:      options (currently none, placeholder)
+  DataService.prototype.list = function(type, context, callback, opts) {
+    var callbacks = this._listCallbacks(type, context)
+    callbacks.add(callback);
+
+    if (this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
+      // A watch operation is running, and we've already received the 
+      // initial set of data for this type
+      callbacks.fire(this._data(type, context));
+      callbacks.empty();
+    }
+    else if (this._listInFlight(type, context)) {
+      // no-op, our callback will get called when listOperation completes
+    }
+    else {
+      this._startListOp(type, context);
     }
   };
 
-  DataService.prototype._listenForUpdates = function(type, context, resourceVersion) {
+// type:      API type (e.g. "pods")
+// name:      API name, the unique name for the object 
+// context:   API context (e.g. {project: "..."})
+// callback:  function to be called with the requested object,
+//            parameters passed to the callback:
+//            object: the requested object or an error if the object does not exist
+// opts:      options (currently none, placeholder)
+  DataService.prototype.get = function(type, name, context, callback, opts) {
+    if (this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
+      // TODO can take out the id bit once v1beta3 is there
+      var obj = this._data(type, context).by('metadata.name')[name];
+      if (obj) {
+        callback(obj);
+      }
+      else {
+        // TODO
+        // callback(simulation of API object not found error?)
+      }
+    }
+    else {
+      if (context.projectPromise && type !== "projects") {
+        context.projectPromise.done($.proxy(function(project) {
+          $.ajax({
+            url: this._urlForType(type, name, context, false, {namespace: project.metadata.namespace}),
+            success: callback
+          });
+        }, this));
+      }
+      else {
+        $.ajax({
+          url: this._urlForType(type, name, context),
+          success: callback
+        });
+      }
+    }
+  };
+
+// type:      API type (e.g. "pods")
+// context:   API context (e.g. {project: "..."})
+// callback:  function to be called with the initial list of the requested type,
+//            and when updates are received, parameters passed to the callback:
+//            Data:   a Data object containing the (context-qualified) results
+//                    which includes a helper method for returning a map indexed
+//                    by attribute (e.g. data.by('metadata.name'))
+//            event:  specific event that caused this call ("ADDED", "MODIFIED",
+//                    "DELETED", or null) callbacks can optionally use this to 
+//                    more efficiently process updates
+//            obj:    specific object that caused this call (may be null if the
+//                    entire list was updated) callbacks can optionally use this 
+//                    to more efficiently process updates
+// opts:      options 
+//            poll:   true | false - whether to poll the server instead of opening
+//                    a websocket. Default is false.
+//            pollInterval: in milliseconds, how long to wait between polling the server
+//                    only applies if poll=true.  Default is 5000.
+//
+// returns handle to the watch, needed to unwatch e.g.
+//        var handle = DataService.watch(type,context,callback[,opts])
+//        DataService.unwatch(handle)
+  DataService.prototype.watch = function(type, context, callback, opts) {
+    opts = opts || {};
+    this._watchCallbacks(type, context).add(callback);
+
+    var existingWatchOpts = this._watchOptions(type, context);
+    if (existingWatchOpts) {
+      // Check any options for compatibility with existing watch
+      if (existingWatchOpts.poll != opts.poll) {
+        throw "A watch already exists for " + type + " with a different polling option.";
+      }
+    }
+    else {
+      this._watchOptions(type, context, opts);      
+    }
+
+    if (this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
+      callback(this._data(type, context));
+    }
+    else if (this._listInFlight(type, context)) {
+      // no-op, our callback will get called when listOperation completes
+    }
+    else {
+      this._startListOp(type, context);
+    }
+
+    // returned handle needs type, context, and callback in order to unwatch
+    return {
+      type: type,
+      context: context,
+      callback: callback,
+      opts: opts
+    };
+  };
+
+  DataService.prototype.unwatch = function(handle) {
+    var type = handle.type;
+    var context = handle.context;
+    var callback = handle.callback;
+    var opts = handle.opts;
+    var callbacks = this._watchCallbacks(type, context);
+    callbacks.remove(callback);
+    if (!callbacks.has()) {
+      if (opts && opts.poll) {
+        clearTimeout(this._watchPollTimeouts(type, context));
+        this._watchPollTimeouts(type, context, null);
+      }
+      else {
+        this._watchWebsockets(type, context).close();
+        this._watchWebsockets(type, context, null);
+      }
+      
+      this._watchInFlight(type, context, false);
+      this._watchOptions(type, context, null);
+    }
+  };
+
+
+  DataService.prototype._watchCallbacks = function(type, context) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!this._watchCallbacksMap[key]) {
+      this._watchCallbacksMap[key] = $.Callbacks();
+    }
+    return this._watchCallbacksMap[key];
+  };
+
+  DataService.prototype._listCallbacks = function(type, context) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!this._listCallbacksMap[key]) {
+      this._listCallbacksMap[key] = $.Callbacks();
+    }
+    return this._listCallbacksMap[key];
+  };
+
+  // maybe change these
+  DataService.prototype._watchInFlight = function(type, context, op) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!op && op !== false) {
+      return this._watchOperationMap[key];
+    }
+    else {
+      this._watchOperationMap[key] = op;
+    }
+  };
+
+  DataService.prototype._listInFlight = function(type, context, op) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!op && op !== false) {
+      return this._listOperationMap[key];
+    }
+    else {
+      this._listOperationMap[key] = op;
+    }
+  };
+
+  DataService.prototype._resourceVersion = function(type, context, rv) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!rv) {
+      return this._resourceVersionMap[key];
+    }
+    else {
+      this._resourceVersionMap[key] = rv;
+    }
+  };
+
+  DataService.prototype._data = function(type, context, data) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!data) {
+      return this._dataMap[key];
+    }
+    else {
+      this._dataMap[key] = new Data(data);
+    }
+  }; 
+
+  DataService.prototype._watchOptions = function(type, context, opts) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (opts === undefined) {
+      return this._watchOptionsMap[key];
+    }
+    else {
+      this._watchOptionsMap[key] = opts;
+    }
+  }; 
+
+  DataService.prototype._watchPollTimeouts = function(type, context, timeout) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!timeout) {
+      return this._watchPollTimeoutsMap[key];
+    }
+    else {
+      this._watchPollTimeoutsMap[key] = timeout;
+    }
+  }; 
+
+  DataService.prototype._watchWebsockets = function(type, context, timeout) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (!timeout) {
+      return this._watchWebsocketsMap[key];
+    }
+    else {
+      this._watchWebsocketsMap[key] = timeout;
+    }
+  };     
+
+  DataService.prototype._uniqueKeyForTypeContext = function(type, context) {
+    // Note: when we start handling selecting multiple projects this
+    // will change to include all relevant scope
+    return type + context.projectName;
+  };
+
+  DataService.prototype._startListOp = function(type, context) {
+    // mark the operation as in progress
+    this._listInFlight(type, context, true);
+
+    if (context.projectPromise && type !== "projects") {
+      context.projectPromise.done($.proxy(function(project) {
+        $.ajax({
+          url: this._urlForType(type, null, context, false, {namespace: project.metadata.namespace}),
+          success: $.proxy(this, "_listOpComplete", type, context)
+        });
+      }, this));
+    }
+    else {
+      $.ajax({
+        url: this._urlForType(type, null, context),
+        success: $.proxy(this, "_listOpComplete", type, context)
+      });
+    }
+  };
+
+  DataService.prototype._listOpComplete = function(type, context, data) {
+    this._resourceVersion(type, context, data.resourceVersion || data.metadata.resourceVersion);
+    this._data(type, context, data.items);
+    this._listCallbacks(type, context).fire(this._data(type, context));
+    this._listCallbacks(type, context).empty();    
+    this._watchCallbacks(type, context).fire(this._data(type, context));
+
+    // mark list op as complete
+    this._listInFlight(type, context, false);
+
+    if (this._watchCallbacks(type, context).has()) {
+      var watchOpts = this._watchOptions(type, context) || {};
+      if (watchOpts.poll) {
+        this._watchInFlight(type, context, true);
+        this._watchPollTimeouts(type, context, setTimeout($.proxy(this, "_startListOp", type, context), watchOpts.pollInterval || 5000));
+      }
+      else if (!this._watchInFlight(type, context)) {
+        this._startWatchOp(type, context, this._resourceVersion(type, context));
+      }
+    }
+  };
+
+  DataService.prototype._startWatchOp = function(type, context, resourceVersion) {
+    this._watchInFlight(type, context, true);
     // Note: current impl uses one websocket per type
     // eventually want a single websocket connection that we
     // send a subscription request to for each type
@@ -222,51 +436,50 @@ angular.module('openshiftConsole')
         context.projectPromise.done($.proxy(function(project) {
           params.namespace = project.metadata.namespace;
           var wsUrl = this._urlForType(type, null, context, true, params);
-          var ws = this._openConnections[type] = new WebSocket(wsUrl);
-          ws.onclose = $.proxy(this, "_onSocketClose", type, context);
-          ws.onmessage = $.proxy(this, "_onSocketMessage", type, context);
+          var ws = new WebSocket(wsUrl);
+          this._watchWebsockets(type, context, ws);
+          ws.onclose = $.proxy(this, "_watchOpOnClose", type, context);
+          ws.onmessage = $.proxy(this, "_watchOpOnMessage", type, context);
         }, this));
       }
       else {
         var wsUrl = this._urlForType(type, null, context, true, params);
-
-        var ws = this._openConnections[type] = new WebSocket(wsUrl);
-        ws.onclose = $.proxy(this, "_onSocketClose", type, context);
-        ws.onmessage = $.proxy(this, "_onSocketMessage", type, context);
+        var ws = new WebSocket(wsUrl);
+        this._watchWebsockets(type, context, ws);
+        ws.onclose = $.proxy(this, "_watchOpOnClose", type, context);
+        ws.onmessage = $.proxy(this, "_watchOpOnMessage", type, context);
       }
     }
   };
 
-  DataService.prototype._stopListeningForUpdatesPolling = function(type) {
-    //TODO implement this
-  };
-
-  DataService.prototype._listenForUpdatesPolling = function(type, context) {
-    this.getList(type, this._subscriptionsPolling[type], context);
-    setTimeout($.proxy(this, "_listenForUpdatesPolling", type, context), 5000);
-  };
-
-  DataService.prototype._onSocketClose = function(type, context, event) {
-    // Attempt to re-establish the connection in cases
-    // where the socket close was unexpected, i.e. the event's
-    // wasClean attribute is false
-    if (!event.wasClean) {
-      // TODO should track latest resourceVersion we know about
-      // for a type so we only reload what we need
-      this._listenForUpdates(type, context);
-    }
-  };
-
-  DataService.prototype._onSocketMessage = function(type, context, event) {
+  DataService.prototype._watchOpOnMessage = function(type, context, event) {
     try {
       var eventData = $.parseJSON(event.data);
-      if (this._subscriptions[type].has()) {
-        // eventData.type will be one of ADDED, MODIFIED, DELETED
-        this._subscriptions[type].fire(eventData.type, eventData.object);
-      }
+
+      this._resourceVersion(type, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+      // TODO do we reset all the by() indices, or simply update them, since we should know what keys are there?
+      // TODO let the data object handle its own update
+      this._data(type, context).update(eventData.object, eventData.type);
+      this._watchCallbacks(type, context).fire(this._data(type, context), eventData.type, eventData.object);
     }
     catch (e) {
       // TODO report the JSON parsing exception
+    }    
+  };
+
+  DataService.prototype._watchOpOnClose = function(type, context, event) {
+    // Attempt to re-establish the connection in cases
+    // where the socket close was unexpected, i.e. the event's
+    // wasClean attribute is false
+    if (!event.wasClean && this._watchCallbacks(type, context).has()) {
+      this._startWatchOp(type, context, this._resourceVersion(type, context));
+    }
+  };
+
+  // TODO Possibly remove these from DataService
+  DataService.prototype.objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
+    for (var i = 0; i < objects.length; i++) {
+      _objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
     }
   };
 

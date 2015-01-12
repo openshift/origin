@@ -14,9 +14,9 @@ describe('Controller: ProjectsController', function () {
     ProjectsController = $controller('ProjectsController', {
       $scope: scope,
       DataService: {
-        getList: function(type, callback, context, opts) {
+        list: function(type, context, callback, opts) {
           // TODO return mocked project data
-          callback({items: []});
+          callback({by: function(){return {}}});
         }
       }
     });
