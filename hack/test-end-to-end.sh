@@ -44,13 +44,12 @@ KUBELET_PORT="${KUBELET_PORT:-10250}"
 
 CONFIG_FILE="${LOG_DIR}/appConfig.json"
 BUILD_CONFIG_FILE="${LOG_DIR}/buildConfig.json"
-FIXTURE_DIR="${OS_ROOT}/examples/sample-app"
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 
 # set path so OpenShift is available
 export PATH="${GO_OUT}:${PATH}"
 pushd "${GO_OUT}" > /dev/null
-ln -fs "openshift" "osc"
+ln -fs "$(pwd)/openshift" "osc"
 popd > /dev/null
 
 # teardown
@@ -70,8 +69,7 @@ function teardown()
   echo "[INFO] Dumping build log to $LOG_DIR"
 
   set +e
-  BUILD_ID=`osc get -n test builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
-  osc build-logs -n test $BUILD_ID > $LOG_DIR/build.log
+  osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >$LOG_DIR/build.log
 
   curl -L http://localhost:4001/v2/keys/?recursive=true > $ARTIFACT_DIR/etcd_dump.json
   set -e
@@ -83,10 +81,10 @@ function teardown()
     set +e
     echo "[INFO] Tearing down test"
     stop_openshift_server
-    echo "[INFO] Stopping docker containers"; docker stop $(docker ps -a -q)
+    echo "[INFO] Stopping docker containers"; docker ps -aq | xargs -l -r docker stop
     set +u
     if [ "$SKIP_IMAGE_CLEANUP" != "1" ]; then
-      echo "[INFO] Removing docker containers"; docker rm $(docker ps -a -q)
+      echo "[INFO] Removing docker containers"; docker ps -aq | xargs -l -r docker rm
     fi
     set -u
     set -e
@@ -112,7 +110,7 @@ wait_for_url "http://localhost:8080/healthz" "[INFO] apiserver: "
 
 # Deploy private docker registry
 echo "[INFO] Deploying private Docker registry"
-osc apply -n test -f ${FIXTURE_DIR}/docker-registry-config.json
+osc apply -n test -f examples/sample-app/docker-registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_command "osc get -n test pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
@@ -136,7 +134,7 @@ echo "[INFO] Pushed centos7"
 
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
-osc process -n test -f ${FIXTURE_DIR}/application-template-${BUILD_TYPE}build.json > "${CONFIG_FILE}"
+osc process -n test -f examples/sample-app/application-template-${BUILD_TYPE}build.json > "${CONFIG_FILE}"
 # substitute the default IP address with the address where we actually ended up
 # TODO: make this be unnecessary by fixing images
 # This is no longer needed because the docker registry explicitly requests the 172.30.17.3 ip address.
