@@ -21,6 +21,8 @@ If you are running docker as a service via systemd, you can add this argument to
 
 This will instruct the docker daemon to trust any docker registry on the 172.30.17.0/24 subnet, rather than requiring a certificate.
 
+These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.17.0/24.
+
 
 Application Build, Deploy, and Update Flow
 ------------------------------------------
@@ -53,7 +55,7 @@ All commands assume the `openshift` binary is in your path (normally located und
         ----------                             ----------                  ----------               ----------                                                                                               ----------
         94679170-54dc-11e4-88cc-3c970e3bf0b7   openshift/docker-registry   localhost.localdomain/   deployment=registry-config,name=registrypod,replicationController=946583f6-54dc-11e4-88cc-3c970e3bf0b7   Running
 
-5. Confirm the registry service is running.  Note that the actual IP address will vary.
+5. Confirm the registry service is running.  Note that the actual IP address may vary.
 
         $ openshift cli get services
 
@@ -89,6 +91,8 @@ All commands assume the `openshift` binary is in your path (normally located und
 11. Edit application-template-stibuild.json
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
  * Replace occurences of `172.30.17.3` with the IP address of the docker-registry service as seen in step 5.
+
+ *Note:* You can skip this step if your registry service ip is 172.30.17.3, which should normally be the case.
 
 12. Submit the application template for processing and create the application using the processed template:
 
