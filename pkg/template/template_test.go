@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/generator"
@@ -129,7 +130,7 @@ func ExampleProcessTemplateParameters() {
 
 	// Transform the template config into the result config
 	config, err := processor.Process(&template)
-	fmt.Println(util.SliceToError(err))
+	fmt.Println(errors.NewAggregate(err))
 	if config != nil {
 		// Reset the timestamp for the output comparison
 		config.ObjectMeta.CreationTimestamp = util.Date(1980, 1, 1, 0, 0, 0, 0, time.UTC)

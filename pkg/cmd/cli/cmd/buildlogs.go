@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdBuildLogs(f *kubecmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildLogs(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build-logs <build>",
 		Short: "Show container logs from the build container",
@@ -25,13 +25,14 @@ $ kubectl build-logs 566bed879d2d
 
 			namespace := getOriginNamespace(cmd)
 
-			mapping, err := f.Mapper.RESTMapping(kubecmd.GetFlagString(cmd, "api-version"), "BuildLog")
+			mapper, _ := f.Object(cmd)
+			mapping, err := mapper.RESTMapping("BuildLog", kubecmd.GetFlagString(cmd, "api-version"))
 			checkErr(err)
-			c, err := f.Client(cmd, mapping)
+			c, _, err := f.Clients(cmd)
 			checkErr(err)
 
 			// TODO: This should be a method on the origin Client - BuildLogs(namespace).Redirect(args[0])
-			request := c.Get().Namespace(namespace).Path("redirect").Path(mapping.Resource).Path(args[0])
+			request := c.Get().Namespace(namespace).Prefix("redirect").Resource(mapping.Resource).Name(args[0])
 
 			readCloser, err := request.Stream()
 			checkErr(err)

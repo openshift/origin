@@ -41,7 +41,7 @@ func (c *imageRepositories) List(label, field labels.Selector) (result *imageapi
 	result = &imageapi.ImageRepositoryList{}
 	err = c.r.Get().
 		Namespace(c.ns).
-		Path("imageRepositories").
+		Resource("imageRepositories").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Do().
@@ -52,36 +52,36 @@ func (c *imageRepositories) List(label, field labels.Selector) (result *imageapi
 // Get returns information about a particular imagerepository and error if one occurs.
 func (c *imageRepositories) Get(name string) (result *imageapi.ImageRepository, err error) {
 	result = &imageapi.ImageRepository{}
-	err = c.r.Get().Namespace(c.ns).Path("imageRepositories").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("imageRepositories").Name(name).Do().Into(result)
 	return
 }
 
 // Create create a new imagerepository. Returns the server's representation of the imagerepository and error if one occurs.
 func (c *imageRepositories) Create(repo *imageapi.ImageRepository) (result *imageapi.ImageRepository, err error) {
 	result = &imageapi.ImageRepository{}
-	err = c.r.Post().Namespace(c.ns).Path("imageRepositories").Body(repo).Do().Into(result)
+	err = c.r.Post().Namespace(c.ns).Resource("imageRepositories").Body(repo).Do().Into(result)
 	return
 }
 
 // Update updates the imagerepository on the server. Returns the server's representation of the imagerepository and error if one occurs.
 func (c *imageRepositories) Update(repo *imageapi.ImageRepository) (result *imageapi.ImageRepository, err error) {
 	result = &imageapi.ImageRepository{}
-	err = c.r.Put().Namespace(c.ns).Path("imageRepositories").Path(repo.Name).Body(repo).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Resource("imageRepositories").Name(repo.Name).Body(repo).Do().Into(result)
 	return
 }
 
 // Delete deletes an image repository, returns error if one occurs.
 func (c *imageRepositories) Delete(name string) (err error) {
-	err = c.r.Delete().Namespace(c.ns).Path("imageRepositories").Path(name).Do().Error()
+	err = c.r.Delete().Namespace(c.ns).Resource("imageRepositories").Name(name).Do().Error()
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested imagerepositories.
 func (c *imageRepositories) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Path("watch").
+		Prefix("watch").
 		Namespace(c.ns).
-		Path("imageRepositories").
+		Resource("imageRepositories").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).

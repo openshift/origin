@@ -18,12 +18,12 @@ import (
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -211,7 +211,7 @@ func (c *KubeConfig) Run() {
 	util.InitLogs()
 	defer util.FlushLogs()
 
-	clientConfig := &c.ClientConfig
+	clientConfig := c.ClientConfig
 	// Initialize the client
 	if clientConfig.Host == "" {
 		clientConfig.Host = os.Getenv("KUBERNETES_MASTER")
@@ -250,7 +250,7 @@ func (c *KubeConfig) Run() {
 		}
 	}
 	clientConfig.Version = c.APIVersion
-	kubeClient, err := kclient.New(clientConfig)
+	kubeClient, err := kclient.New(&clientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to set up the Kubernetes API client: %v", err)
 	}
@@ -259,7 +259,7 @@ func (c *KubeConfig) Run() {
 		clientConfig.Host = hosts[1]
 	}
 	clientConfig.Version = c.OSAPIVersion
-	client, err := osclient.New(clientConfig)
+	client, err := osclient.New(&clientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to set up the OpenShift API client: %v", err)
 	}
@@ -289,7 +289,7 @@ func (c *KubeConfig) Run() {
 
 	if c.Proxy {
 		glog.Info("Starting to serve on localhost:8001")
-		server, err := kubecfg.NewProxyServer(c.WWW, clientConfig)
+		server, err := kubecfg.NewProxyServer(c.WWW, &clientConfig)
 		if err != nil {
 			glog.Fatalf("Unable to initialize proxy server %v", err)
 		}
@@ -374,7 +374,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 			glog.Fatalf("usage: kubecfg [OPTIONS] %s <%s>", method, prettyWireStorage())
 		}
 	case "update":
-		obj, err := client.Client.Verb("GET").Path(path).Do().Get()
+		obj, err := client.Client.Verb("GET").Resource(path).Do().Get()
 		if err != nil {
 			glog.Fatalf("error obtaining resource version for update: %v", err)
 		}
@@ -394,7 +394,7 @@ func (c *KubeConfig) executeAPIRequest(method string, clients ClientMappings) bo
 
 	r := client.Client.Verb(verb).
 		Namespace(c.getNamespace()).
-		Path(path).
+		Resource(path).
 		ParseSelectorParam("labels", c.Selector)
 	if setBody {
 		if len(version) != 0 {
@@ -518,7 +518,7 @@ func (c *KubeConfig) executeBuildRequest(method string, client *osclient.Client)
 	build := &buildapi.Build{}
 	if len(c.ID) != 0 {
 		oldBuild := &buildapi.Build{}
-		request := client.Get().Namespace(c.getNamespace()).Path("/builds").Path(c.ID)
+		request := client.Get().Namespace(c.getNamespace()).Resource("/builds").Name(c.ID)
 		err := request.Do().Into(oldBuild)
 		if err != nil {
 			glog.Fatalf("failed to trigger build manually: %v", err)
@@ -526,14 +526,14 @@ func (c *KubeConfig) executeBuildRequest(method string, client *osclient.Client)
 		build = buildutil.GenerateBuildFromBuild(oldBuild)
 	} else {
 		buildConfig := &buildapi.BuildConfig{}
-		request := client.Get().Namespace(c.getNamespace()).Path("/buildConfigs").Path(c.BuildConfigID)
+		request := client.Get().Namespace(c.getNamespace()).Resource("/buildConfigs").Name(c.BuildConfigID)
 		err := request.Do().Into(buildConfig)
 		if err != nil {
 			glog.Fatalf("failed to trigger build manually: %v", err)
 		}
 		build = buildutil.GenerateBuildFromConfig(buildConfig, buildConfig.Parameters.Revision)
 	}
-	request := client.Post().Namespace(c.getNamespace()).Path("/builds").Body(build)
+	request := client.Post().Namespace(c.getNamespace()).Resource("/builds").Body(build)
 	if err := request.Do().Error(); err != nil {
 		glog.Fatalf("failed to trigger build manually: %v", err)
 	}
@@ -548,7 +548,7 @@ func (c *KubeConfig) executeBuildLogRequest(method string, client *osclient.Clie
 	if len(c.ID) == 0 {
 		glog.Fatal("Build ID required")
 	}
-	request := client.Verb("GET").Namespace(c.getNamespace()).Path("redirect").Path("buildLogs").Path(c.ID)
+	request := client.Verb("GET").Namespace(c.getNamespace()).Prefix("redirect").Resource("buildLogs").Name(c.ID)
 	readCloser, err := request.Stream()
 	if err != nil {
 		glog.Fatalf("Error: %v", err)
@@ -576,7 +576,7 @@ func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Clie
 	if err != nil {
 		glog.Fatalf("error reading template file: %v", err)
 	}
-	request := client.Verb("POST").Namespace(c.getNamespace()).Path("/templateConfigs").Body(data)
+	request := client.Verb("POST").Namespace(c.getNamespace()).Resource("/templateConfigs").Body(data)
 	result := request.Do()
 	body, err := result.Raw()
 	if err != nil {
@@ -597,12 +597,12 @@ func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings)
 		glog.Fatal("Need to pass valid configuration file (-c config.json)")
 	}
 
-	clientFunc := func(m *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+	clientFunc := func(m *kmeta.RESTMapping) (*resource.Helper, error) {
 		mapping, ok := clients[m.Resource]
 		if !ok {
 			return nil, fmt.Errorf("Unable to provide REST client for %v", m.Resource)
 		}
-		return kubectl.NewRESTHelper(mapping.Client, m), nil
+		return resource.NewHelper(mapping.Client, m), nil
 	}
 
 	result, err := config.Apply(c.getNamespace(), c.readConfigData(), clientFunc)

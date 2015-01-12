@@ -49,7 +49,7 @@ func RequestToken(clientCfg *clientcmd.Config, reader io.Reader) (string, error)
 	}
 	kubeClient.Client = &challengingClient{httpClient, reader}
 
-	_ = kubeClient.Get().AbsPath("oauth").Path("authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
+	_ = kubeClient.Get().AbsPath("oauth").Resource("authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
 
 	if len(tokenGetter.accessToken) == 0 {
 		requestTokenURL := kubeCfg.Host + "/oauth" /* clean up after auth.go dies */ + tokenrequest.RequestTokenEndpoint

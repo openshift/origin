@@ -14,6 +14,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -163,6 +164,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		HealthCheckMinions: false,
 		KubeletClient:      kubeletClient,
 		APIPrefix:          "/api/v1beta1",
+		AdmissionControl:   admit.NewAlwaysAdmit(),
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -178,7 +180,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	apiserver.NewAPIGroupVersion(kmaster.API_v1beta1()).InstallREST(handlerContainer, "/api", "v1beta1")
 
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,

@@ -16,6 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
@@ -257,6 +258,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		HealthCheckMinions: false,
 		KubeletClient:      kubeletClient,
 		APIPrefix:          "/api/v1beta1",
+		AdmissionControl:   admit.NewAlwaysAdmit(),
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -287,7 +289,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	apiserver.NewAPIGroupVersion(kmaster.API_v1beta1()).InstallREST(handlerContainer, "/api", "v1beta1")
 
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
 		Client:     osClient,

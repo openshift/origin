@@ -33,6 +33,6 @@ func newImageRepositoryTags(c *Client, namespace string) *imageRepositoryTags {
 // Get finds the specified image by name of an image repository and tag.
 func (c *imageRepositoryTags) Get(name, tag string) (result *api.Image, err error) {
 	result = &api.Image{}
-	err = c.r.Get().Namespace(c.ns).Path("imageRepositoryTags").Path(fmt.Sprintf("%s:%s", name, tag)).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("imageRepositoryTags").Name(fmt.Sprintf("%s:%s", name, tag)).Do().Into(result)
 	return
 }

@@ -26,6 +26,10 @@ func (s *REST) New() runtime.Object {
 	return &api.User{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.User{}
+}
+
 // Get retrieves an UserIdentityMapping by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return s.registry.GetUser(id)

@@ -41,7 +41,7 @@ func (c *deployments) List(label, field labels.Selector) (result *deployapi.Depl
 	result = &deployapi.DeploymentList{}
 	err = c.r.Get().
 		Namespace(c.ns).
-		Path("deployments").
+		Resource("deployments").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Do().
@@ -52,35 +52,35 @@ func (c *deployments) List(label, field labels.Selector) (result *deployapi.Depl
 // Get returns information about a particular deployment
 func (c *deployments) Get(name string) (result *deployapi.Deployment, err error) {
 	result = &deployapi.Deployment{}
-	err = c.r.Get().Namespace(c.ns).Path("deployments").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("deployments").Name(name).Do().Into(result)
 	return
 }
 
 // Create creates a new deployment
 func (c *deployments) Create(deployment *deployapi.Deployment) (result *deployapi.Deployment, err error) {
 	result = &deployapi.Deployment{}
-	err = c.r.Post().Namespace(c.ns).Path("deployments").Body(deployment).Do().Into(result)
+	err = c.r.Post().Namespace(c.ns).Resource("deployments").Body(deployment).Do().Into(result)
 	return
 }
 
 // Update updates an existing deployment
 func (c *deployments) Update(deployment *deployapi.Deployment) (result *deployapi.Deployment, err error) {
 	result = &deployapi.Deployment{}
-	err = c.r.Put().Namespace(c.ns).Path("deployments").Path(deployment.Name).Body(deployment).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Resource("deployments").Name(deployment.Name).Body(deployment).Do().Into(result)
 	return
 }
 
 // Delete deletes an existing replication deployment.
 func (c *deployments) Delete(name string) error {
-	return c.r.Delete().Namespace(c.ns).Path("deployments").Path(name).Do().Error()
+	return c.r.Delete().Namespace(c.ns).Resource("deployments").Name(name).Do().Error()
 }
 
 // Watch returns a watch.Interface that watches the requested deployments.
 func (c *deployments) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Path("watch").
+		Prefix("watch").
 		Namespace(c.ns).
-		Path("deployments").
+		Resource("deployments").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).

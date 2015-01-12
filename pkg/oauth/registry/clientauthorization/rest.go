@@ -29,6 +29,10 @@ func (s *REST) New() runtime.Object {
 	return &api.ClientAuthorization{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.ClientAuthorization{}
+}
+
 // Get retrieves an ClientAuthorization by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	authorization, err := s.registry.GetClientAuthorization(id)

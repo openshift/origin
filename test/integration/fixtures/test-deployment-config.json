@@ -23,6 +23,8 @@
               {
                 "name": "ruby-helloworld",
                 "image": "127.0.0.1:5001/openshift/origin-ruby-sample",
+                "cpu": 100,
+                "memory": 3221225472,
                 "ports": [
                   {
                     "containerPort": 8080

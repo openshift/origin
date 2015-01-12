@@ -11,10 +11,12 @@ import (
 	"time"
 
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -224,6 +226,8 @@ func start(cfg *config, args []string) error {
 			KubernetesAddr:        cfg.KubernetesAddr.URL.String(),
 			EtcdHelper:            etcdHelper,
 			RequireAuthentication: cfg.RequireAuthentication,
+			Authorizer:            apiserver.NewAlwaysAllowAuthorizer(),
+			AdmissionControl:      admit.NewAlwaysAdmit(),
 		}
 
 		// pick an appropriate Kube client
@@ -249,12 +253,14 @@ func start(cfg *config, args []string) error {
 		if startKube {
 			portalNet := net.IPNet(cfg.PortalNet)
 			kmaster := &kubernetes.MasterConfig{
-				MasterHost: cfg.MasterAddr.Host,
-				MasterPort: cfg.MasterAddr.Port,
-				NodeHosts:  cfg.NodeList,
-				PortalNet:  &portalNet,
-				EtcdHelper: ketcdHelper,
-				KubeClient: osmaster.KubeClient,
+				MasterHost:       cfg.MasterAddr.Host,
+				MasterPort:       cfg.MasterAddr.Port,
+				NodeHosts:        cfg.NodeList,
+				PortalNet:        &portalNet,
+				EtcdHelper:       ketcdHelper,
+				KubeClient:       osmaster.KubeClient,
+				Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
+				AdmissionControl: admit.NewAlwaysAdmit(),
 			}
 			kmaster.EnsurePortalFlags()
 

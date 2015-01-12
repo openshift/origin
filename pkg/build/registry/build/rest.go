@@ -30,6 +30,10 @@ func (r *REST) New() runtime.Object {
 	return &api.Build{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.Build{}
+}
+
 // List obtains a list of Builds that match selector.
 func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	builds, err := r.registry.ListBuilds(ctx, selector)

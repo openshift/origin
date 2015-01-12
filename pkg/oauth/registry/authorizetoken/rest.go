@@ -30,6 +30,10 @@ func (s *REST) New() runtime.Object {
 	return &api.AuthorizeToken{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.AuthorizeToken{}
+}
+
 // Get retrieves an AuthorizeToken by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	token, err := s.registry.GetAuthorizeToken(id)

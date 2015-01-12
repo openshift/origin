@@ -42,7 +42,7 @@ func (c *deploymentConfigs) List(label, field labels.Selector) (result *deployap
 	result = &deployapi.DeploymentConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
-		Path("deploymentConfigs").
+		Resource("deploymentConfigs").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Do().
@@ -53,35 +53,35 @@ func (c *deploymentConfigs) List(label, field labels.Selector) (result *deployap
 // Get returns information about a particular deploymentConfig
 func (c *deploymentConfigs) Get(name string) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.r.Get().Namespace(c.ns).Path("deploymentConfigs").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).Do().Into(result)
 	return
 }
 
 // Create creates a new deploymentConfig
 func (c *deploymentConfigs) Create(deploymentConfig *deployapi.DeploymentConfig) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.r.Post().Namespace(c.ns).Path("deploymentConfigs").Body(deploymentConfig).Do().Into(result)
+	err = c.r.Post().Namespace(c.ns).Resource("deploymentConfigs").Body(deploymentConfig).Do().Into(result)
 	return
 }
 
 // Update updates an existing deploymentConfig
 func (c *deploymentConfigs) Update(deploymentConfig *deployapi.DeploymentConfig) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.r.Put().Namespace(c.ns).Path("deploymentConfigs").Path(deploymentConfig.Name).Body(deploymentConfig).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Resource("deploymentConfigs").Name(deploymentConfig.Name).Body(deploymentConfig).Do().Into(result)
 	return
 }
 
 // Delete deletes an existing deploymentConfig.
 func (c *deploymentConfigs) Delete(name string) error {
-	return c.r.Delete().Namespace(c.ns).Path("deploymentConfigs").Path(name).Do().Error()
+	return c.r.Delete().Namespace(c.ns).Resource("deploymentConfigs").Name(name).Do().Error()
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
 func (c *deploymentConfigs) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Path("watch").
+		Prefix("watch").
 		Namespace(c.ns).
-		Path("deploymentConfigs").
+		Resource("deploymentConfigs").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
@@ -91,6 +91,6 @@ func (c *deploymentConfigs) Watch(label, field labels.Selector, resourceVersion 
 // Generate generates a new deploymentConfig for the given name.
 func (c *deploymentConfigs) Generate(name string) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.r.Get().Namespace(c.ns).Path("generateDeploymentConfigs").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("generateDeploymentConfigs").Name(name).Do().Into(result)
 	return
 }

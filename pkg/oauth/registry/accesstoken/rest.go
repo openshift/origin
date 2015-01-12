@@ -29,6 +29,10 @@ func (s *REST) New() runtime.Object {
 	return &api.AccessToken{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.AccessToken{}
+}
+
 // Get retrieves an AccessToken by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	token, err := s.registry.GetAccessToken(id)

@@ -30,6 +30,10 @@ func (rs *REST) New() runtime.Object {
 	return &api.Route{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.Route{}
+}
+
 // List obtains a list of Routes that match selector.
 func (rs *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	list, err := rs.registry.ListRoutes(ctx, selector)

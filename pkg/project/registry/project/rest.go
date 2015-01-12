@@ -28,6 +28,10 @@ func (s *REST) New() runtime.Object {
 	return &api.Project{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.Project{}
+}
+
 // List retrieves a list of Projects that match selector.
 func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	projects, err := s.registry.ListProjects(ctx, selector)

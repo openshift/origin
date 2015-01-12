@@ -88,6 +88,8 @@ func New(c *kclient.Config) (*Client, error) {
 		// TODO: implement version negotiation (highest version supported by server)
 		config.Version = latest.Version
 	}
+	config.Codec = latest.Codec
+	config.LegacyBehavior = (config.Version == "v1beta1")
 	client, err := kclient.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
