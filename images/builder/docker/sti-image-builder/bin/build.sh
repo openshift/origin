@@ -48,8 +48,15 @@ pushd $source_dir >/dev/null
 popd >/dev/null
 
 # After successfull build, retag the image to 'qa-ready'
-# TODO: Define image promotion process
 #
 image_id=$(docker inspect --format="{{ .Id }}" ${IMAGE_NAME}-candidate:latest)
 docker tag ${image_id} ${IMAGE_NAME}:qa-ready
-docker tag ${image_id} ${IMAGE_NAME}:git-$SOURCE_REF
+
+# Tag the image with the GIT ref if the SOURCE_REF is set
+#
+if ! [ -z "${SOURCE_REF}" ]; then
+  docker tag ${image_id} ${IMAGE_NAME}:git-$SOURCE_REF
+fi
+
+# Remove the candidate image after build
+docker rmi ${IMAGE_NAME}-candidate
