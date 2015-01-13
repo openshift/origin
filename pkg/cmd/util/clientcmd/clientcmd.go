@@ -3,6 +3,7 @@ package clientcmd
 import (
 	"fmt"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/spf13/pflag"
 
@@ -44,6 +45,19 @@ func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
 }
 
+func EnvVarsFromConfig(config *kclient.Config) []api.EnvVar {
+	insecure := "false"
+	if config.Insecure {
+		insecure = "true"
+	}
+	return []api.EnvVar{
+		{Name: "OPENSHIFT_CA_DATA", Value: string(config.CAData)},
+		{Name: "OPENSHIFT_CERT_DATA", Value: string(config.CertData)},
+		{Name: "OPENSHIFT_KEY_DATA", Value: string(config.KeyData)},
+		{Name: "OPENSHIFT_INSECURE", Value: insecure},
+	}
+}
+
 func (cfg *Config) bindEnv() {
 	if value, ok := util.GetEnv("KUBERNETES_MASTER"); ok && !cfg.KubernetesAddr.Provided {
 		cfg.KubernetesAddr.Set(value)
@@ -53,6 +67,28 @@ func (cfg *Config) bindEnv() {
 	}
 	if value, ok := util.GetEnv("BEARER_TOKEN"); ok && len(cfg.CommonConfig.BearerToken) == 0 {
 		cfg.CommonConfig.BearerToken = value
+	}
+
+	if value, ok := util.GetEnv("OPENSHIFT_CA_FILE"); ok && len(cfg.CommonConfig.CAFile) == 0 {
+		cfg.CommonConfig.CAFile = value
+	} else if value, ok := util.GetEnv("OPENSHIFT_CA_DATA"); ok && len(cfg.CommonConfig.CAData) == 0 {
+		cfg.CommonConfig.CAData = []byte(value)
+	}
+
+	if value, ok := util.GetEnv("OPENSHIFT_CERT_FILE"); ok && len(cfg.CommonConfig.CertFile) == 0 {
+		cfg.CommonConfig.CertFile = value
+	} else if value, ok := util.GetEnv("OPENSHIFT_CERT_DATA"); ok && len(cfg.CommonConfig.CertData) == 0 {
+		cfg.CommonConfig.CertData = []byte(value)
+	}
+
+	if value, ok := util.GetEnv("OPENSHIFT_KEY_FILE"); ok && len(cfg.CommonConfig.KeyFile) == 0 {
+		cfg.CommonConfig.KeyFile = value
+	} else if value, ok := util.GetEnv("OPENSHIFT_KEY_DATA"); ok && len(cfg.CommonConfig.KeyData) == 0 {
+		cfg.CommonConfig.KeyData = []byte(value)
+	}
+
+	if value, ok := util.GetEnv("OPENSHIFT_INSECURE"); ok && len(value) != 0 {
+		cfg.CommonConfig.Insecure = value == "true"
 	}
 }
 

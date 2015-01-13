@@ -24,6 +24,9 @@ import (
 	"github.com/openshift/origin/pkg/service"
 )
 
+// NodeScheme is the default scheme for serving information about the node.
+const NodeScheme = "http"
+
 // NodePort is the default Kubelet port for serving information about the node.
 const NodePort = 10250
 

@@ -1,0 +1,69 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1beta1",
+    "metadata": {
+        "name": "openshift-router",
+        "annotations": {
+            "description": "Template for launching a origin-haproxy-router pod"
+        }
+    },
+    "parameters": [
+        {
+            "name": "OPENSHIFT_MASTER",
+            "description": "OpenShift master",
+            "value": "http://localhost:8080"
+        },
+        {
+            "name": "OPENSHIFT_CA_DATA",
+            "description": "OpenShift root certificates",
+        },
+        {
+            "name": "OPENSHIFT_CERT_DATA",
+            "description": "OpenShift client certificate",
+        },
+        {
+            "name": "OPENSHIFT_KEY_DATA",
+            "description": "OpenShift client certificate key",
+        }
+    ],
+    "items": [{
+        "kind": "Pod",
+        "apiVersion": "v1beta1",
+        "id": "ROUTER_ID",
+        "desiredState": {
+            "manifest": {
+                "version": "v1beta2",
+                "containers": [{
+                    "name": "origin-haproxy-router-ROUTER_ID",
+                    "image": "openshift/origin-haproxy-router",
+                    "ports": [{
+                        "containerPort": 80,
+                        "hostPort": 80
+                    }],
+                    "env": [
+                        {
+                            "name": "OPENSHIFT_MASTER",
+                            "value": "${OPENSHIFT_MASTER}"
+                        },
+                        {
+                            "name": "OPENSHIFT_CA_DATA",
+                            "value": "${OPENSHIFT_CA_DATA}"
+                        },
+                        {
+                            "name": "OPENSHIFT_CERT_DATA",
+                            "value": "${OPENSHIFT_CERT_DATA}"
+                        },
+                        {
+                            "name": "OPENSHIFT_KEY_DATA",
+                            "value": "${OPENSHIFT_KEY_DATA}"
+                        }
+                    ],
+                    "imagePullPolicy": "PullIfNotPresent"
+                }],
+                "restartPolicy": {
+                    "always": {}
+                }
+            }
+        }
+	}]
+}

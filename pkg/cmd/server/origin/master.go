@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -15,7 +16,6 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -42,6 +42,8 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -81,16 +83,39 @@ type MasterConfig struct {
 	AssetAddr      string
 	KubernetesAddr string
 
+	TLS bool
+
 	CORSAllowedOrigins    []*regexp.Regexp
 	RequireAuthentication bool
 
 	EtcdHelper tools.EtcdHelper
 
-	KubeClient *kclient.Client
-	OSClient   *osclient.Client
-
 	Authorizer       authorizer.Authorizer
 	AdmissionControl admission.Interface
+
+	MasterCertFile string
+	MasterKeyFile  string
+	AssetCertFile  string
+	AssetKeyFile   string
+
+	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
+	// It should only be accessed via the *Client() helper methods.
+	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	kubeClient *kclient.Client
+	// KubeClientConfig is the client configuration used to call Kubernetes APIs from system components.
+	// To apply different access control to a system component, create a client config specifically for that component.
+	KubeClientConfig kclient.Config
+
+	// osClient is the client used to call OpenShift APIs from system components, built from OSClientConfig.
+	// It should only be accessed via the *Client() helper methods.
+	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	osClient *osclient.Client
+	// OSClientConfig is the client configuration used to call OpenShift APIs from system components
+	// To apply different access control to a system component, create a client config specifically for that component.
+	OSClientConfig kclient.Config
+
+	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
+	DeployerOSClientConfig kclient.Config
 }
 
 // APIInstaller installs additional API components into this server
@@ -99,22 +124,56 @@ type APIInstaller interface {
 	InstallAPI(*restful.Container) []string
 }
 
-// EnsureKubernetesClient creates a Kubernetes client or exits if the client cannot be created.
-func (c *MasterConfig) EnsureKubernetesClient() {
-	kubeClient, err := kclient.New(&kclient.Config{Host: c.MasterAddr, Version: klatest.Version, Codec: klatest.Codec})
+func (c *MasterConfig) BuildClients() {
+	kubeClient, err := kclient.New(&c.KubeClientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to configure client: %v", err)
 	}
-	c.KubeClient = kubeClient
+	c.kubeClient = kubeClient
+
+	osclient, err := osclient.New(&c.OSClientConfig)
+	if err != nil {
+		glog.Fatalf("Unable to configure client: %v", err)
+	}
+	c.osClient = osclient
 }
 
-// EnsureOpenShiftClient creates an OpenShift client or exits if the client cannot be created.
-func (c *MasterConfig) EnsureOpenShiftClient() {
-	osClient, err := osclient.New(&kclient.Config{Host: c.MasterAddr, Version: latest.Version, Codec: latest.Codec})
-	if err != nil {
-		glog.Fatalf("Unable to configure client: %v", err)
-	}
-	c.OSClient = osClient
+func (c *MasterConfig) KubeClient() *kclient.Client {
+	return c.kubeClient
+}
+func (c *MasterConfig) DeploymentClient() *kclient.Client {
+	return c.kubeClient
+}
+func (c *MasterConfig) BuildLogClient() *kclient.Client {
+	return c.kubeClient
+}
+func (c *MasterConfig) WebHookClient() *osclient.Client {
+	return c.osClient
+}
+func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.osClient, c.kubeClient
+}
+func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
+	return c.osClient
+}
+func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.osClient, c.kubeClient
+}
+
+// DeployerClientConfig returns the client configuration a Deployer instance launched in a pod
+// should use when making API calls.
+func (c *MasterConfig) DeployerClientConfig() *kclient.Config {
+	return &c.DeployerOSClientConfig
+}
+
+func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.osClient, c.kubeClient
+}
+func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.osClient, c.kubeClient
+}
+func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
+	return c.osClient
 }
 
 // EnsureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
@@ -139,7 +198,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		DeploymentInterface:       &clientDeploymentInterface{c.KubeClient},
+		DeploymentInterface:       &clientDeploymentInterface{c.DeploymentClient()},
 		DeploymentConfigInterface: deployEtcd,
 		ImageRepositoryInterface:  imageEtcd,
 		Codec: latest.Codec,
@@ -151,7 +210,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildEtcd),
 		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
-		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.KubeClient),
+		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
 
 		"images":                  image.NewREST(imageEtcd),
 		"imageRepositories":       imagerepository.NewREST(imageEtcd, defaultRegistry),
@@ -179,7 +238,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
 	container.ServeMux.Handle(whPrefix, http.StripPrefix(whPrefix,
-		webhook.NewController(ClientWebhookInterface{c.OSClient}, map[string]webhook.Plugin{
+		webhook.NewController(ClientWebhookInterface{c.WebHookClient()}, map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
 		})))
@@ -240,8 +299,22 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 		for _, s := range extra {
 			glog.Infof(s, c.MasterAddr)
 		}
-		glog.Fatal(server.ListenAndServe())
+		if c.TLS {
+			server.TLSConfig = &tls.Config{
+				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+				MinVersion: tls.VersionTLS10,
+				// Populate PeerCertificates in requests, but don't reject connections without certificates
+				// This allows certificates to be validated by authenticators, while still allowing other auth types
+				ClientAuth: tls.RequestClientCert,
+			}
+			glog.Fatal(server.ListenAndServeTLS(c.MasterCertFile, c.MasterKeyFile))
+		} else {
+			glog.Fatal(server.ListenAndServe())
+		}
 	}, 0)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	cmdutil.WaitForSuccessfulDial("tcp", c.BindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
 // wireAuthenticationHandling creates and binds all the objects that we only care about if authentication is turned on.  It's pulled out
@@ -345,9 +418,24 @@ func (c *MasterConfig) RunAssetServer() {
 	}
 
 	go util.Forever(func() {
-		glog.Infof("Started OpenShift static asset server at http://%s", c.AssetAddr)
-		glog.Fatal(server.ListenAndServe())
+		if c.TLS {
+			server.TLSConfig = &tls.Config{
+				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+				MinVersion: tls.VersionTLS10,
+				// Populate PeerCertificates in requests, but don't reject connections without certificates
+				// This allows certificates to be validated by authenticators, while still allowing other auth types
+				ClientAuth: tls.RequestClientCert,
+			}
+			glog.Infof("Started OpenShift static asset server at https://%s", c.AssetAddr)
+			glog.Fatal(server.ListenAndServeTLS(c.AssetCertFile, c.AssetKeyFile))
+		} else {
+			glog.Infof("Started OpenShift static asset server at http://%s", c.AssetAddr)
+			glog.Fatal(server.ListenAndServe())
+		}
 	}, 0)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	cmdutil.WaitForSuccessfulDial("tcp", c.AssetAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
@@ -357,9 +445,10 @@ func (c *MasterConfig) RunBuildController() {
 	stiImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/origin-sti-builder")
 	useLocalImages := env("USE_LOCAL_IMAGES", "true") == "true"
 
+	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
-		Client:     c.OSClient,
-		KubeClient: c.KubeClient,
+		Client:     osclient,
+		KubeClient: kclient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image:          dockerImage,
 			UseLocalImages: useLocalImages,
@@ -380,15 +469,16 @@ func (c *MasterConfig) RunBuildController() {
 
 // RunDeploymentController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
-	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: c.OSClient}
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: c.ImageChangeControllerClient()}
 	factory.Create().Run()
 }
 
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
+	osclient, kclient := c.DeploymentControllerClients()
 	factory := deploycontrollerfactory.DeploymentControllerFactory{
-		Client:     c.OSClient,
-		KubeClient: c.KubeClient,
+		Client:     osclient,
+		KubeClient: kclient,
 		Codec:      latest.Codec,
 		Environment: []api.EnvVar{
 			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
@@ -398,14 +488,18 @@ func (c *MasterConfig) RunDeploymentController() {
 		RecreateStrategyImage: env("OPENSHIFT_DEPLOY_RECREATE_IMAGE", "openshift/origin-deployer"),
 	}
 
+	envvars := clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())
+	factory.Environment = append(factory.Environment, envvars...)
+
 	controller := factory.Create()
 	controller.Run()
 }
 
 func (c *MasterConfig) RunDeploymentConfigController() {
+	osclient, kclient := c.DeploymentConfigControllerClients()
 	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{
-		Client:     c.OSClient,
-		KubeClient: c.KubeClient,
+		Client:     osclient,
+		KubeClient: kclient,
 		Codec:      latest.Codec,
 	}
 	controller := factory.Create()
@@ -413,9 +507,10 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 }
 
 func (c *MasterConfig) RunDeploymentConfigChangeController() {
+	osclient, kclient := c.DeploymentConfigChangeControllerClients()
 	factory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{
-		Client:     c.OSClient,
-		KubeClient: c.KubeClient,
+		Client:     osclient,
+		KubeClient: kclient,
 		Codec:      latest.Codec,
 	}
 	controller := factory.Create()
@@ -423,7 +518,8 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 }
 
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
-	factory := deploycontrollerfactory.ImageChangeControllerFactory{Client: c.OSClient}
+	osclient := c.DeploymentImageChangeControllerClient()
+	factory := deploycontrollerfactory.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
 }

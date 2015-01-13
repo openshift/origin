@@ -34,13 +34,21 @@ ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TMPDIR="${TMPDIR:-"/tmp"}"
 ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d ${TMPDIR}/openshift.local.volumes.XXXX)
+CERT_DIR=$(mktemp -d ${TMPDIR}/openshift.local.certificates.XXXX)
 LOG_DIR="${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.artifacts.XXXX)}"
 mkdir -p $LOG_DIR
 mkdir -p $ARTIFACT_DIR
-API_PORT="${API_PORT:-8080}"
-API_HOST="${API_HOST:-127.0.0.1}"
+API_PORT="${API_PORT:-8443}"
+API_SCHEME="${API_SCHEME:-https}"
+API_HOST="${API_HOST:-localhost}"
+KUBELET_SCHEME="${KUBELET_SCHEME:-http}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
+
+# use the docker bridge ip address until there is a good way to get the auto-selected address from master
+# this address is considered stable
+# Used by the docker-registry and the router pods to call back to the API
+CONTAINER_ACCESSIBLE_API_HOST="172.17.42.1"
 
 CONFIG_FILE="${LOG_DIR}/appConfig.json"
 BUILD_CONFIG_FILE="${LOG_DIR}/buildConfig.json"
@@ -96,18 +104,47 @@ stop_openshift_server
 echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    $LOG_DIR/openshift.log"
 echo "[INFO] Test artifacts will be in: $ARTIFACT_DIR"
+echo "[INFO] Volumes dir is:            $VOLUME_DIR"
+echo "[INFO] Certs dir is:              $CERT_DIR"
 
 # Start All-in-one server and wait for health
+# Specify the scheme and port for the master, but let the IP auto-discover
 echo "[INFO] Starting OpenShift server"
-sudo env "PATH=$PATH" openshift start --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --loglevel=4 &> "${LOG_DIR}/openshift.log" &
+sudo env "PATH=$PATH" openshift start --master=$API_SCHEME://:$API_PORT --listen=$API_SCHEME://0.0.0.0:$API_PORT --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
-wait_for_url "http://localhost:10250/healthz" "[INFO] kubelet: " 1 30
-wait_for_url "http://localhost:8080/healthz" "[INFO] apiserver: "
+if [[ "$API_SCHEME" == "https" ]]; then
+	export CURL_CA_BUNDLE="$CERT_DIR/master/root.crt"
+fi
+
+wait_for_url "$KUBELET_SCHEME://$API_HOST:$KUBELET_PORT/healthz" "[INFO] kubelet: " 1 30
+wait_for_url "$API_SCHEME://$API_HOST:$API_PORT/healthz" "[INFO] apiserver: "
+
+# Set KUBERNETES_MASTER for osc
+export KUBERNETES_MASTER=$API_SCHEME://$API_HOST:$API_PORT
+if [[ "$API_SCHEME" == "https" ]]; then
+	# Read client cert data in to send to containerized components
+	sudo chmod 644 $CERT_DIR/openshift-client/*
+	OPENSHIFT_CA_DATA=$(<$CERT_DIR/openshift-client/root.crt)
+	OPENSHIFT_CERT_DATA=$(<$CERT_DIR/openshift-client/cert.crt)
+	OPENSHIFT_KEY_DATA=$(<$CERT_DIR/openshift-client/key.key)
+
+	# Make osc use $CERT_DIR/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
+	sudo chmod 644 $CERT_DIR/admin/*
+	export HOME=$CERT_DIR/admin
+	export KUBECONFIG=$CERT_DIR/admin/.kubeconfig
+else
+	OPENSHIFT_CA_DATA=""
+	OPENSHIFT_CERT_DATA=""
+	OPENSHIFT_KEY_DATA=""
+fi
 
 # Deploy private docker registry
-echo "[INFO] Deploying private Docker registry"
-osc apply -n test -f examples/sample-app/docker-registry-config.json
+echo "[INFO] Submitting docker-registry template file for processing"
+osc process -n test -f examples/sample-app/docker-registry-template.json -v "OPENSHIFT_MASTER=$API_SCHEME://${CONTAINER_ACCESSIBLE_API_HOST}:$API_PORT,OPENSHIFT_CA_DATA=${OPENSHIFT_CA_DATA},OPENSHIFT_CERT_DATA=${OPENSHIFT_CERT_DATA},OPENSHIFT_KEY_DATA=${OPENSHIFT_KEY_DATA}" > "$ARTIFACT_DIR/docker-registry-config.json"
+
+echo "[INFO] Deploying private Docker registry from $ARTIFACT_DIR/docker-registry-config.json"
+osc apply -n test -f ${ARTIFACT_DIR}/docker-registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_command "osc get -n test pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
@@ -142,7 +179,7 @@ osc apply -n test -f "${CONFIG_FILE}"
 
 # Trigger build
 echo "[INFO] Invoking generic web hook to trigger new build using curl"
-curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test && sleep 3
+curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test && sleep 3
 
 # Wait for build to complete
 echo "[INFO] Waiting for build to complete"
@@ -176,20 +213,26 @@ wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TI
 
 
 if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
-    # use the docker bridge ip address until there is a good way to get the address from master
-    # this address is considered stable
-    apiIP="172.17.42.1"
-
     echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
     osc create -n test routes -f "${ARTIFACT_DIR}/route.json"
 
-    echo "[INFO] Installing router with master ip of ${apiIP} and starting pod..."
+    echo "[INFO] Installing router with master ip of ${CONTAINER_ACCESSIBLE_API_HOST} and starting pod..."
     echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
-    "${OS_ROOT}/hack/install-router.sh" "router1" $apiIP
-    wait_for_command "osc get pods | grep router | grep -i Running" $((5*TIME_MIN))
+
+    # update the template file
+    cp ${OS_ROOT}/images/router/haproxy/template.json $ARTIFACT_DIR/router-template.json
+    sed -i s/ROUTER_ID/router1/g $ARTIFACT_DIR/router-template.json
+
+    echo "[INFO] Submitting router pod template file for processing"
+    osc process -n test -f $ARTIFACT_DIR/router-template.json -v "OPENSHIFT_MASTER=$API_SCHEME://${CONTAINER_ACCESSIBLE_API_HOST}:$API_PORT,OPENSHIFT_CA_DATA=${OPENSHIFT_CA_DATA},OPENSHIFT_CERT_DATA=${OPENSHIFT_CERT_DATA},OPENSHIFT_KEY_DATA=${OPENSHIFT_KEY_DATA}" > "$ARTIFACT_DIR/router.json"
+
+    echo "[INFO] Applying router pod config"
+    osc apply -n test -f "$ARTIFACT_DIR/router.json"
+
+    wait_for_command "osc get -n test pods | grep router | grep -i Running" $((5*TIME_MIN))
 
     echo "[INFO] Validating routed app response..."
-    validate_response "-H Host:end-to-end http://${apiIP}" "Hello from OpenShift" 0.2 50
+    validate_response "-H Host:end-to-end http://${CONTAINER_ACCESSIBLE_API_HOST}" "Hello from OpenShift" 0.2 50
 else
     echo "[INFO] Validating app response..."
     validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"

@@ -64,7 +64,7 @@
                         "readOnly":false
                       }
                     ],
-                    "command": ["sh", "-c", "REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=http://${KUBERNETES_SERVICE_HOST}:443/osapi/v1beta1 exec docker-registry"]
+                    "command": ["sh", "-c", "REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=https://${KUBERNETES_SERVICE_HOST}:443/osapi/v1beta1 OPENSHIFT_INSECURE=true exec docker-registry"]
                   }
                 ],
                 "version":"v1beta1",

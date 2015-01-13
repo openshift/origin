@@ -10,9 +10,9 @@
           "name": "origin",
           "image": "openshift/origin",
           "ports": [{
-              "containerPort": 8080,
+              "containerPort": 8443,
           }],
-          "command": ["start", "master", "--kubernetes=:8080"],
+          "command": ["start", "master", "--kubernetes=:8443"],
           "imagePullPolicy": "PullIfNotPresent"
         }
       ],

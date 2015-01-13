@@ -66,8 +66,9 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	// Build will take place only in one container
 	buildContainerName := pod.Spec.Containers[0].Name
 	location := &url.URL{
-		Host: fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
-		Path: fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
+		Scheme: kubernetes.NodeScheme,
+		Host:   fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
+		Path:   fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
 	}
 
 	if pod.Status.Phase != kapi.PodRunning {
