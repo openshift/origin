@@ -32,8 +32,9 @@ You can develop OpenShift 3 on Windows, Mac, or Linux, but you'll need Docker in
 
 Here's how to get set up:
 
-1. For Go and optionally also Docker, follow the links below to get to installation information for these tools: +
+1. For Go, Git and optionally also Docker, follow the links below to get to installation information for these tools: +
 ** http://golang.org/doc/install[Installing Go]
+** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
 ** https://docs.docker.com/installation/#installation[Installing Docker]
 2. Next, create a Go workspace directory: +
 +
