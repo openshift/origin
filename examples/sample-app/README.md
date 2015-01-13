@@ -15,7 +15,7 @@ At this stage of OpenShift 3 development, there are a few things that you will n
 
 - - -
 
-**NOTE:** You do not need to do this is you are using [Vagrant](https://vagrantup.com/) to work with OpenShift (see the [Vagrantfile](https://github.com/openshift/origin/blob/master/Vagrantfile) for more info). These changes are only necessary when you have set up the host system yourself.
+**NOTE:** You do not need to do this is you are using [Vagrant](https://vagrantup.com/) to work with OpenShift (see the [Vagrantfile](https://github.com/openshift/origin/blob/master/Vagrantfile) for more info). These changes are only necessary when you have set up the host system yourself. If you are using Vagrant, [jump to the next section](#application-build-deploy-and-update-flow).
 
 - - -
 
@@ -54,9 +54,9 @@ Similar to our work on SELinux policies, the OpenShift firewalld rules are also 
     $ sudo systemctl stop firewalld
     $ sudo systemctl disable firewalld
 
-### Reboot and Run ###
+### Still Having Trouble? ###
 
-Reboot your system and you will be ready to play with this OpenShift sample application.
+If you hit any snags while taking the sample app for a spin, check out the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
 
 Application Build, Deploy, and Update Flow
 ------------------------------------------
