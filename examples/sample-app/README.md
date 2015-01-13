@@ -35,24 +35,23 @@ These instructions assume you have not changed the kubernetes/openshift service 
 
 ### SELinux Changes ###
 
-Presently the OpenShift 3 policies for SELinux are a work in progress. For the time being, to play around with the OpenShift system, it is easiest to downgrade the SELinux security level to 'permissive'. To do this, modify /etc/sysconfig/selinux as root and change the security level:
+Presently the OpenShift 3 policies for SELinux are a work in progress. For the time being, to play around with the OpenShift system, it is easiest to temporarily disable SELinux:
 
-    $ sudo vi /etc/sysconfig/selinux
+    $ sudo setenforce 0
 
-And change:
+This can be re-enabled after you are done with the sample app:
 
-    SELINUX=enforcing
-
-To:
-
-    SELINUX=permissive
+    $ sudo setenforce 1
 
 ### FirewallD Changes ###
 
 Similar to our work on SELinux policies, the OpenShift firewalld rules are also a work in progress. For now it is easiest to disable firewalld altogether:
 
     $ sudo systemctl stop firewalld
-    $ sudo systemctl disable firewalld
+
+Firewalld will start again on your next reboot, but you can manually restart it with this command when you are done with the sample app:
+
+    $ sudo systemctl start firewalld
 
 ### Still Having Trouble? ###
 
