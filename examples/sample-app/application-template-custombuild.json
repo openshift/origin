@@ -99,7 +99,11 @@
           }
         },
         "strategy": {
-          "type": "Docker"
+          "type": "Custom",
+          "customStrategy": {
+            "image": "172.30.17.3:5001/openshift/ruby-20-centos",
+            "env": [{"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE", "value": "172.30.17.3:5001/openshift/ruby-20-centos"}]
+          }
         },
         "output": {
           "imageTag": "openshift/origin-ruby-sample:latest",
