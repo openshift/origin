@@ -372,7 +372,7 @@ func (m *Master) init(c *Config) {
 
 	// Register root handler.
 	// We do not register this using restful Webservice since we do not want to surface this in api docs.
-	m.mux.HandleFunc("/", apiserver.HandleIndex)
+	//m.mux.HandleFunc("/", apiserver.HandleIndex)
 
 	// TODO: use go-restful
 	apiserver.InstallValidator(m.mux, func() map[string]apiserver.Server { return m.getServersToValidate(c) })
