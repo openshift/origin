@@ -115,7 +115,7 @@ func mockBuildConfig() *buildapi.BuildConfig {
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
-				Type: buildapi.GithubWebHookType,
+				Type: buildapi.GithubWebHookBuildTriggerType,
 				GithubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},

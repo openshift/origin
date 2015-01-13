@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +21,9 @@ import (
 // If fetching the URL exceeeds the timeout, then the build will
 // not proceed further and stop
 const urlCheckTimeout = 16 * time.Second
+
+// imageRegex is used to substitute image names in buildconfigs with immutable image ids at build time.
+var imageRegex = regexp.MustCompile(`^FROM\s+\w+.+`)
 
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
@@ -54,10 +58,10 @@ func (d *DockerBuilder) Build() error {
 	if err = d.fetchSource(buildDir); err != nil {
 		return err
 	}
-	if err = d.dockerBuild(buildDir); err != nil {
+	if err = d.addBuildParameters(buildDir); err != nil {
 		return err
 	}
-	if err = d.addImageVars(); err != nil {
+	if err = d.dockerBuild(buildDir); err != nil {
 		return err
 	}
 	if d.build.Parameters.Output.Registry != "" || d.authPresent {
@@ -125,6 +129,40 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 	return d.git.Checkout(dir, d.build.Parameters.Source.Git.Ref)
 }
 
+// addBuildParameters checks if a BaseImage is set to replace the default base image.
+// If that's the case then change the Dockerfile to make the build with the given image.
+// Also append the environment variables in the Dockerfile.
+func (d *DockerBuilder) addBuildParameters(dir string) error {
+	dockerfilePath := filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir, "Dockerfile")
+
+	fileStat, err := os.Lstat(dockerfilePath)
+	filePerm := fileStat.Mode()
+
+	fileData, err := ioutil.ReadFile(dockerfilePath)
+	if err != nil {
+		return err
+	}
+
+	var newFileData string
+	if d.build.Parameters.Strategy.DockerStrategy.BaseImage != "" {
+		newFileData = imageRegex.ReplaceAllLiteralString(string(fileData), fmt.Sprintf("FROM %s", d.build.Parameters.Strategy.DockerStrategy.BaseImage))
+	} else {
+		newFileData = newFileData + string(fileData)
+	}
+
+	envVars := getBuildEnvVars(d.build)
+	for k, v := range envVars {
+		newFileData = newFileData + fmt.Sprintf("ENV %s %s\n", k, v)
+	}
+
+	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
+		return err
+	}
+
+	noCache := d.build.Parameters.Strategy.DockerStrategy != nil && d.build.Parameters.Strategy.DockerStrategy.NoCache
+	return buildImage(d.dockerClient, dir, noCache, imageTag(d.build), d.tar)
+}
+
 // dockerBuild performs a docker build on the source that has been retrieved
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
@@ -135,30 +173,4 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
 	}
 	return buildImage(d.dockerClient, dir, noCache, imageTag(d.build), d.tar)
-}
-
-// addImageVars creates a new Dockerfile which adds certain environment
-// variables to the previously tagged image
-func (d *DockerBuilder) addImageVars() error {
-	var noCache bool
-	envVars := getBuildEnvVars(d.build)
-	tempDir, err := ioutil.TempDir("", "overlay")
-	if err != nil {
-		return err
-	}
-	overlay, err := os.Create(filepath.Join(tempDir, "Dockerfile"))
-	if err != nil {
-		return err
-	}
-	overlay.WriteString(fmt.Sprintf("FROM %s\n", imageTag(d.build)))
-	for k, v := range envVars {
-		overlay.WriteString(fmt.Sprintf("ENV %s %s\n", k, v))
-	}
-	if err = overlay.Close(); err != nil {
-		return err
-	}
-	if d.build.Parameters.Strategy.DockerStrategy != nil {
-		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
-	}
-	return buildImage(d.dockerClient, tempDir, noCache, imageTag(d.build), d.tar)
 }

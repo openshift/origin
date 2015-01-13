@@ -36,7 +36,7 @@ type pushEvent struct {
 
 // Extract services webhooks from github.com
 func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
-	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookType, buildCfg)
+	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookBuildTriggerType, buildCfg)
 	if !ok {
 		err = fmt.Errorf("BuildConfig %s does not support the Github webhook trigger type", buildCfg.Name)
 		return

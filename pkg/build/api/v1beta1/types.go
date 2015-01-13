@@ -44,23 +44,23 @@ type BuildStatus string
 
 // Valid values for BuildStatus.
 const (
-	// BuildNew is automatically assigned to a newly created build.
+	// BuildStatusNew is automatically assigned to a newly created build.
 	BuildStatusNew BuildStatus = "New"
 
-	// BuildPending indicates that a pod name has been assigned and a build is
+	// BuildStatusPending indicates that a pod name has been assigned and a build is
 	// about to start running.
 	BuildStatusPending BuildStatus = "Pending"
 
-	// BuildRunning indicates that a pod has been created and a build is running.
+	// BuildStatusRunning indicates that a pod has been created and a build is running.
 	BuildStatusRunning BuildStatus = "Running"
 
-	// BuildComplete indicates that a build has been successful.
 	BuildStatusComplete BuildStatus = "Complete"
+	// BuildStatusComplete indicates that a build has been successful.
 
-	// BuildFailed indicates that a build has executed and failed.
+	// BuildStatusFailed indicates that a build has executed and failed.
 	BuildStatusFailed BuildStatus = "Failed"
 
-	// BuildError indicates that an error prevented the build from executing.
+	// BuildStatusError indicates that an error prevented the build from executing.
 	BuildStatusError BuildStatus = "Error"
 
 	// BuildStatusCancelled indicates that a running/pending build was stopped from executing.
@@ -72,7 +72,7 @@ type BuildSourceType string
 
 // Valid values for BuildSourceType.
 const (
-	//BuildGitSource is a Git SCM
+	//BuildSourceGit is a Git SCM
 	BuildSourceGit BuildSourceType = "Git"
 )
 
@@ -175,6 +175,11 @@ type DockerBuildStrategy struct {
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty" yaml:"noCache,omitempty"`
+
+	// BaseImage is optional and indicates the image that the dockerfile for this
+	// build should "FROM".  If present, the build process will substitute this value
+	// into the FROM line of the dockerfile.
+	BaseImage string `json:"baseImage,omitempty" yaml:"baseImage,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.
@@ -226,6 +231,20 @@ type WebHookTrigger struct {
 	Secret string `json:"secret,omitempty" yaml:"secret,omitempty"`
 }
 
+// ImageChangeTrigger allows builds to be triggered when an ImageRepository changes
+type ImageChangeTrigger struct {
+	// Image is used to specify the value in the BuildConfig to replace with the
+	// immutable image id supplied by the ImageRepository when this trigger fires.
+	Image string `json:"image" yaml:"image"`
+	// ImageRepositoryRef a reference to a Docker image repository to watch for changes.
+	ImageRepositoryRef *kapi.ObjectReference `json:"imageRepositoryRef" yaml:"imageRepositoryRef"`
+	// Tag is the name of an image repository tag to watch for changes.
+	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+	// LastTriggeredImageID is used internally by the ImageChangeController to save last
+	// used image ID for build
+	LastTriggeredImageID string `json:"lastTriggeredImageID,omitempty" yaml:"lastTriggeredImageID,omitempty"`
+}
+
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
 type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
@@ -236,6 +255,9 @@ type BuildTriggerPolicy struct {
 
 	// GenericWebHook contains the parameters for a Generic webhook type of trigger
 	GenericWebHook *WebHookTrigger `json:"generic,omitempty" yaml:"generic,omitempty"`
+
+	// ImageChange contains parameters for an ImageChange type of trigger
+	ImageChange *ImageChangeTrigger `json:"imageChange,omitempty" yaml:"imageChange,omitempty"`
 }
 
 // BuildTriggerType refers to a specific BuildTriggerPolicy implementation.
