@@ -29,7 +29,7 @@ Contributing
 2. Run `hack/build-assets.sh`
 3. Run `hack/build-go.sh`
 
-The assets served by the OpenShift all-in-one server will now be up to date. By default the assets are served from [http://localhost:8091](http://localhost:8091)
+The assets served by the OpenShift all-in-one server will now be up to date. By default the assets are served from [http://localhost:9000](http://localhost:9000)
 
 #### Debugging Travis failures
 If Travis complains that bindata.go is different than the committed version, ensure the committed version is correct:
