@@ -130,7 +130,7 @@ echo "[INFO] Pre-pulling and pushing centos7"
 docker pull centos:centos7
 echo "[INFO] Pulled centos7"
 
-docker tag centos:centos7 ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
+docker tag -f centos:centos7 ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
 docker push ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
 echo "[INFO] Pushed centos7"
 
