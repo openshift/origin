@@ -76,6 +76,7 @@ var originTypes = []string{
 	"Project",
 	"User",
 	"OAuth",
+	"Secret",
 }
 
 // OriginKind returns true if OpenShift owns the kind described in a given apiVersion.

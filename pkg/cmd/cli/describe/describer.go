@@ -29,6 +29,8 @@ func DescriberFor(kind string, c *client.Client, host string) (kctl.Describer, b
 		return &RouteDescriber{c}, true
 	case "Project":
 		return &ProjectDescriber{c}, true
+	case "Secret":
+		return &SecretDescriber{c}, true
 	}
 	return nil, false
 }
@@ -269,6 +271,24 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
 		formatString(out, "Display Name", project.DisplayName)
+		return nil
+	})
+}
+
+type SecretDescriber struct {
+	client.Interface
+}
+
+func (d *SecretDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Secrets(namespace)
+	secret, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, secret.ObjectMeta)
+		formatString(out, "Type", secret.Type)
 		return nil
 	})
 }

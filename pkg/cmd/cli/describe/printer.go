@@ -13,6 +13,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	secretapi "github.com/openshift/origin/pkg/secret/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -26,6 +27,7 @@ var (
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST VERSION"}
 	parameterColumns        = []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}
+	secretColumns           = []string{"NAME", "TYPE", "SIZE"}
 )
 
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
@@ -42,6 +44,8 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(projectColumns, printProjectList)
 	p.Handler(routeColumns, printRoute)
 	p.Handler(routeColumns, printRouteList)
+	p.Handler(secretColumns, printSecret)
+	p.Handler(secretColumns, printSecretList)
 	p.Handler(deploymentColumns, printDeployment)
 	p.Handler(deploymentColumns, printDeploymentList)
 	p.Handler(deploymentConfigColumns, printDeploymentConfig)
@@ -140,6 +144,20 @@ func printProject(project *projectapi.Project, w io.Writer) error {
 func printProjectList(projects *projectapi.ProjectList, w io.Writer) error {
 	for _, project := range projects.Items {
 		if err := printProject(&project, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printSecret(secret *secretapi.Secret, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%d\n", secret.Name, secret.Type, len(secret.Data))
+	return err
+}
+
+func printSecretList(secretList *secretapi.SecretList, w io.Writer) error {
+	for _, secret := range secretList.Items {
+		if err := printSecret(&secret, w); err != nil {
 			return err
 		}
 	}

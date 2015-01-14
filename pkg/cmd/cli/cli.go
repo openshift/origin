@@ -70,5 +70,8 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdStartBuild(f, out))
 	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
 
+	// Origin create secret command
+	cmds.AddCommand(cmd.NewCmdCreateSecret(f, out))
+
 	return cmds
 }

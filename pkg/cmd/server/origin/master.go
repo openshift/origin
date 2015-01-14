@@ -56,6 +56,8 @@ import (
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	secretetcd "github.com/openshift/origin/pkg/secret/registry/etcd"
+	secretregistry "github.com/openshift/origin/pkg/secret/registry/secret"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
@@ -128,6 +130,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	projectEtcd := projectetcd.New(c.EtcdHelper)
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
+	secretEtcd := secretetcd.New(c.EtcdHelper)
 
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		DeploymentInterface:       &clientDeploymentInterface{c.KubeClient},
@@ -165,6 +168,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"accessTokens":         accesstokenregistry.NewREST(oauthEtcd),
 		"clients":              clientregistry.NewREST(oauthEtcd),
 		"clientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
+
+		"secrets": secretregistry.NewREST(secretEtcd),
 	}
 
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"

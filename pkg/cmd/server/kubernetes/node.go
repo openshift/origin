@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"time"
 
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
@@ -19,8 +21,10 @@ import (
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 
+	"github.com/openshift/origin/pkg/api/latest"
+	osclient "github.com/openshift/origin/pkg/client"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-
+	secretprovider "github.com/openshift/origin/pkg/secret/provider"
 	"github.com/openshift/origin/pkg/service"
 )
 
@@ -83,6 +87,14 @@ func (c *NodeConfig) RunKubelet() {
 	// initialize Kubelet
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
 	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(c.NodeHost), c.EtcdClient, cfg.Channel("etcd"))
+	osClient, err := osclient.New(&kclient.Config{Host: c.MasterHost, Version: latest.Version})
+	if err != nil {
+		glog.Fatalf("Unable to initialize OpenShift client: %v", err)
+	}
+	kubeClient, err := kclient.New(&kclient.Config{Host: c.MasterHost, Version: klatest.Version})
+	if err != nil {
+		glog.Fatalf("Unable to initialize Kubernetes client: %v", err)
+	}
 	k := kubelet.NewMainKubelet(
 		c.NodeHost,
 		c.DockerClient,
@@ -94,7 +106,8 @@ func (c *NodeConfig) RunKubelet() {
 		10,
 		0,
 		5,
-		cfg.SeenAllSources)
+		cfg.SeenAllSources,
+		secretprovider.NewSecretProvider(c.VolumeDir, osClient, kubeClient))
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
 	// this parameter must be true, otherwise buildLogs won't work

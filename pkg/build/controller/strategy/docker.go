@@ -24,7 +24,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: build.PodName,
+			Name:        build.PodName,
+			Annotations: build.Annotations,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
@@ -47,6 +48,5 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	setupDockerSocket(pod)
-	setupDockerConfig(pod)
 	return pod, nil
 }

@@ -50,7 +50,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	//"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/emicklei/go-restful"
@@ -363,9 +363,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.mux)
 	}
-	/*if c.EnableUISupport {
+	if c.EnableUISupport {
 		ui.InstallSupport(m.mux)
-	}*/
+	}
 
 	// TODO: install runtime/pprof handler
 	// See github.com/emicklei/go-restful/blob/master/examples/restful-cpuprofiler-service.go

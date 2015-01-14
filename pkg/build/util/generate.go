@@ -18,7 +18,8 @@ func GenerateBuildFromConfig(bc *api.BuildConfig, r *api.SourceRevision) *api.Bu
 			Revision: r,
 		},
 		ObjectMeta: kapi.ObjectMeta{
-			Labels: map[string]string{api.BuildConfigLabel: bc.Name},
+			Annotations: bc.Annotations,
+			Labels:      map[string]string{api.BuildConfigLabel: bc.Name},
 		},
 	}
 }
@@ -28,7 +29,8 @@ func GenerateBuildFromBuild(build *api.Build) *api.Build {
 	return &api.Build{
 		Parameters: build.Parameters,
 		ObjectMeta: kapi.ObjectMeta{
-			Labels: build.ObjectMeta.Labels,
+			Annotations: build.Annotations,
+			Labels:      build.ObjectMeta.Labels,
 		},
 	}
 }

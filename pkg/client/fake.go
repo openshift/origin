@@ -44,6 +44,10 @@ func (c *Fake) Routes(namespace string) RouteInterface {
 	return &FakeRoutes{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) Secrets(namespace string) SecretInterface {
+	return &FakeSecrets{Fake: c, Namespace: namespace}
+}
+
 func (c *Fake) Users() UserInterface {
 	return &FakeUsers{Fake: c}
 }

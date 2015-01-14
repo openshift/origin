@@ -11,6 +11,7 @@ import (
 	_ "github.com/openshift/origin/pkg/oauth/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/project/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/secret/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/template/api/v1beta1"
 	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )

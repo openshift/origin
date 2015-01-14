@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/client/image"
 	"github.com/openshift/origin/pkg/cmd/client/project"
 	"github.com/openshift/origin/pkg/cmd/client/route"
+	"github.com/openshift/origin/pkg/cmd/client/secret"
 	"github.com/openshift/origin/pkg/config"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -40,6 +41,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	secretapi "github.com/openshift/origin/pkg/secret/api"
 )
 
 type KubeConfig struct {
@@ -127,6 +129,7 @@ var parser = kubecfg.NewParser(map[string]runtime.Object{
 	"deploymentConfigs":       &deployapi.DeploymentConfig{},
 	"routes":                  &routeapi.Route{},
 	"projects":                &projectapi.Project{},
+	"secrets":                 &secretapi.Secret{},
 })
 
 func prettyWireStorage() string {
@@ -311,6 +314,7 @@ func (c *KubeConfig) Run() {
 		"deploymentConfigs":       {"DeploymentConfig", client.RESTClient, latest.Codec},
 		"routes":                  {"Route", client.RESTClient, latest.Codec},
 		"projects":                {"Project", client.RESTClient, latest.Codec},
+		"secrets":                 {"Secret", client.RESTClient, latest.Codec},
 	}
 
 	matchFound := c.executeConfigRequest(method, clients) || c.executeBuildRequest(method, client) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeNamespaceRequest(method) || c.executeAPIRequest(method, clients)
@@ -631,6 +635,7 @@ func humanReadablePrinter() *kubecfg.HumanReadablePrinter {
 	deployclient.RegisterPrintHandlers(printer)
 	route.RegisterPrintHandlers(printer)
 	project.RegisterPrintHandlers(printer)
+	secret.RegisterPrintHandlers(printer)
 
 	return printer
 }

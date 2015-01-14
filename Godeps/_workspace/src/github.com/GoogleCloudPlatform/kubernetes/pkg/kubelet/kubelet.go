@@ -69,23 +69,25 @@ func NewMainKubelet(
 	pullBurst int,
 	minimumGCAge time.Duration,
 	maxContainerCount int,
-	sourcesReady SourcesReadyFn) *Kubelet {
+	sourcesReady SourcesReadyFn,
+	securityContextProvider SecurityContextProvider) *Kubelet {
 	return &Kubelet{
-		hostname:              hn,
-		dockerClient:          dc,
-		etcdClient:            ec,
-		rootDirectory:         rd,
-		resyncInterval:        ri,
-		networkContainerImage: ni,
-		podWorkers:            newPodWorkers(),
-		dockerIDToRef:         map[dockertools.DockerID]*api.ObjectReference{},
-		runner:                dockertools.NewDockerContainerCommandRunner(dc),
-		httpClient:            &http.Client{},
-		pullQPS:               pullQPS,
-		pullBurst:             pullBurst,
-		minimumGCAge:          minimumGCAge,
-		maxContainerCount:     maxContainerCount,
-		sourcesReady:          sourcesReady,
+		hostname:                hn,
+		dockerClient:            dc,
+		etcdClient:              ec,
+		rootDirectory:           rd,
+		resyncInterval:          ri,
+		networkContainerImage:   ni,
+		podWorkers:              newPodWorkers(),
+		dockerIDToRef:           map[dockertools.DockerID]*api.ObjectReference{},
+		runner:                  dockertools.NewDockerContainerCommandRunner(dc),
+		httpClient:              &http.Client{},
+		pullQPS:                 pullQPS,
+		pullBurst:               pullBurst,
+		minimumGCAge:            minimumGCAge,
+		maxContainerCount:       maxContainerCount,
+		sourcesReady:            sourcesReady,
+		securityContextProvider: securityContextProvider,
 	}
 }
 
@@ -130,6 +132,9 @@ type Kubelet struct {
 	pullQPS float32
 	// Optional, maximum burst QPS from the docker registry, must be positive if QPS is > 0.0
 	pullBurst int
+
+	// Optional, defaults to no secrets shared with pod
+	securityContextProvider SecurityContextProvider
 
 	// Optional, no statistics will be available if omitted
 	cadvisorClient cadvisorInterface
@@ -526,6 +531,11 @@ func (kl *Kubelet) runContainer(pod *api.BoundPod, container *api.Container, pod
 			WorkingDir:   container.WorkingDir,
 		},
 	}
+	if kl.securityContextProvider != nil {
+		if err = kl.securityContextProvider.SecureContainer(pod, container, &opts); err != nil {
+			return "", fmt.Errorf("Unable to secure container configuration for container: %v", err)
+		}
+	}
 	dockerContainer, err := kl.dockerClient.CreateContainer(opts)
 	if err != nil {
 		if ref != nil {
@@ -561,12 +571,18 @@ func (kl *Kubelet) runContainer(pod *api.BoundPod, container *api.Container, pod
 	} else if container.Privileged {
 		return "", fmt.Errorf("container requested privileged mode, but it is disallowed globally.")
 	}
-	err = kl.dockerClient.StartContainer(dockerContainer.ID, &docker.HostConfig{
+	hostConfig := &docker.HostConfig{
 		PortBindings: portBindings,
 		Binds:        binds,
 		NetworkMode:  netMode,
 		Privileged:   privileged,
-	})
+	}
+	if kl.securityContextProvider != nil {
+		if err = kl.securityContextProvider.SecureHostConfig(pod, container, hostConfig); err != nil {
+			return "", fmt.Errorf("Unable to secure host configuration for container: %v", err)
+		}
+	}
+	err = kl.dockerClient.StartContainer(dockerContainer.ID, hostConfig)
 	if err != nil {
 		if ref != nil {
 			record.Eventf(ref, "failed", "failed",

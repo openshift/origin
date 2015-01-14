@@ -16,6 +16,7 @@ type Interface interface {
 	DeploymentsNamespacer
 	DeploymentConfigsNamespacer
 	RoutesNamespacer
+	SecretsNamespacer
 	UsersInterface
 	UserIdentityMappingsInterface
 	ProjectsInterface
@@ -51,6 +52,10 @@ func (c *Client) DeploymentConfigs(namespace string) DeploymentConfigInterface {
 
 func (c *Client) Routes(namespace string) RouteInterface {
 	return newRoutes(c, namespace)
+}
+
+func (c *Client) Secrets(namespace string) SecretInterface {
+	return newSecrets(c, namespace)
 }
 
 func (c *Client) Users() UserInterface {
