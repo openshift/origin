@@ -68,10 +68,13 @@ function teardown()
   done
 
   echo "[INFO] Dumping build log to $LOG_DIR"
+
+  set +e
   BUILD_ID=`osc get -n test builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
   osc build-logs -n test $BUILD_ID > $LOG_DIR/build.log
 
   curl -L http://localhost:4001/v2/keys/?recursive=true > $ARTIFACT_DIR/etcd_dump.json
+  set -e
 
   echo ""
 
