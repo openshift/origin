@@ -40,7 +40,7 @@ Description=openshift master
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start master --nodes=${node_list}
+ExecStart=/usr/bin/openshift start master --master=http://${MASTER_IP}:8080 --nodes=${node_list}
 
 [Install]
 WantedBy=multi-user.target
