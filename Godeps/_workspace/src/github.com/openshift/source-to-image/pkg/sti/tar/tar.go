@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
+	"github.com/openshift/source-to-image/pkg/sti/errors"
 )
 
 // defaultTimeout is the amount of time that the untar will wait for a tar
@@ -173,7 +175,7 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 					break
 				}
 				path := filepath.Join(dir, header.Name)
-				glog.V(2).Infof("Creating %s", path)
+				glog.V(3).Infof("Creating %s", path)
 				success := false
 				// The file times need to be modified after it's been closed
 				// thus this function is deferred before the file close
@@ -210,7 +212,7 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 					errorChannel <- err
 					break
 				}
-				glog.V(2).Infof("Done with %s", path)
+				glog.V(3).Infof("Done with %s", path)
 				success = true
 			}
 		}
@@ -226,7 +228,7 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 			}
 			return err
 		case <-timeoutTimer.C:
-			return fmt.Errorf("Timeout waiting for tar stream")
+			return errors.NewTarTimeoutError()
 		}
 	}
 }

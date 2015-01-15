@@ -136,7 +136,8 @@ echo "[INFO] Submitting application template json for processing..."
 osc process -n test -f ${FIXTURE_DIR}/application-template-${BUILD_TYPE}build.json > "${CONFIG_FILE}"
 # substitute the default IP address with the address where we actually ended up
 # TODO: make this be unnecessary by fixing images
-sed -i "s,172.30.17.3,${DOCKER_REGISTRY_IP},g" "${CONFIG_FILE}"
+# This is no longer needed because the docker registry explicitly requests the 172.30.17.3 ip address.
+#sed -i "s,172.30.17.3,${DOCKER_REGISTRY_IP},g" "${CONFIG_FILE}"
 
 echo "[INFO] Applying application config"
 osc apply -n test -f "${CONFIG_FILE}"

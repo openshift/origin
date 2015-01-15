@@ -21,6 +21,7 @@
     "angular": false,
     "$": false,
     "URI": false,
-    "moment": false
+    "moment": false,
+    "hawtioPluginLoader": false
   }
 }

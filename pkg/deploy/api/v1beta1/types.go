@@ -7,6 +7,9 @@ import (
 
 // A deployment represents a single configuration of a pod deployed into the cluster, and may
 // represent both a current deployment or a historical deployment.
+//
+// DEPRECATED: This type longer drives any system behavior. Deployments are now represented directly
+// by ReplicationControllers. Use DeploymentConfig to drive deployments.
 type Deployment struct {
 	v1beta3.TypeMeta   `json:",inline" yaml:",inline"`
 	v1beta3.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
@@ -26,7 +29,7 @@ type Deployment struct {
 	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
 }
 
-// DeploymentStatus decribes the possible states a Deployment can be in.
+// DeploymentStatus decribes the possible states a deployment can be in.
 type DeploymentStatus string
 
 const (
@@ -73,30 +76,49 @@ type CustomDeploymentStrategyParams struct {
 }
 
 // A DeploymentList is a collection of deployments.
+// DEPRECATED: Like Deployment, this is no longer used.
 type DeploymentList struct {
 	v1beta3.TypeMeta `json:",inline" yaml:",inline"`
 	v1beta3.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Items            []Deployment `json:"items" yaml:"items"`
 }
 
-// These constants represent annotation keys used for correlating objects related to deployments.
+// These constants represent keys used for correlating objects related to deployments.
 const (
+	// DeploymentConfigAnnotation is an annotation name used to correlate a deployment with the
+	// DeploymentConfig on which the deployment is based.
 	DeploymentConfigAnnotation = "deploymentConfig"
-	DeploymentAnnotation       = "deployment"
-	DeploymentPodAnnotation    = "pod"
+	// DeploymentAnnotation is an annotation on a deployer Pod. The annotation value is the name
+	// of the deployment (a ReplicationController) on which the deployer Pod acts.
+	DeploymentAnnotation = "deployment"
+	// DeploymentPodAnnotation is an annotation on a deployment (a ReplicationController). The
+	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
+	// to implement the deployment behavior.
+	DeploymentPodAnnotation = "pod"
+	// DeploymentStatusAnnotation is an annotation name used to retrieve the DeploymentStatus of
+	// a deployment.
+	DeploymentStatusAnnotation = "deploymentStatus"
+	// DeploymentEncodedConfigAnnotation is an annotation name used to retrieve specific encoded
+	// DeploymentConfig on which a given deployment is based.
+	DeploymentEncodedConfigAnnotation = "encodedDeploymentConfig"
+	// DeploymentVersionAnnotation is an annotation on a deployment (a ReplicationController). The
+	// annotation value is the LatestVersion value of the DeploymentConfig which was the basis for
+	// the deployment.
+	DeploymentVersionAnnotation = "deploymentVersion"
+	// DeploymentLabel is the name of a label used to correlate a deployment with the Pod created
+	// to execute the deployment logic.
 	// TODO: This is a workaround for upstream's lack of annotation support on PodTemplate. Once
 	// annotations are available on PodTemplate, audit this constant with the goal of removing it.
 	DeploymentLabel = "deployment"
-)
-
-// These constants represent label keys used for correlating objects related to deployment.
-const (
+	// DeploymentConfigLabel is the name of a label used to correlate a deployment with the
+	// DeploymentConfigs on which the deployment is based.
 	DeploymentConfigLabel = "deploymentconfig"
 )
 
-// DeploymentConfig represents a configuration for a single deployment of a replication controller:
-// what the template is for the deployment, how new deployments are triggered, what the desired
-// deployment state is.
+// DeploymentConfig represents a configuration for a single deployment (represented as a
+// ReplicationController). It also contains details about changes which resulted in the current
+// state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
+// a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
 	v1beta3.TypeMeta   `json:",inline" yaml:",inline"`
 	v1beta3.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
@@ -114,7 +136,8 @@ type DeploymentConfig struct {
 	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
 }
 
-// DeploymentTemplate templatizes the configurable fields of a Deployment.
+// DeploymentTemplate contains all the necessary information to create a deployment from a
+// DeploymentStrategy.
 type DeploymentTemplate struct {
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
@@ -122,7 +145,7 @@ type DeploymentTemplate struct {
 	ControllerTemplate v1beta1.ReplicationControllerState `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
 }
 
-// DeploymentTriggerPolicy describes a policy for a single trigger that results in a new Deployment.
+// DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
 type DeploymentTriggerPolicy struct {
 	Type DeploymentTriggerType `json:"type,omitempty" yaml:"type,omitempty"`
 	// ImageChangeParams represents the parameters for the ImageChange trigger.

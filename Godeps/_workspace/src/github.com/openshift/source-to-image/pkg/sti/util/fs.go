@@ -1,13 +1,14 @@
 package util
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/golang/glog"
+
+	"github.com/openshift/source-to-image/pkg/sti/errors"
 )
 
 // FileSystem allows STI to work with the file system and
@@ -22,6 +23,7 @@ type FileSystem interface {
 	RemoveDirectory(dir string) error
 	CreateWorkingDirectory() (string, error)
 	Open(file string) (io.ReadCloser, error)
+	WriteFile(file string, data []byte) error
 }
 
 // NewFileSystem creates a new instance of the default FileSystem
@@ -95,7 +97,7 @@ func (h *fs) RemoveDirectory(dir string) error {
 func (h *fs) CreateWorkingDirectory() (directory string, err error) {
 	directory, err = ioutil.TempDir("", "sti")
 	if err != nil {
-		return "", fmt.Errorf("Error creating temporary directory '%s': %v", directory, err)
+		return "", errors.NewWorkDirError(directory, err)
 	}
 
 	return directory, err
@@ -104,4 +106,9 @@ func (h *fs) CreateWorkingDirectory() (directory string, err error) {
 // Open opens a file and returns a ReadCloser interface to that file
 func (h *fs) Open(filename string) (io.ReadCloser, error) {
 	return os.Open(filename)
+}
+
+// Write opens a file and writes data to it, returning error if such occured
+func (h *fs) WriteFile(filename string, data []byte) error {
+	return ioutil.WriteFile(filename, data, 0700)
 }

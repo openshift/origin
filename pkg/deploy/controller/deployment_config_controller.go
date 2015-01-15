@@ -1,30 +1,38 @@
 package controller
 
 import (
+	"strconv"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// DeploymentConfigController is responsible for creating a Deployment when a DeploymentConfig is
+// DeploymentConfigController is responsible for creating a deployment when a DeploymentConfig is
 // updated with a new LatestVersion. Any deployment created is correlated to a DeploymentConfig
 // by setting the DeploymentConfigLabel on the deployment.
+//
+// Deployments are represented by ReplicationControllers. The DeploymentConfig used to create the
+// ReplicationController is encoded and stored in an annotation on the ReplicationController.
 type DeploymentConfigController struct {
 	// DeploymentInterface provides access to Deployments.
 	DeploymentInterface dccDeploymentInterface
 	// NextDeploymentConfig blocks until the next DeploymentConfig is available.
 	NextDeploymentConfig func() *deployapi.DeploymentConfig
-	// Stop is an optional channel that controls when the controller exits
+	// Codec is used to encode DeploymentConfigs which are stored on deployments.
+	Codec runtime.Codec
+	// Stop is an optional channel that controls when the controller exits.
 	Stop <-chan struct{}
 }
 
 // dccDeploymentInterface is a small private interface for dealing with Deployments.
 type dccDeploymentInterface interface {
-	GetDeployment(namespace, name string) (*deployapi.Deployment, error)
-	CreateDeployment(namespace string, deployment *deployapi.Deployment) (*deployapi.Deployment, error)
+	GetDeployment(namespace, name string) (*kapi.ReplicationController, error)
+	CreateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
 }
 
 // Process DeploymentConfig events one at a time.
@@ -80,7 +88,7 @@ func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentCo
 }
 
 // TODO: reduce code duplication between trigger and config controllers
-func (c *DeploymentConfigController) latestDeploymentForConfig(config *deployapi.DeploymentConfig) (*deployapi.Deployment, error) {
+func (c *DeploymentConfigController) latestDeploymentForConfig(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
 	latestDeploymentID := deployutil.LatestDeploymentIDForConfig(config)
 	deployment, err := c.DeploymentInterface.GetDeployment(config.Namespace, latestDeploymentID)
 	if err != nil {
@@ -93,21 +101,33 @@ func (c *DeploymentConfigController) latestDeploymentForConfig(config *deployapi
 
 // deploy performs the work of actually creating a Deployment from the given DeploymentConfig.
 func (c *DeploymentConfigController) deploy(config *deployapi.DeploymentConfig) error {
-	deployment := &deployapi.Deployment{
+	var err error
+	var encodedConfig string
 
+	if encodedConfig, err = deployutil.EncodeDeploymentConfig(config, c.Codec); err != nil {
+		return err
+	}
+
+	deployment := &kapi.ReplicationController{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: deployutil.LatestDeploymentIDForConfig(config),
 			Annotations: map[string]string{
-				deployapi.DeploymentConfigAnnotation: config.Name,
+				deployapi.DeploymentConfigAnnotation:        config.Name,
+				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
+				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
+				deployapi.DeploymentVersionAnnotation:       strconv.Itoa(config.LatestVersion),
 			},
 			Labels: config.Labels,
 		},
-		Strategy:           config.Template.Strategy,
-		ControllerTemplate: config.Template.ControllerTemplate,
-		Details:            config.Details,
+		Spec: config.Template.ControllerTemplate,
 	}
 
+	deployment.Spec.Replicas = 0
+	deployment.Spec.Template.Labels[deployapi.DeploymentConfigLabel] = config.Name
+	// TODO: Switch this to an annotation once upstream supports annotations on a PodTemplate
+	deployment.Spec.Template.Labels[deployapi.DeploymentLabel] = deployment.Name
+
 	glog.V(4).Infof("Creating new deployment from config %s", config.Name)
-	_, err := c.DeploymentInterface.CreateDeployment(config.Namespace, deployment)
+	_, err = c.DeploymentInterface.CreateDeployment(config.Namespace, deployment)
 	return err
 }

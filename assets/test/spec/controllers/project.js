@@ -15,14 +15,14 @@ describe('Controller: ProjectController', function () {
       $scope: scope,
       $routeParams: {project: "foo"},
       DataService: {
-        getObject: function(type, id, callback, context, opts) {
+        get: function(type, id, context, callback, opts) {
           // TODO return mocked project data
           callback({});
         },
-        getList: function() {
+        list: function() {
           // TODO return mocked data for different types
         },
-        subscribe: function() {
+        watch: function() {
           // TODO return mocked data for different types
         }
       }

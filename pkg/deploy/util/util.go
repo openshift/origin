@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -84,4 +85,25 @@ func HashPodSpec(t api.PodSpec) uint64 {
 
 func PodSpecsEqual(a, b api.PodSpec) bool {
 	return HashPodSpec(a) == HashPodSpec(b)
+}
+
+func DecodeDeploymentConfig(controller *api.ReplicationController, codec runtime.Codec) (*deployapi.DeploymentConfig, error) {
+	encodedConfig := []byte(controller.Annotations[deployapi.DeploymentEncodedConfigAnnotation])
+	if decoded, err := codec.Decode(encodedConfig); err == nil {
+		if config, ok := decoded.(*deployapi.DeploymentConfig); ok {
+			return config, nil
+		} else {
+			return nil, fmt.Errorf("Decoded deploymentConfig from controller is not a DeploymentConfig: %v", err)
+		}
+	} else {
+		return nil, fmt.Errorf("Failed to decode DeploymentConfig from controller: %v", err)
+	}
+}
+
+func EncodeDeploymentConfig(config *deployapi.DeploymentConfig, codec runtime.Codec) (string, error) {
+	if bytes, err := codec.Encode(config); err == nil {
+		return string(bytes[:]), nil
+	} else {
+		return "", err
+	}
 }

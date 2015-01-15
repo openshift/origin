@@ -31,16 +31,13 @@ $icon-font-path: "../bower_components/bootstrap-sass-official/assets/fonts/boots
   margin-bottom: 5px;
   margin-right: 5px;
   display: inline-block;  
+  background-color: rgba(204, 204, 204, 0.15);
+  border: 1px solid rgba(170, 170, 170, 0.15);
 
   &.pod-running {
     background-color: rgba(117, 198, 247, 0.15);
     border: 1px solid rgba(66, 147, 196, 0.15);
   }
-
-  &.pod-waiting {
-    background-color: rgba(204, 204, 204, 0.15);
-    border: 1px solid rgba(170, 170, 170, 0.15);
-  }  
 }
 
 .service {

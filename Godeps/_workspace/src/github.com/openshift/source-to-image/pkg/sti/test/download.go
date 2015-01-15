@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// FakeDownloader provides a fake downloader interface
 type FakeDownloader struct {
 	URL   []url.URL
 	File  []string
@@ -12,12 +13,13 @@ type FakeDownloader struct {
 	mutex sync.Mutex
 }
 
-func (f *FakeDownloader) DownloadFile(url *url.URL, targetFile string) error {
+// DownloadFile downloads a fake file from the URL
+func (f *FakeDownloader) DownloadFile(url *url.URL, targetFile string) (bool, error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
 	f.URL = append(f.URL, *url)
 	f.File = append(f.File, targetFile)
 
-	return f.Err[url.String()]
+	return true, f.Err[url.String()]
 }

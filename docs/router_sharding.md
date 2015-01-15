@@ -176,10 +176,10 @@ files of a router configuration with two shards.
 If a plugin infrastructure is created it will be able to watch the `router` configuration to 
 determine the correct zone files to set up with wildcard entries.
 
-    
+
     shard1.zone:
     $ORIGIN shard1.v3.rhcloud.com.
-    
+
     @       IN      SOA     . shard1.v3.rhcloud.com. (
                          2009092001         ; Serial
                              604800         ; Refresh
@@ -190,10 +190,10 @@ determine the correct zone files to set up with wildcard entries.
     ns1     IN      A       127.0.0.1
     *       IN      A       10.245.2.2      ; active/active DNS round robin
             IN      A       10.245.2.3      ; active/active DNS round robin
-            
+
     shard2.zone:
     $ORIGIN shard2.v3.rhcloud.com.
-    
+
     @       IN      SOA     . shard2.v3.rhcloud.com. (
                          2009092001         ; Serial
                              604800         ; Refresh
@@ -204,4 +204,4 @@ determine the correct zone files to set up with wildcard entries.
     ns1     IN      A       127.0.0.1
     *       IN      A       10.245.2.4      ; active/active DNS round robin
             IN      A       10.245.2.5      ; active/active DNS round robin 
-                       
+

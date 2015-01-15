@@ -11,6 +11,7 @@
       "creationTimestamp":null,
       "id":"docker-registry",
       "kind":"Service",
+      "portalIp": "172.30.17.3",
       "port":5001,
       "containerPort":5000,
       "selector":{

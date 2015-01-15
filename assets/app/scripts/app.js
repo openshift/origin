@@ -36,3 +36,5 @@ angular
       });
     $locationProvider.html5Mode(true);
   });
+
+hawtioPluginLoader.addModule('openshiftConsole');

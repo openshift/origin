@@ -54,6 +54,17 @@
     },
     {
       "metadata":{
+        "name": "ruby-20-centos",
+      },
+      "kind": "ImageRepository",
+      "apiVersion": "v1beta1",
+      "dockerImageRepository": "172.30.17.3:5001/openshift/ruby-20-centos",
+      "labels": {
+        "name": "ruby-20-centos"
+      }
+    },
+    {
+      "metadata":{
         "name": "ruby-sample-build",
       },
       "kind": "BuildConfig",
@@ -69,6 +80,14 @@
           "type": "generic",
           "generic": {
             "secret": "secret101"
+          }
+        },
+        {
+          "type": "imageChange",
+          "imageChange": {
+            "image": "172.30.17.3:5001/openshift/ruby-20-centos",
+            "imageRepositoryRef": { "name": "ruby-20-centos"},
+            "tag":"latest"
           }
         }
       ],

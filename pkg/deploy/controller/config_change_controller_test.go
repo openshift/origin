@@ -4,8 +4,11 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
+	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/controller/test"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // Test the controller's response to a new DeploymentConfig with a config change trigger.
@@ -14,6 +17,7 @@ func TestNewConfigWithoutTrigger(t *testing.T) {
 	updated := false
 
 	controller := &DeploymentConfigChangeController{
+		Codec: api.Codec,
 		ChangeStrategy: &testChangeStrategy{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generated = true
@@ -48,6 +52,7 @@ func TestNewConfigWithTrigger(t *testing.T) {
 	)
 
 	controller := &DeploymentConfigChangeController{
+		Codec: api.Codec,
 		ChangeStrategy: &testChangeStrategy{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generatedName = name
@@ -89,6 +94,7 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 	)
 
 	controller := &DeploymentConfigChangeController{
+		Codec: api.Codec,
 		ChangeStrategy: &testChangeStrategy{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generatedName = name
@@ -102,7 +108,7 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			return diffedConfig()
 		},
-		DeploymentStore: deploytest.NewFakeDeploymentStore(matchingInitialDeployment()),
+		DeploymentStore: deploytest.NewFakeDeploymentStore(matchingInitialDeployment(generatedConfig())),
 	}
 
 	controller.HandleDeploymentConfig()
@@ -123,14 +129,16 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 }
 
 func TestChangeWithoutTemplateDiff(t *testing.T) {
+	config := existingConfigWithTrigger()
 	generated := false
 	updated := false
 
 	controller := &DeploymentConfigChangeController{
+		Codec: api.Codec,
 		ChangeStrategy: &testChangeStrategy{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generated = true
-				return nil, nil
+				return config, nil
 			},
 			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = true
@@ -138,9 +146,9 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 			},
 		},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			return existingConfigWithTrigger()
+			return config
 		},
-		DeploymentStore: deploytest.NewFakeDeploymentStore(matchingInitialDeployment()),
+		DeploymentStore: deploytest.NewFakeDeploymentStore(matchingInitialDeployment(config)),
 	}
 
 	controller.HandleDeploymentConfig()
@@ -291,30 +299,18 @@ func generatedConfig() *deployapi.DeploymentConfig {
 	return config
 }
 
-func matchingInitialDeployment() *deployapi.Deployment {
-	return &deployapi.Deployment{
-		ObjectMeta: kapi.ObjectMeta{Name: "test-deploy-config-1"},
-		Status:     deployapi.DeploymentStatusNew,
-		ControllerTemplate: kapi.ReplicationControllerSpec{
-			Replicas: 1,
-			Selector: map[string]string{
-				"name": "test-pod",
-			},
-			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{
-					Labels: map[string]string{
-						"name": "test-pod",
-					},
-				},
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
-						{
-							Name:  "container-1",
-							Image: "registry:8080/openshift/test-image:ref-1",
-						},
-					},
-				},
+func matchingInitialDeployment(config *deployapi.DeploymentConfig) *kapi.ReplicationController {
+	encodedConfig, _ := deployutil.EncodeDeploymentConfig(config, api.Codec)
+
+	return &kapi.ReplicationController{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: deployutil.LatestDeploymentIDForConfig(config),
+			Annotations: map[string]string{
+				deployapi.DeploymentConfigAnnotation:        config.Name,
+				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
+				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
 			},
 		},
+		Spec: config.Template.ControllerTemplate,
 	}
 }

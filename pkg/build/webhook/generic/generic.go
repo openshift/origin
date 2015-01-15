@@ -20,19 +20,9 @@ func New() *WebHookPlugin {
 	return &WebHookPlugin{}
 }
 
-type webHookEvent struct {
-	Type api.BuildSourceType `json:"type,omitempty" yaml:"type,omitempty"`
-	Git  *gitInfo            `json:"git,omitempty" yaml:"git,omitempty"`
-}
-
-type gitInfo struct {
-	api.GitBuildSource
-	api.GitSourceRevision
-}
-
 // Extract services generic webhooks.
 func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
-	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookType, buildCfg)
+	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookBuildTriggerType, buildCfg)
 	if !ok {
 		err = fmt.Errorf("BuildConfig %s does not support the Generic webhook trigger type", buildCfg.Name)
 		return
@@ -52,7 +42,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		if len(body) == 0 {
 			return revision, true, nil
 		}
-		var data webHookEvent
+		var data api.GenericWebHookEvent
 		if err = json.Unmarshal(body, &data); err != nil {
 			return nil, false, err
 		}

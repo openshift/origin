@@ -4,6 +4,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/source-to-image/pkg/sti"
+	stiapi "github.com/openshift/source-to-image/pkg/sti/api"
 )
 
 // STIBuilder performs an STI build given the build object
@@ -28,12 +29,12 @@ func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.Auth
 
 // Build executes the STI build
 func (s *STIBuilder) Build() error {
-	request := &sti.STIRequest{
+	request := &stiapi.Request{
 		BaseImage:    s.build.Parameters.Strategy.STIStrategy.Image,
 		DockerSocket: s.dockerSocket,
 		Source:       s.build.Parameters.Source.Git.URI,
 		Tag:          imageTag(s.build),
-		ScriptsUrl:   s.build.Parameters.Strategy.STIStrategy.Scripts,
+		ScriptsURL:   s.build.Parameters.Strategy.STIStrategy.Scripts,
 		Environment:  getBuildEnvVars(s.build),
 		Clean:        s.build.Parameters.Strategy.STIStrategy.Clean,
 	}

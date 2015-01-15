@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-type FakeHttpGet struct {
+type FakeHTTPGet struct {
 	url        string
 	content    string
 	err        error
@@ -19,34 +19,25 @@ type FakeHttpGet struct {
 	statusCode int
 }
 
-type FakeCloser struct {
-	io.Reader
-}
-
-func (f *FakeCloser) Close() error {
-	// No-op
-	return nil
-}
-
-func (f *FakeHttpGet) get(url string) (*http.Response, error) {
+func (f *FakeHTTPGet) get(url string) (*http.Response, error) {
 	f.url = url
-	f.body = &FakeCloser{strings.NewReader(f.content)}
+	f.body = ioutil.NopCloser(strings.NewReader(f.content))
 	return &http.Response{
 		Body:       f.body,
 		StatusCode: f.statusCode,
 	}, f.err
 }
 
-func getHttpReader() (*HttpURLReader, *FakeHttpGet) {
+func getHTTPReader() (*HttpURLReader, *FakeHTTPGet) {
 	sr := &HttpURLReader{}
-	g := &FakeHttpGet{content: "test content", statusCode: 200}
+	g := &FakeHTTPGet{content: "test content", statusCode: 200}
 	sr.httpGet = g.get
 	return sr, g
 }
 
 func TestHTTPRead(t *testing.T) {
 	u, _ := url.Parse("http://test.url/test")
-	sr, fg := getHttpReader()
+	sr, fg := getHTTPReader()
 	rc, err := sr.Read(u)
 	if rc != fg.body {
 		t.Errorf("Unexpected readcloser returned: %#v", rc)
@@ -58,7 +49,7 @@ func TestHTTPRead(t *testing.T) {
 
 func TestHTTPReadGetError(t *testing.T) {
 	u, _ := url.Parse("http://test.url/test")
-	sr, fg := getHttpReader()
+	sr, fg := getHTTPReader()
 	fg.err = fmt.Errorf("URL Error")
 	rc, err := sr.Read(u)
 	if rc != nil {
@@ -71,7 +62,7 @@ func TestHTTPReadGetError(t *testing.T) {
 
 func TestHTTPReadErrorCode(t *testing.T) {
 	u, _ := url.Parse("http://test.url/test")
-	sr, fg := getHttpReader()
+	sr, fg := getHTTPReader()
 	fg.statusCode = 500
 	rc, err := sr.Read(u)
 	if rc != nil {
@@ -88,7 +79,21 @@ type FakeSchemeReader struct {
 }
 
 func (f *FakeSchemeReader) Read(url *url.URL) (io.ReadCloser, error) {
-	return &FakeCloser{strings.NewReader(f.content)}, f.err
+	return ioutil.NopCloser(strings.NewReader(f.content)), f.err
+}
+
+func (f *FakeSchemeReader) IsFromImage() bool {
+	return false
+}
+
+type FakeImageSchemeReader struct{}
+
+func (f *FakeImageSchemeReader) Read(url *url.URL) (io.ReadCloser, error) {
+	return nil, nil
+}
+
+func (f *FakeImageSchemeReader) IsFromImage() bool {
+	return true
 }
 
 func getDownloader() (Downloader, *FakeSchemeReader) {
@@ -112,12 +117,39 @@ func TestDownloadFile(t *testing.T) {
 	defer os.Remove(temp.Name())
 	u, _ := url.Parse("http://www.test.url/a/file")
 	temp.Close()
-	err = dl.DownloadFile(u, temp.Name())
+	_, err = dl.DownloadFile(u, temp.Name())
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	content, _ := ioutil.ReadFile(temp.Name())
 	if string(content) != fr.content {
 		t.Errorf("Unexpected file content: %s", string(content))
+	}
+}
+
+func TestNoDownloadFile(t *testing.T) {
+	dl := &downloader{
+		schemeReaders: map[string]schemeReader{
+			"image": &FakeImageSchemeReader{},
+		},
+	}
+	u, _ := url.Parse("image:///tmp/testfile")
+	download, err := dl.DownloadFile(u, "")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if download {
+		t.Error("Expected no download, but got true!")
+	}
+}
+
+func TestNoDownloader(t *testing.T) {
+	dl := &downloader{
+		schemeReaders: map[string]schemeReader{},
+	}
+	u, _ := url.Parse("http://www.test.url/a/file")
+	_, err := dl.DownloadFile(u, "")
+	if err == nil {
+		t.Errorf("Expected error, got nil!")
 	}
 }

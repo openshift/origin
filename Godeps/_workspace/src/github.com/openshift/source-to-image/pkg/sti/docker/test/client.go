@@ -7,6 +7,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+// FakeDockerClient provides a Fake client for Docker testing
 type FakeDockerClient struct {
 	Image                *docker.Image
 	InspectImageResult   []*docker.Image
@@ -22,6 +23,7 @@ type FakeDockerClient struct {
 	RemoveContainerErr   error
 	CommitContainerErr   error
 	CopyFromContainerErr error
+	BuildImageErr        error
 
 	RemoveImageName          string
 	InspectImageName         []string
@@ -30,21 +32,24 @@ type FakeDockerClient struct {
 	CreateContainerOpts      docker.CreateContainerOptions
 	AttachToContainerOpts    []docker.AttachToContainerOptions
 	AttachToContainerSleep   time.Duration
-	StartContainerId         string
+	StartContainerID         string
 	StartContainerHostConfig *docker.HostConfig
-	WaitContainerId          string
+	WaitContainerID          string
 	RemoveContainerOpts      docker.RemoveContainerOptions
 	CommitContainerOpts      docker.CommitContainerOptions
 	CopyFromContainerOpts    docker.CopyFromContainerOptions
+	BuildImageOpts           docker.BuildImageOptions
 
 	mutex sync.Mutex
 }
 
+// RemoveImage removes an image from the fake client
 func (d *FakeDockerClient) RemoveImage(name string) error {
 	d.RemoveImageName = name
 	return d.RemoveImageErr
 }
 
+// InspectImage inspects the fake image
 func (d *FakeDockerClient) InspectImage(name string) (*docker.Image, error) {
 	d.InspectImageName = append(d.InspectImageName, name)
 	i := len(d.InspectImageName) - 1
@@ -63,17 +68,20 @@ func (d *FakeDockerClient) InspectImage(name string) (*docker.Image, error) {
 	return img, err
 }
 
+// PullImage pulls the fake image
 func (d *FakeDockerClient) PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error {
 	d.PullImageOpts = opts
 	d.PullImageAuth = auth
 	return d.PullImageErr
 }
 
+// CreateContainer creates a fake container
 func (d *FakeDockerClient) CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error) {
 	d.CreateContainerOpts = opts
 	return d.Container, d.CreateContainerErr
 }
 
+// AttachToContainer attaches to a fake container
 func (d *FakeDockerClient) AttachToContainer(opts docker.AttachToContainerOptions) error {
 	d.mutex.Lock()
 	d.AttachToContainerOpts = append(d.AttachToContainerOpts, opts)
@@ -88,28 +96,39 @@ func (d *FakeDockerClient) AttachToContainer(opts docker.AttachToContainerOption
 	return d.AttachToContainerErr
 }
 
+// StartContainer starts the fake container
 func (d *FakeDockerClient) StartContainer(id string, hostConfig *docker.HostConfig) error {
-	d.StartContainerId = id
+	d.StartContainerID = id
 	d.StartContainerHostConfig = hostConfig
 	return d.StartContainerErr
 }
 
+// WaitContainer waits for a fake container to finish
 func (d *FakeDockerClient) WaitContainer(id string) (int, error) {
-	d.WaitContainerId = id
+	d.WaitContainerID = id
 	return d.WaitContainerResult, d.WaitContainerErr
 }
 
+// RemoveContainer removes the fake container
 func (d *FakeDockerClient) RemoveContainer(opts docker.RemoveContainerOptions) error {
 	d.RemoveContainerOpts = opts
 	return d.RemoveContainerErr
 }
 
+// CommitContainer commits the fake container
 func (d *FakeDockerClient) CommitContainer(opts docker.CommitContainerOptions) (*docker.Image, error) {
 	d.CommitContainerOpts = opts
 	return d.Image, d.CommitContainerErr
 }
 
+// CopyFromContainer copies from the fake container
 func (d *FakeDockerClient) CopyFromContainer(opts docker.CopyFromContainerOptions) error {
 	d.CopyFromContainerOpts = opts
 	return d.CopyFromContainerErr
+}
+
+// BuildImage builds image
+func (d *FakeDockerClient) BuildImage(opts docker.BuildImageOptions) error {
+	d.BuildImageOpts = opts
+	return d.BuildImageErr
 }

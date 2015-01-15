@@ -1,16 +1,29 @@
 package test
 
+import (
+	"errors"
+	"github.com/openshift/source-to-image/pkg/sti/api"
+)
+
+// FakeInstaller provides a fake installer
 type FakeInstaller struct {
-	Scripts    [][]string
+	Scripts    [][]api.Script
 	WorkingDir []string
 	Required   []bool
 
-	Err error
+	Download  bool
+	ErrScript api.Script
 }
 
-func (f *FakeInstaller) DownloadAndInstall(scripts []string, workingDir string, required bool) error {
+// DownloadAndInstall downloads and install the fake STI scripts
+func (f *FakeInstaller) DownloadAndInstall(scripts []api.Script, workingDir string, required bool) (bool, error) {
 	f.Scripts = append(f.Scripts, scripts)
 	f.WorkingDir = append(f.WorkingDir, workingDir)
 	f.Required = append(f.Required, required)
-	return f.Err
+	for _, s := range scripts {
+		if f.ErrScript == s {
+			return f.Download, errors.New(string(f.ErrScript))
+		}
+	}
+	return f.Download, nil
 }

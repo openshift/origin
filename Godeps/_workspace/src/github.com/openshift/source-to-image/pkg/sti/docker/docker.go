@@ -1,33 +1,43 @@
 package docker
 
 import (
+	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
+	"github.com/openshift/source-to-image/pkg/sti/api"
 	"github.com/openshift/source-to-image/pkg/sti/errors"
+)
+
+const (
+	ScriptsURL = "STI_SCRIPTS_URL"
+	Location   = "STI_LOCATION"
 )
 
 // Docker is the interface between STI and the Docker client
 // It contains higher level operations called from the STI
 // build or usage commands
 type Docker interface {
-	IsImageInLocalRegistry(imageName string) (bool, error)
+	IsImageInLocalRegistry(name string) (bool, error)
 	RemoveContainer(id string) error
-	GetDefaultScriptsUrl(image string) (string, error)
+	GetScriptsURL(name string) (string, error)
 	RunContainer(opts RunContainerOptions) error
-	GetImageId(image string) (string, error)
+	GetImageID(name string) (string, error)
 	CommitContainer(opts CommitContainerOptions) (string, error)
 	RemoveImage(name string) error
-	PullImage(imageName string) error
+	PullImage(name string) error
+	CheckAndPull(name string) (*docker.Image, error)
+	BuildImage(opts BuildImageOptions) error
 }
 
-// DockerClient contains all methods called on the go Docker
+// Client contains all methods called on the go Docker
 // client.
-type DockerClient interface {
+type Client interface {
 	RemoveImage(name string) error
 	InspectImage(name string) (*docker.Image, error)
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
@@ -38,28 +48,31 @@ type DockerClient interface {
 	RemoveContainer(opts docker.RemoveContainerOptions) error
 	CommitContainer(opts docker.CommitContainerOptions) (*docker.Image, error)
 	CopyFromContainer(opts docker.CopyFromContainerOptions) error
+	BuildImage(opts docker.BuildImageOptions) error
 }
 
 type stiDocker struct {
-	client DockerClient
+	client Client
 }
 
 type postExecutor interface {
-	PostExecute(containerID string, cmd []string) error
+	PostExecute(containerID string, location string) error
 }
 
 // RunContainerOptions are options passed in to the RunContainer method
 type RunContainerOptions struct {
-	Image        string
-	PullImage    bool
-	OverwriteCmd bool
-	Command      string
-	Env          []string
-	Stdin        io.Reader
-	Stdout       io.Writer
-	Stderr       io.Writer
-	OnStart      func() error
-	PostExec     postExecutor
+	Image           string
+	PullImage       bool
+	ExternalScripts bool
+	ScriptsURL      string
+	Location        string
+	Command         api.Script
+	Env             []string
+	Stdin           io.Reader
+	Stdout          io.Writer
+	Stderr          io.Writer
+	OnStart         func() error
+	PostExec        postExecutor
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -68,6 +81,13 @@ type CommitContainerOptions struct {
 	Repository  string
 	Command     []string
 	Env         []string
+}
+
+// BuildImageOptions are options passed in to the BuildImage method
+type BuildImageOptions struct {
+	Name   string
+	Stdin  io.Reader
+	Stdout io.Writer
 }
 
 // NewDocker creates a new implementation of the STI Docker interface
@@ -82,47 +102,43 @@ func NewDocker(endpoint string) (Docker, error) {
 }
 
 // IsImageInLocalRegistry determines whether the supplied image is in the local registry.
-func (d *stiDocker) IsImageInLocalRegistry(imageName string) (bool, error) {
-	image, err := d.client.InspectImage(imageName)
+func (d *stiDocker) IsImageInLocalRegistry(name string) (bool, error) {
+	image, err := d.client.InspectImage(name)
 
 	if image != nil {
 		return true, nil
 	} else if err == docker.ErrNoSuchImage {
 		return false, nil
 	}
-
 	return false, err
 }
 
 // CheckAndPull pulls an image into the local registry if not present
 // and returns the image metadata
-func (d *stiDocker) CheckAndPull(imageName string) (image *docker.Image, err error) {
-	if image, err = d.client.InspectImage(imageName); err != nil &&
-		err != docker.ErrNoSuchImage {
-		glog.Errorf("Unable to get image metadata for %s: %v", imageName, err)
-		return nil, errors.ErrPullImageFailed
+func (d *stiDocker) CheckAndPull(name string) (image *docker.Image, err error) {
+	if image, err = d.client.InspectImage(name); err != nil && err != docker.ErrNoSuchImage {
+		return nil, errors.NewInspectImageError(name, err)
 	}
 	if image == nil {
-		if err = d.PullImage(imageName); err != nil {
+		if err = d.PullImage(name); err != nil {
 			return nil, err
 		}
-		if image, err = d.client.InspectImage(imageName); err != nil {
-			return nil, err
+		if image, err = d.client.InspectImage(name); err != nil {
+			return nil, errors.NewInspectImageError(name, err)
 		}
 	} else {
-		glog.V(2).Infof("Image %s available locally", imageName)
+		glog.V(2).Infof("Image %s available locally", name)
 	}
-
 	return
 }
 
 // PullImage pulls an image into the local registry
-func (d *stiDocker) PullImage(imageName string) (err error) {
-	glog.V(1).Infof("Pulling image %s", imageName)
+func (d *stiDocker) PullImage(name string) (err error) {
+	glog.V(1).Infof("Pulling image %s", name)
 	// TODO: Add authentication support
-	if err = d.client.PullImage(docker.PullImageOptions{Repository: imageName},
+	if err = d.client.PullImage(docker.PullImageOptions{Repository: name},
 		docker.AuthConfiguration{}); err != nil {
-		return errors.ErrPullImageFailed
+		return errors.NewPullImageError(name, err)
 	}
 	return nil
 }
@@ -132,22 +148,34 @@ func (d *stiDocker) RemoveContainer(id string) error {
 	return d.client.RemoveContainer(docker.RemoveContainerOptions{id, true, true})
 }
 
-// GetDefaultUrl finds a script URL in the given image's metadata
-func (d *stiDocker) GetDefaultScriptsUrl(image string) (string, error) {
+// getVariable gets environment variable's value from the image metadata
+func (d *stiDocker) getVariable(image *docker.Image, name string) string {
+	envName := name + "="
+	env := append(image.ContainerConfig.Env, image.Config.Env...)
+	for _, v := range env {
+		if strings.HasPrefix(v, envName) {
+			return strings.TrimSpace((v[len(envName):]))
+		}
+	}
+
+	return ""
+}
+
+// GetScriptsURL finds a STI_SCRIPTS_URL in the given image's metadata
+func (d *stiDocker) GetScriptsURL(image string) (string, error) {
 	imageMetadata, err := d.CheckAndPull(image)
 	if err != nil {
 		return "", err
 	}
-	var defaultScriptsUrl string
-	env := append(imageMetadata.ContainerConfig.Env, imageMetadata.Config.Env...)
-	for _, v := range env {
-		if strings.HasPrefix(v, "STI_SCRIPTS_URL=") {
-			defaultScriptsUrl = v[len("STI_SCRIPTS_URL="):]
-			break
-		}
+
+	scriptsURL := d.getVariable(imageMetadata, ScriptsURL)
+	if len(scriptsURL) == 0 {
+		glog.Warningf("Image does not contain a value for the STI_SCRIPTS_URL environment variable")
+	} else {
+		glog.V(2).Infof("Image contains STI_SCRIPTS_URL set to '%s'", scriptsURL)
 	}
-	glog.V(2).Infof("Image contains default script URL '%s'", defaultScriptsUrl)
-	return defaultScriptsUrl, nil
+
+	return scriptsURL, nil
 }
 
 // RunContainer creates and starts a container using the image specified in the options with the ability
@@ -165,11 +193,40 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		return err
 	}
 
-	cmd := imageMetadata.Config.Cmd
-	if opts.OverwriteCmd {
-		cmd[len(cmd)-1] = opts.Command
+	// base directory for all STI commands
+	var commandBaseDir string
+	// untar operation destination directory
+	tarDestination := opts.Location
+	if len(tarDestination) == 0 {
+		if val := d.getVariable(imageMetadata, Location); len(val) != 0 {
+			tarDestination = val
+		} else {
+			// default directory if none is specified
+			tarDestination = "/tmp"
+		}
+	}
+	if opts.ExternalScripts {
+		// for external scripts we must always append 'scripts' because this is
+		// the default subdirectory inside tar for them
+		commandBaseDir = filepath.Join(tarDestination, "scripts")
+		glog.V(2).Infof("Both scripts and untarred source will be placed in '%s'", tarDestination)
 	} else {
-		cmd = append(cmd, opts.Command)
+		// for internal scripts we can have separate path for scripts and untar operation destination
+		scriptsURL := opts.ScriptsURL
+		if len(scriptsURL) == 0 {
+			scriptsURL = d.getVariable(imageMetadata, ScriptsURL)
+		}
+		commandBaseDir = strings.TrimPrefix(scriptsURL, "image://")
+		glog.V(2).Infof("Base directory for STI scripts is '%s'. Untarring destination is '%s'.",
+			commandBaseDir, tarDestination)
+	}
+
+	cmd := []string{filepath.Join(commandBaseDir, string(opts.Command))}
+	// when calling assemble script with Stdin parameter set (the tar file)
+	// we need to first untar the whole archive and only then call the assemble script
+	if opts.Stdin != nil && (opts.Command == api.Assemble || opts.Command == api.Usage) {
+		cmd = []string{"/bin/sh", "-c", fmt.Sprintf("tar -C %s -xf - && %s",
+			tarDestination, filepath.Join(commandBaseDir, string(opts.Command)))}
 	}
 	config := docker.Config{
 		Image: opts.Image,
@@ -217,8 +274,10 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	}()
 	attached <- <-attached
 
-	// If attaching both stdin and stdout, attach stdout in
+	// If attaching both stdin and stdout or stderr, attach stdout and stderr in
 	// a second goroutine
+	// TODO remove this goroutine when docker 1.4 will be in broad usage,
+	// see: https://github.com/docker/docker/commit/f936a10d8048f471d115978472006e1b58a7c67d
 	if opts.Stdin != nil && opts.Stdout != nil {
 		attached2 := make(chan struct{})
 		attachOpts2 := docker.AttachToContainerOptions{
@@ -259,31 +318,29 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	glog.V(2).Infof("Container exited")
 
 	if exitCode != 0 {
-		return errors.StiContainerError{exitCode}
+		return errors.NewContainerError(container.Name, exitCode, "")
 	}
-
 	if opts.PostExec != nil {
 		glog.V(2).Infof("Invoking postExecution function")
-		if err = opts.PostExec.PostExecute(container.ID, imageMetadata.Config.Cmd); err != nil {
+		if err = opts.PostExec.PostExecute(container.ID, commandBaseDir); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// GetImageId retrives the ID of the image identified by name
-func (d *stiDocker) GetImageId(imageName string) (string, error) {
-	if image, err := d.client.InspectImage(imageName); err == nil {
-		return image.ID, nil
-	} else {
+// GetImageID retrieves the ID of the image identified by name
+func (d *stiDocker) GetImageID(name string) (string, error) {
+	image, err := d.client.InspectImage(name)
+	if err != nil {
 		return "", err
 	}
+	return image.ID, nil
 }
 
 // CommitContainer commits a container to an image with a specific tag.
 // The new image ID is returned
 func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error) {
-
 	repository, tag := docker.ParseRepositoryTag(opts.Repository)
 	dockerOpts := docker.CommitContainerOptions{
 		Container:  opts.ContainerID,
@@ -296,17 +353,31 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 			Env: opts.Env,
 		}
 		dockerOpts.Run = &config
-		glog.V(2).Infof("Commiting container with config: %+v", config)
+		glog.V(2).Infof("Committing container with config: %+v", config)
 	}
 
-	if image, err := d.client.CommitContainer(dockerOpts); err == nil && image != nil {
+	image, err := d.client.CommitContainer(dockerOpts)
+	if err == nil && image != nil {
 		return image.ID, nil
-	} else {
-		return "", err
 	}
+	return "", err
 }
 
 // RemoveImage removes the image with specified ID
 func (d *stiDocker) RemoveImage(imageID string) error {
 	return d.client.RemoveImage(imageID)
+}
+
+// BuildImage builds the image according to specified options
+func (d *stiDocker) BuildImage(opts BuildImageOptions) error {
+	dockerOpts := docker.BuildImageOptions{
+		Name:                opts.Name,
+		NoCache:             true,
+		SuppressOutput:      true,
+		RmTmpContainer:      true,
+		ForceRmTmpContainer: true,
+		InputStream:         opts.Stdin,
+		OutputStream:        opts.Stdout,
+	}
+	return d.client.BuildImage(dockerOpts)
 }

@@ -30,7 +30,7 @@ func TestWebhookGithubPush(t *testing.T) {
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
-				Type: buildapi.GithubWebHookType,
+				Type: buildapi.GithubWebHookBuildTriggerType,
 				GithubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
@@ -86,7 +86,7 @@ func TestWebhookGithubPing(t *testing.T) {
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
-				Type: buildapi.GithubWebHookType,
+				Type: buildapi.GithubWebHookBuildTriggerType,
 				GithubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},

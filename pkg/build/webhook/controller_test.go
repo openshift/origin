@@ -17,7 +17,7 @@ func (*okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GithubWebHookType,
+				Type: api.GithubWebHookBuildTriggerType,
 				GithubWebHook: &api.WebHookTrigger{
 					Secret: "secret101",
 				},

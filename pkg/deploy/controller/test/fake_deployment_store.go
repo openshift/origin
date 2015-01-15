@@ -1,15 +1,15 @@
 package test
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 type FakeDeploymentStore struct {
-	Deployment *deployapi.Deployment
+	Deployment *kapi.ReplicationController
 }
 
-func NewFakeDeploymentStore(deployment *deployapi.Deployment) FakeDeploymentStore {
+func NewFakeDeploymentStore(deployment *kapi.ReplicationController) FakeDeploymentStore {
 	return FakeDeploymentStore{deployment}
 }
 
