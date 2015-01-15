@@ -3,6 +3,7 @@ package origin
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -71,9 +72,10 @@ const (
 
 // MasterConfig defines the required parameters for starting the OpenShift master
 type MasterConfig struct {
-	BindAddr   string
-	MasterAddr string
-	AssetAddr  string
+	BindAddr       string
+	MasterAddr     string
+	AssetAddr      string
+	KubernetesAddr string
 
 	CORSAllowedOrigins    []*regexp.Regexp
 	RequireAuthentication bool
@@ -288,6 +290,16 @@ func (c *MasterConfig) RunAssetServer() {
 	// TODO use	version.Get().GitCommit as an etag cache header
 	mux := http.NewServeMux()
 
+	masterURL, err := url.Parse(c.MasterAddr)
+	if err != nil {
+		glog.Fatalf("Error parsing master url: %v", err)
+	}
+
+	k8sURL, err := url.Parse(c.KubernetesAddr)
+	if err != nil {
+		glog.Fatalf("Error parsing kubernetes url: %v", err)
+	}
+
 	mux.Handle("/",
 		// Gzip first so that inner handlers can react to the addition of the Vary header
 		assets.GzipHandler(
@@ -295,13 +307,19 @@ func (c *MasterConfig) RunAssetServer() {
 			// any asset related routing (HTML5ModeHandler and FileServer)
 			assets.CacheControlHandler(
 				version.Get().GitCommit,
-				assets.HTML5ModeHandler(
-					http.FileServer(
-						&assetfs.AssetFS{
-							assets.Asset,
-							assets.AssetDir,
-							"",
-						},
+				assets.GeneratedConfigHandler(
+					masterURL.Host,
+					OpenShiftAPIPrefixV1Beta1,
+					k8sURL.Host,
+					"/api/v1beta1",
+					assets.HTML5ModeHandler(
+						http.FileServer(
+							&assetfs.AssetFS{
+								assets.Asset,
+								assets.AssetDir,
+								"",
+							},
+						),
 					),
 				),
 			),

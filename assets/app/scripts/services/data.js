@@ -2,20 +2,6 @@
 
 angular.module('openshiftConsole')
 .factory('DataService', [function() {
-  // TODO this is not the ideal, issue open to discuss adding
-  // an introspection endpoint that would give us this mapping
-  // https://github.com/openshift/origin/issues/230
-  var TYPE_MAP = {
-    builds : "osapi",    
-    deployments : "osapi",
-    deploymentConfigs : "osapi",
-    images : "osapi",
-    projects : "osapi",
-    pods : "api",
-    services : "api",
-    replicationControllers: "api"
-  };
-
   function Data(array) {
     // TODO just need to check for id until v1beta3
     this._data = {};
@@ -483,10 +469,24 @@ angular.module('openshiftConsole')
     }
   };
 
-  var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}/{apiRoot}/{apiVersion}/";
+  var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}{+apiPrefix}/";
   var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
   var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
   var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
+
+  // TODO this is not the ideal, issue open to discuss adding
+  // an introspection endpoint that would give us this mapping
+  // https://github.com/openshift/origin/issues/230
+  var apicfg = OPENSHIFT_CONFIG.api;
+  var SERVER_TYPE_MAP = {
+    builds : apicfg.openshift,
+    deploymentConfigs : apicfg.openshift,
+    images : apicfg.openshift,
+    projects : apicfg.openshift,
+    pods : apicfg.k8s,
+    services : apicfg.k8s,
+    replicationControllers: apicfg.k8s
+  };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
     var protocol;
@@ -511,9 +511,8 @@ angular.module('openshiftConsole')
     // TODO where do we specify what the server URL and api version should be
     return URI.expand(template, {
       protocol: protocol,
-      serverUrl: "localhost:8080",
-      apiRoot: TYPE_MAP[type],
-      apiVersion: "v1beta1",
+      serverUrl: SERVER_TYPE_MAP[type].hostPort,
+      apiPrefix: SERVER_TYPE_MAP[type].prefix,
       type: type,
       id: id,
       q: params
