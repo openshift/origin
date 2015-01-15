@@ -9,26 +9,33 @@ import (
 
 // GenerateBuildFromConfig creates a new build based on a given BuildConfig. Optionally a SourceRevision for the new
 // build can be specified
-func GenerateBuildFromConfig(bc *api.BuildConfig, r *api.SourceRevision) *api.Build {
+func GenerateBuildFromConfig(bc *api.BuildConfig, r *api.SourceRevision) (build *api.Build) {
+	// Need to copy the buildConfig here so that it doesn't share pointers with
+	// the build object which could be (will be) modified later.
+	obj, _ := kapi.Scheme.Copy(bc)
+	bcCopy := obj.(*api.BuildConfig)
+
 	return &api.Build{
 		Parameters: api.BuildParameters{
-			Source:   bc.Parameters.Source,
-			Strategy: bc.Parameters.Strategy,
-			Output:   bc.Parameters.Output,
+			Source:   bcCopy.Parameters.Source,
+			Strategy: bcCopy.Parameters.Strategy,
+			Output:   bcCopy.Parameters.Output,
 			Revision: r,
 		},
 		ObjectMeta: kapi.ObjectMeta{
-			Labels: map[string]string{api.BuildConfigLabel: bc.Name},
+			Labels: map[string]string{api.BuildConfigLabel: bcCopy.Name},
 		},
 	}
 }
 
 // GenerateBuildFromBuild creates a new build based on a given Build.
 func GenerateBuildFromBuild(build *api.Build) *api.Build {
+	obj, _ := kapi.Scheme.Copy(build)
+	buildCopy := obj.(*api.Build)
 	return &api.Build{
-		Parameters: build.Parameters,
+		Parameters: buildCopy.Parameters,
 		ObjectMeta: kapi.ObjectMeta{
-			Labels: build.ObjectMeta.Labels,
+			Labels: buildCopy.ObjectMeta.Labels,
 		},
 	}
 }

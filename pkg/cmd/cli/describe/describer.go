@@ -122,6 +122,24 @@ type BuildConfigDescriber struct {
 	host string
 }
 
+// DescribeTriggers generates information about the triggers associated with a buildconfig
+func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host string, out *tabwriter.Writer) {
+	webhooks := webhookURL(bc, host)
+	for whType, whURL := range webhooks {
+		t := strings.Title(whType)
+		formatString(out, "Webhook "+t, whURL)
+	}
+	for _, trigger := range bc.Triggers {
+		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
+			continue
+		}
+		formatString(out, "Image Repository Trigger", trigger.ImageChange.ImageRepositoryRef.Name)
+		formatString(out, "- Tag", trigger.ImageChange.Tag)
+		formatString(out, "- Image", trigger.ImageChange.Image)
+		formatString(out, "- LastTriggeredImageID", trigger.ImageChange.LastTriggeredImageID)
+	}
+}
+
 func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
 	c := d.BuildConfigs(namespace)
 	buildConfig, err := c.Get(name)
@@ -129,16 +147,12 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	webhooks := webhookURL(buildConfig, d.host)
 	buildDescriber := &BuildDescriber{}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
 		buildDescriber.DescribeParameters(buildConfig.Parameters, out)
-		for whType, whURL := range webhooks {
-			t := strings.Title(whType)
-			formatString(out, "Webhook "+t, whURL)
-		}
+		d.DescribeTriggers(buildConfig, d.host, out)
 		return nil
 	})
 }
