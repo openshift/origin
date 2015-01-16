@@ -47,16 +47,15 @@ pushd $source_dir >/dev/null
   fi
 popd >/dev/null
 
-# After successfull build, retag the image to 'qa-ready'
-#
-image_id=$(docker inspect --format="{{ .Id }}" ${IMAGE_NAME}-candidate:latest)
-docker tag ${image_id} ${IMAGE_NAME}:qa-ready
-
-# Tag the image with the GIT ref if the SOURCE_REF is set
-#
-if ! [ -z "${SOURCE_REF}" ]; then
-  docker tag ${image_id} ${IMAGE_NAME}:git-$SOURCE_REF
+if ! [ -z "${OUTPUT_REGISTRY}" ]; then
+  image_id=$(docker inspect --format="{{ .Id }}" "${IMAGE_NAME}-candidate:latest")
+  echo "Pushing the "${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}" image..."
+  OUTPUT_IMAGE="${OUTPUT_IMAGE:-$IMAGE_NAME}"
+  set -x
+  docker tag ${image_id} "${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}"
+  docker push "${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}"
+  set +x
 fi
 
-# Remove the candidate image after build
-docker rmi ${IMAGE_NAME}-candidate
+# Cleanup the temporary Docker image
+docker rmi "${IMAGE_NAME}-candidate"
