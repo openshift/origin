@@ -11,18 +11,51 @@ https://github.com/openshift/origin/blob/master/examples/sample-app/container-se
 
 Setup
 -----
-Before running these steps, you'll need to configure the docker daemon on your host to trust the docker registry service you'll be starting.
+At this stage of OpenShift 3 development, there are a few things that you will need to configure on the host where OpenShift is running in order for things to work.
+
+- - -
+
+**NOTE:** You do not need to do this is you are using [Vagrant](https://vagrantup.com/) to work with OpenShift (see the [Vagrantfile](https://github.com/openshift/origin/blob/master/Vagrantfile) for more info). These changes are only necessary when you have set up the host system yourself. If you are using Vagrant, [jump to the next section](#application-build-deploy-and-update-flow).
+
+- - -
+
+### Docker Changes ###
+
+First, you'll need to configure the docker daemon on your host to trust the docker registry service you'll be starting.
 
 To do this, you need to add "--insecure-registry 172.30.17.0/24" to the docker daemon invocation, eg:
-        
-        $ docker -d --insecure-registry 172.30.17.0/24
 
-If you are running docker as a service via systemd, you can add this argument to the options value in `/etc/sysconfig/docker`
+    $ docker -d --insecure-registry 172.30.17.0/24
+
+If you are running docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
 
 This will instruct the docker daemon to trust any docker registry on the 172.30.17.0/24 subnet, rather than requiring a certificate.
 
 These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.17.0/24.
 
+### SELinux Changes ###
+
+Presently the OpenShift 3 policies for SELinux are a work in progress. For the time being, to play around with the OpenShift system, it is easiest to temporarily disable SELinux:
+
+    $ sudo setenforce 0
+
+This can be re-enabled after you are done with the sample app:
+
+    $ sudo setenforce 1
+
+### FirewallD Changes ###
+
+Similar to our work on SELinux policies, the OpenShift firewalld rules are also a work in progress. For now it is easiest to disable firewalld altogether:
+
+    $ sudo systemctl stop firewalld
+
+Firewalld will start again on your next reboot, but you can manually restart it with this command when you are done with the sample app:
+
+    $ sudo systemctl start firewalld
+
+### Still Having Trouble? ###
+
+If you hit any snags while taking the sample app for a spin, check out the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
 
 Application Build, Deploy, and Update Flow
 ------------------------------------------
