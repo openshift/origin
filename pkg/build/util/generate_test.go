@@ -112,6 +112,9 @@ func TestSubstituteImageDockerMatch(t *testing.T) {
 	if build.Parameters.Strategy.DockerStrategy.BaseImage != newImage {
 		t.Errorf("Base image name was not substituted in docker strategy")
 	}
+	if bc.Parameters.Strategy.DockerStrategy.BaseImage != "" {
+		t.Errorf("Docker BuildConfig was updated when Build was modified")
+	}
 }
 
 func TestSubstituteImageDockerMismatch(t *testing.T) {
@@ -142,6 +145,10 @@ func TestSubstituteImageSTIMatch(t *testing.T) {
 	if build.Parameters.Strategy.STIStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in sti strategy")
 	}
+	if bc.Parameters.Strategy.STIStrategy.Image != originalImage {
+		t.Errorf("STI BuildConfig was updated when Build was modified")
+	}
+
 }
 
 func TestSubstituteImageSTIMismatch(t *testing.T) {
@@ -184,6 +191,13 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	if c := len(build.Parameters.Strategy.CustomStrategy.Env); c != 2 {
 		t.Errorf("Expected %d, found %d environment variables", 2, c)
 	}
+	if bc.Parameters.Strategy.CustomStrategy.Image != originalImage {
+		t.Errorf("Custom BuildConfig Image was updated when Build was modified")
+	}
+	if len(bc.Parameters.Strategy.CustomStrategy.Env) != 0 {
+		t.Errorf("Custom BuildConfig Env was updated when Build was modified")
+	}
+
 }
 
 func TestSubstituteImageCustomAllMismatch(t *testing.T) {
