@@ -126,7 +126,7 @@ End to end tests should be Go tests with the build tag `e2e` in the `test/e2e` d
 
 Run the end to end tests with:
 
-    $ hack/test-e2e.sh
+    $ hack/test-end-to-end.sh
 
 
 ## Installing Godep
