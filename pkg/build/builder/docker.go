@@ -64,6 +64,7 @@ func (d *DockerBuilder) Build() error {
 	if err = d.dockerBuild(buildDir); err != nil {
 		return err
 	}
+	defer removeImage(d.dockerClient, imageTag(d.build))
 	if d.build.Parameters.Output.Registry != "" || d.authPresent {
 		return pushImage(d.dockerClient, imageTag(d.build), d.auth)
 	}
