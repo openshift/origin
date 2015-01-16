@@ -1,0 +1,177 @@
+= Kubernetes Model
+{product-author}
+{product-version}
+:data-uri:
+:icons:
+:experimental:
+:toc:
+:toc-placement!:
+:toc-title: Topics Covered
+
+toc::[]
+
+=== ReplicationController
+
+A Replication Controller ensures that a specific number of pods with a particular link:#label[Label] are running at all times. If one of the matching pods or a kubernetes  host goes down, the replication controller will re-instantiate matching pods up to the desired number across the cluster.
+
+While the JSON structure of a replicationController object is fairly complex, the most important elements are the `replicas` and `replicaSelector` values defined therein:
+
+----
+{
+    "kind": "ReplicationControllerList",
+    "creationTimestamp": null,
+    "selfLink": "/api/v1beta1/replicationControllers",
+    "resourceVersion": 27,
+    "apiVersion": "v1beta1",
+    "items": [
+        {
+            "id": "docker-registry-1",
+            "uid": "7fa58610-9b31-11e4-9dff-f0def1de880f",
+            "creationTimestamp": "2015-01-13T09:36:02-05:00",
+            "selfLink": "/api/v1beta1/replicationControllers/docker-registry-1?namespace=default",
+            "resourceVersion": 26,
+            "namespace": "default",
+            "annotations": {
+                ...
+            },
+            "desiredState": {
+                "replicas": 1, <1>
+                "replicaSelector": {
+                    "name": "registrypod" <2>
+                },
+----
+<1> The number of copies of the pod to run.
+<2> The label selector of the pod to run.
+
+These determine which link:#pod[Pod] definitions (see below) to maintain. For more on replicationControllers, see the [Kubernetes documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/replication-controller.md).
+
+== Pod
+
+Pods map to one or more docker containers collocated on the same host.  Each pod has its own ip address and therefore owns its entire port space.  Containers within pods can also share storage. Pods can be assign one or more link:#label[Labels] (see below), which are used to select and manage arbitrary pod groups as a single operation.
+
+Currently, the Kubernetes documentation does not provide an example of a Pod's JSON structure. The sample below was retrieved from an OpenShift system by running `openshift kube get pods/<pod_id>`.
+
+.Sample JSON output for a Kubernetes Pod object.
+----
+{
+    "annotations": {
+        "deployment": "docker-registry-1" <1>
+    },
+    "apiVersion": "v1beta1",
+    "creationTimestamp": "2015-01-08T13:12:31-05:00",
+    "currentState": {
+        "host": "host.example.com",
+        "info": {
+            "deployment": {
+                "containerID": "docker://0d9b9c3dee08c6b5f22ef5d6fcba2f3991d713c6b337d036d5434b496ae207ef",
+                "image": "openshift/origin-deployer",
+                "restartCount": 0,
+                "state": {
+                    "termination": {
+                        "exitCode": 255,
+                        "finishedAt": "2015-01-08T18:12:42Z",
+                        "startedAt": "2015-01-08T18:12:41Z"
+                    }
+                }
+            },
+            "net": {
+                "containerID": "docker://4617946052b093310d14516e14279232da1a220bcf81a46b50dc94ae11065ea2",
+                "image": "kubernetes/pause:latest",
+                "podIP": "172.17.0.2",
+                "restartCount": 1,
+                "state": {
+                    "running": {
+                        "startedAt": "2015-01-13T12:10:50Z"
+                    }
+                }
+            }
+        },
+        "manifest": {
+            "containers": null,
+            "id": "",
+            "restartPolicy": {},
+            "version": "",
+            "volumes": null
+        },
+        "podIP": "172.17.0.2",
+        "status": "Terminated"
+    },
+    "desiredState": {
+        "manifest": {
+            "containers": [
+                {
+                    "env": [
+                        {
+                            "key": "OPENSHIFT_DEPLOYMENT_NAME",
+                            "name": "OPENSHIFT_DEPLOYMENT_NAME",
+                            "value": "docker-registry-1"
+                        },
+                        {
+                            "key": "OPENSHIFT_DEPLOYMENT_NAMESPACE",
+                            "name": "OPENSHIFT_DEPLOYMENT_NAMESPACE",
+                            "value": "default"
+                        },
+                        {
+                            "key": "KUBERNETES_MASTER",
+                            "name": "KUBERNETES_MASTER",
+                            "value": "http://10.18.57.24:8080"
+                        },
+                        {
+                            "key": "OPENSHIFT_MASTER",
+                            "name": "OPENSHIFT_MASTER",
+                            "value": "http://10.18.57.24:8080"
+                        }
+                    ],
+                    "image": "openshift/origin-deployer", <2>
+                    "imagePullPolicy": "PullIfNotPresent",
+                    "name": "deployment"
+                }
+            ],
+            "id": "",
+            "restartPolicy": {
+                "never": {}
+            },
+            "version": "v1beta2",
+            "volumes": null
+        }
+    },
+    "id": "e9bae2ce-9761-11e4-86f8-f0def1de880f",
+    "kind": "Pod",
+    "namespace": "default",
+    "resourceVersion": 14,
+    "selfLink": "/api/v1beta1/pods/e9bae2ce-9761-11e4-86f8-f0def1de880f?namespace=default",
+    "uid": "e9bae2ce-9761-11e4-86f8-f0def1de880f"
+}
+----
+<1> The labels are stored in key/value format in the `annotation` hash. The original label in this example is `deployment=docker-registry-1`.
+<2> The docker image(s) that define the Pod are listed are provided in the `containers` list along with related environment variable mappings.
+
+== Label
+
+Labels are used to organize and filter resources. Pods are "tagged" with labels, and then Services and ReplicationControllers use labels to indicate which pods they relate to. This abstraction makes it possible for Services and ReplicationControllers to reference whole groups of Pods, and also to treat Pods with potentially different docker containers as like entities. For instance, consider:
+
+* A Pod consisting of an nginx docker container, with the label "role=webserver"
+* A Pod consisting of an apache docker container, with the same label "role=webserver"
+
+A Service or ReplicationController that is defined to use Pods with the "role=webserver" label will treat both of these pods as part of the same group.
+
+For more information on Labels, refer to the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/labels.md[Kubernetes documentation].
+
+== Service
+
+A service provides a network connection to one or more network services.
+
+A service uses a label selector to find all the containers running which provide a certain network service on a certain port. The service is then bound to a local port. So to access the service from inside your application or container you just bind to the local network on the port number for the service.
+
+You can find a more complete definition, and an example of the JSON structure that represents a service object, in the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md[Kubernetes documentation].
+
+== Namespace
+
+== ResourceController
+
+== Resource
+
+== Secret
+
+== Minion
+
