@@ -15,20 +15,18 @@ type mockBuildConfigUpdater struct {
 	buildcfg *buildapi.BuildConfig
 }
 
-func (m *mockBuildConfigUpdater) UpdateBuildConfig(buildcfg *buildapi.BuildConfig) error {
+func (m *mockBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 	m.buildcfg = buildcfg
 	return nil
 }
 
 type mockBuildCreator struct {
-	buildcfg           *buildapi.BuildConfig
-	imageSubstitutions map[string]string
-	err                error
+	build *buildapi.Build
+	err   error
 }
 
-func (m *mockBuildCreator) CreateBuild(buildcfg *buildapi.BuildConfig, imageSubstitutions map[string]string) error {
-	m.buildcfg = buildcfg
-	m.imageSubstitutions = imageSubstitutions
+func (m *mockBuildCreator) Create(namespace string, build *buildapi.Build) error {
+	m.build = build
 	return m.err
 }
 
@@ -86,8 +84,8 @@ func mockImageChangeController(buildcfg *buildapi.BuildConfig, repoName, dockerI
 	return &ImageChangeController{
 		NextImageRepository: func() *imageapi.ImageRepository { return &imageRepo },
 		BuildConfigStore:    buildtest.NewFakeBuildConfigStore(buildcfg),
-		BuildConfigUpdater:  &mockBuildConfigUpdater{},
 		BuildCreator:        &mockBuildCreator{},
+		BuildConfigUpdater:  &mockBuildConfigUpdater{},
 	}
 }
 
@@ -99,11 +97,11 @@ func TestNewImageID(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg == nil {
+	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if buildCreator.imageSubstitutions["registry.com/namespace/imagename"] != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build: %s |", buildCreator.imageSubstitutions["registry.com/namespace/imagename"])
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename:newImageID123" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
 	}
 	if buildConfigUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
@@ -121,11 +119,11 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg == nil {
+	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if buildCreator.imageSubstitutions["registry.com/namespace/imagename"] != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build using default tag: %s |", buildCreator.imageSubstitutions["registry.com/namespace/imagename"])
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename:newImageID123" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
 	}
 	if buildConfigUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
@@ -144,11 +142,8 @@ func TestNonExistentImageRepository(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg != nil {
+	if buildCreator.build != nil {
 		t.Error("New build created when a different repository was updated!")
-	}
-	if len(buildCreator.imageSubstitutions) != 0 {
-		t.Errorf("Should not have had any image substitutions since tag does not exist in imagerepo")
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
@@ -163,11 +158,8 @@ func TestNewImageDifferentTagUpdate(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg != nil {
+	if buildCreator.build != nil {
 		t.Error("New build created when a different repository was updated!")
-	}
-	if len(buildCreator.imageSubstitutions) != 0 {
-		t.Errorf("Should not have had any image substitutions since tag does not exist in imagerepo")
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
@@ -176,6 +168,7 @@ func TestNewImageDifferentTagUpdate(t *testing.T) {
 
 func TestNewImageDifferentTagUpdate2(t *testing.T) {
 	// this buildconfig references a different tag than the one that will be updated
+	// it has previously run a build for the testTagID123 tag.
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	buildcfg.Triggers[0].ImageChange.LastTriggeredImageID = "testTagID123"
 	controller := mockImageChangeController(buildcfg, "testImageRepo", "registry.com/namespace/imagename",
@@ -184,11 +177,8 @@ func TestNewImageDifferentTagUpdate2(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg != nil {
+	if buildCreator.build != nil {
 		t.Error("New build created when a different repository was updated!")
-	}
-	if len(buildCreator.imageSubstitutions) != 0 {
-		t.Errorf("Should not have had any image substitutions since tag does not exist in imagerepo")
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
@@ -203,11 +193,8 @@ func TestNewDifferentImageUpdate(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg != nil {
+	if buildCreator.build != nil {
 		t.Error("New build created when a different repository was updated!")
-	}
-	if len(buildCreator.imageSubstitutions) != 0 {
-		t.Errorf("Should not have had any image substitutions since tag does not exist in imagerepo")
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
@@ -223,15 +210,13 @@ func TestMultipleTriggers(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg == nil {
+	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if len(buildCreator.imageSubstitutions) != 1 {
-		t.Errorf("Expected exactly 1 substitution, got different count: %d", len(buildCreator.imageSubstitutions))
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename1" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename1", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
 	}
-	if buildCreator.imageSubstitutions["registry.com/namespace/imagename2"] != "registry.com/namespace/imagename2:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build using default tag: %s |", buildCreator.imageSubstitutions["registry.com/namespace/imagename2"])
-	}
+
 	if buildConfigUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
 	}
@@ -249,11 +234,8 @@ func TestBuildConfigWithDifferentTriggerType(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg != nil {
+	if buildCreator.build != nil {
 		t.Error("New build created when a different trigger type was defined!")
-	}
-	if len(buildCreator.imageSubstitutions) != 0 {
-		t.Errorf("Should not have had any image substitutions since different trigger type was defined!")
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different trigger was defined!")
@@ -270,11 +252,8 @@ func TestNoImageIDChange(t *testing.T) {
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg != nil {
+	if buildCreator.build != nil {
 		t.Error("New build created when no change happened!")
-	}
-	if len(buildCreator.imageSubstitutions) != 0 {
-		t.Errorf("Should not have had any image substitutions since no change happened!")
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when no change happened!")
@@ -290,11 +269,11 @@ func TestBuildCreateError(t *testing.T) {
 	controller.HandleImageRepo()
 	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if buildCreator.buildcfg == nil {
+	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if buildCreator.imageSubstitutions["registry.com/namespace/imagename"] != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build: %s |", buildCreator.imageSubstitutions["registry.com/namespace/imagename"])
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename:newImageID123" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Fatal("Expected no buildConfig update on BuildCreate error!")

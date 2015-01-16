@@ -38,7 +38,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 			Commit: "abcd",
 		},
 	}
-	build := GenerateBuildFromConfig(bc, revision)
+	build := GenerateBuildFromConfig(bc, revision, nil)
 	if !reflect.DeepEqual(source, build.Parameters.Source) {
 		t.Errorf("Build source does not match BuildConfig source")
 	}
@@ -88,7 +88,7 @@ func TestSubstituteImageDockerNil(t *testing.T) {
 	strategy := mockDockerStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Docker build with nil base image
 	// base image should still be nil
@@ -103,7 +103,7 @@ func TestSubstituteImageDockerMatch(t *testing.T) {
 	strategy := mockDockerStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Docker build with a matched base image
 	// base image should be replaced.
@@ -122,7 +122,7 @@ func TestSubstituteImageDockerMismatch(t *testing.T) {
 	strategy := mockDockerStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Docker build with an unmatched base image
 	// base image should not be replaced.
@@ -137,7 +137,7 @@ func TestSubstituteImageSTIMatch(t *testing.T) {
 	strategy := mockSTIStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// STI build with a matched base image
 	// base image should be replaced
@@ -156,7 +156,7 @@ func TestSubstituteImageSTIMismatch(t *testing.T) {
 	strategy := mockSTIStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// STI build with an unmatched base image
 	// base image should not be replaced
@@ -171,7 +171,7 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Full custom build with a BaseImage and a well defined environment variable image value,
 	// both should be replaced.  Additional environment variables should not be touched.
@@ -205,7 +205,7 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Full custom build with base image that is not matched
 	// Base image name should be unchanged
@@ -220,7 +220,7 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Full custom build with a BaseImage and a well defined environment variable image value that does not match the new image
 	// Only base image should be replaced.  Environment variables should not be touched.
@@ -247,7 +247,7 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Custom build with a base Image but no image environment variable.
 	// base image should be replaced, new image environment variable should be added,
@@ -274,7 +274,7 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil)
+	build := GenerateBuildFromConfig(bc, nil, nil)
 
 	// Custom build with a base Image but no environment variables
 	// base image should be replaced, new image environment variable should be added

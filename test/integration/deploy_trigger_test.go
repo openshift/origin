@@ -21,8 +21,8 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
@@ -402,29 +402,13 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	iccFactory.Create().Run()
 
 	biccFactory := buildcontrollerfactory.ImageChangeControllerFactory{
-		Client: osClient,
-		Stop:   openshift.stop,
+		Client:             osClient,
+		BuildConfigUpdater: buildclient.NewOSClientBuildConfigClient(osClient),
+		BuildCreator:       buildclient.NewOSClientBuildClient(osClient),
+		Stop:               openshift.stop,
 	}
 
 	biccFactory.Create().Run()
-
-	bcFactory := buildcontrollerfactory.BuildControllerFactory{
-		Client:     osClient,
-		KubeClient: kubeClient,
-		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image:          "test-docker-builder",
-			UseLocalImages: false,
-		},
-		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
-			Image:                "test-sti-builder",
-			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
-			UseLocalImages:       false,
-		},
-		Stop: openshift.stop,
-	}
-
-	bcFactory.Create().Run()
-
 	return openshift
 }
 

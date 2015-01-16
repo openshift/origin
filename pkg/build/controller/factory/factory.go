@@ -14,16 +14,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	controller "github.com/openshift/origin/pkg/build/controller"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 type BuildControllerFactory struct {
-	Client              *osclient.Client
-	KubeClient          *kclient.Client
+	OSClient            osclient.Interface
+	KubeClient          kclient.Interface
+	BuildUpdater        buildclient.BuildUpdater
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	STIBuildStrategy    *strategy.STIBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
@@ -35,10 +36,10 @@ type BuildControllerFactory struct {
 
 func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	factory.buildStore = cache.NewStore()
-	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, factory.buildStore).RunUntil(factory.Stop)
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore).RunUntil(factory.Stop)
 
 	buildQueue := cache.NewFIFO()
-	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildQueue).RunUntil(factory.Stop)
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, buildQueue).RunUntil(factory.Stop)
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)
@@ -51,10 +52,10 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	podQueue := cache.NewFIFO()
 	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).RunUntil(factory.Stop)
 
-	client := ControllerClient{factory.KubeClient, factory.Client}
+	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	return &controller.BuildController{
 		BuildStore:            factory.buildStore,
-		BuildUpdater:          client,
+		BuildUpdater:          factory.BuildUpdater,
 		ImageRepositoryClient: client,
 		PodManager:            client,
 		NextBuild: func() *buildapi.Build {
@@ -78,7 +79,9 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 // ImageChangeControllerFactory can create an ImageChangeController which obtains ImageRepositories
 // from a queue populated from a watch of all ImageRepositories.
 type ImageChangeControllerFactory struct {
-	Client *osclient.Client
+	Client             osclient.Interface
+	BuildCreator       buildclient.BuildCreator
+	BuildConfigUpdater buildclient.BuildConfigUpdater
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -92,11 +95,10 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 	store := cache.NewStore()
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).RunUntil(factory.Stop)
 
-	client := ControllerClient{nil, factory.Client}
 	return &controller.ImageChangeController{
 		BuildConfigStore:   store,
-		BuildConfigUpdater: client,
-		BuildCreator:       client,
+		BuildConfigUpdater: factory.BuildConfigUpdater,
+		BuildCreator:       factory.BuildCreator,
 		NextImageRepository: func() *imageapi.ImageRepository {
 			repo := queue.Pop().(*imageapi.ImageRepository)
 			panicIfStopped(factory.Stop, "build image change controller stopped")
@@ -233,30 +235,6 @@ func (c ControllerClient) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod,
 // DeletePod destroys a pod using the Kubernetes client.
 func (c ControllerClient) DeletePod(namespace string, pod *kapi.Pod) error {
 	return c.KubeClient.Pods(namespace).Delete(pod.Name)
-}
-
-// UpdateBuild updates build using the OpenShift client.
-func (c ControllerClient) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
-	return c.Client.Builds(namespace).Update(build)
-}
-
-// CreateBuild updates build using the OpenShift client.
-func (c ControllerClient) CreateBuild(config *buildapi.BuildConfig, imageSubstitutions map[string]string) error {
-	build := buildutil.GenerateBuildFromConfig(config, nil)
-	for originalImage, newImage := range imageSubstitutions {
-		buildutil.SubstituteImageReferences(build, originalImage, newImage)
-	}
-	if _, err := c.Client.Builds(config.Namespace).Create(build); err != nil {
-		glog.V(2).Infof("Error creating build for buildConfig %v: %v", config.Name, err)
-		return err
-	}
-	return nil
-}
-
-// UpdateBuildConfig updates buildConfig using the OpenShift client.
-func (c ControllerClient) UpdateBuildConfig(buildConfig *buildapi.BuildConfig) error {
-	_, err := c.Client.BuildConfigs(buildConfig.Namespace).Update(buildConfig)
-	return err
 }
 
 // GetImageRepository retrieves an image repository by namespace and name

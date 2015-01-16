@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -19,7 +20,7 @@ type BuildController struct {
 	BuildStore    cache.Store
 	NextBuild     func() *buildapi.Build
 	NextPod       func() *kapi.Pod
-	BuildUpdater  buildUpdater
+	BuildUpdater  buildclient.BuildUpdater
 	PodManager    podManager
 	BuildStrategy BuildStrategy
 
@@ -29,10 +30,6 @@ type BuildController struct {
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
 type BuildStrategy interface {
 	CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error)
-}
-
-type buildUpdater interface {
-	UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error)
 }
 
 type podManager interface {
@@ -67,7 +64,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 		build.Message = err.Error()
 	}
 
-	if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
+	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 		glog.V(2).Infof("Failed to record changes to build %s/%s: %#v", build.Namespace, build.Name, err)
 	}
 }
@@ -177,7 +174,7 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	if build.Status != nextStatus {
 		glog.V(4).Infof("Updating build %s status %s -> %s", build.Name, build.Status, nextStatus)
 		build.Status = nextStatus
-		if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
+		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 			glog.Errorf("Failed to update build %s: %#v", build.Name, err)
 		}
 	}
@@ -196,7 +193,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) err
 	}
 
 	build.Status = buildapi.BuildStatusCancelled
-	if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
+	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 		return err
 	}
 

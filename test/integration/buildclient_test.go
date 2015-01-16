@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -195,13 +196,14 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(clientWebhookInterface{osClient}, map[string]webhook.Plugin{
+		webhook.NewController(buildclient.NewOSClientBuildConfigClient(osClient), buildclient.NewOSClientBuildClient(osClient), map[string]webhook.Plugin{
 			"github": github.New(),
 		})))
 
 	factory := buildcontrollerfactory.BuildControllerFactory{
-		Client:     osClient,
-		KubeClient: kubeClient,
+		OSClient:     osClient,
+		KubeClient:   kubeClient,
+		BuildUpdater: buildclient.NewOSClientBuildClient(osClient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image:          "test-docker-builder",
 			UseLocalImages: false,
@@ -225,16 +227,4 @@ func (t *testBuildOpenshift) Close() {
 	close(t.stop)
 	t.server.CloseClientConnections()
 	t.server.Close()
-}
-
-type clientWebhookInterface struct {
-	Client osclient.Interface
-}
-
-func (c clientWebhookInterface) CreateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
-	return c.Client.Builds(namespace).Create(build)
-}
-
-func (c clientWebhookInterface) GetBuildConfig(namespace, name string) (*buildapi.BuildConfig, error) {
-	return c.Client.BuildConfigs(namespace).Get(name)
 }

@@ -44,7 +44,7 @@ Examples:
 				config, err := client.BuildConfigs(namespace).Get(args[0])
 				checkErr(err)
 
-				newBuild = util.GenerateBuildFromConfig(config, nil)
+				newBuild = util.GenerateBuildFromConfig(config, nil, nil)
 			} else {
 				build, err := client.Builds(namespace).Get(buildName)
 				checkErr(err)

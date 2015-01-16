@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/util"
 )
 
@@ -23,13 +24,9 @@ type Plugin interface {
 
 // controller used for processing webhook requests.
 type controller struct {
-	osClient webhookBuildInterface
-	plugins  map[string]Plugin
-}
-
-type webhookBuildInterface interface {
-	CreateBuild(namespace string, build *api.Build) (*api.Build, error)
-	GetBuildConfig(namespace, name string) (*api.BuildConfig, error)
+	buildCreator      buildclient.BuildCreator
+	buildConfigGetter buildclient.BuildConfigGetter
+	plugins           map[string]Plugin
 }
 
 // urlVars holds parsed URL parts.
@@ -42,8 +39,12 @@ type urlVars struct {
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
-func NewController(osClient webhookBuildInterface, plugins map[string]Plugin) http.Handler {
-	return &controller{osClient: osClient, plugins: plugins}
+func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildCreator buildclient.BuildCreator, plugins map[string]Plugin) http.Handler {
+	return &controller{
+		buildConfigGetter: buildConfigGetter,
+		buildCreator:      buildCreator,
+		plugins:           plugins,
+	}
 }
 
 // ServeHTTP main REST service method.
@@ -54,7 +55,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	buildCfg, err := c.osClient.GetBuildConfig(uv.namespace, uv.buildConfigName)
+	buildCfg, err := c.buildConfigGetter.Get(uv.namespace, uv.buildConfigName)
 	if err != nil {
 		badRequest(w, err.Error())
 		return
@@ -73,8 +74,9 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !proceed {
 		return
 	}
-	build := util.GenerateBuildFromConfig(buildCfg, revision)
-	if _, err := c.osClient.CreateBuild(uv.namespace, build); err != nil {
+	build := util.GenerateBuildFromConfig(buildCfg, revision, nil)
+
+	if err := c.buildCreator.Create(uv.namespace, build); err != nil {
 		badRequest(w, err.Error())
 	}
 }
