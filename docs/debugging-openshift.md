@@ -21,13 +21,6 @@ System Environment
     
         $ systemctl stop firewalld
         
-1. Disable selinux  
-
-    Eventually this will not be necessary but we are currently focused on features and will be revisiting selinux policies in the future.
-
-        $ setenforce 0
-        
-
 Build Failures
 --------------
 

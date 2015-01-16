@@ -34,6 +34,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Env: []kapi.EnvVar{
 						{Name: "BUILD", Value: string(buildJSON)},
 					},
+					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+					Privileged: true,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicy{

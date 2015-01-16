@@ -81,6 +81,9 @@ func (c *NodeConfig) EnsureVolumeDir() {
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
 	// initialize Kubelet
+	// Allow privileged containers
+	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
+	kubelet.SetupCapabilities(true)
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
 	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(c.NodeHost), c.EtcdClient, cfg.Channel("etcd"))
 	k := kubelet.NewMainKubelet(

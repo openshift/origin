@@ -14,6 +14,17 @@ NOTE: OpenShift is in alpha and is not intended for production use yet. However 
 [![GoDoc](https://godoc.org/github.com/openshift/origin?status.png)](https://godoc.org/github.com/openshift/origin)
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
 
+Security Warning
+----------------
+OpenShift no longer requires SElinux to be disabled, however OpenShift is a system which runs Docker containers on your system.  In some cases (build operations and the registry service) it does so using privileged containers.  Furthermore those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they effectively have root access.  This is particularly relevant when running the OpenShift nodes directly on your host system.
+
+For more information, see these articles:
+
+* http://opensource.com/business/14/7/docker-security-selinux
+* https://docs.docker.com/articles/security/
+
+The OpenShift security model will continue to evolve and tighten as we head towards production ready code.
+
 Getting Started
 ---------------
 The simplest way to start is to run OpenShift Origin in a Docker container:
