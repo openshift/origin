@@ -51,6 +51,8 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Name:  "custom-build",
 					Image: strategy.Image,
 					Env:   containerEnv,
+					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+					Privileged: true,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicy{

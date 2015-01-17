@@ -9,6 +9,17 @@ Alternatively, if you are using the openshift/origin Docker container, please
 make sure you follow these instructions first:
 https://github.com/openshift/origin/blob/master/examples/sample-app/container-setup.md
 
+Security Warning
+----------------
+OpenShift no longer requires SElinux to be disabled, however OpenShift is a system which runs Docker containers on your system.  In some cases (build operations and the registry service) it does so using privileged containers.  Furthermore those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they effectively have root access.  This is particularly relevant when running the OpenShift nodes directly on your host system.
+
+For more information, see these articles:
+
+* http://opensource.com/business/14/7/docker-security-selinux
+* https://docs.docker.com/articles/security/
+
+The OpenShift security model will continue to evolve and tighten as we head towards production ready code.
+
 Setup
 -----
 At this stage of OpenShift 3 development, there are a few things that you will need to configure on the host where OpenShift is running in order for things to work.
@@ -32,16 +43,6 @@ If you are running docker as a service via `systemd`, you can add this argument 
 This will instruct the docker daemon to trust any docker registry on the 172.30.17.0/24 subnet, rather than requiring a certificate.
 
 These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.17.0/24.
-
-### SELinux Changes ###
-
-Presently the OpenShift 3 policies for SELinux are a work in progress. For the time being, to play around with the OpenShift system, it is easiest to temporarily disable SELinux:
-
-    $ sudo setenforce 0
-
-This can be re-enabled after you are done with the sample app:
-
-    $ sudo setenforce 1
 
 ### FirewallD Changes ###
 
