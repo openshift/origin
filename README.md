@@ -63,7 +63,7 @@ Once setup, you can:
 
 2.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
-        $ _output/local/bin/linux/amd64/openshift start
+        $ _output/local/go/bin/openshift start
 
 3.  In another terminal window, switch to the directory and start an app:
 
