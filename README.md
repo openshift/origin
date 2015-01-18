@@ -68,7 +68,7 @@ Once setup, you can:
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ _output/local/bin/linux/amd64/openshift kubectl create -f examples/hello-openshift/hello-pod.json
+        $ _output/local/go/bin/openshift kubectl create -f examples/hello-openshift/hello-pod.json
 
 Once that's done, open a browser on your machine and open [http://localhost:6061](http://localhost:6061); you should see a 'Welcome to OpenShift' message.
 
