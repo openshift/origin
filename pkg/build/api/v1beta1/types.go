@@ -264,13 +264,17 @@ type BuildTriggerPolicy struct {
 type BuildTriggerType string
 
 const (
-	// GithubWebHookType represents a trigger that launches builds on
+	// GithubWebHookBuildTriggerType represents a trigger that launches builds on
 	// Github webhook invocations
-	GithubWebHookType BuildTriggerType = "github"
+	GithubWebHookBuildTriggerType BuildTriggerType = "github"
 
-	// GenericWebHookType represents a trigger that launches builds on
+	// GenericWebHookBuildTriggerType represents a trigger that launches builds on
 	// generic webhook invocations
-	GenericWebHookType BuildTriggerType = "generic"
+	GenericWebHookBuildTriggerType BuildTriggerType = "generic"
+
+	// ImageChangeBuildTriggerType represents a trigger that launches builds on
+	// availability of a new version of an image
+	ImageChangeBuildTriggerType BuildTriggerType = "imageChange"
 )
 
 // BuildList is a collection of Builds.
