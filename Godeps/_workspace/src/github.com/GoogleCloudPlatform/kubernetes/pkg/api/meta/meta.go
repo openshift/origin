@@ -73,6 +73,29 @@ func Accessor(obj interface{}) (Interface, error) {
 	return a, nil
 }
 
+// TypeAccessor returns an interface that allows retrieving and modifying the APIVersion
+// and Kind of an in-memory internal object.
+func TypeAccessor(obj interface{}) (TypeInterface, error) {
+	v, err := conversion.EnforcePtr(obj)
+	if err != nil {
+		return nil, err
+	}
+	t := v.Type()
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("expected struct, but got %v: %v (%#v)", v.Kind(), t, v.Interface())
+	}
+
+	typeMeta := v.FieldByName("TypeMeta")
+	if !typeMeta.IsValid() {
+		return nil, fmt.Errorf("struct %v lacks embedded TypeMeta type", t)
+	}
+	a := &genericAccessor{}
+	if err := extractFromTypeMeta(typeMeta, a); err != nil {
+		return nil, fmt.Errorf("unable to find type fields on %#v: %v", typeMeta, err)
+	}
+	return a, nil
+}
+
 // NewAccessor returns a MetadataAccessor that can retrieve
 // or manipulate resource version on objects derived from core API
 // metadata concepts.

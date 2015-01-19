@@ -32,16 +32,14 @@ type VersionInterfaces struct {
 // not support that field (Name, UID, Namespace on lists) will be a no-op and return
 // a default value.
 type Interface interface {
+	TypeInterface
+
 	Namespace() string
 	SetNamespace(namespace string)
 	Name() string
 	SetName(name string)
 	UID() string
 	SetUID(uid string)
-	APIVersion() string
-	SetAPIVersion(version string)
-	Kind() string
-	SetKind(kind string)
 	ResourceVersion() string
 	SetResourceVersion(version string)
 	SelfLink() string
@@ -50,6 +48,16 @@ type Interface interface {
 	SetLabels(labels map[string]string)
 	Annotations() map[string]string
 	SetAnnotations(annotations map[string]string)
+}
+
+// TypeInterface exposes the type and APIVersion of versioned or internal API objects.
+// TODO: remove the need for this interface by refactoring runtime encoding to avoid
+// needing this object.
+type TypeInterface interface {
+	APIVersion() string
+	SetAPIVersion(version string)
+	Kind() string
+	SetKind(kind string)
 }
 
 // MetadataAccessor lets you work with object and list metadata from any of the versioned or
