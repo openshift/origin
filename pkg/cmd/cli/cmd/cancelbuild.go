@@ -40,7 +40,7 @@ Examples:
 			}
 
 			buildName := args[0]
-			namespace := getOriginNamespace(cmd)
+			namespace := GetOriginNamespace(cmd)
 
 			client, _, err := f.Clients(cmd)
 			checkErr(err)

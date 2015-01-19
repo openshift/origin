@@ -45,6 +45,10 @@ func (list errorList) Error() string {
 	return result
 }
 
+func (list errorList) Errors() []error {
+	return list
+}
+
 // SliceToError converts an []error into a "normal" error, or nil if the slice is empty.
 func SliceToError(errs []error) error {
 	if len(errs) == 0 {

@@ -22,7 +22,7 @@ func checkErr(err error) {
 	}
 }
 
-func getOriginNamespace(cmd *cobra.Command) string {
+func GetOriginNamespace(cmd *cobra.Command) string {
 	result := kapi.NamespaceDefault
 	if ns := kubecmd.GetFlagString(cmd, "namespace"); len(ns) > 0 {
 		result = ns
