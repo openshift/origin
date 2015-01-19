@@ -215,7 +215,7 @@ func start(cfg *config, args []string) error {
 
 		// always include the all-in-one server's web console as an allowed CORS origin
 		// always include localhost as an allowed CORS origin
-		cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, assetAddr, "localhost")
+		cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, assetAddr, "localhost", "127.0.0.1")
 
 		osmaster := &origin.MasterConfig{
 			BindAddr:              cfg.BindAddr.URL.Host,

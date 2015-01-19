@@ -309,9 +309,9 @@ func (c *MasterConfig) RunAssetServer() {
 				version.Get().GitCommit,
 				assets.GeneratedConfigHandler(
 					masterURL.Host,
-					OpenShiftAPIPrefixV1Beta1,
+					OpenShiftAPIPrefix,
 					k8sURL.Host,
-					"/api/v1beta1",
+					"/api",
 					assets.HTML5ModeHandler(
 						http.FileServer(
 							&assetfs.AssetFS{
