@@ -61,8 +61,11 @@ Examples:
 				} else {
 					// TODO: add a build log client method
 					response, err := client.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(buildName).Do().Raw()
-					checkErr(err)
-					glog.V(2).Infof("Build logs for %s:\n%v", buildName, string(response))
+					if err != nil {
+						glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
+					} else {
+						glog.V(2).Infof("Build logs for %s:\n%v", buildName, string(response))
+					}
 				}
 			}
 
