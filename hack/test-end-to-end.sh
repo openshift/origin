@@ -48,9 +48,6 @@ GO_OUT="${OS_ROOT}/_output/local/go/bin"
 
 # set path so OpenShift is available
 export PATH="${GO_OUT}:${PATH}"
-pushd "${GO_OUT}" > /dev/null
-ln -fs "$(pwd)/openshift" "osc"
-popd > /dev/null
 
 # teardown
 function teardown()

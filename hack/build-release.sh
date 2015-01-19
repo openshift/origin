@@ -35,12 +35,15 @@ gzip -f "${context}/archive.tar"
 cat "${context}/archive.tar.gz" | docker run -i --cidfile="${context}/cid" openshift/origin-release
 docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_ROOT}/_output/local"
 
-# copy the linux release back to the _output/go/bin dir
+# copy the linux release back to the _output/local/go/bin dir
 releases=$(find _output/local/releases/ -print | grep 'openshift-origin-.*-linux-' --color=never)
 if [[ $(echo $releases | wc -l) -ne 1 ]]; then
   echo "There should be exactly one Linux release tar in _output/local/releases"
   exit 1
 fi
+
 bindir="_output/local/go/bin"
 mkdir -p "${bindir}"
 tar mxzf "${releases}" -C "${bindir}"
+
+os::build::make_openshift_binary_symlinks

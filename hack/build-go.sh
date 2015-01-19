@@ -11,3 +11,4 @@ source "${OS_ROOT}/hack/common.sh"
 
 os::build::build_binaries "$@"
 os::build::place_bins
+os::build::make_openshift_binary_symlinks
