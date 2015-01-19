@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -47,17 +48,18 @@ func NewREST(b build.Registry, pn kclient.PodsNamespacer) apiserver.RESTStorage 
 func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	build, err := r.BuildRegistry.GetBuild(ctx, id)
 	if err != nil {
-		return "", fmt.Errorf("No such build: %v", err)
+		return "", errors.NewFieldNotFound("Build", id)
 	}
 
 	if len(build.PodName) == 0 {
-		return "", fmt.Errorf("build %v, does not have an associated pod name", id)
+		return "", errors.NewFieldRequired("Build.PodName", build.PodName)
 	}
 
 	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
 	if err != nil {
-		return "", fmt.Errorf("No such pod: %v", err)
+		return "", errors.NewFieldNotFound("Pod.Name", build.PodName)
 	}
+
 	buildPodID := build.PodName
 	buildPodHost := pod.Status.Host
 	buildPodNamespace := pod.Namespace
@@ -67,10 +69,23 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		Host: fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
 		Path: fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
 	}
-	if pod.Status.Phase == kapi.PodRunning && (build.Status == api.BuildStatusPending || build.Status == api.BuildStatusRunning) {
-		params := url.Values{"follow": []string{"1"}}
-		location.RawQuery = params.Encode()
+
+	if pod.Status.Phase != kapi.PodRunning {
+		return "", errors.NewFieldInvalid("Pod.Status", pod.Status.Phase, "must be Running")
 	}
+
+	switch build.Status {
+	case api.BuildStatusRunning:
+		location.RawQuery = url.Values{"follow": []string{"1"}}.Encode()
+	case api.BuildStatusComplete, api.BuildStatusFailed:
+		// Do not follow the Complete and Failed logs as the streaming already
+		// finished.
+	case api.BuildStatusPending:
+		return "", fmt.Errorf("unable to retrieve logs, the Build is in 'Pending' state")
+	default:
+		return "", errors.NewFieldInvalid("build.Status", build.Status, "must be Running")
+	}
+
 	if err != nil {
 		return "", err
 	}

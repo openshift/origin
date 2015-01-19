@@ -41,8 +41,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 			kubernetes.NodePort, kapi.NamespaceDefault),
 		api.BuildStatusFailed: fmt.Sprintf("//foo-host:%d/containerLogs/%s/foo-pod/foo-container",
 			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusPending: fmt.Sprintf("//foo-host:%d/containerLogs/%s/foo-pod/foo-container?follow=1",
-			kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusPending: "",
 		api.BuildStatusRunning: fmt.Sprintf("//foo-host:%d/containerLogs/%s/foo-pod/foo-container?follow=1",
 			kubernetes.NodePort, kapi.NamespaceDefault),
 	}
@@ -55,9 +54,18 @@ func TestRegistryResourceLocation(t *testing.T) {
 		storage := REST{&buildRegistry, &podControl{}}
 		redirector := apiserver.Redirector(&storage)
 		location, err := redirector.ResourceLocation(ctx, "foo")
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
+
+		switch buildStatus {
+		case api.BuildStatusPending:
+			if err == nil {
+				t.Errorf("Expected error when Build is in Pending state, got nothing")
+			}
+		default:
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 		}
+
 		if location != expectedLocation {
 			t.Errorf("Expected: %s, Got %s", expectedLocation, location)
 		}
