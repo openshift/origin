@@ -61,8 +61,9 @@ func TestApplySendsData(t *testing.T) {
 	received := make(chan bool, 1)
 	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		received <- true
-		if r.RequestURI != "/api/v1beta1/pods?namespace="+kapi.NamespaceDefault {
-			t.Errorf("Unexpected RESTClient RequestURI. Expected: %v, got: %v.", "/api/v1beta1/pods", r.RequestURI)
+		validUrl := "/api/v1beta1/ns/" + kapi.NamespaceDefault + "/pods"
+		if r.RequestURI != validUrl {
+			t.Errorf("Unexpected RESTClient RequestURI. Expected: %v, got: %v.", validUrl, r.RequestURI)
 		}
 	}))
 

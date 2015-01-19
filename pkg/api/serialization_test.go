@@ -154,7 +154,7 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 		t.Errorf("%v: %v", name, err)
 		return
 	}
-	if !reflect.DeepEqual(source, obj2) {
+	if !api.Semantic.DeepEqual(source, obj2) {
 		t.Errorf("1: %v: diff: %v", name, util.ObjectGoPrintDiff(source, obj2))
 		return
 	}
@@ -164,7 +164,7 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
-	if !reflect.DeepEqual(source, obj3) {
+	if !api.Semantic.DeepEqual(source, obj3) {
 		t.Errorf("3: %v: diff: %v", name, util.ObjectGoPrintDiff(source, obj3))
 		return
 	}
