@@ -78,6 +78,36 @@ type PolicyBinding struct {
 	RoleBindings map[string]RoleBinding `json:"roleBindings"`
 }
 
+type ResourceAccessReviewSpec struct {
+	// Verb is one of: get, list, watch, create, update, delete
+	Verb string `json:"verb"`
+	// ResourceKind is one of the existing resource types
+	ResourceKind string `json:"resourceKind"`
+	// Content is the actual content of the request for create and update
+	Content kruntime.EmbeddedObject `json:"content,omitempty"`
+	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
+	ResourceName string `json:"resourceName,omitempty"`
+}
+
+type ResourceAccessReviewStatus struct {
+	// Users is the list of users who can perform the action
+	Users []string `json:"users"`
+	// Groups is the list of groups who can perform the action
+	Groups []string `json:"groups"`
+	// EvaluationError is optional.  It indicates why a ResourceAccessReview failed during evaluation
+	EvaluationError string `json:"evaluationError,omitempty"`
+}
+
+// ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
+// action specified by spec
+type ResourceAccessReview struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty" `
+
+	Spec   ResourceAccessReviewSpec   `json:"spec"`
+	Status ResourceAccessReviewStatus `json:"status,omitempty"`
+}
+
 type PolicyList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`

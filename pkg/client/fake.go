@@ -75,3 +75,7 @@ func (c *Fake) RoleBindings(namespace string) RoleBindingInterface {
 func (c *Fake) PolicyBindings(namespace string) PolicyBindingInterface {
 	return &FakePolicyBindings{Fake: c}
 }
+
+func (c *Fake) ResourceAccessReviews(namespace string) ResourceAccessReviewInterface {
+	return &FakeResourceAccessReviews{Fake: c}
+}

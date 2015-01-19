@@ -77,6 +77,7 @@ import (
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 )
@@ -108,7 +109,8 @@ type MasterConfig struct {
 	// TODO Have MasterConfig take a fully formed Authorizer
 	MasterAuthorizationNamespace string
 
-	EtcdHelper tools.EtcdHelper
+	EtcdHelper      tools.EtcdHelper
+	RequestsToUsers *authcontext.RequestContextMap
 
 	AdmissionControl admission.Interface
 
@@ -207,6 +209,13 @@ func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
 	}
 }
 
+// RequestsTousers is needed in order for authentication and authorization to work.  It must be a singleton per process
+func (c *MasterConfig) EnsureRequestsToUsers() {
+	if c.RequestsToUsers == nil {
+		c.RequestsToUsers = authcontext.NewRequestContextMap()
+	}
+}
+
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(api.NamespaceDefault).Get)
@@ -214,6 +223,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	if err != nil {
 		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
+
+	c.EnsureRequestsToUsers()
 
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	imageEtcd := imageetcd.New(c.EtcdHelper, imageetcd.DefaultRegistryFunc(defaultRegistryFunc))
@@ -271,10 +282,11 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"clients":              clientregistry.NewREST(oauthEtcd),
 		"clientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 
-		"policies":       policyregistry.NewREST(authorizationEtcd),
-		"policyBindings": policybindingregistry.NewREST(authorizationEtcd),
-		"roles":          roleregistry.NewREST(authorizationEtcd),
-		"roleBindings":   rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"policies":              policyregistry.NewREST(authorizationEtcd),
+		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
+		"roles":                 roleregistry.NewREST(authorizationEtcd),
+		"roleBindings":          rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.getAuthorizer(c.RequestsToUsers)),
 	}
 
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
@@ -379,14 +391,14 @@ func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstal
 // information on the request, and an endpoint that only functions properly with an authenticated user.
 func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
 	// wrapHandlerWithAuthorization binds a handler that will force users to be authorized to perform the actions they are requesting
-	handler = c.wrapHandlerWithAuthorization(handler, requestsToUsers)
+	handler = c.wrapHandlerWithAuthorization(handler)
 
 	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
 	handler = wrapHandlerWithAuthentication(handler, authenticator, requestsToUsers)
 
 	// this requires the requests and users to be present
 	userContextMap := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
-		obj, found := requestsToUsers.Get(req)
+		obj, found := c.RequestsToUsers.Get(req)
 		if user, ok := obj.(userregistry.Info); found && ok {
 			return user, true
 		}
@@ -448,11 +460,17 @@ func wrapHandlerWithAuthentication(handler http.Handler, authenticator authentic
 		handler)
 }
 
-// TODO Have MasterConfig take a fully formed Authorizer
-func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler, requestsToUsers *authcontext.RequestContextMap) http.Handler {
+func (c *MasterConfig) getAuthorizer(requestsToUsers *authcontext.RequestContextMap) authorizer.Authorizer {
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers)
 	authorizer := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+
+	return authorizer
+}
+
+// TODO Have MasterConfig take a fully formed Authorizer
+func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler) http.Handler {
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(c.RequestsToUsers)
+	authorizer := c.getAuthorizer(c.RequestsToUsers)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
