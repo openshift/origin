@@ -3,9 +3,9 @@
 # Targets (see each target for more information):
 #   all: Build code.
 #   build: Build code.
-#   check: Run tests.
-#   test: Run tests.
-#   run: Run All-in-one server
+#   check: Run unit tests.
+#   test: Run all tests.
+#   run: Run all-in-one server
 #   clean: Clean up.
 #   api: Generate new api docs.
 
@@ -30,7 +30,7 @@ all build:
 	hack/build-go.sh $(WHAT)
 .PHONY: all build
 
-# Build and run tests.
+# Build and run unit tests
 #
 # Args:
 #   WHAT: Directory names to test.  All *_test.go files under these
@@ -40,11 +40,26 @@ all build:
 #
 # Example:
 #   make check
-#   make test
 #   make check WHAT=pkg/build GOFLAGS=-v
-check test:
+check:
 	hack/test-go.sh $(WHAT) $(TESTS)
-.PHONY: check test
+.PHONY: check
+
+# Build and run the complete test-suite.
+#
+# Args:
+#   GOFLAGS: Extra flags to pass to 'go' when building.
+#
+# Example:
+#   make test
+#   make test GOFLAGS=-v
+test: export KUBE_COVER= -cover -covermode=atomic
+test: export KUBE_RACE=  -race
+test: build check
+	hack/test-cmd.sh
+	hack/test-integration.sh $(GOFLAGS)
+	hack/test-end-to-end.sh
+.PHONY: test
 
 # Run All-in-one OpenShift server.
 #

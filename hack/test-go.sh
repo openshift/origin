@@ -27,20 +27,14 @@ find_test_dirs() {
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }
 
-# there is currently a race in the coverage code in tip.  Remove this when it is fixed
-# see https://code.google.com/p/go/issues/detail?id=8630 for details.
-if [ "${TRAVIS_GO_VERSION-}" == "tip" ]; then
-  KUBE_COVER=""
-else
-  # -covermode=atomic becomes default with -race in Go >=1.3
-  if [ -z ${KUBE_COVER+x} ]; then
-    KUBE_COVER="-cover -covermode=atomic"
-  fi
+# -covermode=atomic becomes default with -race in Go >=1.3
+if [ -z ${KUBE_COVER+x} ]; then
+  KUBE_COVER="" #"-cover -covermode=atomic"
 fi
 KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 45s}
 
 if [ -z ${KUBE_RACE+x} ]; then
-  KUBE_RACE="-race"
+  KUBE_RACE="" #"-race"
 fi
 
 if [ "${1-}" != "" ]; then
