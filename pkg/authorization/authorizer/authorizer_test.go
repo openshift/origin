@@ -1,6 +1,7 @@
 package authorizer
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -22,7 +23,7 @@ type authorizeTest struct {
 	namespacedPolicyBinding     []authorizationapi.PolicyBinding
 	policyBindingRetrievalError error
 
-	attributes *openshiftAuthorizationAttributes
+	attributes *DefaultAuthorizationAttributes
 
 	expectedAllowed bool
 	expectedReason  string
@@ -31,13 +32,13 @@ type authorizeTest struct {
 
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "ClusterAdmin",
 			},
-			verb:         "update",
-			resourceKind: "deploymentConfigs",
-			namespace:    testMasterNamespace,
+			Verb:         "update",
+			ResourceKind: "deploymentConfigs",
+			Namespace:    testMasterNamespace,
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in master",
@@ -48,13 +49,13 @@ func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "SomeYahoo",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    testMasterNamespace,
+			Verb:         "get",
+			ResourceKind: "pods",
+			Namespace:    testMasterNamespace,
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -65,13 +66,13 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 
 func TestNegationKinds(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Valerie",
 			},
-			verb:         "get",
-			resourceKind: "policyBindings",
-			namespace:    "adze",
+			Verb:         "get",
+			ResourceKind: "policyBindings",
+			Namespace:    "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -83,13 +84,13 @@ func TestNegationKinds(t *testing.T) {
 
 func TestNegationVerbs(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Ellen",
 			},
-			verb:         "update",
-			resourceKind: "roleBindings",
-			namespace:    "adze",
+			Verb:         "update",
+			ResourceKind: "roleBindings",
+			Namespace:    "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -101,13 +102,13 @@ func TestNegationVerbs(t *testing.T) {
 
 func TestProjectAdminEditPolicy(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Anna",
 			},
-			verb:         "update",
-			resourceKind: "roles",
-			namespace:    "adze",
+			Verb:         "update",
+			ResourceKind: "roles",
+			Namespace:    "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -119,13 +120,13 @@ func TestProjectAdminEditPolicy(t *testing.T) {
 
 func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "ClusterAdmin",
 			},
-			verb:         "update",
-			resourceKind: "roles",
-			namespace:    "adze",
+			Verb:         "update",
+			ResourceKind: "roles",
+			Namespace:    "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in master",
@@ -137,13 +138,13 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 
 func TestAntiAdminDenyLocalPolicy(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "PowerlessUser",
 			},
-			verb:         "update",
-			resourceKind: "policies",
-			namespace:    "adze",
+			Verb:         "update",
+			ResourceKind: "policies",
+			Namespace:    "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by rule in adze",
@@ -155,13 +156,13 @@ func TestAntiAdminDenyLocalPolicy(t *testing.T) {
 
 func TestDeniesOutrankAllows(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "TeasedAdmin",
 			},
-			verb:         "update",
-			resourceKind: "policies",
-			namespace:    "adze",
+			Verb:         "update",
+			ResourceKind: "policies",
+			Namespace:    "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by rule in adze",
@@ -173,13 +174,13 @@ func TestDeniesOutrankAllows(t *testing.T) {
 
 func TestResourceKindRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Rachel",
 			},
-			verb:         "get",
-			resourceKind: "buildConfigs",
-			namespace:    "adze",
+			Verb:         "get",
+			ResourceKind: "buildConfigs",
+			Namespace:    "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -189,13 +190,13 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Rachel",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    "adze",
+			Verb:         "get",
+			ResourceKind: "pods",
+			Namespace:    "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -207,13 +208,13 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 
 func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Rachel",
 			},
-			verb:         "get",
-			resourceKind: "buildConfigs",
-			namespace:    "backsaw",
+			Verb:         "get",
+			ResourceKind: "buildConfigs",
+			Namespace:    "backsaw",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -225,13 +226,13 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 
 func TestVerbRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Valerie",
 			},
-			verb:         "get",
-			resourceKind: "buildConfigs",
-			namespace:    "adze",
+			Verb:         "get",
+			ResourceKind: "buildConfigs",
+			Namespace:    "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -241,13 +242,13 @@ func TestVerbRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &authenticationapi.DefaultUserInfo{
 				Name: "Valerie",
 			},
-			verb:         "create",
-			resourceKind: "buildConfigs",
-			namespace:    "adze",
+			Verb:         "create",
+			ResourceKind: "buildConfigs",
+			Namespace:    "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -290,6 +291,11 @@ func (test *authorizeTest) test(t *testing.T) {
 
 func matchString(expected, actual string, field string, t *testing.T) {
 	if expected != actual {
+		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
+	}
+}
+func matchStringSlice(expected, actual []string, field string, t *testing.T) {
+	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
 	}
 }
@@ -344,7 +350,8 @@ func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.Pol
 							Namespace: testMasterNamespace,
 						},
 						// until we get components authenticating, mssing users will be given all rights.  Yay, security!
-						UserNames: append(make([]string, 0), "ClusterAdmin"),
+						UserNames:  append(make([]string, 0), "ClusterAdmin"),
+						GroupNames: append(make([]string, 0), "SystemComponents"),
 					},
 				},
 			},
