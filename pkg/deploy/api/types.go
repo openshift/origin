@@ -206,3 +206,24 @@ type DeploymentConfigList struct {
 	kapi.ListMeta `json:"metadata,omitempty"`
 	Items         []DeploymentConfig `json:"items"`
 }
+
+// DeploymentConfigRollback provides the input to rollback generation.
+type DeploymentConfigRollback struct {
+	kapi.TypeMeta `json:",inline"`
+	// Spec defines the options to rollback generation.
+	Spec DeploymentConfigRollbackSpec `json:"spec"`
+}
+
+// DeploymentConfigRollbackSpec represents the options for rollback generation.
+type DeploymentConfigRollbackSpec struct {
+	// From points to a ReplicationController which is a deployment.
+	From kapi.ObjectReference `json:"from"`
+	// IncludeTriggers specifies whether to include config Triggers.
+	IncludeTriggers bool `json:"includeTriggers`
+	// IncludeTemplate specifies whether to include the PodTemplateSpec.
+	IncludeTemplate bool `json:"includeTemplate`
+	// IncludeReplicationMeta specifies whether to include the replica count and selector.
+	IncludeReplicationMeta bool `json:"includeReplicationMeta`
+	// IncludeStrategy specifies whether to include the deployment Strategy.
+	IncludeStrategy bool `json:"includeStrategy`
+}

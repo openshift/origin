@@ -4,17 +4,11 @@
 
 In OpenShift, deployment is an update to a single replication controller's pod template based on triggered events. The deployment subsystem provides:
 
-*  Ability to declaratively define a pod template deployment configuration and see the system eventually deploy the desired configuration for that template
-*  Ability to rollback to a previous pod template
+*  [Declarative definition](#defining a deploymentConfig) of a desired deployment configuration which drives automated deployments by the system
+*  [Triggers](#triggers) which drive new deployments in response to events
+*  [Rollbacks](#rollbacks) to a previous deployment
+*  [Strategies](strategies) for deployment rollout behavior which are user-customizable
 *  Audit history of deployed pod template configurations
-*  Ability to specify that certain events should trigger a new deployment:
-    *  When a new version of a referenced image becomes available
-    *  When an update to the pod template is made
-*  Ability to select from multiple deployment strategies, such as:
-    *  Canary or A/B deployment
-    *  Rolling deployment
-    *  User-defined strategy; allowing ad-hoc strategies or decoration of existing strategies
-*  Ability to manage multiple replication controllers with the same mechanism
 
 #### Concepts
 
@@ -170,3 +164,41 @@ Additionally, the following environment variables are provided by OpenShift to t
 * `OPENSHIFT_DEPLOYMENT_NAMESPACE` - the namespace of the `replicationController` representing the new `deployment`
 
 The replica count of the `replicationController` for the new deployment will be 0 initially. The responsibility of the `strategy` is to make the new `deployment` live using whatever logic best serves the needs of the user.
+
+## Rollbacks
+
+Rolling a deployment back to a previous state is a two step process accomplished by:
+
+1. POSTing a `rollback` API object to a special endpoint, which generates and returns a new `deploymentConfig` representing the rollback state
+2. POSTing the new `deploymentConfig` to the API server
+
+The `rollback` API object configures the generation process and provides the scope of the rollback. For example, given a previous deployment `deployment-1` and the current deployment `deployment-2`:
+
+```
+{
+  "metadata": {
+    "name": "rollback-1",
+    "namespace": "default"
+  },
+  "kind": "DeploymentConfigRollback",
+  "apiVersion": "v1beta1",
+  "spec": {
+    "from": {
+      "name": "deployment-1"
+    },
+    "includeTemplate": true,
+    "includeTriggers": false,
+    "includeReplicationMeta": false,
+    "includeStrategy": true
+  }
+}
+```
+
+With this rollback specification, a new `deploymentConfig` named `deployment-3` will be generated, containing the details of `deployment-2` with the specified portions of `deployment-1` overlayed. The generation options are:
+
+* `includeTemplate` - whether to roll back `podTemplate` of the `deploymentConfig`
+* `includeTriggers` - whether to roll back `triggers` of the `deploymentConfig`
+* `includeReplicationMeta` - whether to roll back `replicas` and `selector` of the `deploymentConfig`
+* `includeStrategy` - whether to roll back the `strategy` of the `deploymentConfig`
+
+Note that `namespace` is specified on the `rollback` itself, and will be used as the namespace from which to obtain the `deployment` specified in `from`.

@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"strconv"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -55,9 +53,13 @@ func (c *DeploymentConfigController) HandleDeploymentConfig() {
 		return
 	}
 
-	err = c.deploy(config)
-	if err != nil {
-		glog.V(2).Infof("Error deploying config %s: %v", config.Name, err)
+	if deployment, err := deployutil.MakeDeployment(config, c.Codec); err != nil {
+		glog.V(2).Infof("Error making deployment from config %s: %v", config.Name, err)
+	} else {
+		glog.V(2).Infof("Creating new deployment from config %s", config.Name)
+		if _, deployErr := c.DeploymentInterface.CreateDeployment(config.Namespace, deployment); deployErr != nil {
+			glog.V(2).Infof("Error deploying config %s: %v", config.Name, deployErr)
+		}
 	}
 }
 
@@ -68,11 +70,8 @@ func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentCo
 		return false, nil
 	}
 
-	deployment, err := c.latestDeploymentForConfig(config)
-	if deployment != nil {
-		glog.V(4).Infof("Shouldn't deploy because a deployment '%s' already exists for latest config %s", deployment.Name, config.Name)
-		return false, nil
-	}
+	latestDeploymentID := deployutil.LatestDeploymentIDForConfig(config)
+	deployment, err := c.DeploymentInterface.GetDeployment(config.Namespace, latestDeploymentID)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -83,51 +82,6 @@ func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentCo
 		return false, err
 	}
 
-	// TODO: what state would this represent?
+	glog.V(4).Infof("Shouldn't deploy because a deployment '%s' already exists for config %s", deployment.Name, config.Name)
 	return false, nil
-}
-
-// TODO: reduce code duplication between trigger and config controllers
-func (c *DeploymentConfigController) latestDeploymentForConfig(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
-	latestDeploymentID := deployutil.LatestDeploymentIDForConfig(config)
-	deployment, err := c.DeploymentInterface.GetDeployment(config.Namespace, latestDeploymentID)
-	if err != nil {
-		// TODO: probably some error / race handling to do here
-		return nil, err
-	}
-
-	return deployment, nil
-}
-
-// deploy performs the work of actually creating a Deployment from the given DeploymentConfig.
-func (c *DeploymentConfigController) deploy(config *deployapi.DeploymentConfig) error {
-	var err error
-	var encodedConfig string
-
-	if encodedConfig, err = deployutil.EncodeDeploymentConfig(config, c.Codec); err != nil {
-		return err
-	}
-
-	deployment := &kapi.ReplicationController{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: deployutil.LatestDeploymentIDForConfig(config),
-			Annotations: map[string]string{
-				deployapi.DeploymentConfigAnnotation:        config.Name,
-				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
-				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
-				deployapi.DeploymentVersionAnnotation:       strconv.Itoa(config.LatestVersion),
-			},
-			Labels: config.Labels,
-		},
-		Spec: config.Template.ControllerTemplate,
-	}
-
-	deployment.Spec.Replicas = 0
-	deployment.Spec.Template.Labels[deployapi.DeploymentConfigLabel] = config.Name
-	// TODO: Switch this to an annotation once upstream supports annotations on a PodTemplate
-	deployment.Spec.Template.Labels[deployapi.DeploymentLabel] = deployment.Name
-
-	glog.V(4).Infof("Creating new deployment from config %s", config.Name)
-	_, err = c.DeploymentInterface.CreateDeployment(config.Namespace, deployment)
-	return err
 }
