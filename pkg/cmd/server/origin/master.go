@@ -78,8 +78,10 @@ import (
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
+	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 )
 
 const (
@@ -295,10 +297,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientregistry.NewREST(oauthEtcd),
 		"oAuthClientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 
-		"policies":       policyregistry.NewREST(authorizationEtcd),
-		"policyBindings": policybindingregistry.NewREST(authorizationEtcd),
-		"roles":          roleregistry.NewREST(authorizationEtcd),
-		"roleBindings":   rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"policies":              policyregistry.NewREST(authorizationEtcd),
+		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
+		"roles":                 roleregistry.NewREST(authorizationEtcd),
+		"roleBindings":          rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
+		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
 	}
 
 	admissionControl := admit.NewAlwaysAdmit()

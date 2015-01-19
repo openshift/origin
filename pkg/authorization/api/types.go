@@ -133,6 +133,63 @@ type PolicyBinding struct {
 	RoleBindings map[string]RoleBinding
 }
 
+// ResourceAccessReviewResponse describes who can perform the action
+type ResourceAccessReviewResponse struct {
+	kapi.TypeMeta
+
+	// Namespace is the namespace used for the access review
+	Namespace string
+	// Users is the list of users who can perform the action
+	Users []string
+	// Groups is the list of groups who can perform the action
+	Groups []string
+}
+
+// ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
+// action specified by spec
+type ResourceAccessReview struct {
+	kapi.TypeMeta
+
+	// Verb is one of: get, list, watch, create, update, delete
+	Verb string
+	// Resource is one of the existing resource types
+	Resource string
+	// Content is the actual content of the request for create and update
+	Content kruntime.EmbeddedObject
+	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
+	ResourceName string
+}
+
+// SubjectAccessReviewResponse describes whether or not a user or group can perform an action
+type SubjectAccessReviewResponse struct {
+	kapi.TypeMeta
+
+	// Namespace is the namespace used for the access review
+	Namespace string
+	// Allowed is required.  True if the action would be allowed, false otherwise.
+	Allowed bool
+	// Reason is optional.  It indicates why a request was allowed or denied.
+	Reason string
+}
+
+// SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
+type SubjectAccessReview struct {
+	kapi.TypeMeta
+
+	// Verb is one of: get, list, watch, create, update, delete
+	Verb string
+	// Resource is one of the existing resource types
+	Resource string
+	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
+	User string
+	// Groups is optional.  Groups is the list of groups to which the User belongs.
+	Groups []string
+	// Content is the actual content of the request for create and update
+	Content kruntime.EmbeddedObject
+	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
+	ResourceName string
+}
+
 // PolicyList is a collection of Policies
 type PolicyList struct {
 	kapi.TypeMeta

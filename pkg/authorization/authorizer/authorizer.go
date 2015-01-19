@@ -21,6 +21,7 @@ import (
 
 type Authorizer interface {
 	Authorize(a AuthorizationAttributes) (allowed bool, reason string, err error)
+	GetAllowedSubjects(attributes AuthorizationAttributes) ([]string, []string, error)
 }
 
 type AuthorizationAttributeBuilder interface {
@@ -47,13 +48,13 @@ func NewAuthorizer(masterAuthorizationNamespace string, policyRuleBindingRegistr
 	return &openshiftAuthorizer{masterAuthorizationNamespace, policyRuleBindingRegistry, policyBindingRegistry}
 }
 
-type openshiftAuthorizationAttributes struct {
-	user              user.Info
-	verb              string
-	resource          string
-	namespace         string
-	resourceName      string
-	requestAttributes interface{}
+type DefaultAuthorizationAttributes struct {
+	User              user.Info
+	Verb              string
+	Resource          string
+	ResourceName      string
+	Namespace         string
+	RequestAttributes interface{}
 }
 
 type openshiftAuthorizationAttributeBuilder struct {
@@ -170,12 +171,61 @@ func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user use
 
 	return effectiveRules, kerrors.NewAggregate(errs)
 }
+func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace string, passedAttributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
+
+	roleBindings, err := a.getRoleBindings(namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	users := util.StringSet{}
+	groups := util.StringSet{}
+	for _, roleBinding := range roleBindings {
+		role, err := a.getRole(roleBinding)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, rule := range role.Rules {
+			matches, err := attributes.RuleMatches(rule)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if matches {
+				users.Insert(roleBinding.UserNames...)
+				groups.Insert(roleBinding.GroupNames...)
+			}
+		}
+	}
+
+	return users, groups, nil
+}
+
+func (a *openshiftAuthorizer) GetAllowedSubjects(attributes AuthorizationAttributes) ([]string, []string, error) {
+	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(a.masterAuthorizationNamespace, attributes)
+	if err != nil {
+		return nil, nil, err
+	}
+	localUsers, localGroups, err := a.getAllowedSubjectsFromNamespaceBindings(attributes.GetNamespace(), attributes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	users := util.StringSet{}
+	users.Insert(globalUsers.List()...)
+	users.Insert(localUsers.List()...)
+
+	groups := util.StringSet{}
+	groups.Insert(globalGroups.List()...)
+	groups.Insert(localGroups.List()...)
+
+	return users.List(), groups.List(), nil
+}
 
 func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes) (bool, string, error) {
-	attributes, ok := passedAttributes.(openshiftAuthorizationAttributes)
-	if !ok {
-		return false, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
-	}
+	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	// keep track of errors in case we are unable to authorize the action.
 	// It is entirely possible to get an error and be able to continue determine authorization status in spite of it.
@@ -211,15 +261,12 @@ func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes
 // but errors are not always fatal to the authorization process.  It is entirely possible to get an error and be able to continue determine authorization
 // status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
 func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, passedAttributes AuthorizationAttributes) (bool, string, error) {
-	attributes, ok := passedAttributes.(openshiftAuthorizationAttributes)
-	if !ok {
-		return false, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
-	}
+	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	allRules, ruleRetrievalError := a.getEffectivePolicyRules(namespace, attributes.GetUserInfo())
 
 	for _, rule := range allRules {
-		matches, err := attributes.ruleMatches(rule)
+		matches, err := attributes.RuleMatches(rule)
 		if err != nil {
 			return false, "", err
 		}
@@ -231,7 +278,25 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 	return false, "", ruleRetrievalError
 }
 
-func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.PolicyRule) (bool, error) {
+// TODO this may or may not be the behavior we want for managing rules.  As a for instance, a verb might be specified
+// that our attributes builder will never satisfy.  For now, I think gets us close.  Maybe a warning message of some kind?
+func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttributes) *DefaultAuthorizationAttributes {
+	attributes, ok := passedAttributes.(*DefaultAuthorizationAttributes)
+	if !ok {
+		attributes = &DefaultAuthorizationAttributes{
+			Namespace:         passedAttributes.GetNamespace(),
+			Verb:              passedAttributes.GetVerb(),
+			RequestAttributes: passedAttributes.GetRequestAttributes(),
+			Resource:          passedAttributes.GetResource(),
+			ResourceName:      passedAttributes.GetResourceName(),
+			User:              passedAttributes.GetUserInfo(),
+		}
+	}
+
+	return attributes
+}
+
+func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.PolicyRule) (bool, error) {
 	allowedResourceTypes := resolveResources(rule)
 
 	if a.verbMatches(util.NewStringSet(rule.Verbs...)) {
@@ -270,11 +335,11 @@ func resolveResources(rule authorizationapi.PolicyRule) util.StringSet {
 	return ret
 }
 
-func (a openshiftAuthorizationAttributes) verbMatches(verbs util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) verbMatches(verbs util.StringSet) bool {
 	return verbs.Has(authorizationapi.VerbAll) || verbs.Has(strings.ToLower(a.GetVerb()))
 }
 
-func (a openshiftAuthorizationAttributes) resourceMatches(allowedResourceTypes util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes util.StringSet) bool {
 	return allowedResourceTypes.Has(authorizationapi.ResourceAll) || allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
 }
 
@@ -282,7 +347,7 @@ func (a openshiftAuthorizationAttributes) resourceMatches(allowedResourceTypes u
 // An empty string in the whitelist should only match the action's resourceName if the resourceName itself is empty string.  This behavior allows for the
 // combination of a whitelist for gets in the same rule as a list that won't have a resourceName.  I don't recommend writing such a rule, but we do
 // handle it like you'd expect: white list is respected for gets while not preventing the list you explicitly asked for.
-func (a openshiftAuthorizationAttributes) nameMatches(allowedResourceNames util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames util.StringSet) bool {
 	if len(allowedResourceNames) == 0 {
 		return true
 	}
@@ -290,28 +355,25 @@ func (a openshiftAuthorizationAttributes) nameMatches(allowedResourceNames util.
 	return allowedResourceNames.Has(a.GetResourceName())
 }
 
-func (a openshiftAuthorizationAttributes) GetUserInfo() user.Info {
-	return a.user
+func (a DefaultAuthorizationAttributes) GetUserInfo() user.Info {
+	return a.User
+}
+func (a DefaultAuthorizationAttributes) GetVerb() string {
+	return a.Verb
+}
+func (a DefaultAuthorizationAttributes) GetResource() string {
+	return a.Resource
 }
 
-func (a openshiftAuthorizationAttributes) GetVerb() string {
-	return a.verb
+func (a DefaultAuthorizationAttributes) GetResourceName() string {
+	return a.ResourceName
 }
 
-func (a openshiftAuthorizationAttributes) GetResource() string {
-	return a.resource
+func (a DefaultAuthorizationAttributes) GetNamespace() string {
+	return a.Namespace
 }
-
-func (a openshiftAuthorizationAttributes) GetResourceName() string {
-	return a.resourceName
-}
-
-func (a openshiftAuthorizationAttributes) GetNamespace() string {
-	return a.namespace
-}
-
-func (a openshiftAuthorizationAttributes) GetRequestAttributes() interface{} {
-	return a.requestAttributes
+func (a DefaultAuthorizationAttributes) GetRequestAttributes() interface{} {
+	return a.RequestAttributes
 }
 
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
@@ -329,13 +391,13 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		return nil, errors.New("wrong type returned for user")
 	}
 
-	return openshiftAuthorizationAttributes{
-		user:              userInfo,
-		verb:              requestInfo.Verb,
-		resource:          requestInfo.Resource,
-		namespace:         requestInfo.Namespace,
-		resourceName:      requestInfo.Name,
-		requestAttributes: nil,
+	return DefaultAuthorizationAttributes{
+		User:              userInfo,
+		Verb:              requestInfo.Verb,
+		Resource:          requestInfo.Resource,
+		ResourceName:      requestInfo.Name,
+		Namespace:         requestInfo.Namespace,
+		RequestAttributes: nil,
 	}, nil
 }
 

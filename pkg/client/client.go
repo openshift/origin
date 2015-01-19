@@ -31,6 +31,8 @@ type Interface interface {
 	RolesNamespacer
 	RoleBindingsNamespacer
 	PolicyBindingsNamespacer
+	ResourceAccessReviewsNamespacer
+	SubjectAccessReviewsNamespacer
 }
 
 func (c *Client) Builds(namespace string) BuildInterface {
@@ -109,6 +111,14 @@ func (c *Client) Roles(namespace string) RoleInterface {
 
 func (c *Client) RoleBindings(namespace string) RoleBindingInterface {
 	return newRoleBindings(c, namespace)
+}
+
+func (c *Client) ResourceAccessReviews(namespace string) ResourceAccessReviewInterface {
+	return newResourceAccessReviews(c, namespace)
+}
+
+func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
+	return newSubjectAccessReviews(c, namespace)
 }
 
 // Client is an OpenShift client object
