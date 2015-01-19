@@ -1,126 +1,121 @@
-OpenShift 3 Alpha
-=================
-
-This is the source repository for the next version of OpenShift - the third architectural revision.
-It is based around [Docker](https://www.docker.io) containers and images and the
-[Kubernetes](https://github.com/GoogleCloudPlatform/kubernetes) container management solution.
-OpenShift adds developer centric and organization centric workflows on top of Kubernetes, and much
-of the core functionality of OpenShift is designed as plugins to the core Kubernetes concepts.
-
-Please see the [OpenShift 3 Project Enhancement Proposal (PEP)](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md) for a deeper discussion of the features you see here.
-
-NOTE: OpenShift is in alpha and is not intended for production use yet. However we welcome feedback and testing as we approach our first beta.  The [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev) is a great way to tune in.
+OpenShift Application Platform
+==============================
 
 [![GoDoc](https://godoc.org/github.com/openshift/origin?status.png)](https://godoc.org/github.com/openshift/origin)
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
 
-Security Warning
-----------------
-OpenShift no longer requires SElinux to be disabled, however OpenShift is a system which runs Docker containers on your system.  In some cases (build operations and the registry service) it does so using privileged containers.  Furthermore those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they effectively have root access.  This is particularly relevant when running the OpenShift nodes directly on your host system.
+This is the source repository for [OpenShift 3](https://openshift.github.io), based on top of [Docker](https://www.docker.io) containers and the
+[Kubernetes](https://github.com/GoogleCloudPlatform/kubernetes) container cluster manager.
+OpenShift adds developer and operational centric tools top of Kubernetes to enable rapid application development,
+easy deployment and scaling, and long-term lifecycle maintenance for small and large teams and applications.
 
-For more information, see these articles:
+**Features:**
+
+* Push source code to the platform and have deployments automatically occur
+* Easy to use client tools for building web applications from source code
+  * Templatize the components of your system, reuse them, and iteratively deploy them over time
+* Centralized administration and management of application component libraries
+  * Roll out changes to software stacks to your entire organization in a controlled fashion
+* Team and user isolation of containers, builds, and network communication in an easy multi-tenancy system
+  * Limit, track, and manage the resources teams are using
+
+**Learn More:**
+
+* **[Technical Architecture Presentation](https://docs.google.com/presentation/d/1Isp5UeQZTo3gh6e59FMYmMs_V9QIQeBelmbyHIJ1H_g/pub?start=false&loop=false&delayms=3000)**
+* **[System Architecture](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md)** design document
+* The **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
+* **[Public Documentation](http://docs.openshift.org/latest/welcome/index.html)** site
+
+For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
+
+NOTE: OpenShift is in alpha and is not yet intended for production use. However we welcome feedback, suggestions, and testing as we approach our first beta.
+
+
+Security Warning!!!
+-------------------
+OpenShift is a system which runs Docker containers on your machine.  In some cases (build operations and the registry service) it does so using privileged containers.  Those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they have effective root access.  This is particularly relevant when running the OpenShift as a node directly on your laptop or primary workstation.  Only run code you trust.
+
+For more information on the security of containers, see these articles:
 
 * http://opensource.com/business/14/7/docker-security-selinux
 * https://docs.docker.com/articles/security/
 
-The OpenShift security model will continue to evolve and tighten as we head towards production ready code.
+Running untrusted containers will become less scary as improvements are made upstream to Docker and Kubernetes, but until then please be conscious of the images you run.  Consider using images from trusted parties, building them yourself on OpenShift, or only running containers that run as non-root users.
+
 
 Getting Started
 ---------------
-The simplest way to start is to run OpenShift Origin in a Docker container:
+The simplest way to run OpenShift Origin is in a Docker container:
 
     $ docker run -d --name "openshift-origin" --net=host --privileged \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    openshift/origin start
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v /tmp/openshift:/tmp/openshift \
+        openshift/origin start
 
-Note that this won't hold any data after a restart, so you'll need to use a data
-container or mount a volume at `/var/lib/openshift` to preserve that data. For
-example, create a `/var/lib/openshift` folder on your Docker host, and then
-start origin with the following:
+(you'll need to create the /tmp/openshift directory the first time).
 
-    $ docker run -d --name "openshift-origin" --net=host --privileged \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -v /var/lib/openshift:/var/lib/openshift \
-    openshift/origin start
-
-Once the container is started, you will likely want to attach to it in order to
-execute commands:
+Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ docker exec -it openshift-origin bash
-    $ openshift cli --help
+    $ osc --help
+
 
 ### Start Developing
 
-You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binary](CONTRIBUTING.adoc#download-from-github).
+You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binaries](CONTRIBUTING.adoc#download-from-github).
 
 First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
 
-Once setup, you can:
+Once setup with a Go development environment and Docker, you can:
 
-1.  Run a build
+1.  Build the source code
 
         $ make clean build
 
-2.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
+2.  Start the OpenShift server
 
-        $ _output/local/go/bin/openshift start
+        $ make run
 
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ _output/local/go/bin/openshift kubectl create -f examples/hello-openshift/hello-pod.json
+        $ _output/local/go/bin/openshift cli create -f examples/hello-openshift/hello-pod.json
 
-Once that's done, open a browser on your machine and open [http://localhost:6061](http://localhost:6061); you should see a 'Welcome to OpenShift' message.
+In your browser, go to [http://localhost:6061](http://localhost:6061) and you should see 'Welcome to OpenShift'.
 
-### How Does This Work?
 
-This example runs the ['openshift/hello-openshift' Docker image](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L11) inside a Docker container, but managed by OpenShift and Kubernetes.
+### What's Just Happened?
 
-* At the Docker level, that image [binds to port 8080](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L16) within a container and [prints out a simple 'Hello OpenShift' message on access](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L9).
+The example above starts the ['openshift/hello-openshift' Docker image](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L11) inside a Docker container, but managed by OpenShift and Kubernetes.
+
+* At the Docker level, that image [listens on port 8080](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L16) within a container and [prints out a simple 'Hello OpenShift' message on access](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello_openshift.go#L9).
 * At the Kubernetes level, we [map that bound port in the container](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L13) [to port 6061 on the host](https://github.com/openshift/origin/blob/master/examples/hello-openshift/hello-pod.json#L14) so that we can access it via the host browser.
 * When you created the container, Kubernetes decided which host to place the container on by looking at the available hosts and selecting one with available space.  The agent that runs on each node (part of the OpenShift all-in-one binary, called the Kubelet) saw that it was now supposed to run the container and instructed Docker to start the container.
 
-OpenShift brings all of these pieces (and a client) together in a single, easy to use binary.  The following examples show the other OpenShift specific features that live above the Kubernetes runtime like image building and deployment flows.
+OpenShift brings all of these pieces (and the client) together in a single, easy to use binary.  The following examples show the other OpenShift specific features that live above the Kubernetes runtime like image building and deployment flows.
 
-### Other Examples
 
-* [OpenShift full walkthrough](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md)
+### Next Steps
+
+We highly recommend trying out the [OpenShift walkthrough](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md), which shows some of the lower level pieces of of OpenShift that will be the foundation for user applications.  The walkthrough is accompanied by a blog series on [blog.openshift.com](https://blog.openshift.com/openshift-v3-deep-dive-docker-kubernetes/) that goes into more detail.  It's a great place to start, albeit at a lower level than OpenShift 2.
+
+Both OpenShift and Kubernetes have a strong focus on documentation - see the following for more information about them:
+
+* [OpenShift Documentation](http://docs.openshift.org/latest/welcome/index.html)
+* [Kubernetes Getting Started](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md)
+* [Kubernetes Documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/README.md)
+
+You can see some other examples of using Kubernetes at a lower level - stay tuned for more high level OpenShift examples as well:
+
 * [Kubernetes walkthrough](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/walkthrough)
 * [Kubernetes guestbook](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/guestbook)
-* [OpenShift guestbook template](https://github.com/openshift/origin/blob/master/examples/guestbook) takes the previous example and templatizes it
+* [OpenShift guestbook template](https://github.com/openshift/origin/blob/master/examples/guestbook) is an example of how entire applications can be packaged together.
 
-Remember, you can pass a URL to `-f` when using the `kubectl` command, so you can [download the latest release](CONTRIBUTING.adoc#download-from-github) and pass a URL to the content on GitHub so you
-don't even need clone the source.
 
 ### Troubleshooting
 
 If you run into difficulties running OpenShift, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
 
-### Docker registry
-
-In order to use an image built from an OpenShift build, you'll need to push that image into a Docker registry.
-You can use a private [Docker registry](https://github.com/docker/docker-registry) or the [DockerHub](https://hub.docker.com/).
-
-#### Private docker registry
-
-To setup private docker registry you can either follow the [registry quick-start](https://github.com/docker/docker-registry#quick-start)
-or use [sample-app example](https://github.com/openshift/origin/blob/master/examples/sample-app) to host a registry on OpenShift. In your `buildConfig` you should pass the fully qualified registry name of the image you want to push `myregistry.com:8080/username/imagename`.
-
-#### DockerHub
-
-To push images to the DockerHub you need to login using `docker login` command. This command will create a file named `.dockercfg` in your home directory containing your Hub credentials. If you're running the OpenShift all-in-one as a different user, you'll need to copy this file into that other user's home directory. When the build completes this file will be read by Docker, and the credentials inside of it will be used to push your image.
-
-NOTE: You must tag your built image as `<username-for-credentials>/<imagename>` when using the DockerHub.
-
-Design Documents
-----------------
-
-OpenShift designs:
-
-* [OpenShift 3 PEP](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md)
-* [Orchestration Overview](https://github.com/openshift/origin/blob/master/docs/orchestration.md)
-
-Kubernetes designs are in [the Kubernetes docs dir](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/)
 
 API
 ---
@@ -154,12 +149,12 @@ The OpenShift APIs are exposed at `http://localhost:8080/osapi/v1beta1/*`.
  * `http://localhost:8080/osapi/v1beta1/clients`
  * `http://localhost:8080/osapi/v1beta1/clientAuthorizations`
 
-The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta2/*`:
+The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
 
-* `http://localhost:8080/api/v1beta2/pods`
-* `http://localhost:8080/api/v1beta2/services`
-* `http://localhost:8080/api/v1beta2/replicationControllers`
-* `http://localhost:8080/api/v1beta2/operations`
+* `http://localhost:8080/api/v1beta1/pods`
+* `http://localhost:8080/api/v1beta1/services`
+* `http://localhost:8080/api/v1beta1/replicationControllers`
+* `http://localhost:8080/api/v1beta1/operations`
 
 OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `http://localhost:8080/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:
 
@@ -221,15 +216,13 @@ Contributing
 
 All contributions are welcome - OpenShift uses the Apache 2 license and does not require any contributor agreement to submit patches.  Please open issues for any bugs or problems you encounter, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes) at the container runtime layer.
 
-See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on
-developing on OpenShift including how different tests are setup.
+See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on developing on OpenShift including how different tests are setup.
 
-If you want to run the test suite, make sure you have your environment from above set up, and from
-the origin directory run:
+If you want to run the test suite, make sure you have your environment from above set up, and from the origin directory run:
 
 ```
 # run the unit tests
-$ hack/test-go.sh
+$ make check
 
 # run a simple server integration test
 $ hack/test-cmd.sh
@@ -239,9 +232,12 @@ $ hack/test-integration.sh
 
 # run the end-to-end test suite
 $ hack/test-end-to-end.sh
+
+# run all of the tests above
+$ make test
 ```
 
-You'll need [etcd](https://github.com/coreos/etcd) installed and on your path for the integration tests to run.  To install etcd you should be able to run:
+You'll need [etcd](https://github.com/coreos/etcd) installed and on your path for the integration and end-to-end tests to run, and Docker must be installed to run the end-to-end tests.  To install etcd you should be able to run:
 
 ```
 $ hack/install-etcd.sh
