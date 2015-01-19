@@ -247,12 +247,15 @@ func TestEtcdCreateImage(t *testing.T) {
 	}
 }
 
-func TestEtcdCreateImageAlreadyExists(t *testing.T) {
+func TestEtcdCreateImageAlreadyExistsEquivalent(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.TestIndex = true
 	fakeClient.Data[makeTestDefaultImageKey("foo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
+				Value:         runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"}}),
+				CreatedIndex:  1,
+				ModifiedIndex: 1,
 			},
 		},
 		E: nil,
@@ -262,6 +265,31 @@ func TestEtcdCreateImageAlreadyExists(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "foo",
 		},
+	})
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestEtcdCreateImageAlreadyExistsDifferent(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.TestIndex = true
+	fakeClient.Data[makeTestDefaultImageKey("foo")] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"}}),
+				CreatedIndex:  1,
+				ModifiedIndex: 1,
+			},
+		},
+		E: nil,
+	}
+	registry := NewTestEtcd(fakeClient)
+	err := registry.CreateImage(kapi.NewDefaultContext(), &api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
+		},
+		DockerImageReference: "foo",
 	})
 	if err == nil {
 		t.Error("Unexpected non-error")

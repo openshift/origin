@@ -47,6 +47,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
+	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/accesstoken"
 	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
@@ -147,6 +148,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"images":                  image.NewREST(imageEtcd),
 		"imageRepositories":       imagerepository.NewREST(imageEtcd, defaultRegistry),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
+		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
 
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),

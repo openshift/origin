@@ -3,8 +3,10 @@ package etcd
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
@@ -82,8 +84,34 @@ func (r *Etcd) CreateImage(ctx kapi.Context, image *api.Image) error {
 		return err
 	}
 
-	err = r.CreateObj(key, image, 0)
+	err = r.AtomicUpdate(key, &api.Image{}, func(obj runtime.Object) (runtime.Object, error) {
+		existing := obj.(*api.Image)
+		if isNewObject(existing.ResourceVersion) {
+			return image, nil
+		}
+		if equivalentImage(existing, image) {
+			return existing, nil
+		}
+		return nil, apierrs.NewAlreadyExists("image", image.Name)
+	})
 	return etcderr.InterpretCreateError(err, "image", image.Name)
+}
+
+// isNewObject returns true if the provided resource version indicates the object has not been previously persisted.
+func isNewObject(resourceVersion string) bool {
+	v, _ := ktools.ParseWatchResourceVersion(resourceVersion, "")
+	return v == 0
+}
+
+// equivalentImage returns true if the provided images have matching image metadata and reference location
+func equivalentImage(a, b *api.Image) bool {
+	if !reflect.DeepEqual(a.DockerImageMetadata, b.DockerImageMetadata) {
+		return false
+	}
+	if a.DockerImageReference != b.DockerImageReference {
+		return false
+	}
+	return true
 }
 
 // UpdateImage updates an existing image

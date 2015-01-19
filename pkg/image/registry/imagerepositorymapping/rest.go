@@ -70,7 +70,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	repo.Tags[mapping.Tag] = image.Name
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
+		if err := s.imageRegistry.CreateImage(ctx, &image); err != nil {
 			return nil, err
 		}
 		if err := s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo); err != nil {
@@ -81,7 +81,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}), nil
 }
 
-// findByPullSpec retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
+// findRepositoryForMapping retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
 func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepositoryMapping) (*api.ImageRepository, error) {
 	if len(mapping.DockerImageRepository) != 0 {
 		//TODO make this more efficient
