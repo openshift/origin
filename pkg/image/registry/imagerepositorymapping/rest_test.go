@@ -11,7 +11,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/fsouza/go-dockerclient"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/test"
@@ -174,11 +173,11 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: docker.Image{
-				Config: &docker.Config{
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
-					ExposedPorts: map[docker.Port]struct{}{"1234/tcp": {}},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
 					Memory:       1234,
 					CPUShares:    99,
 					WorkingDir:   "/workingDir",
@@ -240,11 +239,11 @@ func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: docker.Image{
-				Config: &docker.Config{
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
-					ExposedPorts: map[docker.Port]struct{}{"1234/tcp": {}},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
 					Memory:       1234,
 					CPUShares:    99,
 					WorkingDir:   "/workingDir",

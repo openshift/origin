@@ -12,9 +12,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/coreos/go-etcd/etcd"
-	"github.com/fsouza/go-dockerclient"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
@@ -216,7 +216,7 @@ func TestEtcdCreateImage(t *testing.T) {
 			Name: "foo",
 		},
 		DockerImageReference: "openshift/ruby-19-centos",
-		DockerImageMetadata: docker.Image{
+		DockerImageMetadata: api.DockerImage{
 			ID: "abc123",
 		},
 	})
@@ -343,9 +343,9 @@ func TestEtcdWatchImagesOK(t *testing.T) {
 		{
 			labels.Everything(),
 			[]*api.Image{
-				{ObjectMeta: kapi.ObjectMeta{Name: "a"}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "b"}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "c"}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a"}, DockerImageMetadata: api.DockerImage{}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b"}, DockerImageMetadata: api.DockerImage{}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c"}, DockerImageMetadata: api.DockerImage{}},
 			},
 			[]bool{
 				true,
@@ -356,9 +356,9 @@ func TestEtcdWatchImagesOK(t *testing.T) {
 		{
 			labels.SelectorFromSet(labels.Set{"color": "blue"}),
 			[]*api.Image{
-				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: map[string]string{"color": "green"}}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: docker.Image{Created: time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC)}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: api.DockerImage{}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: map[string]string{"color": "green"}}, DockerImageMetadata: api.DockerImage{}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: api.DockerImage{}},
 			},
 			[]bool{
 				true,
@@ -394,8 +394,9 @@ func TestEtcdWatchImagesOK(t *testing.T) {
 				if e, a := watch.Added, event.Type; e != a {
 					t.Errorf("Expected %v, got %v", e, a)
 				}
+				image.DockerImageMetadataVersion = "1.0"
 				if e, a := image, event.Object; !reflect.DeepEqual(e, a) {
-					t.Errorf("Expected %v, got %v", e, a)
+					t.Errorf("Objects did not match: %s", util.ObjectDiff(e, a))
 				}
 			case <-time.After(50 * time.Millisecond):
 				if tt.expected[testIndex] {

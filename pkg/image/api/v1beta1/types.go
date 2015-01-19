@@ -2,7 +2,7 @@ package v1beta1
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
-	"github.com/fsouza/go-dockerclient"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 // ImageList is a list of Image objects.
@@ -21,7 +21,9 @@ type Image struct {
 	// The string that can be used to pull this image.
 	DockerImageReference string `json:"dockerImageReference,omitempty" yaml:"dockerImageReference,omitempty"`
 	// Metadata about this image
-	DockerImageMetadata docker.Image `json:"dockerImageMetadata,omitempty" yaml:"dockerImageMetadata,omitempty"`
+	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty" yaml:"dockerImageMetadata,omitempty"`
+	// This attribute conveys the version of the object, which if empty defaults to "1.0"
+	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty" yaml:"dockerImageMetadata,omitempty"`
 }
 
 // ImageRepositoryList is a list of ImageRepository objects.
