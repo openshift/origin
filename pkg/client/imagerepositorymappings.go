@@ -4,7 +4,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// ImageRepositoryMappingsNamespacer has mathods to work with ImageRepositoryMapping resources in a namespace
+// ImageRepositoryMappingsNamespacer has methods to work with ImageRepositoryMapping resources in a namespace
 type ImageRepositoryMappingsNamespacer interface {
 	ImageRepositoryMappings(namespace string) ImageRepositoryMappingInterface
 }

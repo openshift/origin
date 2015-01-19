@@ -11,7 +11,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/fsouza/go-dockerclient"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/test"
@@ -85,23 +84,6 @@ func TestUpdateImageRepositoryMapping(t *testing.T) {
 	}
 }
 
-func TestCreateImageRepositoryMappingBadObject(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
-
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageList{})
-	if channel != nil {
-		t.Errorf("Unexpected non-nil channel %#v", channel)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if strings.Index(err.Error(), "not an image repository mapping") == -1 {
-		t.Errorf("Expected 'not an image repository mapping' error, got %#v", err)
-	}
-}
-
 func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 	imageRegistry := test.NewImageRegistry()
 	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
@@ -121,7 +103,7 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &mapping)
 	if channel != nil {
-		t.Errorf("Unexpected non-nil channel %#v", channel)
+		t.Fatalf("Unexpected non-nil channel %#v", channel)
 	}
 	if err == nil {
 		t.Fatal("Unexpected nil err")
@@ -191,11 +173,11 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: docker.Image{
-				Config: &docker.Config{
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
-					ExposedPorts: map[docker.Port]struct{}{"1234/tcp": {}},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
 					Memory:       1234,
 					CPUShares:    99,
 					WorkingDir:   "/workingDir",
@@ -257,11 +239,11 @@ func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: docker.Image{
-				Config: &docker.Config{
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
-					ExposedPorts: map[docker.Port]struct{}{"1234/tcp": {}},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
 					Memory:       1234,
 					CPUShares:    99,
 					WorkingDir:   "/workingDir",

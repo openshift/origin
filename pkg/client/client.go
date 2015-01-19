@@ -13,6 +13,7 @@ type Interface interface {
 	ImagesNamespacer
 	ImageRepositoriesNamespacer
 	ImageRepositoryMappingsNamespacer
+	ImageRepositoryTagsNamespacer
 	DeploymentsNamespacer
 	DeploymentConfigsNamespacer
 	RoutesNamespacer
@@ -39,6 +40,10 @@ func (c *Client) ImageRepositories(namespace string) ImageRepositoryInterface {
 
 func (c *Client) ImageRepositoryMappings(namespace string) ImageRepositoryMappingInterface {
 	return newImageRepositoryMappings(c, namespace)
+}
+
+func (c *Client) ImageRepositoryTags(namespace string) ImageRepositoryTagInterface {
+	return newImageRepositoryTags(c, namespace)
 }
 
 func (c *Client) Deployments(namespace string) DeploymentInterface {

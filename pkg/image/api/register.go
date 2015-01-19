@@ -11,6 +11,7 @@ func init() {
 		&ImageRepository{},
 		&ImageRepositoryList{},
 		&ImageRepositoryMapping{},
+		&DockerImage{},
 	)
 }
 
@@ -19,3 +20,4 @@ func (*ImageList) IsAnAPIObject()              {}
 func (*ImageRepository) IsAnAPIObject()        {}
 func (*ImageRepositoryList) IsAnAPIObject()    {}
 func (*ImageRepositoryMapping) IsAnAPIObject() {}
+func (*DockerImage) IsAnAPIObject()            {}

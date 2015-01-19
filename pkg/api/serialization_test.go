@@ -19,6 +19,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	config "github.com/openshift/origin/pkg/config/api"
+	image "github.com/openshift/origin/pkg/image/api"
 	template "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -78,6 +79,14 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		// TODO: replace with structured type definition
 		j.Items = []runtime.RawExtension{}
 	},
+	func(j *image.Image, c fuzz.Continue) {
+		c.Fuzz(&j.ObjectMeta)
+		c.Fuzz(&j.DockerImageMetadata)
+		j.DockerImageMetadata.APIVersion = ""
+		j.DockerImageMetadata.Kind = ""
+		j.DockerImageMetadataVersion = []string{"pre012", "1.0"}[c.Rand.Intn(2)]
+		j.DockerImageReference = c.RandString()
+	},
 	func(j *config.Config, c fuzz.Continue) {
 		c.Fuzz(&j.ObjectMeta)
 		// TODO: replace with structured type definition
@@ -127,12 +136,12 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 	name := reflect.TypeOf(source).Elem().Name()
 	apiObjectFuzzer.Fuzz(source)
-	j, err := meta.Accessor(source)
-	if err != nil {
-		t.Fatalf("Unexpected error %v for %#v", err, source)
+	if j, err := meta.TypeAccessor(source); err == nil {
+		j.SetKind("")
+		j.SetAPIVersion("")
+	} else {
+		t.Logf("Unable to set apiversion/kind to empty on %v", reflect.TypeOf(source))
 	}
-	j.SetKind("")
-	j.SetAPIVersion("")
 
 	data, err := codec.Encode(source)
 	if err != nil {
@@ -161,6 +170,10 @@ func runTest(t *testing.T, codec runtime.Codec, source runtime.Object) {
 	}
 }
 
+var skipStandardVersions = map[string][]string{
+	"DockerImage": {"pre012", "1.0"},
+}
+
 func TestTypes(t *testing.T) {
 	for kind, reflectType := range api.Scheme.KnownTypes("") {
 		if !strings.Contains(reflectType.PkgPath(), "/origin/") {
@@ -174,8 +187,10 @@ func TestTypes(t *testing.T) {
 				t.Errorf("Couldn't make a %v? %v", kind, err)
 				continue
 			}
-			if _, err := meta.Accessor(item); err != nil {
-				t.Logf("%s is not a ObjectMeta and cannot be round tripped: %v", kind, err)
+			if versions, ok := skipStandardVersions[kind]; ok {
+				for _, v := range versions {
+					runTest(t, runtime.CodecFor(api.Scheme, v), item)
+				}
 				continue
 			}
 			runTest(t, v1beta1.Codec, item)

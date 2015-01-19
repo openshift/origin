@@ -14,6 +14,20 @@ const dockerDefaultNamespace = "library"
 // an error if those components are not valid. Attempts to match as closely as possible the
 // Docker spec up to 1.3. Future API revisions may change the pull syntax.
 func SplitDockerPullSpec(spec string) (registry, namespace, name, tag string, err error) {
+	registry, namespace, name, tag, err = SplitOpenShiftPullSpec(spec)
+	if err != nil {
+		return
+	}
+	if len(namespace) == 0 {
+		namespace = dockerDefaultNamespace
+	}
+	return
+}
+
+// SplitOpenShiftPullSpec breaks an OpenShift pull specification into its components, or returns
+// an error if those components are not valid. Attempts to match as closely as possible the
+// Docker spec up to 1.3. Future API revisions may change the pull syntax.
+func SplitOpenShiftPullSpec(spec string) (registry, namespace, name, tag string, err error) {
 	spec, tag = docker.ParseRepositoryTag(spec)
 	arr := strings.Split(spec, "/")
 	switch len(arr) {
@@ -26,7 +40,7 @@ func SplitDockerPullSpec(spec string) (registry, namespace, name, tag string, er
 			err = fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 			return
 		}
-		return "", dockerDefaultNamespace, arr[0], tag, nil
+		return "", "", arr[0], tag, nil
 	default:
 		err = fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 		return

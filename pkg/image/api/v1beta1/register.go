@@ -2,6 +2,9 @@ package v1beta1
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
+	_ "github.com/openshift/origin/pkg/image/api/docker10"
+	_ "github.com/openshift/origin/pkg/image/api/dockerpre012"
 )
 
 func init() {

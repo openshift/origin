@@ -32,6 +32,10 @@ func (c *Fake) ImageRepositoryMappings(namespace string) ImageRepositoryMappingI
 	return &FakeImageRepositoryMappings{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) ImageRepositoryTags(namespace string) ImageRepositoryTagInterface {
+	return &FakeImageRepositoryTags{Fake: c, Namespace: namespace}
+}
+
 func (c *Fake) Deployments(namespace string) DeploymentInterface {
 	return &FakeDeployments{Fake: c, Namespace: namespace}
 }
