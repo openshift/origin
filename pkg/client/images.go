@@ -16,6 +16,7 @@ type ImageInterface interface {
 	List(label, field labels.Selector) (*imageapi.ImageList, error)
 	Get(name string) (*imageapi.Image, error)
 	Create(image *imageapi.Image) (*imageapi.Image, error)
+	Delete(name string) error
 }
 
 // images implements ImagesNamespacer interface
@@ -56,5 +57,11 @@ func (c *images) Get(name string) (result *imageapi.Image, err error) {
 func (c *images) Create(image *imageapi.Image) (result *imageapi.Image, err error) {
 	result = &imageapi.Image{}
 	err = c.r.Post().Namespace(c.ns).Path("images").Body(image).Do().Into(result)
+	return
+}
+
+// Delete deletes an image, returns error if one occurs.
+func (c *images) Delete(name string) (err error) {
+	err = c.r.Delete().Namespace(c.ns).Path("images").Path(name).Do().Error()
 	return
 }

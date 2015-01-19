@@ -18,6 +18,7 @@ type ImageRepositoryInterface interface {
 	Get(name string) (*imageapi.ImageRepository, error)
 	Create(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 	Update(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
+	Delete(name string) error
 	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
@@ -66,6 +67,12 @@ func (c *imageRepositories) Create(repo *imageapi.ImageRepository) (result *imag
 func (c *imageRepositories) Update(repo *imageapi.ImageRepository) (result *imageapi.ImageRepository, err error) {
 	result = &imageapi.ImageRepository{}
 	err = c.r.Put().Namespace(c.ns).Path("imageRepositories").Path(repo.Name).Body(repo).Do().Into(result)
+	return
+}
+
+// Delete deletes an image repository, returns error if one occurs.
+func (c *imageRepositories) Delete(name string) (err error) {
+	err = c.r.Delete().Namespace(c.ns).Path("imageRepositories").Path(name).Do().Error()
 	return
 }
 

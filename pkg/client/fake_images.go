@@ -27,3 +27,8 @@ func (c *FakeImages) Create(image *imageapi.Image) (*imageapi.Image, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-image"})
 	return &imageapi.Image{}, nil
 }
+
+func (c *FakeImages) Delete(name string) error {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-image", Value: name})
+	return nil
+}

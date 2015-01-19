@@ -34,6 +34,11 @@ func (c *FakeImageRepositories) Update(repo *imageapi.ImageRepository) (*imageap
 	return &imageapi.ImageRepository{}, nil
 }
 
+func (c *FakeImageRepositories) Delete(name string) error {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-imagerepository", Value: name})
+	return nil
+}
+
 func (c *FakeImageRepositories) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-imagerepositories"})
 	return nil, nil
