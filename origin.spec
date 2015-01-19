@@ -15,12 +15,10 @@ URL:            https://%{import_path}
 ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 
-# FIXME - Need to add a -devel subpackage to etcd that provides the golang
-#         libraries/packages, but this will work for now.
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.2-7
 
-Requires:       docker-io
+Requires:       docker-io >= 1.3.2
 
 %description
 %{summary}
