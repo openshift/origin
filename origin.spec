@@ -71,10 +71,10 @@ do
 done
 
 install -d -m 0755 %{buildroot}%{_unitdir}
-install -m 0644 -t %{buildroot}%{_unitdir} openshift.service
+install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift.service
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
-install -m 0644 openshift.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/openshift
+install -m 0644 rel-eng/openshift.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/openshift
 
 mkdir -p %{buildroot}/var/log/%{name}
 
