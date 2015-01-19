@@ -8,8 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang/glog"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -230,7 +228,7 @@ type testOpenshift struct {
 
 func NewTestOpenshift(t *testing.T) *testOpenshift {
 	flag.Set("v", "4")
-	glog.Info("Starting test openshift")
+	t.Logf("Starting test openshift")
 
 	openshift := &testOpenshift{
 		stop: make(chan struct{}),
@@ -250,7 +248,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
 	if err != nil {
-		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+		t.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
 	kmaster := master.New(&master.Config{
@@ -342,6 +340,8 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 func (t *testOpenshift) Close() {
 	close(t.stop)
+	t.Server.CloseClientConnections()
+	t.Server.Close()
 }
 
 type clientDeploymentInterface struct {
