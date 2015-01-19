@@ -20,7 +20,7 @@ Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.2-7
 
-Requires:       /usr/bin/docker
+Requires:       docker-io
 
 %description
 %{summary}
