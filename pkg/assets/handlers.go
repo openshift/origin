@@ -12,6 +12,21 @@ import (
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")
 
+const configTemplate string = `
+window.OPENSHIFT_CONFIG = {
+  api: {
+    openshift: {
+      hostPort: "%s",
+      prefix: "%s"
+    },
+    k8s: {
+      hostPort: "%s",
+      prefix: "%s"
+    }
+  }
+};
+`
+
 type gzipResponseWriter struct {
 	io.Writer
 	http.ResponseWriter
@@ -84,6 +99,21 @@ func HTML5ModeHandler(h http.Handler) http.Handler {
 				w.Write(b)
 				return
 			}
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+func GeneratedConfigHandler(osAddr string, osPrefix string, k8sAddr string, k8sPrefix string, h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/config.js" {
+			w.Write([]byte(fmt.Sprintf(configTemplate,
+				osAddr,
+				osPrefix,
+				k8sAddr,
+				k8sPrefix,
+			)))
+			return
 		}
 		h.ServeHTTP(w, r)
 	})

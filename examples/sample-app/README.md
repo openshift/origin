@@ -71,7 +71,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 2. Launch `openshift`
 
-        $ sudo openshift start --cors-allowed-origins=[host machine ip] &> logs/openshift.log &
+        $ sudo openshift start &> logs/openshift.log &
 
     Note: sudo is required so the kubernetenes proxy can manipulate iptables rules to expose service ports.
 

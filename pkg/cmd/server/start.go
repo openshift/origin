@@ -175,6 +175,9 @@ func start(cfg *config, args []string) error {
 	}
 
 	startKube := !cfg.KubernetesAddr.Provided
+	if startKube {
+		cfg.KubernetesAddr = cfg.MasterAddr
+	}
 
 	if startMaster {
 		if len(cfg.NodeList) == 1 && cfg.NodeList[0] == "127.0.0.1" {
@@ -210,10 +213,15 @@ func start(cfg *config, args []string) error {
 
 		assetAddr := net.JoinHostPort(cfg.MasterAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
 
+		// always include the all-in-one server's web console as an allowed CORS origin
+		// always include localhost as an allowed CORS origin
+		cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, assetAddr, "localhost", "127.0.0.1")
+
 		osmaster := &origin.MasterConfig{
 			BindAddr:              cfg.BindAddr.URL.Host,
 			MasterAddr:            cfg.MasterAddr.URL.String(),
 			AssetAddr:             assetAddr,
+			KubernetesAddr:        cfg.KubernetesAddr.URL.String(),
 			EtcdHelper:            etcdHelper,
 			RequireAuthentication: cfg.RequireAuthentication,
 		}

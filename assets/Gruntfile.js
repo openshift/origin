@@ -80,7 +80,7 @@ module.exports = function (grunt) {
           open: true,
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
               connect().use(
                 '/bower_components',
