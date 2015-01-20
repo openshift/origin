@@ -33,11 +33,19 @@ There were a few goals for STI.
 
 ## BuildLog
 
+Model object that stores the logs from a particular build for later inspection.
+
 ## Deployment
+
+A deployment is a specially annotated [replicationController](kubernetes_model.md#replicationcontroller), specifying the desired configuration of that controller. See the [deployments](deployments.md) document.
 
 ## DeploymentConfig
 
+A DeploymentConfig specifies an existing deployment, triggers that can result in replacing that deployment with a new one, the strategy for doing so, and the history of such changes. See the [deployments](deployments.md) document.
+
 ## Image
+
+Metadata added to the concept of a Docker image (such as repository, tag, environment variables, etc.) that runs in a container.
 
 ## ImageRepository
 
@@ -49,8 +57,13 @@ There were a few goals for STI.
 
 ## Route
 
+A named method of accessing an externally-exposed Kubernetes Service that represents an external endpoint (such as a web server, message queue, or database). See the [routing document](routing.md).
+
 ## Project
+
+An OpenShift-level grouping of pod deployments and attendant resources. May be used for identifying components in an "application" and authorizing collaboration on same.
 
 ## User
 
-## OAuth
+A user identity that may be authenticated and authorized for a set of capabilities. Can correspond to an actual person or a service account. Refer to the [capabilities proposal](proposals/capabilities.md) for more context around the user and access model.
+

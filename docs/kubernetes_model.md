@@ -1,6 +1,16 @@
 # Kubernetes Model
 
-### ReplicationController
+In general, as the OpenShift fork of Kubernetes remains fairly current, it may be useful to refer to the [Kubernetes documentation](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/docs) for unknown terminology.
+
+## Master
+
+A host for the orchestration API of Kubernetes. Has no actual model in the API.
+
+## Minion / Node
+
+A Node is a worker host in Kubernetes, previously known as Minion. Pods run on nodes. [Kubernetes docs](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/node.md)
+
+## ReplicationController
 
 A Replication Controller ensures that a specific number of pods with a particular [Label](#label) are running at all times. If one of the matching pods or a kubernetes  host goes down, the replication controller will re-instantiate matching pods up to the desired number across the cluster.
 
@@ -160,11 +170,16 @@ You can find a more complete definition, and an example of the JSON structure th
 
 ## Namespace
 
+A scope for Kubernetes resources, which will most likely be used for access / admission control. Under development, refer to [Kubernetes docs](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/design/namespaces.md).
+
 ## ResourceController
+
+Specifies limits placed on resources, such as CPU / RAM usage allowed per pod, or number of pods / services / replica controllers allowed per namespace. Under active development.
 
 ## Resource
 
+A Kubernetes Resource is something that can be requested by, allocated to, or consumed by a pod or container. Examples include memory (RAM), CPU, disk-time, and network bandwidth. [Kubernetes docs](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md)
+
 ## Secret
 
-## Minion
-
+Storage for keys, passwords, certificates, and such which is accessible by the intended pod(s) but held separately from their definitions. Under active development.
