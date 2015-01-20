@@ -59,3 +59,19 @@ func (c *Fake) UserIdentityMappings() UserIdentityMappingInterface {
 func (c *Fake) Projects() ProjectInterface {
 	return &FakeProjects{Fake: c}
 }
+
+func (c *Fake) Policies(namespace string) PolicyInterface {
+	return &FakePolicies{Fake: c}
+}
+
+func (c *Fake) Roles(namespace string) RoleInterface {
+	return &FakeRoles{Fake: c}
+}
+
+func (c *Fake) RoleBindings(namespace string) RoleBindingInterface {
+	return &FakeRoleBindings{Fake: c}
+}
+
+func (c *Fake) PolicyBindings(namespace string) PolicyBindingInterface {
+	return &FakePolicyBindings{Fake: c}
+}
