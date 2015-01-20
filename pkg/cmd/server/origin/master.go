@@ -465,7 +465,7 @@ func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler, reques
 			forbidden("No attributes", w, req)
 		}
 
-		allowed, _, denyReason, err := authorizer.Authorize(attributes)
+		allowed, reason, err := authorizer.Authorize(attributes)
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)
@@ -476,7 +476,7 @@ func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler, reques
 			return
 		}
 
-		forbidden(denyReason, w, req)
+		forbidden(reason, w, req)
 	})
 }
 
