@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
 
@@ -39,9 +37,7 @@ func NewCommandCLI(name string) *cobra.Command {
 		},
 	}
 
-	// TODO: there should be two client builders, one for OpenShift, and one for Kubernetes
-	clientConfig := clientcmd.NewInteractiveClientConfig(clientcmdapi.Config{}, "", &clientcmd.ConfigOverrides{}, os.Stdin)
-	f := cmd.NewFactory(clientConfig)
+	f := cmd.NewFactory(cmds.PersistentFlags())
 	f.BindFlags(cmds.PersistentFlags())
 	out := os.Stdout
 

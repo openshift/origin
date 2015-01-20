@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -25,10 +27,11 @@ type Factory struct {
 }
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
-func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
+func NewFactory(flags *pflag.FlagSet) *Factory {
 	mapper := kubectl.ShortcutExpander{latest.RESTMapper}
 
-	w := &Factory{kubecmd.NewFactory(), clientConfig}
+	kubernetesClientConfig := NewClientConfig(flags, "kubernetes-")
+	w := &Factory{kubecmd.NewFactory(kubernetesClientConfig), NewClientConfig(flags, "")}
 
 	w.Object = func(cmd *cobra.Command) (meta.RESTMapper, runtime.ObjectTyper) {
 		version := kubecmd.GetFlagString(cmd, "api-version")
@@ -47,7 +50,7 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 			}
 			return cli.RESTClient, nil
 		}
-		return kubecmd.NewFactory().RESTClient(cmd, mapping)
+		return kubecmd.NewFactory(kubernetesClientConfig).RESTClient(cmd, mapping)
 	}
 
 	w.Describer = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
@@ -66,7 +69,7 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 			}
 			return describer, nil
 		}
-		return kubecmd.NewFactory().Describer(cmd, mapping)
+		return kubecmd.NewFactory(kubernetesClientConfig).Describer(cmd, mapping)
 	}
 
 	w.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
@@ -91,4 +94,21 @@ func (f *Factory) Clients(cmd *cobra.Command) (*client.Client, *kclient.Client, 
 		return nil, nil, err
 	}
 	return oc, kc, nil
+}
+
+func NewClientConfig(flags *pflag.FlagSet, prefix string) clientcmd.ClientConfig {
+	specifiedKubeConfigFlag := "kubeconfig"
+	if len(prefix) > 0 {
+		specifiedKubeConfigFlag = prefix + "-" + specifiedKubeConfigFlag
+	}
+
+	loadingRules := clientcmd.NewClientConfigLoadingRules()
+	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+	flags.StringVar(&loadingRules.CommandLinePath, specifiedKubeConfigFlag, "", "Path to the kubeconfig file to use for CLI requests.")
+
+	overrides := &clientcmd.ConfigOverrides{}
+	clientcmd.BindOverrideFlags(overrides, flags, clientcmd.RecommendedConfigOverrideFlags(prefix))
+	clientConfig := clientcmd.NewInteractiveDeferredLoadingClientConfig(loadingRules, overrides, os.Stdin)
+
+	return clientConfig
 }
