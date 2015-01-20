@@ -282,17 +282,17 @@ func start(cfg *config, args []string) error {
 		}
 
 		osmaster := &origin.MasterConfig{
-			TLS:                  cfg.BindAddr.URL.Scheme == "https",
-			MasterBindAddr:       cfg.BindAddr.URL.Host,
-			MasterAddr:           cfg.MasterAddr.URL.String(),
-			MasterPublicAddr:     masterPublicAddr.URL.String(),
-			AssetBindAddr:        assetBindAddr,
-			AssetPublicAddr:      assetPublicAddr.String(),
-			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
-			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
-			EtcdHelper:           etcdHelper,
-			Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
-			AdmissionControl:     admit.NewAlwaysAdmit(),
+			TLS:                          cfg.BindAddr.URL.Scheme == "https",
+			MasterBindAddr:               cfg.BindAddr.URL.Host,
+			MasterAddr:                   cfg.MasterAddr.URL.String(),
+			MasterPublicAddr:             masterPublicAddr.URL.String(),
+			AssetBindAddr:                assetBindAddr,
+			AssetPublicAddr:              assetPublicAddr.String(),
+			KubernetesAddr:               cfg.KubernetesAddr.URL.String(),
+			KubernetesPublicAddr:         k8sPublicAddr.URL.String(),
+			EtcdHelper:                   etcdHelper,
+			AdmissionControl:             admit.NewAlwaysAdmit(),
+			MasterAuthorizationNamespace: "master",
 		}
 
 		if startKube {
