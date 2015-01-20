@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 )
@@ -39,8 +39,8 @@ func NewCommandCLI(name string) *cobra.Command {
 		},
 	}
 
-	// TODO: there should be two client builders, one for OpenShift, and one for Kubernetes
-	clientConfig := clientcmd.NewInteractiveClientConfig(clientcmdapi.Config{}, "", &clientcmd.ConfigOverrides{}, os.Stdin)
+	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
+	clientConfig := defaultClientConfig(cmds.PersistentFlags())
 	f := cmd.NewFactory(clientConfig)
 	f.BindFlags(cmds.PersistentFlags())
 	out := os.Stdout
@@ -67,4 +67,17 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
 
 	return cmds
+}
+
+// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
+func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
+	loadingRules := clientcmd.NewClientConfigLoadingRules()
+	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
+
+	overrides := &clientcmd.ConfigOverrides{}
+	clientcmd.BindOverrideFlags(overrides, flags, clientcmd.RecommendedConfigOverrideFlags(""))
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+
+	return clientConfig
 }

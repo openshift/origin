@@ -28,13 +28,15 @@ type Factory struct {
 func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 	mapper := kubectl.ShortcutExpander{latest.RESTMapper}
 
-	w := &Factory{kubecmd.NewFactory(), clientConfig}
+	w := &Factory{kubecmd.NewFactory(clientConfig), clientConfig}
 
 	w.Object = func(cmd *cobra.Command) (meta.RESTMapper, runtime.ObjectTyper) {
 		version := kubecmd.GetFlagString(cmd, "api-version")
 		return kubectl.OutputVersionMapper{mapper, version}, api.Scheme
 	}
 
+	// Save original RESTClient function
+	kRESTClientFunc := w.Factory.RESTClient
 	w.RESTClient = func(cmd *cobra.Command, mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
 			cfg, err := w.OpenShiftClientConfig.ClientConfig()
@@ -47,9 +49,11 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 			}
 			return cli.RESTClient, nil
 		}
-		return kubecmd.NewFactory().RESTClient(cmd, mapping)
+		return kRESTClientFunc(cmd, mapping)
 	}
 
+	// Save original Describer function
+	kDescriberFunc := w.Factory.Describer
 	w.Describer = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
 		if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
 			cfg, err := w.OpenShiftClientConfig.ClientConfig()
@@ -66,7 +70,7 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 			}
 			return describer, nil
 		}
-		return kubecmd.NewFactory().Describer(cmd, mapping)
+		return kDescriberFunc(cmd, mapping)
 	}
 
 	w.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
