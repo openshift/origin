@@ -497,8 +497,8 @@
 		},
 		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",
-			"Comment": "v3.0.6",
-			"Rev": "1743f47c0112eff669b0199889670d61384b4730"
+			"Comment": "v3.0.7-2-gf94581b",
+			"Rev": "f94581bd91620d0ccd9c22bb1d2de13f6a605857"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/sti",
