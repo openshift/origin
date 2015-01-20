@@ -39,9 +39,6 @@ VOLUME_DIR=$(mktemp -d /tmp/openshift.local.volumes.XXXX)
 # set path so OpenShift is available
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 export PATH="${GO_OUT}:${PATH}"
-pushd "${GO_OUT}" > /dev/null
-ln -fs "openshift" "osc"
-popd > /dev/null
 
 # Check openshift version
 out=$(openshift version)

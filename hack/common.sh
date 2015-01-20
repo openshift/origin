@@ -18,6 +18,7 @@ OS_ROOT=$(
 OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
 OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
+OS_LOCAL_BINPATH="${OS_ROOT}/_output/local/go/bin"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 readonly OS_GOPATH="${OS_OUTPUT}/go"
@@ -44,6 +45,14 @@ readonly OS_ALL_TARGETS=(
   "${OS_CROSS_COMPILE_TARGETS[@]}"
 )
 readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
+readonly OPENSHIFT_BINARY_SYMLINKS=(
+  openshift-router
+  openshift-deploy
+  openshift-sti-build
+  openshift-docker-build
+  osc
+  openshift-experimental
+)
 
 # os::build::binaries_from_targets take a list of build targets and return the
 # full go package to be built
@@ -257,6 +266,16 @@ os::build::place_bins() {
       fi
     done
   )
+}
+
+# os::build::make_openshift_binary_symlinks makes symlinks for the openshift
+# binary in _output/local/go/bin
+os::build::make_openshift_binary_symlinks() {
+  if [[ -f "${OS_LOCAL_BINPATH}/openshift" ]]; then
+    for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
+      ln -sf "${OS_LOCAL_BINPATH}/openshift" "${OS_LOCAL_BINPATH}/${linkname}"
+    done
+  fi
 }
 
 # os::build::get_version_vars loads the standard version variables as
