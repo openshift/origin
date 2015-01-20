@@ -218,7 +218,7 @@ type Container struct {
 	Ports      []Port   `json:"ports,omitempty" description:"list of ports to expose from the container"`
 	Env        []EnvVar `json:"env,omitempty" description:"list of environment variables to set in the container"`
 	// Optional: Defaults to unlimited.
-	Memory int `json:"memory,omitempty" description:"memory limit in bytes; defaults to unlimited"`
+	Memory int64 `json:"memory,omitempty" description:"memory limit in bytes; defaults to unlimited"`
 	// Optional: Defaults to unlimited.
 	CPU           int            `json:"cpu,omitempty" description:"CPU share in thousandths of a core"`
 	VolumeMounts  []VolumeMount  `json:"volumeMounts,omitempty" description:"pod volumes to mount into the container's filesystem"`
@@ -469,7 +469,7 @@ type Service struct {
 	ProxyPort int `json:"proxyPort,omitempty" description:"if non-zero, a pre-allocated host port used for this service by the proxy on each node; assigned by the master and ignored on input"`
 
 	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
-	SessionAffinity *AffinityType `json:"sessionAffinity,omitempty" description:"enable client IP based session affinity; must be ClientIP or None; Disabled if unspecified"`
+	SessionAffinity AffinityType `json:"sessionAffinity,omitempty" description:"enable client IP based session affinity; must be ClientIP or None; defaults to None"`
 }
 
 // Endpoints is a collection of endpoints that implement the actual service, for example:
@@ -545,6 +545,13 @@ type NodeResources struct {
 }
 
 type ResourceName string
+
+const (
+	// CPU, in cores. (500m = .5 cores)
+	ResourceCPU ResourceName = "cpu"
+	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	ResourceMemory ResourceName = "memory"
+)
 
 type ResourceList map[ResourceName]util.IntOrString
 
@@ -750,10 +757,11 @@ type ObjectReference struct {
 	ResourceVersion string `json:"resourceVersion,omitempty" description:"specific resourceVersion to which this reference is made, if any"`
 
 	// Optional. If referring to a piece of an object instead of an entire object, this string
-	// should contain a valid field access statement. For example,
-	// if the object reference is to a container within a pod, this would take on a value like:
-	// "desiredState.manifest.containers[2]". Such statements are valid language constructs in
-	// both go and JavaScript. This is syntax is chosen only to have some well-defined way of
+	// should contain information to identify the sub-object. For example, if the object
+	// reference is to a container within a pod, this would take on a value like:
+	// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+	// the event) or if no container name is specified "spec.containers[2]" (container with
+	// index 2 in this pod). This syntax is chosen only to have some well-defined way of
 	// referencing a part of an object.
 	// TODO: this design is not final and this field is subject to change in the future.
 	FieldPath string `json:"fieldPath,omitempty" description:"if referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]"`
@@ -790,6 +798,9 @@ type Event struct {
 	// TODO: provide exact specification for format.
 	Source string `json:"source,omitempty" description:"component reporting this event; short machine understandable string"`
 
+	// Host name on which the event is generated.
+	Host string `json:"host,omitempty"`
+
 	// The time at which the client recorded the event. (Time of server receipt is in TypeMeta.)
 	Timestamp util.Time `json:"timestamp,omitempty" description:"time at which the client recorded the event"`
 }
@@ -817,6 +828,8 @@ type ContainerManifest struct {
 	Volumes       []Volume      `json:"volumes" description:"list of volumes that can be mounted by containers belonging to the pod"`
 	Containers    []Container   `json:"containers" description:"list of containers belonging to the pod"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" description:"restart policy for all containers within the pod; one of RestartPolicyAlways, RestartPolicyOnFailure, RestartPolicyNever"`
+	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
+	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty" description:"DNS policy for containers within the pod; one of 'ClusterFirst' or 'Default'"`
 }
 
 // ContainerManifestList is used to communicate container manifests to kubelet.
@@ -828,11 +841,27 @@ type ContainerManifestList struct {
 
 // Backported from v1beta3 to replace ContainerManifest
 
+// DNSPolicy defines how a pod's DNS will be configured.
+type DNSPolicy string
+
+const (
+	// DNSClusterFirst indicates that the pod should use cluster DNS
+	// first, if it is available, then fall back on the default (as
+	// determined by kubelet) DNS settings.
+	DNSClusterFirst DNSPolicy = "ClusterFirst"
+
+	// DNSDefault indicates that the pod should use the default (as
+	// determined by kubelet) DNS settings.
+	DNSDefault DNSPolicy = "Default"
+)
+
 // PodSpec is a description of a pod
 type PodSpec struct {
 	Volumes       []Volume      `json:"volumes" description:"list of volumes that can be mounted by containers belonging to the pod"`
 	Containers    []Container   `json:"containers" description:"list of containers belonging to the pod"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" description:"restart policy for all containers within the pod; one of RestartPolicyAlways, RestartPolicyOnFailure, RestartPolicyNever"`
+	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
+	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty" description:"DNS policy for containers within the pod; one of 'ClusterFirst' or 'Default'"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" description:"selector which must match a node's labels for the pod to be scheduled on that node"`
 

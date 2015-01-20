@@ -10,7 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	utilerr "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/config"
@@ -29,6 +29,10 @@ func NewREST() *REST {
 }
 
 func (s *REST) New() runtime.Object {
+	return &api.Template{}
+}
+
+func (*REST) NewList() runtime.Object {
 	return &api.Template{}
 }
 
@@ -61,13 +65,13 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		if len(err) > 0 {
 			// TODO: We don't report the processing errors to users as there is no
 			// good way how to do it for just some items.
-			glog.V(1).Infof(util.SliceToError(err).Error())
+			glog.V(1).Infof(utilerr.NewAggregate(err).Error())
 		}
 
 		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); len(err) > 0 {
 			// TODO: We don't report the processing errors to users as there is no
 			// good way how to do it for just some items.
-			glog.V(1).Infof(util.SliceToError(err).Error())
+			glog.V(1).Infof(utilerr.NewAggregate(err).Error())
 		}
 		return cfg, nil
 	}), nil

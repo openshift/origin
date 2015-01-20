@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -58,11 +59,11 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	osPrefix := "/osapi/v1beta1"
 	handlerContainer := master.NewHandlerContainer(osMux)
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	walkJSONFiles("fixtures", func(name, path string, _ []byte) {
 		config := &config.Config{}
-		err := osClient.RESTClient.Post().Path("/templateConfigs").Body(path).Do().Into(config)
+		err := osClient.RESTClient.Post().Resource("templateConfigs").Body(path).Do().Into(config)
 		if err != nil {
 			t.Errorf("%q: unexpected error: %v", path, err)
 			return

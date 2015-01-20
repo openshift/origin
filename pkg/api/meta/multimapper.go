@@ -23,9 +23,9 @@ func (m MultiRESTMapper) VersionAndKindForResource(resource string) (defaultVers
 // RESTMapping provides the REST mapping for the resource based on the resource
 // kind and version. This implementation supports multiple REST schemas and
 // return the first match.
-func (m MultiRESTMapper) RESTMapping(version, kind string) (mapping *kmeta.RESTMapping, err error) {
+func (m MultiRESTMapper) RESTMapping(kind string, versions ...string) (mapping *kmeta.RESTMapping, err error) {
 	for _, t := range m {
-		mapping, err = t.RESTMapping(version, kind)
+		mapping, err = t.RESTMapping(kind, versions...)
 		if err == nil {
 			return
 		}

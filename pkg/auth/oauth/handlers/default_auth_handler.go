@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -63,7 +63,7 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 			return true, nil
 
 		}
-		return false, kutil.SliceToError(errors)
+		return false, kerrors.NewAggregate(errors)
 
 	}
 

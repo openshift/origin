@@ -21,8 +21,9 @@ import (
 	"path"
 	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -31,12 +32,13 @@ import (
 
 // RESTHandler implements HTTP verbs on a set of RESTful resources identified by name.
 type RESTHandler struct {
-	storage         map[string]RESTStorage
-	codec           runtime.Codec
-	canonicalPrefix string
-	selfLinker      runtime.SelfLinker
-	ops             *Operations
-	asyncOpWait     time.Duration
+	storage          map[string]RESTStorage
+	codec            runtime.Codec
+	canonicalPrefix  string
+	selfLinker       runtime.SelfLinker
+	ops              *Operations
+	asyncOpWait      time.Duration
+	admissionControl admission.Interface
 }
 
 // ServeHTTP handles requests to all RESTStorage objects.
@@ -46,14 +48,13 @@ func (h *RESTHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		notFound(w, req)
 		return
 	}
-	storage := h.storage[kind]
-	if storage == nil {
-		httplog.LogOf(req, w).Addf("'%v' has no storage object", kind)
+	storage, ok := h.storage[kind]
+	if !ok {
 		notFound(w, req)
 		return
 	}
 
-	h.handleRESTStorage(parts, req, w, storage, namespace)
+	h.handleRESTStorage(parts, req, w, storage, namespace, kind)
 }
 
 // Sets the SelfLink field of the object.
@@ -146,7 +147,7 @@ func curry(f func(runtime.Object, *http.Request) error, req *http.Request) func(
 //    sync=[false|true] Synchronous request (only applies to create, update, delete operations)
 //    timeout=<duration> Timeout for synchronous requests, only applies if sync=true
 //    labels=<label-selector> Used for filtering list operations
-func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w http.ResponseWriter, storage RESTStorage, namespace string) {
+func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w http.ResponseWriter, storage RESTStorage, namespace, kind string) {
 	ctx := api.WithNamespace(api.NewContext(), namespace)
 	sync := req.URL.Query().Get("sync") == "true"
 	timeout := parseTimeout(req.URL.Query().Get("timeout"))
@@ -164,7 +165,12 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 				errorJSON(err, h.codec, w)
 				return
 			}
-			list, err := storage.List(ctx, label, field)
+			lister, ok := storage.(RESTLister)
+			if !ok {
+				errorJSON(errors.NewMethodNotSupported(kind, "list"), h.codec, w)
+				return
+			}
+			list, err := lister.List(ctx, label, field)
 			if err != nil {
 				errorJSON(err, h.codec, w)
 				return
@@ -175,7 +181,12 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			}
 			writeJSON(http.StatusOK, h.codec, list, w)
 		case 2:
-			item, err := storage.Get(ctx, parts[1])
+			getter, ok := storage.(RESTGetter)
+			if !ok {
+				errorJSON(errors.NewMethodNotSupported(kind, "get"), h.codec, w)
+				return
+			}
+			item, err := getter.Get(ctx, parts[1])
 			if err != nil {
 				errorJSON(err, h.codec, w)
 				return
@@ -194,6 +205,12 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			notFound(w, req)
 			return
 		}
+		creater, ok := storage.(RESTCreater)
+		if !ok {
+			errorJSON(errors.NewMethodNotSupported(kind, "create"), h.codec, w)
+			return
+		}
+
 		body, err := readBody(req)
 		if err != nil {
 			errorJSON(err, h.codec, w)
@@ -205,7 +222,15 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			errorJSON(err, h.codec, w)
 			return
 		}
-		out, err := storage.Create(ctx, obj)
+
+		// invoke admission control
+		err = h.admissionControl.Admit(admission.NewAttributesRecord(obj, namespace, parts[0], "CREATE"))
+		if err != nil {
+			errorJSON(err, h.codec, w)
+			return
+		}
+
+		out, err := creater.Create(ctx, obj)
 		if err != nil {
 			errorJSON(err, h.codec, w)
 			return
@@ -218,7 +243,20 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			notFound(w, req)
 			return
 		}
-		out, err := storage.Delete(ctx, parts[1])
+		deleter, ok := storage.(RESTDeleter)
+		if !ok {
+			errorJSON(errors.NewMethodNotSupported(kind, "delete"), h.codec, w)
+			return
+		}
+
+		// invoke admission control
+		err := h.admissionControl.Admit(admission.NewAttributesRecord(nil, namespace, parts[0], "DELETE"))
+		if err != nil {
+			errorJSON(err, h.codec, w)
+			return
+		}
+
+		out, err := deleter.Delete(ctx, parts[1])
 		if err != nil {
 			errorJSON(err, h.codec, w)
 			return
@@ -231,6 +269,12 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			notFound(w, req)
 			return
 		}
+		updater, ok := storage.(RESTUpdater)
+		if !ok {
+			errorJSON(errors.NewMethodNotSupported(kind, "create"), h.codec, w)
+			return
+		}
+
 		body, err := readBody(req)
 		if err != nil {
 			errorJSON(err, h.codec, w)
@@ -242,7 +286,15 @@ func (h *RESTHandler) handleRESTStorage(parts []string, req *http.Request, w htt
 			errorJSON(err, h.codec, w)
 			return
 		}
-		out, err := storage.Update(ctx, obj)
+
+		// invoke admission control
+		err = h.admissionControl.Admit(admission.NewAttributesRecord(obj, namespace, parts[0], "UPDATE"))
+		if err != nil {
+			errorJSON(err, h.codec, w)
+			return
+		}
+
+		out, err := updater.Update(ctx, obj)
 		if err != nil {
 			errorJSON(err, h.codec, w)
 			return

@@ -31,7 +31,7 @@ func newProjects(c *Client) *projects {
 // Get returns information about a particular user or an error
 func (c *projects) Get(name string) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
-	err = c.r.Get().Path("projects").Path(name).Do().Into(result)
+	err = c.r.Get().Resource("projects").Name(name).Do().Into(result)
 	return
 }
 
@@ -39,7 +39,7 @@ func (c *projects) Get(name string) (result *projectapi.Project, err error) {
 func (c *projects) List(label, field labels.Selector) (result *projectapi.ProjectList, err error) {
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
-		Path("projects").
+		Resource("projects").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Do().
@@ -50,19 +50,19 @@ func (c *projects) List(label, field labels.Selector) (result *projectapi.Projec
 // Create creates a new Project
 func (c *projects) Create(p *projectapi.Project) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
-	err = c.r.Post().Path("projects").Body(p).Do().Into(result)
+	err = c.r.Post().Resource("projects").Body(p).Do().Into(result)
 	return
 }
 
 // Update updates the project on server
 func (c *projects) Update(p *projectapi.Project) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
-	err = c.r.Put().Path("projects").Path(p.Name).Body(p).Do().Into(result)
+	err = c.r.Put().Resource("projects").Name(p.Name).Body(p).Do().Into(result)
 	return
 }
 
 // Delete removes the project on server
 func (c *projects) Delete(name string) (err error) {
-	err = c.r.Delete().Path("projects").Path(name).Do().Error()
+	err = c.r.Delete().Resource("projects").Name(name).Do().Error()
 	return
 }

@@ -100,6 +100,10 @@ func (r *REST) New() runtime.Object {
 	return nil
 }
 
+func (*REST) NewList() runtime.Object {
+	return nil
+}
+
 func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	return nil, fmt.Errorf("BuildLog can't be listed")
 }

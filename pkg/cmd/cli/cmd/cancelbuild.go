@@ -60,7 +60,7 @@ Examples:
 
 				} else {
 					// TODO: add a build log client method
-					response, err := client.Get().Namespace(namespace).Path("redirect").Path("buildLogs").Path(buildName).Do().Raw()
+					response, err := client.Get().Namespace(namespace).Prefix("redirect").Resource("buildLogs").Name(buildName).Do().Raw()
 					if err != nil {
 						glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
 					} else {

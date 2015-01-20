@@ -41,7 +41,7 @@ func (c *buildConfigs) List(label, field labels.Selector) (result *buildapi.Buil
 	result = &buildapi.BuildConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
-		Path("buildConfigs").
+		Resource("buildConfigs").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Do().
@@ -52,35 +52,35 @@ func (c *buildConfigs) List(label, field labels.Selector) (result *buildapi.Buil
 // Get returns information about a particular buildconfig and error if one occurs.
 func (c *buildConfigs) Get(name string) (result *buildapi.BuildConfig, err error) {
 	result = &buildapi.BuildConfig{}
-	err = c.r.Get().Namespace(c.ns).Path("buildConfigs").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).Do().Into(result)
 	return
 }
 
 // Create creates a new buildconfig. Returns the server's representation of the buildconfig and error if one occurs.
 func (c *buildConfigs) Create(build *buildapi.BuildConfig) (result *buildapi.BuildConfig, err error) {
 	result = &buildapi.BuildConfig{}
-	err = c.r.Post().Namespace(c.ns).Path("buildConfigs").Body(build).Do().Into(result)
+	err = c.r.Post().Namespace(c.ns).Resource("buildConfigs").Body(build).Do().Into(result)
 	return
 }
 
 // Update updates the buildconfig on server. Returns the server's representation of the buildconfig and error if one occurs.
 func (c *buildConfigs) Update(build *buildapi.BuildConfig) (result *buildapi.BuildConfig, err error) {
 	result = &buildapi.BuildConfig{}
-	err = c.r.Put().Namespace(c.ns).Path("buildConfigs").Path(build.Name).Body(build).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Resource("buildConfigs").Name(build.Name).Body(build).Do().Into(result)
 	return
 }
 
 // Delete deletes a BuildConfig, returns error if one occurs.
 func (c *buildConfigs) Delete(name string) error {
-	return c.r.Delete().Namespace(c.ns).Path("buildConfigs").Path(name).Do().Error()
+	return c.r.Delete().Namespace(c.ns).Resource("buildConfigs").Name(name).Do().Error()
 }
 
 // Watch returns a watch.Interface that watches the requested buildConfigs.
 func (c *buildConfigs) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Path("watch").
+		Prefix("watch").
 		Namespace(c.ns).
-		Path("buildConfigs").
+		Resource("buildConfigs").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).

@@ -22,7 +22,7 @@ func DecodeDataToObject(data []byte) (obj runtime.Object, mapping *meta.RESTMapp
 		return
 	}
 
-	mapping, err = defaultMapper.RESTMapping(version, kind)
+	mapping, err = defaultMapper.RESTMapping(kind, version)
 	if err != nil {
 		return
 	}

@@ -22,7 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 )
 
 // StatusError is an error intended for consumption by a REST API server; it can also be
@@ -92,6 +92,20 @@ func NewAlreadyExists(kind, name string) error {
 	}}
 }
 
+// NewForbidden returns an error indicating the requested action was forbidden
+func NewForbidden(kind, name string, err error) error {
+	return &StatusError{api.Status{
+		Status: api.StatusFailure,
+		Code:   http.StatusForbidden,
+		Reason: api.StatusReasonForbidden,
+		Details: &api.StatusDetails{
+			Kind: kind,
+			ID:   name,
+		},
+		Message: fmt.Sprintf("%s %q is forbidden", kind, name),
+	}}
+}
+
 // NewConflict returns an error indicating the item can't be updated as provided.
 func NewConflict(kind, name string, err error) error {
 	return &StatusError{api.Status{
@@ -127,7 +141,7 @@ func NewInvalid(kind, name string, errs ValidationErrorList) error {
 			ID:     name,
 			Causes: causes,
 		},
-		Message: fmt.Sprintf("%s %q is invalid: %v", kind, name, util.SliceToError(errs)),
+		Message: fmt.Sprintf("%s %q is invalid: %v", kind, name, errors.NewAggregate(errs)),
 	}}
 }
 
@@ -142,6 +156,19 @@ func NewBadRequest(reason string) error {
 				{Message: reason},
 			},
 		},
+	}}
+}
+
+// NewMethodNotSupported returns an error indicating the requested action is not supported on this kind.
+func NewMethodNotSupported(kind, action string) error {
+	return &StatusError{api.Status{
+		Status: api.StatusFailure,
+		Code:   http.StatusMethodNotAllowed,
+		Reason: api.StatusReasonMethodNotAllowed,
+		Details: &api.StatusDetails{
+			Kind: kind,
+		},
+		Message: fmt.Sprintf("%s is not supported on resources of kind %q", action, kind),
 	}}
 }
 
@@ -176,6 +203,12 @@ func IsConflict(err error) bool {
 // IsInvalid determines if the err is an error which indicates the provided resource is not valid.
 func IsInvalid(err error) bool {
 	return reasonForError(err) == api.StatusReasonInvalid
+}
+
+// IsMethodNotSupported determines if the err is an error which indicates the provided action could not
+// be performed because it is not supported by the server.
+func IsMethodNotSupported(err error) bool {
+	return reasonForError(err) == api.StatusReasonMethodNotAllowed
 }
 
 // IsBadRequest determines if err is an error which indicates that the request is invalid.

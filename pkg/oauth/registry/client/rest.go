@@ -30,6 +30,10 @@ func (s *REST) New() runtime.Object {
 	return &api.Client{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.Client{}
+}
+
 // Get retrieves an Client by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	client, err := s.registry.GetClient(id)

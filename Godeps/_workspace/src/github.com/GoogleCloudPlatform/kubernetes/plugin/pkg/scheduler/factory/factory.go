@@ -19,7 +19,6 @@ limitations under the License.
 package factory
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -28,18 +27,16 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	algorithm "github.com/GoogleCloudPlatform/kubernetes/pkg/scheduler"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 
 	"github.com/golang/glog"
 )
 
 var (
-	PodLister    = &storeToPodLister{cache.NewStore()}
-	MinionLister = &storeToNodeLister{cache.NewStore()}
+	PodLister    = &cache.StoreToPodLister{cache.NewStore()}
+	MinionLister = &cache.StoreToNodeLister{cache.NewStore()}
 )
 
 // ConfigFactory knows how to fill out a scheduler config with its support functions.
@@ -48,9 +45,9 @@ type ConfigFactory struct {
 	// queue for pods that need scheduling
 	PodQueue *cache.FIFO
 	// a means to list all scheduled pods
-	PodLister *storeToPodLister
+	PodLister *cache.StoreToPodLister
 	// a means to list all minions
-	MinionLister *storeToNodeLister
+	MinionLister *cache.StoreToNodeLister
 }
 
 // NewConfigFactory initializes the factory.
@@ -102,7 +99,8 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys util.StringSe
 	// Watch minions.
 	// Minions may be listed frequently, so provide a local up-to-date cache.
 	if false {
-		// Disable this code until minions support watches.
+		// Disable this code until minions support watches. Note when this code is enabled,
+		// we need to make sure minion ListWatcher has proper FieldSelector.
 		cache.NewReflector(f.createMinionLW(), &api.Node{}, f.MinionLister.Store).Run()
 	} else {
 		cache.NewPoller(f.pollMinions, 10*time.Second, f.MinionLister.Store).Run()
@@ -115,6 +113,9 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys util.StringSe
 	podBackoff := podBackoff{
 		perPodBackoff: map[string]*backoffEntry{},
 		clock:         realClock{},
+
+		defaultDuration: 1 * time.Second,
+		maxDuration:     60 * time.Second,
 	}
 
 	return &scheduler.Config{
@@ -130,38 +131,13 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys util.StringSe
 	}, nil
 }
 
-type listWatch struct {
-	client        *client.Client
-	fieldSelector labels.Selector
-	resource      string
-}
-
-func (lw *listWatch) List() (runtime.Object, error) {
-	return lw.client.
-		Get().
-		Path(lw.resource).
-		SelectorParam("fields", lw.fieldSelector).
-		Do().
-		Get()
-}
-
-func (lw *listWatch) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.
-		Get().
-		Path("watch").
-		Path(lw.resource).
-		SelectorParam("fields", lw.fieldSelector).
-		Param("resourceVersion", resourceVersion).
-		Watch()
-}
-
-// createUnassignedPodLW returns a listWatch that finds all pods that need to be
+// createUnassignedPodLW returns a cache.ListWatch that finds all pods that need to be
 // scheduled.
-func (factory *ConfigFactory) createUnassignedPodLW() *listWatch {
-	return &listWatch{
-		client:        factory.Client,
-		fieldSelector: labels.Set{"DesiredState.Host": ""}.AsSelector(),
-		resource:      "pods",
+func (factory *ConfigFactory) createUnassignedPodLW() *cache.ListWatch {
+	return &cache.ListWatch{
+		Client:        factory.Client,
+		FieldSelector: labels.Set{"DesiredState.Host": ""}.AsSelector(),
+		Resource:      "pods",
 	}
 }
 
@@ -173,33 +149,60 @@ func parseSelectorOrDie(s string) labels.Selector {
 	return selector
 }
 
-// createAssignedPodLW returns a listWatch that finds all pods that are
+// createAssignedPodLW returns a cache.ListWatch that finds all pods that are
 // already scheduled.
-func (factory *ConfigFactory) createAssignedPodLW() *listWatch {
-	return &listWatch{
-		client:        factory.Client,
-		fieldSelector: parseSelectorOrDie("DesiredState.Host!="),
-		resource:      "pods",
+// TODO: return a ListerWatcher interface instead?
+func (factory *ConfigFactory) createAssignedPodLW() *cache.ListWatch {
+	return &cache.ListWatch{
+		Client:        factory.Client,
+		FieldSelector: parseSelectorOrDie("DesiredState.Host!="),
+		Resource:      "pods",
 	}
 }
 
-// createMinionLW returns a listWatch that gets all changes to minions.
-func (factory *ConfigFactory) createMinionLW() *listWatch {
-	return &listWatch{
-		client:        factory.Client,
-		fieldSelector: parseSelectorOrDie(""),
-		resource:      "minions",
+// createMinionLW returns a cache.ListWatch that gets all changes to minions.
+func (factory *ConfigFactory) createMinionLW() *cache.ListWatch {
+	return &cache.ListWatch{
+		Client:        factory.Client,
+		FieldSelector: parseSelectorOrDie(""),
+		Resource:      "minions",
 	}
 }
 
-// pollMinions lists all minions and returns an enumerator for cache.Poller.
+// pollMinions lists all minions and filter out unhealthy ones, then returns
+// an enumerator for cache.Poller.
 func (factory *ConfigFactory) pollMinions() (cache.Enumerator, error) {
-	list := &api.NodeList{}
-	err := factory.Client.Get().Path("minions").Do().Into(list)
+	allNodes := &api.NodeList{}
+	err := factory.Client.Get().Resource("minions").Do().Into(allNodes)
 	if err != nil {
 		return nil, err
 	}
-	return &nodeEnumerator{list}, nil
+	nodes := &api.NodeList{
+		TypeMeta: allNodes.TypeMeta,
+		ListMeta: allNodes.ListMeta,
+	}
+	for _, node := range allNodes.Items {
+		conditionMap := make(map[api.NodeConditionKind]*api.NodeCondition)
+		for i := range node.Status.Conditions {
+			cond := node.Status.Conditions[i]
+			conditionMap[cond.Kind] = &cond
+		}
+		if condition, ok := conditionMap[api.NodeReady]; ok {
+			if condition.Status == api.ConditionFull {
+				nodes.Items = append(nodes.Items, node)
+			}
+		} else if condition, ok := conditionMap[api.NodeReachable]; ok {
+			if condition.Status == api.ConditionFull {
+				nodes.Items = append(nodes.Items, node)
+			}
+		} else {
+			// If no condition is set, either node health check is disabled (master
+			// flag "healthCheckMinions" is set to false), or we get unknown condition.
+			// In such cases, we add nodes unconditionally.
+			nodes.Items = append(nodes.Items, node)
+		}
+	}
+	return &nodeEnumerator{nodes}, nil
 }
 
 func (factory *ConfigFactory) makeDefaultErrorFunc(backoff *podBackoff, podQueue *cache.FIFO) func(pod *api.Pod, err error) {
@@ -215,7 +218,7 @@ func (factory *ConfigFactory) makeDefaultErrorFunc(backoff *podBackoff, podQueue
 			backoff.wait(podID)
 			// Get the pod again; it may have changed/been scheduled already.
 			pod = &api.Pod{}
-			err := factory.Client.Get().Namespace(podNamespace).Path("pods").Path(podID).Do().Into(pod)
+			err := factory.Client.Get().Namespace(podNamespace).Resource("pods").Name(podID).Do().Into(pod)
 			if err != nil {
 				glog.Errorf("Error getting pod %v for retry: %v; abandoning", podID, err)
 				return
@@ -225,41 +228,6 @@ func (factory *ConfigFactory) makeDefaultErrorFunc(backoff *podBackoff, podQueue
 			}
 		}()
 	}
-}
-
-// storeToNodeLister turns a store into a minion lister. The store must contain (only) minions.
-type storeToNodeLister struct {
-	cache.Store
-}
-
-func (s *storeToNodeLister) List() (machines api.NodeList, err error) {
-	for _, m := range s.Store.List() {
-		machines.Items = append(machines.Items, *(m.(*api.Node)))
-	}
-	return machines, nil
-}
-
-// GetNodeInfo returns cached data for the minion 'id'.
-func (s *storeToNodeLister) GetNodeInfo(id string) (*api.Node, error) {
-	if minion, ok := s.Get(id); ok {
-		return minion.(*api.Node), nil
-	}
-	return nil, fmt.Errorf("minion '%v' is not in cache", id)
-}
-
-// storeToPodLister turns a store into a pod lister. The store must contain (only) pods.
-type storeToPodLister struct {
-	cache.Store
-}
-
-func (s *storeToPodLister) ListPods(selector labels.Selector) (pods []api.Pod, err error) {
-	for _, m := range s.List() {
-		pod := m.(*api.Pod)
-		if selector.Matches(labels.Set(pod.Labels)) {
-			pods = append(pods, *pod)
-		}
-	}
-	return pods, nil
 }
 
 // nodeEnumerator allows a cache.Poller to enumerate items in an api.NodeList
@@ -288,7 +256,7 @@ type binder struct {
 func (b *binder) Bind(binding *api.Binding) error {
 	glog.V(2).Infof("Attempting to bind %v to %v", binding.PodID, binding.Host)
 	ctx := api.WithNamespace(api.NewContext(), binding.Namespace)
-	return b.Post().Namespace(api.Namespace(ctx)).Path("bindings").Body(binding).Do().Error()
+	return b.Post().Namespace(api.Namespace(ctx)).Resource("bindings").Body(binding).Do().Error()
 }
 
 type clock interface {
@@ -307,9 +275,11 @@ type backoffEntry struct {
 }
 
 type podBackoff struct {
-	perPodBackoff map[string]*backoffEntry
-	lock          sync.Mutex
-	clock         clock
+	perPodBackoff   map[string]*backoffEntry
+	lock            sync.Mutex
+	clock           clock
+	defaultDuration time.Duration
+	maxDuration     time.Duration
 }
 
 func (p *podBackoff) getEntry(podID string) *backoffEntry {
@@ -317,7 +287,7 @@ func (p *podBackoff) getEntry(podID string) *backoffEntry {
 	defer p.lock.Unlock()
 	entry, ok := p.perPodBackoff[podID]
 	if !ok {
-		entry = &backoffEntry{backoff: 1 * time.Second}
+		entry = &backoffEntry{backoff: p.defaultDuration}
 		p.perPodBackoff[podID] = entry
 	}
 	entry.lastUpdate = p.clock.Now()
@@ -328,8 +298,8 @@ func (p *podBackoff) getBackoff(podID string) time.Duration {
 	entry := p.getEntry(podID)
 	duration := entry.backoff
 	entry.backoff *= 2
-	if entry.backoff > 60*time.Second {
-		entry.backoff = 60 * time.Second
+	if entry.backoff > p.maxDuration {
+		entry.backoff = p.maxDuration
 	}
 	glog.V(4).Infof("Backing off %s for pod %s", duration.String(), podID)
 	return duration
@@ -344,7 +314,7 @@ func (p *podBackoff) gc() {
 	defer p.lock.Unlock()
 	now := p.clock.Now()
 	for podID, entry := range p.perPodBackoff {
-		if now.Sub(entry.lastUpdate) > 60*time.Second {
+		if now.Sub(entry.lastUpdate) > p.maxDuration {
 			delete(p.perPodBackoff, podID)
 		}
 	}

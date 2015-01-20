@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -82,6 +83,16 @@ func GetFlagInt(cmd *cobra.Command, flag string) int {
 	return v
 }
 
+func GetFlagDuration(cmd *cobra.Command, flag string) time.Duration {
+	f := cmd.Flags().Lookup(flag)
+	if f == nil {
+		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
+	}
+	v, err := time.ParseDuration(f.Value.String())
+	checkErr(err)
+	return v
+}
+
 // Returns the first non-empty string out of the ones provided. If all
 // strings are empty, returns an empty string.
 func FirstNonEmptyString(args ...string) string {
@@ -94,6 +105,7 @@ func FirstNonEmptyString(args ...string) string {
 }
 
 // Return a list of file names of a certain type within a given directory.
+// TODO: replace with resource.Builder
 func GetFilesFromDir(directory string, fileType string) []string {
 	files := []string{}
 
@@ -110,6 +122,7 @@ func GetFilesFromDir(directory string, fileType string) []string {
 
 // ReadConfigData reads the bytes from the specified filesytem or network
 // location or from stdin if location == "-".
+// TODO: replace with resource.Builder
 func ReadConfigData(location string) ([]byte, error) {
 	if len(location) == 0 {
 		return nil, fmt.Errorf("location given but empty")
@@ -133,6 +146,7 @@ func ReadConfigData(location string) ([]byte, error) {
 	return ReadConfigDataFromLocation(location)
 }
 
+// TODO: replace with resource.Builder
 func ReadConfigDataFromLocation(location string) ([]byte, error) {
 	// we look for http:// or https:// to determine if valid URL, otherwise do normal file IO
 	if strings.Index(location, "http://") == 0 || strings.Index(location, "https://") == 0 {

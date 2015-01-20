@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/image/api"
@@ -123,7 +124,7 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	storage := NewREST(mockRepositoryRegistry, "test")
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
+	channel, err := storage.(apiserver.RESTCreater).Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}

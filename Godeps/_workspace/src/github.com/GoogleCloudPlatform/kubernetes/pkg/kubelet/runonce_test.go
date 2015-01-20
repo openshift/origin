@@ -66,15 +66,20 @@ func (d *testDocker) InspectContainer(id string) (*docker.Container, error) {
 }
 
 func TestRunOnce(t *testing.T) {
-	kb := &Kubelet{}
+	kb := &Kubelet{
+		rootDirectory: "/tmp/kubelet",
+	}
+	if err := kb.setupDataDirs(); err != nil {
+		t.Errorf("Failed to init data dirs: %v", err)
+	}
 	podContainers := []docker.APIContainers{
 		{
-			Names:  []string{"/k8s_bar." + strconv.FormatUint(dockertools.HashContainer(&api.Container{Name: "bar"}), 16) + "_foo.new.test"},
+			Names:  []string{"/k8s_bar." + strconv.FormatUint(dockertools.HashContainer(&api.Container{Name: "bar"}), 16) + "_foo.new.test_12345678_42"},
 			ID:     "1234",
 			Status: "running",
 		},
 		{
-			Names:  []string{"/k8s_net_foo.new.test_"},
+			Names:  []string{"/k8s_net_foo.new.test_abcdefgh_42"},
 			ID:     "9876",
 			Status: "running",
 		},
@@ -109,6 +114,7 @@ func TestRunOnce(t *testing.T) {
 	results, err := kb.runOnce([]api.BoundPod{
 		{
 			ObjectMeta: api.ObjectMeta{
+				UID:         "12345678",
 				Name:        "foo",
 				Namespace:   "new",
 				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},

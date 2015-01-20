@@ -22,6 +22,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
@@ -85,6 +88,9 @@ type MasterConfig struct {
 
 	KubeClient *kclient.Client
 	OSClient   *osclient.Client
+
+	Authorizer       authorizer.Authorizer
+	AdmissionControl admission.Interface
 }
 
 // APIInstaller installs additional API components into this server
@@ -95,7 +101,7 @@ type APIInstaller interface {
 
 // EnsureKubernetesClient creates a Kubernetes client or exits if the client cannot be created.
 func (c *MasterConfig) EnsureKubernetesClient() {
-	kubeClient, err := kclient.New(&kclient.Config{Host: c.MasterAddr, Version: klatest.Version})
+	kubeClient, err := kclient.New(&kclient.Config{Host: c.MasterAddr, Version: klatest.Version, Codec: klatest.Codec})
 	if err != nil {
 		glog.Fatalf("Unable to configure client: %v", err)
 	}
@@ -104,7 +110,7 @@ func (c *MasterConfig) EnsureKubernetesClient() {
 
 // EnsureOpenShiftClient creates an OpenShift client or exits if the client cannot be created.
 func (c *MasterConfig) EnsureOpenShiftClient() {
-	osClient, err := osclient.New(&kclient.Config{Host: c.MasterAddr, Version: latest.Version})
+	osClient, err := osclient.New(&kclient.Config{Host: c.MasterAddr, Version: latest.Version, Codec: latest.Codec})
 	if err != nil {
 		glog.Fatalf("Unable to configure client: %v", err)
 	}
@@ -178,7 +184,9 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 			"github":  github.New(),
 		})))
 
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker).InstallREST(container, OpenShiftAPIPrefix, "v1beta1")
+	admissionControl := admit.NewAlwaysAdmit()
+
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl).InstallREST(container, OpenShiftAPIPrefix, "v1beta1")
 
 	var root *restful.WebService
 	for _, svc := range container.RegisteredWebServices() {

@@ -28,10 +28,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta2"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authenticator"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
@@ -71,10 +73,12 @@ type Config struct {
 	EnableLogsSupport     bool
 	EnableUISupport       bool
 	EnableSwaggerSupport  bool
+	EnableV1Beta3         bool
 	APIPrefix             string
 	CorsAllowedOriginList util.StringList
 	Authenticator         authenticator.Request
 	Authorizer            authorizer.Authorizer
+	AdmissionControl      admission.Interface
 
 	// If specified, all web services will be registered into this container
 	RestfulContainer *restful.Container
@@ -118,7 +122,10 @@ type Master struct {
 	corsAllowedOriginList util.StringList
 	authenticator         authenticator.Request
 	authorizer            authorizer.Authorizer
+	admissionControl      admission.Interface
 	masterCount           int
+	v1beta3               bool
+	nodeIPCache           IPGetter
 
 	readOnlyServer  string
 	readWriteServer string
@@ -248,6 +255,9 @@ func New(c *Config) *Master {
 		corsAllowedOriginList: c.CorsAllowedOriginList,
 		authenticator:         c.Authenticator,
 		authorizer:            c.Authorizer,
+		admissionControl:      c.AdmissionControl,
+		v1beta3:               c.EnableV1Beta3,
+		nodeIPCache:           NewIPCache(c.Cloud, util.RealClock{}, 30*time.Second),
 
 		masterCount:     c.MasterCount,
 		readOnlyServer:  net.JoinHostPort(c.PublicAddress, strconv.Itoa(int(c.ReadOnlyPort))),
@@ -311,8 +321,9 @@ func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) 
 
 func makeMinionRegistry(c *Config) minion.Registry {
 	var minionRegistry minion.Registry = etcd.NewRegistry(c.EtcdHelper, nil)
+	// TODO: plumb in nodeIPCache here
 	if c.HealthCheckMinions {
-		minionRegistry = minion.NewHealthyRegistry(minionRegistry, c.KubeletClient)
+		minionRegistry = minion.NewHealthyRegistry(minionRegistry, c.KubeletClient, util.RealClock{}, 20*time.Second)
 	}
 	return minionRegistry
 }
@@ -323,9 +334,8 @@ func (m *Master) init(c *Config) {
 	var authenticator = c.Authenticator
 
 	nodeRESTStorage := minion.NewREST(m.minionRegistry)
-	ipCache := NewIPCache(c.Cloud, util.RealClock{}, 30*time.Second)
 	podCache := NewPodCache(
-		ipCache,
+		m.nodeIPCache,
 		c.KubeletClient,
 		RESTStorageToNodes(nodeRESTStorage).Nodes(),
 		m.podRegistry,
@@ -349,14 +359,20 @@ func (m *Master) init(c *Config) {
 		"bindings": binding.NewREST(m.bindingRegistry),
 	}
 
+	apiVersions := []string{"v1beta1", "v1beta2"}
 	apiserver.NewAPIGroupVersion(m.API_v1beta1()).InstallREST(m.handlerContainer, c.APIPrefix, "v1beta1")
 	apiserver.NewAPIGroupVersion(m.API_v1beta2()).InstallREST(m.handlerContainer, c.APIPrefix, "v1beta2")
-
-	// TODO: InstallREST should register each version automatically
-	versionHandler := apiserver.APIVersionHandler("v1beta1", "v1beta2")
-	m.rootWebService.Route(m.rootWebService.GET(c.APIPrefix).To(versionHandler))
+	if c.EnableV1Beta3 {
+		apiserver.NewAPIGroupVersion(m.API_v1beta3()).InstallREST(m.handlerContainer, c.APIPrefix, "v1beta3")
+		apiVersions = []string{"v1beta1", "v1beta2", "v1beta3"}
+	}
 
 	apiserver.InstallSupport(m.handlerContainer, m.rootWebService)
+	apiserver.AddApiWebService(m.handlerContainer, c.APIPrefix, apiVersions)
+
+	// Register root handler.
+	// We do not register this using restful Webservice since we do not want to surface this in api docs.
+	//m.mux.HandleFunc("/", apiserver.HandleIndex)
 
 	// TODO: use go-restful
 	apiserver.InstallValidator(m.mux, func() map[string]apiserver.Server { return m.getServersToValidate(c) })
@@ -415,11 +431,12 @@ func (m *Master) init(c *Config) {
 func (m *Master) InstallSwaggerAPI() {
 	// Enable swagger UI and discovery API
 	swaggerConfig := swagger.Config{
-		WebServices: m.handlerContainer.RegisteredWebServices(),
+		WebServicesUrl: m.readWriteServer,
+		WebServices:    m.handlerContainer.RegisteredWebServices(),
 		// TODO: Parameterize the path?
 		ApiPath:         "/swaggerapi/",
 		SwaggerPath:     "/swaggerui/",
-		SwaggerFilePath: "/static/swagger-ui/",
+		SwaggerFilePath: "/swagger-ui/",
 	}
 	swagger.RegisterSwaggerService(swaggerConfig, m.handlerContainer)
 }
@@ -462,19 +479,31 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 }
 
 // API_v1beta1 returns the resources and codec for API version v1beta1.
-func (m *Master) API_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker) {
+func (m *Master) API_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		storage[k] = v
 	}
-	return storage, v1beta1.Codec, "/api/v1beta1", latest.SelfLinker
+	return storage, v1beta1.Codec, "/api/v1beta1", latest.SelfLinker, m.admissionControl
 }
 
 // API_v1beta2 returns the resources and codec for API version v1beta2.
-func (m *Master) API_v1beta2() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker) {
+func (m *Master) API_v1beta2() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		storage[k] = v
 	}
-	return storage, v1beta2.Codec, "/api/v1beta2", latest.SelfLinker
+	return storage, v1beta2.Codec, "/api/v1beta2", latest.SelfLinker, m.admissionControl
+}
+
+// API_v1beta3 returns the resources and codec for API version v1beta3.
+func (m *Master) API_v1beta3() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
+	storage := make(map[string]apiserver.RESTStorage)
+	for k, v := range m.storage {
+		if k == "minions" {
+			continue
+		}
+		storage[strings.ToLower(k)] = v
+	}
+	return storage, v1beta3.Codec, "/api/v1beta3", latest.SelfLinker, m.admissionControl
 }

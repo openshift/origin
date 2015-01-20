@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -309,12 +310,12 @@ type Container struct {
 	Ports      []Port   `json:"ports,omitempty"`
 	Env        []EnvVar `json:"env,omitempty"`
 	// Optional: Defaults to unlimited.
-	Memory int `json:"memory,omitempty"`
+	Memory resource.Quantity `json:"memory,omitempty"`
 	// Optional: Defaults to unlimited.
-	CPU           int            `json:"cpu,omitempty"`
-	VolumeMounts  []VolumeMount  `json:"volumeMounts,omitempty"`
-	LivenessProbe *LivenessProbe `json:"livenessProbe,omitempty"`
-	Lifecycle     *Lifecycle     `json:"lifecycle,omitempty"`
+	CPU           resource.Quantity `json:"cpu,omitempty"`
+	VolumeMounts  []VolumeMount     `json:"volumeMounts,omitempty"`
+	LivenessProbe *LivenessProbe    `json:"livenessProbe,omitempty"`
+	Lifecycle     *Lifecycle        `json:"lifecycle,omitempty"`
 	// Optional: Defaults to /dev/termination-log
 	TerminationMessagePath string `json:"terminationMessagePath,omitempty"`
 	// Optional: Default to false.
@@ -448,11 +449,27 @@ type PodList struct {
 	Items []Pod `json:"items"`
 }
 
+// DNSPolicy defines how a pod's DNS will be configured.
+type DNSPolicy string
+
+const (
+	// DNSClusterFirst indicates that the pod should use cluster DNS
+	// first, if it is available, then fall back on the default (as
+	// determined by kubelet) DNS settings.
+	DNSClusterFirst DNSPolicy = "ClusterFirst"
+
+	// DNSDefault indicates that the pod should use the default (as
+	// determined by kubelet) DNS settings.
+	DNSDefault DNSPolicy = "Default"
+)
+
 // PodSpec is a description of a pod
 type PodSpec struct {
 	Volumes       []Volume      `json:"volumes"`
 	Containers    []Container   `json:"containers"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
+	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
+	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
@@ -629,7 +646,7 @@ type ServiceSpec struct {
 	ContainerPort util.IntOrString `json:"containerPort,omitempty"`
 
 	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
-	SessionAffinity *AffinityType `json:"sessionAffinity,omitempty"`
+	SessionAffinity AffinityType `json:"sessionAffinity,omitempty"`
 }
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
@@ -731,9 +748,29 @@ type NodeResources struct {
 	Capacity ResourceList `json:"capacity,omitempty"`
 }
 
+// ResourceName is the name identifying various resources in a ResourceList.
 type ResourceName string
 
-type ResourceList map[ResourceName]util.IntOrString
+const (
+	// CPU, in cores. (500m = .5 cores)
+	ResourceCPU ResourceName = "cpu"
+	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	ResourceMemory ResourceName = "memory"
+)
+
+// ResourceList is a set of (resource name, quantity) pairs.
+type ResourceList map[ResourceName]resource.Quantity
+
+// Get is a convenience function, which returns a 0 quantity if the
+// resource list is nil, empty, or lacks a value for the requested resource.
+// Treat as read only!
+func (rl ResourceList) Get(name ResourceName) *resource.Quantity {
+	if rl == nil {
+		return &resource.Quantity{}
+	}
+	q := rl[name]
+	return &q
+}
 
 // Node is a worker node in Kubernetenes
 // The name of the node according to etcd is in ObjectMeta.Name.
@@ -840,6 +877,17 @@ const (
 	// Status code 202
 	StatusReasonWorking StatusReason = "Working"
 
+	// StatusReasonForbidden means the server can be reached and understood the request, but refuses
+	// to take any further action.  It is the result of the server being configured to deny access for some reason
+	// to the requested resource by the client.
+	// Details (optional):
+	//   "kind" string - the kind attribute of the forbidden resource
+	//                   on some operations may differ from the requested
+	//                   resource.
+	//   "id"   string - the identifier of the forbidden resource
+	// Status code 403
+	StatusReasonForbidden StatusReason = "Forbidden"
+
 	// StatusReasonNotFound means one or more resources required for this operation
 	// could not be found.
 	// Details (optional):
@@ -882,6 +930,11 @@ const (
 	// StatusReasonInvalid above which indicates that the API call could possibly succeed, but the
 	// data was invalid.  API calls that return BadRequest can never succeed.
 	StatusReasonBadRequest StatusReason = "BadRequest"
+
+	// StatusReasonMethodNotAllowed means that the action the client attempted to perform on the
+	// resource was not supported by the code - for instance, attempting to delete a resource that
+	// can only be created. API calls that return MethodNotAllowed can never succeed.
+	StatusReasonMethodNotAllowed StatusReason = "MethodNotAllowed"
 
 	// StatusReasonInternalError indicates that an internal error occurred, it is unexpected
 	// and the outcome of the call is unknown.
@@ -959,13 +1012,21 @@ type ObjectReference struct {
 	ResourceVersion string `json:"resourceVersion,omitempty"`
 
 	// Optional. If referring to a piece of an object instead of an entire object, this string
-	// should contain a valid field access statement. For example,
-	// if the object reference is to a container within a pod, this would take on a value like:
-	// "desiredState.manifest.containers[2]". Such statements are valid language constructs in
-	// both go and JavaScript. This is syntax is chosen only to have some well-defined way of
+	// should contain information to identify the sub-object. For example, if the object
+	// reference is to a container within a pod, this would take on a value like:
+	// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+	// the event) or if no container name is specified "spec.containers[2]" (container with
+	// index 2 in this pod). This syntax is chosen only to have some well-defined way of
 	// referencing a part of an object.
 	// TODO: this design is not final and this field is subject to change in the future.
 	FieldPath string `json:"fieldPath,omitempty"`
+}
+
+type EventSource struct {
+	// Component from which the event is generated.
+	Component string `json:"component,omitempty"`
+	// Host name on which the event is generated.
+	Host string `json:"host,omitempty"`
 }
 
 // Event is a report of an event somewhere in the cluster.
@@ -997,8 +1058,7 @@ type Event struct {
 	Message string `json:"message,omitempty"`
 
 	// Optional. The component reporting this event. Should be a short machine understandable string.
-	// TODO: provide exact specification for format.
-	Source string `json:"source,omitempty"`
+	Source EventSource `json:"source,omitempty"`
 
 	// The time at which the client recorded the event. (Time of server receipt is in TypeMeta.)
 	Timestamp util.Time `json:"timestamp,omitempty"`
@@ -1029,6 +1089,8 @@ type ContainerManifest struct {
 	Volumes       []Volume      `json:"volumes"`
 	Containers    []Container   `json:"containers"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
+	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
+	DNSPolicy DNSPolicy `json:"dnsPolicy"`
 }
 
 // ContainerManifestList is used to communicate container manifests to kubelet.

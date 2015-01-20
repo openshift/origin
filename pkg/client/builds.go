@@ -41,7 +41,7 @@ func (c *builds) List(label, field labels.Selector) (result *buildapi.BuildList,
 	result = &buildapi.BuildList{}
 	err = c.r.Get().
 		Namespace(c.ns).
-		Path("builds").
+		Resource("builds").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Do().
@@ -52,36 +52,36 @@ func (c *builds) List(label, field labels.Selector) (result *buildapi.BuildList,
 // Get returns information about a particular build and error if one occurs.
 func (c *builds) Get(name string) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
-	err = c.r.Get().Namespace(c.ns).Path("builds").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("builds").Name(name).Do().Into(result)
 	return
 }
 
 // Create creates new build. Returns the server's representation of the build and error if one occurs.
 func (c *builds) Create(build *buildapi.Build) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
-	err = c.r.Post().Namespace(c.ns).Path("builds").Body(build).Do().Into(result)
+	err = c.r.Post().Namespace(c.ns).Resource("builds").Body(build).Do().Into(result)
 	return
 }
 
 // Update updates the build on server. Returns the server's representation of the build and error if one occurs.
 func (c *builds) Update(build *buildapi.Build) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
-	err = c.r.Put().Namespace(c.ns).Path("builds").Path(build.Name).Body(build).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).Body(build).Do().Into(result)
 	return
 }
 
 // Delete deletes a build, returns error if one occurs.
 func (c *builds) Delete(name string) (err error) {
-	err = c.r.Delete().Namespace(c.ns).Path("builds").Path(name).Do().Error()
+	err = c.r.Delete().Namespace(c.ns).Resource("builds").Name(name).Do().Error()
 	return
 }
 
 // Watch returns a watch.Interfac that watches the requested builds
 func (c *builds) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
-		Path("watch").
+		Prefix("watch").
 		Namespace(c.ns).
-		Path("builds").
+		Resource("builds").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).

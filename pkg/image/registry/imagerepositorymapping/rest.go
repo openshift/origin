@@ -32,6 +32,10 @@ func (s *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.ImageRepositoryMapping{}
+}
+
 // List is not supported.
 func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	return nil, errors.NewNotFound("imageRepositoryMapping", "")

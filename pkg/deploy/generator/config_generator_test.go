@@ -3,8 +3,11 @@ package generator
 import (
 	"testing"
 
+	"speter.net/go/exp/math/dec/inf"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	api "github.com/openshift/origin/pkg/api/latest"
@@ -174,12 +177,16 @@ func basicPodTemplate() *kapi.PodTemplateSpec {
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
 				{
-					Name:  "container1",
-					Image: "registry:8080/repo1:ref1",
+					Name:   "container1",
+					Image:  "registry:8080/repo1:ref1",
+					CPU:    resource.Quantity{Amount: inf.NewDec(0, 3), Format: "DecimalSI"},
+					Memory: resource.Quantity{Amount: inf.NewDec(0, 0), Format: "DecimalSI"},
 				},
 				{
-					Name:  "container2",
-					Image: "registry:8080/repo1:ref2",
+					Name:   "container2",
+					Image:  "registry:8080/repo1:ref2",
+					CPU:    resource.Quantity{Amount: inf.NewDec(0, 3), Format: "DecimalSI"},
+					Memory: resource.Quantity{Amount: inf.NewDec(0, 0), Format: "DecimalSI"},
 				},
 			},
 		},

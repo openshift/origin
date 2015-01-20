@@ -86,18 +86,24 @@ func (c *NodeConfig) RunKubelet() {
 	kubelet.SetupCapabilities(true)
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
 	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(c.NodeHost), c.EtcdClient, cfg.Channel("etcd"))
-	k := kubelet.NewMainKubelet(
+	k, err := kubelet.NewMainKubelet(
 		c.NodeHost,
 		c.DockerClient,
 		c.EtcdClient,
+		nil,
 		c.VolumeDir,
 		c.NetworkContainerImage,
 		30*time.Second,
 		0.0,
 		10,
-		0,
+		1*time.Second,
 		5,
-		cfg.SeenAllSources)
+		cfg.IsSourceSeen,
+		"",
+		net.IP(util.IP{}))
+	if err != nil {
+		glog.Fatalf("Couldn't run kubelet: %s", err)
+	}
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
 	// this parameter must be true, otherwise buildLogs won't work

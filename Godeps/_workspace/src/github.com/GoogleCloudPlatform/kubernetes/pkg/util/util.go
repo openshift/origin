@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -51,12 +52,12 @@ func HandleCrash() {
 	}
 }
 
-// Forever loops forever running f every d.  Catches any panics, and keeps going.
+// Forever loops forever running f every period.  Catches any panics, and keeps going.
 func Forever(f func(), period time.Duration) {
 	Until(f, period, nil)
 }
 
-// Until loops until stop channel is closed, running f every d.
+// Until loops until stop channel is closed, running f every period.
 // Catches any panics, and keeps going. f may not be invoked if
 // stop channel is already closed.
 func Until(f func(), period time.Duration, stopCh <-chan struct{}) {
@@ -112,6 +113,14 @@ func (intstr *IntOrString) UnmarshalJSON(value []byte) error {
 	return json.Unmarshal(value, &intstr.IntVal)
 }
 
+// String returns the string value, or Itoa's the int value.
+func (intstr *IntOrString) String() string {
+	if intstr.Kind == IntstrString {
+		return intstr.StrVal
+	}
+	return strconv.Itoa(intstr.IntVal)
+}
+
 // MarshalJSON implements the json.Marshaller interface.
 func (intstr IntOrString) MarshalJSON() ([]byte, error) {
 	switch intstr.Kind {
@@ -140,12 +149,37 @@ func CompileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {
 // Writes 'value' to /proc/self/oom_score_adj.
 func ApplyOomScoreAdj(value int) error {
 	if value < -1000 || value > 1000 {
-		return fmt.Errorf("invalid value(%d) specified for oom_score_adj. Values must be within the range [-1000, 1000]")
+		return fmt.Errorf("invalid value(%d) specified for oom_score_adj. Values must be within the range [-1000, 1000]", value)
 	}
 
 	if err := ioutil.WriteFile("/proc/self/oom_score_adj", []byte(strconv.Itoa(value)), 0700); err != nil {
-		fmt.Errorf("failed to set oom_score_adj to %s - %q", value, err)
+		fmt.Errorf("failed to set oom_score_adj to %d - %q", value, err)
 	}
 
 	return nil
+}
+
+// Tests whether all pointer fields in a struct are nil.  This is useful when,
+// for example, an API struct is handled by plugins which need to distinguish
+// "no plugin accepted this spec" from "this spec is empty".
+//
+// This function is only valid for structs and pointers to structs.  Any other
+// type will cause a panic.  Passing a typed nil pointer will return true.
+func AllPtrFieldsNil(obj interface{}) bool {
+	v := reflect.ValueOf(obj)
+	if !v.IsValid() {
+		panic(fmt.Sprintf("reflect.ValueOf() produced a non-valid Value for %#v", obj))
+	}
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return true
+		}
+		v = v.Elem()
+	}
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Kind() == reflect.Ptr && !v.Field(i).IsNil() {
+			return false
+		}
+	}
+	return true
 }

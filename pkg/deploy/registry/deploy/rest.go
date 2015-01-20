@@ -33,6 +33,10 @@ func (s *REST) New() runtime.Object {
 	return &deployapi.Deployment{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &deployapi.Deployment{}
+}
+
 // List obtains a list of Deployments that match selector.
 func (s *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
 	deployments, err := s.registry.ListDeployments(ctx, label, field)

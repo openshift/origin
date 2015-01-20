@@ -27,6 +27,10 @@ func (s *REST) New() runtime.Object {
 	return &api.UserIdentityMapping{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.UserIdentityMapping{}
+}
+
 // Get retrieves an UserIdentityMapping by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return nil, errors.New("not implemented")

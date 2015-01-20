@@ -4,15 +4,16 @@ import (
 	"io"
 
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	kubectl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/config"
 )
 
-func NewCmdApply(f *kubecmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdApply(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply -f filename",
 		Short: "Perform bulk create operation on set of resources",
@@ -36,7 +37,8 @@ Examples:
 
 			schema, err := f.Validator(cmd)
 			checkErr(err)
-			_, namespace, _, data := kubecmd.ResourceFromFile(filename, f.Typer, f.Mapper, schema)
+			mapper, typer := f.Object(cmd)
+			_, namespace, _, data := kubecmd.ResourceFromFile(cmd, filename, typer, mapper, schema)
 
 			if len(namespace) == 0 {
 				namespace = getOriginNamespace(cmd)
@@ -45,12 +47,16 @@ Examples:
 				checkErr(err)
 			}
 
-			result, err := config.Apply(namespace, data, func(m *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
-				client, err := f.Client(cmd, m)
+			result, err := config.Apply(namespace, data, func(m *kmeta.RESTMapping) (*resource.Helper, error) {
+				client, kclient, err := f.Clients(cmd)
 				if err != nil {
 					return nil, err
 				}
-				return kubectl.NewRESTHelper(client, m), nil
+				if latest.OriginKind(m.Kind, m.APIVersion) {
+					return resource.NewHelper(client, m), nil
+				} else {
+					return resource.NewHelper(kclient, m), nil
+				}
 			})
 			checkErr(err)
 

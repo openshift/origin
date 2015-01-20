@@ -30,6 +30,6 @@ func newUsers(c *Client) *users {
 // Get returns information about a particular user or an error
 func (c *users) Get(name string) (result *userapi.User, err error) {
 	result = &userapi.User{}
-	err = c.r.Get().Path("users").Path(name).Do().Into(result)
+	err = c.r.Get().Resource("users").Name(name).Do().Into(result)
 	return
 }

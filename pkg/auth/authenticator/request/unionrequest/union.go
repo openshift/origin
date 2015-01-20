@@ -3,7 +3,7 @@ package unionrequest
 import (
 	"net/http"
 
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -32,5 +32,5 @@ func (authHandler unionAuthRequestHandler) AuthenticateRequest(req *http.Request
 		}
 	}
 
-	return nil, false, kutil.SliceToError(errors)
+	return nil, false, kerrors.NewAggregate(errors)
 }

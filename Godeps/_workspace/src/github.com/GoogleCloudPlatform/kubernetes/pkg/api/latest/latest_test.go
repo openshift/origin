@@ -18,7 +18,6 @@ package latest
 
 import (
 	"encoding/json"
-	"reflect"
 	"strconv"
 	"testing"
 
@@ -167,7 +166,7 @@ func TestInternalRoundTrip(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(obj, actual) {
+		if !internal.Semantic.DeepEqual(obj, actual) {
 			t.Errorf("%s: diff %s", k, util.ObjectDiff(obj, actual))
 		}
 	}
@@ -228,7 +227,7 @@ func TestRESTMapper(t *testing.T) {
 	}
 
 	for _, version := range Versions {
-		mapping, err := RESTMapper.RESTMapping(version, "ReplicationController")
+		mapping, err := RESTMapper.RESTMapping("ReplicationController", version)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}

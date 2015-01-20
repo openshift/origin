@@ -19,10 +19,12 @@ package minion
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/health"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 type alwaysYes struct{}
@@ -34,10 +36,12 @@ func (alwaysYes) HealthCheck(host string) (health.Status, error) {
 func TestBasicDelegation(t *testing.T) {
 	ctx := api.NewContext()
 	mockMinionRegistry := registrytest.NewMinionRegistry([]string{"m1", "m2", "m3"}, api.NodeResources{})
-	healthy := HealthyRegistry{
-		delegate: mockMinionRegistry,
-		client:   alwaysYes{},
-	}
+	healthy := NewHealthyRegistry(
+		mockMinionRegistry,
+		alwaysYes{},
+		&util.FakeClock{},
+		60*time.Second,
+	)
 	list, err := healthy.ListMinions(ctx)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -82,23 +86,29 @@ func (n *notMinion) HealthCheck(host string) (health.Status, error) {
 func TestFiltering(t *testing.T) {
 	ctx := api.NewContext()
 	mockMinionRegistry := registrytest.NewMinionRegistry([]string{"m1", "m2", "m3"}, api.NodeResources{})
-	healthy := HealthyRegistry{
-		delegate: mockMinionRegistry,
-		client:   &notMinion{minion: "m1"},
-	}
-	expected := []string{"m2", "m3"}
+	healthy := NewHealthyRegistry(
+		mockMinionRegistry,
+		&notMinion{minion: "m1"},
+		&util.FakeClock{},
+		60*time.Second,
+	)
+	expected := []string{"m1", "m2", "m3"}
 	list, err := healthy.ListMinions(ctx)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(list, registrytest.MakeMinionList(expected, api.NodeResources{})) {
+	expectedMinions := registrytest.MakeMinionList(expected, api.NodeResources{})
+	expectedMinions.Items[0].Status.Conditions = []api.NodeCondition{{Kind: api.NodeReady, Status: api.ConditionNone}}
+	expectedMinions.Items[1].Status.Conditions = []api.NodeCondition{{Kind: api.NodeReady, Status: api.ConditionFull}}
+	expectedMinions.Items[2].Status.Conditions = []api.NodeCondition{{Kind: api.NodeReady, Status: api.ConditionFull}}
+	if !reflect.DeepEqual(list, expectedMinions) {
 		t.Errorf("Expected %v, Got %v", expected, list)
 	}
 	minion, err := healthy.GetMinion(ctx, "m1")
-	if err == nil {
-		t.Errorf("unexpected non-error")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
-	if minion != nil {
-		t.Errorf("Unexpected presence of 'm1'")
+	if minion == nil {
+		t.Errorf("Unexpected empty 'm1'")
 	}
 }

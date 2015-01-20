@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta3
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -326,13 +327,13 @@ type Container struct {
 	WorkingDir string   `json:"workingDir,omitempty"`
 	Ports      []Port   `json:"ports,omitempty"`
 	Env        []EnvVar `json:"env,omitempty"`
-	// Optional: Defaults to unlimited.
-	Memory int `json:"memory,omitempty"`
-	// Optional: Defaults to unlimited.
-	CPU           int            `json:"cpu,omitempty"`
-	VolumeMounts  []VolumeMount  `json:"volumeMounts,omitempty"`
-	LivenessProbe *LivenessProbe `json:"livenessProbe,omitempty"`
-	Lifecycle     *Lifecycle     `json:"lifecycle,omitempty"`
+	// Optional: Defaults to unlimited. Units: bytes.
+	Memory resource.Quantity `json:"memory,omitempty"`
+	// Optional: Defaults to unlimited. Units: Cores. (500m == 1/2 core)
+	CPU           resource.Quantity `json:"cpu,omitempty"`
+	VolumeMounts  []VolumeMount     `json:"volumeMounts,omitempty"`
+	LivenessProbe *LivenessProbe    `json:"livenessProbe,omitempty"`
+	Lifecycle     *Lifecycle        `json:"lifecycle,omitempty"`
 	// Optional: Defaults to /dev/termination-log
 	TerminationMessagePath string `json:"terminationMessagePath,omitempty"`
 	// Optional: Default to false.
@@ -457,11 +458,27 @@ type RestartPolicy struct {
 	Never     *RestartPolicyNever     `json:"never,omitempty"`
 }
 
+// DNSPolicy defines how a pod's DNS will be configured.
+type DNSPolicy string
+
+const (
+	// DNSClusterFirst indicates that the pod should use cluster DNS
+	// first, if it is available, then fall back on the default (as
+	// determined by kubelet) DNS settings.
+	DNSClusterFirst DNSPolicy = "ClusterFirst"
+
+	// DNSDefault indicates that the pod should use the default (as
+	// determined by kubelet) DNS settings.
+	DNSDefault DNSPolicy = "Default"
+)
+
 // PodSpec is a description of a pod
 type PodSpec struct {
 	Volumes       []Volume      `json:"volumes"`
 	Containers    []Container   `json:"containers"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
+	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
+	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
@@ -656,7 +673,7 @@ type ServiceSpec struct {
 	ContainerPort util.IntOrString `json:"containerPort,omitempty"`
 
 	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
-	SessionAffinity *AffinityType `json:"sessionAffinity,omitempty"`
+	SessionAffinity AffinityType `json:"sessionAffinity,omitempty"`
 }
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
@@ -760,9 +777,18 @@ type NodeCondition struct {
 	Message            string              `json:"message,omitempty"`
 }
 
+// ResourceName is the name identifying various resources in a ResourceList.
 type ResourceName string
 
-type ResourceList map[ResourceName]util.IntOrString
+const (
+	// CPU, in cores. (500m = .5 cores)
+	ResourceCPU ResourceName = "cpu"
+	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	ResourceMemory ResourceName = "memory"
+)
+
+// ResourceList is a set of (resource name, quantity) pairs.
+type ResourceList map[ResourceName]resource.Quantity
 
 // Node is a worker node in Kubernetes.
 // The name of the node according to etcd is in ID.
@@ -977,13 +1003,21 @@ type ObjectReference struct {
 	ResourceVersion string `json:"resourceVersion,omitempty"`
 
 	// Optional. If referring to a piece of an object instead of an entire object, this string
-	// should contain a valid field access statement. For example,
-	// if the object reference is to a container within a pod, this would take on a value like:
-	// "spec.containers[2]". Such statements are valid language constructs in
-	// both go and JavaScript. This is syntax is chosen only to have some well-defined way of
+	// should contain information to identify the sub-object. For example, if the object
+	// reference is to a container within a pod, this would take on a value like:
+	// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+	// the event) or if no container name is specified "spec.containers[2]" (container with
+	// index 2 in this pod). This syntax is chosen only to have some well-defined way of
 	// referencing a part of an object.
 	// TODO: this design is not final and this field is subject to change in the future.
 	FieldPath string `json:"fieldPath,omitempty"`
+}
+
+type EventSource struct {
+	// Component from which the event is generated.
+	Component string `json:"component,omitempty"`
+	// Host name on which the event is generated.
+	Host string `json:"host,omitempty"`
 }
 
 // Event is a report of an event somewhere in the cluster.
@@ -1015,8 +1049,7 @@ type Event struct {
 	Message string `json:"message,omitempty"`
 
 	// Optional. The component reporting this event. Should be a short machine understandable string.
-	// TODO: provide exact specification for format.
-	Source string `json:"source,omitempty"`
+	Source EventSource `json:"source,omitempty"`
 
 	// The time at which the client recorded the event. (Time of server receipt is in TypeMeta.)
 	Timestamp util.Time `json:"timestamp,omitempty"`

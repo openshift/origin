@@ -38,7 +38,7 @@ func (c *images) List(label, field labels.Selector) (result *imageapi.ImageList,
 	result = &imageapi.ImageList{}
 	err = c.r.Get().
 		Namespace(c.ns).
-		Path("images").
+		Resource("images").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
 		Do().
@@ -49,19 +49,19 @@ func (c *images) List(label, field labels.Selector) (result *imageapi.ImageList,
 // Get returns information about a particular image and error if one occurs.
 func (c *images) Get(name string) (result *imageapi.Image, err error) {
 	result = &imageapi.Image{}
-	err = c.r.Get().Namespace(c.ns).Path("images").Path(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("images").Name(name).Do().Into(result)
 	return
 }
 
 // Create creates a new image. Returns the server's representation of the image and error if one occurs.
 func (c *images) Create(image *imageapi.Image) (result *imageapi.Image, err error) {
 	result = &imageapi.Image{}
-	err = c.r.Post().Namespace(c.ns).Path("images").Body(image).Do().Into(result)
+	err = c.r.Post().Namespace(c.ns).Resource("images").Body(image).Do().Into(result)
 	return
 }
 
 // Delete deletes an image, returns error if one occurs.
 func (c *images) Delete(name string) (err error) {
-	err = c.r.Delete().Namespace(c.ns).Path("images").Path(name).Do().Error()
+	err = c.r.Delete().Namespace(c.ns).Resource("images").Name(name).Do().Error()
 	return
 }

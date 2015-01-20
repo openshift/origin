@@ -3,7 +3,10 @@ package controller
 import (
 	"testing"
 
+	"speter.net/go/exp/math/dec/inf"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
 	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -199,8 +202,10 @@ func existingConfigWithTrigger() *deployapi.DeploymentConfig {
 					Spec: kapi.PodSpec{
 						Containers: []kapi.Container{
 							{
-								Name:  "container-1",
-								Image: "registry:8080/openshift/test-image:ref-1",
+								Name:   "container-1",
+								Image:  "registry:8080/openshift/test-image:ref-1",
+								CPU:    resource.Quantity{Amount: inf.NewDec(0, 3), Format: "DecimalSI"},
+								Memory: resource.Quantity{Amount: inf.NewDec(0, 0), Format: "DecimalSI"},
 							},
 						},
 					},

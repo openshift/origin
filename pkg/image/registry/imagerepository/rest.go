@@ -35,6 +35,10 @@ func (s *REST) New() runtime.Object {
 	return &api.ImageRepository{}
 }
 
+func (*REST) NewList() runtime.Object {
+	return &api.ImageRepository{}
+}
+
 // List retrieves a list of ImageRepositories that match selector.
 func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
 	imageRepositories, err := s.registry.ListImageRepositories(ctx, selector)

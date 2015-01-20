@@ -29,7 +29,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -47,112 +46,107 @@ func TestCreate(t *testing.T) {
 	factory.Create()
 }
 
-func TestCreateLists(t *testing.T) {
-	factory := NewConfigFactory(nil)
-	table := []struct {
-		location string
-		factory  func() *listWatch
-	}{
-		// Minion
-		{
-			location: "/api/" + testapi.Version() + "/minions?fields=",
-			factory:  factory.createMinionLW,
-		},
-		// Assigned pod
-		{
-			location: "/api/" + testapi.Version() + "/pods?fields=DesiredState.Host!%3D",
-			factory:  factory.createAssignedPodLW,
-		},
-		// Unassigned pod
-		{
-			location: "/api/" + testapi.Version() + "/pods?fields=DesiredState.Host%3D",
-			factory:  factory.createUnassignedPodLW,
-		},
-	}
-
-	for _, item := range table {
-		handler := util.FakeHandler{
-			StatusCode:   500,
-			ResponseBody: "",
-			T:            t,
-		}
-		server := httptest.NewServer(&handler)
-		defer server.Close()
-		factory.Client = client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})
-		// This test merely tests that the correct request is made.
-		item.factory().List()
-		handler.ValidateRequest(t, item.location, "GET", nil)
-	}
-}
-
-func TestCreateWatches(t *testing.T) {
-	factory := NewConfigFactory(nil)
-	table := []struct {
-		rv       string
-		location string
-		factory  func() *listWatch
-	}{
-		// Minion watch
-		{
-			rv:       "",
-			location: "/api/" + testapi.Version() + "/watch/minions?fields=&resourceVersion=",
-			factory:  factory.createMinionLW,
-		}, {
-			rv:       "0",
-			location: "/api/" + testapi.Version() + "/watch/minions?fields=&resourceVersion=0",
-			factory:  factory.createMinionLW,
-		}, {
-			rv:       "42",
-			location: "/api/" + testapi.Version() + "/watch/minions?fields=&resourceVersion=42",
-			factory:  factory.createMinionLW,
-		},
-		// Assigned pod watches
-		{
-			rv:       "",
-			location: "/api/" + testapi.Version() + "/watch/pods?fields=DesiredState.Host!%3D&resourceVersion=",
-			factory:  factory.createAssignedPodLW,
-		}, {
-			rv:       "42",
-			location: "/api/" + testapi.Version() + "/watch/pods?fields=DesiredState.Host!%3D&resourceVersion=42",
-			factory:  factory.createAssignedPodLW,
-		},
-		// Unassigned pod watches
-		{
-			rv:       "",
-			location: "/api/" + testapi.Version() + "/watch/pods?fields=DesiredState.Host%3D&resourceVersion=",
-			factory:  factory.createUnassignedPodLW,
-		}, {
-			rv:       "42",
-			location: "/api/" + testapi.Version() + "/watch/pods?fields=DesiredState.Host%3D&resourceVersion=42",
-			factory:  factory.createUnassignedPodLW,
-		},
-	}
-
-	for _, item := range table {
-		handler := util.FakeHandler{
-			StatusCode:   500,
-			ResponseBody: "",
-			T:            t,
-		}
-		server := httptest.NewServer(&handler)
-		defer server.Close()
-		factory.Client = client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()})
-
-		// This test merely tests that the correct request is made.
-		item.factory().Watch(item.rv)
-		handler.ValidateRequest(t, item.location, "GET", nil)
-	}
-}
-
 func TestPollMinions(t *testing.T) {
 	table := []struct {
-		minions []api.Node
+		minions       []api.Node
+		expectedCount int
 	}{
 		{
 			minions: []api.Node{
-				{ObjectMeta: api.ObjectMeta{Name: "foo"}},
-				{ObjectMeta: api.ObjectMeta{Name: "bar"}},
+				{
+					ObjectMeta: api.ObjectMeta{Name: "foo"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReady, Status: api.ConditionFull},
+						},
+					},
+				},
+				{
+					ObjectMeta: api.ObjectMeta{Name: "bar"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReachable, Status: api.ConditionFull},
+						},
+					},
+				},
+				{
+					ObjectMeta: api.ObjectMeta{Name: "baz"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReady, Status: api.ConditionFull},
+							{Kind: api.NodeReachable, Status: api.ConditionFull},
+						},
+					},
+				},
+				{
+					ObjectMeta: api.ObjectMeta{Name: "baz"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReady, Status: api.ConditionFull},
+							{Kind: api.NodeReady, Status: api.ConditionFull},
+						},
+					},
+				},
 			},
+			expectedCount: 4,
+		},
+		{
+			minions: []api.Node{
+				{
+					ObjectMeta: api.ObjectMeta{Name: "foo"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReady, Status: api.ConditionFull},
+						},
+					},
+				},
+				{
+					ObjectMeta: api.ObjectMeta{Name: "bar"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReady, Status: api.ConditionNone},
+						},
+					},
+				},
+			},
+			expectedCount: 1,
+		},
+		{
+			minions: []api.Node{
+				{
+					ObjectMeta: api.ObjectMeta{Name: "foo"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReady, Status: api.ConditionFull},
+							{Kind: api.NodeReachable, Status: api.ConditionNone}},
+					},
+				},
+			},
+			expectedCount: 1,
+		},
+		{
+			minions: []api.Node{
+				{
+					ObjectMeta: api.ObjectMeta{Name: "foo"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{Kind: api.NodeReachable, Status: api.ConditionFull},
+							{Kind: "invalidValue", Status: api.ConditionNone}},
+					},
+				},
+			},
+			expectedCount: 1,
+		},
+		{
+			minions: []api.Node{
+				{
+					ObjectMeta: api.ObjectMeta{Name: "foo"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{},
+					},
+				},
+			},
+			expectedCount: 1,
 		},
 	}
 
@@ -178,14 +172,14 @@ func TestPollMinions(t *testing.T) {
 		}
 		handler.ValidateRequest(t, "/api/"+testapi.Version()+"/minions", "GET", nil)
 
-		if e, a := len(item.minions), ce.Len(); e != a {
-			t.Errorf("Expected %v, got %v", e, a)
+		if a := ce.Len(); item.expectedCount != a {
+			t.Errorf("Expected %v, got %v", item.expectedCount, a)
 		}
 	}
 }
 
 func makeNamespaceURL(namespace, suffix string, isClient bool) string {
-	if client.NamespaceInPathFor(testapi.Version()) {
+	if !(testapi.Version() == "v1beta1" || testapi.Version() == "v1beta2") {
 		return makeURL("/ns/" + namespace + suffix)
 	}
 	// if this is a url the client should call, encode the url
@@ -216,8 +210,10 @@ func TestDefaultErrorFunc(t *testing.T) {
 	factory := NewConfigFactory(client.NewOrDie(&client.Config{Host: server.URL, Version: testapi.Version()}))
 	queue := cache.NewFIFO()
 	podBackoff := podBackoff{
-		perPodBackoff: map[string]*backoffEntry{},
-		clock:         &fakeClock{},
+		perPodBackoff:   map[string]*backoffEntry{},
+		clock:           &fakeClock{},
+		defaultDuration: 1 * time.Millisecond,
+		maxDuration:     1 * time.Second,
 	}
 	errFunc := factory.makeDefaultErrorFunc(&podBackoff, queue)
 
@@ -236,57 +232,6 @@ func TestDefaultErrorFunc(t *testing.T) {
 			t.Errorf("Expected %v, got %v", e, a)
 		}
 		break
-	}
-}
-
-func TestStoreToMinionLister(t *testing.T) {
-	store := cache.NewStore()
-	ids := util.NewStringSet("foo", "bar", "baz")
-	for id := range ids {
-		store.Add(id, &api.Node{ObjectMeta: api.ObjectMeta{Name: id}})
-	}
-	sml := storeToNodeLister{store}
-
-	gotNodes, err := sml.List()
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	got := make([]string, len(gotNodes.Items))
-	for ix := range gotNodes.Items {
-		got[ix] = gotNodes.Items[ix].Name
-	}
-	if !ids.HasAll(got...) || len(got) != len(ids) {
-		t.Errorf("Expected %v, got %v", ids, got)
-	}
-}
-
-func TestStoreToPodLister(t *testing.T) {
-	store := cache.NewStore()
-	ids := []string{"foo", "bar", "baz"}
-	for _, id := range ids {
-		store.Add(id, &api.Pod{
-			ObjectMeta: api.ObjectMeta{
-				Name:   id,
-				Labels: map[string]string{"name": id},
-			},
-		})
-	}
-	spl := storeToPodLister{store}
-
-	for _, id := range ids {
-		got, err := spl.ListPods(labels.Set{"name": id}.AsSelector())
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-			continue
-		}
-		if e, a := 1, len(got); e != a {
-			t.Errorf("Expected %v, got %v", e, a)
-			continue
-		}
-		if e, a := id, got[0].Name; e != a {
-			t.Errorf("Expected %v, got %v", e, a)
-			continue
-		}
 	}
 }
 
@@ -352,8 +297,10 @@ func TestBind(t *testing.T) {
 func TestBackoff(t *testing.T) {
 	clock := fakeClock{}
 	backoff := podBackoff{
-		perPodBackoff: map[string]*backoffEntry{},
-		clock:         &clock,
+		perPodBackoff:   map[string]*backoffEntry{},
+		clock:           &clock,
+		defaultDuration: 1 * time.Second,
+		maxDuration:     60 * time.Second,
 	}
 
 	tests := []struct {

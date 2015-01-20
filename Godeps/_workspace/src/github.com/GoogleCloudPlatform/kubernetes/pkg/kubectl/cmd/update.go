@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/spf13/cobra"
 )
 
@@ -45,14 +45,15 @@ Examples:
 			}
 			schema, err := f.Validator(cmd)
 			checkErr(err)
-			mapping, namespace, name, data := ResourceFromFile(filename, f.Typer, f.Mapper, schema)
-			client, err := f.Client(cmd, mapping)
+			mapper, typer := f.Object(cmd)
+			mapping, namespace, name, data := ResourceFromFile(cmd, filename, typer, mapper, schema)
+			client, err := f.RESTClient(cmd, mapping)
 			checkErr(err)
 
 			err = CompareNamespaceFromFile(cmd, namespace)
 			checkErr(err)
 
-			err = kubectl.NewRESTHelper(client, mapping).Update(namespace, name, true, data)
+			err = resource.NewHelper(client, mapping).Update(namespace, name, true, data)
 			checkErr(err)
 			fmt.Fprintf(out, "%s\n", name)
 		},

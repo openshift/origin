@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
 
@@ -39,20 +40,15 @@ func NewCommandCLI(name string) *cobra.Command {
 	}
 
 	// TODO: there should be two client builders, one for OpenShift, and one for Kubernetes
-	clientBuilder := clientcmd.NewBuilder(clientcmd.NewPromptingAuthLoader(os.Stdin))
-	clientBuilder.BindFlags(cmds.PersistentFlags())
-
-	cmds.PersistentFlags().String("ns-path", os.Getenv("HOME")+"/.kubernetes_ns", "Path to the namespace info file that holds the name space context to use for CLI requests.")
-	cmds.PersistentFlags().StringP("namespace", "n", "", "If present, the namespace scope for this CLI request.")
-
-	f := cmd.NewFactory(clientBuilder)
+	clientConfig := clientcmd.NewInteractiveClientConfig(clientcmdapi.Config{}, "", &clientcmd.ConfigOverrides{}, os.Stdin)
+	f := cmd.NewFactory(clientConfig)
+	f.BindFlags(cmds.PersistentFlags())
 	out := os.Stdout
 
 	// Kubernetes CRUD commands
 	cmds.AddCommand(f.NewCmdGet(out))
 	cmds.AddCommand(f.NewCmdDescribe(out))
 	cmds.AddCommand(f.NewCmdCreate(out))
-	cmds.AddCommand(f.NewCmdCreateAll(out))
 	cmds.AddCommand(f.NewCmdUpdate(out))
 	cmds.AddCommand(f.NewCmdDelete(out))
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
@@ -62,11 +58,11 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(f.NewCmdProxy(out))
 
 	// Origin commands
-	cmds.AddCommand(cmd.NewCmdApply(f.Factory, out))
-	cmds.AddCommand(cmd.NewCmdProcess(f.Factory, out))
+	cmds.AddCommand(cmd.NewCmdApply(f, out))
+	cmds.AddCommand(cmd.NewCmdProcess(f, out))
 
 	// Origin build commands
-	cmds.AddCommand(cmd.NewCmdBuildLogs(f.Factory, out))
+	cmds.AddCommand(cmd.NewCmdBuildLogs(f, out))
 	cmds.AddCommand(cmd.NewCmdStartBuild(f, out))
 	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
 

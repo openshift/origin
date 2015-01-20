@@ -6,7 +6,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -31,7 +31,7 @@ func reportError(allErrs *errs.ValidationErrorList, index int, err errs.Validati
 // Apply creates and manages resources defined in the Config. The create process
 // won't stop on error, but it will finish the job and then return error and for
 // each item in the config an error and status message string.
-func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*kubectl.RESTHelper, error)) ([]ApplyResult, error) {
+func Apply(namespace string, data []byte, clientFunc func(*kmeta.RESTMapping) (*resource.Helper, error)) ([]ApplyResult, error) {
 	confObj, _, err := DecodeDataToObject(data)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failed, %s", err.Error())

@@ -35,18 +35,17 @@ type NodeInterface interface {
 
 // nodes implements NodesInterface
 type nodes struct {
-	r          *Client
-	preV1Beta3 bool
+	r *Client
 }
 
 // newNodes returns a nodes object. Uses "minions" as the
 // URL resource name for v1beta1 and v1beta2.
-func newNodes(c *Client, isPreV1Beta3 bool) *nodes {
-	return &nodes{c, isPreV1Beta3}
+func newNodes(c *Client) *nodes {
+	return &nodes{c}
 }
 
 func (c *nodes) resourceName() string {
-	if c.preV1Beta3 {
+	if preV1Beta3(c.r.APIVersion()) {
 		return "minions"
 	}
 	return "nodes"
@@ -55,14 +54,14 @@ func (c *nodes) resourceName() string {
 // Create creates a new minion.
 func (c *nodes) Create(minion *api.Node) (*api.Node, error) {
 	result := &api.Node{}
-	err := c.r.Post().Path(c.resourceName()).Body(minion).Do().Into(result)
+	err := c.r.Post().Resource(c.resourceName()).Body(minion).Do().Into(result)
 	return result, err
 }
 
 // List lists all the nodes in the cluster.
 func (c *nodes) List() (*api.NodeList, error) {
 	result := &api.NodeList{}
-	err := c.r.Get().Path(c.resourceName()).Do().Into(result)
+	err := c.r.Get().Resource(c.resourceName()).Do().Into(result)
 	return result, err
 }
 
@@ -73,11 +72,11 @@ func (c *nodes) Get(name string) (*api.Node, error) {
 	}
 
 	result := &api.Node{}
-	err := c.r.Get().Path(c.resourceName()).Path(name).Do().Into(result)
+	err := c.r.Get().Resource(c.resourceName()).Name(name).Do().Into(result)
 	return result, err
 }
 
 // Delete deletes an existing minion.
 func (c *nodes) Delete(name string) error {
-	return c.r.Delete().Path(c.resourceName()).Path(name).Do().Error()
+	return c.r.Delete().Resource(c.resourceName()).Name(name).Do().Error()
 }

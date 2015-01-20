@@ -5,16 +5,16 @@ import (
 	"net"
 	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/resources"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -38,6 +38,9 @@ type MasterConfig struct {
 
 	EtcdHelper tools.EtcdHelper
 	KubeClient *kclient.Client
+
+	Authorizer       authorizer.Authorizer
+	AdmissionControl admission.Interface
 }
 
 // TODO: Longer term we should read this from some config store, rather than a flag.
@@ -66,8 +69,6 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		ReadWritePort: c.MasterPort,
 		ReadOnlyPort:  c.MasterPort,
 
-		Authorizer: apiserver.NewAlwaysAllowAuthorizer(),
-
 		Client:             c.KubeClient,
 		EtcdHelper:         c.EtcdHelper,
 		HealthCheckMinions: true,
@@ -77,6 +78,9 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		RestfulContainer: container,
 		KubeletClient:    kubeletClient,
 		APIPrefix:        KubeAPIPrefix,
+
+		Authorizer:       c.Authorizer,
+		AdmissionControl: c.AdmissionControl,
 	}
 	_ = master.New(masterConfig)
 
@@ -116,12 +120,12 @@ func (c *MasterConfig) RunScheduler() {
 func (c *MasterConfig) RunMinionController() {
 	nodeResources := &kapi.NodeResources{
 		Capacity: kapi.ResourceList{
-			resources.CPU:    kubeutil.NewIntOrStringFromInt(int(1000)),
-			resources.Memory: kubeutil.NewIntOrStringFromInt(int(3 * 1024 * 1024 * 1024)),
+		//resources.CPU:    kubeutil.NewIntOrStringFromInt(int(1000)),
+		//resources.Memory: kubeutil.NewIntOrStringFromInt(int(3 * 1024 * 1024 * 1024)),
 		},
 	}
 
-	minionController := minionControllerPkg.NewMinionController(nil, "", c.NodeHosts, nodeResources, c.KubeClient)
+	minionController := minionControllerPkg.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient)
 	minionController.Run(10 * time.Second)
 
 	glog.Infof("Started Kubernetes Minion Controller")

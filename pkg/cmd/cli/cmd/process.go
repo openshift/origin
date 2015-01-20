@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdProcess(f *kubecmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdProcess(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
 		Short: "Process template into config",
@@ -36,7 +36,8 @@ Examples:
 
 			schema, err := f.Validator(cmd)
 			checkErr(err)
-			mappings, namespace, _, data := kubecmd.ResourceFromFile(filename, f.Typer, f.Mapper, schema)
+			mapper, typer := f.Object(cmd)
+			mappings, namespace, _, data := kubecmd.ResourceFromFile(cmd, filename, typer, mapper, schema)
 			if len(namespace) == 0 {
 				namespace = getOriginNamespace(cmd)
 			} else {
@@ -44,9 +45,9 @@ Examples:
 				checkErr(err)
 			}
 
-			mapping, err := f.Mapper.RESTMapping(kubecmd.GetFlagString(cmd, "api-version"), "TemplateConfig")
+			mapping, err := mapper.RESTMapping("TemplateConfig", kubecmd.GetFlagString(cmd, "api-version"))
 			checkErr(err)
-			c, err := f.Client(cmd, mapping)
+			c, _, err := f.Clients(cmd)
 			checkErr(err)
 
 			// User can override Template parameters by using --value(-v) option with
@@ -92,7 +93,7 @@ Examples:
 				return
 			}
 
-			request := c.Post().Namespace(namespace).Path(mapping.Resource).Body(data)
+			request := c.Post().Namespace(namespace).Resource(mapping.Resource).Body(data)
 			result := request.Do()
 			body, err := result.Raw()
 			checkErr(err)
