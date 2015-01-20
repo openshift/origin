@@ -1,22 +1,22 @@
-= Kubernetes Model
-{product-author}
-{product-version}
-:data-uri:
-:icons:
-:experimental:
-:toc:
-:toc-placement!:
-:toc-title: Topics Covered
+# Kubernetes Model
 
-toc::[]
+In general, as the OpenShift fork of Kubernetes remains fairly current, it may be useful to refer to the [Kubernetes documentation](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/docs) for unknown terminology.
 
-=== ReplicationController
+## Master
 
-A Replication Controller ensures that a specific number of pods with a particular link:#label[Label] are running at all times. If one of the matching pods or a kubernetes  host goes down, the replication controller will re-instantiate matching pods up to the desired number across the cluster.
+A host for the orchestration API of Kubernetes. Has no actual model in the API.
+
+## Minion / Node
+
+A Node is a worker host in Kubernetes, previously known as Minion. Pods run on nodes. [Kubernetes docs](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/node.md)
+
+## ReplicationController
+
+A Replication Controller ensures that a specific number of pods with a particular [Label](#label) are running at all times. If one of the matching pods or a kubernetes  host goes down, the replication controller will re-instantiate matching pods up to the desired number across the cluster.
 
 While the JSON structure of a replicationController object is fairly complex, the most important elements are the `replicas` and `replicaSelector` values defined therein:
 
-----
+```
 {
     "kind": "ReplicationControllerList",
     "creationTimestamp": null,
@@ -39,20 +39,22 @@ While the JSON structure of a replicationController object is fairly complex, th
                 "replicaSelector": {
                     "name": "registrypod" <2>
                 },
-----
-<1> The number of copies of the pod to run.
-<2> The label selector of the pod to run.
+```
 
-These determine which link:#pod[Pod] definitions (see below) to maintain. For more on replicationControllers, see the [Kubernetes documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/replication-controller.md).
+- 1: The number of copies of the pod to run.
+- 2: The label selector of the pod to run.
 
-== Pod
+These determine which [Pod](#pod) definitions (see below) to maintain. For more on replicationControllers, see the [Kubernetes documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/replication-controller.md).
 
-Pods map to one or more docker containers collocated on the same host.  Each pod has its own ip address and therefore owns its entire port space.  Containers within pods can also share storage. Pods can be assign one or more link:#label[Labels] (see below), which are used to select and manage arbitrary pod groups as a single operation.
+## Pod
 
-Currently, the Kubernetes documentation does not provide an example of a Pod's JSON structure. The sample below was retrieved from an OpenShift system by running `openshift kube get pods/<pod_id>`.
+Pods map to one or more docker containers collocated on the same host.  Each pod has its own ip address and therefore owns its entire port space.  Containers within pods can also share storage. Pods can be assign one or more [Labels](#label), which are used to select and manage arbitrary pod groups as a single operation.
 
-.Sample JSON output for a Kubernetes Pod object.
-----
+Currently, the Kubernetes documentation does not provide an example of a Pod JSON structure. The sample below was retrieved from an OpenShift system by running `openshift kube get pods/<pod_id>`.
+
+#### Sample JSON output for a Kubernetes Pod object
+
+```
 {
     "annotations": {
         "deployment": "docker-registry-1" <1>
@@ -142,36 +144,42 @@ Currently, the Kubernetes documentation does not provide an example of a Pod's J
     "selfLink": "/api/v1beta1/pods/e9bae2ce-9761-11e4-86f8-f0def1de880f?namespace=default",
     "uid": "e9bae2ce-9761-11e4-86f8-f0def1de880f"
 }
-----
-<1> The labels are stored in key/value format in the `annotation` hash. The original label in this example is `deployment=docker-registry-1`.
-<2> The docker image(s) that define the Pod are listed are provided in the `containers` list along with related environment variable mappings.
+```
 
-== Label
+- 1: The labels are stored in key/value format in the `annotation` hash. The original label in this example is `deployment=docker-registry-1`.
+- 2: The docker image(s) that define the Pod are listed are provided in the `containers` list along with related environment variable mappings.
+
+## Label
 
 Labels are used to organize and filter resources. Pods are "tagged" with labels, and then Services and ReplicationControllers use labels to indicate which pods they relate to. This abstraction makes it possible for Services and ReplicationControllers to reference whole groups of Pods, and also to treat Pods with potentially different docker containers as like entities. For instance, consider:
 
-* A Pod consisting of an nginx docker container, with the label "role=webserver"
-* A Pod consisting of an apache docker container, with the same label "role=webserver"
+* A Pod consisting of an nginx docker container, with the label `role=webserver`
+* A Pod consisting of an apache docker container, with the same label `role=webserver`
 
-A Service or ReplicationController that is defined to use Pods with the "role=webserver" label will treat both of these pods as part of the same group.
+A Service or ReplicationController that is defined to use Pods with the `role=webserver` label will treat both of these pods as part of the same group.
 
-For more information on Labels, refer to the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/labels.md[Kubernetes documentation].
+For more information on Labels, refer to the [Kubernetes documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/labels.md).
 
-== Service
+## Service
 
 A service provides a network connection to one or more network services.
 
 A service uses a label selector to find all the containers running which provide a certain network service on a certain port. The service is then bound to a local port. So to access the service from inside your application or container you just bind to the local network on the port number for the service.
 
-You can find a more complete definition, and an example of the JSON structure that represents a service object, in the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md[Kubernetes documentation].
+You can find a more complete definition, and an example of the JSON structure that represents a service object, in the [Kubernetes documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md).
 
-== Namespace
+## Namespace
 
-== ResourceController
+A scope for Kubernetes resources, which will most likely be used for access / admission control. Under development, refer to [Kubernetes docs](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/design/namespaces.md).
 
-== Resource
+## ResourceController
 
-== Secret
+Specifies limits placed on resources, such as CPU / RAM usage allowed per pod, or number of pods / services / replica controllers allowed per namespace. Under active development.
 
-== Minion
+## Resource
 
+A Kubernetes Resource is something that can be requested by, allocated to, or consumed by a pod or container. Examples include memory (RAM), CPU, disk-time, and network bandwidth. [Kubernetes docs](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md)
+
+## Secret
+
+Storage for keys, passwords, certificates, and such which is accessible by the intended pod(s) but held separately from their definitions. Under active development.
