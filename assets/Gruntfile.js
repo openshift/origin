@@ -48,10 +48,10 @@ module.exports = function (grunt) {
         files: ['test/spec/{,*/}*.js'],
         tasks: ['newer:jshint:test', 'karma']
       },
-      compass: {
-        files: ['<%= yeoman.app %>/styles/{,*/}*.{scss,sass}'],
-        tasks: ['compass:server', 'autoprefixer']
-      },
+      css: {
+        files: '<%= yeoman.app %>/styles/*.less',
+        tasks: ['less']
+      },      
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -178,38 +178,25 @@ module.exports = function (grunt) {
           'bower_components/uri.js/src/jquery.URI.min.js',
           'bower_components/uri.js/src/URI.fragmentQuery.js'
         ]
-      },
-      sass: {
-        src: ['<%= yeoman.app %>/styles/{,*/}*.{scss,sass}'],
-        ignorePath: /(\.\.\/){1,2}bower_components\//
       }
     },
 
-    // Compiles Sass to CSS and generates necessary files if requested
-    compass: {
-      options: {
-        sassDir: '<%= yeoman.app %>/styles',
-        cssDir: '.tmp/styles',
-        generatedImagesDir: '.tmp/images/generated',
-        imagesDir: '<%= yeoman.app %>/images',
-        javascriptsDir: '<%= yeoman.app %>/scripts',
-        fontsDir: '<%= yeoman.app %>/styles/fonts',
-        importPath: './bower_components',
-        httpImagesPath: '/images',
-        httpGeneratedImagesPath: '/images/generated',
-        httpFontsPath: 'fonts',
-        relativeAssets: false,
-        assetCacheBuster: false,
-        raw: 'Sass::Script::Number.precision = 10\n'
-      },
-      dist: {
+    less: {
+      development: {
+        files: {
+          '.tmp/styles/main.css': '<%= yeoman.app %>/styles/main.less'
+        },
         options: {
-          generatedImagesDir: '<%= yeoman.dist %>/images/generated'
+          paths: ['<%= yeoman.app %>/styles']
         }
       },
-      server: {
+      production: {
+        files: {
+          'dist/css/main.css': '<%= yeoman.app %>/styles/main.less'
+        },
         options: {
-          debugInfo: true
+          cleancss: true,
+          paths: ['<%= yeoman.app %>/styles']
         }
       }
     },
@@ -393,29 +380,47 @@ module.exports = function (grunt) {
           src: ['generated/*']
         }, {
           expand: true,
-          cwd: '.',
-          src: 'bower_components/bootstrap-sass-official/assets/fonts/bootstrap/*',
-          dest: '<%= yeoman.dist %>'
+          cwd: 'bower_components/patternfly/dist',
+          src: 'fonts/*',
+          dest: '<%= yeoman.dist %>/styles'
+        }, {
+          expand: true,
+          cwd: 'bower_components/patternfly/components/font-awesome',
+          src: 'fonts/*',
+          dest: '<%= yeoman.dist %>/styles'
         }]
       },
       styles: {
-        expand: true,
-        cwd: '<%= yeoman.app %>/styles',
-        dest: '.tmp/styles/',
-        src: '{,*/}*.css'
+        files: [{
+          expand: true,
+          cwd: '<%= yeoman.app %>/styles',
+          dest: '.tmp/styles/',
+          src: '{,*/}*.css'
+        }, {
+          expand: true,
+          cwd: 'bower_components/patternfly/dist',
+          src: 'fonts/*',
+          dest: '.tmp/styles'
+        }, {
+          expand: true,
+          cwd: 'bower_components/patternfly/components/font-awesome',
+          src: 'fonts/*',
+          dest: '.tmp/styles'
+        }]
       }
     },
 
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
-        'compass:server'
+        'less',
+        'copy:styles'
       ],
       test: [
-        'compass'
+        'less'
       ],
       dist: [
-        'compass:dist',
+        'less:production',
         'imagemin',
         'svgmin'
       ]
@@ -489,6 +494,7 @@ module.exports = function (grunt) {
     'ngAnnotate',
     'copy:dist',
     'cdnify',
+    'less',
     'cssmin',
     'uglify',
     'filerev',

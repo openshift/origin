@@ -1,0 +1,31 @@
+<div class="navbar-project">
+  <div class="navbar-project-menu">
+    <div class="form-group">
+      <label class="control-label" for="boostrapSelect">Projects</label>
+      <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
+      <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect">
+        <option ng-selected="selected == proj.metadata.name" ng-repeat="proj in projects" value="{{proj.metadata.name}}">{{proj.displayName || proj.metadata.name}}</option>
+        <!-- TODO add back in when we support create project 
+        <option data-divider="true"></option>
+        <option>Create new</option>
+        -->
+      </select>
+    </div>
+  </div>
+  <div class="navbar-search">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-6 col-lg-5">
+          <!-- Make this visible again when we support the label filtering widget -->
+          <div class="form-group" style="visibility: hidden;">
+            <label class="control-label" for="boostrapSelect">Filter by labels</label>
+            <input type="search" class="form-control" placeholder="Search services and components">
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-7">
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

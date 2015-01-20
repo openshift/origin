@@ -14,34 +14,55 @@
     <!-- build:css(.tmp) styles/main.css -->
     <link rel="stylesheet" href="styles/main.css">
     <!-- endbuild -->
-  </head>
-  <body>
-    <!-- Add your site or application content here -->
-    <div id="wrap">
-        <div class="header rcue">
-            <div class="navbar utility">
-                <div class="navbar-inner">
-                    <div class="container">
-                        <a class="brand" href="/"><img src="images/logo-origin.svg" alt="OpenShift Origin"></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="container">
-          <div ng-view=""></div>
-        </div>
-    </div>
+     <style type="text/css">
 
-    <footer>
-        <section id="copyright">
-            <div class="container">
-                <a href="https://www.redhat.com/">
-                    <img src="images/redhat.svg" alt="Red Hat">
-                </a>
-                <div class="pull-right">Copyright &copy; 2014 Red Hat, Inc.</div>
-            </div>
-        </section>
-    </footer>
+
+    </style>
+  </head>
+<body class="console-os">
+    <!-- Add your site or application content here -->
+    <nav class="navbar navbar-default navbar-pf" role="navigation">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">
+          <img src="images/logo-origin.svg" alt="OpenShift Origin" />
+        </a>
+      </div>
+      <div class="collapse navbar-collapse navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-utility">
+          <li>
+            <a href="http://docs.openshift.org/latest/welcome/index.html">Documentation</a>
+          </li>
+          <!-- Put this back in when we have a user context to show
+          <li class="dropdown">
+            <a href="#">
+              <span class="pficon pficon-user"></span>
+              Jack Johnson <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="#">Account</a>
+              </li>
+              <li>
+                <a href="#">Settings</a>
+              </li>
+              <li class="divider"></li>
+              <li>
+                <a href="#">Log out</a>
+              </li>
+            </ul>
+          </li> -->
+        </ul>
+      </div>
+
+    </nav>
+
+    <div ng-view></div>
 
     <script src="config.js"></script>
 
@@ -56,18 +77,6 @@
     <!-- bower:js -->
     <script src="bower_components/jquery/dist/jquery.js"></script>
     <script src="bower_components/angular/angular.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/affix.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/alert.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/button.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/carousel.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/collapse.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/dropdown.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/tab.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/transition.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/scrollspy.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/modal.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/tooltip.js"></script>
-    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/popover.js"></script>
     <script src="bower_components/angular-resource/angular-resource.js"></script>
     <script src="bower_components/angular-cookies/angular-cookies.js"></script>
     <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
@@ -80,9 +89,13 @@
     <script src="bower_components/uri.js/src/jquery.URI.js"></script>
     <script src="bower_components/uri.js/src/URI.fragmentURI.js"></script>
     <script src="bower_components/moment/moment.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap-select/bootstrap-select.js"></script>
     <script src="bower_components/js-logger/src/logger.js"></script>
     <script src="bower_components/webcomponentsjs/webcomponents.js"></script>
     <script src="bower_components/hawtio-core/hawtio-core.js"></script>
+    <script src="bower_components/lodash/dist/lodash.compat.js"></script>
+    <script src="bower_components/hawtio-core-navigation/dist/hawtio-core-navigation.js"></script>
     <script src="bower_components/hawtio-extension-service/dist/hawtio-extension-service.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
@@ -96,6 +109,7 @@
         <script src="scripts/controllers/pods.js"></script>
         <script src="scripts/directives/date.js"></script>
         <script src="scripts/directives/resources.js"></script>
+        <script src="scripts/directives/nav.js"></script>
         <script src="scripts/filters/date.js"></script>
         <script src="scripts/filters/resources.js"></script>
         <script src="scripts/filters/util.js"></script>

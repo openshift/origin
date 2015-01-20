@@ -1,14 +1,9 @@
-<div>
-  <div>
-    <h3>Pods by label:</h3>
-    <div class="row" style="margin-bottom: 10px;" ng-repeat="(label_key, label_values) in podsByLabel">
-      <div class="col-md-6 animate-repeat" ng-repeat="(label_value, label_pods) in label_values">
-        <div class="tile">
-          <h4>{{label_key}}: {{label_value}}</h4>
-          <span class="animate-repeat pod-{{pod.desiredState.status.toLowerCase()}}" ng-repeat="pod in label_pods" style="width: 40px; height: 40px; margin-right: 5px; margin-bottom: 5px; display: inline-block;">
-          </span>
-        </div>
-      </div>
+<div ng-controller="ProjectController">
+  <project-page>
+    <h1>Pods</h1>
+    <div style="margin-bottom: 10px;" ng-repeat="pod in pods">
+      <h3>{{pod.id}} ({{pod.currentState.status}})</h3>
+      <pod-template ng-init="podTemplate = pod"></pod-template>
     </div>      
-  </div>
+  </project-page>
 </div>

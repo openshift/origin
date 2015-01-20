@@ -1,0 +1,10 @@
+<li ng-class="{ active: item.isSelected() }">
+  <a ng-href="{{item.href()}}" ng-click="item.click($event);">
+    <span class="fa fa-{{item.icon}} fa-fw"></span> {{item.title()}}
+  </a>
+  <div ng-if="item.isSelected()"  class="sidenav-secondary">
+    <h2 class="hidden-xs">{{item.title()}}</h2>
+    <ul class="nav nav-sidenav-secondary" hawtio-sub-tabs>
+    </ul>
+  </div>
+</li>
