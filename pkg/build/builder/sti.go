@@ -52,7 +52,7 @@ func (s *STIBuilder) Build() error {
 	if _, err = builder.Build(); err != nil {
 		return err
 	}
-	if s.build.Parameters.Output.Registry != "" || s.authPresent {
+	if len(s.build.Parameters.Output.DockerImageReference) != 0 {
 		return pushImage(s.dockerClient, imageTag(s.build), s.auth)
 	}
 	return nil

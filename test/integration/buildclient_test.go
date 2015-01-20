@@ -127,7 +127,7 @@ func mockBuild() *buildapi.Build {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "namespace/builtimage",
+				DockerImageReference: "namespace/builtimage",
 			},
 		},
 	}

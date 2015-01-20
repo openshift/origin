@@ -11,9 +11,8 @@ func TestSplitDockerPullSpec(t *testing.T) {
 		Err                            bool
 	}{
 		{
-			From:      "foo",
-			Namespace: "library",
-			Name:      "foo",
+			From: "foo",
+			Name: "foo",
 		},
 		{
 			From:      "bar/foo",

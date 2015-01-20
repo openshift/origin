@@ -135,7 +135,7 @@ func mockBuildConfig() *buildapi.BuildConfig {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "namespace/builtimage",
+				DockerImageReference: "namespace/builtimage",
 			},
 		},
 	}
@@ -175,7 +175,7 @@ func TestBuildConfigClient(t *testing.T) {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "namespace/builtimage",
+				DockerImageReference: "namespace/builtimage",
 			},
 		},
 	}

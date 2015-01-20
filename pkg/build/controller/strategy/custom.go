@@ -1,12 +1,12 @@
 package strategy
 
 import (
-	"encoding/json"
 	"errors"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
@@ -17,14 +17,14 @@ type CustomBuildStrategy struct {
 
 // CreateBuildPod creates the pod to be used for the Custom build
 func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	buildJSON, err := json.Marshal(build)
+	data, err := v1beta1.Codec.Encode(build)
 	if err != nil {
 		return nil, err
 	}
 
 	strategy := build.Parameters.Strategy.CustomStrategy
 	containerEnv := []kapi.EnvVar{
-		{Name: "BUILD", Value: string(buildJSON)},
+		{Name: "BUILD", Value: string(data)},
 		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
 	}
 

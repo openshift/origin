@@ -50,7 +50,7 @@ func TestWebhookGithubPush(t *testing.T) {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "namespace/builtimage",
+				DockerImageReference: "namespace/builtimage",
 			},
 		},
 	}
@@ -106,7 +106,7 @@ func TestWebhookGithubPing(t *testing.T) {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "namespace/builtimage",
+				DockerImageReference: "namespace/builtimage",
 			},
 		},
 	}

@@ -201,10 +201,30 @@ type STIBuildStrategy struct {
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
 // should produce.
 type BuildOutput struct {
+	// To defines an optional ImageRepository to push the output of this build to. The namespace
+	// may be empty, in which case the ImageRepository will be looked for in the namespace of
+	// the build. Kind must be set to 'ImageRepository' and is the only supported value. If set,
+	// this field takes priority over DockerImageReference. This value will be used to look up
+	// a Docker image repository to push to.
+	To *kapi.ObjectReference `json:"to,omitempty"`
+
+	// Tag is the "version" that will be set on the remote server when the image is created. This
+	// field is only used if the To field is set, and is ignored when DockerImageReference is used.
+	// This value represents a consistent name for a set of related changes (v1, 5.x, 5.5, dev, stable)
+	// and defaults to the preferred label for "To" if not specified.
+	Tag string `json:"tag,omitempty"`
+
+	// DockerImageReference is the full name of an image ([registry/]name[:tag]), and will be the
+	// value sent to Docker push at the end of a build.  If set, this field takes priority over
+	// ImageTag and Registry.
+	DockerImageReference string `json:"dockerImageReference,omitempty"`
+
 	// ImageTag is the tag to give to the image resulting from the build.
+	// DEPRECATED: use DockerImageReference
 	ImageTag string `json:"imageTag,omitempty"`
 
 	// Registry is the Docker registry which should receive the resulting built image via push.
+	// DEPRECATED: use DockerImageReference
 	Registry string `json:"registry,omitempty"`
 }
 

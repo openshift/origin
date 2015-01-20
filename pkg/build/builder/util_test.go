@@ -17,7 +17,7 @@ func TestImageTag(t *testing.T) {
 			build: api.Build{
 				Parameters: api.BuildParameters{
 					Output: api.BuildOutput{
-						ImageTag: "test/tag",
+						DockerImageReference: "test/tag",
 					},
 				},
 			},
@@ -27,19 +27,7 @@ func TestImageTag(t *testing.T) {
 			build: api.Build{
 				Parameters: api.BuildParameters{
 					Output: api.BuildOutput{
-						ImageTag: "test/tag",
-						Registry: "registry-server.test:5000",
-					},
-				},
-			},
-			expected: "registry-server.test:5000/test/tag",
-		},
-		{
-			build: api.Build{
-				Parameters: api.BuildParameters{
-					Output: api.BuildOutput{
-						ImageTag: "registry-server.test:5000/test/tag",
-						Registry: "registry-server.test:5000",
+						DockerImageReference: "registry-server.test:5000/test/tag",
 					},
 				},
 			},

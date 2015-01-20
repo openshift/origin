@@ -86,8 +86,8 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 			formatString(out, "Ref", p.Source.Git.Ref)
 		}
 	}
-	formatString(out, "Output Image", p.Output.ImageTag)
-	formatString(out, "Output Registry", p.Output.Registry)
+	formatString(out, "Output To", p.Output.To)
+	formatString(out, "Output Spec", p.Output.DockerImageReference)
 	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
 		formatString(out, "Git Commit", p.Revision.Git.Commit)
 		d.DescribeUser(out, "Revision Author", p.Revision.Git.Author)

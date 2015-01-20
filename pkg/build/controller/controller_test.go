@@ -87,7 +87,7 @@ func mockBuildAndController(status buildapi.BuildStatus) (build *buildapi.Build,
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/dataBuild",
+				DockerImageReference: "repository/dataBuild",
 			},
 		},
 		Status:  status,

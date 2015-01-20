@@ -1,15 +1,16 @@
 package cmd
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 
 	"github.com/fsouza/go-dockerclient"
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+	image "github.com/openshift/origin/pkg/image/api"
 )
 
 const DefaultDockerEndpoint = "unix:///var/run/docker.sock"
@@ -32,11 +33,22 @@ func run(builderFactory factoryFunc) {
 	}
 	buildStr := os.Getenv("BUILD")
 	build := api.Build{}
-	err = json.Unmarshal([]byte(buildStr), &build)
-	if err != nil {
+	if err := latest.Codec.DecodeInto([]byte(buildStr), &build); err != nil {
 		log.Fatalf("Unable to parse build: %v", err)
 	}
-	authcfg, authPresent := dockercfg.NewHelper().GetDockerAuth(build.Parameters.Output.Registry)
+
+	var (
+		authcfg     docker.AuthConfiguration
+		authPresent bool
+	)
+	if len(build.Parameters.Output.DockerImageReference) != 0 {
+		registry, _, _, _, err := image.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference)
+		if err != nil {
+			log.Fatalf("Output does not have a valid Docker image reference: %v", err)
+		}
+		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(registry)
+	}
+
 	b := builderFactory(client, endpoint, authcfg, authPresent, &build)
 	if err = b.Build(); err != nil {
 		log.Fatalf("Build error: %v", err)

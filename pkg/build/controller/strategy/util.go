@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	image "github.com/openshift/origin/pkg/image/api"
 )
 
 // dockerSocketPath is the default path for the Docker socket inside the builder
@@ -75,8 +76,12 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) {
 	default:
 		// Do nothing for unknown source types
 	}
-	vars = append(vars, kapi.EnvVar{"OUTPUT_IMAGE", build.Parameters.Output.ImageTag})
-	vars = append(vars, kapi.EnvVar{"OUTPUT_REGISTRY", build.Parameters.Output.Registry})
+
+	if registry, namespace, name, tag, err := image.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference); err == nil {
+		outputImage := image.JoinDockerPullSpec("", namespace, name, tag)
+		vars = append(vars, kapi.EnvVar{"OUTPUT_IMAGE", outputImage})
+		vars = append(vars, kapi.EnvVar{"OUTPUT_REGISTRY", registry})
+	}
 
 	if len(pod.Spec.Containers) > 0 {
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, vars...)

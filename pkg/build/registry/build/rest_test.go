@@ -342,7 +342,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "repository/dataBuild",
+					DockerImageReference: "repository/data-build",
 				},
 			},
 		},
@@ -365,10 +365,10 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 func mockBuild() *api.Build {
 	return &api.Build{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "dataBuild",
+			Name:      "data-build",
 			Namespace: kapi.NamespaceDefault,
 			Labels: map[string]string{
-				"name": "dataBuild",
+				"name": "data-build",
 			},
 		},
 		Parameters: api.BuildParameters{
@@ -385,7 +385,7 @@ func mockBuild() *api.Build {
 				},
 			},
 			Output: api.BuildOutput{
-				ImageTag: "repository/dataBuild",
+				DockerImageReference: "repository/data-build",
 			},
 		},
 		Status:  api.BuildStatusPending,

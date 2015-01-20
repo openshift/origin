@@ -1,11 +1,11 @@
 package strategy
 
 import (
-	"encoding/json"
 	"io/ioutil"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
@@ -31,7 +31,7 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
 func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	buildJSON, err := json.Marshal(build)
+	data, err := v1beta1.Codec.Encode(build)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 					Name:  "sti-build",
 					Image: bs.Image,
 					Env: []kapi.EnvVar{
-						{Name: "BUILD", Value: string(buildJSON)},
+						{Name: "BUILD", Value: string(data)},
 					},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,

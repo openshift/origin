@@ -1,11 +1,11 @@
 package strategy
 
 import (
-	"encoding/json"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
@@ -41,7 +41,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	buildJSON, _ := json.Marshal(expected)
+	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -94,8 +94,7 @@ func mockCustomBuild() *buildapi.Build {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/customBuild",
-				Registry: "docker-registry",
+				DockerImageReference: "docker-registry/repository/customBuild",
 			},
 		},
 		Status:  buildapi.BuildStatusNew,
