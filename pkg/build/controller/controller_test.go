@@ -257,7 +257,7 @@ func TestHandleBuild(t *testing.T) {
 		},
 		{ // 12
 			inStatus:    buildapi.BuildStatusNew,
-			outStatus:   buildapi.BuildStatusFailed,
+			outStatus:   buildapi.BuildStatusError, // TODO: this should be a retry
 			imageClient: &errNotFoundImageRepositoryClient{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{

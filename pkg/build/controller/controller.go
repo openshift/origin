@@ -11,7 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	image "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // BuildController watches build resources and manages their state
@@ -41,7 +41,7 @@ type podManager interface {
 }
 
 type imageRepositoryClient interface {
-	GetImageRepository(namespace, name string) (*image.ImageRepository, error)
+	GetImageRepository(namespace, name string) (*imageapi.ImageRepository, error)
 }
 
 // Run begins watching and syncing build jobs onto the cluster.
@@ -59,6 +59,9 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 	}
 
 	if err := bc.nextBuildStatus(build); err != nil {
+		// TODO: all build errors should be retried, and build error should not be a permanent status change.
+		// Instead, we should requeue this build request using the same backoff logic as the scheduler.
+		// BuildStatusError should be reserved for meaning "permanently errored, no way to try again".
 		glog.V(4).Infof("Build failed with error %s/%s: %#v", build.Namespace, build.Name, err)
 		build.Status = buildapi.BuildStatusError
 		build.Message = err.Error()
@@ -92,9 +95,7 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 		repo, err := bc.ImageRepositoryClient.GetImageRepository(namespace, ref.Name)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				build.Status = buildapi.BuildStatusFailed
-				build.Message = fmt.Sprintf("The referenced output image repository %s/%s does not exist", namespace, ref.Name)
-				return nil
+				return fmt.Errorf("the referenced output image repository %s/%s does not exist", namespace, ref.Name)
 			}
 			return fmt.Errorf("the referenced output repo %s/%s could not be found by %s/%s: %v", namespace, ref.Name, build.Namespace, build.Name, err)
 		}

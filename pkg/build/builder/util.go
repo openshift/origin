@@ -8,12 +8,6 @@ type Builder interface {
 	Build() error
 }
 
-// imageTag returns the tag to be used for the build. If a registry has been
-// specified, it will prepend the registry to the name
-func imageTag(build *api.Build) string {
-	return build.Parameters.Output.DockerImageReference
-}
-
 // getBuildEnvVars returns a map with the environment variables that should be added
 // to the built image
 func getBuildEnvVars(build *api.Build) map[string]string {

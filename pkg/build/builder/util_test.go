@@ -35,7 +35,7 @@ func TestImageTag(t *testing.T) {
 		},
 	}
 	for _, x := range tests {
-		result := imageTag(&x.build)
+		result := x.build.Parameters.Output.DockerImageReference
 		if result != x.expected {
 			t.Errorf("Unexpected imageTag result. Expected: %s, Actual: %s",
 				result, x.expected)

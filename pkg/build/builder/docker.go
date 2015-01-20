@@ -64,9 +64,10 @@ func (d *DockerBuilder) Build() error {
 	if err = d.dockerBuild(buildDir); err != nil {
 		return err
 	}
-	defer removeImage(d.dockerClient, imageTag(d.build))
+	tag := d.build.Parameters.Output.DockerImageReference
+	defer removeImage(d.dockerClient, tag)
 	if len(d.build.Parameters.Output.DockerImageReference) != 0 {
-		return pushImage(d.dockerClient, imageTag(d.build), d.auth)
+		return pushImage(d.dockerClient, tag, d.auth)
 	}
 	return nil
 }
@@ -175,5 +176,5 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 		}
 		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
 	}
-	return buildImage(d.dockerClient, dir, noCache, imageTag(d.build), d.tar)
+	return buildImage(d.dockerClient, dir, noCache, d.build.Parameters.Output.DockerImageReference, d.tar)
 }

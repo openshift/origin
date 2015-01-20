@@ -244,7 +244,8 @@ type BuildConfig struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers,omitempty"`
 
-	// Parameters holds all the input necessary to produce a new build.
+	// Parameters holds all the input necessary to produce a new build. A build config may only
+	// define either the Output.To or Output.DockerImageReference fields, but not both.
 	Parameters BuildParameters `json:"parameters,omitempty"`
 }
 

@@ -213,7 +213,7 @@ type BuildOutput struct {
 	// may be empty, in which case the named ImageRepository will be retrieved from the namespace
 	// of the build. Kind must be set to 'ImageRepository' and is the only supported value. If set,
 	// this field takes priority over DockerImageReference. This value will be used to look up
-	// a Docker image repository to push to.
+	// a Docker image repository to push to. Failure to find the To will result in a build error.
 	To *kapi.ObjectReference `json:"to,omitempty"`
 
 	// Tag is the "version name" that will be associated with the output image. This
@@ -223,7 +223,7 @@ type BuildOutput struct {
 	Tag string `json:"tag,omitempty"`
 
 	// DockerImageReference is the full name of an image ([registry/]name[:tag]), and will be the
-	// value sent to Docker push at the end of a build.
+	// value sent to Docker push at the end of a build if the To field is not defined.
 	DockerImageReference string `json:"dockerImageReference,omitempty"`
 }
 
@@ -240,7 +240,8 @@ type BuildConfig struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers,omitempty"`
 
-	// Parameters holds all the input necessary to produce a new build.
+	// Parameters holds all the input necessary to produce a new build. A build config may only
+	// define either the Output.To or Output.DockerImageReference fields, but not both.
 	Parameters BuildParameters `json:"parameters,omitempty"`
 }
 

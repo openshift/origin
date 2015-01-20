@@ -8,7 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	image "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // ValidateBuild tests required fields for a Build.
@@ -126,7 +126,7 @@ func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
 	}
 
 	if len(output.DockerImageReference) != 0 {
-		if _, _, _, _, err := image.SplitDockerPullSpec(output.DockerImageReference); err != nil {
+		if _, _, _, _, err := imageapi.SplitDockerPullSpec(output.DockerImageReference); err != nil {
 			allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
 		}
 	}
