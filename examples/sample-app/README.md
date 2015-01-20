@@ -119,7 +119,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 10. *Optional:* Add the following webhook to your new github repository:
 
-        $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=hello-openshift-project
+        $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
   * Note: Using the webhook requires your OpenShift server be publicly accessible so github can reach it to invoke the hook.
 
 11. Edit application-template-stibuild.json
@@ -130,17 +130,17 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 12. Submit the application template for processing and create the application using the processed template:
 
-        $ openshift cli process -f application-template-stibuild.json | openshift cli apply --namespace=hello-openshift-project -f -
+        $ openshift cli process -f application-template-stibuild.json | openshift cli apply --namespace=test -f -
 
 13. Trigger an initial build of your application
  * If you setup the github webhook in step 10, push a change to app.rb in your ruby sample repository from step 9.
  * Otherwise you can simulate the webhook invocation by running:
 
-            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=hello-openshift-project
+            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
 
 14. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
 
-        $ openshift cli get builds --namespace=hello-openshift-project
+        $ openshift cli get builds --namespace=test
 
     Sample output:
 
@@ -154,13 +154,13 @@ All commands assume the `openshift` binary is in your path (normally located und
 
      If you want to see the build logs of a complete build, use this command (substituting your build id from the "openshift cli get builds" output):
 
-         $ openshift cli build-logs 20f54507-3dcd-11e4-984b-3c970e3bf0b7 --namespace=hello-openshift-project
+         $ openshift cli build-logs 20f54507-3dcd-11e4-984b-3c970e3bf0b7 --namespace=test
 
     The creation of the new image will automatically trigger a deployment of the application.
 
 15. Wait for the application's frontend pod and database pods to be started (this can take a few mins):
 
-        $ openshift cli get pods --namespace=hello-openshift-project
+        $ openshift cli get pods --namespace=test
 
     Sample output:
 
@@ -171,7 +171,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 16. Determine the IP for the frontend service:
 
-        $ openshift cli get services --namespace=hello-openshift-project
+        $ openshift cli get services --namespace=test
 
     Sample output:
 
@@ -194,7 +194,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=hello-openshift-project
+            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
 
 
 19. Repeat step 14 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
@@ -205,7 +205,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - List the existing services:
 
-        $ openshift cli get services --namespace=hello-openshift-project
+        $ openshift cli get services --namespace=test
 
     Sample output:
 
@@ -218,7 +218,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - To remove the **frontend** service use the command:
 
-        $ openshift cli delete service frontend --namespace=hello-openshift-project
+        $ openshift cli delete service frontend --namespace=test
 
     Sample output:
 
@@ -228,7 +228,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - Check the service was removed:
 
-        $ openshift cli get services --namespace=hello-openshift-project
+        $ openshift cli get services --namespace=test
 
     Sample output:
 
@@ -250,7 +250,7 @@ Another interesting example is deleting a pod.
 
   - List available pods:
 
-        $ openshift cli get pods --namespace=hello-openshift-project
+        $ openshift cli get pods --namespace=test
 
     Sample output:
 
@@ -262,7 +262,7 @@ Another interesting example is deleting a pod.
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ openshift cli delete pod 4a792f55-605f-11e4-b0db-3c970e3bf0b7 --namespace=hello-openshift-project
+        $ openshift cli delete pod 4a792f55-605f-11e4-b0db-3c970e3bf0b7 --namespace=test
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 
