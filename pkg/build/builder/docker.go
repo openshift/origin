@@ -134,7 +134,10 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 // If that's the case then change the Dockerfile to make the build with the given image.
 // Also append the environment variables in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
-	dockerfilePath := filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir, "Dockerfile")
+	dockerfilePath := filepath.Join(dir, "Dockerfile")
+	if d.build.Parameters.Strategy.DockerStrategy != nil && len(d.build.Parameters.Strategy.DockerStrategy.ContextDir) > 0 {
+		dockerfilePath = filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir, "Dockerfile")
+	}
 
 	fileStat, err := os.Lstat(dockerfilePath)
 	filePerm := fileStat.Mode()
@@ -160,8 +163,7 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 		return err
 	}
 
-	noCache := d.build.Parameters.Strategy.DockerStrategy != nil && d.build.Parameters.Strategy.DockerStrategy.NoCache
-	return buildImage(d.dockerClient, dir, noCache, imageTag(d.build), d.tar)
+	return nil
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
