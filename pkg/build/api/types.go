@@ -16,6 +16,9 @@ type Build struct {
 	// Status is the current status of the build.
 	Status BuildStatus `json:"status,omitempty"`
 
+	// A human readable message indicating details about why the build has this status
+	Message string `json:"message,omitempty"`
+
 	// PodName is the name of the pod that is used to execute the build
 	PodName string `json:"podName,omitempty"`
 
