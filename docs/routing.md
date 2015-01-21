@@ -102,45 +102,45 @@ Configuration files (to be created in the vagrant home directory)
 pod.json
 
     {
-          "id": "hello-pod",
-          "kind": "Pod",
-          "apiVersion": "v1beta1",
-          "desiredState": {
-            "manifest": {
-              "version": "v1beta1",
-              "id": "hello-openshift",
-              "containers": [{
-                "name": "hello-openshift",
-                "image": "openshift/hello-openshift",
-                "ports": [{
-                  "containerPort": 8080
-                }]
-              }]
-            }
-          },
-          "labels": {
-            "name": "hello-openshift"
-          }
+      "id": "hello-pod",
+      "kind": "Pod",
+      "apiVersion": "v1beta1",
+      "desiredState": {
+        "manifest": {
+          "version": "v1beta1",
+          "id": "hello-openshift",
+          "containers": [{
+            "name": "hello-openshift",
+            "image": "openshift/hello-openshift",
+            "ports": [{
+              "containerPort": 8080
+            }]
+          }]
         }
+      },
+      "labels": {
+        "name": "hello-openshift"
+      }
+    }
 
 service.json
 
     {
+      "id": "hello-openshift",
       "kind": "Service",
       "apiVersion": "v1beta1",
-      "id": "hello-openshift",
       "port": 27017,
       "selector": {
         "name": "hello-openshift"
-      },
+      }
     }
 
 route.json
 
     {
       "id": "hello-route",
-      "apiVersion": "v1beta1",
       "kind": "Route",
+      "apiVersion": "v1beta1",
       "host": "hello-openshift.v3.rhcloud.com",
       "serviceName": "hello-openshift"
     }
