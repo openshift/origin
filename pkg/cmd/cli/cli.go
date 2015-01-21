@@ -39,6 +39,9 @@ func NewCommandCLI(name string) *cobra.Command {
 		},
 	}
 
+	// Override global default to https and port 8443
+	clientcmd.DefaultCluster.Server = "https://localhost:8443"
+
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
 	clientConfig := defaultClientConfig(cmds.PersistentFlags())
 	f := cmd.NewFactory(clientConfig)

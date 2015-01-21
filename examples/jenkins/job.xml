@@ -9,7 +9,7 @@
         <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_HOST</name>
           <description>host/port of openshift api server.</description>
-          <defaultValue>http://172.17.42.1:8080</defaultValue>
+          <defaultValue>https://172.17.42.1:8443</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>

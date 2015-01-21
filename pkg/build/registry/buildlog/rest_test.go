@@ -37,13 +37,13 @@ func (p *podControl) getPod(namespace, name string) (*kapi.Pod, error) {
 
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
-		api.BuildStatusComplete: fmt.Sprintf("//foo-host:%d/containerLogs/%s/foo-pod/foo-container",
-			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusFailed: fmt.Sprintf("//foo-host:%d/containerLogs/%s/foo-pod/foo-container",
-			kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusComplete: fmt.Sprintf("%s://foo-host:%d/containerLogs/%s/foo-pod/foo-container",
+			kubernetes.NodeScheme, kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusFailed: fmt.Sprintf("%s://foo-host:%d/containerLogs/%s/foo-pod/foo-container",
+			kubernetes.NodeScheme, kubernetes.NodePort, kapi.NamespaceDefault),
 		api.BuildStatusPending: "",
-		api.BuildStatusRunning: fmt.Sprintf("//foo-host:%d/containerLogs/%s/foo-pod/foo-container?follow=1",
-			kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusRunning: fmt.Sprintf("%s://foo-host:%d/containerLogs/%s/foo-pod/foo-container?follow=1",
+			kubernetes.NodeScheme, kubernetes.NodePort, kapi.NamespaceDefault),
 	}
 
 	ctx := kapi.NewDefaultContext()

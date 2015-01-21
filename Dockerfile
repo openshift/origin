@@ -20,6 +20,6 @@ RUN go get github.com/openshift/origin && \
     cp _output/local/go/bin/* /usr/bin/ && \
     mkdir -p /var/lib/openshift
 
-EXPOSE 8080
+EXPOSE 8080 8443
 WORKDIR /var/lib/openshift
 ENTRYPOINT ["/usr/bin/openshift"]

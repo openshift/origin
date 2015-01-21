@@ -4,11 +4,11 @@
 window.OPENSHIFT_CONFIG = {
   api: {
     openshift: {
-      hostPort: "localhost:8080",
+      hostPort: "localhost:8443",
       prefix: "/osapi"
     },
     k8s: {
-      hostPort: "localhost:8080",
+      hostPort: "localhost:8443",
       prefix: "/api"
     }
   }

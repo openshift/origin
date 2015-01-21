@@ -112,14 +112,14 @@ All commands assume the `openshift` binary is in your path (normally located und
 
         $ openshift cli create Project -f project.json
 
-8. *Optional:* View the OpenShift web console in your browser by browsing to `http://[host machine ip]:8081`
+8. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`
     If you click the `Hello OpenShift` project and leave the tab open, you'll see the page update as you deploy objects into the project and run builds.
 
 9. Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
 
 10. *Optional:* Add the following webhook to your new github repository:
 
-        $ http://<host>:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
+        $ https://<host>:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
   * Note: Using the webhook requires your OpenShift server be publicly accessible so github can reach it to invoke the hook.
 
 11. Edit application-template-stibuild.json
@@ -136,7 +136,7 @@ All commands assume the `openshift` binary is in your path (normally located und
  * If you setup the github webhook in step 10, push a change to app.rb in your ruby sample repository from step 9.
  * Otherwise you can simulate the webhook invocation by running:
 
-            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
+            $ curl -X POST https://localhost:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
 
 14. Monitor the builds and wait for the status to go to "complete" (this can take a few mins):
 
@@ -194,7 +194,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ curl -X POST http://localhost:8080/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
+            $ curl -X POST https://localhost:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
 
 
 19. Repeat step 14 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.

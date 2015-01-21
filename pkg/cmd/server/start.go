@@ -21,7 +21,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -76,6 +78,8 @@ type config struct {
 
 	EtcdDir string
 
+	CertDir string
+
 	StorageVersion string
 
 	NodeList flagtypes.StringList
@@ -95,10 +99,10 @@ func NewCommandStartServer(name string) *cobra.Command {
 	cfg := &config{
 		Docker: docker.NewHelper(),
 
-		MasterAddr:     flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
-		BindAddr:       flagtypes.Addr{Value: "0.0.0.0:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
+		MasterAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		BindAddr:       flagtypes.Addr{Value: "0.0.0.0:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		EtcdAddr:       flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
-		KubernetesAddr: flagtypes.Addr{DefaultScheme: "http", DefaultPort: 8080}.Default(),
+		KubernetesAddr: flagtypes.Addr{DefaultScheme: "https", DefaultPort: 8443}.Default(),
 		PortalNet:      flagtypes.DefaultIPNet("172.30.17.0/24"),
 
 		Hostname: hostname,
@@ -126,6 +130,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	flag.StringVar(&cfg.EtcdDir, "etcd-dir", "openshift.local.etcd", "The etcd data directory.")
+	flag.StringVar(&cfg.CertDir, "cert-dir", "openshift.local.certificates", "The certificate data directory.")
 
 	flag.StringVar(&cfg.Hostname, "hostname", cfg.Hostname, "The hostname to identify this node with the master.")
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
@@ -220,6 +225,7 @@ func start(cfg *config, args []string) error {
 		cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, assetAddr, "localhost", "127.0.0.1")
 
 		osmaster := &origin.MasterConfig{
+			TLS:                   cfg.MasterAddr.URL.Scheme == "https",
 			BindAddr:              cfg.BindAddr.URL.Host,
 			MasterAddr:            cfg.MasterAddr.URL.String(),
 			AssetAddr:             assetAddr,
@@ -230,18 +236,72 @@ func start(cfg *config, args []string) error {
 			AdmissionControl:      admit.NewAlwaysAdmit(),
 		}
 
-		// pick an appropriate Kube client
 		if startKube {
-			osmaster.EnsureKubernetesClient()
-		} else {
-			kubeClient, err := kclient.New(&kclient.Config{Host: cfg.KubernetesAddr.URL.String(), Version: klatest.Version})
-			if err != nil {
-				return fmt.Errorf("Unable to configure Kubernetes client: %v", err)
+			// We're running against our own kubernetes server
+			osmaster.KubeClientConfig = kclient.Config{
+				Host:    cfg.MasterAddr.URL.String(),
+				Version: klatest.Version,
 			}
-			osmaster.KubeClient = kubeClient
+		} else {
+			// We're running against another kubernetes server
+			// TODO: configure external kubernetes credentials
+			osmaster.KubeClientConfig = kclient.Config{
+				Host:    cfg.KubernetesAddr.URL.String(),
+				Version: klatest.Version,
+			}
 		}
 
-		osmaster.EnsureOpenShiftClient()
+		if osmaster.TLS {
+			// Bootstrap CA
+			// TODO: store this (or parts of this) in etcd?
+			var err error
+			ca, err := crypto.InitCA(cfg.CertDir, fmt.Sprintf("%s@%d", cfg.MasterAddr.Host, time.Now().Unix()))
+			if err != nil {
+				return fmt.Errorf("Unable to configure certificate authority: %v", err)
+			}
+
+			// Bootstrap server certs
+			// 172.17.42.1 enables the router to call back out to the master
+			// TODO: Remove 172.17.42.1 once we can figure out how to validate the master's cert from inside a pod, or tell pods the real IP for the master
+			serverCert, err := ca.MakeServerCert("master", []string{cfg.MasterAddr.Host, "localhost", "127.0.0.1", "172.17.42.1"})
+			if err != nil {
+				return err
+			}
+			osmaster.MasterCertFile = serverCert.CertFile
+			osmaster.MasterKeyFile = serverCert.KeyFile
+			osmaster.AssetCertFile = serverCert.CertFile
+			osmaster.AssetKeyFile = serverCert.KeyFile
+
+			// Bootstrap clients
+			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
+
+			// Openshift client
+			if osmaster.OSClientConfig, err = ca.MakeClientConfig("openshift-client", osClientConfigTemplate); err != nil {
+				return err
+			}
+			// Openshift deployer client
+			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("openshift-deployer", osClientConfigTemplate); err != nil {
+				return err
+			}
+			// Admin config (creates files on disk for osc)
+			if _, err = ca.MakeClientConfig("admin", osClientConfigTemplate); err != nil {
+				return err
+			}
+
+			// If we're running our own Kubernetes, build client credentials
+			if startKube {
+				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", osmaster.KubeClientConfig); err != nil {
+					return err
+				}
+			}
+		} else {
+			// No security, use the same client config for all OpenShift clients
+			osClientConfig := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
+			osmaster.OSClientConfig = osClientConfig
+			osmaster.DeployerOSClientConfig = osClientConfig
+		}
+
+		osmaster.BuildClients()
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
 		auth := &origin.AuthConfig{
@@ -252,13 +312,14 @@ func start(cfg *config, args []string) error {
 
 		if startKube {
 			portalNet := net.IPNet(cfg.PortalNet)
+
 			kmaster := &kubernetes.MasterConfig{
 				MasterHost:       cfg.MasterAddr.Host,
 				MasterPort:       cfg.MasterAddr.Port,
 				NodeHosts:        cfg.NodeList,
 				PortalNet:        &portalNet,
 				EtcdHelper:       ketcdHelper,
-				KubeClient:       osmaster.KubeClient,
+				KubeClient:       osmaster.KubeClient(),
 				Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
 				AdmissionControl: admit.NewAlwaysAdmit(),
 			}
@@ -351,6 +412,17 @@ func defaultHostname() (string, error) {
 // EtcdAddr after if it was not provided.
 // TODO: make me IPv6 safe
 func defaultMasterAddress(cfg *config) error {
+	// The user specified a protocol and port, but wants us to discover the public IP
+	if cfg.MasterAddr.Provided && cfg.MasterAddr.Host == "" {
+		// use the default ip address for the system
+		addr, err := util.DefaultLocalIP4()
+		if err != nil {
+			return fmt.Errorf("Unable to find the public address of this master: %v", err)
+		}
+		cfg.MasterAddr.Host = addr.String()
+		cfg.MasterAddr.URL.Host = addr.String() + cfg.MasterAddr.URL.Host
+	}
+
 	if !cfg.MasterAddr.Provided {
 		// If the user specifies a bind address, and the master is not provided, use
 		// the bind port by default

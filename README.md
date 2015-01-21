@@ -57,6 +57,7 @@ The simplest way to run OpenShift Origin is in a Docker container:
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ docker exec -it openshift-origin bash
+    $ ln -s /var/lib/openshift/openshift.local.certificates/admin/.kubernetes_auth $HOME/.kubernetes_auth
     $ osc --help
 
 
@@ -120,43 +121,43 @@ If you run into difficulties running OpenShift, start by reading through the [tr
 API
 ---
 
-The OpenShift APIs are exposed at `http://localhost:8080/osapi/v1beta1/*`.
+The OpenShift APIs are exposed at `https://localhost:8443/osapi/v1beta1/*`.
 
 * Builds
- * `http://localhost:8080/osapi/v1beta1/builds`
- * `http://localhost:8080/osapi/v1beta1/buildConfigs`
- * `http://localhost:8080/osapi/v1beta1/buildLogs`
- * `http://localhost:8080/osapi/v1beta1/buildConfigHooks`
+ * `https://localhost:8443/osapi/v1beta1/builds`
+ * `https://localhost:8443/osapi/v1beta1/buildConfigs`
+ * `https://localhost:8443/osapi/v1beta1/buildLogs`
+ * `https://localhost:8443/osapi/v1beta1/buildConfigHooks`
 * Deployments
- * `http://localhost:8080/osapi/v1beta1/deployments`
- * `http://localhost:8080/osapi/v1beta1/deploymentConfigs`
+ * `https://localhost:8443/osapi/v1beta1/deployments`
+ * `https://localhost:8443/osapi/v1beta1/deploymentConfigs`
 * Images
- * `http://localhost:8080/osapi/v1beta1/images`
- * `http://localhost:8080/osapi/v1beta1/imageRepositories`
- * `http://localhost:8080/osapi/v1beta1/imageRepositoryMappings`
+ * `https://localhost:8443/osapi/v1beta1/images`
+ * `https://localhost:8443/osapi/v1beta1/imageRepositories`
+ * `https://localhost:8443/osapi/v1beta1/imageRepositoryMappings`
 * Templates
- * `http://localhost:8080/osapi/v1beta1/templateConfigs`
+ * `https://localhost:8443/osapi/v1beta1/templateConfigs`
 * Routes
- * `http://localhost:8080/osapi/v1beta1/routes`
+ * `https://localhost:8443/osapi/v1beta1/routes`
 * Projects
- * `http://localhost:8080/osapi/v1beta1/projects`
+ * `https://localhost:8443/osapi/v1beta1/projects`
 * Users
- * `http://localhost:8080/osapi/v1beta1/users`
- * `http://localhost:8080/osapi/v1beta1/userIdentityMappings`
+ * `https://localhost:8443/osapi/v1beta1/users`
+ * `https://localhost:8443/osapi/v1beta1/userIdentityMappings`
 * OAuth
- * `http://localhost:8080/osapi/v1beta1/accessTokens`
- * `http://localhost:8080/osapi/v1beta1/authorizeTokens`
- * `http://localhost:8080/osapi/v1beta1/clients`
- * `http://localhost:8080/osapi/v1beta1/clientAuthorizations`
+ * `https://localhost:8443/osapi/v1beta1/accessTokens`
+ * `https://localhost:8443/osapi/v1beta1/authorizeTokens`
+ * `https://localhost:8443/osapi/v1beta1/clients`
+ * `https://localhost:8443/osapi/v1beta1/clientAuthorizations`
 
-The Kubernetes APIs are exposed at `http://localhost:8080/api/v1beta1/*`:
+The Kubernetes APIs are exposed at `https://localhost:8443/api/v1beta1/*`:
 
-* `http://localhost:8080/api/v1beta1/pods`
-* `http://localhost:8080/api/v1beta1/services`
-* `http://localhost:8080/api/v1beta1/replicationControllers`
-* `http://localhost:8080/api/v1beta1/operations`
+* `https://localhost:8443/api/v1beta1/pods`
+* `https://localhost:8443/api/v1beta1/services`
+* `https://localhost:8443/api/v1beta1/replicationControllers`
+* `https://localhost:8443/api/v1beta1/operations`
 
-OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `http://localhost:8080/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:
+OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `https://localhost:8443/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:
 
     $ openshift start --cors-allowed-origins=.*
 
