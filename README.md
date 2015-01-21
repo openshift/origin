@@ -24,11 +24,13 @@
 
 Steps to create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have built openshift already. Check [here](https://github.com/openshift/origin).
 
-On OpenShift master, 
+On OpenShift master,
+
 	$ openshift start master  # start the master openshift server
 	$ openshift-sdn           # assumes etcd is running at localhost:4001
 
 On OpenShift node,
+
 	$ openshift-sdn -etcd-endpoints=http://openshift-master:4001 -minion -public-ip=<10.10....>
 	where, 
 		-etcd-endpoints	: reach the etcd db here
@@ -38,22 +40,24 @@ On OpenShift node,
 	$ openshift start node --master=http://openshift-master:8080
 
 Back on the master,
+
 	Create a json file for the new minion resource
-        $ echo <<EOF
+        $ cat <<EOF > mininon-1.json
 	{
 		"kind":"Minion", 
 		"id":"openshift-minion-1",
 	 	"apiVersion":"v1beta1"
 	}
-	EOF &> minion-1.json
+	EOF
 	where, openshift-minion-1 is a hostname that is resolvable from the master (or, create an entry in /etc/hosts and point it to the public-ip of the minion).
+	$ openshift cli create -f minion-1.json
 
 Done. Create new pods from the master (or just docker containers on the minions), and see that the pods are indeed reachable from each other.
 
 #### Performance Note
 
 The current design has a long path for packets directed for the overlay network.
-There are two veth-pairs, a linux bridge that cause a drop in performance of about 40%
+There are two veth-pairs, a linux bridge, and then the OpenVSwitch, that cause a drop in performance of about 40%
 
 Hand-crafted solutions that eliminate the long-path to just a single veth-pair bring the performance close to the wire. The performance has been measured using sockperf.
 
@@ -64,6 +68,6 @@ Latency | 112us | 84us | 82us
 #### TODO
 
  - Add more options, so that users can choose the subnet to give to the cluster. The default is hardcoded today to "10.1.0.0/16"
- - Performance enhancements
+ - Performance enhancements, as discussed above
  - Usability without depending on openshift
 
