@@ -25,3 +25,9 @@ type Assertion interface {
 type Client interface {
 	AuthenticateClient(client api.Client) (api.UserInfo, bool, error)
 }
+
+type RequestFunc func(req *http.Request) (api.UserInfo, bool, error)
+
+func (f RequestFunc) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+	return f(req)
+}

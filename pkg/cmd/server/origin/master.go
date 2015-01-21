@@ -391,13 +391,9 @@ func wrapHandlerWithAuthentication(handler http.Handler, authenticator authentic
 		requestsToUsers,
 		authenticator,
 		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			// TODO: make this failure handler actually fail once internal components can get auth tokens to do their job
-			// w.WriteHeader(http.StatusUnauthorized)
-			// return
-
-			// For now, just let us know and continue on your merry way
-			glog.V(2).Infof("Token authentication failed when accessing: %v", req.URL)
-			handler.ServeHTTP(w, req)
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized"))
+			return
 		}),
 		handler)
 }

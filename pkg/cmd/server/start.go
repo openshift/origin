@@ -27,7 +27,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/auth/authenticator/token/bearertoken"
+	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/openshift/origin/pkg/auth/authenticator"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
+	"github.com/openshift/origin/pkg/auth/group"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -68,6 +73,13 @@ following roles:
 You may also pass --etcd to connect to an external etcd server instead of running an integrated
 instance.
 `
+
+const (
+	unauthenticatedUsername = "system:anonymous"
+
+	authenticatedGroup   = "system:authenticated"
+	unauthenticatedGroup = "system:unauthenticated"
+)
 
 // config is a struct that the command stores flag values into.
 type config struct {
@@ -299,11 +311,12 @@ func start(cfg *config, args []string) error {
 		}
 
 		// Build token auth for user's OAuth tokens
+		authenticators := []authenticator.Request{}
 		tokenAuthenticator, err := origin.GetTokenAuthenticator(etcdHelper)
 		if err != nil {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
-		osmaster.Authenticator = bearertoken.New(tokenAuthenticator)
+		authenticators = append(authenticators, group.NewGroupAdder(bearertoken.New(tokenAuthenticator), []string{authenticatedGroup}))
 
 		var roots *x509.CertPool
 		if osmaster.TLS {
@@ -355,12 +368,27 @@ func start(cfg *config, args []string) error {
 			for _, root := range ca.Config.Roots {
 				roots.AddCert(root)
 			}
+
+			// build cert authenticator
+			// TODO: add cert users to etcd?
+			// TODO: provider-qualify cert users?
+			opts := x509request.DefaultVerifyOptions()
+			opts.Roots = roots
+			certauth := x509request.New(opts, x509request.CommonNameUserConversion)
+			authenticators = append(authenticators, group.NewGroupAdder(certauth, []string{authenticatedGroup}))
 		} else {
 			// No security, use the same client config for all OpenShift clients
 			osClientConfig := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
 			osmaster.OSClientConfig = osClientConfig
 			osmaster.DeployerOSClientConfig = osClientConfig
 		}
+
+		// TODO: make anonymous auth optional?
+		// TODO: should this map to a real user persisted in etcd?
+		authenticators = append(authenticators, authenticator.RequestFunc(func(req *http.Request) (api.UserInfo, bool, error) {
+			return &api.DefaultUserInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
+		}))
+		osmaster.Authenticator = unionrequest.NewUnionAuthentication(authenticators)
 
 		osmaster.BuildClients()
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
