@@ -268,7 +268,7 @@ func (lw *deploymentLW) List() (runtime.Object, error) {
 
 // Watch watches all Deployments matching the given field selector.
 func (lw *deploymentLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), lw.field, "0")
+	return lw.client.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), lw.field, resourceVersion)
 }
 
 // deploymentConfigLW is a ListWatcher implementation for DeploymentConfigs.
@@ -283,7 +283,7 @@ func (lw *deploymentConfigLW) List() (runtime.Object, error) {
 
 // Watch watches all DeploymentConfigs.
 func (lw *deploymentConfigLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
+	return lw.client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }
 
 // imageRepositoryLW is a ListWatcher for ImageRepositories.
@@ -298,7 +298,7 @@ func (lw *imageRepositoryLW) List() (runtime.Object, error) {
 
 // Watch watches all ImageRepositories.
 func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
+	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }
 
 // ClientDeploymentInterace is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
