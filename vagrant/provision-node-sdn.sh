@@ -1,0 +1,33 @@
+#!/bin/bash
+set -ex
+source $(dirname $0)/provision-config.sh
+
+pushd $HOME
+# build openshift-sdn
+git clone https://github.com/openshift/openshift-sdn
+cd openshift-sdn
+make clean
+make
+make install
+popd
+
+# Create systemd service
+cat <<EOF > /usr/lib/systemd/system/openshift-node-sdn.service
+[Unit]
+Description=openshift SDN node
+After=openvswitch.service
+Before=openshift-node.service
+
+[Service]
+ExecStart=/usr/bin/openshift-sdn -minion -etcd-endpoints=http://${MASTER_IP}:4001 -public-ip=${MINION_IP} 
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Start the service
+systemctl daemon-reload
+systemctl enable openvswitch
+systemctl start openvswitch
+systemctl enable openshift-node-sdn.service
+systemctl start openshift-node-sdn.service

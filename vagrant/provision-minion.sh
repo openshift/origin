@@ -3,6 +3,7 @@ set -ex
 source $(dirname $0)/provision-config.sh
 
 MINION_IP=$4
+OPENSHIFT_SDN=$6
 
 # Setup hosts file to support ping by hostname to master
 if [ ! "$(cat /etc/hosts | grep $MASTER_NAME)" ]; then
@@ -31,8 +32,12 @@ pushd /vagrant
   cp _output/local/go/bin/openshift /usr/bin
 popd
 
-# Setup networking between the nodes
-$(dirname $0)/provision-network.sh $@
+if [ "${OPENSHIFT_SDN}" == "ovs-simple" ]; then
+  $(dirname $0)/provision-node-sdn.sh $@
+else
+  # Setup default networking between the nodes
+  $(dirname $0)/provision-gre-network.sh $@
+fi
 
 usermod -a -G docker vagrant
 
