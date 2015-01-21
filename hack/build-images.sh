@@ -50,6 +50,8 @@ echo "--- openshift/origin-deployer ---"
 docker build -t openshift/origin-deployer       images/deployer
 echo "--- openshift/origin-docker-builder ---"
 docker build -t openshift/origin-docker-builder images/builder/docker/docker-builder
+echo "--- openshift/origin-custom-docker-builder ---"
+docker build -t openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
 echo "--- openshift/origin-sti-builder ---"
 docker build -t openshift/origin-sti-builder    images/builder/docker/sti-builder
 echo "--- openshift/sti-image-builder ---"

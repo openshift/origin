@@ -3,9 +3,6 @@
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
 
-# Default to use STI builder if no argument specified
-BUILD_TYPE=${1:-sti}
-
 if [[ -z "$(which iptables)" ]]; then
   echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
   exit 1
@@ -26,7 +23,7 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 
-echo "[INFO] Starting end-to-end test using ${BUILD_TYPE} builder"
+echo "[INFO] Starting end-to-end test"
 
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
@@ -50,8 +47,9 @@ KUBELET_PORT="${KUBELET_PORT:-10250}"
 # Used by the docker-registry and the router pods to call back to the API
 CONTAINER_ACCESSIBLE_API_HOST="172.17.42.1"
 
-CONFIG_FILE="${LOG_DIR}/appConfig.json"
-BUILD_CONFIG_FILE="${LOG_DIR}/buildConfig.json"
+STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
+DOCKER_CONFIG_FILE="${LOG_DIR}/dockerAppConfig.json"
+CUSTOM_CONFIG_FILE="${LOG_DIR}/customAppConfig.json"
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 
 # set path so OpenShift is available
@@ -74,7 +72,9 @@ function teardown()
   echo "[INFO] Dumping build log to $LOG_DIR"
 
   set +e
-  osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >$LOG_DIR/build.log
+  osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >$LOG_DIR/stibuild.log
+  osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >$LOG_DIR/dockerbuild.log
+  osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >$LOG_DIR/custombuild.log
 
   curl -L http://localhost:4001/v2/keys/?recursive=true > $ARTIFACT_DIR/etcd_dump.json
   set -e
@@ -95,6 +95,39 @@ function teardown()
     set -e
   fi
   set -u
+}
+
+function wait_for_app() {
+  echo "[INFO] Waiting for app in namespace $1"
+  echo "[INFO] Waiting for database pod to start"
+  wait_for_command "osc get -n $1 pods -l name=database | grep -i Running" $((30*TIME_SEC))
+
+  echo "[INFO] Waiting for database service to start"
+  wait_for_command "osc get -n $1 services | grep database" $((20*TIME_SEC))
+  DB_IP=$(osc get -n $1 -o template --output-version=v1beta1 --template="{{ .portalIP }}" service database)
+
+  echo "[INFO] Waiting for frontend pod to start"
+  wait_for_command "osc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
+
+  echo "[INFO] Waiting for frontend service to start"
+  wait_for_command "osc get -n $1 services | grep frontend" $((20*TIME_SEC))
+  FRONTEND_IP=$(osc get -n $1 -o template --output-version=v1beta1 --template="{{ .portalIP }}" service frontend)
+
+  echo "[INFO] Waiting for database to start..."
+  wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
+
+  echo "[INFO] Waiting for app to start..."
+  wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))  
+}
+
+# Wait for builds to complete
+# $1 namespace
+function wait_for_build() {
+  echo "[INFO] Waiting for $1 namespace build to complete"
+  wait_for_command "osc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "osc get -n $1 builds | grep -i -e failed -e error"
+  BUILD_ID=`osc get -n $1 builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+  echo "[INFO] Build ${BUILD_ID} finished"
+  osc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
 }
 
 trap teardown EXIT SIGINT
@@ -133,6 +166,7 @@ if [[ "$API_SCHEME" == "https" ]]; then
 	sudo chmod 644 $CERT_DIR/admin/*
 	export HOME=$CERT_DIR/admin
 	export KUBECONFIG=$CERT_DIR/admin/.kubeconfig
+  echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 else
 	OPENSHIFT_CA_DATA=""
 	OPENSHIFT_CERT_DATA=""
@@ -168,49 +202,37 @@ echo "[INFO] Pushed centos7"
 
 # Process template and apply
 echo "[INFO] Submitting application template json for processing..."
-osc process -n test -f examples/sample-app/application-template-${BUILD_TYPE}build.json > "${CONFIG_FILE}"
+osc process -n test -f examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
+osc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
+osc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
+
 # substitute the default IP address with the address where we actually ended up
 # TODO: make this be unnecessary by fixing images
 # This is no longer needed because the docker registry explicitly requests the 172.30.17.3 ip address.
 #sed -i "s,172.30.17.3,${DOCKER_REGISTRY_IP},g" "${CONFIG_FILE}"
 
-echo "[INFO] Applying application config"
-osc apply -n test -f "${CONFIG_FILE}"
+echo "[INFO] Applying STI application config"
+osc apply -n test -f "${STI_CONFIG_FILE}"
 
 # Trigger build
-echo "[INFO] Invoking generic web hook to trigger new build using curl"
+echo "[INFO] Invoking generic web hook to trigger new sti build using curl"
 curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test && sleep 3
+wait_for_build "test"
+wait_for_app "test"
 
-# Wait for build to complete
-echo "[INFO] Waiting for build to complete"
-wait_for_command "osc get -n test builds | grep -i complete" $((10*TIME_MIN)) "osc get -n test builds | grep -i -e failed -e error"
-BUILD_ID=`osc get -n test builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
-echo "[INFO] Build ${BUILD_ID} finished"
-osc build-logs -n test $BUILD_ID > $LOG_DIR/build.log
+echo "[INFO] Applying Docker application config"
+osc apply -n docker -f "${DOCKER_CONFIG_FILE}"
+echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
+curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=docker && sleep 3
+wait_for_build "docker"
+wait_for_app "docker"
 
-# STI builder doesn't currently report a useful success message
-#grep -q "Successfully built" $LOG_DIR/build.log
-
-echo "[INFO] Waiting for database pod to start"
-wait_for_command "osc get -n test pods -l name=database | grep -i Running" $((30*TIME_SEC))
-
-echo "[INFO] Waiting for database service to start"
-wait_for_command "osc get -n test services | grep database" $((20*TIME_SEC))
-DB_IP=$(osc get -n test -o template --output-version=v1beta1 --template="{{ .portalIP }}" service database)
-
-echo "[INFO] Waiting for frontend pod to start"
-wait_for_command "osc get -n test pods | grep frontend | grep -i Running" $((120*TIME_SEC))
-
-echo "[INFO] Waiting for frontend service to start"
-wait_for_command "osc get -n test services | grep frontend" $((20*TIME_SEC))
-FRONTEND_IP=$(osc get -n test -o template --output-version=v1beta1 --template="{{ .portalIP }}" service frontend)
-
-echo "[INFO] Waiting for database to start..."
-wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
-
-echo "[INFO] Waiting for app to start..."
-wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
-
+echo "[INFO] Applying Custom application config"
+osc apply -n custom -f "${CUSTOM_CONFIG_FILE}"
+echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
+curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=custom && sleep 3
+wait_for_build "custom"
+wait_for_app "custom"
 
 if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"

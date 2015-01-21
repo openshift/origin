@@ -64,7 +64,7 @@ func setupDockerConfig(podSpec *kapi.Pod) {
 }
 
 // setupBuildEnv injects human-friendly environment variables which provides
-// usefull informations about the current build.
+// useful information about the current build.
 func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) {
 	vars := []kapi.EnvVar{}
 

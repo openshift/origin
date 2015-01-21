@@ -103,7 +103,8 @@
                         "readOnly":false
                       }
                     ],
-                    "command": ["sh", "-c", "echo \"$OPENSHIFT_CA_DATA\" > $STORAGE_PATH/root.crt && REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=${OPENSHIFT_MASTER}/osapi/v1beta1 OPENSHIFT_CA_BUNDLE=$STORAGE_PATH/root.crt exec docker-registry"]
+                    "command": ["sh", "-c", "echo \"$OPENSHIFT_CA_DATA\" > $STORAGE_PATH/root.crt && REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=${OPENSHIFT_MASTER}/osapi/v1beta1 OPENSHIFT_CA_BUNDLE=$STORAGE_PATH/root.crt exec docker-registry"],
+                    "privileged":true
                   }
                 ],
                 "version":"v1beta1",

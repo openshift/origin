@@ -47,20 +47,20 @@
       }, 
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "172.30.17.3:5001/test/origin-ruby-sample",
+      "dockerImageRepository": "172.30.17.3:5001/custom/origin-ruby-sample",
       "labels": {
         "name": "origin-ruby-sample"
       }
     },
     {
       "metadata":{
-        "name": "ruby-20-centos",
+        "name": "custom-docker-builder",
       },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "172.30.17.3:5001/openshift/ruby-20-centos",
+      "dockerImageRepository": "172.30.17.3:5001/openshift/origin-custom-docker-builder",
       "labels": {
-        "name": "ruby-20-centos"
+        "name": "custom-docker-builder"
       }
     },
     {
@@ -85,8 +85,8 @@
         {
           "type": "imageChange",
           "imageChange": {
-            "image": "172.30.17.3:5001/openshift/ruby-20-centos",
-            "imageRepositoryRef": { "name": "ruby-20-centos"},
+            "image": "172.30.17.3:5001/openshift/origin-custom-docker-builder",
+            "imageRepositoryRef": { "name": "origin-custom-docker-builder"},
             "tag":"latest"
           }
         }
@@ -101,12 +101,13 @@
         "strategy": {
           "type": "Custom",
           "customStrategy": {
-            "image": "172.30.17.3:5001/openshift/ruby-20-centos",
-            "env": [{"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE", "value": "172.30.17.3:5001/openshift/ruby-20-centos"}]
+            "image": "openshift/origin-custom-docker-builder",
+            "env": [{"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE", "value": "openshift/origin-custom-docker-builder"}],
+            "exposeDockerSocket":true
           }
         },
         "output": {
-          "imageTag": "test/origin-ruby-sample:latest",
+          "imageTag": "custom/origin-ruby-sample:latest",
           "registry": "172.30.17.3:5001"
         },
       },
@@ -128,7 +129,7 @@
             "containerNames": [
               "ruby-helloworld"
             ],
-            "repositoryName": "172.30.17.3:5001/test/origin-ruby-sample",
+            "repositoryName": "172.30.17.3:5001/custom/origin-ruby-sample",
             "tag": "latest"
           }
         }
@@ -149,7 +150,7 @@
                 "containers": [
                   {
                     "name": "ruby-helloworld",
-                    "image": "172.30.17.3:5001/test/origin-ruby-sample",
+                    "image": "172.30.17.3:5001/custom/origin-ruby-sample",
                     "env": [
                       {
                         "name": "ADMIN_USERNAME",
