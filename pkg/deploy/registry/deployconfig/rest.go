@@ -118,6 +118,6 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		if err != nil {
 			return nil, err
 		}
-		return deploymentConfig, nil
+		return s.Get(ctx, deploymentConfig.Name)
 	}), nil
 }
