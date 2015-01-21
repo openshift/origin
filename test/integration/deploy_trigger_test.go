@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"flag"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -111,6 +110,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
+	defer watch.Stop()
 
 	imageRepo, err = openshift.Client.ImageRepositories(testNamespace).Create(imageRepo)
 	if err != nil {
@@ -168,6 +168,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
+	defer watch.Stop()
 
 	// submit the initial deployment config
 	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Create(config); err != nil {
@@ -241,7 +242,6 @@ type testOpenshift struct {
 }
 
 func NewTestOpenshift(t *testing.T) *testOpenshift {
-	flag.Set("v", "4")
 	t.Logf("Starting test openshift")
 
 	openshift := &testOpenshift{
@@ -346,6 +346,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       false,
 		},
+		Stop: openshift.stop,
 	}
 
 	bcFactory.Create().Run()

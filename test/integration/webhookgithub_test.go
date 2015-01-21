@@ -22,6 +22,7 @@ func init() {
 func TestWebhookGithubPush(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{
@@ -78,6 +79,7 @@ func TestWebhookGithubPush(t *testing.T) {
 func TestWebhookGithubPing(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 
 	// create buildconfig
 	buildConfig := &buildapi.BuildConfig{

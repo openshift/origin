@@ -5,6 +5,7 @@ package integration
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -15,7 +16,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
-	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -36,6 +36,7 @@ func init() {
 func TestListBuilds(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 
 	builds, err := openshift.Client.Builds(testNamespace).List(labels.Everything(), labels.Everything())
 	if err != nil {
@@ -49,6 +50,7 @@ func TestListBuilds(t *testing.T) {
 func TestCreateBuild(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 	build := mockBuild()
 
 	expected, err := openshift.Client.Builds(testNamespace).Create(build)
@@ -71,6 +73,7 @@ func TestCreateBuild(t *testing.T) {
 func TestDeleteBuild(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 	build := mockBuild()
 
 	actual, err := openshift.Client.Builds(testNamespace).Create(build)
@@ -85,12 +88,14 @@ func TestDeleteBuild(t *testing.T) {
 func TestWatchBuilds(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 	build := mockBuild()
 
 	watch, err := openshift.Client.Builds(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer watch.Stop()
 
 	expected, err := openshift.Client.Builds(testNamespace).Create(build)
 	if err != nil {
@@ -137,10 +142,14 @@ type testBuildOpenshift struct {
 	Client   *osclient.Client
 	server   *httptest.Server
 	whPrefix string
+	stop     chan struct{}
+	lock     sync.Mutex
 }
 
 func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
-	openshift := &testBuildOpenshift{}
+	openshift := &testBuildOpenshift{
+		stop: make(chan struct{}),
+	}
 
 	etcdClient := newEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
@@ -155,7 +164,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
 	if err != nil {
-		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+		t.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
 	kmaster := master.New(&master.Config{
@@ -200,11 +209,20 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       false,
 		},
+		Stop: openshift.stop,
 	}
 
 	factory.Create().Run()
 
 	return openshift
+}
+
+func (t *testBuildOpenshift) Close() {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	close(t.stop)
+	t.server.CloseClientConnections()
+	t.server.Close()
 }
 
 type clientWebhookInterface struct {

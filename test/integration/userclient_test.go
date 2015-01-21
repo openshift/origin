@@ -45,6 +45,7 @@ func TestUserInitialization(t *testing.T) {
 	}
 
 	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit()))
+	defer server.Close()
 
 	mapping := api.UserIdentityMapping{
 		Identity: api.Identity{
