@@ -27,16 +27,18 @@ type BuildControllerFactory struct {
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	STIBuildStrategy    *strategy.STIBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
+	// Stop may be set to allow controllers created by this factory to be terminated.
+	Stop <-chan struct{}
 
 	buildStore cache.Store
 }
 
 func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	factory.buildStore = cache.NewStore()
-	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, factory.buildStore).Run()
+	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, factory.buildStore).RunUntil(factory.Stop)
 
 	buildQueue := cache.NewFIFO()
-	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildQueue).Run()
+	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildQueue).RunUntil(factory.Stop)
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)
@@ -47,17 +49,21 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	// TODO: Find a way to get watch events for Pod/container status updates. The polling
 	// strategy is horribly inefficient and should be addressed upstream somehow.
 	podQueue := cache.NewFIFO()
-	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).Run()
+	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).RunUntil(factory.Stop)
 
 	return &controller.BuildController{
 		BuildStore:   factory.buildStore,
 		BuildUpdater: ClientBuildUpdater{factory.Client},
 		PodManager:   ClientPodManager{factory.KubeClient},
 		NextBuild: func() *buildapi.Build {
-			return buildQueue.Pop().(*buildapi.Build)
+			build := buildQueue.Pop().(*buildapi.Build)
+			panicIfStopped(factory.Stop, "build controller stopped")
+			return build
 		},
 		NextPod: func() *kapi.Pod {
-			return podQueue.Pop().(*kapi.Pod)
+			pod := podQueue.Pop().(*kapi.Pod)
+			panicIfStopped(factory.Stop, "build controller stopped")
+			return pod
 		},
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
@@ -79,10 +85,10 @@ type ImageChangeControllerFactory struct {
 // image is available
 func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
 	queue := cache.NewFIFO()
-	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).Run()
+	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).RunUntil(factory.Stop)
 
 	store := cache.NewStore()
-	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).Run()
+	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).RunUntil(factory.Stop)
 
 	return &controller.ImageChangeController{
 		BuildConfigStore:   store,
