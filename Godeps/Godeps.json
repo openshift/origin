@@ -1,0 +1,15 @@
+{
+	"ImportPath": "github.com/openshift/openshift-sdn",
+	"GoVersion": "go1.3.3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/coreos/go-etcd/etcd",
+			"Comment": "v0.2.0-rc1-120-g23142f6",
+			"Rev": "23142f6773a676cc2cae8dd0cb90b2ea761c853f"
+		},
+		{
+			"ImportPath": "github.com/golang/glog",
+			"Rev": "d1c4472bf2efd3826f2b5bdcc02d8416798d678c"
+		}
+	]
+}
