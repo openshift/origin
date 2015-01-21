@@ -36,7 +36,7 @@ type OvsController struct {
 }
 
 func NewController(sub registry.SubnetRegistry, hostname string, selfip string) Controller {
-	if selfip=="" {
+	if selfip == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
 			log.Errorf("Failed to lookup IP Address for %s", hostname)
@@ -58,14 +58,14 @@ func NewController(sub registry.SubnetRegistry, hostname string, selfip string) 
 func (oc *OvsController) StartMaster() error {
 	// initialize the subnet key?
 	err := oc.sm.InitSubnets()
-	subrange := make([]string,0)
+	subrange := make([]string, 0)
 	if err != nil {
 		subnets, err := oc.sm.GetSubnets()
 		if err != nil {
 			log.Errorf("Error in initializing/fetching subnets - %v\n", err)
 			return err
 		}
-		for _,sub := range *subnets {
+		for _, sub := range *subnets {
 			subrange = append(subrange, sub.Sub)
 		}
 	}
@@ -79,13 +79,13 @@ func (oc *OvsController) StartMaster() error {
 	return nil
 }
 
-func (oc *OvsController) ServeExistingMinions() (error) {
+func (oc *OvsController) ServeExistingMinions() error {
 	minions, err := oc.sm.GetMinions()
 	if err != nil {
 		return err
 	}
 
-	for _,minion := range *minions {
+	for _, minion := range *minions {
 		_, err := oc.sm.GetSubnet(minion)
 		if err == nil {
 			// subnet already exists, continue
@@ -160,11 +160,11 @@ func (oc *OvsController) StartNode(skipsetup bool) error {
 			}
 		}
 		exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0").CombinedOutput()
-		subnets,err := oc.sm.GetSubnets()
-		if err!=nil {
+		subnets, err := oc.sm.GetSubnets()
+		if err != nil {
 			log.Errorf("Could not fetch existing subnets. %v", err)
 		}
-		for _,s := range *subnets {
+		for _, s := range *subnets {
 			oc.AddOFRules(s.Minion, s.Sub)
 		}
 		go oc.watchCluster()
@@ -258,19 +258,19 @@ func (oc *OvsController) AddOFRules(minionip, subnet string) {
 func (oc *OvsController) DelOFRules(minion string) {
 	log.Infof("Calling del rules for %s", minion)
 	cookie := generateCookie(minion)
-	if minion==oc.localIP {
+	if minion == oc.localIP {
 		iprule := fmt.Sprintf("table=0,cookie=%s,ip,in_port=10", cookie)
 		arprule := fmt.Sprintf("table=0,cookie=%s,arp,in_port=10", cookie)
-		o,e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
+		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
 		log.Infof("Output of deleting local ip rules %s (%v)", o, e)
-		o,e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
+		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
 		log.Infof("Output of deleting local ip rules %s (%v)", o, e)
 	} else {
 		iprule := fmt.Sprintf("table=0,cookie=%s/0xffffffff,ip,in_port=9", cookie)
 		arprule := fmt.Sprintf("table=0,cookie=%s/0xffffffff,arp,in_port=9", cookie)
-		o,e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
+		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
 		log.Infof("Output of deleting %s: %s (%v)", iprule, o, e)
-		o,e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
+		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
 		log.Infof("Output of deleting %s: %s (%v)", arprule, o, e)
 	}
 }

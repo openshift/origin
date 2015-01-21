@@ -2,11 +2,11 @@ package registry
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"sync"
 	"time"
-	"errors"
 
 	"github.com/coreos/go-etcd/etcd"
 	log "github.com/golang/glog"
@@ -20,13 +20,13 @@ const (
 )
 
 type SubnetRegistry interface {
-	InitSubnets() (error)
+	InitSubnets() error
 	GetSubnets() (*[]Subnet, error)
 	GetSubnet(minion string) (*Subnet, error)
-	DeleteSubnet(minion string) (error)
+	DeleteSubnet(minion string) error
 	CreateSubnet(sn string, sub *Subnet) (*etcd.Response, error)
 	WatchSubnets(rev uint64, receiver chan *SubnetEvent, stop chan bool) error
- 	GetMinions() (*[]string, error) 
+	GetMinions() (*[]string, error)
 	WatchMinions(rev uint64, receiver chan *MinionEvent, stop chan bool) error
 }
 
@@ -70,18 +70,18 @@ func newMinionEvent(action, key, value string) *MinionEvent {
 		min.Type = Added
 	}
 
-	if key!="" {
-		_,min.Minion = path.Split(key)
+	if key != "" {
+		_, min.Minion = path.Split(key)
 		return min
 	}
-	
+
 	fmt.Printf("Error decoding minion event.. nil key. (%s,%s,%s)\n", action, key, value)
 	return nil
 }
 
 func newSubnetEvent(resp *etcd.Response) *SubnetEvent {
 	var value string
-	_,minkey := path.Split(resp.Node.Key)
+	_, minkey := path.Split(resp.Node.Key)
 	var t EventType
 	switch resp.Action {
 	case "deleted", "delete", "expired":
@@ -125,15 +125,15 @@ func NewEtcdSubnetRegistry(config *EtcdConfig) (SubnetRegistry, error) {
 	return r, nil
 }
 
-func (sub *EtcdSubnetRegistry) InitSubnets() (error) {
+func (sub *EtcdSubnetRegistry) InitSubnets() error {
 	key := sub.etcdCfg.SubnetPath
-	_,err := sub.client().SetDir(key, 0)
+	_, err := sub.client().SetDir(key, 0)
 	return err
 }
 
 func (sub *EtcdSubnetRegistry) GetMinions() (*[]string, error) {
 	key := sub.etcdCfg.MinionPath
-	resp,err := sub.client().Get(key, false, true)
+	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -143,20 +143,20 @@ func (sub *EtcdSubnetRegistry) GetMinions() (*[]string, error) {
 	}
 
 	minions := make([]string, 0)
-	
-	for _,node := range resp.Node.Nodes {
-		if node.Key=="" {
+
+	for _, node := range resp.Node.Nodes {
+		if node.Key == "" {
 			log.Errorf("Error unmarshaling GetMinions response node %s", node.Key)
 			continue
 		}
 		minions = append(minions, node.Key)
 	}
-	return &minions,nil
+	return &minions, nil
 }
 
 func (sub *EtcdSubnetRegistry) GetSubnets() (*[]Subnet, error) {
 	key := sub.etcdCfg.SubnetPath
-	resp,err := sub.client().Get(key, false, true)
+	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -166,17 +166,17 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]Subnet, error) {
 	}
 
 	subnets := make([]Subnet, 0)
-	
-	for _,node := range resp.Node.Nodes {
+
+	for _, node := range resp.Node.Nodes {
 		var s Subnet
 		err := json.Unmarshal([]byte(node.Value), &s)
-		if err!= nil {
+		if err != nil {
 			log.Errorf("Error unmarshaling GetSubnets response node %s (%s)", node.Value, err.Error())
 			continue
 		}
 		subnets = append(subnets, s)
 	}
-	return &subnets,err
+	return &subnets, err
 }
 
 func (sub *EtcdSubnetRegistry) GetSubnet(minionip string) (*Subnet, error) {
@@ -193,9 +193,9 @@ func (sub *EtcdSubnetRegistry) GetSubnet(minionip string) (*Subnet, error) {
 	return nil, err
 }
 
-func (sub *EtcdSubnetRegistry) DeleteSubnet(minion string) (error) {
+func (sub *EtcdSubnetRegistry) DeleteSubnet(minion string) error {
 	key := path.Join(sub.etcdCfg.SubnetPath, minion)
-	_,err := sub.client().Delete(key, false)
+	_, err := sub.client().Delete(key, false)
 	return err
 }
 
@@ -266,7 +266,7 @@ func (sub *EtcdSubnetRegistry) WatchSubnets(rev uint64, receiver chan *SubnetEve
 			log.Infof("New subnet event err : %s\n", err.Error())
 			return err
 		}
-		subevent := newSubnetEvent(resp) 
+		subevent := newSubnetEvent(resp)
 		log.Infof("New subnet event : %v, %v\n", subevent, resp)
 		receiver <- subevent
 	}
