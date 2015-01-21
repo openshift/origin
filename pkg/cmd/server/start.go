@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/auth/authenticator/token/bearertoken"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -92,8 +93,7 @@ type config struct {
 
 	NodeList flagtypes.StringList
 
-	CORSAllowedOrigins    flagtypes.StringList
-	RequireAuthentication bool
+	CORSAllowedOrigins flagtypes.StringList
 }
 
 // NewCommandStartServer provides a CLI handler for 'start' command
@@ -147,7 +147,6 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.StringVar(&cfg.Hostname, "hostname", cfg.Hostname, "The hostname to identify this node with the master.")
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
-	flag.BoolVar(&cfg.RequireAuthentication, "require-authentication", false, "Require authentication token for API access.")
 
 	cfg.Docker.InstallFlags(flag)
 
@@ -160,11 +159,12 @@ func start(cfg *config, args []string) error {
 		return errors.New("You may start an OpenShift all-in-one server with no arguments, or pass 'master' or 'node' to run in that role.")
 	}
 
-	var startEtcd, startNode, startMaster bool
+	var startEtcd, startNode, startMaster, startKube bool
 	if len(args) == 1 {
 		switch args[0] {
 		case "master":
 			startMaster = true
+			startKube = !cfg.KubernetesAddr.Provided
 			startEtcd = !cfg.EtcdAddr.Provided
 			if err := defaultMasterAddress(cfg); err != nil {
 				return err
@@ -187,6 +187,7 @@ func start(cfg *config, args []string) error {
 
 	} else {
 		startMaster = true
+		startKube = !cfg.KubernetesAddr.Provided
 		startEtcd = !cfg.EtcdAddr.Provided
 		startNode = true
 		if err := defaultMasterAddress(cfg); err != nil {
@@ -199,7 +200,6 @@ func start(cfg *config, args []string) error {
 		}
 	}
 
-	startKube := !cfg.KubernetesAddr.Provided
 	if startKube {
 		cfg.KubernetesAddr = cfg.MasterAddr
 	}
@@ -270,18 +270,17 @@ func start(cfg *config, args []string) error {
 		}
 
 		osmaster := &origin.MasterConfig{
-			TLS:                   cfg.BindAddr.URL.Scheme == "https",
-			MasterBindAddr:        cfg.BindAddr.URL.Host,
-			MasterAddr:            cfg.MasterAddr.URL.String(),
-			MasterPublicAddr:      masterPublicAddr.URL.String(),
-			AssetBindAddr:         assetBindAddr,
-			AssetPublicAddr:       assetPublicAddr.String(),
-			KubernetesAddr:        cfg.KubernetesAddr.URL.String(),
-			KubernetesPublicAddr:  k8sPublicAddr.URL.String(),
-			EtcdHelper:            etcdHelper,
-			RequireAuthentication: cfg.RequireAuthentication,
-			Authorizer:            apiserver.NewAlwaysAllowAuthorizer(),
-			AdmissionControl:      admit.NewAlwaysAdmit(),
+			TLS:                  cfg.BindAddr.URL.Scheme == "https",
+			MasterBindAddr:       cfg.BindAddr.URL.Host,
+			MasterAddr:           cfg.MasterAddr.URL.String(),
+			MasterPublicAddr:     masterPublicAddr.URL.String(),
+			AssetBindAddr:        assetBindAddr,
+			AssetPublicAddr:      assetPublicAddr.String(),
+			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
+			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
+			EtcdHelper:           etcdHelper,
+			Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
+			AdmissionControl:     admit.NewAlwaysAdmit(),
 		}
 
 		if startKube {
@@ -298,6 +297,13 @@ func start(cfg *config, args []string) error {
 				Version: klatest.Version,
 			}
 		}
+
+		// Build token auth for user's OAuth tokens
+		tokenAuthenticator, err := origin.GetTokenAuthenticator(etcdHelper)
+		if err != nil {
+			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
+		}
+		osmaster.Authenticator = bearertoken.New(tokenAuthenticator)
 
 		var roots *x509.CertPool
 		if osmaster.TLS {
@@ -382,7 +388,10 @@ func start(cfg *config, args []string) error {
 			}
 			kmaster.EnsurePortalFlags()
 
-			osmaster.RunAPI(kmaster, auth, osmaster, &origin.SwaggerAPI{})
+			osmaster.Run(
+				[]origin.APIInstaller{kmaster, osmaster, &origin.SwaggerAPI{}},
+				[]origin.APIInstaller{auth},
+			)
 
 			kmaster.RunScheduler()
 			kmaster.RunReplicationController()
@@ -390,7 +399,10 @@ func start(cfg *config, args []string) error {
 			kmaster.RunMinionController()
 
 		} else {
-			osmaster.RunAPI(auth, osmaster, &origin.SwaggerAPI{})
+			osmaster.Run(
+				[]origin.APIInstaller{osmaster, &origin.SwaggerAPI{}},
+				[]origin.APIInstaller{auth},
+			)
 		}
 
 		// TODO: recording should occur in individual components

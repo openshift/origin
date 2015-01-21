@@ -85,15 +85,14 @@ type AuthConfig struct {
 	EtcdHelper       tools.EtcdHelper
 }
 
-// InstallAPI starts an OAuth2 server and registers the supported REST APIs
-// into the provided mux, then returns an array of strings indicating what
-// endpoints were started (these are format strings that will expect to be sent
-// a single string value).
+// InstallSupport registers endpoints for an OAuth2 server into the provided mux,
+// then returns an array of strings indicating what endpoints were started
+// (these are format strings that will expect to be sent a single string value).
 func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
-	oauthEtcd := oauthetcd.New(c.EtcdHelper)
-
-	// TODO: register these items with go-restful
+	// TODO: register into container
 	mux := container.ServeMux
+
+	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
 	authRequestHandler, authHandler := c.getAuthorizeAuthenticationHandlers(mux)
 

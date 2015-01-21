@@ -28,7 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
-	"github.com/openshift/origin/pkg/auth/authenticator/token/bearertoken"
+	"github.com/openshift/origin/pkg/auth/authenticator"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -95,8 +95,8 @@ type MasterConfig struct {
 
 	TLS bool
 
-	CORSAllowedOrigins    []*regexp.Regexp
-	RequireAuthentication bool
+	CORSAllowedOrigins []*regexp.Regexp
+	Authenticator      authenticator.Request
 
 	EtcdHelper tools.EtcdHelper
 
@@ -294,28 +294,41 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	}
 }
 
-// RunAPI launches the OpenShift master. It takes optional API installers that
-// may install additional endpoints into the server.
-func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
-	container := kmaster.NewHandlerContainer(http.NewServeMux())
-
+// Run launches the OpenShift master. It takes optional installers that may install additional endpoints into the server.
+// All endpoints get configured CORS behavior
+// Protected installers' endpoints are protected by API authentication and authorization.
+// Unprotected installers' endpoints do not have any additional protection added.
+func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstallers []APIInstaller) {
 	var extra []string
-	for _, i := range installers {
-		extra = append(extra, i.InstallAPI(container)...)
+
+	// Build container for protected endpoints
+	protectedContainer := kmaster.NewHandlerContainer(http.NewServeMux())
+	for _, i := range protectedInstallers {
+		extra = append(extra, i.InstallAPI(protectedContainer)...)
+	}
+	// Add authentication
+	protectedHandler := http.Handler(protectedContainer)
+	if c.Authenticator != nil {
+		protectedHandler = wireAuthenticationHandling(protectedContainer.ServeMux, protectedHandler, c.Authenticator)
 	}
 
-	handler := http.Handler(container)
-	if c.RequireAuthentication {
-		handler = c.wireAuthenticationHandling(container.ServeMux, handler)
+	// Build container for unprotected endpoints
+	rootMux := http.NewServeMux()
+	rootHandler := http.Handler(rootMux)
+	unprotectedContainer := kmaster.NewHandlerContainer(rootMux)
+	for _, i := range unprotectedInstallers {
+		extra = append(extra, i.InstallAPI(unprotectedContainer)...)
 	}
-
+	// Add CORS support
 	if len(c.CORSAllowedOrigins) > 0 {
-		handler = apiserver.CORS(handler, c.CORSAllowedOrigins, nil, nil, "true")
+		rootHandler = apiserver.CORS(rootHandler, c.CORSAllowedOrigins, nil, nil, "true")
 	}
+	// Delegate all unhandled endpoints to the api handler
+	rootMux.Handle("/", protectedHandler)
 
 	server := &http.Server{
 		Addr:           c.MasterBindAddr,
-		Handler:        handler,
+		Handler:        rootHandler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
@@ -347,12 +360,12 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 // just to make the RunAPI method easier to read.  These resources include the requestsToUsers map that allows callers to know which user
 // is requesting an operation, the handler wrapper that protects the passed handler behind a handler that requires valid authentication
 // information on the request, and an endpoint that only functions properly with an authenticated user.
-func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler) http.Handler {
+func wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler, authenticator authenticator.Request) http.Handler {
 	// this tracks requests back to users for authorization.  The same instance must be shared between writers and readers
 	requestsToUsers := authcontext.NewRequestContextMap()
 
 	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
-	handler = c.wrapHandlerWithAuthentication(handler, requestsToUsers)
+	handler = wrapHandlerWithAuthentication(handler, authenticator, requestsToUsers)
 
 	// this requires the requests and users to be present
 	userContextMap := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
@@ -373,15 +386,10 @@ func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler 
 // if the request does have value auth information, then the request is allowed through the passed handler.  If the request does not have
 // valid auth information, then the request is passed to a failure handler.  Until we get authentication for system componenets, the
 // failure handler logs and passes through.
-func (c *MasterConfig) wrapHandlerWithAuthentication(handler http.Handler, requestsToUsers *authcontext.RequestContextMap) http.Handler {
-	// wrap with authenticated token check
-	tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
-	if err != nil {
-		glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
-	}
+func wrapHandlerWithAuthentication(handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
 	return authfilter.NewRequestAuthenticator(
 		requestsToUsers,
-		bearertoken.New(tokenAuthenticator),
+		authenticator,
 		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			// TODO: make this failure handler actually fail once internal components can get auth tokens to do their job
 			// w.WriteHeader(http.StatusUnauthorized)
