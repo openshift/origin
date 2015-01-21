@@ -6,6 +6,9 @@ import (
 	"net/url"
 	"strings"
 
+	"crypto/tls"
+	"crypto/x509"
+
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -74,6 +77,7 @@ var (
 
 type AuthConfig struct {
 	MasterAddr     string
+	MasterRoots    *x509.CertPool
 	SessionSecrets []string
 	EtcdHelper     tools.EtcdHelper
 }
@@ -121,7 +125,16 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	CreateOrUpdateDefaultOAuthClients(c.MasterAddr, oauthEtcd)
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
 	osOAuthClientConfig.RedirectUrl = c.MasterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint
+
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
+	if c.MasterRoots != nil {
+		// Copy the default transport
+		var transport http.Transport = *http.DefaultTransport.(*http.Transport)
+		// Set TLS CA roots
+		transport.TLSClientConfig = &tls.Config{RootCAs: c.MasterRoots}
+		osOAuthClient.Transport = &transport
+	}
+
 	tokenRequestEndpoints := tokenrequest.NewEndpoints(osOAuthClient)
 	tokenRequestEndpoints.Install(mux, OpenShiftOAuthAPIPrefix)
 
