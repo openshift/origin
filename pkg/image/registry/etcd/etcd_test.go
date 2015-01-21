@@ -55,8 +55,15 @@ func makeTestDefaultImageRepositoriesListKey() string {
 	return makeTestImageRepositoriesListKey(kapi.NamespaceDefault)
 }
 
+var (
+	testDefaultRegistry = DefaultRegistryFunc(func() (string, bool) { return "test", true })
+	noDefaultRegistry   = DefaultRegistryFunc(func() (string, bool) {
+		return "", false
+	})
+)
+
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
+	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}}, noDefaultRegistry)
 }
 
 func TestEtcdListImagesEmpty(t *testing.T) {
@@ -510,12 +517,13 @@ func TestEtcdListImageRepositoriesEverything(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
+	registry.defaultRegistry = testDefaultRegistry
 	repos, err := registry.ListImageRepositories(kapi.NewDefaultContext(), labels.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(repos.Items) != 2 || repos.Items[0].Name != "foo" || repos.Items[1].Name != "bar" {
+	if len(repos.Items) != 2 || repos.Items[0].Name != "foo" || repos.Items[1].Name != "bar" || repos.Items[1].Status.DockerImageRepository != "test/default/bar" {
 		t.Errorf("Unexpected images list: %#v", repos)
 	}
 }
@@ -802,6 +810,8 @@ func TestEtcdWatchImageRepositories(t *testing.T) {
 		fakeClient.WaitForWatchCompletion()
 
 		for testIndex, repo := range tt.repos {
+			// Set this value to avoid duplication in tests
+			repo.Status.DockerImageRepository = repo.DockerImageRepository
 			repoBytes, _ := latest.Codec.Encode(repo)
 			fakeClient.WatchResponse <- &etcd.Response{
 				Action: "set",
@@ -822,7 +832,7 @@ func TestEtcdWatchImageRepositories(t *testing.T) {
 					t.Errorf("Expected %v, got %v", e, a)
 				}
 				if e, a := repo, event.Object; !reflect.DeepEqual(e, a) {
-					t.Errorf("Expected %v, got %v", e, a)
+					t.Errorf("Expected %#v, got %#v", e, a)
 				}
 			case <-time.After(50 * time.Millisecond):
 				if tt.expected[testIndex] {

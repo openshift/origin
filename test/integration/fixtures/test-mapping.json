@@ -1,7 +1,9 @@
 {
+  "metadata": {
+    "name": "test"
+  },
   "kind": "ImageRepositoryMapping",
   "apiVersion": "v1beta1",
-  "dockerImageRepository": "openshift/ruby-19-centos",
   "image": {
     "kind": "Image",
     "version": "v1beta1",
@@ -9,7 +11,7 @@
       "name": "abcd1234"
     },
     "dockerImageReference": "openshift/ruby-19-centos:latest",
-    "meta": {
+    "dockerImageMetadata": {
       "Architecture": "amd64",
       "Author": "Michal Fojtik \u003cmfojtik@redhat.com\u003e",
       "Comment": "",

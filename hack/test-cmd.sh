@@ -48,12 +48,16 @@ out=$(openshift version)
 echo openshift: $out
 
 # Start openshift
-openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" 1>&2 &
+if [[ "$API_SCHEME" == "https" ]]; then
+    export CURL_CA_BUNDLE="$CERT_DIR/admin/root.crt"
+fi
+
+openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --hostname=${API_HOST} --volume-dir="${VOLUME_DIR}" --cert-dir="${CERT_DIR}" --etcd-dir="${ETCD_DATA_DIR}" 1>&2 &
 OS_PID=$!
 
-if [[ "$API_SCHEME" == "https" ]]; then
-	export CURL_CA_BUNDLE="$CERT_DIR/admin/root.crt"
-fi
+wait_for_url "http://localhost:${KUBELET_PORT}/healthz" "kubelet: " 0.2 60
+wait_for_url "http://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2 60
+wait_for_url "http://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.2 60
 
 wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 1 30
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: "
@@ -90,6 +94,10 @@ echo "images: ok"
 
 osc get imageRepositories
 osc create -f test/integration/fixtures/test-image-repository.json
+[ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
+osc apply -f examples/sample-app/docker-registry-config.json
+[ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
+osc delete -f examples/sample-app/docker-registry-config.json
 osc delete imageRepositories test
 echo "imageRepositories: ok"
 

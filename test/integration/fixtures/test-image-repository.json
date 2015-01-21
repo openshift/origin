@@ -7,7 +7,6 @@
       "color": "blue"
     }
   },
-  "dockerImageRepository": "openshift/ruby-19-centos",
   "tags": {
     "latest": "foo",
     "another": "bar",

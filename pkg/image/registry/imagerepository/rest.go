@@ -16,17 +16,13 @@ import (
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	registry        Registry
-	defaultRegistry string
+	registry Registry
 }
 
-// NewREST returns a new REST.  Default registry is the prefix that will be
-// applied to the Status.DockerImageRepository field if the repository does not
-// have a real DockerImageRepository.
-func NewREST(registry Registry, defaultRegistry string) apiserver.RESTStorage {
+// NewREST returns a new REST.
+func NewREST(registry Registry) apiserver.RESTStorage {
 	return &REST{
-		registry:        registry,
-		defaultRegistry: defaultRegistry,
+		registry: registry,
 	}
 }
 
@@ -41,24 +37,12 @@ func (*REST) NewList() runtime.Object {
 
 // List retrieves a list of ImageRepositories that match selector.
 func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	imageRepositories, err := s.registry.ListImageRepositories(ctx, selector)
-	if err != nil {
-		return nil, err
-	}
-	for i := range imageRepositories.Items {
-		s.fillRepository(&imageRepositories.Items[i])
-	}
-	return imageRepositories, err
+	return s.registry.ListImageRepositories(ctx, selector)
 }
 
 // Get retrieves an ImageRepository by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	repo, err := s.registry.GetImageRepository(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	s.fillRepository(repo)
-	return repo, nil
+	return s.registry.GetImageRepository(ctx, id)
 }
 
 // Watch begins watching for new, changed, or deleted ImageRepositories.
@@ -113,15 +97,4 @@ func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult,
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImageRepository(ctx, id)
 	}), nil
-}
-
-// fillRepository sets the status information of a repository
-func (s *REST) fillRepository(repo *api.ImageRepository) {
-	var value string
-	if len(repo.DockerImageRepository) != 0 {
-		value = repo.DockerImageRepository
-	} else {
-		value = api.JoinDockerPullSpec(s.defaultRegistry, repo.Namespace, repo.Name, "")
-	}
-	repo.Status.DockerImageRepository = value
 }

@@ -175,19 +175,19 @@ fi
 
 # Deploy private docker registry
 echo "[INFO] Submitting docker-registry template file for processing"
-osc process -n test -f examples/sample-app/docker-registry-template.json -v "OPENSHIFT_MASTER=$API_SCHEME://${CONTAINER_ACCESSIBLE_API_HOST}:$API_PORT,OPENSHIFT_CA_DATA=${OPENSHIFT_CA_DATA},OPENSHIFT_CERT_DATA=${OPENSHIFT_CERT_DATA},OPENSHIFT_KEY_DATA=${OPENSHIFT_KEY_DATA}" > "$ARTIFACT_DIR/docker-registry-config.json"
+osc process -f examples/sample-app/docker-registry-template.json -v "OPENSHIFT_MASTER=$API_SCHEME://${CONTAINER_ACCESSIBLE_API_HOST}:$API_PORT,OPENSHIFT_CA_DATA=${OPENSHIFT_CA_DATA},OPENSHIFT_CERT_DATA=${OPENSHIFT_CERT_DATA},OPENSHIFT_KEY_DATA=${OPENSHIFT_KEY_DATA}" > "$ARTIFACT_DIR/docker-registry-config.json"
 
 echo "[INFO] Deploying private Docker registry from $ARTIFACT_DIR/docker-registry-config.json"
-osc apply -n test -f ${ARTIFACT_DIR}/docker-registry-config.json
+osc apply -f ${ARTIFACT_DIR}/docker-registry-config.json
 
 echo "[INFO] Waiting for Docker registry pod to start"
-wait_for_command "osc get -n test pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
+wait_for_command "osc get pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
 
 echo "[INFO] Waiting for Docker registry service to start"
-wait_for_command "osc get -n test services | grep registrypod"
+wait_for_command "osc get services | grep registrypod"
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY_IP=$(osc get -n test -o template --output-version=v1beta1 --template="{{ .portalIP }}" service docker-registry)
+DOCKER_REGISTRY_IP=$(osc get -o template --output-version=v1beta1 --template="{{ .portalIP }}" service docker-registry)
 
 echo "[INFO] Probing the docker-registry"
 wait_for_url_timed "http://${DOCKER_REGISTRY_IP}:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
@@ -205,11 +205,6 @@ echo "[INFO] Submitting application template json for processing..."
 osc process -n test -f examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
 osc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
 osc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
-
-# substitute the default IP address with the address where we actually ended up
-# TODO: make this be unnecessary by fixing images
-# This is no longer needed because the docker registry explicitly requests the 172.30.17.3 ip address.
-#sed -i "s,172.30.17.3,${DOCKER_REGISTRY_IP},g" "${CONFIG_FILE}"
 
 echo "[INFO] Applying STI application config"
 osc apply -n test -f "${STI_CONFIG_FILE}"

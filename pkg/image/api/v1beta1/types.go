@@ -54,7 +54,7 @@ type ImageRepository struct {
 type ImageRepositoryStatus struct {
 	// Represents the effective location this repository may be accessed at. May be empty until the server
 	// determines where the repository is located
-	DockerImageRepository string `json:"dockerImageRepository,omitempty"`
+	DockerImageRepository string `json:"dockerImageRepository"`
 }
 
 // TODO add metadata overrides

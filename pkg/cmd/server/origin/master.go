@@ -65,6 +65,7 @@ import (
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
@@ -191,8 +192,15 @@ func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
 }
 
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
+	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
+	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(api.NamespaceDefault).Get)
+	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
+	if err != nil {
+		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
+	}
+
 	buildEtcd := buildetcd.New(c.EtcdHelper)
-	imageEtcd := imageetcd.New(c.EtcdHelper)
+	imageEtcd := imageetcd.New(c.EtcdHelper, imageetcd.DefaultRegistryFunc(defaultRegistryFunc))
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	projectEtcd := projectetcd.New(c.EtcdHelper)
@@ -211,8 +219,6 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	rollbackDeploymentGetter := &clientDeploymentInterface{kclient}
 	rollbackDeploymentConfigGetter := &clientDeploymentConfigInterface{osclient}
 
-	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "")
-
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
 		"builds":       buildregistry.NewREST(buildEtcd),
@@ -220,7 +226,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
 
 		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd, defaultRegistry),
+		"imageRepositories":       imagerepository.NewREST(imageEtcd),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
 

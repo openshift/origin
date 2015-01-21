@@ -26,15 +26,32 @@ const (
 	ImageRepositoriesPath string = "/imageRepositories"
 )
 
+// DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
+type DefaultRegistry interface {
+	DefaultRegistry() (string, bool)
+}
+
+// DefaultRegistryFunc implements DefaultRegistry for a simple function.
+type DefaultRegistryFunc func() (string, bool)
+
+// DefaultRegistry implements the DefaultRegistry interface for a function.
+func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
+	return fn()
+}
+
 // Etcd implements ImageRegistry and ImageRepositoryRegistry backed by etcd.
 type Etcd struct {
 	tools.EtcdHelper
+	defaultRegistry DefaultRegistry
 }
 
-// New returns a new etcd registry.
-func New(helper tools.EtcdHelper) *Etcd {
+// New returns a new etcd registry. Default registry is the value that will be
+// applied to the Status.DockerImageRepository field if the repository does not
+// have a specified DockerImageRepository.
+func New(helper tools.EtcdHelper, defaultRegistry DefaultRegistry) *Etcd {
 	return &Etcd{
-		EtcdHelper: helper,
+		EtcdHelper:      helper,
+		defaultRegistry: defaultRegistry,
 	}
 }
 
@@ -160,6 +177,7 @@ func (r *Etcd) ListImageRepositories(ctx kapi.Context, selector labels.Selector)
 	filtered := []api.ImageRepository{}
 	for _, item := range list.Items {
 		if selector.Matches(labels.Set(item.Labels)) {
+			r.fillRepository(&item)
 			filtered = append(filtered, item)
 		}
 	}
@@ -185,7 +203,7 @@ func (r *Etcd) GetImageRepository(ctx kapi.Context, id string) (*api.ImageReposi
 	if err = r.ExtractObj(key, &repo, false); err != nil {
 		return nil, etcderr.InterpretGetError(err, "imageRepository", id)
 	}
-	return &repo, nil
+	return r.fillRepository(&repo), nil
 }
 
 // WatchImageRepositories begins watching for new, changed, or deleted ImageRepositories.
@@ -205,7 +223,11 @@ func (r *Etcd) WatchImageRepositories(ctx kapi.Context, label, field labels.Sele
 			"name":                  repo.Name,
 			"dockerImageRepository": repo.DockerImageRepository,
 		}
-		return label.Matches(labels.Set(repo.Labels)) && field.Matches(fields)
+		if !label.Matches(labels.Set(repo.Labels)) || !field.Matches(fields) {
+			return false
+		}
+		r.fillRepository(repo)
+		return true
 	})
 }
 
@@ -237,4 +259,22 @@ func (r *Etcd) DeleteImageRepository(ctx kapi.Context, id string) error {
 	}
 	err = r.Delete(key, false)
 	return etcderr.InterpretDeleteError(err, "imageRepository", id)
+}
+
+// fillRepository sets the status information of a repository
+func (r *Etcd) fillRepository(repo *api.ImageRepository) *api.ImageRepository {
+	var value string
+	if len(repo.DockerImageRepository) != 0 {
+		value = repo.DockerImageRepository
+	} else {
+		registry, ok := r.defaultRegistry.DefaultRegistry()
+		if ok {
+			if len(repo.Namespace) == 0 {
+				repo.Namespace = kapi.NamespaceDefault
+			}
+			value = api.JoinDockerPullSpec(registry, repo.Namespace, repo.Name, "")
+		}
+	}
+	repo.Status.DockerImageRepository = value
+	return repo
 }

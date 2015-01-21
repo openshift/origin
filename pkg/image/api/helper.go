@@ -52,7 +52,10 @@ func JoinDockerPullSpec(registry, namespace, name, tag string) string {
 		tag = ":" + tag
 	}
 	if len(namespace) == 0 {
-		return fmt.Sprintf("%s%s", name, tag)
+		if len(registry) == 0 {
+			return fmt.Sprintf("%s%s", name, tag)
+		}
+		namespace = DockerDefaultNamespace
 	}
 	if len(registry) == 0 {
 		return fmt.Sprintf("%s/%s%s", namespace, name, tag)

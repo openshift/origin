@@ -232,11 +232,11 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
-	imageEtcd := imageetcd.New(etcdHelper)
+	imageEtcd := imageetcd.New(etcdHelper, imageetcd.DefaultRegistryFunc(func() (string, bool) { return openshift.dockerServer.URL, true }))
 
 	storage := map[string]apiserver.RESTStorage{
 		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd, openshift.dockerServer.URL),
+		"imageRepositories":       imagerepository.NewREST(imageEtcd),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
 	}
