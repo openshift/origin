@@ -10,22 +10,22 @@ import (
 // DEPRECATED: This type longer drives any system behavior. Deployments are now represented directly
 // by ReplicationControllers. Use DeploymentConfig to drive deployments.
 type Deployment struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Strategy describes how a deployment is executed.
-	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	Strategy DeploymentStrategy `json:"strategy,omitempty"`
 	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
+	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty"`
 	// Status is the execution status of the deployment.
-	Status DeploymentStatus `json:"status,omitempty" yaml:"status,omitempty"`
+	Status DeploymentStatus `json:"status,omitempty"`
 	// Details captures the causes for the creation of this deployment resource.
 	// This could be based on a change made by the user to the deployment config
 	// or caused by an automatic trigger that was specified in the deployment config.
 	// Multiple triggers could have caused this deployment.
 	// If no trigger is specified here, then the deployment was likely created as a result of an
 	// explicit client request to create a new deployment resource.
-	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
+	Details *DeploymentDetails `json:"details,omitempty"`
 }
 
 // DeploymentStatus decribes the possible states a deployment can be in.
@@ -49,9 +49,9 @@ const (
 // DeploymentStrategy describes how to perform a deployment.
 type DeploymentStrategy struct {
 	// Type is the name of a deployment strategy.
-	Type DeploymentStrategyType `json:"type,omitempty" yaml:"type,omitempty"`
+	Type DeploymentStrategyType `json:"type,omitempty"`
 	// CustomParams are the input to the Custom deployment strategy.
-	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty" yaml:"customParams,omitempty"`
+	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
@@ -67,19 +67,19 @@ const (
 // CustomParams are the input to the Custom deployment strategy.
 type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
-	Image string `json:"image,omitempty" yaml:"image,omitempty"`
+	Image string `json:"image,omitempty"`
 	// Environment holds the environment which will be given to the container for Image.
-	Environment []kapi.EnvVar `json:"environment,omitempty" yaml:"environment,omitempty"`
+	Environment []kapi.EnvVar `json:"environment,omitempty"`
 	// Command is optional and overrides CMD in the container Image.
-	Command []string `json:"command,omitempty" yaml:"command,omitempty"`
+	Command []string `json:"command,omitempty"`
 }
 
 // A DeploymentList is a collection of deployments.
 // DEPRECATED: Like Deployment, this is no longer used.
 type DeploymentList struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []Deployment `json:"items" yaml:"items"`
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []Deployment `json:"items"`
 }
 
 // These constants represent keys used for correlating objects related to deployments.
@@ -119,36 +119,36 @@ const (
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.
-	Triggers []DeploymentTriggerPolicy `json:"triggers,omitempty" yaml:"triggers,omitempty"`
+	Triggers []DeploymentTriggerPolicy `json:"triggers,omitempty"`
 	// Template represents a desired deployment state and how to deploy it.
-	Template DeploymentTemplate `json:"template,omitempty" yaml:"template,omitempty"`
+	Template DeploymentTemplate `json:"template,omitempty"`
 	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
 	// is out of sync.
-	LatestVersion int `json:"latestVersion,omitempty" yaml:"latestVersion,omitempty"`
+	LatestVersion int `json:"latestVersion,omitempty"`
 	// The reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
-	Details *DeploymentDetails `json:"details,omitempty" yaml:"details,omitempty"`
+	Details *DeploymentDetails `json:"details,omitempty"`
 }
 
 // DeploymentTemplate contains all the necessary information to create a deployment from a
 // DeploymentStrategy.
 type DeploymentTemplate struct {
 	// Strategy describes how a deployment is executed.
-	Strategy DeploymentStrategy `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	Strategy DeploymentStrategy `json:"strategy,omitempty"`
 	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty" yaml:"controllerTemplate,omitempty"`
+	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
 type DeploymentTriggerPolicy struct {
-	Type DeploymentTriggerType `json:"type,omitempty" yaml:"type,omitempty"`
+	Type DeploymentTriggerType `json:"type,omitempty"`
 	// ImageChangeParams represents the parameters for the ImageChange trigger.
-	ImageChangeParams *DeploymentTriggerImageChangeParams `json:"imageChangeParams,omitempty" yaml:"imageChangeParams,omitempty"`
+	ImageChangeParams *DeploymentTriggerImageChangeParams `json:"imageChangeParams,omitempty"`
 }
 
 // DeploymentTriggerType refers to a specific DeploymentTriggerPolicy implementation.
@@ -168,41 +168,41 @@ const (
 // DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 type DeploymentTriggerImageChangeParams struct {
 	// Automatic means that the detection of a new tag value should result in a new deployment.
-	Automatic bool `json:"automatic,omitempty" yaml:"automatic,omitempty"`
+	Automatic bool `json:"automatic,omitempty"`
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
-	ContainerNames []string `json:"containerNames,omitempty" yaml:"containerNames,omitempty"`
+	ContainerNames []string `json:"containerNames,omitempty"`
 	// RepositoryName is the identifier for a Docker image repository to watch for changes.
-	RepositoryName string `json:"repositoryName,omitempty" yaml:"repositoryName,omitempty"`
+	RepositoryName string `json:"repositoryName,omitempty"`
 	// Tag is the name of an image repository tag to watch for changes.
-	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+	Tag string `json:"tag,omitempty"`
 }
 
 // DeploymentDetails captures information about the causes of a deployment.
 type DeploymentDetails struct {
 	// The user specified change message, if this deployment was triggered manually by the user
-	Message string `json:"message,omitempty" yaml:"message,omitempty"`
+	Message string `json:"message,omitempty"`
 	// Extended data associated with all the causes for creating a new deployment
-	Causes []*DeploymentCause `json:"causes,omitempty" yaml:"causes,omitempty"`
+	Causes []*DeploymentCause `json:"causes,omitempty"`
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.
 type DeploymentCause struct {
 	// The type of the trigger that resulted in the creation of a new deployment
-	Type DeploymentTriggerType `json:"type" yaml:"type"`
+	Type DeploymentTriggerType `json:"type"`
 	// The image trigger details, if this trigger was fired based on an image change
-	ImageTrigger *DeploymentCauseImageTrigger `json:"imageTrigger,omitempty" yaml:"imageTrigger,omitempty"`
+	ImageTrigger *DeploymentCauseImageTrigger `json:"imageTrigger,omitempty"`
 }
 
 type DeploymentCauseImageTrigger struct {
 	// RepositoryName is the identifier for a Docker image repository that was updated.
-	RepositoryName string `json:"repositoryName,omitempty" yaml:"repositoryName,omitempty"`
+	RepositoryName string `json:"repositoryName,omitempty"`
 	// Tag is the name of an image repository tag that is now pointing to a new image.
-	Tag string `json:"tag,omitempty" yaml:"tag,omitempty"`
+	Tag string `json:"tag,omitempty"`
 }
 
 // A DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	kapi.TypeMeta `json:",inline" yaml:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Items         []DeploymentConfig `json:"items" yaml:"items"`
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []DeploymentConfig `json:"items"`
 }

@@ -12,9 +12,9 @@ var commitFromGit string
 // TODO: Add []string of api versions supported? It's still unclear
 // how we'll want to distribute that information.
 type Info struct {
-	Major     string `json:"major" yaml:"major"`
-	Minor     string `json:"minor" yaml:"minor"`
-	GitCommit string `json:"gitCommit" yaml:"gitCommit"`
+	Major     string `json:"major"`
+	Minor     string `json:"minor"`
+	GitCommit string `json:"gitCommit"`
 }
 
 // Get returns the overall codebase version. It's for detecting

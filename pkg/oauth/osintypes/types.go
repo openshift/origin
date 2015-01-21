@@ -8,10 +8,10 @@ package osintypes
 
 // InfoResponseData is a type that matches the information returned from osin.FinishInfoRequest (/oauth/info).
 type InfoResponseData struct {
-	Error            string `json:"error" yaml:"error"`
-	ErrorDescription string `json:"error_description" yaml:"error_description"`
-	TokenType        string `json:"token_type" yaml:"token_type"`
-	AccessToken      string `json:"access_token" yaml:"access_token"`
-	RefreshToken     string `json:"refresh_token" yaml:"refresh_token"`
-	Expiration       int32  `json:"expires_in" yaml:"expires_in"`
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+	TokenType        string `json:"token_type"`
+	AccessToken      string `json:"access_token"`
+	RefreshToken     string `json:"refresh_token"`
+	Expiration       int32  `json:"expires_in"`
 }
