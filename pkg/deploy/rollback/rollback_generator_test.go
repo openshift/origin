@@ -47,7 +47,7 @@ func TestGeneration(t *testing.T) {
 	for _, spec := range rollbackSpecs {
 		t.Logf("testing spec %#v", spec)
 
-		if rollback, err := generator.Generate(from, to, spec); err != nil {
+		if rollback, err := generator.GenerateRollback(from, to, spec); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		} else {
 			if hasStrategyDiff(from, rollback) && !spec.IncludeStrategy {

@@ -70,7 +70,7 @@ func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentCo
 		return false, nil
 	}
 
-	latestDeploymentID := deployutil.LatestDeploymentIDForConfig(config)
+	latestDeploymentID := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := c.DeploymentInterface.GetDeployment(config.Namespace, latestDeploymentID)
 
 	if err != nil {

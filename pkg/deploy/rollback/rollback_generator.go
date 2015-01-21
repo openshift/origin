@@ -10,13 +10,12 @@ import (
 
 // RollbackGenerator generates a new DeploymentConfig by merging a pair of DeploymentConfigs
 // in a configurable way.
-type RollbackGenerator struct {
-}
+type RollbackGenerator struct{}
 
 // Generate creates a new DeploymentConfig by merging to onto from based on the options provided
 // by spec. The LatestVersion of the result is unconditionally incremented, as rollback candidates are
 // should be possible to be deployed manually regardless of other system behavior such as triggering.
-func (g *RollbackGenerator) Generate(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 	rollback := &deployapi.DeploymentConfig{}
 
 	if err := kapi.Scheme.Convert(&from, &rollback); err != nil {

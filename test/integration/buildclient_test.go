@@ -151,6 +151,8 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		stop: make(chan struct{}),
 	}
 
+	openshift.lock.Lock()
+	defer openshift.lock.Unlock()
 	etcdClient := newEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 

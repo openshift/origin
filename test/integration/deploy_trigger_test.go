@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang/glog"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -68,13 +70,13 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	if config.LatestVersion != 1 {
 		t.Fatalf("Generated deployment should have version 1: %#v", config)
 	}
-	t.Logf("config(1): %#v", config)
+	glog.Infof("config(1): %#v", config)
 
 	new, err := openshift.Client.DeploymentConfigs(testNamespace).Update(config)
 	if err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v %#v", err, config)
 	}
-	t.Logf("config(2): %#v", new)
+	glog.Infof("config(2): %#v", new)
 
 	event := <-watch.ResultChan()
 	if e, a := watchapi.Added, event.Type; e != a {
@@ -112,8 +114,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	imageRepo, err = openshift.Client.ImageRepositories(testNamespace).Create(imageRepo)
-	if err != nil {
+	if imageRepo, err = openshift.Client.ImageRepositories(testNamespace).Create(imageRepo); err != nil {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
@@ -153,6 +154,77 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 
 	if newDeployment.Name == deployment.Name {
 		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
+	}
+}
+
+func TestSimpleImageChangeTriggerFrom(t *testing.T) {
+	deleteAllEtcdKeys()
+	openshift := NewTestOpenshift(t)
+	defer openshift.Close()
+
+	imageRepo := &imageapi.ImageRepository{
+		ObjectMeta: kapi.ObjectMeta{Name: "test-image-repo"},
+		Tags: map[string]string{
+			"latest": "ref-1",
+		},
+	}
+
+	config := imageChangeDeploymentConfig()
+	config.Triggers[0].ImageChangeParams.RepositoryName = ""
+	config.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{
+		Name: "test-image-repo",
+	}
+	var err error
+
+	watch, err := openshift.KubeClient.ReplicationControllers(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Deployments %v", err)
+	}
+	defer watch.Stop()
+
+	if imageRepo, err = openshift.Client.ImageRepositories(testNamespace).Create(imageRepo); err != nil {
+		t.Fatalf("Couldn't create ImageRepository: %v", err)
+	}
+
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Create(config); err != nil {
+		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
+	}
+
+	if config, err = openshift.Client.DeploymentConfigs(testNamespace).Generate(config.Name); err != nil {
+		t.Fatalf("Error generating config: %v", err)
+	}
+
+	if _, err := openshift.Client.DeploymentConfigs(testNamespace).Update(config); err != nil {
+		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
+	}
+
+	event := <-watch.ResultChan()
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	deployment := event.Object.(*kapi.ReplicationController)
+
+	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
+	}
+
+	imageRepo.Tags["latest"] = "ref-2"
+
+	if _, err = openshift.Client.ImageRepositories(testNamespace).Update(imageRepo); err != nil {
+		t.Fatalf("Error updating imageRepo: %v", err)
+	}
+
+	event = <-watch.ResultChan()
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newDeployment := event.Object.(*kapi.ReplicationController)
+
+	if newDeployment.Name == deployment.Name {
+		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
+	}
+	if a, e := newDeployment.Spec.Template.Spec.Containers[0].Image, "registry:3000/integration-test/test-image-repo:ref-2"; e != a {
+		t.Fatalf("new deployment isn't pointing to the right image: %s %s", e, a)
 	}
 }
 
@@ -279,10 +351,12 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	imageEtcd := imageetcd.New(etcdHelper, imageetcd.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
 	deployEtcd := deployetcd.New(etcdHelper)
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		Codec:                     latest.Codec,
-		DeploymentInterface:       &clientDeploymentInterface{kubeClient},
-		DeploymentConfigInterface: deployEtcd,
-		ImageRepositoryInterface:  imageEtcd,
+		Client: deployconfiggenerator.Client{
+			DCFn:   deployEtcd.GetDeploymentConfig,
+			IRFn:   imageEtcd.GetImageRepository,
+			LIRFn2: imageEtcd.ListImageRepositories,
+		},
+		Codec: latest.Codec,
 	}
 
 	buildEtcd := buildetcd.New(etcdHelper)

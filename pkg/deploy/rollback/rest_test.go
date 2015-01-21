@@ -16,7 +16,6 @@ import (
 
 func TestCreateError(t *testing.T) {
 	rest := REST{}
-
 	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfig{})
 
 	if err == nil {
@@ -30,7 +29,6 @@ func TestCreateError(t *testing.T) {
 
 func TestCreateInvalid(t *testing.T) {
 	rest := REST{}
-
 	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
 
 	if err == nil {
@@ -44,23 +42,19 @@ func TestCreateInvalid(t *testing.T) {
 
 func TestCreateOk(t *testing.T) {
 	rest := REST{
-		generator: &testGenerator{
-			generateFunc: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+		generator: Client{
+			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return &deployapi.DeploymentConfig{}, nil
 			},
-		},
-		codec: api.Codec,
-		deploymentGetter: &testDeploymentGetter{
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 				return deployment, nil
 			},
-		},
-		deploymentConfigGetter: &testDeploymentConfigGetter{
-			GetDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
+		codec: api.Codec,
 	}
 
 	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -92,23 +86,19 @@ func TestCreateOk(t *testing.T) {
 
 func TestCreateGeneratorError(t *testing.T) {
 	rest := REST{
-		generator: &testGenerator{
-			generateFunc: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+		generator: Client{
+			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return nil, errors.New("something terrible happened")
 			},
-		},
-		codec: api.Codec,
-		deploymentGetter: &testDeploymentGetter{
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 				return deployment, nil
 			},
-		},
-		deploymentConfigGetter: &testDeploymentConfigGetter{
-			GetDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
+		codec: api.Codec,
 	}
 
 	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -144,24 +134,21 @@ func TestCreateGeneratorError(t *testing.T) {
 
 func TestCreateMissingDeployment(t *testing.T) {
 	rest := REST{
-		generator: &testGenerator{
-			generateFunc: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+		generator: Client{
+			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-		},
-		codec: api.Codec,
-		deploymentGetter: &testDeploymentGetter{
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewNotFound("replicationController", name)
 			},
-		},
-		deploymentConfigGetter: &testDeploymentConfigGetter{
-			GetDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+				namespace, _ := kapi.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound("deploymentConfig", name)
 			},
 		},
+		codec: api.Codec,
 	}
 
 	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -184,27 +171,24 @@ func TestCreateMissingDeployment(t *testing.T) {
 
 func TestCreateInvalidDeployment(t *testing.T) {
 	rest := REST{
-		generator: &testGenerator{
-			generateFunc: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+		generator: Client{
+			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-		},
-		codec: api.Codec,
-		deploymentGetter: &testDeploymentGetter{
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 				// invalidate the encoded config
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 				deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
 				return deployment, nil
 			},
-		},
-		deploymentConfigGetter: &testDeploymentConfigGetter{
-			GetDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+				namespace, _ := kapi.NamespaceFrom(ctx)
 				t.Fatalf("unexpected call to GetDeploymentConfig(%s/%s)", namespace, name)
 				return nil, kerrors.NewNotFound("deploymentConfig", name)
 			},
 		},
+		codec: api.Codec,
 	}
 
 	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -227,24 +211,20 @@ func TestCreateInvalidDeployment(t *testing.T) {
 
 func TestCreateMissingDeploymentConfig(t *testing.T) {
 	rest := REST{
-		generator: &testGenerator{
-			generateFunc: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+		generator: Client{
+			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
 			},
-		},
-		codec: api.Codec,
-		deploymentGetter: &testDeploymentGetter{
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 				return deployment, nil
 			},
-		},
-		deploymentConfigGetter: &testDeploymentConfigGetter{
-			GetDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound("deploymentConfig", name)
 			},
 		},
+		codec: api.Codec,
 	}
 
 	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -267,30 +247,6 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	// :)
-	rest := NewREST(&testGenerator{}, &testDeploymentGetter{}, &testDeploymentConfigGetter{}, api.Codec)
+	rest := NewREST(Client{}, api.Codec)
 	rest.New()
-}
-
-type testGenerator struct {
-	generateFunc func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
-}
-
-func (g *testGenerator) Generate(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-	return g.generateFunc(from, to, spec)
-}
-
-type testDeploymentGetter struct {
-	GetDeploymentFunc func(namespace, name string) (*kapi.ReplicationController, error)
-}
-
-func (i *testDeploymentGetter) GetDeployment(namespace, name string) (*kapi.ReplicationController, error) {
-	return i.GetDeploymentFunc(namespace, name)
-}
-
-type testDeploymentConfigGetter struct {
-	GetDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
-}
-
-func (i *testDeploymentConfigGetter) GetDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return i.GetDeploymentConfigFunc(namespace, name)
 }

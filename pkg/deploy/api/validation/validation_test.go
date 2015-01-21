@@ -24,6 +24,7 @@ func manualTrigger() []api.DeploymentTriggerPolicy {
 
 func TestValidateDeploymentOK(t *testing.T) {
 	errs := ValidateDeployment(&api.Deployment{
+		ObjectMeta:         kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 		Strategy:           test.OkStrategy(),
 		ControllerTemplate: test.OkControllerTemplate(),
 	})
@@ -40,6 +41,7 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 	}{
 		"missing strategy.type": {
 			api.Deployment{
+				ObjectMeta:         kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 				Strategy:           api.DeploymentStrategy{},
 				ControllerTemplate: test.OkControllerTemplate(),
 			},
@@ -66,8 +68,9 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 
 func TestValidateDeploymentConfigOK(t *testing.T) {
 	errs := ValidateDeploymentConfig(&api.DeploymentConfig{
-		Triggers: manualTrigger(),
-		Template: test.OkDeploymentTemplate(),
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+		Triggers:   manualTrigger(),
+		Template:   test.OkDeploymentTemplate(),
 	})
 
 	if len(errs) > 0 {
@@ -81,8 +84,42 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		T errors.ValidationErrorType
 		F string
 	}{
+		"missing name": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "bar"},
+				Template:   test.OkDeploymentTemplate(),
+			},
+			errors.ValidationErrorTypeRequired,
+			"name",
+		},
+		"missing namespace": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: ""},
+				Template:   test.OkDeploymentTemplate(),
+			},
+			errors.ValidationErrorTypeRequired,
+			"namespace",
+		},
+		"invalid name": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "-foo", Namespace: "bar"},
+				Template:   test.OkDeploymentTemplate(),
+			},
+			errors.ValidationErrorTypeInvalid,
+			"name",
+		},
+		"invalid namespace": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "-bar"},
+				Template:   test.OkDeploymentTemplate(),
+			},
+			errors.ValidationErrorTypeInvalid,
+			"namespace",
+		},
+
 		"missing trigger.type": {
 			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 				Triggers: []api.DeploymentTriggerPolicy{
 					{
 						ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
@@ -95,8 +132,9 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			errors.ValidationErrorTypeRequired,
 			"triggers[0].type",
 		},
-		"missing Trigger imageChangeParams.repositoryName": {
+		"missing Trigger imageChangeParams.from": {
 			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 				Triggers: []api.DeploymentTriggerPolicy{
 					{
 						Type: api.DeploymentTriggerOnImageChange,
@@ -108,10 +146,31 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				Template: test.OkDeploymentTemplate(),
 			},
 			errors.ValidationErrorTypeRequired,
+			"triggers[0].imageChangeParams.from",
+		},
+		"both fields illegal Trigger imageChangeParams.repositoryName": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Triggers: []api.DeploymentTriggerPolicy{
+					{
+						Type: api.DeploymentTriggerOnImageChange,
+						ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+							ContainerNames: []string{"foo"},
+							RepositoryName: "name",
+							From: kapi.ObjectReference{
+								Name: "other",
+							},
+						},
+					},
+				},
+				Template: test.OkDeploymentTemplate(),
+			},
+			errors.ValidationErrorTypeInvalid,
 			"triggers[0].imageChangeParams.repositoryName",
 		},
 		"missing Trigger imageChangeParams.containerNames": {
 			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 				Triggers: []api.DeploymentTriggerPolicy{
 					{
 						Type: api.DeploymentTriggerOnImageChange,
@@ -127,7 +186,8 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		},
 		"missing strategy.type": {
 			api.DeploymentConfig{
-				Triggers: manualTrigger(),
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Triggers:   manualTrigger(),
 				Template: api.DeploymentTemplate{
 					Strategy: api.DeploymentStrategy{
 						CustomParams: test.OkCustomParams(),
@@ -140,7 +200,8 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		},
 		"missing strategy.customParams": {
 			api.DeploymentConfig{
-				Triggers: manualTrigger(),
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Triggers:   manualTrigger(),
 				Template: api.DeploymentTemplate{
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeCustom,
@@ -153,7 +214,8 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		},
 		"missing template.strategy.customParams.image": {
 			api.DeploymentConfig{
-				Triggers: manualTrigger(),
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Triggers:   manualTrigger(),
 				Template: api.DeploymentTemplate{
 					Strategy: api.DeploymentStrategy{
 						Type:         api.DeploymentStrategyTypeCustom,

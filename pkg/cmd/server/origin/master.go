@@ -44,7 +44,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -207,17 +206,22 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
-	osclient, kclient := c.DeploymentConfigControllerClients()
+	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		DeploymentInterface:       &oldClientDeploymentInterface{kclient},
-		DeploymentConfigInterface: deployEtcd,
-		ImageRepositoryInterface:  imageEtcd,
+		Client: deployconfiggenerator.Client{
+			DCFn:   deployEtcd.GetDeploymentConfig,
+			IRFn:   imageEtcd.GetImageRepository,
+			LIRFn2: imageEtcd.ListImageRepositories,
+		},
 		Codec: latest.Codec,
 	}
-
-	deployRollbackGenerator := &deployrollback.RollbackGenerator{}
-	rollbackDeploymentGetter := &clientDeploymentInterface{kclient}
-	rollbackDeploymentConfigGetter := &clientDeploymentConfigInterface{osclient}
+	_, kclient := c.DeploymentConfigControllerClients()
+	deployRollback := &deployrollback.RollbackGenerator{}
+	deployRollbackClient := deployrollback.Client{
+		DCFn: deployEtcd.GetDeploymentConfig,
+		RCFn: clientDeploymentInterface{kclient}.GetDeployment,
+		GRFn: deployRollback.GenerateRollback,
+	}
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
@@ -233,7 +237,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackGenerator, rollbackDeploymentGetter, rollbackDeploymentConfigGetter, latest.Codec),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
 		"templateConfigs": templateregistry.NewREST(),
 
@@ -575,26 +579,10 @@ func (c ClientWebhookInterface) GetBuildConfig(namespace, name string) (*buildap
 	return c.Client.BuildConfigs(namespace).Get(name)
 }
 
-type oldClientDeploymentInterface struct {
-	KubeClient kclient.Interface
-}
-
-func (c *oldClientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(api.Namespace(ctx)).Get(name)
-}
-
 type clientDeploymentInterface struct {
 	KubeClient kclient.Interface
 }
 
-func (c *clientDeploymentInterface) GetDeployment(namespace, name string) (*api.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(namespace).Get(name)
-}
-
-type clientDeploymentConfigInterface struct {
-	Client osclient.Interface
-}
-
-func (c *clientDeploymentConfigInterface) GetDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return c.Client.DeploymentConfigs(namespace).Get(name)
+func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
+	return c.KubeClient.ReplicationControllers(api.Namespace(ctx)).Get(name)
 }

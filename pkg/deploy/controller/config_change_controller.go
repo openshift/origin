@@ -57,7 +57,7 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 		return
 	}
 
-	latestDeploymentID := deployutil.LatestDeploymentIDForConfig(config)
+	latestDeploymentID := deployutil.LatestDeploymentNameForConfig(config)
 	obj, exists := dc.DeploymentStore.Get(latestDeploymentID)
 
 	if !exists {
@@ -67,14 +67,17 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 
 	deployment := obj.(*kapi.ReplicationController)
 
-	if deployedConfig, err := deployutil.DecodeDeploymentConfig(deployment, dc.Codec); err == nil {
-		if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
-			glog.V(4).Infof("Ignoring updated config %s with LatestVersion=%d because it matches deployed config %s", config.Name, config.LatestVersion, deployment.Name)
-			return
-		}
-	} else {
+	deployedConfig, err := deployutil.DecodeDeploymentConfig(deployment, dc.Codec)
+	if err != nil {
 		glog.V(0).Infof("Error decoding deploymentConfig from deployment %s: %v", deployment.Name, err)
+		return
 	}
+
+	if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
+		glog.V(4).Infof("Ignoring updated config %s with LatestVersion=%d because it matches deployed config %s", config.Name, config.LatestVersion, deployment.Name)
+		return
+	}
+	glog.V(4).Infof("Diff:\n%s", util.ObjectDiff(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec))
 
 	dc.generateDeployment(config, deployment)
 }
@@ -84,6 +87,10 @@ func (dc *DeploymentConfigChangeController) generateDeployment(config *deployapi
 	if err != nil {
 		glog.V(2).Infof("Error generating new version of deploymentConfig %v: %#v", config.Name, err)
 		return
+	}
+
+	if newConfig.LatestVersion == config.LatestVersion {
+		newConfig.LatestVersion++
 	}
 
 	if deployment != nil {

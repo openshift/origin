@@ -19,7 +19,7 @@
     },
     {
       "metadata": {
-       "id":"jenkins"
+        "name":"jenkins"
       },
       "kind":"DeploymentConfig",
       "apiVersion":"v1beta1",
