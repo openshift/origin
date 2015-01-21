@@ -237,12 +237,10 @@ func validateImageChange(imageChange *buildapi.ImageChangeTrigger) errs.Validati
 	if len(imageChange.Image) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("image", ""))
 	}
-	if imageChange.ImageRepositoryRef == nil {
-		allErrs = append(allErrs, errs.NewFieldRequired("imageRepositoryRef", ""))
-	} else if len(imageChange.ImageRepositoryRef.Name) == 0 {
-		nestedErrs := errs.ValidationErrorList{errs.NewFieldRequired("name", "")}
-		nestedErrs.Prefix("imageRepositoryRef")
-		allErrs = append(allErrs, nestedErrs...)
+	if len(imageChange.From.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("from", ""))
+	} else if len(imageChange.From.Name) == 0 {
+		allErrs = append(allErrs, errs.ValidationErrorList{errs.NewFieldRequired("name", "")}.Prefix("from")...)
 	}
 	return allErrs
 }

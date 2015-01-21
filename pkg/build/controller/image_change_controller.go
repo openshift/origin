@@ -66,7 +66,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 			}
 
 			// (must be different) to trigger a build
-			if icTrigger.ImageRepositoryRef.Name == imageRepo.Name && icTrigger.LastTriggeredImageID != imageID {
+			if icTrigger.From.Name == imageRepo.Name && icTrigger.LastTriggeredImageID != imageID {
 				imageSubstitutions[icTrigger.Image] = imageRepo.DockerImageRepository + ":" + imageID
 				shouldTriggerBuild = true
 				icTrigger.LastTriggeredImageID = imageID

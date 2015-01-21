@@ -109,7 +109,7 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 				Type: buildapi.ImageChangeBuildTriggerType,
 				ImageChange: &buildapi.ImageChangeTrigger{
 					Image: "registry:8080/openshift/test-image",
-					ImageRepositoryRef: &kapi.ObjectReference{
+					From: kapi.ObjectReference{
 						Name: "test-image-repo",
 					},
 					Tag: "latest",

@@ -259,8 +259,16 @@ type WebHookTrigger struct {
 type ImageChangeTrigger struct {
 	// Image is used to specify the value in the BuildConfig to replace with the
 	// immutable image id supplied by the ImageRepository when this trigger fires.
-	Image string `json:"image"`
+	Image          string `json:"image"`
+	RepositoryName string `json:"repositoryName,omitempty"`
+	// From is a reference to a Docker image repository to watch for changes. This field takes
+	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta2. The
+	// Kind may be left blank, in which case it defaults to "ImageRepository". The "Name" is
+	// the only required subfield - if Namespace is blank, the namespace of the current deployment
+	// trigger will be used.
+	From kapi.ObjectReference `json:"from"`
 	// ImageRepositoryRef a reference to a Docker image repository to watch for changes.
+	// DEPRECATED: replaced by From
 	ImageRepositoryRef *kapi.ObjectReference `json:"imageRepositoryRef"`
 	// Tag is the name of an image repository tag to watch for changes.
 	Tag string `json:"tag,omitempty"`

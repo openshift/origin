@@ -2,7 +2,7 @@ package v1beta1
 
 import (
 	v1beta1 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
-	v1beta3 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 )
 
 // A deployment represents a single configuration of a pod deployed into the cluster, and may
@@ -11,8 +11,8 @@ import (
 // DEPRECATED: This type longer drives any system behavior. Deployments are now represented directly
 // by ReplicationControllers. Use DeploymentConfig to drive deployments.
 type Deployment struct {
-	v1beta3.TypeMeta   `json:",inline"`
-	v1beta3.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy,omitempty"`
@@ -70,7 +70,7 @@ type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
 	Image string `json:"image,omitempty"`
 	// Environment holds the environment which will be given to the container for Image.
-	Environment []v1beta3.EnvVar `json:"environment,omitempty"`
+	Environment []kapi.EnvVar `json:"environment,omitempty"`
 	// Command is optional and overrides CMD in the container Image.
 	Command []string `json:"command,omitempty"`
 }
@@ -78,9 +78,9 @@ type CustomDeploymentStrategyParams struct {
 // A DeploymentList is a collection of deployments.
 // DEPRECATED: Like Deployment, this is no longer used.
 type DeploymentList struct {
-	v1beta3.TypeMeta `json:",inline"`
-	v1beta3.ListMeta `json:"metadata,omitempty"`
-	Items            []Deployment `json:"items"`
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []Deployment `json:"items"`
 }
 
 // These constants represent keys used for correlating objects related to deployments.
@@ -120,8 +120,8 @@ const (
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
-	v1beta3.TypeMeta   `json:",inline"`
-	v1beta3.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.
@@ -173,7 +173,14 @@ type DeploymentTriggerImageChangeParams struct {
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
 	ContainerNames []string `json:"containerNames,omitempty"`
 	// RepositoryName is the identifier for a Docker image repository to watch for changes.
+	// DEPRECATED: will be removed in v1beta2.
 	RepositoryName string `json:"repositoryName,omitempty"`
+	// From is a reference to a Docker image repository to watch for changes. This field takes
+	// precedence over RepositoryName, which is deprecated and will be removed in v1beta2. The
+	// Kind may be left blank, in which case it defaults to "ImageRepository". The "Name" is
+	// the only required subfield - if Namespace is blank, the namespace of the current deployment
+	// trigger will be used.
+	From kapi.ObjectReference `json:"from"`
 	// Tag is the name of an image repository tag to watch for changes.
 	Tag string `json:"tag,omitempty"`
 }
@@ -203,9 +210,9 @@ type DeploymentCauseImageTrigger struct {
 
 // A DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	v1beta3.TypeMeta `json:",inline"`
-	v1beta3.ListMeta `json:"metadata,omitempty"`
-	Items            []DeploymentConfig `json:"items"`
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []DeploymentConfig `json:"items"`
 }
 
 // DeploymentConfigRollback provides the input to rollback generation.

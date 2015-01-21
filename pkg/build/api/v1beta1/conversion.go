@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	newer "github.com/openshift/origin/pkg/build/api"
 	image "github.com/openshift/origin/pkg/image/api"
@@ -59,5 +60,35 @@ func init() {
 			}
 			return nil
 		},
-	)
+		// Rename ImageRepositoryRef to From
+		func(in *newer.ImageChangeTrigger, out *ImageChangeTrigger, s conversion.Scope) error {
+			if err := s.Convert(&in.From, &out.From, 0); err != nil {
+				return err
+			}
+			if len(in.From.Name) != 0 {
+				out.ImageRepositoryRef = &kapi.ObjectReference{}
+				if err := s.Convert(&in.From, out.ImageRepositoryRef, conversion.AllowDifferentFieldTypeNames); err != nil {
+					return err
+				}
+			}
+			out.Tag = in.Tag
+			out.LastTriggeredImageID = in.LastTriggeredImageID
+			out.Image = in.Image
+			return nil
+		},
+		func(in *ImageChangeTrigger, out *newer.ImageChangeTrigger, s conversion.Scope) error {
+			if in.ImageRepositoryRef != nil {
+				if err := s.Convert(in.ImageRepositoryRef, &out.From, conversion.AllowDifferentFieldTypeNames); err != nil {
+					return err
+				}
+			} else {
+				if err := s.Convert(&in.From, &out.From, 0); err != nil {
+					return err
+				}
+			}
+			out.Tag = in.Tag
+			out.LastTriggeredImageID = in.LastTriggeredImageID
+			out.Image = in.Image
+			return nil
+		})
 }

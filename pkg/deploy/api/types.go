@@ -172,7 +172,14 @@ type DeploymentTriggerImageChangeParams struct {
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
 	ContainerNames []string `json:"containerNames,omitempty"`
 	// RepositoryName is the identifier for a Docker image repository to watch for changes.
+	// DEPRECATED: will be removed in v1beta2.
 	RepositoryName string `json:"repositoryName,omitempty"`
+	// From is a reference to a Docker image repository to watch for changes. This field takes
+	// precedence over RepositoryName, which is deprecated and will be removed in v1beta2. The
+	// Kind may be left blank, in which case it defaults to "ImageRepository". The "Name" is
+	// the only required subfield - if Namespace is blank, the namespace of the current deployment
+	// trigger will be used.
+	From kapi.ObjectReference `json:"from"`
 	// Tag is the name of an image repository tag to watch for changes.
 	Tag string `json:"tag,omitempty"`
 }

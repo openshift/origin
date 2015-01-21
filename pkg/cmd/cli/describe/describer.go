@@ -133,7 +133,7 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host s
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
 		}
-		formatString(out, "Image Repository Trigger", trigger.ImageChange.ImageRepositoryRef.Name)
+		formatString(out, "Image Repository Trigger", trigger.ImageChange.From.Name)
 		formatString(out, "- Tag", trigger.ImageChange.Tag)
 		formatString(out, "- Image", trigger.ImageChange.Image)
 		formatString(out, "- LastTriggeredImageID", trigger.ImageChange.LastTriggeredImageID)
