@@ -149,7 +149,8 @@ func (sub *EtcdSubnetRegistry) GetMinions() (*[]string, error) {
 			log.Errorf("Error unmarshaling GetMinions response node %s", node.Key)
 			continue
 		}
-		minions = append(minions, node.Key)
+		_, minion := path.Split(node.Key)
+		minions = append(minions, minion)
 	}
 	return &minions, nil
 }
