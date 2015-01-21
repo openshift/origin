@@ -22,16 +22,16 @@ func New() *WebHook {
 }
 
 type commit struct {
-	ID        string                `json:"id,omitempty" yaml:"id,omitempty"`
-	Author    api.SourceControlUser `json:"author,omitempty" yaml:"author,omitempty"`
-	Committer api.SourceControlUser `json:"committer,omitempty" yaml:"committer,omitempty"`
-	Message   string                `json:"message,omitempty" yaml:"message,omitempty"`
+	ID        string                `json:"id,omitempty"`
+	Author    api.SourceControlUser `json:"author,omitempty"`
+	Committer api.SourceControlUser `json:"committer,omitempty"`
+	Message   string                `json:"message,omitempty"`
 }
 
 type pushEvent struct {
-	Ref        string `json:"ref,omitempty" yaml:"ref,omitempty"`
-	After      string `json:"after,omitempty" yaml:"after,omitempty"`
-	HeadCommit commit `json:"head_commit,omitempty" yaml:"head_commit,omitempty"`
+	Ref        string `json:"ref,omitempty"`
+	After      string `json:"after,omitempty"`
+	HeadCommit commit `json:"head_commit,omitempty"`
 }
 
 // Extract services webhooks from github.com

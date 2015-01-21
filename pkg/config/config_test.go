@@ -113,8 +113,8 @@ func ExampleApply() {
 }
 
 type FakeLabelsResource struct {
-	kapi.TypeMeta   `json:",inline" yaml:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
 }
 
 func (*FakeLabelsResource) IsAnAPIObject() {}
