@@ -161,7 +161,7 @@ export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 if [[ "${API_SCHEME}" == "https" ]]; then
 	# Read client cert data in to send to containerized components
 	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
-	OPENSHIFT_CA_DATA="$(cat "${CERT_DIR}/openshift-client/root.crt")"
+	export OPENSHIFT_CA_DATA="$(cat "${CERT_DIR}/openshift-client/root.crt")"
 	OPENSHIFT_CERT_DATA="$(cat "${CERT_DIR}/openshift-client/cert.crt")"
 	OPENSHIFT_KEY_DATA="$(cat "${CERT_DIR}/openshift-client/key.key")"
 
@@ -169,9 +169,9 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	sudo chmod -R a+rwX "${CERT_DIR}/admin/"
 	export HOME="${CERT_DIR}/admin"
 	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
-  echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
+	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 else
-	OPENSHIFT_CA_DATA=""
+	export OPENSHIFT_CA_DATA=""
 	OPENSHIFT_CERT_DATA=""
 	OPENSHIFT_KEY_DATA=""
 fi
@@ -236,20 +236,10 @@ if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
     osc create -n test routes -f "${ARTIFACT_DIR}/route.json"
 
-    echo "[INFO] Installing router with master ip of ${CONTAINER_ACCESSIBLE_API_HOST} and starting pod..."
+    echo "[INFO] Installing router with master url of ${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT} and starting pod..."
     echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
-
-    # update the template file
-    cp ${OS_ROOT}/images/router/haproxy/template.json $ARTIFACT_DIR/router-template.json
-    sed -i s/ROUTER_ID/router1/g $ARTIFACT_DIR/router-template.json
-
-    echo "[INFO] Submitting router pod template file for processing"
-    osc process -n test -f $ARTIFACT_DIR/router-template.json -v "OPENSHIFT_MASTER=$API_SCHEME://${CONTAINER_ACCESSIBLE_API_HOST}:$API_PORT,OPENSHIFT_CA_DATA=${OPENSHIFT_CA_DATA},OPENSHIFT_CERT_DATA=${OPENSHIFT_CERT_DATA},OPENSHIFT_KEY_DATA=${OPENSHIFT_KEY_DATA}" > "$ARTIFACT_DIR/router.json"
-
-    echo "[INFO] Applying router pod config"
-    osc apply -n test -f "$ARTIFACT_DIR/router.json"
-
-    wait_for_command "osc get -n test pods | grep router | grep -i Running" $((5*TIME_MIN))
+    "${OS_ROOT}/hack/install-router.sh" "router1" "${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT}"
+    wait_for_command "osc get pods | grep router1 | grep -i Running" $((5*TIME_MIN))
 
     echo "[INFO] Validating routed app response..."
     validate_response "-H Host:end-to-end http://${CONTAINER_ACCESSIBLE_API_HOST}" "Hello from OpenShift" 0.2 50
