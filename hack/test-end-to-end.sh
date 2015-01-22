@@ -220,19 +220,19 @@ curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks
 wait_for_build "test"
 wait_for_app "test"
 
-echo "[INFO] Applying Docker application config"
-osc apply -n docker -f "${DOCKER_CONFIG_FILE}"
-echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
-curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=docker && sleep 3
-wait_for_build "docker"
-wait_for_app "docker"
+#echo "[INFO] Applying Docker application config"
+#osc apply -n docker -f "${DOCKER_CONFIG_FILE}"
+#echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
+#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=docker && sleep 3
+#wait_for_build "docker"
+#wait_for_app "docker"
 
-echo "[INFO] Applying Custom application config"
-osc apply -n custom -f "${CUSTOM_CONFIG_FILE}"
-echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
-curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=custom && sleep 3
-wait_for_build "custom"
-wait_for_app "custom"
+#echo "[INFO] Applying Custom application config"
+#osc apply -n custom -f "${CUSTOM_CONFIG_FILE}"
+#echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
+#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=custom && sleep 3
+#wait_for_build "custom"
+#wait_for_app "custom"
 
 if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
