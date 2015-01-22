@@ -123,9 +123,9 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag := cmd.Flags()
 
 	flag.Var(&cfg.BindAddr, "listen", "The address to listen for connections on (host, host:port, or URL).")
-	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
-	flag.Var(&cfg.EtcdAddr, "etcd", "The address of the etcd server (host, host:port, or URL).")
-	flag.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified no Kubernetes components will be started.")
+	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL). Scheme and port default to the --listen scheme and port.")
+	flag.Var(&cfg.EtcdAddr, "etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
+	flag.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified, no Kubernetes components will be started.")
 	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
@@ -134,7 +134,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 
 	flag.StringVar(&cfg.Hostname, "hostname", cfg.Hostname, "The hostname to identify this node with the master.")
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
-	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.")
+	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 	flag.BoolVar(&cfg.RequireAuthentication, "require-authentication", false, "Require authentication token for API access.")
 
 	cfg.Docker.InstallFlags(flag)
@@ -412,32 +412,26 @@ func defaultHostname() (string, error) {
 // EtcdAddr after if it was not provided.
 // TODO: make me IPv6 safe
 func defaultMasterAddress(cfg *config) error {
-	// The user specified a protocol and port, but wants us to discover the public IP
-	if cfg.MasterAddr.Provided && cfg.MasterAddr.Host == "" {
-		// use the default ip address for the system
-		addr, err := util.DefaultLocalIP4()
-		if err != nil {
-			return fmt.Errorf("Unable to find the public address of this master: %v", err)
-		}
-		cfg.MasterAddr.Host = addr.String()
-		cfg.MasterAddr.URL.Host = addr.String() + cfg.MasterAddr.URL.Host
-	}
-
 	if !cfg.MasterAddr.Provided {
-		// If the user specifies a bind address, and the master is not provided, use
-		// the bind port by default
+		// If the user specifies a bind address, and the master is not provided, use the bind port by default
 		port := cfg.MasterAddr.Port
 		if cfg.BindAddr.Provided {
 			port = cfg.BindAddr.Port
 		}
 
+		// If the user specifies a bind address, and the master is not provided, use the bind scheme by default
+		scheme := cfg.MasterAddr.URL.Scheme
+		if cfg.BindAddr.Provided {
+			scheme = cfg.BindAddr.URL.Scheme
+		}
+
 		// use the default ip address for the system
 		addr, err := util.DefaultLocalIP4()
 		if err != nil {
 			return fmt.Errorf("Unable to find the public address of this master: %v", err)
 		}
 
-		masterAddr := net.JoinHostPort(addr.String(), strconv.Itoa(port))
+		masterAddr := scheme + "://" + net.JoinHostPort(addr.String(), strconv.Itoa(port))
 		if err := cfg.MasterAddr.Set(masterAddr); err != nil {
 			return fmt.Errorf("Unable to set public address of this master: %v", err)
 		}
