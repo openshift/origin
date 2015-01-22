@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -336,6 +338,9 @@ func start(cfg *config, args []string) error {
 			osmaster.RunAPI(auth, osmaster, &origin.SwaggerAPI{})
 		}
 
+		// TODO: recording should occur in individual components
+		record.StartRecording(osmaster.KubeClient().Events(""), kapi.EventSource{Component: "master"})
+
 		osmaster.RunAssetServer()
 		osmaster.RunBuildController()
 		osmaster.RunBuildImageChangeTriggerController()
@@ -349,6 +354,12 @@ func start(cfg *config, args []string) error {
 		etcdClient, err := getEtcdClient(cfg)
 		if err != nil {
 			return err
+		}
+
+		if !startMaster {
+			// TODO: recording should occur in individual components
+			// TODO: need an API client in the Kubelet
+			// record.StartRecording(osmaster.KubeClient().Events(""), kapi.EventSource{Component: "node"})
 		}
 
 		nodeConfig := &kubernetes.NodeConfig{

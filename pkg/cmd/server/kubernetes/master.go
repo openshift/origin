@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -108,7 +109,7 @@ func (c *MasterConfig) RunEndpointController() {
 // RunScheduler starts the Kubernetes scheduler
 func (c *MasterConfig) RunScheduler() {
 	configFactory := factory.NewConfigFactory(c.KubeClient)
-	config, err := configFactory.Create()
+	config, err := configFactory.CreateFromProvider(factory.DefaultProvider)
 	if err != nil {
 		glog.Fatalf("Unable to start scheduler: %v", err)
 	}
@@ -120,8 +121,8 @@ func (c *MasterConfig) RunScheduler() {
 func (c *MasterConfig) RunMinionController() {
 	nodeResources := &kapi.NodeResources{
 		Capacity: kapi.ResourceList{
-		//resources.CPU:    kubeutil.NewIntOrStringFromInt(int(1000)),
-		//resources.Memory: kubeutil.NewIntOrStringFromInt(int(3 * 1024 * 1024 * 1024)),
+			kapi.ResourceCPU:    *resource.NewMilliQuantity(int64(1*1000), resource.DecimalSI),
+			kapi.ResourceMemory: *resource.NewQuantity(int64(3*1024*1024*1024), resource.BinarySI),
 		},
 	}
 
