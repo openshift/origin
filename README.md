@@ -31,7 +31,7 @@ Steps to create manually create an OpenShift cluster with openshift-sdn. This re
 
 On OpenShift master,
 
-	$ openshift start master  # start the master openshift server (also starts the etcd server by default)
+	$ openshift start master [--nodes=node1]  # start the master openshift server (also starts the etcd server by default) with an optional list of nodes
 	$ openshift-sdn           # assumes etcd is running at localhost:4001
 
 To add a node to the cluster, do the following on the node:
@@ -58,6 +58,8 @@ Back on the master, to finally register the node:
 	$ openshift cli create -f minion-1.json
 
 Done. Repeat last two pieces to add more nodes. Create new pods from the master (or just docker containers on the minions), and see that the pods are indeed reachable from each other. 
+
+##### OpenShift? PaaS? Can I create a plain one just for Docker?
 
 #### Performance Note
 

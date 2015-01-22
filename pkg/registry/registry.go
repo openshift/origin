@@ -25,6 +25,7 @@ type SubnetRegistry interface {
 	GetSubnet(minion string) (*Subnet, error)
 	DeleteSubnet(minion string) error
 	CreateSubnet(sn string, sub *Subnet) (*etcd.Response, error)
+	CreateMinion(minion string, data string) error
 	WatchSubnets(rev uint64, receiver chan *SubnetEvent, stop chan bool) error
 	GetMinions() (*[]string, error)
 	WatchMinions(rev uint64, receiver chan *MinionEvent, stop chan bool) error
@@ -198,6 +199,21 @@ func (sub *EtcdSubnetRegistry) DeleteSubnet(minion string) error {
 	key := path.Join(sub.etcdCfg.SubnetPath, minion)
 	_, err := sub.client().Delete(key, false)
 	return err
+}
+
+func (sub *EtcdSubnetRegistry) CreateMinion(minion string, data string) error {
+	key := path.Join(sub.etcdCfg.MinionPath, minion)
+	_, err := sub.client().Get(key, false, false)
+	if err != nil {
+		// good, it does not exist, write it
+		_, err = sub.client().Create(key, data, 0)
+		if err != nil {
+			log.Errorf("Failed to write new subnet to etcd - %v", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (sub *EtcdSubnetRegistry) CreateSubnet(minion string, subnet *Subnet) (*etcd.Response, error) {
