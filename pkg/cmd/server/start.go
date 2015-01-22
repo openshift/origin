@@ -221,7 +221,7 @@ func start(cfg *config, args []string) error {
 			return fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 
-		assetAddr := net.JoinHostPort(cfg.MasterAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
+		assetAddr := net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
 
 		// always include the all-in-one server's web console as an allowed CORS origin
 		// always include localhost as an allowed CORS origin
