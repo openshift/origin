@@ -44,6 +44,8 @@ After=network.service
 
 [Service]
 ExecStart=/usr/bin/openshift start node --master=http://${MASTER_IP}:8080
+Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
