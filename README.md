@@ -15,6 +15,7 @@
 
 ##### Use vagrant, pre-define a cluster, and bring it up
 
+	$ make clean
 	$ export OPENSHIFT_DEV_CLUSTER=1
 	$ export OPENSHIFT_NUM_MINIONS=2
 	$ export OPENSHIFT_SDN=ovs-simple
@@ -22,16 +23,16 @@
 
 ##### Manually add minions to a master
 
-Steps to create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have built openshift already. Check [here](https://github.com/openshift/origin).
+Steps to create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have compiled openshift and openshift-sdn already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Also ensure 'openvswitch' is installed and running (yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch).
 
 On OpenShift master,
 
-	$ openshift start master  # start the master openshift server
+	$ openshift start master  # start the master openshift server (also starts the etcd server by default)
 	$ openshift-sdn           # assumes etcd is running at localhost:4001
 
-On OpenShift node,
+To add a node to the cluster, do the following on the node:
 
-	$ openshift-sdn -etcd-endpoints=http://openshift-master:4001 -minion -public-ip=<10.10....>
+	$ openshift-sdn -etcd-endpoints=http://openshift-master:4001 -minion -public-ip=<10.10....> -hostname <hostname>
 	where, 
 		-etcd-endpoints	: reach the etcd db here
 		-minion 	: run it in minion mode (will watch etcd servers for new minion subnets)
@@ -39,7 +40,7 @@ On OpenShift node,
 		-hostname	: the name that will be used to register the minion with openshift-master
 	$ openshift start node --master=http://openshift-master:8080
 
-Back on the master,
+Back on the master, to finally register the node:
 
 	Create a json file for the new minion resource
         $ cat <<EOF > mininon-1.json
@@ -52,7 +53,7 @@ Back on the master,
 	where, openshift-minion-1 is a hostname that is resolvable from the master (or, create an entry in /etc/hosts and point it to the public-ip of the minion).
 	$ openshift cli create -f minion-1.json
 
-Done. Create new pods from the master (or just docker containers on the minions), and see that the pods are indeed reachable from each other.
+Done. Repeat last two pieces to add more nodes. Create new pods from the master (or just docker containers on the minions), and see that the pods are indeed reachable from each other. 
 
 #### Performance Note
 
