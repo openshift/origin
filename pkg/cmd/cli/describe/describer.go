@@ -242,7 +242,7 @@ func (d *ImageRepositoryDescriber) Describe(namespace, name string) (string, err
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageRepository.ObjectMeta)
 		formatString(out, "Tags", formatLabels(imageRepository.Tags))
-		formatString(out, "Registry", imageRepository.DockerImageRepository)
+		formatString(out, "Registry", imageRepository.Status.DockerImageRepository)
 		return nil
 	})
 }
