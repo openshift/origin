@@ -15,6 +15,10 @@
 
 ##### Use vagrant, pre-define a cluster, and bring it up
 
+Create an openshift cluster on your desktop using vagrant:
+
+	$ git clone https://github.com/openshift/origin
+	$ cd origin
 	$ make clean
 	$ export OPENSHIFT_DEV_CLUSTER=1
 	$ export OPENSHIFT_NUM_MINIONS=2
@@ -23,7 +27,7 @@
 
 ##### Manually add minions to a master
 
-Steps to create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have compiled openshift and openshift-sdn already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Also ensure 'openvswitch' is installed and running (yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch).
+Steps to create manually create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have compiled openshift and openshift-sdn already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Also ensure 'openvswitch' is installed and running (yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch).
 
 On OpenShift master,
 
