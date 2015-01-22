@@ -32,7 +32,7 @@ func (factory *DeploymentConfigControllerFactory) Create() *controller.Deploymen
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).Run()
 
 	return &controller.DeploymentConfigController{
-		DeploymentInterface: &ClientDeploymentInterace{factory.KubeClient},
+		DeploymentInterface: &ClientDeploymentInterface{factory.KubeClient},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			config := queue.Pop().(*deployapi.DeploymentConfig)
 			panicIfStopped(factory.Stop, "deployment config controller stopped")
@@ -86,7 +86,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 
 	return &controller.DeploymentController{
 		ContainerCreator:    factory,
-		DeploymentInterface: &ClientDeploymentInterace{factory.KubeClient},
+		DeploymentInterface: &ClientDeploymentInterface{factory.KubeClient},
 		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
 		Environment:         factory.Environment,
 		NextDeployment: func() *kapi.ReplicationController {
@@ -301,23 +301,23 @@ func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, err
 	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }
 
-// ClientDeploymentInterace is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
-type ClientDeploymentInterace struct {
+// ClientDeploymentInterface is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
+type ClientDeploymentInterface struct {
 	Client kclient.Interface
 }
 
 // GetDeployment returns deployment using OpenShift client.
-func (c ClientDeploymentInterace) GetDeployment(namespace, name string) (*kapi.ReplicationController, error) {
+func (c ClientDeploymentInterface) GetDeployment(namespace, name string) (*kapi.ReplicationController, error) {
 	return c.Client.ReplicationControllers(namespace).Get(name)
 }
 
 // CreateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterace) CreateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+func (c ClientDeploymentInterface) CreateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 	return c.Client.ReplicationControllers(namespace).Create(deployment)
 }
 
 // UpdateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterace) UpdateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+func (c ClientDeploymentInterface) UpdateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 	return c.Client.ReplicationControllers(namespace).Update(deployment)
 }
 
