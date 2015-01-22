@@ -1,7 +1,6 @@
 package router
 
 import (
-	"flag"
 	"fmt"
 
 	"github.com/golang/glog"
@@ -29,7 +28,6 @@ type templateRouterConfig struct {
 
 // NewCommndTemplateRouter provides CLI handler for the template router backend
 func NewCommandTemplateRouter(name string) *cobra.Command {
-	flag.Set("v", "4")
 	cfg := &templateRouterConfig{
 		Config: clientcmd.NewConfig(),
 	}
