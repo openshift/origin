@@ -1,20 +1,28 @@
 <div ng-controller="ProjectController">
   <project-page>
-    <h1>Builds</h1>
-    <div style="margin-bottom: 10px;" ng-repeat="build in builds">
-      <h3>{{build.metadata.labels.buildconfig}} <span class="small">({{build.metadata.name}})</span></h3>
-      <div>Created: <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>            
-      <div>Status: {{build.status}}</div>
-      <div>Build strategy: {{build.parameters.strategy.type}}</div>
-      <div ng-if="build.parameters.strategy.type == 'STI'">
-        Builder image: {{build.parameters.strategy.stiStrategy.builderImage}}
+    <div ng-controller="BuildsController">
+      <h1>Builds</h1>
+      <alerts alerts="alerts"></alerts>
+      <div ng-if="(builds | hashSize) == 0">
+        <div>
+          <em>{{emptyMessage}}</em>
+        </div>
       </div>
-      <div ng-if="build.parameters.source">
-        <div ng-if="build.parameters.source.type == 'Git'">Source repo: {{build.parameters.source.git.uri}}</div>
-        <!-- TODO add git ref details -->
-      </div>
-      <div>Output image: {{build.parameters.output.imageTag}}</div>   
-      <div>Output image registry: {{build.parameters.output.registry}}</div>   
-    </div>      
+      <div style="margin-bottom: 10px;" ng-repeat="build in builds">
+        <h3>{{build.metadata.labels.buildconfig}} <span class="small">({{build.metadata.name}})</span></h3>
+        <div>Created: <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>            
+        <div>Status: {{build.status}}</div>
+        <div>Build strategy: {{build.parameters.strategy.type}}</div>
+        <div ng-if="build.parameters.strategy.type == 'STI'">
+          Builder image: {{build.parameters.strategy.stiStrategy.builderImage}}
+        </div>
+        <div ng-if="build.parameters.source">
+          <div ng-if="build.parameters.source.type == 'Git'">Source repo: {{build.parameters.source.git.uri}}</div>
+          <!-- TODO add git ref details -->
+        </div>
+        <div>Output image: {{build.parameters.output.imageTag}}</div>   
+        <div>Output image registry: {{build.parameters.output.registry}}</div>   
+      </div>      
+    </div>
   </project-page>
 </div>

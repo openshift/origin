@@ -1,9 +1,17 @@
 <div ng-controller="ProjectController">
   <project-page>
-    <h1>Pods</h1>
-    <div style="margin-bottom: 10px;" ng-repeat="pod in pods">
-      <h3>{{pod.id}} ({{pod.currentState.status}})</h3>
-      <pod-template ng-init="podTemplate = pod"></pod-template>
-    </div>      
+    <div ng-controller="PodsController">
+      <h1>Pods</h1>
+      <alerts alerts="alerts"></alerts>      
+      <div ng-if="(pods | hashSize) == 0">
+        <div>
+          <em>{{emptyMessage}}</em>
+        </div>
+      </div>      
+      <div style="margin-bottom: 10px;" ng-repeat="pod in pods">
+        <h3>{{pod.id}} ({{pod.currentState.status}})</h3>
+        <pod-template ng-init="podTemplate = pod"></pod-template>
+      </div>      
+    </div>
   </project-page>
 </div>

@@ -1,0 +1,143 @@
+@import "../../bower_components/selectize/dist/less/plugins/drag_drop";
+@import "../../bower_components/selectize/dist/less/plugins/dropdown_header";
+@import "../../bower_components/selectize/dist/less/plugins/optgroup_columns";
+@import "../../bower_components/selectize/dist/less/plugins/remove_button";
+
+@import "../../bower_components/selectize/dist/less/selectize.default.less";
+
+// Selectize variable overrides
+@color-top: transparent;
+@color-bottom: transparent;
+@selectize-arrow-size: 0;
+@selectize-border-radius: 2px;
+@selectize-color-border: @btn-default-border;
+@selectize-color-dropdown-border-top: transparent;
+@selectize-color-item-border: @btn-default-border;
+@selectize-padding-x: 10px;
+@selectize-padding-y: 10px;
+@selectize-padding-dropdown-item-y: @selectize-padding-y;
+@selectize-padding-dropdown-item-x: @selectize-padding-y;
+@selectize-vertical-gradient-color-end: #1da7ee;
+@selectize-vertical-gradient-color-start: #178ee9;
+@selectize-width-item-border: 0;
+
+
+// Override selectize remove_button code
+.selectize-control.plugin-remove_button {
+  [data-value] .remove {
+    border-left: 1px solid lighten(@selectize-vertical-gradient-color-start, 18%); //
+  }
+}
+
+// Override original selectize code
+.selectize-control {
+  &.single {
+    .selectize-input {
+      .selectize-vertical-gradient(@color-top, @color-bottom);
+    }
+  }
+}
+.selectize-control.single .selectize-input, .selectize-dropdown.single {
+  border-color: @btn-default-border;
+}
+
+
+// Custom code for label filter
+.filter {
+  .label-filter {
+    background-color: #fff;
+    display: table-cell;
+    padding: 5px 0;
+    min-width: 250px;
+    border: 1px solid @btn-default-border;
+    border-radius: @selectize-border-radius;
+    .selectize-control {
+      display: inline-block;
+      .selectize-input {
+        padding-right: 2px;
+        vertical-align: middle;
+        border: 0;
+        box-shadow: none;
+        &.full {
+          min-width: initial;
+          &:after {
+            border: 0;
+          }
+        }
+      }
+      .selectize-dropdown {
+        min-width: 100px;
+        width: auto !important; // overwrite inline width
+        white-space: nowrap;
+        z-index: 9999;
+        margin: 5px 0 0 -1px;
+        .selectize-dropdown-content {
+          .option {
+            &.selected {}
+          }
+        }
+      }
+    }
+  }
+  .label-filter-add.btn {
+    margin-right: @selectize-padding-x;
+    opacity: 1;
+    float: right;
+    margin-top: 6px;
+    margin-left: 15px;
+    &.disabled {
+      opacity: .5;
+    }
+  }
+
+  .active-filters {
+    margin-top: 3px;
+    .label-filter-active {
+      display: block;
+      .label {
+        display: inline-block;
+        padding-top: .3em;
+      }
+    }
+    .label-filter-active-filters {
+      display: block;
+      .label {
+        display: inline-block;
+        padding-bottom: .3em;
+        padding-top: .3em;
+        margin-right: 3px;
+      }
+    }
+  }
+}
+
+@media (min-width: @screen-sm-min) {
+  .filter {
+    .active-filters {
+      margin-top: 0;
+    }
+  }
+}
+
+@media (min-width: @screen-md-min) {
+  .filter {
+    .active-filters {
+      margin-top: 0;
+      padding-top: 25px;
+      text-align: right;
+      .label-filter-active-filters {
+        :first-child {
+          margin-right: 0;
+        }
+        .label {
+          +.label {
+            margin-left: 3px;
+            margin-right: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+
