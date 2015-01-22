@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenShift Master
+Documentation=https://github.com/openshift/origin
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/openshift-master
+ExecStart=/usr/bin/openshift start $ROLE $OPTIONS
+WorkingDirectory=/var/lib/openshift/
+
+[Install]
+WantedBy=multi-user.target

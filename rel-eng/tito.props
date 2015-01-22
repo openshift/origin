@@ -1,5 +1,6 @@
 [buildconfig]
-builder = tito.builder.Builder
-tagger = tito.tagger.VersionTagger
+builder = embeddedcommitbuilder.EmbeddedCommitBuilder
+tagger = embeddedcommittagger.EmbeddedCommitTagger
 changelog_do_not_remove_cherrypick = 0
 changelog_format = %s (%ae)
+lib_dir = rel-eng/lib

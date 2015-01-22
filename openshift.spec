@@ -2,13 +2,15 @@
 %global debug_package %{nil}
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
-%global commit      d3f40eafae8ae7bbca61981e33f384375307fafa
+%{!?commit:
+%global commit 21fb40637c4e3507cca1fcab6c4d56b06950a149
+}
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
-Name:           origin
+Name:           openshift
 Version:        0.2
 #Release:        1git%{shortcommit}%{?dist}
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -18,10 +20,33 @@ Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.2-7
 
-Requires:       docker-io >= 1.3.2
 
 %description
 %{summary}
+
+%package master
+Summary:        Openshift Master
+Requires:       openshift = %{version}-%{release}
+
+%description master
+%{summary}
+
+%package node
+Summary:        Openshift Node
+Requires:       openshift = %{version}-%{release}
+Requires:       docker-io >= 1.3.2
+Requires:       tuned-profiles-openshift-node
+
+%description node
+%{summary}
+
+%package -n tuned-profiles-openshift-node
+Summary:        Tuned profiles for Openshift Node hosts
+Requires:       tuned >= 2.3
+
+%description -n tuned-profiles-openshift-node
+%{summary}
+
 
 %prep
 %setup -q
@@ -69,37 +94,72 @@ do
 done
 
 install -d -m 0755 %{buildroot}%{_unitdir}
-install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift.service
+install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-master.service
+install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-node.service
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
-install -m 0644 rel-eng/openshift.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/openshift
-
-mkdir -p %{buildroot}/var/log/%{name}
+install -m 0644 rel-eng/openshift-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/openshift-master
+install -m 0644 rel-eng/openshift-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/openshift-node
 
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
 
+mkdir -p %{buildroot}/usr/lib/tuned/openshift-node
+install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-node/tuned.conf
+
 %files
 %defattr(-,root,root,-)
 %doc README.md LICENSE
-%dir /var/log/%{name}
 %{_bindir}/openshift
 %{_bindir}/osc
-%{_unitdir}/*.service
-%config(noreplace) %{_sysconfdir}/sysconfig/openshift
-%{_sharedstatedir}/%{name}
+%{_sharedstatedir}/openshift
 
-%post
-%systemd_post %{basename:openshift.service}
+%files master
+%defattr(-,root,root,-)
+%{_unitdir}/openshift-master.service
+%config(noreplace) %{_sysconfdir}/sysconfig/openshift-master
 
-%preun
-%systemd_preun %{basename:openshift.service}
+%post master
+%systemd_post %{basename:openshift-master.service}
 
-%postun
+%preun master
+%systemd_preun %{basename:openshift-master.service}
+
+%postun master
 %systemd_postun
 
+
+%files node
+%defattr(-,root,root,-)
+%{_unitdir}/openshift-node.service
+%config(noreplace) %{_sysconfdir}/sysconfig/openshift-node
+
+%post node
+%systemd_post %{basename:openshift-node.service}
+
+%preun node
+%systemd_preun %{basename:openshift-node.service}
+
+%postun node
+%systemd_postun
+
+%files -n tuned-profiles-openshift-node
+%defattr(-,root,root,-)
+%{_prefix}/lib/tuned/openshift-node
+
+%post -n tuned-profiles-openshift-node
+/usr/sbin/tuned-adm profile openshift-node
+
+%postun -n tuned-profiles-openshift-node
+/usr/sbin/tuned-adm profile default
+
+
 %changelog
+* Mon Jan 26 2015 Scott Dodson <sdodson@redhat.com> 0.2-3
+- Update to 21fb40637c4e3507cca1fcab6c4d56b06950a149
+- Split packaging of openshift-master and openshift-node
+
 * Mon Jan 19 2015 Scott Dodson <sdodson@redhat.com> 0.2-2
 - new package built with tito
 
