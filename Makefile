@@ -77,3 +77,11 @@ clean:
 	rm -rf $(OUT_DIR) $(OUT_PKG_DIR)
 .PHONY: clean
 
+# Build an official release of OpenShift, including the official images.
+#
+# Example:
+#   make clean
+release: clean
+	hack/build-release.sh
+	hack/build-images.sh
+.PHONY: release

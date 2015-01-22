@@ -29,11 +29,12 @@ USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 
 TMPDIR="${TMPDIR:-"/tmp"}"
-ETCD_DATA_DIR=$(mktemp -d ${TMPDIR}/openshift.local.etcd.XXXX)
-VOLUME_DIR=$(mktemp -d ${TMPDIR}/openshift.local.volumes.XXXX)
-CERT_DIR=$(mktemp -d ${TMPDIR}/openshift.local.certificates.XXXX)
-LOG_DIR="${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.logs.XXXX)}"
-ARTIFACT_DIR="${ARTIFACT_DIR:-$(mktemp -d ${TMPDIR}/openshift.local.artifacts.XXXX)}"
+BASETMPDIR="${BASETMPDIR:-$(mktemp -d ${TMPDIR}/openshift-e2e.XXXX)}"
+ETCD_DATA_DIR="${BASETMPDIR}/etcd"
+VOLUME_DIR="${BASETMPDIR}/volumes"
+CERT_DIR="${BASETMPDIR}/certs"
+LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
+ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
 mkdir -p $LOG_DIR
 mkdir -p $ARTIFACT_DIR
 API_PORT="${API_PORT:-8443}"
@@ -135,37 +136,38 @@ trap teardown EXIT SIGINT
 # Setup
 stop_openshift_server
 echo "[INFO] `openshift version`"
-echo "[INFO] Server logs will be at:    $LOG_DIR/openshift.log"
-echo "[INFO] Test artifacts will be in: $ARTIFACT_DIR"
-echo "[INFO] Volumes dir is:            $VOLUME_DIR"
-echo "[INFO] Certs dir is:              $CERT_DIR"
+echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
+echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
+echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
+echo "[INFO] Certs dir is:              ${CERT_DIR}"
 
 # Start All-in-one server and wait for health
 # Specify the scheme and port for the master, but let the IP auto-discover
 echo "[INFO] Starting OpenShift server"
-sudo env "PATH=$PATH" openshift start --listen=$API_SCHEME://0.0.0.0:$API_PORT --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 &> "${LOG_DIR}/openshift.log" &
+sudo env "PATH=${PATH}" openshift start --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
-if [[ "$API_SCHEME" == "https" ]]; then
-	export CURL_CA_BUNDLE="$CERT_DIR/master/root.crt"
+if [[ "${API_SCHEME}" == "https" ]]; then
+	export CURL_CA_BUNDLE="${CERT_DIR}/master/root.crt"
 fi
 
-wait_for_url "$KUBELET_SCHEME://$API_HOST:$KUBELET_PORT/healthz" "[INFO] kubelet: " 1 30
-wait_for_url "$API_SCHEME://$API_HOST:$API_PORT/healthz" "[INFO] apiserver: "
+wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "[INFO] apiserver: " 0.5 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "[INFO] apiserver(minions): " 0.2 60
 
 # Set KUBERNETES_MASTER for osc
-export KUBERNETES_MASTER=$API_SCHEME://$API_HOST:$API_PORT
-if [[ "$API_SCHEME" == "https" ]]; then
+export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
+if [[ "${API_SCHEME}" == "https" ]]; then
 	# Read client cert data in to send to containerized components
-	sudo chmod 644 $CERT_DIR/openshift-client/*
-	OPENSHIFT_CA_DATA=$(<$CERT_DIR/openshift-client/root.crt)
-	OPENSHIFT_CERT_DATA=$(<$CERT_DIR/openshift-client/cert.crt)
-	OPENSHIFT_KEY_DATA=$(<$CERT_DIR/openshift-client/key.key)
+	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
+	OPENSHIFT_CA_DATA="$(cat "${CERT_DIR}/openshift-client/root.crt")"
+	OPENSHIFT_CERT_DATA="$(cat "${CERT_DIR}/openshift-client/cert.crt")"
+	OPENSHIFT_KEY_DATA="$(cat "${CERT_DIR}/openshift-client/key.key")"
 
-	# Make osc use $CERT_DIR/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
-	sudo chmod 644 $CERT_DIR/admin/*
-	export HOME=$CERT_DIR/admin
-	export KUBECONFIG=$CERT_DIR/admin/.kubeconfig
+	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
+	sudo chmod -R a+rwX "${CERT_DIR}/admin/"
+	export HOME="${CERT_DIR}/admin"
+	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
   echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 else
 	OPENSHIFT_CA_DATA=""
