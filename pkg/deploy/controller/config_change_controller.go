@@ -13,10 +13,9 @@ import (
 )
 
 // DeploymentConfigChangeController watches for changes to DeploymentConfigs and regenerates them only
-// when detecting a change to the PodTemplate of a DeploymentConfig containing a ConfigChange
-// trigger.
+// when detecting a change to the PodTemplate of a DeploymentConfig containing a ConfigChange trigger.
 type DeploymentConfigChangeController struct {
-	ChangeStrategy       changeStrategy
+	ChangeStrategy       ChangeStrategy
 	NextDeploymentConfig func() *deployapi.DeploymentConfig
 	DeploymentStore      cache.Store
 	Codec                runtime.Codec
@@ -24,7 +23,8 @@ type DeploymentConfigChangeController struct {
 	Stop <-chan struct{}
 }
 
-type changeStrategy interface {
+// ChangeStrategy knows how to generate and update DeploymentConfigs.
+type ChangeStrategy interface {
 	GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
 	UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 }

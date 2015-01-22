@@ -32,6 +32,24 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.Validat
 	return result
 }
 
+func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollback) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
+
+	if len(rollback.Spec.From.Name) == 0 {
+		result = append(result, errors.NewFieldRequired("spec.from.name", ""))
+	}
+
+	if len(rollback.Spec.From.Kind) == 0 {
+		rollback.Spec.From.Kind = "ReplicationController"
+	}
+
+	if rollback.Spec.From.Kind != "ReplicationController" {
+		result = append(result, errors.NewFieldInvalid("spec.from.kind", rollback.Spec.From.Kind, "the kind of the rollback target must be 'ReplicationController'"))
+	}
+
+	return result
+}
+
 func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
 

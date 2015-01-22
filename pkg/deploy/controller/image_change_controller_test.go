@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
 	deploytest "github.com/openshift/origin/pkg/deploy/controller/test"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -26,8 +28,8 @@ const (
 )
 
 func TestUnregisteredContainer(t *testing.T) {
-	config := unregisteredConfig()
-	config.Triggers[0].ImageChangeParams.Automatic = false
+	config := deployapitest.OkDeploymentConfig(1)
+	config.Triggers[0].ImageChangeParams.ContainerNames = []string{"container-3"}
 
 	controller := &ImageChangeController{
 		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
@@ -51,7 +53,7 @@ func TestUnregisteredContainer(t *testing.T) {
 }
 
 func TestImageChangeForNonAutomaticTag(t *testing.T) {
-	config := imageChangeDeploymentConfig()
+	config := deployapitest.OkDeploymentConfig(1)
 	config.Triggers[0].ImageChangeParams.Automatic = false
 
 	controller := &ImageChangeController{

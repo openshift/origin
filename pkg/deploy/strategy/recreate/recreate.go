@@ -7,105 +7,82 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// DeploymentStrategy is a simple strategy appropriate as a default. Its behavior
-// is to create new replication controllers as defined on a Deployment, and delete any previously
-// existing replication controllers for the same DeploymentConfig associated with the deployment.
+// DeploymentStrategy is a simple strategy appropriate as a default. Its behavior is to increase the
+// replica count of the new deployment to 1, and to decrease the replica count of previous deployments
+// to zero.
 //
-// A failure to remove any existing ReplicationController will be considered a deployment failure.
+// A failure to disable any existing deployments will be considered a deployment failure.
 type DeploymentStrategy struct {
+	// ReplicationController is used to interact with ReplicatonControllers.
 	ReplicationController ReplicationControllerInterface
-	Codec                 runtime.Codec
+	// Codec is used to decode DeploymentConfigs contained in deployments.
+	Codec runtime.Codec
 }
 
-type ReplicationControllerInterface interface {
-	listReplicationControllers(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
-	getReplicationController(namespace, id string) (*kapi.ReplicationController, error)
-	updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
-	deleteReplicationController(namespace string, id string) error
-}
-
-type RealReplicationController struct {
-	KubeClient kclient.Interface
-}
-
-func (r RealReplicationController) listReplicationControllers(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-	return r.KubeClient.ReplicationControllers(namespace).List(selector)
-}
-
-func (r RealReplicationController) getReplicationController(namespace string, id string) (*kapi.ReplicationController, error) {
-	return r.KubeClient.ReplicationControllers(namespace).Get(id)
-}
-
-func (r RealReplicationController) updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return r.KubeClient.ReplicationControllers(namespace).Update(ctrl)
-}
-
-func (r RealReplicationController) deleteReplicationController(namespace string, id string) error {
-	return r.KubeClient.ReplicationControllers(namespace).Delete(id)
-}
-
-func (s *DeploymentStrategy) Deploy(deployment *kapi.ReplicationController) error {
-	controllers := &kapi.ReplicationControllerList{}
-	namespace := deployment.Namespace
+// Deploy makes deployment active and disables oldDeployments.
+func (s *DeploymentStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []kapi.ObjectReference) error {
 	var err error
-
-	configID, hasConfigID := deployment.Annotations[deployapi.DeploymentConfigAnnotation]
-	if !hasConfigID {
-		return fmt.Errorf("This strategy is only compatible with deployments associated with a DeploymentConfig")
-	}
-
-	selector, _ := labels.ParseSelector(deployapi.DeploymentConfigLabel + "=" + configID)
-	controllers, err = s.ReplicationController.listReplicationControllers(namespace, selector)
-	if err != nil {
-		return fmt.Errorf("Unable to get list of replication controllers for previous deploymentConfig %s: %v\n", configID, err)
-	}
-
 	var deploymentConfig *deployapi.DeploymentConfig
-	var decodeError error
-	if deploymentConfig, decodeError = deployutil.DecodeDeploymentConfig(deployment, s.Codec); decodeError != nil {
-		return fmt.Errorf("Couldn't decode DeploymentConfig from deployment %s: %v", deployment.Name, decodeError)
+
+	if deploymentConfig, err = deployutil.DecodeDeploymentConfig(deployment, s.Codec); err != nil {
+		return fmt.Errorf("Couldn't decode DeploymentConfig from deployment %s: %v", deployment.Name, err)
 	}
 
 	deployment.Spec.Replicas = deploymentConfig.Template.ControllerTemplate.Replicas
-	glog.Infof("Updating replicationController for deployment %s to replica count %d", deployment.Name, deployment.Spec.Replicas)
-	if _, err := s.ReplicationController.updateReplicationController(namespace, deployment); err != nil {
-		return fmt.Errorf("An error occurred updating the replication controller for deployment %s: %v", deployment.Name, err)
+	glog.Infof("Updating deployment %s replica count to %d", deployment.Name, deployment.Spec.Replicas)
+	if _, err := s.ReplicationController.updateReplicationController(deployment.Namespace, deployment); err != nil {
+		return fmt.Errorf("Error updating deployment %s replica count to %d: %v", deployment.Name, deployment.Spec.Replicas, err)
 	}
 
-	// For this simple deploy, remove previous replication controllers.
+	// For this simple deploy, disable previous replication controllers.
 	// TODO: This isn't transactional, and we don't actually wait for the replica count to
 	// become zero before deleting them.
+	glog.Infof("Found %d prior deployments to disable", len(oldDeployments))
 	allProcessed := true
-	for _, oldController := range controllers.Items {
-		glog.Infof("Stopping replication controller for previous deploymentConfig %s: %v", configID, oldController.Name)
-
-		oldController.Spec.Replicas = 0
-		glog.Infof("Settings Replicas=0 for replicationController %s for previous deploymentConfig %s", oldController.Name, configID)
-		if _, err := s.ReplicationController.updateReplicationController(namespace, &oldController); err != nil {
-			glog.Errorf("Unable to stop replication controller %s for previous deploymentConfig %s: %#v\n", oldController.Name, configID, err)
+	for _, oldDeployment := range oldDeployments {
+		oldController, oldErr := s.ReplicationController.getReplicationController(oldDeployment.Namespace, oldDeployment.Name)
+		if oldErr != nil {
+			glog.Errorf("Error getting old deployment %s for disabling: %v", oldDeployment.Name, oldErr)
 			allProcessed = false
 			continue
 		}
 
-		glog.Infof("Deleting replication controller %s for previous deploymentConfig %s", oldController.Name, configID)
-		err := s.ReplicationController.deleteReplicationController(namespace, oldController.Name)
-		if err != nil {
-			glog.Errorf("Unable to remove replication controller %s for previous deploymentConfig %s:%#v\n", oldController.Name, configID, err)
+		glog.Infof("Setting replicas to zero for old deployment %s", oldController.Name)
+		oldController.Spec.Replicas = 0
+		if _, err := s.ReplicationController.updateReplicationController(oldController.Namespace, oldController); err != nil {
+			glog.Errorf("Error updating replicas to zero for old deployment %s: %#v", oldController.Name, err)
 			allProcessed = false
 			continue
 		}
 	}
 
 	if !allProcessed {
-		return fmt.Errorf("Failed to clean up all replication controllers")
+		return fmt.Errorf("Failed to disable all prior deployments for new deployment %s", deployment.Name)
 	}
 
+	glog.Infof("Deployment %s successfully made active", deployment.Name)
 	return nil
+}
+
+type ReplicationControllerInterface interface {
+	getReplicationController(namespace, name string) (*kapi.ReplicationController, error)
+	updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
+}
+
+type RealReplicationController struct {
+	KubeClient kclient.Interface
+}
+
+func (r RealReplicationController) getReplicationController(namespace string, name string) (*kapi.ReplicationController, error) {
+	return r.KubeClient.ReplicationControllers(namespace).Get(name)
+}
+
+func (r RealReplicationController) updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return r.KubeClient.ReplicationControllers(namespace).Update(ctrl)
 }
