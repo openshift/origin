@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -251,6 +252,7 @@ func start(cfg *config, args []string) error {
 			}
 		}
 
+		var roots *x509.CertPool
 		if osmaster.TLS {
 			// Bootstrap CA
 			// TODO: store this (or parts of this) in etcd?
@@ -294,6 +296,12 @@ func start(cfg *config, args []string) error {
 					return err
 				}
 			}
+
+			// Save cert roots
+			roots = x509.NewCertPool()
+			for _, root := range ca.Config.Roots {
+				roots.AddCert(root)
+			}
 		} else {
 			// No security, use the same client config for all OpenShift clients
 			osClientConfig := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
@@ -306,6 +314,7 @@ func start(cfg *config, args []string) error {
 
 		auth := &origin.AuthConfig{
 			MasterAddr:     cfg.MasterAddr.URL.String(),
+			MasterRoots:    roots,
 			SessionSecrets: []string{"secret"},
 			EtcdHelper:     etcdHelper,
 		}
