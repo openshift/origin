@@ -177,7 +177,7 @@ func (lw *buildLW) List() (runtime.Object, error) {
 
 // Watch watches all Builds.
 func (lw *buildLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
+	return lw.client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }
 
 // buildConfigLW is a ListWatcher implementation for BuildConfigs.
@@ -192,7 +192,7 @@ func (lw *buildConfigLW) List() (runtime.Object, error) {
 
 // Watch watches all BuildConfigs.
 func (lw *buildConfigLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.BuildConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
+	return lw.client.BuildConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }
 
 // imageRepositoryLW is a ListWatcher for ImageRepositories.
@@ -207,7 +207,7 @@ func (lw *imageRepositoryLW) List() (runtime.Object, error) {
 
 // Watch watches all ImageRepositories.
 func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), "0")
+	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }
 
 // ClientPodManager is a PodManager which delegates to the Kubernetes client interface.
