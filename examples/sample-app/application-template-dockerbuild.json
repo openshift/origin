@@ -1,7 +1,7 @@
 {
   "metadata":{
     "name": "ruby-helloworld-sample",
-  }, 
+  },
   "kind": "Template",
   "apiVersion": "v1beta1",
   "description": "This example shows how to create a simple ruby application in openshift origin v3",
@@ -44,10 +44,9 @@
     {
       "metadata":{
         "name": "origin-ruby-sample",
-      }, 
+      },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "172.30.17.3:5001/docker/origin-ruby-sample",
       "labels": {
         "name": "origin-ruby-sample"
       }
@@ -58,7 +57,6 @@
       },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "172.30.17.3:5001/openshift/ruby-20-centos",
       "labels": {
         "name": "ruby-20-centos"
       }
@@ -85,8 +83,10 @@
         {
           "type": "imageChange",
           "imageChange": {
-            "image": "172.30.17.3:5001/openshift/ruby-20-centos",
-            "imageRepositoryRef": { "name": "ruby-20-centos"},
+            "image": "openshift/ruby-20-centos",
+            "from": {
+              "name": "ruby-20-centos"
+            },
             "tag":"latest"
           }
         }
@@ -102,8 +102,9 @@
           "type": "Docker"
         },
         "output": {
-          "imageTag": "docker/origin-ruby-sample:latest",
-          "registry": "172.30.17.3:5001"
+          "to": {
+            "name": "origin-ruby-sample"
+          },
         },
       },
       "labels": {
@@ -124,7 +125,9 @@
             "containerNames": [
               "ruby-helloworld"
             ],
-            "repositoryName": "172.30.17.3:5001/docker/origin-ruby-sample",
+            "from": {
+              "name": "origin-ruby-sample"
+            },
             "tag": "latest"
           }
         }
@@ -145,7 +148,7 @@
                 "containers": [
                   {
                     "name": "ruby-helloworld",
-                    "image": "172.30.17.3:5001/docker/origin-ruby-sample",
+                    "image": "origin-ruby-sample",
                     "env": [
                       {
                         "name": "ADMIN_USERNAME",
