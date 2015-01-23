@@ -95,6 +95,9 @@ function teardown()
     fi
     set -u
     set -e
+    # Clean up large log files so they don't end up on jenkins
+    find ${ARTIFACT_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+    find ${LOG_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
   fi
   set -u
 }
