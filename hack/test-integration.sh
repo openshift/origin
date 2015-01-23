@@ -22,4 +22,5 @@ trap cleanup EXIT SIGINT
 echo
 echo Integration test cases ...
 echo
-KUBE_RACE="${KUBE_RACE:--race}" KUBE_COVER=" " "${OS_ROOT}/hack/test-go.sh" test/integration -tags 'integration no-docker' "${@:1}"
+# TODO: race is disabled because of origin #731
+KUBE_RACE="${KUBE_RACE:-}" KUBE_COVER=" " "${OS_ROOT}/hack/test-go.sh" test/integration -tags 'integration no-docker' "${@:1}"
