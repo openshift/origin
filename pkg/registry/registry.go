@@ -21,6 +21,7 @@ const (
 
 type SubnetRegistry interface {
 	InitSubnets() error
+	InitMinions() error
 	GetSubnets() (*[]Subnet, error)
 	GetSubnet(minion string) (*Subnet, error)
 	DeleteSubnet(minion string) error
@@ -128,6 +129,12 @@ func NewEtcdSubnetRegistry(config *EtcdConfig) (SubnetRegistry, error) {
 
 func (sub *EtcdSubnetRegistry) InitSubnets() error {
 	key := sub.etcdCfg.SubnetPath
+	_, err := sub.client().SetDir(key, 0)
+	return err
+}
+
+func (sub *EtcdSubnetRegistry) InitMinions() error {
+	key := sub.etcdCfg.MinionPath
 	_, err := sub.client().SetDir(key, 0)
 	return err
 }
@@ -254,7 +261,7 @@ func (sub *EtcdSubnetRegistry) watch(key string, rev uint64, stop chan bool) (*e
 		if err == etcd.ErrWatchStoppedByUser {
 			return nil, err
 		} else {
-			log.Errorf("Error while watching %s: %v\n", key, err)
+			log.Warningf("Temporary error while watching %s: %v\n", key, err)
 			time.Sleep(time.Second)
 			sub.resetClient()
 			return nil, nil
@@ -275,10 +282,10 @@ func (sub *EtcdSubnetRegistry) WatchSubnets(rev uint64, receiver chan *SubnetEve
 	for {
 		key := sub.etcdCfg.SubnetPath
 		resp, err := sub.watch(key, rev, stop)
-		rev = resp.Node.ModifiedIndex + 1
 		if resp == nil && err == nil {
 			continue
 		}
+		rev = resp.Node.ModifiedIndex + 1
 		if err != nil && err == etcd.ErrWatchStoppedByUser {
 			log.Infof("New subnet event err : %s\n", err.Error())
 			return err

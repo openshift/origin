@@ -19,7 +19,7 @@ const (
 )
 
 type Controller interface {
-	StartMaster() error
+	StartMaster(sync bool) error
 	StartNode(sync, skipsetup bool) error
 	AddNode(minionIP string) error
 	DeleteNode(minionIP string) error
@@ -55,7 +55,15 @@ func NewController(sub registry.SubnetRegistry, hostname string, selfip string) 
 	}
 }
 
-func (oc *OvsController) StartMaster() error {
+func (oc *OvsController) StartMaster(sync bool) error {
+	// initialize the minion key
+	if sync {
+		err := oc.sm.InitMinions()
+		if err != nil {
+			log.Infof("Minion path already initialized.")
+		}
+	}
+
 	// initialize the subnet key?
 	err := oc.sm.InitSubnets()
 	subrange := make([]string, 0)
@@ -207,7 +215,11 @@ func (oc *OvsController) watchMinions() {
 		case ev := <-minevent:
 			switch ev.Type {
 			case registry.Added:
-				oc.AddNode(ev.Minion)
+				_, err := oc.sm.GetSubnet(ev.Minion)
+				if err != nil {
+					// subnet does not exist already
+					oc.AddNode(ev.Minion)
+				}
 			case registry.Deleted:
 				oc.DeleteNode(ev.Minion)
 			}
