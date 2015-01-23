@@ -71,20 +71,19 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		Path:   fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
 	}
 
-	if pod.Status.Phase != kapi.PodRunning {
-		return "", errors.NewFieldInvalid("Pod.Status", pod.Status.Phase, "must be Running")
+	// Pod in which build take place can't be in the Pending or Unknown phase,
+	// cause no containers are present in the Pod in those phases.
+	if pod.Status.Phase == kapi.PodPending || pod.Status.Phase == kapi.PodUnknown {
+		return "", errors.NewFieldInvalid("Pod.Status", pod.Status.Phase, "must be Running, Succeeded or Failed")
 	}
 
 	switch build.Status {
 	case api.BuildStatusRunning:
 		location.RawQuery = url.Values{"follow": []string{"1"}}.Encode()
 	case api.BuildStatusComplete, api.BuildStatusFailed:
-		// Do not follow the Complete and Failed logs as the streaming already
-		// finished.
-	case api.BuildStatusPending:
-		return "", fmt.Errorf("unable to retrieve logs, the Build is in 'Pending' state")
+		// Do not follow the Complete and Failed logs as the streaming already finished.
 	default:
-		return "", errors.NewFieldInvalid("build.Status", build.Status, "must be Running")
+		return "", errors.NewFieldInvalid("build.Status", build.Status, "must be Running, Complete or Failed")
 	}
 
 	if err != nil {
