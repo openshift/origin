@@ -11,6 +11,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -31,15 +32,15 @@ type tokenGetterInfo struct {
 func RequestToken(clientCfg *clientcmd.Config, reader io.Reader) (string, error) {
 	tokenGetter := &tokenGetterInfo{}
 
-	kubeCfg := clientCfg.KubeConfig()
-	kubeClient, err := kclient.New(kubeCfg)
+	osCfg := clientCfg.OpenShiftConfig()
+	osClient, err := client.New(osCfg)
 	if err != nil {
 		return "", err
 	}
 
 	// get the transport, so that we can use it to build our own client that wraps it
 	// our client understands certain challenges and can respond to them
-	clientTransport, err := kclient.TransportFor(kubeCfg)
+	clientTransport, err := kclient.TransportFor(osCfg)
 	if err != nil {
 		return "", err
 	}
@@ -47,12 +48,12 @@ func RequestToken(clientCfg *clientcmd.Config, reader io.Reader) (string, error)
 		Transport:     clientTransport,
 		CheckRedirect: tokenGetter.checkRedirect,
 	}
-	kubeClient.Client = &challengingClient{httpClient, reader}
+	osClient.Client = &challengingClient{httpClient, reader}
 
-	_ = kubeClient.Get().AbsPath("oauth").Resource("authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
+	_ = osClient.Get().AbsPath("oauth").Resource("authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
 
 	if len(tokenGetter.accessToken) == 0 {
-		requestTokenURL := kubeCfg.Host + "/oauth" /* clean up after auth.go dies */ + tokenrequest.RequestTokenEndpoint
+		requestTokenURL := osCfg.Host + "/oauth" /* clean up after auth.go dies */ + tokenrequest.RequestTokenEndpoint
 		return "", errors.New("Unable to get token.  Try visiting " + requestTokenURL + " for a new token.")
 	}
 
