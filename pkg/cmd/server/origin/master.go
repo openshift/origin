@@ -470,14 +470,20 @@ func (c *MasterConfig) RunBuildController() {
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image:          dockerImage,
 			UseLocalImages: useLocalImages,
+			// TODO: this will be set to --storage-version (the internal schema we use)
+			Codec: v1beta1.Codec,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       useLocalImages,
+			// TODO: this will be set to --storage-version (the internal schema we use)
+			Codec: v1beta1.Codec,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			UseLocalImages: useLocalImages,
+			// TODO: this will be set to --storage-version (the internal schema we use)
+			Codec: v1beta1.Codec,
 		},
 	}
 

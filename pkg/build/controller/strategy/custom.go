@@ -4,20 +4,24 @@ import (
 	"errors"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 // CustomBuildStrategy creates a build using a custom builder image.
 type CustomBuildStrategy struct {
 	UseLocalImages bool
+	// Codec is the codec to use for encoding the output pod.
+	// IMPORTANT: This may break backwards compatibility when
+	// it changes.
+	Codec runtime.Codec
 }
 
 // CreateBuildPod creates the pod to be used for the Custom build
 func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	data, err := v1beta1.Codec.Encode(build)
+	data, err := bs.Codec.Encode(build)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +65,9 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		},
 	}
 
-	setupBuildEnv(build, pod)
+	if err := setupBuildEnv(build, pod); err != nil {
+		return nil, err
+	}
 
 	if bs.UseLocalImages {
 		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent

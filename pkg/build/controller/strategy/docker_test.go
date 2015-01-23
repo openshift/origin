@@ -13,6 +13,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	strategy := DockerBuildStrategy{
 		Image:          "docker-test-image",
 		UseLocalImages: true,
+		Codec:          v1beta1.Codec,
 	}
 
 	expected := mockDockerBuild()

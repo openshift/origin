@@ -20,6 +20,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
 		UseLocalImages:       true,
+		Codec:                v1beta1.Codec,
 	}
 
 	expected := mockSTIBuild()
