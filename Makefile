@@ -7,7 +7,6 @@
 #   test: Run all tests.
 #   run: Run all-in-one server
 #   clean: Clean up.
-#   api: Generate new api docs.
 
 OUT_DIR = _output
 OUT_PKG_DIR = Godeps/_workspace/pkg
