@@ -20,7 +20,7 @@ const (
 
 type Controller interface {
 	StartMaster() error
-	StartNode(skipsetup bool) error
+	StartNode(sync, skipsetup bool) error
 	AddNode(minionIP string) error
 	DeleteNode(minionIP string) error
 	Stop()
@@ -142,7 +142,18 @@ func (oc *OvsController) DeleteNode(minion string) error {
 	return oc.sm.DeleteSubnet(minion)
 }
 
-func (oc *OvsController) StartNode(skipsetup bool) error {
+func (oc *OvsController) syncWithMaster() error {
+	return oc.sm.CreateMinion(oc.hostName, oc.localIP)
+}
+
+func (oc *OvsController) StartNode(sync, skipsetup bool) error {
+	if sync {
+		err := oc.syncWithMaster()
+		if err != nil {
+			log.Errorf("Failed to register with master. (%s)", err.Error())
+			return err
+		}
+	}
 	err := oc.initSelfSubnet()
 	if err != nil {
 		log.Errorf("Failed to get subnet for this host. (%v)", err)
@@ -239,15 +250,15 @@ func (oc *OvsController) AddOFRules(minionip, subnet string) {
 	cookie := generateCookie(minionip)
 	if minionip == oc.localIP {
 		// self, so add the input rules
-		iprule := fmt.Sprintf("table=0,cookie=%s,priority=200,ip,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
-		arprule := fmt.Sprintf("table=0,cookie=%s,priority=200,arp,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
+		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
+		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
 		log.Infof("Output of adding %s: %s (%v)", iprule, o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
 		log.Infof("Output of adding %s: %s (%v)", arprule, o, e)
 	} else {
-		iprule := fmt.Sprintf("table=0,cookie=%s,priority=200,ip,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionip)
-		arprule := fmt.Sprintf("table=0,cookie=%s,priority=200,arp,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionip)
+		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionip)
+		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionip)
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
 		log.Infof("Output of adding %s: %s (%v)", iprule, o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
@@ -259,15 +270,15 @@ func (oc *OvsController) DelOFRules(minion string) {
 	log.Infof("Calling del rules for %s", minion)
 	cookie := generateCookie(minion)
 	if minion == oc.localIP {
-		iprule := fmt.Sprintf("table=0,cookie=%s,ip,in_port=10", cookie)
-		arprule := fmt.Sprintf("table=0,cookie=%s,arp,in_port=10", cookie)
+		iprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,ip,in_port=10", cookie)
+		arprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,arp,in_port=10", cookie)
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
 		log.Infof("Output of deleting local ip rules %s (%v)", o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
 		log.Infof("Output of deleting local ip rules %s (%v)", o, e)
 	} else {
-		iprule := fmt.Sprintf("table=0,cookie=%s/0xffffffff,ip,in_port=9", cookie)
-		arprule := fmt.Sprintf("table=0,cookie=%s/0xffffffff,arp,in_port=9", cookie)
+		iprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,ip,in_port=9", cookie)
+		arprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,arp,in_port=9", cookie)
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
 		log.Infof("Output of deleting %s: %s (%v)", iprule, o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()

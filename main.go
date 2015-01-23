@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -26,6 +27,7 @@ type CmdLineOpts struct {
 	master        bool
 	minion        bool
 	skipsetup     bool
+	sync          bool
 	help          bool
 }
 
@@ -44,6 +46,7 @@ func init() {
 	flag.BoolVar(&opts.master, "master", true, "Run in master mode")
 	flag.BoolVar(&opts.minion, "minion", false, "Run in minion mode")
 	flag.BoolVar(&opts.skipsetup, "skip-setup", false, "Skip the setup when in minion mode")
+	flag.BoolVar(&opts.sync, "sync", false, "Sync the minions directly to etcd-path (Do not wait for PaaS to do so!)")
 
 	flag.BoolVar(&opts.help, "help", false, "print this message")
 }
@@ -61,13 +64,19 @@ func newNetworkManager() controller.Controller {
 func newSubnetRegistry() registry.SubnetRegistry {
 	peers := strings.Split(opts.etcdEndpoints, ",")
 
+	subnetPath := path.Join(opts.etcdPath + "subnets")
+	minionPath := "/registry/minions/"
+	if opts.sync {
+		minionPath = path.Join(opts.etcdPath + "minions")
+	}
+
 	cfg := &registry.EtcdConfig{
 		Endpoints:  peers,
 		Keyfile:    opts.etcdKeyfile,
 		Certfile:   opts.etcdCertfile,
 		CAFile:     opts.etcdCAFile,
-		SubnetPath: opts.etcdPath,
-		MinionPath: "/registry/minions/",
+		SubnetPath: subnetPath,
+		MinionPath: minionPath,
 	}
 
 	for {
@@ -102,7 +111,7 @@ func main() {
 
 	be := newNetworkManager()
 	if opts.minion {
-		err := be.StartNode(opts.skipsetup)
+		err := be.StartNode(opts.sync, opts.skipsetup)
 		if err != nil {
 			return
 		}
