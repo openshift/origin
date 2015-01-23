@@ -506,6 +506,10 @@
 			"Rev": "3e41ad598db9e676a09862d0e89bab5063afa926"
 		},
 		{
+			"ImportPath": "github.com/pkg/profile",
+			"Rev": "c795610ec6e479e5795f7852db65ea15073674a6"
+		},
+		{
 			"ImportPath": "github.com/spf13/cobra",
 			"Rev": "e1e66f7b4e667751cf530ddb6e72b79d6eeb0235"
 		},
