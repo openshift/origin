@@ -36,35 +36,30 @@ func AddPrinterFlags(cmd *cobra.Command) {
 }
 
 // PrintObject prints an api object given command line flags to modify the output format
-func PrintObject(cmd *cobra.Command, obj runtime.Object, f *Factory, out io.Writer) {
+func PrintObject(cmd *cobra.Command, obj runtime.Object, f *Factory, out io.Writer) error {
 	mapper, _ := f.Object(cmd)
 	_, kind, err := api.Scheme.ObjectVersionAndKind(obj)
-	checkErr(err)
+	if err != nil {
+		return err
+	}
 
 	mapping, err := mapper.RESTMapping(kind)
-	checkErr(err)
-
-	printer, ok, err := PrinterForCommand(cmd)
-	checkErr(err)
-
-	if ok {
-		version := outputVersion(cmd)
-		if len(version) == 0 {
-			version = mapping.APIVersion
-		}
-		if len(version) == 0 {
-			checkErr(fmt.Errorf("you must specify an output-version when using this output format"))
-		}
-		printer = kubectl.NewVersionedPrinter(printer, mapping.ObjectConvertor, version)
+	if err != nil {
+		return err
 	}
-	printer.PrintObj(obj, out)
+
+	printer, err := PrinterForMapping(f, cmd, mapping)
+	if err != nil {
+		return err
+	}
+	return printer.PrintObj(obj, out)
 }
 
 // outputVersion returns the preferred output version for generic content (JSON, YAML, or templates)
-func outputVersion(cmd *cobra.Command) string {
+func outputVersion(cmd *cobra.Command, defaultVersion string) string {
 	outputVersion := GetFlagString(cmd, "output-version")
 	if len(outputVersion) == 0 {
-		outputVersion = GetFlagString(cmd, "api-version")
+		outputVersion = defaultVersion
 	}
 	return outputVersion
 }
@@ -89,7 +84,11 @@ func PrinterForMapping(f *Factory, cmd *cobra.Command, mapping *meta.RESTMapping
 		return nil, err
 	}
 	if ok {
-		version := outputVersion(cmd)
+		clientConfig, err := f.ClientConfig(cmd)
+		checkErr(err)
+		defaultVersion := clientConfig.Version
+
+		version := outputVersion(cmd, defaultVersion)
 		if len(version) == 0 {
 			version = mapping.APIVersion
 		}

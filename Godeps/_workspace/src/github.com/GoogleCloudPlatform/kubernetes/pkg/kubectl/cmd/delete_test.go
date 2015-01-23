@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 )
 
@@ -42,10 +43,10 @@ func TestDeleteObject(t *testing.T) {
 			}
 		}),
 	}
+	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := f.NewCmdDelete(buf)
-	cmd.Flags().String("namespace", "test", "")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master.json")
 	cmd.Run(cmd, []string{})
 
@@ -70,15 +71,46 @@ func TestDeleteObjectIgnoreNotFound(t *testing.T) {
 			}
 		}),
 	}
+	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := f.NewCmdDelete(buf)
-	cmd.Flags().String("namespace", "test", "")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master.json")
 	cmd.Run(cmd, []string{})
 
 	if buf.String() != "" {
 		t.Errorf("unexpected output: %s", buf.String())
+	}
+}
+
+func TestDeleteNoObjects(t *testing.T) {
+	f, tf, codec := NewAPIFactory()
+	tf.Printer = &testPrinter{}
+	tf.Client = &client.FakeRESTClient{
+		Codec: codec,
+		Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			switch p, m := req.URL.Path, req.Method; {
+			case p == "/ns/test/pods" && m == "GET":
+				return &http.Response{StatusCode: 200, Body: objBody(codec, &api.PodList{})}, nil
+			default:
+				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
+				return nil, nil
+			}
+		}),
+	}
+	tf.Namespace = "test"
+	buf := bytes.NewBuffer([]byte{})
+	stderr := bytes.NewBuffer([]byte{})
+
+	cmd := f.NewCmdDelete(buf)
+	cmd.SetOutput(stderr)
+	cmd.Run(cmd, []string{"pods"})
+
+	if buf.String() != "" {
+		t.Errorf("unexpected output: %s", buf.String())
+	}
+	if stderr.String() != "No resources found\n" {
+		t.Errorf("unexpected output: %s", stderr.String())
 	}
 }
 
@@ -101,10 +133,10 @@ func TestDeleteMultipleObject(t *testing.T) {
 			}
 		}),
 	}
+	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := f.NewCmdDelete(buf)
-	cmd.Flags().String("namespace", "test", "")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master.json")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/frontend-service.json")
 	cmd.Run(cmd, []string{})
@@ -133,10 +165,10 @@ func TestDeleteMultipleObjectIgnoreMissing(t *testing.T) {
 			}
 		}),
 	}
+	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := f.NewCmdDelete(buf)
-	cmd.Flags().String("namespace", "test", "")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master.json")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/frontend-service.json")
 	cmd.Run(cmd, []string{})
@@ -167,10 +199,10 @@ func TestDeleteDirectory(t *testing.T) {
 			}
 		}),
 	}
+	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := f.NewCmdDelete(buf)
-	cmd.Flags().String("namespace", "test", "")
 	cmd.Flags().Set("filename", "../../../examples/guestbook")
 	cmd.Run(cmd, []string{})
 
@@ -208,10 +240,10 @@ func TestDeleteMultipleSelector(t *testing.T) {
 			}
 		}),
 	}
+	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := f.NewCmdDelete(buf)
-	cmd.Flags().String("namespace", "test", "")
 	cmd.Flags().Set("selector", "a=b")
 	cmd.Run(cmd, []string{"pods,services"})
 

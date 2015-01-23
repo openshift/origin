@@ -52,7 +52,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	//"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/emicklei/go-restful"
@@ -62,23 +62,24 @@ import (
 
 // Config is a structure used to configure a Master.
 type Config struct {
-	Client                *client.Client
-	Cloud                 cloudprovider.Interface
-	EtcdHelper            tools.EtcdHelper
-	HealthCheckMinions    bool
-	EventTTL              time.Duration
-	MinionRegexp          string
-	KubeletClient         client.KubeletClient
-	PortalNet             *net.IPNet
-	EnableLogsSupport     bool
-	EnableUISupport       bool
-	EnableSwaggerSupport  bool
-	EnableV1Beta3         bool
-	APIPrefix             string
-	CorsAllowedOriginList util.StringList
-	Authenticator         authenticator.Request
-	Authorizer            authorizer.Authorizer
-	AdmissionControl      admission.Interface
+	Client                 *client.Client
+	Cloud                  cloudprovider.Interface
+	EtcdHelper             tools.EtcdHelper
+	HealthCheckMinions     bool
+	EventTTL               time.Duration
+	MinionRegexp           string
+	KubeletClient          client.KubeletClient
+	PortalNet              *net.IPNet
+	EnableLogsSupport      bool
+	EnableUISupport        bool
+	EnableSwaggerSupport   bool
+	EnableV1Beta3          bool
+	APIPrefix              string
+	CorsAllowedOriginList  util.StringList
+	Authenticator          authenticator.Request
+	Authorizer             authorizer.Authorizer
+	AdmissionControl       admission.Interface
+	MasterServiceNamespace string
 
 	// If specified, all web services will be registered into this container
 	RestfulContainer *restful.Container
@@ -113,6 +114,7 @@ type Master struct {
 	portalNet          *net.IPNet
 
 	mux                   apiserver.Mux
+	muxHelper             *apiserver.MuxHelper
 	handlerContainer      *restful.Container
 	rootWebService        *restful.WebService
 	enableLogsSupport     bool
@@ -195,7 +197,7 @@ func setDefaults(c *Config) {
 			break
 		}
 		if !found {
-			glog.Errorf("Unable to find suitible network address in list: '%v'\n"+
+			glog.Errorf("Unable to find suitable network address in list: '%v'\n"+
 				"Will try again in 5 seconds. Set the public address directly to avoid this wait.", addrs)
 			time.Sleep(5 * time.Second)
 		}
@@ -231,7 +233,8 @@ func New(c *Config) *Master {
 	minionRegistry := makeMinionRegistry(c)
 	serviceRegistry := etcd.NewRegistry(c.EtcdHelper, nil)
 	boundPodFactory := &pod.BasicBoundPodFactory{
-		ServiceRegistry: serviceRegistry,
+		ServiceRegistry:        serviceRegistry,
+		MasterServiceNamespace: c.MasterServiceNamespace,
 	}
 	if c.KubeletClient == nil {
 		glog.Fatalf("master.New() called with config.KubeletClient == nil")
@@ -272,6 +275,7 @@ func New(c *Config) *Master {
 		m.mux = mux
 		m.handlerContainer = NewHandlerContainer(mux)
 	}
+	m.muxHelper = &apiserver.MuxHelper{m.mux, []string{}}
 
 	m.masterServices = util.NewRunner(m.serviceWriterLoop, m.roServiceWriterLoop)
 	m.init(c)
@@ -287,7 +291,7 @@ func (m *Master) HandleWithAuth(pattern string, handler http.Handler) {
 	// sensible policy defaults for plugged-in endpoints.  This will be different
 	// for generic endpoints versus REST object endpoints.
 	// TODO: convert to go-restful
-	m.mux.Handle(pattern, handler)
+	m.muxHelper.Handle(pattern, handler)
 }
 
 // HandleFuncWithAuth adds an http.Handler for pattern to an http.ServeMux
@@ -295,7 +299,7 @@ func (m *Master) HandleWithAuth(pattern string, handler http.Handler) {
 // to the request is used for the master's built-in endpoints.
 func (m *Master) HandleFuncWithAuth(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	// TODO: convert to go-restful
-	m.mux.HandleFunc(pattern, handler)
+	m.muxHelper.HandleFunc(pattern, handler)
 }
 
 func NewHandlerContainer(mux *http.ServeMux) *restful.Container {
@@ -360,28 +364,34 @@ func (m *Master) init(c *Config) {
 	}
 
 	apiVersions := []string{"v1beta1", "v1beta2"}
-	apiserver.NewAPIGroupVersion(m.API_v1beta1()).InstallREST(m.handlerContainer, c.APIPrefix, "v1beta1")
-	apiserver.NewAPIGroupVersion(m.API_v1beta2()).InstallREST(m.handlerContainer, c.APIPrefix, "v1beta2")
+	if err := apiserver.NewAPIGroupVersion(m.api_v1beta1()).InstallREST(m.handlerContainer, m.muxHelper, c.APIPrefix, "v1beta1"); err != nil {
+		glog.Fatalf("Unable to setup API v1beta1: %v", err)
+	}
+	if err := apiserver.NewAPIGroupVersion(m.api_v1beta2()).InstallREST(m.handlerContainer, m.muxHelper, c.APIPrefix, "v1beta2"); err != nil {
+		glog.Fatalf("Unable to setup API v1beta2: %v", err)
+	}
 	if c.EnableV1Beta3 {
-		apiserver.NewAPIGroupVersion(m.API_v1beta3()).InstallREST(m.handlerContainer, c.APIPrefix, "v1beta3")
+		if err := apiserver.NewAPIGroupVersion(m.api_v1beta3()).InstallREST(m.handlerContainer, m.muxHelper, c.APIPrefix, "v1beta3"); err != nil {
+			glog.Fatalf("Unable to setup API v1beta3: %v", err)
+		}
 		apiVersions = []string{"v1beta1", "v1beta2", "v1beta3"}
 	}
 
-	apiserver.InstallSupport(m.handlerContainer, m.rootWebService)
+	apiserver.InstallSupport(m.muxHelper, m.rootWebService)
 	apiserver.AddApiWebService(m.handlerContainer, c.APIPrefix, apiVersions)
 
 	// Register root handler.
 	// We do not register this using restful Webservice since we do not want to surface this in api docs.
-	//m.mux.HandleFunc("/", apiserver.HandleIndex)
+	m.mux.HandleFunc("/", apiserver.IndexHandler(m.handlerContainer, m.muxHelper))
 
 	// TODO: use go-restful
-	apiserver.InstallValidator(m.mux, func() map[string]apiserver.Server { return m.getServersToValidate(c) })
+	apiserver.InstallValidator(m.muxHelper, func() map[string]apiserver.Server { return m.getServersToValidate(c) })
 	if c.EnableLogsSupport {
-		apiserver.InstallLogsSupport(m.mux)
+		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	/*if c.EnableUISupport {
-		ui.InstallSupport(m.mux)
-	}*/
+	if c.EnableUISupport {
+		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
+	}
 
 	// TODO: install runtime/pprof handler
 	// See github.com/emicklei/go-restful/blob/master/examples/restful-cpuprofiler-service.go
@@ -478,8 +488,8 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 	return serversToValidate
 }
 
-// API_v1beta1 returns the resources and codec for API version v1beta1.
-func (m *Master) API_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
+// api_v1beta1 returns the resources and codec for API version v1beta1.
+func (m *Master) api_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		storage[k] = v
@@ -487,8 +497,8 @@ func (m *Master) API_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec,
 	return storage, v1beta1.Codec, "/api/v1beta1", latest.SelfLinker, m.admissionControl
 }
 
-// API_v1beta2 returns the resources and codec for API version v1beta2.
-func (m *Master) API_v1beta2() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
+// api_v1beta2 returns the resources and codec for API version v1beta2.
+func (m *Master) api_v1beta2() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		storage[k] = v
@@ -496,8 +506,8 @@ func (m *Master) API_v1beta2() (map[string]apiserver.RESTStorage, runtime.Codec,
 	return storage, v1beta2.Codec, "/api/v1beta2", latest.SelfLinker, m.admissionControl
 }
 
-// API_v1beta3 returns the resources and codec for API version v1beta3.
-func (m *Master) API_v1beta3() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
+// api_v1beta3 returns the resources and codec for API version v1beta3.
+func (m *Master) api_v1beta3() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		if k == "minions" {
