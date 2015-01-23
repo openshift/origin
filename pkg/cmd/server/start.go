@@ -110,8 +110,8 @@ func NewCommandStartServer(name string) *cobra.Command {
 		EtcdAddr:             flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
 		KubernetesAddr:       flagtypes.Addr{DefaultScheme: "https", DefaultPort: 8443}.Default(),
 		PortalNet:            flagtypes.DefaultIPNet("172.30.17.0/24"),
-		MasterPublicAddr:     flagtypes.Addr{Value: hostname, DefaultScheme: "https", DefaultPort: 443, AllowPrefix: true}.Default(),
-		KubernetesPublicAddr: flagtypes.Addr{Value: hostname, DefaultScheme: "https", DefaultPort: 443}.Default(),
+		MasterPublicAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 
 		Hostname: hostname,
 		NodeList: flagtypes.StringList{"127.0.0.1"},
@@ -246,20 +246,27 @@ func start(cfg *config, args []string) error {
 			k8sPublicAddr = cfg.KubernetesAddr
 		}
 
-		assetAddr := net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
+		// Derive the asset bind address by incrementing the master bind address port by 1
+		assetBindAddr := net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
+		// Derive the asset public address by incrementing the master public address port by 1
+		assetPublicAddr := *masterPublicAddr.URL
+		assetPublicAddr.Host = net.JoinHostPort(masterPublicAddr.Host, strconv.Itoa(masterPublicAddr.Port+1))
 
 		// always include the all-in-one server's web console as an allowed CORS origin
 		// always include localhost as an allowed CORS origin
 		// always include master and kubernetes public addresses as an allowed CORS origin
-		cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, assetAddr, "localhost", "127.0.0.1",
-			cfg.MasterPublicAddr.URL.Host, cfg.KubernetesPublicAddr.URL.Host)
+		for _, origin := range []string{assetPublicAddr.Host, masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host, "localhost", "127.0.0.1"} {
+			// TODO: check if origin is already allowed
+			cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, origin)
+		}
 
 		osmaster := &origin.MasterConfig{
-			TLS:                   cfg.MasterAddr.URL.Scheme == "https",
-			BindAddr:              cfg.BindAddr.URL.Host,
+			TLS:                   cfg.BindAddr.URL.Scheme == "https",
+			MasterBindAddr:        cfg.BindAddr.URL.Host,
 			MasterAddr:            cfg.MasterAddr.URL.String(),
 			MasterPublicAddr:      masterPublicAddr.URL.String(),
-			AssetAddr:             assetAddr,
+			AssetBindAddr:         assetBindAddr,
+			AssetPublicAddr:       assetPublicAddr.String(),
 			KubernetesAddr:        cfg.KubernetesAddr.URL.String(),
 			KubernetesPublicAddr:  k8sPublicAddr.URL.String(),
 			EtcdHelper:            etcdHelper,
@@ -344,10 +351,11 @@ func start(cfg *config, args []string) error {
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
 		auth := &origin.AuthConfig{
-			MasterAddr:     cfg.MasterAddr.URL.String(),
-			MasterRoots:    roots,
-			SessionSecrets: []string{"secret"},
-			EtcdHelper:     etcdHelper,
+			MasterAddr:       cfg.MasterAddr.URL.String(),
+			MasterPublicAddr: masterPublicAddr.URL.String(),
+			MasterRoots:      roots,
+			SessionSecrets:   []string{"secret"},
+			EtcdHelper:       etcdHelper,
 		}
 
 		if startKube {

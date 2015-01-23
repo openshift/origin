@@ -76,10 +76,13 @@ var (
 )
 
 type AuthConfig struct {
-	MasterAddr     string
-	MasterRoots    *x509.CertPool
-	SessionSecrets []string
-	EtcdHelper     tools.EtcdHelper
+	// URL to call internally during token request
+	MasterAddr string
+	// URL to direct browsers to the master on
+	MasterPublicAddr string
+	MasterRoots      *x509.CertPool
+	SessionSecrets   []string
+	EtcdHelper       tools.EtcdHelper
 }
 
 // InstallAPI starts an OAuth2 server and registers the supported REST APIs
@@ -122,9 +125,9 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 
-	CreateOrUpdateDefaultOAuthClients(c.MasterAddr, oauthEtcd)
+	CreateOrUpdateDefaultOAuthClients(c.MasterPublicAddr, oauthEtcd)
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
-	osOAuthClientConfig.RedirectUrl = c.MasterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint
+	osOAuthClientConfig.RedirectUrl = c.MasterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
 	if c.MasterRoots != nil {
@@ -157,14 +160,14 @@ func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.Client) *osi
 		ClientSecret:             client.Secret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             c.MasterAddr + OpenShiftOAuthAPIPrefix + "/authorize",
+		AuthorizeUrl:             c.MasterPublicAddr + OpenShiftOAuthAPIPrefix + "/authorize",
 		TokenUrl:                 c.MasterAddr + OpenShiftOAuthAPIPrefix + "/token",
 		Scope:                    "",
 	}
 	return config
 }
 
-func CreateOrUpdateDefaultOAuthClients(masterAddr string, clientRegistry oauthclient.Registry) {
+func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, clientRegistry oauthclient.Registry) {
 	clientsToEnsure := []*oauthapi.Client{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -172,7 +175,7 @@ func CreateOrUpdateDefaultOAuthClients(masterAddr string, clientRegistry oauthcl
 			},
 			Secret:                OSBrowserClientBase.Secret,
 			RespondWithChallenges: OSBrowserClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+			RedirectURIs:          []string{masterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -180,7 +183,7 @@ func CreateOrUpdateDefaultOAuthClients(masterAddr string, clientRegistry oauthcl
 			},
 			Secret:                OSCliClientBase.Secret,
 			RespondWithChallenges: OSCliClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+			RedirectURIs:          []string{masterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
 		},
 	}
 
@@ -256,7 +259,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 		}
 
 		state := external.DefaultState()
-		oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.MasterAddr+callbackPath, successHandler, errorHandler, identityMapper)
+		oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.MasterPublicAddr+callbackPath, successHandler, errorHandler, identityMapper)
 		if err != nil {
 			glog.Fatalf("unexpected error: %v", err)
 		}
