@@ -25,6 +25,8 @@ trap cleanup EXIT SIGINT
 
 set -e
 
+export OPENSHIFT_ON_PANIC=crash
+
 USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}

@@ -25,6 +25,7 @@ source "${OS_ROOT}/hack/util.sh"
 
 echo "[INFO] Starting end-to-end test"
 
+export OPENSHIFT_ON_PANIC=crash
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 
