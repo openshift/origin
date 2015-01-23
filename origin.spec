@@ -76,6 +76,8 @@ install -m 0644 rel-eng/openshift.sysconfig %{buildroot}%{_sysconfdir}/sysconfig
 
 mkdir -p %{buildroot}/var/log/%{name}
 
+mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
+
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
 
 %files
@@ -86,6 +88,7 @@ ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
 %{_bindir}/osc
 %{_unitdir}/*.service
 %config(noreplace) %{_sysconfdir}/sysconfig/openshift
+%{_sharedstatedir}/%{name}
 
 %post
 %systemd_post %{basename:openshift.service}
