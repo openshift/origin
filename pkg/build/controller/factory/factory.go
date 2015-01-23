@@ -27,16 +27,18 @@ type BuildControllerFactory struct {
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	STIBuildStrategy    *strategy.STIBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
+	// Stop may be set to allow controllers created by this factory to be terminated.
+	Stop <-chan struct{}
 
 	buildStore cache.Store
 }
 
 func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	factory.buildStore = cache.NewStore()
-	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, factory.buildStore).Run()
+	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, factory.buildStore).RunUntil(factory.Stop)
 
 	buildQueue := cache.NewFIFO()
-	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildQueue).Run()
+	cache.NewReflector(&buildLW{client: factory.Client}, &buildapi.Build{}, buildQueue).RunUntil(factory.Stop)
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)
@@ -47,17 +49,23 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	// TODO: Find a way to get watch events for Pod/container status updates. The polling
 	// strategy is horribly inefficient and should be addressed upstream somehow.
 	podQueue := cache.NewFIFO()
-	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).Run()
+	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).RunUntil(factory.Stop)
 
+	client := ControllerClient{factory.KubeClient, factory.Client}
 	return &controller.BuildController{
-		BuildStore:   factory.buildStore,
-		BuildUpdater: ClientBuildUpdater{factory.Client},
-		PodManager:   ClientPodManager{factory.KubeClient},
+		BuildStore:            factory.buildStore,
+		BuildUpdater:          client,
+		ImageRepositoryClient: client,
+		PodManager:            client,
 		NextBuild: func() *buildapi.Build {
-			return buildQueue.Pop().(*buildapi.Build)
+			build := buildQueue.Pop().(*buildapi.Build)
+			panicIfStopped(factory.Stop, "build controller stopped")
+			return build
 		},
 		NextPod: func() *kapi.Pod {
-			return podQueue.Pop().(*kapi.Pod)
+			pod := podQueue.Pop().(*kapi.Pod)
+			panicIfStopped(factory.Stop, "build controller stopped")
+			return pod
 		},
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
@@ -79,15 +87,16 @@ type ImageChangeControllerFactory struct {
 // image is available
 func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
 	queue := cache.NewFIFO()
-	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).Run()
+	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).RunUntil(factory.Stop)
 
 	store := cache.NewStore()
-	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).Run()
+	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).RunUntil(factory.Stop)
 
+	client := ControllerClient{nil, factory.Client}
 	return &controller.ImageChangeController{
 		BuildConfigStore:   store,
-		BuildConfigUpdater: &ClientBuildConfigUpdater{factory.Client},
-		BuildCreator:       &ClientBuildCreator{factory.Client},
+		BuildConfigUpdater: client,
+		BuildCreator:       client,
 		NextImageRepository: func() *imageapi.ImageRepository {
 			repo := queue.Pop().(*imageapi.ImageRepository)
 			panicIfStopped(factory.Stop, "build image change controller stopped")
@@ -210,38 +219,29 @@ func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, err
 	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 }
 
-// ClientPodManager is a PodManager which delegates to the Kubernetes client interface.
-type ClientPodManager struct {
+// ControllerClient implements the common interfaces needed for build controllers
+type ControllerClient struct {
 	KubeClient kclient.Interface
+	Client     osclient.Interface
 }
 
 // CreatePod creates a pod using the Kubernetes client.
-func (c ClientPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (c ControllerClient) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return c.KubeClient.Pods(namespace).Create(pod)
 }
 
 // DeletePod destroys a pod using the Kubernetes client.
-func (c ClientPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+func (c ControllerClient) DeletePod(namespace string, pod *kapi.Pod) error {
 	return c.KubeClient.Pods(namespace).Delete(pod.Name)
 }
 
-// ClientBuildUpdater is a buildUpdater which delegates to the OpenShift client interfaces.
-type ClientBuildUpdater struct {
-	Client osclient.Interface
-}
-
 // UpdateBuild updates build using the OpenShift client.
-func (c ClientBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
+func (c ControllerClient) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
 	return c.Client.Builds(namespace).Update(build)
 }
 
-// ClientBuildCreator is a buildCreator which delegates to the OpenShift client interfaces.
-type ClientBuildCreator struct {
-	Client osclient.Interface
-}
-
-// UpdateBuild updates build using the OpenShift client.
-func (c *ClientBuildCreator) CreateBuild(config *buildapi.BuildConfig, imageSubstitutions map[string]string) error {
+// CreateBuild updates build using the OpenShift client.
+func (c ControllerClient) CreateBuild(config *buildapi.BuildConfig, imageSubstitutions map[string]string) error {
 	build := buildutil.GenerateBuildFromConfig(config, nil)
 	for originalImage, newImage := range imageSubstitutions {
 		buildutil.SubstituteImageReferences(build, originalImage, newImage)
@@ -253,13 +253,13 @@ func (c *ClientBuildCreator) CreateBuild(config *buildapi.BuildConfig, imageSubs
 	return nil
 }
 
-// ClientBuildConfigUpdater is a buildConfigUpdater which delegates to the OpenShift client interfaces.
-type ClientBuildConfigUpdater struct {
-	Client osclient.Interface
-}
-
 // UpdateBuildConfig updates buildConfig using the OpenShift client.
-func (c *ClientBuildConfigUpdater) UpdateBuildConfig(buildConfig *buildapi.BuildConfig) error {
+func (c ControllerClient) UpdateBuildConfig(buildConfig *buildapi.BuildConfig) error {
 	_, err := c.Client.BuildConfigs(buildConfig.Namespace).Update(buildConfig)
 	return err
+}
+
+// GetImageRepository retrieves an image repository by namespace and name
+func (c ControllerClient) GetImageRepository(namespace, name string) (*imageapi.ImageRepository, error) {
+	return c.Client.ImageRepositories(namespace).Get(name)
 }

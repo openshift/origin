@@ -1,11 +1,11 @@
 package strategy
 
 import (
-	"encoding/json"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
@@ -20,6 +20,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
 		UseLocalImages:       true,
+		Codec:                v1beta1.Codec,
 	}
 
 	expected := mockSTIBuild()
@@ -44,7 +45,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if len(container.Env) != 1 {
 		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))
 	}
-	buildJSON, _ := json.Marshal(expected)
+	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -80,8 +81,7 @@ func mockSTIBuild() *buildapi.Build {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/stiBuild",
-				Registry: "docker-registry",
+				DockerImageReference: "docker-registry/repository/stiBuild",
 			},
 		},
 		Status:  buildapi.BuildStatusNew,

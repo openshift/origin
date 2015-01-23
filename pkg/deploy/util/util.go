@@ -5,80 +5,25 @@ import (
 	"fmt"
 	"hash/adler32"
 	"strconv"
-	"strings"
 
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-// LatestDeploymentIDForConfig returns a stable identifier for config based on its version.
-func LatestDeploymentIDForConfig(config *deployapi.DeploymentConfig) string {
+// LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
+func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 	return config.Name + "-" + strconv.Itoa(config.LatestVersion)
-}
-
-func ParamsForImageChangeTrigger(config *deployapi.DeploymentConfig, repoName string) *deployapi.DeploymentTriggerImageChangeParams {
-	if config == nil || config.Triggers == nil {
-		return nil
-	}
-
-	for _, trigger := range config.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnImageChange && trigger.ImageChangeParams.RepositoryName == repoName {
-			return trigger.ImageChangeParams
-		}
-	}
-
-	return nil
-}
-
-// Set a-b
-func Difference(a, b util.StringSet) util.StringSet {
-	diff := util.StringSet{}
-
-	if a == nil || b == nil {
-		return diff
-	}
-
-	for _, s := range a.List() {
-		if !b.Has(s) {
-			diff.Insert(s)
-		}
-	}
-
-	return diff
-}
-
-// Returns a map of referenced image name to image version
-func ReferencedImages(deployment *deployapi.Deployment) map[string]string {
-	result := make(map[string]string)
-
-	if deployment == nil {
-		return result
-	}
-
-	for _, container := range deployment.ControllerTemplate.Template.Spec.Containers {
-		name, version := ParseContainerImage(container.Image)
-		result[name] = version
-	}
-
-	return result
-}
-
-func ParseContainerImage(image string) (string, string) {
-	tokens := strings.Split(image, ":")
-	return tokens[0], tokens[1]
 }
 
 // HashPodSpecs hashes a PodSpec into a uint64.
 // TODO: Resources are currently ignored due to the formats not surviving encoding/decoding
 // in a consistent manner (e.g. 0 is represented sometimes as 0.000)
 func HashPodSpec(t api.PodSpec) uint64 {
-
 	for i := range t.Containers {
 		t.Containers[i].CPU = resource.Quantity{}
 		t.Containers[i].Memory = resource.Quantity{}
@@ -135,7 +80,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 
 	deployment := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
-			Name: LatestDeploymentIDForConfig(config),
+			Name: LatestDeploymentNameForConfig(config),
 			Annotations: map[string]string{
 				deployapi.DeploymentConfigAnnotation:        config.Name,
 				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),

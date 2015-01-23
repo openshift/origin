@@ -47,6 +47,8 @@ fi
 
 OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-""}
 
+export OPENSHIFT_ON_PANIC=crash
+
 if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
   # Iterate over packages to run coverage
   test_packages=( $test_packages )

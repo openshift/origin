@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // BuildController watches build resources and manages their state
@@ -21,6 +22,8 @@ type BuildController struct {
 	BuildUpdater  buildUpdater
 	PodManager    podManager
 	BuildStrategy BuildStrategy
+
+	ImageRepositoryClient imageRepositoryClient
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -37,6 +40,10 @@ type podManager interface {
 	DeletePod(namespace string, pod *kapi.Pod) error
 }
 
+type imageRepositoryClient interface {
+	GetImageRepository(namespace, name string) (*imageapi.ImageRepository, error)
+}
+
 // Run begins watching and syncing build jobs onto the cluster.
 func (bc *BuildController) Run() {
 	go util.Forever(func() { bc.HandleBuild(bc.NextBuild()) }, 0)
@@ -51,39 +58,78 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) {
 		return
 	}
 
-	nextStatus := buildapi.BuildStatusFailed
-	build.PodName = fmt.Sprintf("build-%s", build.Name)
+	if err := bc.nextBuildStatus(build); err != nil {
+		// TODO: all build errors should be retried, and build error should not be a permanent status change.
+		// Instead, we should requeue this build request using the same backoff logic as the scheduler.
+		// BuildStatusError should be reserved for meaning "permanently errored, no way to try again".
+		glog.V(4).Infof("Build failed with error %s/%s: %#v", build.Namespace, build.Name, err)
+		build.Status = buildapi.BuildStatusError
+		build.Message = err.Error()
+	}
 
+	if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
+		glog.V(2).Infof("Failed to record changes to build %s/%s: %#v", build.Namespace, build.Name, err)
+	}
+}
+
+// nextBuildStatus updates build with any appropriate changes, or returns an error if
+// the change cannot occur. When returning nil, be sure to set build.Status and optionally
+// build.Message.
+func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 	// If a cancelling event was triggered for the build, update build status.
 	if build.Cancelled {
-		glog.V(2).Infof("Cancelling build %s.", build.Name)
-		nextStatus = buildapi.BuildStatusCancelled
+		glog.V(4).Infof("Cancelling build %s.", build.Name)
+		build.Status = buildapi.BuildStatusCancelled
+		return nil
+	}
 
-	} else {
-
-		var podSpec *kapi.Pod
-		var err error
-		if podSpec, err = bc.BuildStrategy.CreateBuildPod(build); err != nil {
-			glog.V(2).Infof("Strategy failed to create build pod definition: %v", err)
-			nextStatus = buildapi.BuildStatusFailed
-		} else {
-
-			if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
-				if !errors.IsAlreadyExists(err) {
-					glog.V(2).Infof("Failed to create pod for build %s: %#v", build.Name, err)
-					nextStatus = buildapi.BuildStatusFailed
-				}
-			} else {
-				glog.V(2).Infof("Created build pod: %#v", podSpec)
-				nextStatus = buildapi.BuildStatusPending
-			}
+	// lookup the destination from the referenced image repository
+	spec := build.Parameters.Output.DockerImageReference
+	if ref := build.Parameters.Output.To; ref != nil {
+		// TODO: security, ensure that the reference image stream is actually visible
+		namespace := ref.Namespace
+		if len(namespace) == 0 {
+			namespace = build.Namespace
 		}
+
+		repo, err := bc.ImageRepositoryClient.GetImageRepository(namespace, ref.Name)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return fmt.Errorf("the referenced output image repository %s/%s does not exist", namespace, ref.Name)
+			}
+			return fmt.Errorf("the referenced output repo %s/%s could not be found by %s/%s: %v", namespace, ref.Name, build.Namespace, build.Name, err)
+		}
+		spec = repo.Status.DockerImageRepository
 	}
 
-	build.Status = nextStatus
-	if _, err := bc.BuildUpdater.UpdateBuild(build.Namespace, build); err != nil {
-		glog.V(2).Infof("Failed to update build %s: %#v", build.Name, err)
+	// set the expected build parameters, which will be saved if no error occurs
+	build.Status = buildapi.BuildStatusPending
+	build.PodName = fmt.Sprintf("build-%s", build.Name)
+
+	// override DockerImageReference in the strategy for the copy we send to the server
+	copy, err := kapi.Scheme.Copy(build)
+	if err != nil {
+		return fmt.Errorf("unable to copy build: %v", err)
 	}
+	buildCopy := copy.(*buildapi.Build)
+	buildCopy.Parameters.Output.DockerImageReference = spec
+
+	// invoke the strategy to get a build pod
+	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
+	if err != nil {
+		return fmt.Errorf("the strategy failed to create a build pod for %s/%s: %v", build.Namespace, build.Name, err)
+	}
+
+	if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
+		if errors.IsAlreadyExists(err) {
+			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
+			return nil
+		}
+		return fmt.Errorf("failed to create pod for build %s/%s: s", build.Namespace, build.Name, err)
+	}
+
+	glog.V(4).Infof("Created pod for build: %#v", podSpec)
+	return nil
 }
 
 func (bc *BuildController) HandlePod(pod *kapi.Pod) {

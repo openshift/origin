@@ -1,11 +1,11 @@
 package strategy
 
 import (
-	"encoding/json"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
@@ -13,6 +13,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	strategy := DockerBuildStrategy{
 		Image:          "docker-test-image",
 		UseLocalImages: true,
+		Codec:          v1beta1.Codec,
 	}
 
 	expected := mockDockerBuild()
@@ -38,7 +39,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if len(container.Env) != 1 {
 		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))
 	}
-	buildJSON, _ := json.Marshal(expected)
+	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -71,8 +72,7 @@ func mockDockerBuild() *buildapi.Build {
 				DockerStrategy: &buildapi.DockerBuildStrategy{ContextDir: "my/test/dir"},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/dockerBuild",
-				Registry: "docker-registry",
+				DockerImageReference: "docker-registry/repository/dockerBuild",
 			},
 		},
 		Status:  buildapi.BuildStatusNew,

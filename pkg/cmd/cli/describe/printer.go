@@ -119,7 +119,7 @@ func printImageRepository(repo *imageapi.ImageRepository, w io.Writer) error {
 		}
 		tags = strings.Join(t, ",")
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", repo.Name, repo.DockerImageRepository, tags)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", repo.Name, repo.Status.DockerImageRepository, tags)
 	return err
 }
 

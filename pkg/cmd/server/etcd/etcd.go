@@ -1,6 +1,8 @@
 package etcd
 
 import (
+	"time"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	etcdconfig "github.com/coreos/etcd/config"
 	"github.com/coreos/etcd/etcd"
@@ -29,6 +31,6 @@ func (c *Config) Run() {
 		glog.Infof("Started etcd at %s", config.Addr)
 		server.Run()
 		glog.Fatalf("etcd died, exiting.")
-	}, 0)
+	}, 500*time.Millisecond)
 	<-server.ReadyNotify()
 }

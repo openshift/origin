@@ -16,6 +16,9 @@ type Build struct {
 	// Status is the current status of the build.
 	Status BuildStatus `json:"status,omitempty"`
 
+	// A human readable message indicating details about why the build has this status
+	Message string `json:"message,omitempty"`
+
 	// PodName is the name of the pod that is used to execute the build
 	PodName string `json:"podName,omitempty"`
 
@@ -201,10 +204,30 @@ type STIBuildStrategy struct {
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
 // should produce.
 type BuildOutput struct {
+	// To defines an optional ImageRepository to push the output of this build to. The namespace
+	// may be empty, in which case the ImageRepository will be looked for in the namespace of
+	// the build. Kind must be set to 'ImageRepository' and is the only supported value. If set,
+	// this field takes priority over DockerImageReference. This value will be used to look up
+	// a Docker image repository to push to.
+	To *kapi.ObjectReference `json:"to,omitempty"`
+
+	// Tag is the "version" that will be set on the remote server when the image is created. This
+	// field is only used if the To field is set, and is ignored when DockerImageReference is used.
+	// This value represents a consistent name for a set of related changes (v1, 5.x, 5.5, dev, stable)
+	// and defaults to the preferred label for "To" if not specified.
+	Tag string `json:"tag,omitempty"`
+
+	// DockerImageReference is the full name of an image ([registry/]name[:tag]), and will be the
+	// value sent to Docker push at the end of a build.  If set, this field takes priority over
+	// ImageTag and Registry.
+	DockerImageReference string `json:"dockerImageReference,omitempty"`
+
 	// ImageTag is the tag to give to the image resulting from the build.
+	// DEPRECATED: use DockerImageReference
 	ImageTag string `json:"imageTag,omitempty"`
 
 	// Registry is the Docker registry which should receive the resulting built image via push.
+	// DEPRECATED: use DockerImageReference
 	Registry string `json:"registry,omitempty"`
 }
 
@@ -221,7 +244,8 @@ type BuildConfig struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers,omitempty"`
 
-	// Parameters holds all the input necessary to produce a new build.
+	// Parameters holds all the input necessary to produce a new build. A build config may only
+	// define either the Output.To or Output.DockerImageReference fields, but not both.
 	Parameters BuildParameters `json:"parameters,omitempty"`
 }
 
@@ -235,8 +259,16 @@ type WebHookTrigger struct {
 type ImageChangeTrigger struct {
 	// Image is used to specify the value in the BuildConfig to replace with the
 	// immutable image id supplied by the ImageRepository when this trigger fires.
-	Image string `json:"image"`
+	Image          string `json:"image"`
+	RepositoryName string `json:"repositoryName,omitempty"`
+	// From is a reference to a Docker image repository to watch for changes. This field takes
+	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta2. The
+	// Kind may be left blank, in which case it defaults to "ImageRepository". The "Name" is
+	// the only required subfield - if Namespace is blank, the namespace of the current deployment
+	// trigger will be used.
+	From kapi.ObjectReference `json:"from"`
 	// ImageRepositoryRef a reference to a Docker image repository to watch for changes.
+	// DEPRECATED: replaced by From
 	ImageRepositoryRef *kapi.ObjectReference `json:"imageRepositoryRef"`
 	// Tag is the name of an image repository tag to watch for changes.
 	Tag string `json:"tag,omitempty"`

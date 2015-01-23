@@ -87,6 +87,9 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // findRepositoryForMapping retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.
 func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepositoryMapping) (*api.ImageRepository, error) {
+	if len(mapping.Name) > 0 {
+		return s.imageRepositoryRegistry.GetImageRepository(ctx, mapping.Name)
+	}
 	if len(mapping.DockerImageRepository) != 0 {
 		//TODO make this more efficient
 		list, err := s.imageRepositoryRegistry.ListImageRepositories(ctx, labels.Everything())
@@ -102,7 +105,7 @@ func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepo
 			errors.NewFieldNotFound("dockerImageRepository", mapping.DockerImageRepository),
 		})
 	}
-	return s.imageRepositoryRegistry.GetImageRepository(ctx, mapping.Name)
+	return nil, errors.NewNotFound("ImageRepository", "")
 }
 
 // Update is not supported.

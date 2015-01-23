@@ -330,8 +330,7 @@ func mockCustomStrategy() api.BuildStrategy {
 
 func mockOutput() api.BuildOutput {
 	return api.BuildOutput{
-		Registry: "http://localhost:5000",
-		ImageTag: "test/image-tag",
+		DockerImageReference: "http://localhost:5000/test/image-tag",
 	}
 }
 

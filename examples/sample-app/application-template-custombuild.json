@@ -1,7 +1,7 @@
 {
   "metadata":{
     "name": "ruby-helloworld-sample",
-  }, 
+  },
   "kind": "Template",
   "apiVersion": "v1beta1",
   "description": "This example shows how to create a simple ruby application in openshift origin v3",
@@ -44,10 +44,9 @@
     {
       "metadata":{
         "name": "origin-ruby-sample",
-      }, 
+      },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "172.30.17.3:5001/custom/origin-ruby-sample",
       "labels": {
         "name": "origin-ruby-sample"
       }
@@ -58,7 +57,6 @@
       },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "172.30.17.3:5001/openshift/origin-custom-docker-builder",
       "labels": {
         "name": "custom-docker-builder"
       }
@@ -85,8 +83,10 @@
         {
           "type": "imageChange",
           "imageChange": {
-            "image": "172.30.17.3:5001/openshift/origin-custom-docker-builder",
-            "imageRepositoryRef": { "name": "origin-custom-docker-builder"},
+            "image": "openshift/origin-custom-docker-builder",
+            "from": {
+              "name": "origin-custom-docker-builder"
+            },
             "tag":"latest"
           }
         }
@@ -107,8 +107,9 @@
           }
         },
         "output": {
-          "imageTag": "custom/origin-ruby-sample:latest",
-          "registry": "172.30.17.3:5001"
+          "to": {
+            "name": "origin-ruby-sample"
+          }
         },
       },
       "labels": {
@@ -129,7 +130,9 @@
             "containerNames": [
               "ruby-helloworld"
             ],
-            "repositoryName": "172.30.17.3:5001/custom/origin-ruby-sample",
+            "from": {
+              "name": "origin-ruby-sample"
+            },
             "tag": "latest"
           }
         }
@@ -150,7 +153,7 @@
                 "containers": [
                   {
                     "name": "ruby-helloworld",
-                    "image": "172.30.17.3:5001/custom/origin-ruby-sample",
+                    "image": "origin-ruby-sample",
                     "env": [
                       {
                         "name": "ADMIN_USERNAME",

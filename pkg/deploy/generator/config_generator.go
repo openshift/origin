@@ -3,16 +3,14 @@ package generator
 import (
 	"fmt"
 
-	"github.com/golang/glog"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -20,138 +18,223 @@ import (
 // and produces a DeploymentConfig which represents a potential future DeploymentConfig. If the generated
 // state differs from the input state, the LatestVersion field of the output is incremented.
 type DeploymentConfigGenerator struct {
-	DeploymentInterface       deploymentInterface
-	DeploymentConfigInterface deploymentConfigInterface
-	ImageRepositoryInterface  imageRepositoryInterface
-	Codec                     runtime.Codec
+	Client GeneratorClient
+	Codec  runtime.Codec
 }
 
-type deploymentInterface interface {
-	GetDeployment(ctx kapi.Context, id string) (*kapi.ReplicationController, error)
+type GeneratorClient interface {
+	GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
+	GetImageRepository(ctx kapi.Context, name string) (*imageapi.ImageRepository, error)
+	// LEGACY: used, to scan all repositories for a DockerImageReference.  Will be removed
+	// when we drop support for reference by DockerImageReference.
+	ListImageRepositories(ctx kapi.Context) (*imageapi.ImageRepositoryList, error)
 }
 
-type deploymentConfigInterface interface {
-	GetDeploymentConfig(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error)
+type Client struct {
+	DCFn   func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
+	IRFn   func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error)
+	LIRFn  func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error)
+	LIRFn2 func(ctx kapi.Context, label labels.Selector) (*imageapi.ImageRepositoryList, error)
 }
 
-type imageRepositoryInterface interface {
-	ListImageRepositories(ctx kapi.Context, labels labels.Selector) (*imageapi.ImageRepositoryList, error)
+func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+	return c.DCFn(ctx, name)
+}
+func (c Client) GetImageRepository(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+	return c.IRFn(ctx, name)
+}
+func (c Client) ListImageRepositories(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
+	if c.LIRFn2 != nil {
+		return c.LIRFn2(ctx, labels.Everything())
+	}
+	return c.LIRFn(ctx)
 }
 
 // Generate returns a potential future DeploymentConfig based on the DeploymentConfig specified
-// by deploymentConfigID.
-func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, deploymentConfigID string) (*deployapi.DeploymentConfig, error) {
-	glog.V(4).Infof("Generating new deployment config from deploymentConfig %v", deploymentConfigID)
-
-	deploymentConfig, err := g.DeploymentConfigInterface.GetDeploymentConfig(ctx, deploymentConfigID)
+// by namespace and name
+func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+	dc, err := g.Client.GetDeploymentConfig(ctx, name)
 	if err != nil {
-		glog.V(4).Infof("Error getting deploymentConfig for id %v", deploymentConfigID)
 		return nil, err
 	}
 
-	deploymentID := deployutil.LatestDeploymentIDForConfig(deploymentConfig)
-
-	deployment, err := g.DeploymentInterface.GetDeployment(ctx, deploymentID)
-	if err != nil && !errors.IsNotFound(err) {
-		glog.V(2).Infof("Error getting deployment: %#v", err)
-		return nil, err
+	refs, legacy := findReferences(dc)
+	if errs := retrieveReferences(g.Client, ctx, refs, legacy); len(errs) > 0 {
+		return nil, kerrors.NewAggregate(errs)
 	}
-	deploymentExists := !errors.IsNotFound(err)
+	indexed := referencesByIndex(refs, legacy)
+	changed, errs := replaceReferences(dc, indexed)
+	if len(errs) > 0 {
+		return nil, kerrors.NewAggregate(errs)
+	}
+	if changed || dc.LatestVersion == 0 {
+		dc.LatestVersion++
+	}
 
-	configPodTemplateSpec := deploymentConfig.Template.ControllerTemplate.Template
+	return dc, nil
+}
 
-	referencedRepoNames := referencedRepoNames(deploymentConfig)
-	referencedRepos := imageReposByDockerImageRepo(ctx, g.ImageRepositoryInterface, referencedRepoNames)
+type refKey struct {
+	namespace string
+	name      string
+}
 
-	for _, repoName := range referencedRepoNames.List() {
-		params := deployutil.ParamsForImageChangeTrigger(deploymentConfig, repoName)
-		repo, ok := referencedRepos[params.RepositoryName]
-		if !ok {
-			return nil, fmt.Errorf("Config references unknown ImageRepository '%s'", params.RepositoryName)
-		}
+type triggerEntry struct {
+	positions []int
+	repo      *imageapi.ImageRepository
+}
 
-		// TODO: If the tag is missing, what's the correct reaction?
-		tag, tagExists := repo.Tags[params.Tag]
-		if !tagExists {
-			glog.V(4).Infof("No tag %s found for repository %s (potentially invalid DeploymentConfig status)", tag, repoName)
+type triggersByRef map[refKey]*triggerEntry
+type triggersByName map[string]*triggerEntry
+
+// findReferences looks up triggers with references and maps them back to their position in the trigger array.
+func findReferences(dc *deployapi.DeploymentConfig) (refs triggersByRef, legacy triggersByName) {
+	refs, legacy = make(triggersByRef), make(triggersByName)
+
+	for i := range dc.Triggers {
+		trigger := &dc.Triggers[i]
+		if trigger.Type != deployapi.DeploymentTriggerOnImageChange {
 			continue
 		}
 
-		newImage := repo.DockerImageRepository + ":" + tag
-		updateContainers(configPodTemplateSpec, util.NewStringSet(params.ContainerNames...), newImage)
-	}
-
-	if deploymentExists {
-		if deployedConfig, err := deployutil.DecodeDeploymentConfig(deployment, g.Codec); err == nil {
-			if !deployutil.PodSpecsEqual(configPodTemplateSpec.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
-				deploymentConfig.LatestVersion++
-				// reset the details of the deployment trigger for this deploymentConfig
-				deploymentConfig.Details = nil
-				glog.V(4).Infof("Incremented deploymentConfig %s to %d due to template inequality with deployed config", deploymentConfig.Name, deploymentConfig.LatestVersion)
-			} else {
-				glog.V(4).Infof("No diff detected between deploymentConfig %s and deployed config %s", deploymentConfig.Name, deployedConfig.Name)
+		// use the object reference to find the image repository
+		if from := &trigger.ImageChangeParams.From; len(from.Name) != 0 {
+			k := refKey{
+				namespace: from.Namespace,
+				name:      from.Name,
 			}
-		} else {
-			glog.V(0).Infof("Failed to decode DeploymentConfig from deployment %s: %v", deployment.Name, err)
-		}
-	} else {
-		if deploymentConfig.LatestVersion == 0 {
-			// If the latest version is zero, and the generation's being called, bump it.
-			deploymentConfig.LatestVersion = 1
-			// reset the details of the deployment trigger for this deploymentConfig
-			deploymentConfig.Details = nil
-			glog.V(4).Infof("Set deploymentConfig %s to version %d for initial deployment", deploymentConfig.Name, deploymentConfig.LatestVersion)
-		}
-	}
-
-	return deploymentConfig, nil
-}
-
-func updateContainers(template *kapi.PodTemplateSpec, containers util.StringSet, newImage string) {
-	for i, container := range template.Spec.Containers {
-		if !containers.Has(container.Name) {
+			if len(k.namespace) == 0 {
+				k.namespace = dc.Namespace
+			}
+			trigger, ok := refs[k]
+			if !ok {
+				trigger = &triggerEntry{}
+				refs[k] = trigger
+			}
+			trigger.positions = append(trigger.positions, i)
 			continue
 		}
 
-		// TODO: If we grow beyond this single mutation, diffing hashes of
-		// a clone of the original config vs the mutation would be more generic.
-		if newImage != container.Image {
-			template.Spec.Containers[i].Image = newImage
+		// use the old way of looking up the name
+		// DEPRECATED: this path will be removed soon
+		if k := trigger.ImageChangeParams.RepositoryName; len(k) != 0 {
+			trigger, ok := legacy[k]
+			if !ok {
+				trigger = &triggerEntry{}
+				legacy[k] = trigger
+			}
+			trigger.positions = append(trigger.positions, i)
+			continue
 		}
 	}
+	return
 }
 
-func imageReposByDockerImageRepo(ctx kapi.Context, imageRepoInterface imageRepositoryInterface, filter *util.StringSet) map[string]imageapi.ImageRepository {
-	repos := make(map[string]imageapi.ImageRepository)
+// retrieveReferences loads the repositories referenced by a deployment config
+func retrieveReferences(client GeneratorClient, ctx kapi.Context, refs triggersByRef, legacy triggersByName) []error {
+	errs := []error{}
 
-	imageRepos, err := imageRepoInterface.ListImageRepositories(ctx, labels.Everything())
-	if err != nil {
-		glog.V(2).Infof("Error listing imageRepositories: %#v", err)
-		return repos
+	// fetch repositories directly
+	for k, v := range refs {
+		repo, err := client.GetImageRepository(kapi.WithNamespace(ctx, k.namespace), k.name)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		v.repo = repo
 	}
 
-	for _, repo := range imageRepos.Items {
-		if filter.Has(repo.DockerImageRepository) {
-			repos[repo.DockerImageRepository] = repo
+	// look for legacy references that we've already loaded
+	// DEPRECATED: remove all code below this line when the reference logic is removed
+	missing := make(triggersByName)
+	for k, v := range legacy {
+		for _, ref := range refs {
+			if ref.repo.Status.DockerImageRepository == k {
+				v.repo = ref.repo
+				break
+			}
+		}
+		if v.repo == nil {
+			missing[k] = v
 		}
 	}
 
+	// if we haven't loaded the references, do the more expensive list all
+	if len(missing) != 0 {
+		repos, err := client.ListImageRepositories(ctx)
+		if err != nil {
+			errs = append(errs, err)
+			return errs
+		}
+
+		for k, ref := range missing {
+			for i := range repos.Items {
+				repo := &repos.Items[i]
+				if repo.DockerImageRepository == k {
+					ref.repo = repo
+					break
+				}
+			}
+			if ref.repo == nil {
+				errs = append(errs, errors.NewFieldNotFound("dockerImageRepository", k))
+			}
+		}
+	}
+	return errs
+}
+
+type reposByIndex map[int]*imageapi.ImageRepository
+
+func referencesByIndex(refs triggersByRef, legacy triggersByName) reposByIndex {
+	repos := make(reposByIndex)
+	for _, v := range refs {
+		for _, i := range v.positions {
+			repos[i] = v.repo
+		}
+	}
+	for _, v := range legacy {
+		for _, i := range v.positions {
+			repos[i] = v.repo
+		}
+	}
 	return repos
 }
 
-// Returns the image repositories names a config has triggers registered for
-func referencedRepoNames(config *deployapi.DeploymentConfig) *util.StringSet {
-	repoIDs := &util.StringSet{}
+func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (changed bool, errs []error) {
+	template := dc.Template.ControllerTemplate.Template
+	for i, repo := range repos {
+		params := dc.Triggers[i].ImageChangeParams
 
-	if config == nil || config.Triggers == nil {
-		return repoIDs
-	}
+		// lookup image id
+		tag := params.Tag
+		if len(tag) == 0 {
+			// TODO: replace with "preferred tag" from repo
+			tag = "latest"
+		}
+		id, ok := repo.Tags[tag]
+		if !ok {
+			errs = append(errs, fmt.Errorf("image repository %s/%s does not have tag %q", repo.Namespace, repo.Name))
+			continue
+		}
+		if len(repo.Status.DockerImageRepository) == 0 {
+			errs = append(errs, fmt.Errorf("image repository %s/%s does not have a Docker image repository reference set and can't be used in a deployment config trigger", repo.Namespace, repo.Name))
+			continue
+		}
+		// TODO: this assumes that tag value is the image id
+		image := fmt.Sprintf("%s:%s", repo.Status.DockerImageRepository, id)
 
-	for _, trigger := range config.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
-			repoIDs.Insert(trigger.ImageChangeParams.RepositoryName)
+		// update containers
+		names := util.NewStringSet(params.ContainerNames...)
+		for i := range template.Spec.Containers {
+			container := &template.Spec.Containers[i]
+			if !names.Has(container.Name) {
+				continue
+			}
+			if container.Image != image {
+				container.Image = image
+				changed = true
+			}
 		}
 	}
-
-	return repoIDs
+	return
 }

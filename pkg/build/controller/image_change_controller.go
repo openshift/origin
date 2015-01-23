@@ -42,6 +42,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 	glog.V(4).Infof("Build image change controller detected imagerepo change %s", imageRepo.DockerImageRepository)
 	imageSubstitutions := make(map[string]string)
 
+	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
 		glog.V(4).Infof("Detecting changed images for buildConfig %s", config.Name)
@@ -52,10 +53,13 @@ func (c *ImageChangeController) HandleImageRepo() {
 			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 				continue
 			}
+			icTrigger := trigger.ImageChange
+			if icTrigger.From.Name != imageRepo.Name {
+				continue
+			}
 			// for every ImageChange trigger, record the image it substitutes for and get the latest
 			// image id from the imagerepository.  We will substitute all images in the buildconfig
 			// with the latest values from the imagerepositories.
-			icTrigger := trigger.ImageChange
 			tag := icTrigger.Tag
 			if len(tag) == 0 {
 				tag = buildapi.DefaultImageTag
@@ -66,7 +70,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 			}
 
 			// (must be different) to trigger a build
-			if icTrigger.ImageRepositoryRef.Name == imageRepo.Name && icTrigger.LastTriggeredImageID != imageID {
+			if icTrigger.LastTriggeredImageID != imageID {
 				imageSubstitutions[icTrigger.Image] = imageRepo.DockerImageRepository + ":" + imageID
 				shouldTriggerBuild = true
 				icTrigger.LastTriggeredImageID = imageID

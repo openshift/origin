@@ -80,6 +80,7 @@ func TestOAuthStorage(t *testing.T) {
 	mux := http.NewServeMux()
 	oauthServer.Install(mux, "")
 	server := httptest.NewServer(mux)
+	defer server.Close()
 
 	ch := make(chan *osincli.AccessData, 1)
 	var oaclient *osincli.Client

@@ -11,7 +11,7 @@ import (
 
 func TestBuildValdationSuccess(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildID"},
+		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -26,7 +26,7 @@ func TestBuildValdationSuccess(t *testing.T) {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/data",
+				DockerImageReference: "repository/data",
 			},
 		},
 		Status: buildapi.BuildStatusNew,
@@ -38,7 +38,7 @@ func TestBuildValdationSuccess(t *testing.T) {
 
 func TestBuildValidationFailure(t *testing.T) {
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: ""},
+		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: ""},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -53,19 +53,19 @@ func TestBuildValidationFailure(t *testing.T) {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/data",
+				DockerImageReference: "repository/data",
 			},
 		},
 		Status: buildapi.BuildStatusNew,
 	}
-	if result := ValidateBuild(build); len(result) != 1 {
+	if result := ValidateBuild(build); len(result) != 2 {
 		t.Errorf("Unexpected validation result: %v", result)
 	}
 }
 
 func TestBuildConfigValidationSuccess(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "configId"},
+		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -79,9 +79,7 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 					ContextDir: "context",
 				},
 			},
-			Output: buildapi.BuildOutput{
-				ImageTag: "repository/data",
-			},
+			Output: buildapi.BuildOutput{},
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) > 0 {
@@ -91,6 +89,32 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 
 func TestBuildConfigValidationFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "foo"},
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					ContextDir: "context",
+				},
+			},
+			Output: buildapi.BuildOutput{
+				DockerImageReference: "repository/data",
+			},
+		},
+	}
+	if result := ValidateBuildConfig(buildConfig); len(result) != 1 {
+		t.Errorf("Unexpected validation result %v", result)
+	}
+}
+
+func TestBuildConfigValidationOutputFailure(t *testing.T) {
+	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: ""},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
@@ -106,11 +130,14 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "repository/data",
+				DockerImageReference: "repository/data",
+				To: &kapi.ObjectReference{
+					Name: "other",
+				},
 			},
 		},
 	}
-	if result := ValidateBuildConfig(buildConfig); len(result) != 1 {
+	if result := ValidateBuildConfig(buildConfig); len(result) != 3 {
 		t.Errorf("Unexpected validation result %v", result)
 	}
 }
@@ -144,52 +171,150 @@ func TestValidateSource(t *testing.T) {
 }
 
 func TestValidateBuildParameters(t *testing.T) {
-	errorCases := map[string]*buildapi.BuildParameters{
-		string(errs.ValidationErrorTypeRequired) + "output.imageTag": {
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+	errorCases := []struct {
+		err string
+		*buildapi.BuildParameters
+	}{
+		{
+			string(errs.ValidationErrorTypeInvalid) + "output.dockerImageReference",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
 				},
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						ContextDir: "context",
+					},
 				},
-			},
-			Output: buildapi.BuildOutput{
-				ImageTag: "",
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "some/long/value/with/no/meaning",
+				},
 			},
 		},
-		string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.image": {
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+		{
+			string(errs.ValidationErrorTypeInvalid) + "output.to.kind",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						ContextDir: "context",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "Foo",
+						Name: "test",
+					},
 				},
 			},
-			Output: buildapi.BuildOutput{
-				ImageTag: "repository/data",
+		},
+		{
+			string(errs.ValidationErrorTypeRequired) + "output.to.name",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						ContextDir: "context",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{},
+				},
 			},
-			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.STIBuildStrategyType,
-				STIStrategy: &buildapi.STIBuildStrategy{
-					Image: "",
+		},
+		{
+			string(errs.ValidationErrorTypeInvalid) + "output.to.name",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						ContextDir: "context",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Name:      "not_a_valid_subdomain",
+						Namespace: "subdomain",
+					},
+				},
+			},
+		},
+		{
+			string(errs.ValidationErrorTypeInvalid) + "output.to.namespace",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						ContextDir: "context",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Name:      "test",
+						Namespace: "not_a_valid_subdomain",
+					},
+				},
+			},
+		},
+		{
+			string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.image",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.STIBuildStrategyType,
+					STIStrategy: &buildapi.STIBuildStrategy{
+						Image: "",
+					},
 				},
 			},
 		},
 	}
 
-	for desc, config := range errorCases {
-		errors := validateBuildParameters(config)
+	for _, config := range errorCases {
+		errors := validateBuildParameters(config.BuildParameters)
 		if len(errors) != 1 {
-			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
+			t.Errorf("%s: Unexpected validation result: %v", config.err, errors)
 		}
 		err := errors[0].(*errs.ValidationError)
 		errDesc := string(err.Type) + err.Field
-		if desc != errDesc {
-			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
+		if config.err != errDesc {
+			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, config.err, errDesc)
 		}
 	}
 }

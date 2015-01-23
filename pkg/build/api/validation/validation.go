@@ -4,8 +4,11 @@ import (
 	"net/url"
 
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // ValidateBuild tests required fields for a Build.
@@ -13,7 +16,15 @@ func ValidateBuild(build *buildapi.Build) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(build.Name) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("name", build.Name))
+	} else if !util.IsDNSSubdomain(build.Name) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("name", build.Name, "name must be a valid subdomain"))
 	}
+	if len(build.Namespace) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("namespace", build.Namespace))
+	} else if !util.IsDNSSubdomain(build.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", build.Namespace, "namespace must be a valid subdomain"))
+	}
+	allErrs = append(allErrs, validation.ValidateLabels(build.Labels, "labels")...)
 	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("parameters")...)
 	return allErrs
 }
@@ -23,11 +34,20 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ValidationErrorList 
 	allErrs := errs.ValidationErrorList{}
 	if len(config.Name) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("name", config.Name))
+	} else if !util.IsDNSSubdomain(config.Name) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
 	}
+	if len(config.Namespace) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("namespace", config.Namespace))
+	} else if !util.IsDNSSubdomain(config.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
+	}
+	allErrs = append(allErrs, validation.ValidateLabels(config.Labels, "labels")...)
 	for i := range config.Triggers {
 		allErrs = append(allErrs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
 	}
 	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("parameters")...)
+	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("parameters.output")...)
 	return allErrs
 }
 
@@ -44,10 +64,7 @@ func validateBuildParameters(params *buildapi.BuildParameters) errs.ValidationEr
 		}
 	}
 
-	if !isCustomBuild || (isCustomBuild && len(params.Output.ImageTag) != 0) {
-		allErrs = append(allErrs, validateOutput(&params.Output).Prefix("output")...)
-	}
-
+	allErrs = append(allErrs, validateOutput(&params.Output).Prefix("output")...)
 	allErrs = append(allErrs, validateStrategy(&params.Strategy).Prefix("strategy")...)
 
 	return allErrs
@@ -82,6 +99,45 @@ func validateRevision(revision *buildapi.SourceRevision) errs.ValidationErrorLis
 		allErrs = append(allErrs, errs.NewFieldRequired("type", revision.Type))
 	}
 	// TODO: validate other stuff
+	return allErrs
+}
+
+func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	// TODO: make part of a generic ValidateObjectReference method upstream.
+	if output.To != nil {
+		kind, name, namespace := output.To.Kind, output.To.Name, output.To.Namespace
+		if len(kind) == 0 {
+			kind = "ImageRepository"
+			output.To.Kind = kind
+		}
+		if kind != "ImageRepository" {
+			allErrs = append(allErrs, errs.NewFieldInvalid("to.kind", kind, "the target of build output must be 'ImageRepository'"))
+		}
+		if len(name) == 0 {
+			allErrs = append(allErrs, errs.NewFieldRequired("to.name", name))
+		} else if !util.IsDNSSubdomain(name) {
+			allErrs = append(allErrs, errs.NewFieldInvalid("to.name", name, "name must be a valid subdomain"))
+		}
+		if len(namespace) != 0 && !util.IsDNSSubdomain(namespace) {
+			allErrs = append(allErrs, errs.NewFieldInvalid("to.namespace", namespace, "namespace must be a valid subdomain"))
+		}
+	}
+
+	if len(output.DockerImageReference) != 0 {
+		if _, _, _, _, err := imageapi.SplitDockerPullSpec(output.DockerImageReference); err != nil {
+			allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
+		}
+	}
+	return allErrs
+}
+
+func validateBuildConfigOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if len(output.DockerImageReference) != 0 && output.To != nil {
+		allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, "only one of 'dockerImageReference' and 'to' may be set"))
+	}
 	return allErrs
 }
 
@@ -124,14 +180,6 @@ func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErr
 	allErrs := errs.ValidationErrorList{}
 	if len(strategy.Image) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("image", strategy.Image))
-	}
-	return allErrs
-}
-
-func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
-	if len(output.ImageTag) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("imageTag", output.ImageTag))
 	}
 	return allErrs
 }
@@ -189,12 +237,10 @@ func validateImageChange(imageChange *buildapi.ImageChangeTrigger) errs.Validati
 	if len(imageChange.Image) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("image", ""))
 	}
-	if imageChange.ImageRepositoryRef == nil {
-		allErrs = append(allErrs, errs.NewFieldRequired("imageRepositoryRef", ""))
-	} else if len(imageChange.ImageRepositoryRef.Name) == 0 {
-		nestedErrs := errs.ValidationErrorList{errs.NewFieldRequired("name", "")}
-		nestedErrs.Prefix("imageRepositoryRef")
-		allErrs = append(allErrs, nestedErrs...)
+	if len(imageChange.From.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("from", ""))
+	} else if len(imageChange.From.Name) == 0 {
+		allErrs = append(allErrs, errs.ValidationErrorList{errs.NewFieldRequired("name", "")}.Prefix("from")...)
 	}
 	return allErrs
 }

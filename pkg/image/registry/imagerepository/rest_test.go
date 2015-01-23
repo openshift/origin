@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/image/api"
@@ -18,10 +17,12 @@ import (
 func TestGetImageRepositoryError(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.Err = fmt.Errorf("test error")
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
 	image, err := storage.Get(kapi.NewDefaultContext(), "image1")
-	if image != nil {
+	if image != (*api.ImageRepository)(nil) {
 		t.Errorf("Unexpected non-nil image: %#v", image)
 	}
 	if err != mockRepositoryRegistry.Err {
@@ -35,7 +36,9 @@ func TestGetImageRepositoryOK(t *testing.T) {
 		ObjectMeta:            kapi.ObjectMeta{Name: "foo"},
 		DockerImageRepository: "openshift/ruby-19-centos",
 	}
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
 	repo, err := storage.Get(kapi.NewDefaultContext(), "foo")
 	if repo == nil {
@@ -62,7 +65,7 @@ func TestListImageRepositoriesError(t *testing.T) {
 		t.Errorf("Expected %#v, Got %#v", mockRepositoryRegistry.Err, err)
 	}
 
-	if imageRepositories != nil {
+	if imageRepositories != (*api.ImageRepositoryList)(nil) {
 		t.Errorf("Unexpected non-nil imageRepositories list: %#v", imageRepositories)
 	}
 }
@@ -122,9 +125,11 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 
 func TestCreateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := NewREST(mockRepositoryRegistry, "test")
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
-	channel, err := storage.(apiserver.RESTCreater).Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
+	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}
@@ -143,15 +148,14 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 	if repo.DockerImageRepository != "" {
 		t.Errorf("unexpected repository: %#v", repo)
 	}
-	if repo.Status.DockerImageRepository != "test/default/foo" {
-		t.Errorf("unexpected Status values: %#v", repo)
-	}
 }
 
 func TestCreateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
 	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != nil {
@@ -182,7 +186,9 @@ func TestUpdateImageRepositoryMissingID(t *testing.T) {
 func TestUpdateRegistryErrorSaving(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
 	mockRepositoryRegistry.Err = fmt.Errorf("foo")
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
 	channel, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
@@ -202,7 +208,9 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 
 func TestUpdateImageRepositoryOK(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
 	channel, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
@@ -222,7 +230,9 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 
 func TestDeleteImageRepository(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
 	channel, err := storage.Delete(kapi.NewDefaultContext(), "foo")
 	if err != nil {
@@ -254,7 +264,9 @@ func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 
 func TestUpdateImageRepositoryConflictingNamespace(t *testing.T) {
 	mockRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := REST{registry: mockRepositoryRegistry}
+	storage := REST{
+		registry: mockRepositoryRegistry,
+	}
 
 	channel, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "some-value"},

@@ -7,8 +7,8 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
-// dockerDefaultNamespace is the value for namespace when a single segment name is provided.
-const dockerDefaultNamespace = "library"
+// DockerDefaultNamespace is the value for namespace when a single segment name is provided.
+const DockerDefaultNamespace = "library"
 
 // SplitDockerPullSpec breaks a Docker pull specification into its components, or returns
 // an error if those components are not valid. Attempts to match as closely as possible the
@@ -17,9 +17,6 @@ func SplitDockerPullSpec(spec string) (registry, namespace, name, tag string, er
 	registry, namespace, name, tag, err = SplitOpenShiftPullSpec(spec)
 	if err != nil {
 		return
-	}
-	if len(namespace) == 0 {
-		namespace = dockerDefaultNamespace
 	}
 	return
 }
@@ -51,11 +48,14 @@ func SplitOpenShiftPullSpec(spec string) (registry, namespace, name, tag string,
 // string. Attempts to match as closely as possible the Docker spec up to 1.3. Future API
 // revisions may change the pull syntax.
 func JoinDockerPullSpec(registry, namespace, name, tag string) string {
-	if len(namespace) == 0 {
-		namespace = dockerDefaultNamespace
-	}
 	if len(tag) != 0 {
 		tag = ":" + tag
+	}
+	if len(namespace) == 0 {
+		if len(registry) == 0 {
+			return fmt.Sprintf("%s%s", name, tag)
+		}
+		namespace = DockerDefaultNamespace
 	}
 	if len(registry) == 0 {
 		return fmt.Sprintf("%s/%s%s", namespace, name, tag)

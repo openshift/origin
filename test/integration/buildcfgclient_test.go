@@ -18,6 +18,7 @@ func init() {
 func TestListBuildConfigs(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 
 	buildConfigs, err := openshift.Client.BuildConfigs(testNamespace).List(labels.Everything(), labels.Everything())
 	if err != nil {
@@ -31,6 +32,7 @@ func TestListBuildConfigs(t *testing.T) {
 func TestCreateBuildConfig(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
 	expected, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
@@ -53,6 +55,7 @@ func TestCreateBuildConfig(t *testing.T) {
 func TestUpdateBuildConfig(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
 	actual, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
@@ -71,6 +74,7 @@ func TestUpdateBuildConfig(t *testing.T) {
 func TestDeleteBuildConfig(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
 	actual, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
@@ -85,12 +89,14 @@ func TestDeleteBuildConfig(t *testing.T) {
 func TestWatchBuildConfigs(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
 	watch, err := openshift.Client.BuildConfigs(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer watch.Stop()
 
 	expected, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
 	if err != nil {
@@ -135,7 +141,7 @@ func mockBuildConfig() *buildapi.BuildConfig {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "namespace/builtimage",
+				DockerImageReference: "namespace/builtimage",
 			},
 		},
 	}
@@ -144,6 +150,7 @@ func mockBuildConfig() *buildapi.BuildConfig {
 func TestBuildConfigClient(t *testing.T) {
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
+	defer openshift.Close()
 
 	buildConfigs, err := openshift.Client.BuildConfigs(testNamespace).List(labels.Everything(), labels.Everything())
 	if err != nil {
@@ -175,7 +182,7 @@ func TestBuildConfigClient(t *testing.T) {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "namespace/builtimage",
+				DockerImageReference: "namespace/builtimage",
 			},
 		},
 	}

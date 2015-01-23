@@ -44,7 +44,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -65,6 +64,7 @@ import (
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
@@ -191,27 +191,37 @@ func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
 }
 
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
+	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
+	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(api.NamespaceDefault).Get)
+	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
+	if err != nil {
+		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
+	}
+
 	buildEtcd := buildetcd.New(c.EtcdHelper)
-	imageEtcd := imageetcd.New(c.EtcdHelper)
+	imageEtcd := imageetcd.New(c.EtcdHelper, imageetcd.DefaultRegistryFunc(defaultRegistryFunc))
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	projectEtcd := projectetcd.New(c.EtcdHelper)
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
-	osclient, kclient := c.DeploymentConfigControllerClients()
+	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		DeploymentInterface:       &oldClientDeploymentInterface{kclient},
-		DeploymentConfigInterface: deployEtcd,
-		ImageRepositoryInterface:  imageEtcd,
+		Client: deployconfiggenerator.Client{
+			DCFn:   deployEtcd.GetDeploymentConfig,
+			IRFn:   imageEtcd.GetImageRepository,
+			LIRFn2: imageEtcd.ListImageRepositories,
+		},
 		Codec: latest.Codec,
 	}
-
-	deployRollbackGenerator := &deployrollback.RollbackGenerator{}
-	rollbackDeploymentGetter := &clientDeploymentInterface{kclient}
-	rollbackDeploymentConfigGetter := &clientDeploymentConfigInterface{osclient}
-
-	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "")
+	_, kclient := c.DeploymentConfigControllerClients()
+	deployRollback := &deployrollback.RollbackGenerator{}
+	deployRollbackClient := deployrollback.Client{
+		DCFn: deployEtcd.GetDeploymentConfig,
+		RCFn: clientDeploymentInterface{kclient}.GetDeployment,
+		GRFn: deployRollback.GenerateRollback,
+	}
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
@@ -220,14 +230,14 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
 
 		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd, defaultRegistry),
+		"imageRepositories":       imagerepository.NewREST(imageEtcd),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
 
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackGenerator, rollbackDeploymentGetter, rollbackDeploymentConfigGetter, latest.Codec),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
 		"templateConfigs": templateregistry.NewREST(),
 
@@ -460,14 +470,20 @@ func (c *MasterConfig) RunBuildController() {
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image:          dockerImage,
 			UseLocalImages: useLocalImages,
+			// TODO: this will be set to --storage-version (the internal schema we use)
+			Codec: v1beta1.Codec,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       useLocalImages,
+			// TODO: this will be set to --storage-version (the internal schema we use)
+			Codec: v1beta1.Codec,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			UseLocalImages: useLocalImages,
+			// TODO: this will be set to --storage-version (the internal schema we use)
+			Codec: v1beta1.Codec,
 		},
 	}
 
@@ -569,26 +585,10 @@ func (c ClientWebhookInterface) GetBuildConfig(namespace, name string) (*buildap
 	return c.Client.BuildConfigs(namespace).Get(name)
 }
 
-type oldClientDeploymentInterface struct {
-	KubeClient kclient.Interface
-}
-
-func (c *oldClientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(api.Namespace(ctx)).Get(name)
-}
-
 type clientDeploymentInterface struct {
 	KubeClient kclient.Interface
 }
 
-func (c *clientDeploymentInterface) GetDeployment(namespace, name string) (*api.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(namespace).Get(name)
-}
-
-type clientDeploymentConfigInterface struct {
-	Client osclient.Interface
-}
-
-func (c *clientDeploymentConfigInterface) GetDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return c.Client.DeploymentConfigs(namespace).Get(name)
+func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
+	return c.KubeClient.ReplicationControllers(api.Namespace(ctx)).Get(name)
 }

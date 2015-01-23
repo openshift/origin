@@ -84,7 +84,7 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 func imageChangeBuildConfig() *buildapi.BuildConfig {
 	buildcfg := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "testBuildCfg",
+			Name: "test-build-cfg",
 		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
@@ -101,7 +101,7 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				ImageTag: "tag",
+				DockerImageReference: "foo:tag",
 			},
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
@@ -109,7 +109,7 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 				Type: buildapi.ImageChangeBuildTriggerType,
 				ImageChange: &buildapi.ImageChangeTrigger{
 					Image: "registry:8080/openshift/test-image",
-					ImageRepositoryRef: &kapi.ObjectReference{
+					From: kapi.ObjectReference{
 						Name: "test-image-repo",
 					},
 					Tag: "latest",

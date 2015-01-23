@@ -3,12 +3,16 @@
 package integration
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 )
 
 const testNamespace = "integration-test"
@@ -22,6 +26,17 @@ func newEtcdClient() *etcd.Client {
 	}
 
 	return etcd.NewClient(etcdServers)
+}
+
+func init() {
+	capabilities.SetForTests(capabilities.Capabilities{
+		AllowPrivileged: true,
+	})
+	flag.Set("v", "5")
+}
+
+func logEtcd() {
+	etcd.SetLogger(log.New(os.Stderr, "go-etcd", log.LstdFlags))
 }
 
 func requireEtcd() {

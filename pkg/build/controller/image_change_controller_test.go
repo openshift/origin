@@ -51,7 +51,7 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 				Type: buildapi.ImageChangeBuildTriggerType,
 				ImageChange: &buildapi.ImageChangeTrigger{
 					Image: triggerImage,
-					ImageRepositoryRef: &kapi.ObjectReference{
+					From: kapi.ObjectReference{
 						Name: repoName,
 					},
 					Tag: repoTag,
@@ -66,7 +66,7 @@ func appendTrigger(buildcfg *buildapi.BuildConfig, triggerImage, repoName, repoT
 		Type: buildapi.ImageChangeBuildTriggerType,
 		ImageChange: &buildapi.ImageChangeTrigger{
 			Image: triggerImage,
-			ImageRepositoryRef: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Name: repoName,
 			},
 			Tag: repoTag,

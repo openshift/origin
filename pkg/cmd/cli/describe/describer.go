@@ -86,8 +86,8 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 			formatString(out, "Ref", p.Source.Git.Ref)
 		}
 	}
-	formatString(out, "Output Image", p.Output.ImageTag)
-	formatString(out, "Output Registry", p.Output.Registry)
+	formatString(out, "Output To", p.Output.To)
+	formatString(out, "Output Spec", p.Output.DockerImageReference)
 	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
 		formatString(out, "Git Commit", p.Revision.Git.Commit)
 		d.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
@@ -133,7 +133,7 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host s
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
 		}
-		formatString(out, "Image Repository Trigger", trigger.ImageChange.ImageRepositoryRef.Name)
+		formatString(out, "Image Repository Trigger", trigger.ImageChange.From.Name)
 		formatString(out, "- Tag", trigger.ImageChange.Tag)
 		formatString(out, "- Image", trigger.ImageChange.Image)
 		formatString(out, "- LastTriggeredImageID", trigger.ImageChange.LastTriggeredImageID)
@@ -242,7 +242,7 @@ func (d *ImageRepositoryDescriber) Describe(namespace, name string) (string, err
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageRepository.ObjectMeta)
 		formatString(out, "Tags", formatLabels(imageRepository.Tags))
-		formatString(out, "Registry", imageRepository.DockerImageRepository)
+		formatString(out, "Registry", imageRepository.Status.DockerImageRepository)
 		return nil
 	})
 }

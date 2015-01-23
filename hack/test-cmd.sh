@@ -25,6 +25,8 @@ trap cleanup EXIT SIGINT
 
 set -e
 
+export OPENSHIFT_ON_PANIC=crash
+
 USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
@@ -37,7 +39,7 @@ KUBELET_PORT=${KUBELET_PORT:-10250}
 
 ETCD_DATA_DIR=$(mktemp -d /tmp/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d /tmp/openshift.local.volumes.XXXX)
-CERT_DIR=$(mktemp -d /tmp/openshift.local.certificates.XXXX)
+CERT_DIR="${CERT_DIR:-$(mktemp -d /tmp/openshift.local.certificates.XXXX)}"
 
 # set path so OpenShift is available
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
@@ -48,22 +50,22 @@ out=$(openshift version)
 echo openshift: $out
 
 # Start openshift
-openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" 1>&2 &
+openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" --hostname="${API_HOST}" --volume-dir="${VOLUME_DIR}" --cert-dir="${CERT_DIR}" --etcd-dir="${ETCD_DATA_DIR}" 1>&2 &
 OS_PID=$!
 
-if [[ "$API_SCHEME" == "https" ]]; then
-	export CURL_CA_BUNDLE="$CERT_DIR/admin/root.crt"
+if [[ "${API_SCHEME}" == "https" ]]; then
+    export CURL_CA_BUNDLE="${CERT_DIR}/admin/root.crt"
 fi
-
-wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 1 30
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: "
+wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.2 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.2 60
 
 # Set KUBERNETES_MASTER for osc
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
-if [[ "$API_SCHEME" == "https" ]]; then
-	# Make osc use $CERT_DIR/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
-	export HOME=$CERT_DIR/admin
-	export KUBECONFIG=$CERT_DIR/admin/.kubeconfig
+if [[ "${API_SCHEME}" == "https" ]]; then
+	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
+	export HOME="${CERT_DIR}/admin"
+	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
 fi
 
 #
@@ -90,6 +92,10 @@ echo "images: ok"
 
 osc get imageRepositories
 osc create -f test/integration/fixtures/test-image-repository.json
+[ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
+osc apply -f examples/sample-app/docker-registry-config.json
+[ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
+osc delete -f examples/sample-app/docker-registry-config.json
 osc delete imageRepositories test
 echo "imageRepositories: ok"
 
@@ -121,3 +127,5 @@ echo "start-build: ok"
 
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
+
+osc get minions,pods

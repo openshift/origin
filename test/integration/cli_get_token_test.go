@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -80,7 +79,8 @@ func TestGetToken(t *testing.T) {
 	mux := http.NewServeMux()
 	server.Install(mux, origin.OpenShiftOAuthAPIPrefix)
 	oauthServer := httptest.NewServer(http.Handler(mux))
-	glog.Infof("oauth server is on %v\n", oauthServer.URL)
+	defer oauthServer.Close()
+	t.Logf("oauth server is on %v\n", oauthServer.URL)
 
 	// create the default oauth clients with redirects to our server
 	origin.CreateOrUpdateDefaultOAuthClients(oauthServer.URL, oauthEtcd)

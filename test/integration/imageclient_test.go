@@ -18,7 +18,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
-	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -193,15 +192,19 @@ type testImageOpenshift struct {
 	Client       *osclient.Client
 	server       *httptest.Server
 	dockerServer *httptest.Server
+	stop         chan struct{}
 }
 
 func (o *testImageOpenshift) Close() {
+	close(o.stop)
 	o.server.Close()
 	o.dockerServer.Close()
 }
 
 func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
-	openshift := &testImageOpenshift{}
+	openshift := &testImageOpenshift{
+		stop: make(chan struct{}),
+	}
 
 	etcdClient := newEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
@@ -219,7 +222,7 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 
 	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
 	if err != nil {
-		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+		t.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
 	kmaster := master.New(&master.Config{
@@ -232,11 +235,11 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
-	imageEtcd := imageetcd.New(etcdHelper)
+	imageEtcd := imageetcd.New(etcdHelper, imageetcd.DefaultRegistryFunc(func() (string, bool) { return openshift.dockerServer.URL, true }))
 
 	storage := map[string]apiserver.RESTStorage{
 		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd, openshift.dockerServer.URL),
+		"imageRepositories":       imagerepository.NewREST(imageEtcd),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
 		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
 	}

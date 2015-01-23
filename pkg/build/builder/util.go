@@ -1,24 +1,11 @@
 package builder
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/openshift/origin/pkg/build/api"
 )
 
 type Builder interface {
 	Build() error
-}
-
-// imageTag returns the tag to be used for the build. If a registry has been
-// specified, it will prepend the registry to the name
-func imageTag(build *api.Build) string {
-	tag := build.Parameters.Output.ImageTag
-	if !strings.HasPrefix(tag, build.Parameters.Output.Registry) {
-		tag = fmt.Sprintf("%s/%s", build.Parameters.Output.Registry, tag)
-	}
-	return tag
 }
 
 // getBuildEnvVars returns a map with the environment variables that should be added

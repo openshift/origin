@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/golang/glog"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -86,15 +84,17 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	mux := http.NewServeMux()
 	server.Install(mux, origin.OpenShiftOAuthAPIPrefix)
 	oauthServer := httptest.NewServer(http.Handler(mux))
-	glog.Infof("oauth server is on %v\n", oauthServer.URL)
+	defer oauthServer.Close()
+	t.Logf("oauth server is on %v\n", oauthServer.URL)
 
 	// set up a front proxy guarding the oauth server
 	proxyHTTPHandler := NewBasicAuthChallenger("TestRegistryAndServer", validUsers, NewXRemoteUserProxyingHandler(oauthServer.URL))
 	proxyServer := httptest.NewServer(proxyHTTPHandler)
-	glog.Infof("proxy server is on %v\n", proxyServer.URL)
+	defer proxyServer.Close()
+	t.Logf("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid
-	createClient(oauthEtcd, &oauthapi.Client{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{oauthServer.URL}})
+	createClient(t, oauthEtcd, &oauthapi.Client{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{oauthServer.URL}})
 
 	// our simple URL to get back a code.  We want to go through the front proxy
 	rawAuthorizeRequest := proxyServer.URL + origin.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
@@ -114,7 +114,7 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	// and manually handling redirects and setting our auth information every time for the front proxy
 	redirectedUrls := make([]url.URL, 10)
 	httpClient := http.Client{
-		CheckRedirect: getRedirectMethod(&redirectedUrls),
+		CheckRedirect: getRedirectMethod(t, &redirectedUrls),
 		Transport:     kclient.NewBasicAuthRoundTripper("sanefarmer", "who?", http.DefaultTransport),
 	}
 
@@ -134,21 +134,21 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	if len(foundCode) == 0 {
 		t.Errorf("Did not find code in any redirect: %v", redirectedUrls)
 	} else {
-		glog.Infof("Found code %v\n", foundCode)
+		t.Logf("Found code %v\n", foundCode)
 	}
 }
 
-func createClient(oauthEtcd oauthclient.Registry, client *oauthapi.Client) {
+func createClient(t *testing.T, oauthEtcd oauthclient.Registry, client *oauthapi.Client) {
 	if err := oauthEtcd.CreateClient(client); err != nil {
-		glog.Errorf("Error creating client: %v due to %v\n", client, err)
+		t.Errorf("Error creating client: %v due to %v\n", client, err)
 	}
 }
 
 type checkRedirect func(req *http.Request, via []*http.Request) error
 
-func getRedirectMethod(redirectRecord *[]url.URL) checkRedirect {
+func getRedirectMethod(t *testing.T, redirectRecord *[]url.URL) checkRedirect {
 	return func(req *http.Request, via []*http.Request) error {
-		glog.Infof("Going to %v\n", req.URL)
+		t.Logf("Going to %v\n", req.URL)
 		*redirectRecord = append(*redirectRecord, *req.URL)
 
 		if len(via) >= 10 {

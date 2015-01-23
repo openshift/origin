@@ -113,7 +113,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 				},
 			},
 			Output: api.BuildOutput{
-				ImageTag: "repository/dataBuild",
+				DockerImageReference: "repository/dataBuild",
 			},
 		},
 		Status:  api.BuildStatusPending,
@@ -335,7 +335,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 				},
 			},
 			Output: api.BuildOutput{
-				ImageTag: "repository/dataBuild",
+				DockerImageReference: "repository/dataBuild",
 			},
 		},
 	})

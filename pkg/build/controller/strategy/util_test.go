@@ -51,3 +51,38 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 		t.Error("Expected privileged to be false")
 	}
 }
+
+func TestSetupBuildEnvFails(t *testing.T) {
+	build := mockCustomBuild()
+	containerEnv := []kapi.EnvVar{
+		{Name: "BUILD", Value: ""},
+		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+	}
+	pod := &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: build.PodName,
+		},
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{
+					Name:  "custom-build",
+					Image: build.Parameters.Strategy.CustomStrategy.Image,
+					Env:   containerEnv,
+					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+					Privileged: true,
+				},
+			},
+			RestartPolicy: kapi.RestartPolicy{
+				Never: &kapi.RestartPolicyNever{},
+			},
+		},
+	}
+	if err := setupBuildEnv(build, pod); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	build.Parameters.Output.DockerImageReference = ""
+	if err := setupBuildEnv(build, pod); err == nil {
+		t.Errorf("unexpected non-error: %v", err)
+	}
+}

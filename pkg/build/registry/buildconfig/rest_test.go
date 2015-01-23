@@ -254,10 +254,10 @@ func TestCreateBuildConfig(t *testing.T) {
 func mockBuildConfig() *api.BuildConfig {
 	return &api.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "dataBuild",
+			Name:      "data-build",
 			Namespace: kapi.NamespaceDefault,
 			Labels: map[string]string{
-				"name": "dataBuild",
+				"name": "data-build",
 			},
 		},
 		Parameters: api.BuildParameters{
@@ -274,7 +274,7 @@ func mockBuildConfig() *api.BuildConfig {
 				},
 			},
 			Output: api.BuildOutput{
-				ImageTag: "repository/dataBuild",
+				DockerImageReference: "repository/data-build",
 			},
 		},
 	}
@@ -350,11 +350,11 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "data/image",
+					DockerImageReference: "data/image",
 				},
 			},
 		},
-		"blank ImageTag": {
+		"blank DockerImageReference": {
 			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
@@ -364,7 +364,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "",
+					DockerImageReference: "",
 				},
 			},
 		},
@@ -384,7 +384,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "data/image",
+					DockerImageReference: "data/image",
 				},
 			},
 		},
@@ -414,7 +414,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "data/image",
+					DockerImageReference: "data/image",
 				},
 			},
 		},
@@ -434,11 +434,11 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "data/image",
+					DockerImageReference: "data/image",
 				},
 			},
 		},
-		"blank ImageTag": {
+		"blank DockerImageReference": {
 			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
 			Parameters: api.BuildParameters{
 				Source: api.BuildSource{
@@ -448,7 +448,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "",
+					DockerImageReference: "",
 				},
 			},
 		},
@@ -468,7 +468,7 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 					},
 				},
 				Output: api.BuildOutput{
-					ImageTag: "data/image",
+					DockerImageReference: "data/image",
 				},
 			},
 		},

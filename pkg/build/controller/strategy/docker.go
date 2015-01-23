@@ -1,9 +1,8 @@
 package strategy
 
 import (
-	"encoding/json"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -12,12 +11,16 @@ import (
 type DockerBuildStrategy struct {
 	Image          string
 	UseLocalImages bool
+	// Codec is the codec to use for encoding the output pod.
+	// IMPORTANT: This may break backwards compatibility when
+	// it changes.
+	Codec runtime.Codec
 }
 
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
 func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	buildJSON, err := json.Marshal(build)
+	data, err := bs.Codec.Encode(build)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +35,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Name:  "docker-build",
 					Image: bs.Image,
 					Env: []kapi.EnvVar{
-						{Name: "BUILD", Value: string(buildJSON)},
+						{Name: "BUILD", Value: string(data)},
 					},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,
