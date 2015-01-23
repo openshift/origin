@@ -59,7 +59,36 @@ Back on the master, to finally register the node:
 
 Done. Repeat last two pieces to add more nodes. Create new pods from the master (or just docker containers on the minions), and see that the pods are indeed reachable from each other. 
 
-##### OpenShift? PaaS? Can I create a plain one just for Docker?
+
+##### OpenShift? PaaS? Can I have a 'plain setup' just for Docker?
+
+Someone needs to register that new nodes have joined the cluster. And instead of using OpenShift/Kubernetes to do that, we can use 'openshift-sdn' itself. Use '-sync' flag for that.
+
+Steps:
+
+1. Run etcd somewhere, and run the openshift-sdn master to watch it in sync mode. 
+
+		$ systemctl start etcd
+		$ openshift-sdn -master -sync
+
+2. To add a node, make sure the 'hostname/dns' is reachable from the machine that is running 'openshift-sdn master'. Then start the openshift-sdn in minion mode with sync flag.
+
+		$ openshift-sdn -minion -sync -etcd-endpoints=http://master-host:4001 -hostname=minion-1-dns -public-ip=<public ip that the hostname resolves to>
+
+Done. Add more nodes by repeating step 2. All nodes should have a docker bridge (lbr0) that is part of the overlay network.
+
+#### Gotchas..
+
+Some requirements, some silly errors.
+
+ - openshift-sdn fails with errors around ovs-vsctl.. 
+	yum -y install openvswitch && systemctl enable openvswitch && systemctl start openvswitch
+ - openshift-sdn fails to start with errors relating to 'network not up' etc.
+	systemctl stop NetworkManager # that fella is nosy, does not like mint new bridges
+ - openshift-sdn fails to start saying cannot reach etcd endpoints
+	etcd not running really or not listening on public interface? That machine not reachable possibly? -etcd-endpoints=https?? without ssl being supplied? Remove the trailing '/' from the url maybe?
+ - openshift-sdn is up, I think I got the subnet, but my pings do not work
+	It may take a while for the ping to work (blame the docker linux bridge, optimizations coming). Check that all nodes' hostnames on master are resolvable and to the correct IP addresses. Last, but not the least - firewalld (switch it off and check, and then punch a hole for vxlan please).
 
 #### Performance Note
 

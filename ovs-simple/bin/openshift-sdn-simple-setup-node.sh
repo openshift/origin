@@ -29,6 +29,7 @@ NETMASK=255.255.255.0
 STP=yes
 EOF
 service network restart || true
+ip link set lbr0 up
 brctl addif lbr0 vlinuxbr
 ip route del $2 dev lbr0 proto kernel scope link src $1 || true
 ip route add $3 dev lbr0 proto kernel scope link src $1

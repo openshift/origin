@@ -116,7 +116,7 @@ func main() {
 			return
 		}
 	} else if opts.master {
-		err := be.StartMaster()
+		err := be.StartMaster(opts.sync)
 		if err != nil {
 			return
 		}
