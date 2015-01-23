@@ -8,6 +8,7 @@ Documentation=https://github.com/openshift/origin
 Type=simple
 EnvironmentFile=-/etc/sysconfig/openshift
 ExecStart=/usr/bin/openshift start $ROLE $OPTIONS
+WorkingDirectory=/var/lib/origin/
 
 [Install]
 WantedBy=multi-user.target
