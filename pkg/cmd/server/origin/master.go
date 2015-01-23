@@ -84,6 +84,9 @@ type MasterConfig struct {
 	MasterAddr     string
 	AssetAddr      string
 	KubernetesAddr string
+	// external clients may need to access APIs at different addresses than internal components do
+	MasterPublicAddr     string
+	KubernetesPublicAddr string
 
 	TLS bool
 
@@ -381,12 +384,12 @@ func (c *MasterConfig) RunAssetServer() {
 	// TODO use	version.Get().GitCommit as an etag cache header
 	mux := http.NewServeMux()
 
-	masterURL, err := url.Parse(c.MasterAddr)
+	masterURL, err := url.Parse(c.MasterPublicAddr)
 	if err != nil {
 		glog.Fatalf("Error parsing master url: %v", err)
 	}
 
-	k8sURL, err := url.Parse(c.KubernetesAddr)
+	k8sURL, err := url.Parse(c.KubernetesPublicAddr)
 	if err != nil {
 		glog.Fatalf("Error parsing kubernetes url: %v", err)
 	}
