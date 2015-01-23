@@ -33,8 +33,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "cpus"              => 2,
       "memory"            => 1024,
       "virtualbox"        => {
-        "box_name" => "fedora_inst",
-        "box_url"  => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_virtualbox_inst.box"
+        "name" => "fedora20_openshift",
+        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_latest.box"
       },
       "vmware"            => {
         "box_name" => "fedora_inst",
@@ -71,8 +71,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # OS platform to box information
     kube_box = {
       "fedora" => {
-        "name" => "fedora20",
-        "box_url" => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/virtualbox/opscode_fedora-20_chef-provisionerless.box"
+        "name" => "fedora20_openshift",
+        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_latest.box"
       }
     }
 
@@ -80,7 +80,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define "master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str}"
+      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{ENV['OPENSHIFT_SDN']}"
       config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
     end
@@ -92,7 +92,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
-        minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{minion_ip} #{minion_index}"
+        minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{minion_ip} #{minion_index} #{ENV['OPENSHIFT_SDN']}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
       end

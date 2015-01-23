@@ -3,6 +3,8 @@
 set -ex
 source $(dirname $0)/provision-config.sh
 
+OPENSHIFT_SDN=$4
+
 # Setup hosts file to support ping by hostname to each minion in the cluster from apiserver
 node_list=""
 minion_ip_array=(${MINION_IPS//,/ })
@@ -50,3 +52,8 @@ EOF
 systemctl daemon-reload
 systemctl enable openshift-master.service
 systemctl start openshift-master.service
+
+# if SDN requires service on master, then set it up
+if [ "${OPENSHIFT_SDN}" == "ovs-simple" ]; then
+  $(dirname $0)/provision-master-sdn.sh $@
+fi
