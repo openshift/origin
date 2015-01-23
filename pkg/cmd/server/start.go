@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"strconv"
@@ -187,6 +189,13 @@ func start(cfg *config, args []string) error {
 	startKube := !cfg.KubernetesAddr.Provided
 	if startKube {
 		cfg.KubernetesAddr = cfg.MasterAddr
+	}
+
+	if env("OPENSHIFT_PROFILE", "") == "web" {
+		go func() {
+			glog.Infof("Starting profiling endpoint at http://127.0.0.1:6060/debug/pprof/")
+			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
+		}()
 	}
 
 	if startMaster {

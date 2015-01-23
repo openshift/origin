@@ -57,28 +57,32 @@ GO_OUT="${OS_ROOT}/_output/local/go/bin"
 # set path so OpenShift is available
 export PATH="${GO_OUT}:${PATH}"
 
-# teardown
-function teardown()
+
+function cleanup()
 {
-  if [ $? -ne 0 ]; then
+  out=$?
+
+  echo
+  if [ $out -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
   else
     echo "[INFO] Test Succeeded"
   fi
+  echo
 
-  echo "[INFO] Dumping container logs to $LOG_DIR"
+  echo "[INFO] Dumping container logs to ${LOG_DIR}"
   for container in $(docker ps -aq); do
-    docker logs $container >& $LOG_DIR/container-$container.log
+    docker logs "$container" >&"${LOG_DIR}/container-$container.log"
   done
 
-  echo "[INFO] Dumping build log to $LOG_DIR"
+  echo "[INFO] Dumping build log to ${LOG_DIR}"
 
   set +e
-  osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >$LOG_DIR/stibuild.log
-  osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >$LOG_DIR/dockerbuild.log
-  osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >$LOG_DIR/custombuild.log
+  osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
+  osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
+  osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
 
-  curl -L http://localhost:4001/v2/keys/?recursive=true > $ARTIFACT_DIR/etcd_dump.json
+  curl -L http://localhost:4001/v2/keys/?recursive=true > "${ARTIFACT_DIR}/etcd_dump.json"
   set -e
 
   echo ""
@@ -95,12 +99,21 @@ function teardown()
     fi
     set -u
     set -e
-    # Clean up large log files so they don't end up on jenkins
-    find ${ARTIFACT_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-    find ${LOG_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
   fi
   set -u
+
+  set -e
+  # Clean up large log files so they don't end up on jenkins
+  find ${ARTIFACT_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+  find ${LOG_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+
+  pkill -P $$
+  echo "[INFO] Exiting"
+  exit $out
 }
+
+trap "exit" INT TERM
+trap "cleanup" EXIT
 
 function wait_for_app() {
   echo "[INFO] Waiting for app in namespace $1"
@@ -134,8 +147,6 @@ function wait_for_build() {
   echo "[INFO] Build ${BUILD_ID} finished"
   osc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
 }
-
-trap teardown EXIT SIGINT
 
 # Setup
 stop_openshift_server
