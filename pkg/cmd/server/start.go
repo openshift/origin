@@ -75,6 +75,9 @@ type config struct {
 	EtcdAddr       flagtypes.Addr
 	KubernetesAddr flagtypes.Addr
 	PortalNet      flagtypes.IPNet
+	// addresses for external clients
+	MasterPublicAddr     flagtypes.Addr
+	KubernetesPublicAddr flagtypes.Addr
 
 	Hostname  string
 	VolumeDir string
@@ -102,11 +105,13 @@ func NewCommandStartServer(name string) *cobra.Command {
 	cfg := &config{
 		Docker: docker.NewHelper(),
 
-		MasterAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		BindAddr:       flagtypes.Addr{Value: "0.0.0.0:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		EtcdAddr:       flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
-		KubernetesAddr: flagtypes.Addr{DefaultScheme: "https", DefaultPort: 8443}.Default(),
-		PortalNet:      flagtypes.DefaultIPNet("172.30.17.0/24"),
+		MasterAddr:           flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		BindAddr:             flagtypes.Addr{Value: "0.0.0.0:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		EtcdAddr:             flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
+		KubernetesAddr:       flagtypes.Addr{DefaultScheme: "https", DefaultPort: 8443}.Default(),
+		PortalNet:            flagtypes.DefaultIPNet("172.30.17.0/24"),
+		MasterPublicAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 
 		Hostname: hostname,
 		NodeList: flagtypes.StringList{"127.0.0.1"},
@@ -126,9 +131,11 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag := cmd.Flags()
 
 	flag.Var(&cfg.BindAddr, "listen", "The address to listen for connections on (host, host:port, or URL).")
-	flag.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL). Scheme and port default to the --listen scheme and port.")
+	flag.Var(&cfg.MasterAddr, "master", "The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the --listen scheme and port.")
+	flag.Var(&cfg.MasterPublicAddr, "public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
 	flag.Var(&cfg.EtcdAddr, "etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
 	flag.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified, no Kubernetes components will be started.")
+	flag.Var(&cfg.KubernetesPublicAddr, "public-kubernetes", "The Kubernetes server address for use by public clients, if different. (host, host:port, or URL). Defaults to same as --kubernetes.")
 	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
@@ -161,6 +168,9 @@ func start(cfg *config, args []string) error {
 				return err
 			}
 			glog.Infof("Starting an OpenShift master, reachable at %s (etcd: %s)", cfg.MasterAddr.String(), cfg.EtcdAddr.String())
+			if cfg.MasterPublicAddr.Provided {
+				glog.Infof("OpenShift master public address is %s", cfg.MasterPublicAddr.String())
+			}
 
 		case "node":
 			startNode = true
@@ -182,6 +192,9 @@ func start(cfg *config, args []string) error {
 		}
 
 		glog.Infof("Starting an OpenShift all-in-one, reachable at %s (etcd: %s)", cfg.MasterAddr.String(), cfg.EtcdAddr.String())
+		if cfg.MasterPublicAddr.Provided {
+			glog.Infof("OpenShift master public address is %s", cfg.MasterPublicAddr.String())
+		}
 	}
 
 	startKube := !cfg.KubernetesAddr.Provided
@@ -221,18 +234,41 @@ func start(cfg *config, args []string) error {
 			return fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 
-		assetAddr := net.JoinHostPort(cfg.MasterAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
+		// determine whether public API addresses were specified
+		masterPublicAddr := cfg.MasterAddr
+		if cfg.MasterPublicAddr.Provided {
+			masterPublicAddr = cfg.MasterPublicAddr
+		}
+		k8sPublicAddr := masterPublicAddr      // assume same place as master
+		if cfg.KubernetesPublicAddr.Provided { // specifically set, use that
+			k8sPublicAddr = cfg.KubernetesPublicAddr
+		} else if cfg.KubernetesAddr.Provided { // separate Kube, assume it is public
+			k8sPublicAddr = cfg.KubernetesAddr
+		}
+
+		// Derive the asset bind address by incrementing the master bind address port by 1
+		assetBindAddr := net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
+		// Derive the asset public address by incrementing the master public address port by 1
+		assetPublicAddr := *masterPublicAddr.URL
+		assetPublicAddr.Host = net.JoinHostPort(masterPublicAddr.Host, strconv.Itoa(masterPublicAddr.Port+1))
 
 		// always include the all-in-one server's web console as an allowed CORS origin
 		// always include localhost as an allowed CORS origin
-		cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, assetAddr, "localhost", "127.0.0.1")
+		// always include master and kubernetes public addresses as an allowed CORS origin
+		for _, origin := range []string{assetPublicAddr.Host, masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host, "localhost", "127.0.0.1"} {
+			// TODO: check if origin is already allowed
+			cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, origin)
+		}
 
 		osmaster := &origin.MasterConfig{
-			TLS:                   cfg.MasterAddr.URL.Scheme == "https",
-			BindAddr:              cfg.BindAddr.URL.Host,
+			TLS:                   cfg.BindAddr.URL.Scheme == "https",
+			MasterBindAddr:        cfg.BindAddr.URL.Host,
 			MasterAddr:            cfg.MasterAddr.URL.String(),
-			AssetAddr:             assetAddr,
+			MasterPublicAddr:      masterPublicAddr.URL.String(),
+			AssetBindAddr:         assetBindAddr,
+			AssetPublicAddr:       assetPublicAddr.String(),
 			KubernetesAddr:        cfg.KubernetesAddr.URL.String(),
+			KubernetesPublicAddr:  k8sPublicAddr.URL.String(),
 			EtcdHelper:            etcdHelper,
 			RequireAuthentication: cfg.RequireAuthentication,
 			Authorizer:            apiserver.NewAlwaysAllowAuthorizer(),
@@ -267,7 +303,7 @@ func start(cfg *config, args []string) error {
 			// Bootstrap server certs
 			// 172.17.42.1 enables the router to call back out to the master
 			// TODO: Remove 172.17.42.1 once we can figure out how to validate the master's cert from inside a pod, or tell pods the real IP for the master
-			serverCert, err := ca.MakeServerCert("master", []string{cfg.MasterAddr.Host, "localhost", "127.0.0.1", "172.17.42.1"})
+			serverCert, err := ca.MakeServerCert("master", []string{cfg.MasterAddr.Host, "localhost", "127.0.0.1", "172.17.42.1", masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host})
 			if err != nil {
 				return err
 			}
@@ -315,10 +351,11 @@ func start(cfg *config, args []string) error {
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
 		auth := &origin.AuthConfig{
-			MasterAddr:     cfg.MasterAddr.URL.String(),
-			MasterRoots:    roots,
-			SessionSecrets: []string{"secret"},
-			EtcdHelper:     etcdHelper,
+			MasterAddr:       cfg.MasterAddr.URL.String(),
+			MasterPublicAddr: masterPublicAddr.URL.String(),
+			MasterRoots:      roots,
+			SessionSecrets:   []string{"secret"},
+			EtcdHelper:       etcdHelper,
 		}
 
 		if startKube {

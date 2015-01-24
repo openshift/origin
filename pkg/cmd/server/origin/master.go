@@ -80,10 +80,18 @@ const (
 
 // MasterConfig defines the required parameters for starting the OpenShift master
 type MasterConfig struct {
-	BindAddr       string
-	MasterAddr     string
-	AssetAddr      string
+	// host:port to bind master to
+	MasterBindAddr string
+	// host:port to bind asset server to
+	AssetBindAddr string
+	// url to access the master API on within the cluster
+	MasterAddr string
+	// url to access kubernetes API on within the cluster
 	KubernetesAddr string
+	// external clients may need to access APIs at different addresses than internal components do
+	MasterPublicAddr     string
+	KubernetesPublicAddr string
+	AssetPublicAddr      string
 
 	TLS bool
 
@@ -306,7 +314,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	}
 
 	server := &http.Server{
-		Addr:           c.BindAddr,
+		Addr:           c.MasterBindAddr,
 		Handler:        handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
@@ -332,7 +340,7 @@ func (c *MasterConfig) RunAPI(installers ...APIInstaller) {
 	}, 0)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial("tcp", c.BindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial("tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
 // wireAuthenticationHandling creates and binds all the objects that we only care about if authentication is turned on.  It's pulled out
@@ -391,12 +399,12 @@ func (c *MasterConfig) RunAssetServer() {
 	// TODO use	version.Get().GitCommit as an etag cache header
 	mux := http.NewServeMux()
 
-	masterURL, err := url.Parse(c.MasterAddr)
+	masterURL, err := url.Parse(c.MasterPublicAddr)
 	if err != nil {
 		glog.Fatalf("Error parsing master url: %v", err)
 	}
 
-	k8sURL, err := url.Parse(c.KubernetesAddr)
+	k8sURL, err := url.Parse(c.KubernetesPublicAddr)
 	if err != nil {
 		glog.Fatalf("Error parsing kubernetes url: %v", err)
 	}
@@ -428,7 +436,7 @@ func (c *MasterConfig) RunAssetServer() {
 	)
 
 	server := &http.Server{
-		Addr:           c.AssetAddr,
+		Addr:           c.AssetBindAddr,
 		Handler:        mux,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
@@ -444,16 +452,18 @@ func (c *MasterConfig) RunAssetServer() {
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
 			}
-			glog.Infof("Started OpenShift static asset server at https://%s", c.AssetAddr)
+			glog.Infof("OpenShift UI listening at https://%s", c.AssetBindAddr)
 			glog.Fatal(server.ListenAndServeTLS(c.AssetCertFile, c.AssetKeyFile))
 		} else {
-			glog.Infof("Started OpenShift static asset server at http://%s", c.AssetAddr)
+			glog.Infof("OpenShift UI listening at https://%s", c.AssetBindAddr)
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial("tcp", c.AssetAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial("tcp", c.AssetBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+
+	glog.Infof("OpenShift UI available at %s", c.AssetPublicAddr)
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
