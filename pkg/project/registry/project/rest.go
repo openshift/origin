@@ -58,11 +58,10 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
 
-	// TODO decide if we should set namespace == name, think longer term we need some type of reservation here
-	// but i want to be able to let existing kubernetes ns grow into a project as well
-	if len(project.Namespace) == 0 {
-		project.Namespace = project.Name
-	}
+	// BETA 1: A project will reserve a namespace == project.Name
+	// When Namespace As Kind lands upstream, we will change this so Project project has an ObjectReference to Namespace
+	// Or Project will just be a virtual wrapper on Namespace and not its own object
+	project.Namespace = project.Name
 
 	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
 
