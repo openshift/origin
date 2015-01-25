@@ -1,6 +1,7 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/golang/glog"
@@ -57,6 +58,14 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 }
 
 func makeTemplatePlugin(cfg *templateRouterConfig) (*templateplugin.TemplatePlugin, error) {
+	if cfg.TemplateFile == "" {
+		return nil, errors.New("Template file must be specified")
+	}
+
+	if cfg.ReloadScript == "" {
+		return nil, errors.New("Reload script must be specified")
+	}
+
 	return templateplugin.NewTemplatePlugin(cfg.TemplateFile, cfg.ReloadScript)
 }
 
