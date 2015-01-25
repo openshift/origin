@@ -20,7 +20,11 @@ System Environment
     Alternatively you can disable it via:
     
         $ systemctl stop firewalld
-        
+
+1. Setup your host DNS to an address that the containers can reach
+
+  Containers need to be able to resolve hostnames, so if you run a local DNS server on your host, you should update your /etc/resolv.conf to instead use a DNS server that will be reachable from within running containers.  Google's "8.8.8.8" server is a popular choice.
+
 Build Failures
 --------------
 
