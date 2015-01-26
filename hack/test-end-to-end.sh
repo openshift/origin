@@ -47,7 +47,7 @@ KUBELET_PORT="${KUBELET_PORT:-10250}"
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
 # Used by the docker-registry and the router pods to call back to the API
-CONTAINER_ACCESSIBLE_API_HOST="172.17.42.1"
+CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 
 STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
 DOCKER_CONFIG_FILE="${LOG_DIR}/dockerAppConfig.json"
@@ -164,27 +164,16 @@ export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 if [[ "${API_SCHEME}" == "https" ]]; then
 	# Read client cert data in to send to containerized components
 	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
-	export OPENSHIFT_CA_DATA="$(cat "${CERT_DIR}/openshift-client/root.crt")"
-	OPENSHIFT_CERT_DATA="$(cat "${CERT_DIR}/openshift-client/cert.crt")"
-	OPENSHIFT_KEY_DATA="$(cat "${CERT_DIR}/openshift-client/key.key")"
 
 	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
 	sudo chmod -R a+rwX "${CERT_DIR}/admin/"
 	export HOME="${CERT_DIR}/admin"
 	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
 	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
-else
-	export OPENSHIFT_CA_DATA=""
-	OPENSHIFT_CERT_DATA=""
-	OPENSHIFT_KEY_DATA=""
 fi
 
-# Deploy private docker registry
-echo "[INFO] Submitting docker-registry template file for processing"
-osc process -f examples/sample-app/docker-registry-template.json -v "OPENSHIFT_MASTER=$API_SCHEME://${CONTAINER_ACCESSIBLE_API_HOST}:$API_PORT,OPENSHIFT_CA_DATA=${OPENSHIFT_CA_DATA},OPENSHIFT_CERT_DATA=${OPENSHIFT_CERT_DATA},OPENSHIFT_KEY_DATA=${OPENSHIFT_KEY_DATA}" > "$ARTIFACT_DIR/docker-registry-config.json"
-
-echo "[INFO] Deploying private Docker registry from $ARTIFACT_DIR/docker-registry-config.json"
-osc apply -f ${ARTIFACT_DIR}/docker-registry-config.json
+# install the registry
+CERT_DIR="${CERT_DIR}/openshift-client" hack/install-registry.sh
 
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_command "osc get pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
