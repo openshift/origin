@@ -104,7 +104,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Single VM dev environment
     # Set VirtualBox provider settings
     config.vm.provider "virtualbox" do |v, override|
-      override.vm.box     = vagrant_openshift_config['virtualbox']['box_name']
+      override.vm.box     = vagrant_openshift_config['virtualbox']['name']
       override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url']
 
       v.memory            = vagrant_openshift_config['memory']
