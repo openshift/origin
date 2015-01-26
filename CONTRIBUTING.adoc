@@ -78,6 +78,29 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 TIP: In some cases (eg. after git pull), you might run `make clean` in the `origin` directory to clean up outdated compiled files.
 
+== Ensure virtual box interfaces are not managed by Network Manager
+
+If you are developing on a Linux host, then you need to ensure that Network Manager is ignoring the
+virtual box interfaces, otherwise they cause issues with multi-vm networking.
+
+Follow these steps to ensure that virtual box interfaces are unmanaged:
+
+1. Check the status of Network Manager devices:
+
+	$ nmcli d
+
+2. If any devices whose name start with vboxnet* are not unmanaged, then they need to be added to
+   NetworkManager configuration to be ignored.
+
+	$ cat /etc/NetworkManager/NetworkManager.conf
+
+        [keyfile]
+        unmanaged-devices=mac:0a:00:27:00:00:00;mac:0a:00:27:00:00:01;mac:0a:00:27:00:00:02
+
+3. One can use the following command to help generate the configuration:
+
+	$ ip link list | grep vboxnet  -A 1 | grep link/ether | awk '{print "mac:" $2}' |  paste -sd ";" -
+
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development in two repositories:
 
