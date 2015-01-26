@@ -22,12 +22,12 @@ type openshiftAuthorizer struct {
 	policyRegistry               policyregistry.Registry
 	policyBindingRegistry        policybindingregistry.Registry
 }
-type openshiftAuthorizationAttributes struct {
-	user              authenticationapi.UserInfo
-	verb              string
-	resourceKind      string
-	namespace         string
-	requestAttributes interface{}
+type DefaultAuthorizationAttributes struct {
+	User              authenticationapi.UserInfo
+	Verb              string
+	ResourceKind      string
+	Namespace         string
+	RequestAttributes interface{}
 }
 type openshiftAuthorizationAttributeBuilder struct {
 	requestsToUsers *authcontext.RequestContextMap
@@ -161,7 +161,7 @@ func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user aut
 func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes) (bool, string, error) {
 	// fmt.Printf("#### checking %#v\n", passedAttributes)
 
-	attributes, ok := passedAttributes.(openshiftAuthorizationAttributes)
+	attributes, ok := passedAttributes.(DefaultAuthorizationAttributes)
 	if !ok {
 		return false, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
 	}
@@ -194,7 +194,7 @@ func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes
 }
 
 func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, passedAttributes AuthorizationAttributes) (string, string, error) {
-	attributes, ok := passedAttributes.(openshiftAuthorizationAttributes)
+	attributes, ok := passedAttributes.(DefaultAuthorizationAttributes)
 	if !ok {
 		return "", "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
 	}
@@ -237,7 +237,7 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 	return "", "", nil
 }
 
-func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.PolicyRule) (bool, error) {
+func (a DefaultAuthorizationAttributes) ruleMatches(rule authorizationapi.PolicyRule) (bool, error) {
 	if a.verbMatches(rule) {
 		if a.kindMatches(rule) {
 			return true, nil
@@ -247,7 +247,7 @@ func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.Poli
 	return false, nil
 }
 
-func (a openshiftAuthorizationAttributes) verbMatches(rule authorizationapi.PolicyRule) bool {
+func (a DefaultAuthorizationAttributes) verbMatches(rule authorizationapi.PolicyRule) bool {
 	verbMatches := false
 	verbMatches = verbMatches || contains(rule.Verbs, a.GetVerb())
 	verbMatches = verbMatches || contains(rule.Verbs, "*")
@@ -259,7 +259,7 @@ func (a openshiftAuthorizationAttributes) verbMatches(rule authorizationapi.Poli
 	return verbMatches
 }
 
-func (a openshiftAuthorizationAttributes) kindMatches(rule authorizationapi.PolicyRule) bool {
+func (a DefaultAuthorizationAttributes) kindMatches(rule authorizationapi.PolicyRule) bool {
 	kindMatches := false
 	kindMatches = kindMatches || contains(rule.ResourceKinds, a.GetResourceKind())
 	kindMatches = kindMatches || contains(rule.ResourceKinds, "*")
@@ -271,20 +271,20 @@ func (a openshiftAuthorizationAttributes) kindMatches(rule authorizationapi.Poli
 	return kindMatches
 }
 
-func (a openshiftAuthorizationAttributes) GetUserInfo() authenticationapi.UserInfo {
-	return a.user
+func (a DefaultAuthorizationAttributes) GetUserInfo() authenticationapi.UserInfo {
+	return a.User
 }
-func (a openshiftAuthorizationAttributes) GetVerb() string {
-	return a.verb
+func (a DefaultAuthorizationAttributes) GetVerb() string {
+	return a.Verb
 }
-func (a openshiftAuthorizationAttributes) GetResourceKind() string {
-	return a.resourceKind
+func (a DefaultAuthorizationAttributes) GetResourceKind() string {
+	return a.ResourceKind
 }
-func (a openshiftAuthorizationAttributes) GetNamespace() string {
-	return a.namespace
+func (a DefaultAuthorizationAttributes) GetNamespace() string {
+	return a.Namespace
 }
-func (a openshiftAuthorizationAttributes) GetRequestAttributes() interface{} {
-	return a.requestAttributes
+func (a DefaultAuthorizationAttributes) GetRequestAttributes() interface{} {
+	return a.RequestAttributes
 }
 
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
@@ -302,12 +302,12 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		return nil, errors.New("wrong type returned for user")
 	}
 
-	return openshiftAuthorizationAttributes{
-		user:              userInfo,
-		verb:              verb,
-		resourceKind:      kind,
-		namespace:         namespace,
-		requestAttributes: nil,
+	return DefaultAuthorizationAttributes{
+		User:              userInfo,
+		Verb:              verb,
+		ResourceKind:      kind,
+		Namespace:         namespace,
+		RequestAttributes: nil,
 	}, nil
 }
 

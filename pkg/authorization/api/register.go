@@ -10,14 +10,16 @@ func init() {
 		&RoleBinding{},
 		&Policy{},
 		&PolicyBinding{},
+		&SubjectAccessReview{},
 		&PolicyList{},
 		&PolicyBindingList{},
 	)
 }
 
-func (*Role) IsAnAPIObject()              {}
-func (*Policy) IsAnAPIObject()            {}
-func (*PolicyBinding) IsAnAPIObject()     {}
-func (*RoleBinding) IsAnAPIObject()       {}
-func (*PolicyList) IsAnAPIObject()        {}
-func (*PolicyBindingList) IsAnAPIObject() {}
+func (*Role) IsAnAPIObject()                {}
+func (*Policy) IsAnAPIObject()              {}
+func (*PolicyBinding) IsAnAPIObject()       {}
+func (*RoleBinding) IsAnAPIObject()         {}
+func (*SubjectAccessReview) IsAnAPIObject() {}
+func (*PolicyList) IsAnAPIObject()          {}
+func (*PolicyBindingList) IsAnAPIObject()   {}
