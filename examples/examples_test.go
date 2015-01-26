@@ -68,6 +68,8 @@ func validateObject(obj runtime.Object) (errors []error) {
 	case *deployapi.Deployment:
 		errors = deployv.ValidateDeployment(t)
 	case *projectapi.Project:
+		// this is a global resource that should not have a namespace
+		t.Namespace = ""
 		errors = projectv.ValidateProject(t)
 	case *routeapi.Route:
 		errors = routev.ValidateRoute(t)
