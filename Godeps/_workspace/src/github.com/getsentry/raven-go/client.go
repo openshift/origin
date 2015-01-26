@@ -136,6 +136,7 @@ type Packet struct {
 	Logger    string    `json:"logger"`
 
 	// Optional
+	Release    string                 `json:"release,omitempty"`
 	Platform   string                 `json:"platform,omitempty"`
 	Culprit    string                 `json:"culprit,omitempty"`
 	Tags       Tags                   `json:"tags,omitempty"`
@@ -266,6 +267,7 @@ type Client struct {
 	mu         sync.RWMutex
 	url        string
 	projectID  string
+	release    string
 	authHeader string
 	queue      chan *outgoingPacket
 }
@@ -310,6 +312,12 @@ func (client *Client) SetDSN(dsn string) error {
 	return nil
 }
 
+func (client *Client) SetRelease(release string) {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	client.release = release
+}
+
 func (client *Client) worker() {
 	for outgoingPacket := range client.queue {
 		client.mu.RLock()
@@ -337,6 +345,7 @@ func (client *Client) Capture(packet *Packet, captureTags map[string]string) (ev
 	// Initialize any required packet fields
 	client.mu.RLock()
 	projectID := client.projectID
+	release := client.release
 	client.mu.RUnlock()
 
 	err := packet.Init(projectID)
@@ -344,6 +353,7 @@ func (client *Client) Capture(packet *Packet, captureTags map[string]string) (ev
 		ch <- err
 		return
 	}
+	packet.Release = release
 
 	outgoingPacket := &outgoingPacket{packet, ch}
 
@@ -418,6 +428,13 @@ func (client *Client) ProjectID() string {
 	defer client.mu.RUnlock()
 
 	return client.projectID
+}
+
+func (client *Client) Release() string {
+	client.mu.RLock()
+	defer client.mu.RUnlock()
+
+	return client.release
 }
 
 func (client *Client) URL() string {
