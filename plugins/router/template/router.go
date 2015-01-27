@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strconv"
 	"text/template"
-	"time"
 
 	"github.com/golang/glog"
+
+	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 const (
@@ -19,13 +19,12 @@ const (
 )
 
 const (
-	TermEdge  = "TERM_EDGE"
-	TermGear  = "TERM_GEAR"
-	TermRessl = "TERM_RESSL"
-)
+	routeFile = "/var/lib/containers/router/routes.json"
+	certDir   = "/var/lib/containers/router/certs/"
+	caCertDir = "/var/lib/containers/router/cacerts/"
 
-const (
-	RouteFile = "/var/lib/containers/router/routes.json"
+	caCertPostfix   = "_ca"
+	destCertPostfix = "_pod"
 )
 
 // templateRouter is a backend-agnostic router implementation
@@ -34,20 +33,21 @@ const (
 type templateRouter struct {
 	templates        map[string]*template.Template
 	reloadScriptPath string
-	state            map[string]Frontend
+	state            map[string]ServiceUnit
+	certManager      certManager
 }
 
 func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath string) (*templateRouter, error) {
-	router := &templateRouter{templates, reloadScriptPath, map[string]Frontend{}}
+	router := &templateRouter{templates, reloadScriptPath, map[string]ServiceUnit{}, certManager{}}
 	err := router.readState()
 	return router, err
 }
 
 func (r *templateRouter) readState() error {
-	dat, err := ioutil.ReadFile(RouteFile)
+	dat, err := ioutil.ReadFile(routeFile)
 	// XXX: rework
 	if err != nil {
-		r.state = make(map[string]Frontend)
+		r.state = make(map[string]ServiceUnit)
 		return nil
 	}
 
@@ -81,7 +81,7 @@ func (r *templateRouter) writeState() error {
 		glog.Errorf("Failed to marshal route table: %v", err)
 		return err
 	}
-	err = ioutil.WriteFile(RouteFile, dat, 0644)
+	err = ioutil.WriteFile(routeFile, dat, 0644)
 	if err != nil {
 		glog.Errorf("Failed to write route table: %v", err)
 		return err
@@ -90,8 +90,16 @@ func (r *templateRouter) writeState() error {
 	return nil
 }
 
-// writeConfig processes the templates and writes config files.
+// write the config to disk
 func (r *templateRouter) writeConfig() error {
+	//write out any certificate files that don't exist
+	//TODO: better way so this doesn't need to create lots of files every time state is written, probably too expensive
+	for _, serviceUnit := range r.state {
+		for _, cfg := range serviceUnit.ServiceAliasConfigs {
+			r.certManager.writeCertificatesForConfig(&cfg)
+		}
+	}
+
 	for path, template := range r.templates {
 		file, err := os.Create(path)
 		if err != nil {
@@ -122,126 +130,119 @@ func (r *templateRouter) reloadRouter() error {
 }
 
 // CreateFrontend creates a new frontend named with the given id.
-func (r *templateRouter) CreateFrontend(id string, url string) {
-	frontend := Frontend{
-		Name:          id,
-		Backends:      make(map[string]Backend),
-		EndpointTable: make(map[string]Endpoint),
-		HostAliases:   make([]string, 0),
+func (r *templateRouter) CreateServiceUnit(id string) {
+	frontend := ServiceUnit{
+		Name:                id,
+		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
+		EndpointTable:       make(map[string]Endpoint),
 	}
 
-	if url != "" {
-		frontend.HostAliases = append(frontend.HostAliases, url)
-	}
 	r.state[id] = frontend
 }
 
-// FindFrontend finds the frontend with the given id.
-func (r *templateRouter) FindFrontend(id string) (v Frontend, ok bool) {
+// FindServiceUnit finds the frontend with the given id.
+func (r *templateRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
 	v, ok = r.state[id]
 	return
 }
 
 // DeleteFrontend deletes the frontend with the given id.
-func (r *templateRouter) DeleteFrontend(id string) {
+func (r *templateRouter) DeleteServiceUnit(id string) {
 	delete(r.state, id)
 }
 
-// DeleteBackends deletes the backends for the frontend with the given id.
-func (r *templateRouter) DeleteBackends(id string) {
-	frontend, ok := r.state[id]
+// DeleteEndpoints deletes the endpoints for the frontend with the given id.
+func (r *templateRouter) DeleteEndpoints(id string) {
+	frontend, ok := r.FindServiceUnit(id)
 	if !ok {
 		return
 	}
-	frontend.Backends = make(map[string]Backend)
 	frontend.EndpointTable = make(map[string]Endpoint)
 
 	r.state[id] = frontend
 }
 
-// AddAlias adds a host alias for the given id.
-func (r *templateRouter) AddAlias(id, alias string) {
-	frontend := r.state[id]
-	for _, v := range frontend.HostAliases {
-		if v == alias {
-			return
+//generate route key in form of Host-Path
+func (r *templateRouter) routeKey(route *routeapi.Route) string {
+	return route.Host + "-" + route.Path
+}
+
+// AddRoute adds a route for the given id
+func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
+	frontend, _ := r.FindServiceUnit(id)
+
+	backendKey := r.routeKey(route)
+
+	config := ServiceAliasConfig{
+		Host: route.Host,
+		Path: route.Path,
+	}
+
+	if route.TLS != nil && len(route.TLS.Termination) > 0 {
+		config.TLSTermination = route.TLS.Termination
+
+		if route.TLS.Termination != routeapi.TLSTerminationPassthrough {
+			if config.Certificates == nil {
+				config.Certificates = make(map[string]Certificate)
+			}
+
+			cert := Certificate{
+				ID:         route.Host,
+				Contents:   route.TLS.Certificate,
+				PrivateKey: route.TLS.Key,
+			}
+
+			config.Certificates[cert.ID] = cert
+
+			if len(route.TLS.CACertificate) > 0 {
+				caCert := Certificate{
+					ID:       route.Host + caCertPostfix,
+					Contents: route.TLS.CACertificate,
+				}
+
+				config.Certificates[caCert.ID] = caCert
+			}
+
+			if len(route.TLS.DestinationCACertificate) > 0 {
+				destCert := Certificate{
+					ID:       route.Host + destCertPostfix,
+					Contents: route.TLS.DestinationCACertificate,
+				}
+
+				config.Certificates[destCert.ID] = destCert
+			}
 		}
 	}
 
-	frontend.HostAliases = append(frontend.HostAliases, alias)
+	//create or replace
+	frontend.ServiceAliasConfigs[backendKey] = config
 	r.state[id] = frontend
 }
 
 // RemoveAlias removes the given alias for the given id.
-func (r *templateRouter) RemoveAlias(id, alias string) {
-	frontend := r.state[id]
-	newAliases := []string{}
-	for _, v := range frontend.HostAliases {
-		if v == alias || v == "" {
-			continue
-		}
-		newAliases = append(newAliases, v)
+func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
+	_, ok := r.state[id]
+
+	if !ok {
+		return
 	}
 
-	frontend.HostAliases = newAliases
-	r.state[id] = frontend
+	delete(r.state[id].ServiceAliasConfigs, r.routeKey(route))
 }
 
 // AddRoute adds new Endpoints for the given id.
-func (r *templateRouter) AddRoute(id string, back *Backend, endpoints []Endpoint) {
-	frontend := r.state[id]
+func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
+	frontend, _ := r.FindServiceUnit(id)
 
-	// determine which endpoints from the input are new
-	newEndpoints := make([]string, 1)
-	for _, input := range endpoints {
-		if input.IP == "" || input.Port == "" {
-			continue
+	//only add if it doesn't already exist
+	for _, ep := range endpoints {
+		if _, ok := frontend.EndpointTable[ep.ID]; !ok {
+			newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port}
+			frontend.EndpointTable[ep.ID] = newEndpoint
 		}
-
-		found := false
-		for _, ep := range frontend.EndpointTable {
-			if ep.IP == input.IP && ep.Port == input.Port {
-				newEndpoints = append(newEndpoints, ep.ID)
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			endpointID := makeID()
-			ep := Endpoint{endpointID, input.IP, input.Port}
-			frontend.EndpointTable[endpointID] = ep
-			newEndpoints = append(newEndpoints, ep.ID)
-		}
-	}
-
-	// locate a backend that may already exist with this protocol and fe/be path
-	found := false
-	for _, be := range frontend.Backends {
-		if be.FePath == back.FePath && be.BePath == back.BePath && cmpStrSlices(back.Protocols, be.Protocols) {
-			for _, epID := range newEndpoints {
-				be.EndpointIDs = append(be.EndpointIDs, epID)
-			}
-			frontend.Backends[be.ID] = be
-			found = true
-			break
-		}
-	}
-
-	// create a new backend if none was found.
-	if !found {
-		backendID := makeID()
-		frontend.Backends[backendID] = Backend{backendID, back.FePath, back.BePath, back.Protocols, newEndpoints, TermEdge, nil}
 	}
 
 	r.state[id] = frontend
-}
-
-// TODO: make a better ID generator
-func makeID() string {
-	var s string
-	s = strconv.FormatInt(time.Now().UnixNano(), 16)
-	return s
 }
 
 func cmpStrSlices(first []string, second []string) bool {

@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"fmt"
 	"strings"
 	"text/template"
 
@@ -17,6 +18,7 @@ type TemplatePlugin struct {
 	Router router
 }
 
+// router controls the interaction of the plugin with the underlying router implementation
 type router interface {
 	// Mutative operations in this interfance do not return errors.
 	// The only error state for these methods is when an unknown
@@ -24,17 +26,19 @@ type router interface {
 	// is created.
 
 	// CreateFrontend creates a new frontend named with the given id.
-	CreateFrontend(id string, url string)
+	CreateServiceUnit(id string)
 	// FindFrontend finds the frontend with the given id.
-	FindFrontend(id string) (v Frontend, ok bool)
-	// DeleteBackends deletes the backends for the frontend with the given id.
-	DeleteBackends(id string)
-	// AddAlias adds a host alias for the given id.
-	AddAlias(id, alias string)
-	// RemoveAlias removes the given alias for the given id.
-	RemoveAlias(id, alias string)
+	FindServiceUnit(id string) (v ServiceUnit, ok bool)
+
 	// AddRoute adds new Endpoints for the given id.
-	AddRoute(id string, backend *Backend, endpoints []Endpoint)
+	AddEndpoints(id string, endpoints []Endpoint)
+	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
+	DeleteEndpoints(id string)
+
+	// AddRoute adds a route for the given id
+	AddRoute(id string, route *routeapi.Route)
+	// RemoveAlias removes the given alias for the given id.
+	RemoveRoute(id string, route *routeapi.Route)
 
 	// Commit refreshes the backend and persists the router state.
 	Commit() error
@@ -67,25 +71,19 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 		glog.V(4).Infof("  Endpoint %d : %s", i, e)
 	}
 
-	if _, ok := p.Router.FindFrontend(key); !ok {
-		p.Router.CreateFrontend(key, "") //"www."+endpoints.ID+".com"
+	if _, ok := p.Router.FindServiceUnit(key); !ok {
+		p.Router.CreateServiceUnit(key)
 	}
 
-	// Delete the backends and rebuild the new state.
-	p.Router.DeleteBackends(key)
+	// clear existing endpoints
+	p.Router.DeleteEndpoints(key)
 
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
 		routerEndpoints := createRouterEndpoints(endpoints)
 		key := endpointsKey(*endpoints)
-		backend := &Backend{
-			FePath:    "",
-			BePath:    "",
-			Protocols: nil,
-		}
-
-		p.Router.AddRoute(key, backend, routerEndpoints)
+		p.Router.AddEndpoints(key, routerEndpoints)
 	}
 
 	return p.Router.Commit()
@@ -94,18 +92,18 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 // HandleRoute processes watch events on the Route resource.
 func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
 	key := routeKey(*route)
-	if _, ok := p.Router.FindFrontend(key); !ok {
+	if _, ok := p.Router.FindServiceUnit(key); !ok {
 		glog.V(4).Infof("Creating new frontend for key: %v", key)
-		p.Router.CreateFrontend(key, "")
+		p.Router.CreateServiceUnit(key)
 	}
 
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying routes for %s", key)
-		p.Router.AddAlias(key, route.Host)
+		p.Router.AddRoute(key, route)
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
-		p.Router.RemoveAlias(key, route.Host)
+		p.Router.RemoveRoute(key, route)
 	}
 
 	return p.Router.Commit()
@@ -142,6 +140,8 @@ func endpointFromString(s string) (ep *Endpoint, ok bool) {
 		ep.IP = s
 		ep.Port = "80"
 	}
+
+	ep.ID = fmt.Sprintf("%s:%s", ep.IP, ep.Port)
 
 	return ep, true
 }

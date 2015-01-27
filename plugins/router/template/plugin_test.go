@@ -1,225 +1,281 @@
 package templaterouter
 
 import (
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
-	"reflect"
 )
 
-// TestRouter provides an implementation of the plugin's router interface
-// suitable for unit testing.
+// TestRouter provides an implementation of the plugin's router interface suitable for unit testing.
 type TestRouter struct {
-	FrontendsToFind map[string]Frontend
-	ErrorOnCommit   error
-
-	DeletedBackends  []string
-	CreatedFrontends []string
-	DeletedFrontends []string
-	AddedAliases     map[string]string
-	RemovedAliases   map[string]string
-	AddedRoutes      map[string][]Endpoint
-	Commited         bool
+	State         map[string]ServiceUnit
+	Committed     bool
+	ErrorOnCommit error
 }
 
-// NewTestRouter creates a new TestRouter.
-func newTestRouter(registeredFrontends map[string]Frontend) *TestRouter {
+// NewTestRouter creates a new TestRouter and registers the initial state.
+func newTestRouter(state map[string]ServiceUnit) *TestRouter {
 	return &TestRouter{
-		FrontendsToFind:  registeredFrontends,
-		DeletedBackends:  []string{},
-		CreatedFrontends: []string{},
-		DeletedFrontends: []string{},
-		AddedAliases:     map[string]string{},
-		RemovedAliases:   map[string]string{},
-		AddedRoutes:      map[string][]Endpoint{},
+		State:         state,
+		Committed:     false,
+		ErrorOnCommit: nil,
 	}
 }
 
-func (r *TestRouter) FindFrontend(name string) (Frontend, bool) {
-	f, ok := r.FrontendsToFind[name]
-	return f, ok
+// CreateServiceUnit creates an empty service unit identified by id
+func (r *TestRouter) CreateServiceUnit(id string) {
+	su := ServiceUnit{
+		Name:                id,
+		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
+		EndpointTable:       make(map[string]Endpoint),
+	}
+
+	r.State[id] = su
 }
 
-func (r *TestRouter) DeleteBackends(name string) {
-	r.DeletedBackends = append(r.DeletedBackends, name)
+// FindServiceUnit finds the service unit in the state
+func (r *TestRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
+	v, ok = r.State[id]
+	return
 }
 
-func (r *TestRouter) CreateFrontend(name, url string) {
-	r.CreatedFrontends = append(r.CreatedFrontends, name)
+// AddEndpoints adds the endpoints to the serivce unit identified by id
+func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) {
+	r.Committed = false //expect any call to this method to subsequently call commit
+	su, _ := r.FindServiceUnit(id)
+
+	for _, ep := range endpoints {
+		newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port}
+		su.EndpointTable[ep.ID] = newEndpoint
+	}
+
+	r.State[id] = su
 }
 
-func (r *TestRouter) DeleteFrontend(name string) {
-	r.DeletedFrontends = append(r.DeletedFrontends, name)
+// DeleteEndpoints removes all endpoints from the service unit
+func (r *TestRouter) DeleteEndpoints(id string) {
+	r.Committed = false //expect any call to this method to subsequently call commit
+	if su, ok := r.FindServiceUnit(id); !ok {
+		return
+	} else {
+		su.EndpointTable = make(map[string]Endpoint)
+		r.State[id] = su
+	}
 }
 
-func (r *TestRouter) AddAlias(name, alias string) {
-	r.AddedAliases[alias] = name
+// AddRoute adds a ServiceAliasConfig for the route to the ServiceUnit identified by id
+func (r *TestRouter) AddRoute(id string, route *routeapi.Route) {
+	r.Committed = false //expect any call to this method to subsequently call commit
+	su, _ := r.FindServiceUnit(id)
+	routeKey := r.routeKey(route)
+
+	config := ServiceAliasConfig{
+		Host: route.Host,
+		Path: route.Path,
+	}
+
+	su.ServiceAliasConfigs[routeKey] = config
+	r.State[id] = su
 }
 
-func (r *TestRouter) RemoveAlias(name, alias string) {
-	r.RemovedAliases[alias] = name
+// RemoveRoute removes the serivce alias config for Route from the ServiceUnit
+func (r *TestRouter) RemoveRoute(id string, route *routeapi.Route) {
+	r.Committed = false //expect any call to this method to subsequently call commit
+	if _, ok := r.State[id]; !ok {
+		return
+	} else {
+		delete(r.State[id].ServiceAliasConfigs, r.routeKey(route))
+	}
 }
 
-func (r *TestRouter) AddRoute(name string, backend *Backend, endpoints []Endpoint) {
-	r.AddedRoutes[name] = endpoints
+// routeKey create an identifier for the route consisting of host-path
+func (r *TestRouter) routeKey(route *routeapi.Route) string {
+	return route.Host + "-" + route.Path
 }
 
+// Commit saves router state
 func (r *TestRouter) Commit() error {
-	r.Commited = true
-
+	r.Committed = true
 	return r.ErrorOnCommit
 }
 
-func TestHandleRoute(t *testing.T) {
-	var (
-		testRouteName        = "testroute"
-		testRouteServiceName = "testservice"
-		testRouteHost        = "test.com"
-		testRoute            = routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: testRouteName,
-			},
-			Host:        testRouteHost,
-			ServiceName: testRouteServiceName,
-		}
-	)
-
-	cases := map[string]struct {
-		eventType       watch.EventType
-		existing        bool
-		frontendCreated bool
-		aliasAdded      bool
-		aliasRemoved    bool
-	}{
-		"added":    {eventType: watch.Added, frontendCreated: true, aliasAdded: true},
-		"modified": {eventType: watch.Modified, existing: true, aliasAdded: true},
-		"deleted":  {eventType: watch.Deleted, existing: true, aliasRemoved: true},
-	}
-
-	for name, tc := range cases {
-		existingFrontends := map[string]Frontend{}
-		if tc.existing {
-			existingFrontends[testRouteServiceName] = Frontend{}
-		}
-
-		testRouter := newTestRouter(existingFrontends)
-		plugin := TemplatePlugin{
-			Router: testRouter,
-		}
-
-		expectedFrontends := 0
-		if tc.frontendCreated {
-			expectedFrontends = 1
-		}
-
-		plugin.HandleRoute(tc.eventType, &testRoute)
-
-		if e, a := expectedFrontends, len(testRouter.CreatedFrontends); e != a {
-			t.Errorf("Case %v: Frontend should have been created", name)
-		}
-
-		if tc.aliasAdded {
-			addedAlias, ok := testRouter.AddedAliases[testRouteHost]
-			if !ok {
-				t.Errorf("Case %v: An alias should have been added for %v", name, testRouteHost)
-			}
-
-			if a, e := addedAlias, testRouteServiceName; a != e {
-				t.Errorf("Case: %v: Expected added alias for host %v, got %v instead", name, e, a)
-			}
-		}
-
-		if tc.aliasRemoved {
-			removedAlias, ok := testRouter.RemovedAliases[testRouteHost]
-			if !ok {
-				t.Errorf("Case %v: An alias should have been removed for %v", name, testRouteHost)
-			}
-
-			if a, e := removedAlias, testRouteServiceName; a != e {
-				t.Errorf("Case %v: Expected removed alias for host %v, got %v instead", name, e, a)
-			}
-		}
-
-		if !testRouter.Commited {
-			t.Errorf("Case %v: Router changes should have been committed", name)
-		}
-	}
-}
-
+// TestHandleEndpoints test endpoint watch events
 func TestHandleEndpoints(t *testing.T) {
-	var (
-		testEndpointsName = "testendpoints"
-		testEndpoints     = kapi.Endpoints{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: testEndpointsName,
-			},
-			Endpoints: []string{
-				"test1.com:8080",
-				"test2.com",
-			},
-		}
-	)
-
-	cases := map[string]struct {
-		eventType       watch.EventType
-		existing        bool
-		frontendCreated bool
-		routesAdded     bool
+	testCases := []struct {
+		name                string          //human readable name for test case
+		eventType           watch.EventType //type to be passed to the HandleEndpoints method
+		endpoints           *kapi.Endpoints //endpoints to be passed to the HandleEndpoints method
+		expectedServiceUnit *ServiceUnit    //service unit that will be compared against.
 	}{
-		"added":    {eventType: watch.Added, frontendCreated: true, routesAdded: true},
-		"modified": {eventType: watch.Modified, existing: true, routesAdded: true},
-		"deleted":  {eventType: watch.Deleted, existing: true},
+		{
+			name:      "Endpoint add",
+			eventType: watch.Added,
+			endpoints: &kapi.Endpoints{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "test", //kapi.endpoints inherits the name of the service
+				},
+				Endpoints: []string{"1.1.1.1"}, //not specifying a port to force the port 80 assumption
+			},
+			expectedServiceUnit: &ServiceUnit{
+				Name: "test", //service name from kapi.endpoints object
+				EndpointTable: map[string]Endpoint{
+					"1.1.1.1:80": { //port 80 will be added by default if not specified
+						ID:   "1.1.1.1:80",
+						IP:   "1.1.1.1",
+						Port: "80", //defaulted by code
+					},
+				},
+			},
+		},
+		{
+			name:      "Endpoint mod",
+			eventType: watch.Modified,
+			endpoints: &kapi.Endpoints{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "test",
+				},
+				Endpoints: []string{"2.2.2.2:8080"},
+			},
+			expectedServiceUnit: &ServiceUnit{
+				Name: "test",
+				EndpointTable: map[string]Endpoint{
+					"2.2.2.2:8080": {
+						ID:   "2.2.2.2:8080",
+						IP:   "2.2.2.2",
+						Port: "8080",
+					},
+				},
+			},
+		},
+		{
+			name:      "Endpoint delete",
+			eventType: watch.Deleted,
+			endpoints: &kapi.Endpoints{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "test",
+				},
+				Endpoints: []string{"3.3.3.3"},
+			},
+			expectedServiceUnit: &ServiceUnit{
+				Name:          "test",
+				EndpointTable: map[string]Endpoint{},
+			},
+		},
 	}
 
-	for name, tc := range cases {
-		existingFrontends := map[string]Frontend{}
-		if tc.existing {
-			existingFrontends[testEndpointsName] = Frontend{}
+	router := newTestRouter(make(map[string]ServiceUnit))
+	plugin := TemplatePlugin{Router: router}
+
+	for _, tc := range testCases {
+		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
+
+		if !router.Committed {
+			t.Errorf("Expected router to be committed after HandleEndpoints call")
 		}
 
-		testRouter := newTestRouter(existingFrontends)
-		plugin := TemplatePlugin{
-			Router: testRouter,
-		}
+		su, ok := plugin.Router.FindServiceUnit(tc.expectedServiceUnit.Name)
 
-		expectedFrontends := 0
-		if tc.frontendCreated {
-			expectedFrontends = 1
-		}
+		if !ok {
+			t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected service unit with name %s", tc.name, tc.expectedServiceUnit.Name)
+		} else {
+			for expectedKey, expectedEp := range tc.expectedServiceUnit.EndpointTable {
+				actualEp, ok := su.EndpointTable[expectedKey]
 
-		plugin.HandleEndpoints(tc.eventType, &testEndpoints)
+				if !ok {
+					t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected endpoint %s in endpoint table", tc.name, expectedKey)
+				}
 
-		if e, a := expectedFrontends, len(testRouter.CreatedFrontends); e != a {
-			t.Errorf("Case %v: Frontend should have been created", name)
-		}
-
-		if len(testRouter.DeletedBackends) != 1 {
-			t.Errorf("Case %v: Router should have had one deleted backend", name)
-		}
-
-		addedRoutes, ok := testRouter.AddedRoutes[testEndpointsName]
-		if tc.routesAdded {
-			if !ok {
-				t.Errorf("Case %v: Two routes should have been added for %v", name, testEndpointsName)
+				if expectedEp.ID != actualEp.ID || expectedEp.IP != actualEp.IP || expectedEp.Port != actualEp.Port {
+					t.Errorf("TestHandleEndpoints test case %s failed.  Expected endpoint didn't match actual endpoint %v : %v", tc.name, expectedEp, actualEp)
+				}
 			}
-
-			if num := len(addedRoutes); num != 2 {
-				t.Errorf("Case %v: Actual added endpoints %v != 2", name, num)
-			}
-		} else if ok {
-			t.Errorf("Case %v: No routes should have been added for %v", name, testEndpointsName)
-		}
-
-		if !testRouter.Commited {
-			t.Errorf("Case %v: Router changes should have been committed", name)
 		}
 	}
 }
 
-//test creation of endpoint from a string
+// TestHandleRoute test route watch events
+func TestHandleRoute(t *testing.T) {
+	router := newTestRouter(make(map[string]ServiceUnit))
+	plugin := TemplatePlugin{Router: router}
+
+	//add
+	route := &routeapi.Route{
+		Host:        "www.example.com",
+		ServiceName: "TestService",
+	}
+
+	plugin.HandleRoute(watch.Added, route)
+
+	if !router.Committed {
+		t.Errorf("Expected router to be committed after HandleRoute call")
+	}
+
+	actualSU, ok := router.FindServiceUnit(route.ServiceName)
+
+	if !ok {
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
+	} else {
+		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+
+		if !ok {
+			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
+		} else {
+			if serviceAliasCfg.Host != route.Host || serviceAliasCfg.Path != route.Path {
+				t.Errorf("Expected route did not match service alias config %v : %v", route, serviceAliasCfg)
+			}
+		}
+	}
+
+	//mod
+	route.Host = "www.example2.com"
+	plugin.HandleRoute(watch.Modified, route)
+
+	if !router.Committed {
+		t.Errorf("Expected router to be committed after HandleRoute call")
+	}
+
+	actualSU, ok = router.FindServiceUnit(route.ServiceName)
+
+	if !ok {
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
+	} else {
+		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+
+		if !ok {
+			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
+		} else {
+			if serviceAliasCfg.Host != route.Host || serviceAliasCfg.Path != route.Path {
+				t.Errorf("Expected route did not match service alias config %v : %v", route, serviceAliasCfg)
+			}
+		}
+	}
+
+	//delete
+	plugin.HandleRoute(watch.Deleted, route)
+
+	if !router.Committed {
+		t.Errorf("Expected router to be committed after HandleRoute call")
+	}
+
+	actualSU, ok = router.FindServiceUnit(route.ServiceName)
+
+	if !ok {
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
+	} else {
+		_, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+
+		if ok {
+			t.Errorf("TestHandleRoute did not expect route key %s", router.routeKey(route))
+		}
+	}
+
+}
+
+// TestEndpointFromString test creation of endpoint from a string
 func TestEndpointFromString(t *testing.T) {
 	endpointFromStringTestCases := map[string]struct {
 		InputEndpoint    string
@@ -234,6 +290,7 @@ func TestEndpointFromString(t *testing.T) {
 		"Default Port": {
 			InputEndpoint: "test",
 			ExpectedEndpoint: &Endpoint{
+				ID:   "test:80",
 				IP:   "test",
 				Port: "80",
 			},
@@ -242,6 +299,7 @@ func TestEndpointFromString(t *testing.T) {
 		"Non-default Port": {
 			InputEndpoint: "test:9999",
 			ExpectedEndpoint: &Endpoint{
+				ID:   "test:9999",
 				IP:   "test",
 				Port: "9999",
 			},
@@ -257,7 +315,7 @@ func TestEndpointFromString(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(endpoint, tc.ExpectedEndpoint) {
-			t.Fatalf("%s failed, the returned endpoint didn't match the expected endpoint", k)
+			t.Fatalf("%s failed, the returned endpoint didn't match the expected endpoint %v : %v", k, endpoint, tc.ExpectedEndpoint)
 		}
 	}
 }

@@ -9,10 +9,16 @@
                 {
                     "name": "origin-haproxy-router-ROUTER_ID",
                     "image": "openshift/origin-haproxy-router",
-                    "ports": [{
-                        "containerPort": 80,
-                        "hostPort": 80
-                    }],
+                    "ports": [
+                        {
+                            "containerPort": 80,
+                            "hostPort": 80
+                        },
+                        {
+                            "containerPort": 443,
+                            "hostPort": 443
+                        }
+                    ],
                     "env": [
                         {
                             "name": "OPENSHIFT_MASTER",
@@ -27,6 +33,7 @@
                             "value": "${OPENSHIFT_INSECURE}"
                         }
                     ],
+                    "command": ["--loglevel=4"],
                     "imagePullPolicy": "PullIfNotPresent"
                 }
             ],
