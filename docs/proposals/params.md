@@ -26,8 +26,10 @@ component would only need the URL for the API server and the coordinates for its
 in order to discover its configuration.  It could also watch the `Parameters` resource and receive
 events when its configuration was changed.
 
-Using `Parameters` to sure configuration about services has several advantages to storing them
-directly in etcd or using CLI arguments exclusively:
+An alternative to a parameters resource that has been discussed for configuring system components
+upstream is to store configuration data in etcd directly.  Using `Parameters` to sure
+configuration about services has several advantages to storing them directly in etcd or using CLI
+arguments exclusively:
 
 1.  Eliminates the need to query etcd directly, resulting in lower complexity; consumers only need
     to know how to query the API server instead of the API server and etcd
@@ -59,7 +61,7 @@ containers would declare a `ParametersLink` to indicate the relationship with th
 ## Use-Case: Configuring software in user pods
 
 A `Parameters` resource can also store ordinary configuration parameters for user software that runs
-in pods.  Pods would declare `ParametersLink`s as for the other user pods use-cases.
+in pods.  Containers would declare `ParametersLink`s as for the other user pods use-cases.
 
 ## Use-Case: Optional Parameters
 
@@ -74,8 +76,9 @@ optional dependencies between pods and parameters.
 
 ## Advantages of using Parameters for userspace configuration
 
-Using `Parameters` to model shared parameters has a number of advantages over directly including
-parameter information in the environment of every container that needs it:
+All of the use-cases describe for userspace concerns (service parameters, external services, etc)
+can be solved by setting environment variables on the appropriate containers manually.  However,
+using `Parameters` to model shared parameters has a number of advantages over this approach:
 
 1.  Eliminates the need to redeclare shared parameters on every container that needs them
 2.  Parameters only have to be updated in a single place
