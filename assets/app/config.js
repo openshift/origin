@@ -11,5 +11,9 @@ window.OPENSHIFT_CONFIG = {
       hostPort: "localhost:8443",
       prefix: "/api"
     }
-  }
+  },
+  auth: {
+  	oauth_authorize_url: "https://localhost:8443/oauth/authorize",
+  	oauth_client_id: "openshift-web-console"
+  },
 };

@@ -274,10 +274,15 @@ func start(cfg *config, args []string) error {
 		assetPublicAddr := *masterPublicAddr.URL
 		assetPublicAddr.Host = net.JoinHostPort(masterPublicAddr.Host, strconv.Itoa(masterPublicAddr.Port+1))
 
+		// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
+		// TODO: allow configuring this
+		// TODO: remove hard-coding of development UI server
+		assetPublicAddresses := []string{assetPublicAddr.String(), "http://localhost:9000", "https://localhost:9000"}
+
 		// always include the all-in-one server's web console as an allowed CORS origin
 		// always include localhost as an allowed CORS origin
-		// always include master and kubernetes public addresses as an allowed CORS origin
-		for _, origin := range []string{assetPublicAddr.Host, masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host, "localhost", "127.0.0.1"} {
+		// always include master public address as an allowed CORS origin
+		for _, origin := range []string{assetPublicAddr.Host, masterPublicAddr.URL.Host, "localhost", "127.0.0.1"} {
 			// TODO: check if origin is already allowed
 			cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, origin)
 		}
@@ -403,13 +408,20 @@ func start(cfg *config, args []string) error {
 			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 30 seconds.")
 			sessionMaxAgeSeconds = 30
 		}
-		auth := &origin.AuthConfig{
-			MasterAddr:       cfg.MasterAddr.URL.String(),
-			MasterPublicAddr: masterPublicAddr.URL.String(),
-			MasterRoots:      roots,
-			EtcdHelper:       etcdHelper,
 
-			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", "session,basicauth")),
+		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
+		defaultAuthRequestHandlers := strings.Join([]string{
+			string(origin.AuthRequestHandlerSession),
+			string(origin.AuthRequestHandlerBasicAuth),
+		}, ",")
+		auth := &origin.AuthConfig{
+			MasterAddr:           cfg.MasterAddr.URL.String(),
+			MasterPublicAddr:     masterPublicAddr.URL.String(),
+			AssetPublicAddresses: assetPublicAddresses,
+			MasterRoots:          roots,
+			EtcdHelper:           etcdHelper,
+
+			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
 			AuthHandler:         origin.AuthHandlerType(env("ORIGIN_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
 			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
 			// Session config

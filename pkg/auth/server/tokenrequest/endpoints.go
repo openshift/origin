@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
+	"path"
 
 	"github.com/RangelReale/osincli"
 
@@ -29,13 +29,11 @@ func NewEndpoints(originOAuthClient *osincli.Client) Endpoints {
 }
 
 // Install registers the request token endpoints into a mux. It is expected that the
-// provided prefix will serve all operations. Path MUST NOT end in a slash.
+// provided prefix will serve all operations
 func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 	for _, prefix := range paths {
-		prefix = strings.TrimRight(prefix, "/")
-
-		mux.HandleFunc(prefix+RequestTokenEndpoint, endpoints.requestToken)
-		mux.HandleFunc(prefix+DisplayTokenEndpoint, endpoints.displayToken)
+		mux.HandleFunc(path.Join(prefix, RequestTokenEndpoint), endpoints.requestToken)
+		mux.HandleFunc(path.Join(prefix, DisplayTokenEndpoint), endpoints.displayToken)
 	}
 }
 

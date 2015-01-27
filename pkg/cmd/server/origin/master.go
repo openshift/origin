@@ -435,15 +435,21 @@ func (c *MasterConfig) RunAssetServer() {
 		glog.Fatalf("Error parsing kubernetes url: %v", err)
 	}
 
+	config := assets.WebConsoleConfig{
+		MasterAddr:        masterURL.Host,
+		MasterPrefix:      OpenShiftAPIPrefix,
+		KubernetesAddr:    k8sURL.Host,
+		KubernetesPrefix:  "/api",
+		OAuthAuthorizeURL: OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthClientID:     OpenShiftWebConsoleClientID,
+	}
+
 	mux.Handle("/",
 		// Gzip first so that inner handlers can react to the addition of the Vary header
 		assets.GzipHandler(
 			// Generated config.js can not be cached since it changes depending on startup options
 			assets.GeneratedConfigHandler(
-				masterURL.Host,
-				OpenShiftAPIPrefix,
-				k8sURL.Host,
-				"/api",
+				config,
 				// Cache control should happen after all Vary headers are added, but before
 				// any asset related routing (HTML5ModeHandler and FileServer)
 				assets.CacheControlHandler(

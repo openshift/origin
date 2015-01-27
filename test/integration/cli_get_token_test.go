@@ -83,7 +83,7 @@ func TestGetToken(t *testing.T) {
 	t.Logf("oauth server is on %v\n", oauthServer.URL)
 
 	// create the default oauth clients with redirects to our server
-	origin.CreateOrUpdateDefaultOAuthClients(oauthServer.URL, oauthEtcd)
+	origin.CreateOrUpdateDefaultOAuthClients(oauthServer.URL, []string{oauthServer.URL}, oauthEtcd)
 
 	flags := pflag.NewFlagSet("test-flags", pflag.ContinueOnError)
 	clientCfg := clientcmd.NewConfig()

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 
 	"crypto/tls"
@@ -56,9 +57,17 @@ const (
 	OpenShiftLoginPrefix         = "/login"
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
+
+	OpenShiftWebConsoleClientID = "openshift-web-console"
 )
 
 var (
+	OSWebConsoleClientBase = oauthapi.Client{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: OpenShiftWebConsoleClientID,
+		},
+		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.
+	}
 	// OSBrowserClientBase is used as a skeleton for building a Client.  We can't set the allowed redirecturis because we don't yet know the host:port of the auth server
 	OSBrowserClientBase = oauthapi.Client{
 		ObjectMeta: kapi.ObjectMeta{
@@ -149,8 +158,10 @@ type AuthConfig struct {
 	MasterAddr string
 	// URL to direct browsers to the master on
 	MasterPublicAddr string
-	MasterRoots      *x509.CertPool
-	EtcdHelper       tools.EtcdHelper
+	// Valid redirectURI prefixes to direct browsers to the web console
+	AssetPublicAddresses []string
+	MasterRoots          *x509.CertPool
+	EtcdHelper           tools.EtcdHelper
 
 	// AuthRequestHandlers contains an ordered list of authenticators that decide if a request is authenticated
 	AuthRequestHandlers []AuthRequestHandlerType
@@ -230,9 +241,9 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 
-	CreateOrUpdateDefaultOAuthClients(c.MasterPublicAddr, oauthEtcd)
+	CreateOrUpdateDefaultOAuthClients(c.MasterPublicAddr, c.AssetPublicAddresses, oauthEtcd)
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
-	osOAuthClientConfig.RedirectUrl = c.MasterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint
+	osOAuthClientConfig.RedirectUrl = c.MasterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
 	if c.MasterRoots != nil {
@@ -265,22 +276,37 @@ func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.Client) *osi
 		ClientSecret:             client.Secret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             c.MasterPublicAddr + OpenShiftOAuthAPIPrefix + "/authorize",
-		TokenUrl:                 c.MasterAddr + OpenShiftOAuthAPIPrefix + "/token",
+		AuthorizeUrl:             OpenShiftOAuthAuthorizeURL(c.MasterPublicAddr),
+		TokenUrl:                 OpenShiftOAuthTokenURL(c.MasterPublicAddr),
 		Scope:                    "",
 	}
 	return config
 }
 
-func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, clientRegistry oauthclient.Registry) {
+func OpenShiftOAuthAuthorizeURL(masterAddr string) string {
+	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, osinserver.AuthorizePath)
+}
+func OpenShiftOAuthTokenURL(masterAddr string) string {
+	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, osinserver.TokenPath)
+}
+
+func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry oauthclient.Registry) {
 	clientsToEnsure := []*oauthapi.Client{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: OSWebConsoleClientBase.Name,
+			},
+			Secret:                OSWebConsoleClientBase.Secret,
+			RespondWithChallenges: OSWebConsoleClientBase.RespondWithChallenges,
+			RedirectURIs:          assetPublicAddresses,
+		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: OSBrowserClientBase.Name,
 			},
 			Secret:                OSBrowserClientBase.Secret,
 			RespondWithChallenges: OSBrowserClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -288,7 +314,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, clientRegistry o
 			},
 			Secret:                OSCliClientBase.Secret,
 			RespondWithChallenges: OSCliClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
 		},
 	}
 
@@ -352,7 +378,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 	authHandlerType := c.AuthHandler
 	switch authHandlerType {
 	case AuthHandlerGithub, AuthHandlerGoogle:
-		callbackPath := OpenShiftOAuthCallbackPrefix + "/" + string(authHandlerType)
+		callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, string(authHandlerType))
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authHandlerType) /*for now*/, userRegistry)
 

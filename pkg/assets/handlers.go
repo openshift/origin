@@ -4,28 +4,16 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")
-
-const configTemplate string = `
-window.OPENSHIFT_CONFIG = {
-  api: {
-    openshift: {
-      hostPort: "%s",
-      prefix: "%s"
-    },
-    k8s: {
-      hostPort: "%s",
-      prefix: "%s"
-    }
-  }
-};
-`
 
 type gzipResponseWriter struct {
 	io.Writer
@@ -104,16 +92,47 @@ func HTML5ModeHandler(h http.Handler) http.Handler {
 	})
 }
 
-func GeneratedConfigHandler(osAddr string, osPrefix string, k8sAddr string, k8sPrefix string, h http.Handler) http.Handler {
+var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
+window.OPENSHIFT_CONFIG = {
+  api: {
+    openshift: {
+      hostPort: "{{ .MasterAddr | js}}",
+      prefix: "{{ .MasterPrefix | js}}"
+    },
+    k8s: {
+      hostPort: "{{ .KubernetesAddr | js}}",
+      prefix: "{{ .KubernetesPrefix | js}}"
+    }
+  },
+  auth: {
+  	oauth_authorize_url: "{{ .OAuthAuthorizeURL | js}}",
+  	oauth_client_id: "{{ .OAuthClientID | js}}"
+  },
+};
+`))
+
+type WebConsoleConfig struct {
+	// MasterAddr is the host:port the UI should call the master API on. Scheme is derived from the scheme the UI is served on, so they must be the same.
+	MasterAddr string
+	// MasterPrefix is the OpenShift API context root
+	MasterPrefix string
+	// KubernetesAddr is the host:port the UI should call the kubernetes API on. Scheme is derived from the scheme the UI is served on, so they must be the same.
+	KubernetesAddr string
+	// KubernetesPrefix is the Kubernetes API context root
+	KubernetesPrefix string
+	// OAuthAuthorizeURL is the OAuth2 endpoint to use to request an API token. It must support request_type=token.
+	OAuthAuthorizeURL string
+	// OAuthClientID is the OAuth2 client_id to use to request an API token. It must be authorized to redirect to the web console URL.
+	OAuthClientID string
+}
+
+func GeneratedConfigHandler(config WebConsoleConfig, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/config.js" {
 			w.Header().Add("Cache-Control", "no-cache, no-store")
-			w.Write([]byte(fmt.Sprintf(configTemplate,
-				osAddr,
-				osPrefix,
-				k8sAddr,
-				k8sPrefix,
-			)))
+			if err := configTemplate.Execute(w, config); err != nil {
+				glog.Errorf("Unable to render config template: %v", err)
+			}
 			return
 		}
 		h.ServeHTTP(w, r)
