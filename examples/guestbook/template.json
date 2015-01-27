@@ -33,10 +33,10 @@
       "kind": "Route",
       "apiVersion": "v1beta1",
       "host": "guestbook.example.com",
-      "serviceName": "frontend"
+      "serviceName": "frontend-service"
     },
     {
-      "id": "frontend",
+      "id": "frontend-service",
       "kind": "Service",
       "apiVersion": "v1beta1",
       "port": 5432,
@@ -93,9 +93,9 @@
       "apiVersion": "v1beta1",
       "desiredState": {
         "replicas": 3,
-        "replicaSelector": {"name": "frontend"},
+        "replicaSelector": {"name": "frontend-service"},
         "podTemplate": {
-          "labels": {"name": "frontend"},
+          "labels": {"name": "frontend-service"},
           "desiredState": {
             "manifest": {
               "version": "v1beta1",
