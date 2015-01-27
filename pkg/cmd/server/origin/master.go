@@ -286,12 +286,20 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	versionHandler := apiserver.APIVersionHandler("v1beta1")
-	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).Doc("list supported server API versions"))
+	initAPIVersionRoute(root, "v1beta1")
 
 	return []string{
 		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta1),
 	}
+}
+
+//initAPIVersionRoute initializes the osapi endpoint to behave similiar to the upstream api endpoint
+func initAPIVersionRoute(root *restful.WebService, version string) {
+	versionHandler := apiserver.APIVersionHandler(version)
+	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).
+		Doc("list supported server API versions").
+		Produces(restful.MIME_JSON).
+		Consumes(restful.MIME_JSON))
 }
 
 // Run launches the OpenShift master. It takes optional installers that may install additional endpoints into the server.
