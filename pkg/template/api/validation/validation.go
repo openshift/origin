@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/template/api"
+	"github.com/openshift/origin/pkg/util"
 )
 
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
@@ -26,35 +27,14 @@ func ValidateParameter(param *api.Parameter) (errs errors.ValidationErrorList) {
 // ValidateTemplate tests if required fields in the Template are set.
 func ValidateTemplate(template *api.Template) (errs errors.ValidationErrorList) {
 	if len(template.Name) == 0 {
-		errs = append(errs, errors.NewFieldRequired("name", template.ObjectMeta.Name))
+		errs = append(errs, errors.NewFieldRequired("name", template.Name))
 	}
-	// TODO: Validation of items are now broken as we need to use Typer and Mapper
-	//			 parse the proper version/kind and then validate.
-	/*
-		for i, item := range template.Items {
-			err := errors.ValidationErrorList{}
-			switch obj := item.Object.(type) {
-			case *kapi.ReplicationController:
-				err = validation.ValidateReplicationController(obj)
-			case *kapi.Pod:
-				err = validation.ValidatePod(obj)
-			// TODO: ValidateService() now requires registry and context, we should
-			// provide them here
-			//case *kapi.Service:
-			//	err = validation.ValidateService(obj)
-			case *routeapi.Route:
-				err = routevalidation.ValidateRoute(obj)
-			default:
-				// Pass-through unknown types.
-			}
-			// ignore namespace validation errors in templates
-			err = filter(err, "namespace")
-			errs = append(errs, err.PrefixIndex(i).Prefix("items")...)
-		}
-	*/
 	for i := range template.Parameters {
 		paramErr := ValidateParameter(&template.Parameters[i])
 		errs = append(errs, paramErr.PrefixIndex(i).Prefix("parameters")...)
+	}
+	for _, obj := range template.Items {
+		errs = append(errs, util.ValidateObject(obj)...)
 	}
 	return
 }

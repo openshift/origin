@@ -1,0 +1,163 @@
+package template
+
+import (
+	"fmt"
+	"reflect"
+
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	configapi "github.com/openshift/origin/pkg/config/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+)
+
+// MergeInto flags
+const (
+	OverwriteExistingDstKey = 1 << iota
+	ErrorOnExistingDstKey
+	ErrorOnDifferentDstKeyValue
+)
+
+// addReplicationControllerNestedLabels adds new label(s) to a nested labels of a single ReplicationController object
+func addReplicationControllerNestedLabels(obj *kapi.ReplicationController, labels labels.Set) error {
+	if obj.Spec.Template.Labels == nil {
+		obj.Spec.Template.Labels = make(map[string]string)
+	}
+	if err := MergeInto(obj.Spec.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
+	}
+	if err := MergeInto(obj.Spec.Template.Labels, obj.Spec.Selector, ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
+	}
+	// Selector and Spec.Template.Labels must be equal
+	if obj.Spec.Selector == nil {
+		obj.Spec.Selector = make(map[string]string)
+	}
+	if err := MergeInto(obj.Spec.Selector, obj.Spec.Template.Labels, ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Selector: %v", err)
+	}
+	return nil
+}
+
+// addDeploymentNestedLabels adds new label(s) to a nested labels of a single Deployment object
+func addDeploymentNestedLabels(obj *deployapi.Deployment, labels labels.Set) error {
+	if obj.ControllerTemplate.Template.Labels == nil {
+		obj.ControllerTemplate.Template.Labels = make(map[string]string)
+	}
+	if err := MergeInto(obj.ControllerTemplate.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.Deployment.ControllerTemplate.Template: %v", err)
+	}
+	return nil
+}
+
+// addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
+func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set) error {
+	if obj.Template.ControllerTemplate.Template.Labels == nil {
+		obj.Template.ControllerTemplate.Template.Labels = make(map[string]string)
+	}
+	if err := MergeInto(obj.Template.ControllerTemplate.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
+	}
+	return nil
+}
+
+// AddObjectLabels adds new label(s) to a single runtime.Object
+func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
+	if labels == nil {
+		// Nothing to add
+		return nil
+	}
+
+	accessor, err := kmeta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+
+	metaLabels := accessor.Labels()
+	if metaLabels == nil {
+		metaLabels = make(map[string]string)
+	}
+
+	if err := MergeInto(metaLabels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+		return fmt.Errorf("unable to add labels to Template.%s: %v", accessor.Kind(), err)
+	}
+	accessor.SetLabels(metaLabels)
+
+	// Handle nested Labels
+	switch objType := obj.(type) {
+	case *kapi.ReplicationController:
+		return addReplicationControllerNestedLabels(objType, labels)
+	case *deployapi.Deployment:
+		return addDeploymentNestedLabels(objType, labels)
+	case *deployapi.DeploymentConfig:
+		return addDeploymentConfigNestedLabels(objType, labels)
+	}
+
+	return nil
+}
+
+// AddConfigLabels adds new label(s) to all resources defined in the given Config.
+func AddConfigLabels(c *configapi.Config, labels labels.Set) errs.ValidationErrorList {
+	itemErrors := errs.ValidationErrorList{}
+	for i, in := range c.Items {
+		if err := AddObjectLabels(in, labels); err != nil {
+			reportError(&itemErrors, i, *errs.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
+		}
+	}
+	return itemErrors.Prefix("Config")
+}
+
+// MergeInto merges items from a src map into a dst map.
+// Returns an error when the maps are not of the same type.
+// Flags:
+// - ErrorOnExistingDstKey
+//     When set: Return an error if any of the dst keys is already set.
+// - ErrorOnDifferentDstKeyValue
+//     When set: Return an error if any of the dst keys is already set
+//               to a different value than src key.
+// - OverwriteDstKey
+//     When set: Overwrite existing dst key value with src key value.
+func MergeInto(dst, src interface{}, flags int) error {
+	dstVal := reflect.ValueOf(dst)
+	srcVal := reflect.ValueOf(src)
+
+	if dstVal.Kind() != reflect.Map {
+		return fmt.Errorf("dst is not a valid map: %v", dstVal.Kind())
+	}
+	if srcVal.Kind() != reflect.Map {
+		return fmt.Errorf("src is not a valid map: %v", srcVal.Kind())
+	}
+	if dstTyp, srcTyp := dstVal.Type(), srcVal.Type(); !dstTyp.AssignableTo(srcTyp) {
+		return fmt.Errorf("type mismatch, can't assign '%v' to '%v'", srcTyp, dstTyp)
+	}
+
+	if dstVal.IsNil() {
+		return fmt.Errorf("dst value is nil")
+	}
+	if srcVal.IsNil() {
+		// Nothing to merge
+		return nil
+	}
+
+	for _, k := range srcVal.MapKeys() {
+		if dstVal.MapIndex(k).IsValid() {
+			if flags&ErrorOnExistingDstKey != 0 {
+				return fmt.Errorf("dst key already set (ErrorOnExistingDstKey=1), '%v'='%v'", k, dstVal.MapIndex(k))
+			}
+			if dstVal.MapIndex(k).String() != srcVal.MapIndex(k).String() {
+				if flags&ErrorOnDifferentDstKeyValue != 0 {
+					return fmt.Errorf("dst key already set to a different value (ErrorOnDifferentDstKeyValue=1), '%v'='%v'", k, dstVal.MapIndex(k))
+				}
+				if flags&OverwriteExistingDstKey != 0 {
+					dstVal.SetMapIndex(k, srcVal.MapIndex(k))
+				}
+			}
+		} else {
+			dstVal.SetMapIndex(k, srcVal.MapIndex(k))
+		}
+	}
+
+	return nil
+}

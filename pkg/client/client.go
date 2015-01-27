@@ -34,40 +34,54 @@ func (c *Client) Images(namespace string) ImageInterface {
 	return newImages(c, namespace)
 }
 
+// ImageRepositories provides a REST client for ImageRepository
 func (c *Client) ImageRepositories(namespace string) ImageRepositoryInterface {
 	return newImageRepositories(c, namespace)
 }
 
+// ImageRepositoryMappings provides a REST client for ImageRepositoryMapping
 func (c *Client) ImageRepositoryMappings(namespace string) ImageRepositoryMappingInterface {
 	return newImageRepositoryMappings(c, namespace)
 }
 
+// ImageRepositoryTags provides a REST client for ImageRepositoryTag
 func (c *Client) ImageRepositoryTags(namespace string) ImageRepositoryTagInterface {
 	return newImageRepositoryTags(c, namespace)
 }
 
+// Deployments provides a REST client for Deployment
 func (c *Client) Deployments(namespace string) DeploymentInterface {
 	return newDeployments(c, namespace)
 }
 
+// DeploymentConfigs provides a REST client for DeploymentConfig
 func (c *Client) DeploymentConfigs(namespace string) DeploymentConfigInterface {
 	return newDeploymentConfigs(c, namespace)
 }
 
+// Routes provides a REST client for Route
 func (c *Client) Routes(namespace string) RouteInterface {
 	return newRoutes(c, namespace)
 }
 
+// Users provides a REST client for User
 func (c *Client) Users() UserInterface {
 	return newUsers(c)
 }
 
+// UserIdentityMappings provides a REST client for UserIdentityMapping
 func (c *Client) UserIdentityMappings() UserIdentityMappingInterface {
 	return newUserIdentityMappings(c)
 }
 
+// Projects provides a REST client for Projects
 func (c *Client) Projects() ProjectInterface {
 	return newProjects(c)
+}
+
+// TemplateConfigs provides a REST client for TemplateConfig
+func (c *Client) TemplateConfigs(namespace string) TemplateConfigInterface {
+	return newTemplateConfigs(c, namespace)
 }
 
 // Client is an OpenShift client object

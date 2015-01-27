@@ -7,9 +7,8 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/openshift/origin/pkg/config"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/template/api"
@@ -18,26 +17,24 @@ import (
 
 var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
 
-// Processor transforms Template objects into Config objects.
-type Processor struct {
-	Generators map[string]Generator
-}
-
-// NewProcessor creates new Processor and initializes
-// its set of generators.
-func NewProcessor(generators map[string]Generator) *Processor {
-	return &Processor{Generators: generators}
-}
-
 // reportError reports the single item validation error and properly set the
 // prefix and index to match the Config item JSON index
-// TODO: Move this into some 'utils' or 'helpers' package
 func reportError(allErrs *errs.ValidationErrorList, index int, err errs.ValidationError) {
 	i := errs.ValidationErrorList{}
 	*allErrs = append(*allErrs, append(i, &err).PrefixIndex(index).Prefix("item")...)
 }
 
-// Process transforms Template object into Config object. It generates
+// Processor process the Template into the List with substituted parameters
+type Processor struct {
+	Generators map[string]Generator
+}
+
+// NewProcessor creates new Processor and initializes its set of generators.
+func NewProcessor(generators map[string]Generator) *Processor {
+	return &Processor{Generators: generators}
+}
+
+// Process transforms Template object into List object. It generates
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurances with their corresponding
 // values (currently in the containers' Environment variables only).
@@ -48,38 +45,21 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.Val
 		return nil, append(templateErrors.Prefix("Template"), errs.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
 	}
 
-	items := []runtime.RawExtension{}
-	for i, in := range template.Items {
-
-		item, mapping, err := config.DecodeDataToObject(in.RawJSON)
-		if err != nil {
-			reportError(&templateErrors, i, *errs.NewFieldInvalid("decode", err, fmt.Sprintf("decoding failure for %v", in)))
-			continue
-		}
-
-		// TODO: Report failed parameter substitution for unknown objects
-		//			 These errors are no-fatal and the object returned is the same
-		//			 just without substitution.
+	for i, item := range template.Items {
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
 			reportError(&templateErrors, i, *errs.NewFieldNotSupported("parameters", err))
 		}
-
-		jsonItem, err := mapping.Codec.Encode(newItem)
+		// Remove namespace from the item
+		itemMeta, err := meta.Accessor(newItem)
 		if err != nil {
-			reportError(&templateErrors, i, *errs.NewFieldInvalid("decode", err, fmt.Sprintf("decoding failure for %v", newItem)))
-			continue
+			reportError(&templateErrors, i, *errs.NewFieldInvalid("namespace", err, "failed to remove the item namespace"))
 		}
-		items = append(items, runtime.RawExtension{RawJSON: jsonItem})
+		itemMeta.SetNamespace("")
+		template.Items[i] = newItem
 	}
 
-	config := &configapi.Config{
-		ObjectMeta: template.ObjectMeta,
-		Items:      items,
-	}
-	config.Kind = "Config"
-	config.ObjectMeta.CreationTimestamp = util.Now()
-	return config, templateErrors.Prefix("Template")
+	return &configapi.Config{Items: template.Items}, templateErrors.Prefix("Template")
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides

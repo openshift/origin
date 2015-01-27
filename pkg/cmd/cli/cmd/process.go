@@ -1,19 +1,39 @@
 package cmd
 
 import (
+	"errors"
 	"io"
-	"os"
 	"strings"
 
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/client"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/spf13/cobra"
 )
 
+// injectUserVars injects user specified variables into the Template
+func injectUserVars(cmd *cobra.Command, t *api.Template) {
+	values := util.StringList{}
+	values.Set(kubecmd.GetFlagString(cmd, "value"))
+	for _, keypair := range values {
+		p := strings.SplitN(keypair, "=", 2)
+		if len(p) != 2 {
+			glog.Errorf("Invalid parameter assignment '%s'", keypair)
+			continue
+		}
+		if v := template.GetParameterByName(t, p[0]); v != nil {
+			v.Value = p[1]
+			v.Generate = ""
+			template.AddParameter(t, *v)
+		} else {
+			glog.Errorf("Unknown parameter name '%s'", p[0])
+		}
+	}
+}
+
+// NewCmdProcess returns a 'process' command
 func NewCmdProcess(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
@@ -36,78 +56,55 @@ Examples:
 
 			schema, err := f.Validator(cmd)
 			checkErr(err)
+
+			namespace := getOriginNamespace(cmd)
 			mapper, typer := f.Object(cmd)
-			mappings, namespace, _, data := kubecmd.ResourceFromFile(cmd, filename, typer, mapper, schema)
-			if len(namespace) == 0 {
-				namespace = getOriginNamespace(cmd)
-			} else {
-				err := kubecmd.CompareNamespaceFromFile(cmd, namespace)
-				checkErr(err)
+
+			mapping, _, _, data := kubecmd.ResourceFromFile(cmd, filename, typer, mapper, schema)
+			obj, err := mapping.Codec.Decode(data)
+			checkErr(err)
+
+			templateObj, ok := obj.(*api.Template)
+			if !ok {
+				checkErr(errors.New("Unable to the convert input to the Template"))
 			}
 
-			mapping, err := mapper.RESTMapping("TemplateConfig", kubecmd.GetFlagString(cmd, "api-version"))
-			checkErr(err)
-			c, _, err := f.Clients(cmd)
+			client, _, err := f.Clients(cmd)
 			checkErr(err)
 
-			// User can override Template parameters by using --value(-v) option with
-			// list of key-value pairs.
-			// TODO: This should be done on server-side to make other clients life
-			//			 easier.
 			if cmd.Flag("value").Changed {
-				values := util.StringList{}
-				values.Set(kubecmd.GetFlagString(cmd, "value"))
-				templateObj, err := mappings.Codec.Decode(data)
-				checkErr(err)
-				t := templateObj.(*api.Template)
-				for _, keypair := range values {
-					p := strings.SplitN(keypair, "=", 2)
-					if len(p) != 2 {
-						glog.Errorf("Invalid parameter assignment '%s'", keypair)
-						continue
-					}
-					if v := template.GetParameterByName(t, p[0]); v != nil {
-						v.Value = p[1]
-						v.Generate = ""
-						template.AddParameter(t, *v)
-					} else {
-						glog.Errorf("Unknown parameter name '%s'", p[0])
-					}
-				}
-				data, err = mapping.Codec.Encode(t)
-				checkErr(err)
+				injectUserVars(cmd, templateObj)
 			}
 
-			// Print template parameters will cause template stop processing.
-			// Users can see what parameters can be overriden and will be set in the
-			// template.
-			if kubecmd.GetFlagBool(cmd, "parameters") {
-				obj, err := mapping.Codec.Decode(data)
+			printer, err := kubecmd.PrinterForMapping(f.Factory, cmd, mapping)
+			checkErr(err)
+
+			// If 'parameters' flag is set it does not do processing but only print
+			// the template parameters to console for inspection.
+			if kubecmd.GetFlagBool(cmd, "parameters") == true {
+				err = printer.PrintObj(templateObj, out)
 				checkErr(err)
-				printer, err := f.Printer(cmd, mapping, kubecmd.GetFlagBool(cmd, "no-headers"))
-				checkErr(err)
-				if t, ok := obj.(*api.Template); ok {
-					err = printer.PrintObj(t, out)
-					checkErr(err)
-				}
 				return
 			}
 
-			request := c.Post().Namespace(namespace).Resource(mapping.Resource).Body(data)
-			result := request.Do()
-			body, err := result.Raw()
+			result, err := client.TemplateConfigs(namespace).Create(templateObj)
 			checkErr(err)
 
-			printer := client.JSONPrinter{}
-			if err := printer.Print(body, os.Stdout); err != nil {
-				glog.Fatalf("unable to pretty print config JSON: %v [%s]", err, string(body))
+			// We need to override the default output format to JSON so we can return
+			// processed template. Users might still be able to change the output
+			// format using the 'output' flag.
+			if !cmd.Flag("output").Changed {
+				cmd.Flags().Set("output", "json")
+				printer, _ = kubecmd.PrinterForMapping(f.Factory, cmd, mapping)
 			}
-
+			printer.PrintObj(result, out)
 		},
 	}
+
+	kubecmd.AddPrinterFlags(cmd)
+
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to update the resource")
 	cmd.Flags().StringP("value", "v", "", "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
-	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers")
 	return cmd
 }

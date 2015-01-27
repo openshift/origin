@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -47,11 +48,13 @@ func NewCommandCLI(name string) *cobra.Command {
 	f := cmd.NewFactory(clientConfig)
 	f.BindFlags(cmds.PersistentFlags())
 	out := os.Stdout
-
 	// Kubernetes CRUD commands
 	cmds.AddCommand(f.NewCmdGet(out))
 	cmds.AddCommand(f.NewCmdDescribe(out))
-	cmds.AddCommand(f.NewCmdCreate(out))
+	cmds.AddCommand(
+		// Deprecate 'osc apply' with 'osc create' command.
+		applyToCreate(f.NewCmdCreate(out)),
+	)
 	cmds.AddCommand(f.NewCmdUpdate(out))
 	cmds.AddCommand(f.NewCmdDelete(out))
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
@@ -61,7 +64,6 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(f.NewCmdProxy(out))
 
 	// Origin commands
-	cmds.AddCommand(cmd.NewCmdApply(f, out))
 	cmds.AddCommand(cmd.NewCmdProcess(f, out))
 
 	// Origin build commands
@@ -70,6 +72,21 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
 
 	return cmds
+}
+
+// applyToCreate injects the deprecation notice about for 'apply' command into
+// 'create' command.
+// TODO: Remove this once we get rid of 'apply' in all documentation/etc.
+func applyToCreate(dst *cobra.Command) *cobra.Command {
+	dst.Aliases = append(dst.Aliases, "apply")
+	oldRun := dst.Run
+	dst.Run = func(c *cobra.Command, args []string) {
+		if len(os.Args) >= 2 && os.Args[2] == "apply" {
+			glog.Errorf("DEPRECATED: The 'apply' command is now deprecated, use 'create' instead.")
+		}
+		oldRun(c, args)
+	}
+	return dst
 }
 
 // Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig

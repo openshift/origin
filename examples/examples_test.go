@@ -1,7 +1,6 @@
 package examples
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,106 +8,25 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	//"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildv "github.com/openshift/origin/pkg/build/api/validation"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployv "github.com/openshift/origin/pkg/deploy/api/validation"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	imagev "github.com/openshift/origin/pkg/image/api/validation"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectv "github.com/openshift/origin/pkg/project/api/validation"
 	routeapi "github.com/openshift/origin/pkg/route/api"
-	routev "github.com/openshift/origin/pkg/route/api/validation"
 	templateapi "github.com/openshift/origin/pkg/template/api"
-	templatev "github.com/openshift/origin/pkg/template/api/validation"
+	"github.com/openshift/origin/pkg/util"
 )
 
 type mockService struct{}
 
 func (mockService) ListServices(kapi.Context) (*kapi.ServiceList, error) {
 	return &kapi.ServiceList{}, nil
-}
-
-func validateObject(obj runtime.Object) (errors []error) {
-	ctx := kapi.NewDefaultContext()
-
-	if m, err := meta.Accessor(obj); err == nil {
-		if len(m.Namespace()) == 0 {
-			m.SetNamespace(kapi.NamespaceDefault)
-		}
-	}
-
-	switch t := obj.(type) {
-
-	case *kapi.ReplicationController:
-		errors = validation.ValidateReplicationController(t)
-	case *kapi.Service:
-		errors = validation.ValidateService(t, mockService{}, ctx)
-	case *kapi.Pod:
-		errors = validation.ValidatePod(t)
-
-	case *imageapi.Image:
-		errors = imagev.ValidateImage(t)
-	case *imageapi.ImageRepository:
-		// TODO: validate image repository
-		// 	errors = imagev.ValidateImageRepository(t)
-	case *imageapi.ImageRepositoryMapping:
-		errors = imagev.ValidateImageRepositoryMapping(t)
-	case *deployapi.DeploymentConfig:
-		errors = deployv.ValidateDeploymentConfig(t)
-	case *deployapi.Deployment:
-		errors = deployv.ValidateDeployment(t)
-	case *projectapi.Project:
-		// this is a global resource that should not have a namespace
-		t.Namespace = ""
-		errors = projectv.ValidateProject(t)
-	case *routeapi.Route:
-		errors = routev.ValidateRoute(t)
-
-	case *buildapi.BuildConfig:
-		errors = buildv.ValidateBuildConfig(t)
-	case *buildapi.Build:
-		errors = buildv.ValidateBuild(t)
-
-	case *templateapi.Template:
-		errors = templatev.ValidateTemplate(t)
-		for i := range t.Items {
-			obj, err := latest.Codec.Decode(t.Items[i].RawJSON)
-			if err != nil {
-				errors = append(errors, err)
-				continue
-			}
-			errors = append(errors, validateObject(obj)...)
-		}
-	case *configapi.Config:
-		for i := range t.Items {
-			obj, err := latest.Codec.Decode(t.Items[i].RawJSON)
-			if err != nil {
-				errors = append(errors, err)
-				continue
-			}
-			errors = append(errors, validateObject(obj)...)
-		}
-	default:
-		if list, err := runtime.ExtractList(obj); err == nil {
-			for i := range list {
-				errs := validateObject(list[i])
-				errors = append(errors, errs...)
-			}
-			return
-		}
-		return []error{fmt.Errorf("no validation defined for %#v", obj)}
-	}
-	return errors
 }
 
 func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error {
@@ -194,7 +112,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 				t.Errorf("%s did not decode correctly: %v\n%s", path, err, string(data))
 				return
 			}
-			if errors := validateObject(expectedType); len(errors) > 0 {
+			if errors := util.ValidateObject(expectedType); len(errors) > 0 {
 				t.Errorf("%s did not validate correctly: %v", path, errors)
 			}
 		})

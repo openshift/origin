@@ -77,7 +77,7 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		c.Fuzz(&j.ObjectMeta)
 		c.Fuzz(&j.Parameters)
 		// TODO: replace with structured type definition
-		j.Items = []runtime.RawExtension{}
+		j.Items = []runtime.Object{}
 	},
 	func(j *image.Image, c fuzz.Continue) {
 		c.Fuzz(&j.ObjectMeta)
@@ -88,9 +88,9 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		j.DockerImageReference = c.RandString()
 	},
 	func(j *config.Config, c fuzz.Continue) {
-		c.Fuzz(&j.ObjectMeta)
+		c.Fuzz(&j.ListMeta)
 		// TODO: replace with structured type definition
-		j.Items = []runtime.RawExtension{}
+		j.Items = []runtime.Object{}
 	},
 	func(intstr *util.IntOrString, c fuzz.Continue) {
 		// util.IntOrString will panic if its kind is set wrong.
