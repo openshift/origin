@@ -12,16 +12,20 @@ source "${OS_ROOT}/hack/util.sh"
 
 function cleanup()
 {
-    if [ $? -ne 0 ]; then
-      echo "[FAIL] !!!!! Test Failed !!!!"
+    out=$?
+    pkill -P $$
+
+    if [ $out -ne 0 ]; then
+        echo "[FAIL] !!!!! Test Failed !!!!"
+    else
+        echo
+        echo "Complete"
     fi
-    set +e
-    kill ${OS_PID-} 1>&2 2>/dev/null
-    echo
-    echo "Complete"
+    exit $out
 }
 
-trap cleanup EXIT SIGINT
+trap "exit" INT TERM
+trap "cleanup" EXIT
 
 set -e
 
@@ -41,6 +45,17 @@ ETCD_DATA_DIR=$(mktemp -d /tmp/openshift.local.etcd.XXXX)
 VOLUME_DIR=$(mktemp -d /tmp/openshift.local.volumes.XXXX)
 CERT_DIR="${CERT_DIR:-$(mktemp -d /tmp/openshift.local.certificates.XXXX)}"
 
+# handle profiling defaults
+profile="${OPENSHIFT_PROFILE-}"
+unset OPENSHIFT_PROFILE
+if [[ -n "${profile}" ]]; then
+    if [[ "${TEST_PROFILE-}" == "cli" ]]; then
+        export CLI_PROFILE="${profile}"
+    else
+        export WEB_PROFILE="${profile}"
+    fi
+fi
+
 # set path so OpenShift is available
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 export PATH="${GO_OUT}:${PATH}"
@@ -48,6 +63,9 @@ export PATH="${GO_OUT}:${PATH}"
 # Check openshift version
 out=$(openshift version)
 echo openshift: $out
+
+# profile the web
+export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
 # Start openshift
 openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" --hostname="${API_HOST}" --volume-dir="${VOLUME_DIR}" --cert-dir="${CERT_DIR}" --etcd-dir="${ETCD_DATA_DIR}" 1>&2 &
@@ -67,6 +85,9 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export HOME="${CERT_DIR}/admin"
 	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
 fi
+
+# profile the cli commands
+export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 
 #
 # Begin tests

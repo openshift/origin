@@ -175,7 +175,7 @@ function stop_openshift_server()
     set +u
     if [ -n $OS_PID ] ; then
       echo "[INFO] Found running OpenShift Server instance"
-      sudo kill $OS_PID 1>&2 2>/dev/null
+      sudo kill -INT $OS_PID 1>&2 2>/dev/null
       unset OS_PID
       echo "[INFO] Terminated OpenShift Server"
     fi

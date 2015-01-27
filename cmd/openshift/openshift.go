@@ -10,6 +10,7 @@ import (
 
 func main() {
 	serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))
+	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
 	basename := filepath.Base(os.Args[0])
 	command := openshift.CommandFor(basename)
