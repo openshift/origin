@@ -1,7 +1,7 @@
 # Parameters
 
-A parameter is a set of key-value pairs that describe configuration information or information
-about another system entity.
+A parameter is a key-value pair that describes configuration information or information about
+another system entity.
 
 Modeling configuration parameters as an API resource has utility that cuts across several different
 use-cases.  Both system components in OpenShift/kubernetes and software running in pods can benefit
