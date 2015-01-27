@@ -74,7 +74,8 @@ optional dependencies between pods and parameters.
 
 ## Advantages of using Parameters for userspace configuration
 
-Using `Parameters` to model shared parameters has a number of advantages:
+Using `Parameters` to model shared parameters has a number of advantages over directly including
+parameter information in the environment of every container that needs it:
 
 1.  Eliminates the need to redeclare shared parameters on every container that needs them
 2.  Parameters only have to be updated in a single place
@@ -142,7 +143,10 @@ The deployment generator would mutate the PodTemplate in order to include the st
 referenced parameters so that the deployed pod template would capture the exact state to rollback
 to.  For the presentation mode where `Parameters` are consumed as environment variables, this would
 mean mutating the appropriate containers' environments so that the exact state at the time of
-generation would be captured explicitly in the deployed `PodTemplate`.
+generation would be captured explicitly in the deployed `PodTemplate`.  For a presentation mode
+where parameters were presented on the filesystem, this would be more complex; it would probably
+involve generating a unique host volume for each container and referencing that in container's
+volume spec.
 
 ### Use Case: Application creation via OpenShift console/cli
 
