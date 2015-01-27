@@ -68,7 +68,8 @@ func TestLogin(t *testing.T) {
 			ExpectContains: []string{
 				`action="/"`,
 				`name="then" value="foo"`,
-				`"message">An unknown error has occurred`,
+				`An unknown error has occurred`,
+				`danger`,
 			},
 		},
 		"redirect when POST fails CSRF": {
