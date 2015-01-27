@@ -399,11 +399,12 @@ func start(cfg *config, args []string) error {
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
 		auth := &origin.AuthConfig{
-			MasterAddr:       cfg.MasterAddr.URL.String(),
-			MasterPublicAddr: masterPublicAddr.URL.String(),
-			MasterRoots:      roots,
-			SessionSecrets:   []string{"secret"},
-			EtcdHelper:       etcdHelper,
+			MasterAddr:           cfg.MasterAddr.URL.String(),
+			MasterPublicAddr:     masterPublicAddr.URL.String(),
+			MasterRoots:          roots,
+			SessionSecrets:       []string{"secret12345"},
+			SessionMaxAgeSeconds: 30, // Since we're auto-granting, we don't need sessions to persist
+			EtcdHelper:           etcdHelper,
 		}
 
 		if startKube {

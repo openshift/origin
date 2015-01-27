@@ -79,10 +79,11 @@ type AuthConfig struct {
 	// URL to call internally during token request
 	MasterAddr string
 	// URL to direct browsers to the master on
-	MasterPublicAddr string
-	MasterRoots      *x509.CertPool
-	SessionSecrets   []string
-	EtcdHelper       tools.EtcdHelper
+	MasterPublicAddr     string
+	MasterRoots          *x509.CertPool
+	SessionSecrets       []string
+	SessionMaxAgeSeconds int
+	EtcdHelper           tools.EtcdHelper
 }
 
 // InstallSupport registers endpoints for an OAuth2 server into the provided mux,
@@ -211,7 +212,7 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authen
 	// this results in really ugly initialization code as we have to pass this concept through to many disparate pieces
 	// of the config that MIGHT need the information.  The first step to fixing it is to see how far it goes, so this
 	// does not attempt to hide the ugly
-	sessionStore := session.NewStore(c.SessionSecrets...)
+	sessionStore := session.NewStore(c.SessionMaxAgeSeconds, c.SessionSecrets...)
 	authRequestHandler := c.getAuthenticationRequestHandler(sessionStore)
 	authHandler := c.getAuthenticationHandler(mux, sessionStore, handlers.EmptyError{})
 
