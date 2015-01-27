@@ -34,10 +34,12 @@ ip route add $3 dev lbr0 proto kernel scope link src $1
 ## iptables
 iptables -t nat -D POSTROUTING -s 10.1.0.0/16 ! -d 10.1.0.0/16 -j MASQUERADE || true
 iptables -t nat -A POSTROUTING -s 10.1.0.0/16 ! -d 10.1.0.0/16 -j MASQUERADE
+lineno=$(iptables -nvL INPUT --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}')
+iptables -I INPUT $lineno -p udp -m multiport --dports 4789 -m comment --comment "001 vxlan incoming" -j ACCEPT
 
 
 ## docker
-echo "OPTIONS='-b=lbr0 --iptables=false --selinux-enabled'" >/etc/sysconfig/docker
+echo "OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'" >/etc/sysconfig/docker
 systemctl daemon-reload
 systemctl restart docker.service
 
