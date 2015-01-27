@@ -1,26 +1,26 @@
-package new
+package cmd
 
 import (
 	"fmt"
 	"io"
-
-	"github.com/golang/glog"
-	"github.com/spf13/cobra"
+	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 )
 
-type newAppConfig struct {
+type AppConfig struct {
 	SourceRepositories util.StringList
 
 	Components   util.StringList
@@ -31,83 +31,12 @@ type newAppConfig struct {
 
 	TypeOfBuild string
 
-	localDockerResolver Resolver
-	imageStreamResolver Resolver
+	localDockerResolver    app.Resolver
+	dockerRegistryResolver app.Resolver
+	imageStreamResolver    app.Resolver
 
-	searcher Searcher
-	detector Detector
-}
-
-const longNewAppDescription = `
-Create a new application in OpenShift by specifying source code, templates, and/or images.
-
-Examples:
-  $ osc new-app .
-  <try to create an application based on the source code in the current directory>
-
-  $ osc new-app mysql
-  <use the public DockerHub MySQL image to create an app>
-
-  $ osc new-app myregistry.com/mycompany/mysql
-  <use a MySQL image in a private registry to create an app>
-
-  $ osc new-app openshift/ruby-20-centos~git@github.com/mfojtik/sinatra-app-example
-  <build an application using the OpenShift Ruby DockerHub image and an example repo>`
-
-func NewCmdNewApplication(f *cmd.Factory, out io.Writer) *cobra.Command {
-	config := newAppConfig{
-		searcher: &mockSearcher{},
-		detector: sourceRepositoryEnumerator{
-			detectors: source.DefaultDetectors,
-			tester:    dockerfile.NewTester(),
-		},
-	}
-	helper := dockerutil.NewHelper()
-
-	cmd := &cobra.Command{
-		Use:   "new-app <components> [--code=<path|url>]",
-		Short: "Create a new application",
-		Long:  longNewAppDescription,
-
-		Run: func(c *cobra.Command, args []string) {
-			if dockerclient, _, err := helper.GetClient(); err == nil {
-				config.localDockerResolver = dockerClientResolver{dockerclient}
-				config.localDockerResolver = dockerRegistryResolver{dockerregistry.NewClient()}
-			}
-			if osclient, _, err := f.Clients(c); err == nil {
-				config.imageStreamResolver = imageStreamResolver{
-					client:     osclient,
-					images:     osclient,
-					namespaces: []string{cmd.GetOriginNamespace(c), "default"},
-				}
-			} else {
-				glog.Warningf("error getting client: %v", err)
-			}
-			unknown := config.addArguments(args)
-			if len(unknown) != 0 {
-				glog.Fatalf("Did not recognize the following arguments: %v", unknown)
-			}
-			if err := config.Run(f, out, c.Help); err != nil {
-				if errs, ok := err.(errlist); ok {
-					if len(errs.Errors()) == 1 {
-						err = errs.Errors()[0]
-					}
-				}
-				if usage, ok := err.(UsageError); ok {
-					glog.Fatal(usage.UsageError(c.CommandPath()))
-				}
-				glog.Fatalf("Error: %v", err)
-			}
-		},
-	}
-
-	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code to use to build this application.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an OpenShift image repository to use in the app.")
-	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to include in the app.")
-	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
-	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
-	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source)")
-	return cmd
+	searcher app.Searcher
+	detector app.Detector
 }
 
 type UsageError interface {
@@ -119,16 +48,39 @@ type errlist interface {
 	Errors() []error
 }
 
+func NewAppConfig() *AppConfig {
+	return &AppConfig{
+		searcher: &mockSearcher{},
+		detector: app.SourceRepositoryEnumerator{
+			Detectors: source.DefaultDetectors,
+			Tester:    dockerfile.NewTester(),
+		},
+		dockerRegistryResolver: app.DockerRegistryResolver{dockerregistry.NewClient()},
+	}
+}
+
+func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
+	c.localDockerResolver = app.DockerClientResolver{dockerclient}
+}
+
+func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
+	c.imageStreamResolver = app.ImageStreamResolver{
+		Client:     osclient,
+		Images:     osclient,
+		Namespaces: []string{originNamespace, "default"},
+	}
+}
+
 // addArguments converts command line arguments into the appropriate bucket based on what they look like
-func (c *newAppConfig) addArguments(args []string) []string {
+func (c *AppConfig) AddArguments(args []string) []string {
 	unknown := []string{}
 	for _, s := range args {
 		switch {
 		case cmdutil.IsEnvironmentArgument(s):
 			c.Environment = append(c.Environment, s)
-		case isPossibleSourceRepository(s):
+		case app.IsPossibleSourceRepository(s):
 			c.SourceRepositories = append(c.SourceRepositories, s)
-		case isComponentReference(s):
+		case app.IsComponentReference(s):
 			c.Components = append(c.Components, s)
 		default:
 			if len(s) == 0 {
@@ -141,25 +93,26 @@ func (c *newAppConfig) addArguments(args []string) []string {
 }
 
 // validate converts all of the arguments on the config into references to objects, or returns an error
-func (c *newAppConfig) validate() (ComponentReferences, []*SourceRepository, cmdutil.Environment, error) {
-	b := &ReferenceBuilder{}
+func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository, cmdutil.Environment, error) {
+	b := &app.ReferenceBuilder{}
 	for _, s := range c.SourceRepositories {
 		b.AddSourceRepository(s)
 	}
-	b.AddImages(c.DockerImages, func(input *ComponentInput) ComponentReference {
+	b.AddImages(c.DockerImages, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--docker-image=%q", input.From)
-		input.Resolver = c.localDockerResolver
+		input.Resolver = c.dockerRegistryResolver
 		return input
 	})
-	b.AddImages(c.ImageStreams, func(input *ComponentInput) ComponentReference {
+	b.AddImages(c.ImageStreams, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--image=%q", input.From)
 		input.Resolver = c.imageStreamResolver
 		return input
 	})
-	b.AddImages(c.Components, func(input *ComponentInput) ComponentReference {
-		input.Resolver = PerfectMatchWeightedResolver{
-			WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
-			WeightedResolver{Resolver: c.localDockerResolver, Weight: 0.0},
+	b.AddImages(c.Components, func(input *app.ComponentInput) app.ComponentReference {
+		input.Resolver = app.PerfectMatchWeightedResolver{
+			app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
+			app.WeightedResolver{Resolver: c.dockerRegistryResolver, Weight: 0.0},
+			app.WeightedResolver{Resolver: c.localDockerResolver, Weight: 0.0},
 		}
 		return input
 	})
@@ -175,11 +128,11 @@ func (c *newAppConfig) validate() (ComponentReferences, []*SourceRepository, cmd
 	}
 	errs = append(errs, envErrs...)
 
-	return refs, repos, env, util.SliceToError(errs)
+	return refs, repos, env, errors.NewAggregate(errs)
 }
 
 // resolve the references to ensure they are all valid, and identify any images that don't match user input.
-func (c *newAppConfig) resolve(components ComponentReferences) error {
+func (c *AppConfig) resolve(components app.ComponentReferences) error {
 	errs := []error{}
 	for _, ref := range components {
 		if err := ref.Resolve(); err != nil {
@@ -199,11 +152,11 @@ func (c *newAppConfig) resolve(components ComponentReferences) error {
 			}
 		}
 	}
-	return util.SliceToError(errs)
+	return errors.NewAggregate(errs)
 }
 
 // ensureHasSource ensure every builder component has source code associated with it
-func (c *newAppConfig) ensureHasSource(components ComponentReferences, repositories []*SourceRepository) error {
+func (c *AppConfig) ensureHasSource(components app.ComponentReferences, repositories []*app.SourceRepository) error {
 	requiresSource := components.NeedsSource()
 	if len(requiresSource) > 0 {
 		switch {
@@ -233,7 +186,7 @@ func (c *newAppConfig) ensureHasSource(components ComponentReferences, repositor
 }
 
 // detectSource tries to match each source repository to an image type
-func (c *newAppConfig) detectSource(repositories []*SourceRepository) error {
+func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	errs := []error{}
 	for _, repo := range repositories {
 		// if the repository is being used by one of the images, we don't need to detect its type (unless we want to double check)
@@ -276,11 +229,11 @@ func (c *newAppConfig) detectSource(repositories []*SourceRepository) error {
 		}
 		errs = append(errs, fmt.Errorf("found the following possible images to use to build this source repository: %v - to continue, you'll need to specify which image to use with %q", matches, repo))
 	}
-	return util.SliceToError(errs)
+	return errors.NewAggregate(errs)
 }
 
 // buildPipelines converts a set of resolved, valid references into pipelines.
-func (c *newAppConfig) buildPipelines(components ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
+func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
 	for _, group := range components.Group() {
 		glog.V(2).Infof("found group: %#v", group)
@@ -290,11 +243,11 @@ func (c *newAppConfig) buildPipelines(components ComponentReferences, environmen
 			var pipeline *app.Pipeline
 			if ref.Input().ExpectToBuild {
 				glog.V(2).Infof("will use %q as the base image for a source build of %q", ref, ref.Input().Uses)
-				input, err := InputImageFromMatch(ref.Input().Match)
+				input, err := app.InputImageFromMatch(ref.Input().Match)
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
-				strategy, source, err := StrategyAndSourceForRepository(ref.Input().Uses)
+				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses)
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
@@ -304,7 +257,7 @@ func (c *newAppConfig) buildPipelines(components ComponentReferences, environmen
 
 			} else {
 				glog.V(2).Infof("will include %q", ref)
-				input, err := InputImageFromMatch(ref.Input().Match)
+				input, err := app.InputImageFromMatch(ref.Input().Match)
 				if err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
@@ -328,7 +281,7 @@ func (c *newAppConfig) buildPipelines(components ComponentReferences, environmen
 }
 
 // Run executes the provided config.
-func (c *newAppConfig) Run(f *cmd.Factory, out io.Writer, helpFn func() error) error {
+func (c *AppConfig) Run(out io.Writer, helpFn func() error) error {
 	components, repositories, environment, err := c.validate()
 	if err != nil {
 		return err
@@ -375,9 +328,64 @@ func (c *newAppConfig) Run(f *cmd.Factory, out io.Writer, helpFn func() error) e
 	objects = app.AddServices(objects)
 
 	list := &kapi.List{Items: objects}
-	p, err := kubectl.GetPrinter("yaml", "", "v1beta1", kapi.Scheme, nil)
+	p, _, err := kubectl.GetPrinter("yaml", "")
 	if err != nil {
 		return err
 	}
 	return p.PrintObj(list, out)
+}
+
+type mockSearcher struct{}
+
+func (mockSearcher) Search(terms []string) ([]*app.ComponentMatch, error) {
+	for _, term := range terms {
+		term = strings.ToLower(term)
+		switch term {
+		case "redhat/mysql:5.6":
+			return []*app.ComponentMatch{
+				{
+					Value:       term,
+					Argument:    "redhat/mysql:5.6",
+					Name:        "MySQL 5.6",
+					Description: "The Open Source SQL database",
+				},
+			}, nil
+		case "mysql", "mysql5", "mysql-5", "mysql-5.x":
+			return []*app.ComponentMatch{
+				{
+					Value:       term,
+					Argument:    "redhat/mysql:5.6",
+					Name:        "MySQL 5.6",
+					Description: "The Open Source SQL database",
+				},
+				{
+					Value:       term,
+					Argument:    "mysql",
+					Name:        "MySQL 5.X",
+					Description: "Something out there on the Docker Hub.",
+				},
+			}, nil
+		case "php", "php-5", "php5", "redhat/php:5", "redhat/php-5":
+			return []*app.ComponentMatch{
+				{
+					Value:       term,
+					Argument:    "redhat/php:5",
+					Name:        "PHP 5.5",
+					Description: "A fast and easy to use scripting language for building websites.",
+					Builder:     true,
+				},
+			}, nil
+		case "ruby":
+			return []*app.ComponentMatch{
+				{
+					Value:       term,
+					Argument:    "redhat/ruby:2",
+					Name:        "Ruby 2.0",
+					Description: "A fast and easy to use scripting language for building websites.",
+					Builder:     true,
+				},
+			}, nil
+		}
+	}
+	return []*app.ComponentMatch{}, nil
 }

@@ -1,20 +1,18 @@
-package new
+package app
 
 import (
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
-
-	image "github.com/openshift/origin/pkg/image/api"
-	template "github.com/openshift/origin/pkg/template/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 // isComponentReference returns true if the provided string appears to be a reference to a source repository
 // on disk, at a URL, a docker image name (which might be on a Docker registry or an OpenShift image stream),
 // or a template.
-func isComponentReference(s string) bool {
+func IsComponentReference(s string) bool {
 	if len(s) == 0 {
 		return false
 	}
@@ -43,7 +41,7 @@ func componentWithSource(s string) (component, repo string, builder bool, err er
 		component = s
 	}
 	// TODO: component must be of the form compatible with a pull spec *or* <namespace>/<name>
-	if !image.IsPullSpec(component) {
+	if !imageapi.IsPullSpec(component) {
 		return "", "", false, fmt.Errorf("%q is not a valid Docker pull specification", component)
 	}
 	return
@@ -98,10 +96,10 @@ type ComponentMatch struct {
 	Score       float32
 
 	Builder     bool
-	Image       *docker.Image
-	ImageStream *image.ImageRepository
+	Image       *imageapi.DockerImage
+	ImageStream *imageapi.ImageRepository
 	ImageTag    string
-	Template    *template.Template
+	Template    *templateapi.Template
 }
 
 func (m *ComponentMatch) String() string {

@@ -1,4 +1,4 @@
-package new
+package app
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 )
@@ -16,10 +15,10 @@ import (
 var (
 	argumentGit         = regexp.MustCompile("^(http://|https://|git@|git://).*\\.git(?:#([a-zA-Z0-9]*))?$")
 	argumentGitProtocol = regexp.MustCompile("^git@")
-	argumentPath        = regexp.MustCompile("^\\.")
+	argumentPath        = regexp.MustCompile("^\\.|^\\/[^/]+")
 )
 
-func isPossibleSourceRepository(s string) bool {
+func IsPossibleSourceRepository(s string) bool {
 	return argumentGit.MatchString(s) || argumentGitProtocol.MatchString(s) || argumentPath.MatchString(s)
 }
 
@@ -136,16 +135,16 @@ type Detector interface {
 	Detect(dir string) (*SourceRepositoryInfo, error)
 }
 
-type sourceRepositoryEnumerator struct {
-	detectors source.Detectors
-	tester    dockerfile.Tester
+type SourceRepositoryEnumerator struct {
+	Detectors source.Detectors
+	Tester    dockerfile.Tester
 }
 
-func (e sourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, error) {
+func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, error) {
 	info := &SourceRepositoryInfo{
 		Path: dir,
 	}
-	for _, d := range e.detectors {
+	for _, d := range e.Detectors {
 		if detected, ok := d(dir); ok {
 			info.Types = append(info.Types, SourceLanguageType{
 				Platform: detected.Platform,
@@ -153,7 +152,7 @@ func (e sourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 			})
 		}
 	}
-	if path, ok, err := e.tester.Has(dir); err == nil && ok {
+	if path, ok, err := e.Tester.Has(dir); err == nil && ok {
 		file, err := os.Open(path)
 		if err != nil {
 			return nil, err
@@ -168,16 +167,16 @@ func (e sourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 	return info, nil
 }
 
-func StrategyAndSourceForRepository(repo *SourceRepository) (*app.BuildStrategyRef, *app.SourceRef, error) {
+func StrategyAndSourceForRepository(repo *SourceRepository) (*BuildStrategyRef, *SourceRef, error) {
 	// TODO: replace with repository origin lookup, then in the future replace with auto push repository to server
 	if !repo.Remote() {
 		return nil, nil, fmt.Errorf("the repository %q can't be used, as the CLI does not yet support pushing a local repository from your filesystem to OpenShift", repo)
 	}
-	strategy := &app.BuildStrategyRef{
+	strategy := &BuildStrategyRef{
 		IsDockerBuild: repo.IsDockerBuild(),
 		DockerContext: "",
 	}
-	source := &app.SourceRef{
+	source := &SourceRef{
 		URL: &repo.url,
 		Ref: repo.url.Fragment,
 	}

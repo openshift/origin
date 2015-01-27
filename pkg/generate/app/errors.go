@@ -1,4 +1,4 @@
-package new
+package app
 
 import (
 	"bytes"

@@ -5,19 +5,17 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/fsouza/go-dockerclient"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	build "github.com/openshift/origin/pkg/build/api"
-	config "github.com/openshift/origin/pkg/config/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func testImageInfo() *docker.Image {
-	return &docker.Image{
-		Config: &docker.Config{},
+func testImageInfo() *imageapi.DockerImage {
+	return &imageapi.DockerImage{
+		Config: imageapi.DockerConfig{},
 	}
 }
 
@@ -75,7 +73,7 @@ func TestSimpleBuildConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if config.Name != "origin" || config.Parameters.Output.ImageTag != "myregistry/openshift/origin" || config.Parameters.Output.Registry != "myregistry" {
+	if config.Name != "origin" || config.Parameters.Output.To.Name != "origin" {
 		t.Errorf("unexpected name: %#v", config)
 	}
 }
@@ -121,11 +119,8 @@ func ExampleGenerateSimpleDockerApp() {
 		buildConfig,
 		deployConfig,
 	}
-	rawItems := []runtime.RawExtension{}
-	kapi.Scheme.Convert(items, &rawItems)
-
-	out := &config.Config{
-		Items: rawItems,
+	out := &kapi.List{
+		Items: items,
 	}
 
 	data, err := latest.Codec.Encode(out)

@@ -3,10 +3,12 @@ package app
 import (
 	"fmt"
 	"math/rand"
+	"regexp"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -44,9 +46,11 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 		Tag:  "latest",
 
 		AsImageRepository: true,
+	}
+	if input != nil {
 		// TODO: assumes that build doesn't change the image metadata. In the future
 		// we could get away with deferred generation possibly.
-		Info: input.Info,
+		output.Info = input.Info
 	}
 
 	build := &BuildRef{
@@ -136,25 +140,44 @@ func (g PipelineGroup) String() string {
 	return strings.Join(s, "+")
 }
 
+const MaxServiceNameLen = 24
+
+var InvalidServiceChars = regexp.MustCompile("[^-a-z0-9]")
+
+func makeValidServiceName(name string) string {
+	name = strings.ToLower(name)
+	name = InvalidServiceChars.ReplaceAllString(name, "")
+	if len(name) == 0 {
+		return fmt.Sprintf("svc-%d", rand.Intn(100000))
+	}
+	if len(name) > MaxServiceNameLen-5 {
+		name = name[:MaxServiceNameLen-5]
+	}
+	name = fmt.Sprintf("%s-%d", name, rand.Intn(9999))
+	if strings.HasPrefix(name, "-") {
+		name = "0" + name[1:]
+	}
+	return name
+}
+
 func AddServices(objects Objects) Objects {
 	svcs := []runtime.Object{}
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *deploy.DeploymentConfig:
-			// TODO: expose all ports, or try to find the one that matches a given protocol
 			for _, container := range t.Template.ControllerTemplate.Template.Spec.Containers {
 				for _, port := range container.Ports {
 					p := port.ContainerPort
 					svcs = append(svcs, &kapi.Service{
 						ObjectMeta: kapi.ObjectMeta{
-							Name: t.Name,
+							Name: makeValidServiceName(t.Name),
 						},
 						Spec: kapi.ServiceSpec{
-							Port:     p,
-							Selector: t.Template.ControllerTemplate.Selector,
+							ContainerPort: kutil.NewIntOrStringFromInt(p),
+							Port:          p,
+							Selector:      t.Template.ControllerTemplate.Selector,
 						},
 					})
-					break
 				}
 				break
 			}

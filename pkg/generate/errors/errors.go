@@ -20,19 +20,19 @@ const (
 func (e GenerationError) Error() string {
 	switch e {
 	case NoGit:
-		return "Git was not detected in your system. It is needed for build config generation."
+		return "git was not detected in your system. It is needed for build config generation."
 	case SourceDirAndURL:
-		return "A source directory and a source URL were specified. Please only specify one."
+		return "a source directory and a source URL were specified. Please only specify one."
 	case InvalidSourceDir:
-		return "The source directory is not readable or is invalid."
+		return "the source directory is not readable or is invalid."
 	case CouldNotDetect:
-		return "Could not detect a build type from the source."
+		return "could not detect a build type from the source."
 	case NoBuilderFound:
-		return "Could not find a builder to match the STI source repository."
+		return "could not find a builder to match the STI source repository."
 	case InvalidDockerfile:
-		return "Invalid Dockerfile. Does not contain a FROM clause."
+		return "invalid Dockerfile. Does not contain a FROM clause."
 	case ImageNotFound:
-		return "Image data could not be found."
+		return "image data could not be found."
 	}
 	return ""
 }
@@ -47,13 +47,13 @@ func NewMultipleDockerfilesErr(paths []string) error {
 type multipleDockerFilesError []string
 
 func (e multipleDockerFilesError) Error() string {
-	result := "Error: Multiple Dockerfile(s) found.\nSpecify one of the following flags:\n"
+	result := "multiple Dockerfile(s) found.\nSpecify one of the following flags:\n"
 	for _, f := range e {
 		dir := filepath.Dir(f)
 		if dir == "" {
 			dir = "."
 		}
-		result += "--context=\"" + dir + "\""
+		result += "--docker-context=\"" + dir + "\""
 		result += "\n"
 	}
 	return result

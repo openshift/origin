@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
-	cmdnew "github.com/openshift/origin/pkg/cmd/cli/cmd/new"
 )
 
 const longDesc = `
@@ -47,7 +46,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	clientcmd.DefaultCluster.Server = defaultClusterURL
 
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-	clientConfig := defaultClientConfig(cmds.PersistentFlags())
+	clientConfig := DefaultClientConfig(cmds.PersistentFlags())
 	f := cmd.NewFactory(clientConfig)
 	f.BindFlags(cmds.PersistentFlags())
 	out := os.Stdout
@@ -65,6 +64,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(f.NewCmdProxy(out))
 
 	// Origin commands
+	// cmds.AddCommand(cmd.NewCmdNewApplication(f, out))
 	cmds.AddCommand(cmd.NewCmdProcess(f, out))
 
 	// Origin build commands
@@ -82,7 +82,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 func NewCmdKubectl(name string) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	clientcmd.DefaultCluster.Server = defaultClusterURL
-	clientConfig := defaultClientConfig(flags)
+	clientConfig := DefaultClientConfig(flags)
 	f := cmd.NewFactory(clientConfig)
 	cmd := f.NewKubectlCommand(os.Stdout)
 	cmd.Use = name
@@ -110,7 +110,7 @@ func applyToCreate(dst *cobra.Command) *cobra.Command {
 }
 
 // Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
-func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
+func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewClientConfigLoadingRules()
 	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
 	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")

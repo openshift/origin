@@ -46,6 +46,8 @@ func (_ *parser) Parse(input io.Reader) (Dockerfile, error) {
 	return d, nil
 }
 
+// GetDirective returns a list of lines that begin with the given directive
+// and a flag that is true if the directive was found in the Dockerfile
 func (d dockerfile) GetDirective(s string) ([]string, bool) {
 	values := []string{}
 	s = strings.ToLower(s)
