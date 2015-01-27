@@ -176,3 +176,30 @@ should be prompted to:
 When a user deletes a `DeploymentConfig` from an application, they should be prompted to confirm
 that the `Parameters` associated with the `DeploymentConfig` should be deleted as well.
 
+## Detailed examples
+
+Let's walk through some detailed examples to illustrate using `Parameters` in various use-cases.
+
+### Example: User creates an application with `ruby` and `mysql` from a template
+
+A simple use case to start with is the case where a user creates an application with a ruby image
+and a mysql image.  The template to create this app would contain:
+
+-  A template parameters section with a database name and root password for the mysql database
+-  A `Parameters` that would hold the parameters for mysql; written in terms of the template
+   parameters
+-  A `DeploymentConfig` for the ruby pods; pods have a `ParametersLink` to mysql parameters; the
+   config has a trigger to redeploy when the `Parameters` changes
+-  A `DeploymentConfig` for the mysql pods; pods have a `ParametersLink` to mysql parameters; the
+   config has a trigger to redeploy when the `Parameters` changes
+
+The workflow for creating this app would be:
+
+1.  The template generator generates a config; the config contains the `Parameters` instance with
+    the generated values for root password and database name
+2.  The user posts the config
+3.  The deployment generator generates a new materialized replication controller for each of the
+    deployment configs; it resolves the `ParametersLink` on each container against the triggers
+    for that deployment config and mutates the PodTemplate to contain the current values of the
+    referenced `Parameters` in the environment.
+
