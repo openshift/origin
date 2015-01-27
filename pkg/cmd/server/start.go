@@ -313,7 +313,7 @@ func start(cfg *config, args []string) error {
 
 		// Build token auth for user's OAuth tokens
 		authenticators := []authenticator.Request{}
-		tokenAuthenticator, err := origin.GetTokenAuthenticator(etcdHelper)
+		tokenAuthenticator, err := origin.GetEtcdTokenAuthenticator(etcdHelper)
 		if err != nil {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
@@ -398,13 +398,35 @@ func start(cfg *config, args []string) error {
 		osmaster.BuildClients()
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
+		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "30"), 10, 0)
+		if err != nil || sessionMaxAgeSeconds <= 0 {
+			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 30 seconds.")
+			sessionMaxAgeSeconds = 30
+		}
 		auth := &origin.AuthConfig{
-			MasterAddr:           cfg.MasterAddr.URL.String(),
-			MasterPublicAddr:     masterPublicAddr.URL.String(),
-			MasterRoots:          roots,
-			SessionSecrets:       []string{"secret12345"},
-			SessionMaxAgeSeconds: 30, // Since we're auto-granting, we don't need sessions to persist
-			EtcdHelper:           etcdHelper,
+			MasterAddr:       cfg.MasterAddr.URL.String(),
+			MasterPublicAddr: masterPublicAddr.URL.String(),
+			MasterRoots:      roots,
+			EtcdHelper:       etcdHelper,
+
+			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", "session,basicauth")),
+			AuthHandler:         origin.AuthHandlerType(env("ORIGIN_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
+			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
+			// Session config
+			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
+			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds), // Since we're auto-granting, we don't need sessions to persist
+			// Password config
+			PasswordAuth: origin.PasswordAuthType(env("ORIGIN_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
+			BasicAuthURL: env("ORIGIN_OAUTH_BASIC_AUTH_URL", ""),
+			// Token config
+			TokenStore:    origin.TokenStoreType(env("ORIGIN_OAUTH_TOKEN_STORE", string(origin.TokenStoreEtcd))),
+			TokenFilePath: env("ORIGIN_OAUTH_TOKEN_FILE_PATH", ""),
+			// Google config
+			GoogleClientID:     env("ORIGIN_OAUTH_GOOGLE_CLIENT_ID", ""),
+			GoogleClientSecret: env("ORIGIN_OAUTH_GOOGLE_CLIENT_SECRET", ""),
+			// Github config
+			GithubClientID:     env("ORIGIN_OAUTH_GITHUB_CLIENT_ID", ""),
+			GithubClientSecret: env("ORIGIN_OAUTH_GITHUB_CLIENT_SECRET", ""),
 		}
 
 		if startKube {
