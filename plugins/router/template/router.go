@@ -58,16 +58,15 @@ func (r *templateRouter) readState() error {
 func (r *templateRouter) Commit() error {
 	glog.V(4).Info("Commiting router changes")
 
-	var err error
-	if err = r.writeState(); err != nil {
+	if err := r.writeState(); err != nil {
 		return err
 	}
 
-	if r.writeConfig(); err != nil {
+	if err := r.writeConfig(); err != nil {
 		return err
 	}
 
-	if r.reloadRouter(); err != nil {
+	if err := r.reloadRouter(); err != nil {
 		return err
 	}
 
