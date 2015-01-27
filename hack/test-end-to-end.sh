@@ -91,7 +91,7 @@ function cleanup()
   if [ "$SKIP_TEARDOWN" != "1" ]; then
     set +e
     echo "[INFO] Tearing down test"
-    stop_openshift_server
+    pkill -P $$
     echo "[INFO] Stopping docker containers"; docker ps -aq | xargs -l -r docker stop
     set +u
     if [ "$SKIP_IMAGE_CLEANUP" != "1" ]; then
@@ -107,7 +107,6 @@ function cleanup()
   find ${ARTIFACT_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
   find ${LOG_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
 
-  pkill -P $$
   echo "[INFO] Exiting"
   exit $out
 }
