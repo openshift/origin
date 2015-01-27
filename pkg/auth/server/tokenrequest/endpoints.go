@@ -17,7 +17,6 @@ const (
 )
 
 type endpointDetails struct {
-	// Jordan has done the osincli review and declares the osinclit.Client reusable and thread-safe
 	originOAuthClient *osincli.Client
 }
 
@@ -49,11 +48,13 @@ func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.
 }
 
 func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+
 	authorizeReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	authorizeData, err := authorizeReq.HandleRequest(req)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error handling auth request: %v", err)
+		fmt.Fprintf(w, "Error handling auth request: %v<br><br><a href='request'>Request another token</a>", err)
 		return
 	}
 
@@ -61,16 +62,27 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 	accessData, err := accessReq.GetToken()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error getting token: %v", err)
+		fmt.Fprintf(w, "Error getting token: %v<br><br><a href='request'>Request another token</a>", err)
 		return
 	}
 
-	jsonBytes, err := json.Marshal(accessData.ResponseData)
+	jsonBytes, err := json.MarshalIndent(accessData.ResponseData, "", "   ")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error marshalling json: %v", err)
 		return
 	}
 
-	w.Write(jsonBytes)
+	fmt.Fprintf(w, `
+OAuth token generated:
+<pre>%s</pre>
+
+To use this token with curl:
+<pre>curl -H "Authorization: Bearer %s" ...</pre>
+
+To use this token with osc:
+<pre>osc --token %s ...</pre>
+
+<a href='request'>Request another token</a>
+`, jsonBytes, accessData.AccessToken, accessData.AccessToken)
 }
