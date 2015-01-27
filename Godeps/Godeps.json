@@ -457,6 +457,10 @@
 			"Rev": "9c377ffd9aed48a012adf1c3fd517fe98394120b"
 		},
 		{
+			"ImportPath": "github.com/getsentry/raven-go",
+			"Rev": "3fd636ed242c26c0f55bc9ee1fe47e1d6d2d77f7"
+		},
+		{
 			"ImportPath": "github.com/ghodss/yaml",
 			"Rev": "3bc1590d16074751993dd3b1a76e7a8d1a916a11"
 		},
