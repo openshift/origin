@@ -37,17 +37,17 @@ func injectUserVars(cmd *cobra.Command, t *api.Template) {
 func NewCmdProcess(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
-		Short: "Process template into config",
-		Long: `Process template into a config specified in filename or stdin
+		Short: "Process template into list of resources",
+		Long: `Process template into a lis of resources specified in filename or stdin
 
 JSON and YAML formats are accepted.
 
 Examples:
-  $ kubectl process -f template.json
-  <convert template.json into Config>
+  $ osc process -f template.json
+  <convert template.json into resource list>
 
-  $ cat template.json | kubectl process -f -
-  <convert template.json into Config>`,
+  $ cat template.json | osc process -f -
+  <convert template.json into resource list>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			filename := kubecmd.GetFlagString(cmd, "filename")
 			if len(filename) == 0 {

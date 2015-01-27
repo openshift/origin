@@ -158,7 +158,7 @@ echo "images: ok"
 osc get imageRepositories
 osc create -f test/integration/fixtures/test-image-repository.json
 [ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
-osc apply -f examples/sample-app/docker-registry-config.json
+osc create -f examples/sample-app/docker-registry-config.json
 [ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
 osc delete -f examples/sample-app/docker-registry-config.json
 osc delete imageRepositories test
@@ -193,14 +193,15 @@ osc create -f test/integration/fixtures/test-deployment-config.json
 osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
-osc process -f test/templates/fixtures/guestbook.json | osc apply -f -
+osc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
+osc process -f test/templates/fixtures/guestbook.json | osc create -f -
 echo "template+config: ok"
 
 openshift kube resize --replicas=2 rc guestbook
 osc get pods
 echo "resize: ok"
 
-osc process -f examples/sample-app/application-template-dockerbuild.json | osc apply -f -
+osc process -f examples/sample-app/application-template-dockerbuild.json | osc create -f -
 osc get buildConfigs
 osc get bc
 osc get builds

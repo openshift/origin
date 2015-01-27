@@ -25,13 +25,13 @@ func NewCmdCancelBuild(f *Factory, out io.Writer) *cobra.Command {
 Cancels a pending or running build.
 
 Examples:
-	$ kubectl cancel-build 1da32cvq
+	$ osc cancel-build 1da32cvq
 	<cancel the build with the given name>
 
-	$ kubectl cancel-build 1da32cvq --dump-logs
+	$ osc cancel-build 1da32cvq --dump-logs
 	<cancel the named build and print the build logs>
 
-	$kubectl cancel-build 1da32cvq --restart
+	$ osc cancel-build 1da32cvq --restart
 	<cancel the named build and create a new one with the same parameters>`,
 		Run: func(cmd *cobra.Command, args []string) {
 

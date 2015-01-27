@@ -16,7 +16,7 @@ func NewCmdBuildLogs(f *Factory, out io.Writer) *cobra.Command {
 NOTE: This command may be moved in the future.
 
 Examples:
-$ kubectl build-logs 566bed879d2d
+$ osc build-logs 566bed879d2d
 <stream logs from container to stdout>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
