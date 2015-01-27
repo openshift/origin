@@ -26,6 +26,16 @@ component would only need the URL for the API server and the coordinates for its
 in order to discover its configuration.  It could also watch the `Parameters` resource and receive
 events when its configuration was changed.
 
+Using `Parameters` to sure configuration about services has several advantages to storing them
+directly in etcd or using CLI arguments exclusively:
+
+1.  Eliminates the need to query etcd directly, resulting in lower complexity; consumers only need
+    to know how to query the API server instead of the API server and etcd
+2.  Keeps invocation simple by eliminating the need to pass tons of CLI arguments; components only
+    need to be configured with the coordinates of the API server and their namespace/name
+3.  Allows components to easily watch for configuration changes and adapt to new configurations
+    without restart
+
 ## Use-Case: Metadata about services
 
 A `Parameters` resource can also hold information about how to use a service.  For example, a
@@ -62,6 +72,15 @@ want to know how to consume the parameters for `mysql` if it's present, but does
 to operate.  The `ParametersLink` resource should be able to capture the notion of required versus
 optional dependencies between pods and parameters.
 
+## Advantages of using Parameters for userspace configuration
+
+Using `Parameters` to model shared parameters has a number of advantages:
+
+1.  Eliminates the need to redeclare shared parameters on every container that needs them
+2.  Parameters only have to be updated in a single place
+3.  Allows deployment infrastructure to trigger on parameter changes and redeploy all consumers on
+    parameter change
+
 ## The `Parameters` resource
 
 We propose the following structure for `Parameters`:
@@ -82,7 +101,7 @@ ways:
 1.  `Parameters` separate presentation from representation
 2.  `Parameters` are about storing information in a usage-neutral manner so they can be applied to
      many different types of use-cases
-3.  `Parameters` are a distinct resource that can be queried, listed, watched, refered to with an
+3.  `Parameters` are a distinct resource that can be queried, listed, watched, referred to with an
     `ObjectReference`, etc
 
 ## The `ParametersLink` resource
@@ -90,12 +109,12 @@ ways:
 We propose the following structure for `ParametersLink`:
 
     type ParametersLink struct {
-    	TypeMeta
-    	ObjectMeta
-
     	Target   ObjectReference
     	Required bool
     }
+
+The `Container` type would be altered to have a list of `ParametersLink` so that a container could
+declare a dependency on multiple `Parameters`.
 
 ## How are Parameters consumed?
 
@@ -107,7 +126,7 @@ presentation / adaptation will be handled in subsequent work; they are not dealt
 now, `Parameters` will be injected as environment variables into containers that consume them.
 Future work will address adapting information `Parameters` and information about services to meet
 the needs of arbitrary images which may need to consume information in a specific way (example:
-non-standard environment varibles, special locations on container filesystem).
+non-standard environment variables, special locations on container filesystem).
 
 ## Parameters and OpenShift deployments
 
@@ -125,19 +144,19 @@ to.  For the presentation mode where `Parameters` are consumed as environment va
 mean mutating the appropriate containers' environments so that the exact state at the time of
 generation would be captured explicitly in the deployed `PodTemplate`.
 
-### Use Case: Application creation via OpenShift console
+### Use Case: Application creation via OpenShift console/cli
 
 When a user creates an application, they should be prompted to:
 
 1.  Create a set of parameters for each service
 2.  Create a set of parameters for each container in each `DeploymentConfig`
 
-### Use Case: Add service via OpenShift console
+### Use Case: Add service via OpenShift console/cli
 
 When a user adds a service to an application via the OpenShift console, they should receive a
 prompt to specify a `Parameters` instance that the consumers of that service will consume.
 
-### Use Case: Add new `DeploymentConfig` to application via console
+### Use Case: Add new `DeploymentConfig` to application via console/cli
 
 When a user adds an new `DeploymentConfig` to an application via the OpenShift console, they
 should be prompted to:
@@ -145,7 +164,8 @@ should be prompted to:
 1.  Specify which existing `Parameters` instances the `PodTemplate` should consume
 2.  Create a set of parameters for each container in the `PodTemplate` to consume 
 
-### Use Case: Delete `DeploymentConfig` from application
+### Use Case: Delete `DeploymentConfig` from application via OpenShift console/cli
 
 When a user deletes a `DeploymentConfig` from an application, they should be prompted to confirm
 that the `Parameters` associated with the `DeploymentConfig` should be deleted as well.
+
