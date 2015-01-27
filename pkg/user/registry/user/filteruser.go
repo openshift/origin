@@ -35,7 +35,7 @@ func NewCurrentContextFilter(requestPath string, context Context, handler http.H
 
 		user, found := context.Get(req)
 		if !found {
-			http.Error(w, "Need to be authorized to access this method", http.StatusUnauthorized)
+			http.Error(w, "Need to be authenticated to access this method", http.StatusUnauthorized)
 			return
 		}
 
@@ -51,7 +51,7 @@ func InstallThisUser(mux mux, endpoint string, requestsToUsers Context, apiHandl
 		func(w http.ResponseWriter, req *http.Request) {
 			user, found := requestsToUsers.Get(req)
 			if !found {
-				http.Error(w, "Need to be authorized to access this method", http.StatusUnauthorized)
+				http.Error(w, "Need to be authenticated to access this method", http.StatusUnauthorized)
 				return
 			}
 

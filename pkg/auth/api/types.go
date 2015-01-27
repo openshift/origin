@@ -4,6 +4,7 @@ package api
 type UserInfo interface {
 	GetName() string
 	GetUID() string
+	GetGroups() []string
 	GetScope() string
 	GetExtra() map[string]string
 }
@@ -41,10 +42,11 @@ type Grant struct {
 }
 
 type DefaultUserInfo struct {
-	Name  string
-	UID   string
-	Scope string
-	Extra map[string]string
+	Name   string
+	UID    string
+	Groups []string
+	Scope  string
+	Extra  map[string]string
 }
 
 func (i *DefaultUserInfo) GetName() string {
@@ -53,6 +55,10 @@ func (i *DefaultUserInfo) GetName() string {
 
 func (i *DefaultUserInfo) GetUID() string {
 	return i.UID
+}
+
+func (i *DefaultUserInfo) GetGroups() []string {
+	return i.Groups
 }
 
 func (i *DefaultUserInfo) GetScope() string {
