@@ -16,21 +16,16 @@ source "${OS_ROOT}/hack/common.sh"
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
-# Push the base images to a registry
-if [[ "${OS_PUSH_BASE_IMAGES-}" != "" ]]; then
-  base_images=(
-    openshift/origin-base
-    openshift/origin-release
-  )
-  for image in "${base_images[@]}"; do
-    if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
-      docker tag "${image}" "${OS_PUSH_BASE_REGISTRY}${image}"
-    fi
-    docker push "${OS_PUSH_BASE_REGISTRY-}${image}"
-  done
+# Allow a release to be repushed with a tag
+tag="${OS_PUSH_TAG:-}"
+if [[ -n "${tag}" ]]; then
+  tag=":${tag}"
 fi
 
-# Push the regular images to a registry
+base_images=(
+  openshift/origin-base
+  openshift/origin-release
+)
 images=(
   openshift/origin
   openshift/origin-deployer
@@ -39,9 +34,36 @@ images=(
   openshift/origin-haproxy-router
   openshift/hello-openshift
 )
-for image in "${images[@]}"; do
-  if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
-    docker tag "${image}" "${OS_PUSH_BASE_REGISTRY}${image}"
+
+if [[ -z "${tag}" ]]; then
+  # Push the base images to a registry
+  if [[ "${OS_PUSH_BASE_IMAGES-}" != "" ]]; then
+    for image in "${base_images[@]}"; do
+      if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
+        docker tag "${image}" "${OS_PUSH_BASE_REGISTRY}${image}"
+      fi
+      docker push "${OS_PUSH_BASE_REGISTRY-}${image}"
+    done
   fi
-  docker push "${OS_PUSH_BASE_REGISTRY-}${image}"
+fi
+
+# Pull latest in preparation for tagging
+if [[ -n "${tag}" ]]; then
+  set -e
+  for image in "${images[@]}"; do
+    docker pull "${OS_PUSH_BASE_REGISTRY-}${image}"
+  done
+  set +e
+fi
+
+if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
+  set -e
+  for image in "${images[@]}"; do
+    docker tag "${image}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+  done
+  set +e
+fi
+
+for image in "${images[@]}"; do
+  docker push "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
 done
