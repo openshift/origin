@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
@@ -37,6 +38,10 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
+	authcontext "github.com/openshift/origin/pkg/auth/context"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
+	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+
 	"github.com/openshift/origin/pkg/auth/group"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -317,6 +322,9 @@ func start(cfg *config, args []string) error {
 			return fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 
+		requestsToUsers := authcontext.NewRequestContextMap()
+		masterAuthorizationNamespace := "master"
+
 		// determine whether public API addresses were specified
 		masterPublicAddr := cfg.MasterAddr
 		if cfg.MasterPublicAddr.Provided {
@@ -362,8 +370,11 @@ func start(cfg *config, args []string) error {
 
 			EtcdHelper: etcdHelper,
 
-			AdmissionControl:             admit.NewAlwaysAdmit(),
-			MasterAuthorizationNamespace: "master",
+			AdmissionControl:              admit.NewAlwaysAdmit(),
+			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
+			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestsToUsers),
+			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
+			RequestsToUsers:               requestsToUsers,
 
 			UseLocalImages: useLocalImages,
 			ImageFor:       imageResolverFn,
@@ -633,6 +644,17 @@ func start(cfg *config, args []string) error {
 	select {}
 
 	return nil
+}
+
+func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace string) authorizer.Authorizer {
+	authorizationEtcd := authorizationetcd.New(etcdHelper)
+	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+	return authorizer
+}
+
+func newAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap) authorizer.AuthorizationAttributeBuilder {
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers, &authorizer.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
+	return authorizationAttributeBuilder
 }
 
 // getEtcdClient creates an etcd client based on the provided config and waits
