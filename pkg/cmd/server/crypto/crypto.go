@@ -109,7 +109,28 @@ func newTLSCertificateConfig(dir string) (*TLSCertificateConfig, error) {
 	return config, nil
 }
 
-func writeClientConfigToDir(client *kclient.Config, dir string) error {
+func readClientConfigFromDir(dir string, defaults kclient.Config) (kclient.Config, error) {
+	// Make a copy of the default config
+	client := defaults
+
+	var err error
+
+	// read files
+	client.CAFile, client.CertFile, client.KeyFile = filenamesFromDir(dir)
+	if client.CAData, err = ioutil.ReadFile(client.CAFile); err != nil {
+		return client, err
+	}
+	if client.CertData, err = ioutil.ReadFile(client.CertFile); err != nil {
+		return client, err
+	}
+	if client.KeyData, err = ioutil.ReadFile(client.KeyFile); err != nil {
+		return client, err
+	}
+
+	return client, nil
+}
+
+func writeClientCertsToDir(client *kclient.Config, dir string) error {
 	// mkdir
 	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
 		return err
@@ -126,9 +147,17 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 	if err := ioutil.WriteFile(client.KeyFile, client.KeyData, os.FileMode(0600)); err != nil {
 		return err
 	}
+	return nil
+}
+
+func writeKubeConfigToDir(client *kclient.Config, username string, dir string) error {
+	// mkdir
+	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
+		return err
+	}
 
 	clusterName := "master"
-	contextName := clusterName + "-" + client.Username
+	contextName := clusterName + "-" + username
 	config := &clientcmdapi.Config{
 		Clusters: map[string]clientcmdapi.Cluster{
 			clusterName: {
@@ -138,7 +167,7 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 			},
 		},
 		AuthInfos: map[string]clientcmdapi.AuthInfo{
-			client.Username: {
+			username: {
 				Token:             client.BearerToken,
 				ClientCertificate: client.CertFile,
 				ClientKey:         client.KeyFile,
@@ -147,7 +176,7 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 		Contexts: map[string]clientcmdapi.Context{
 			contextName: {
 				Cluster:  clusterName,
-				AuthInfo: client.Username,
+				AuthInfo: username,
 			},
 		},
 		CurrentContext: contextName,
@@ -159,6 +188,7 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 
 	return nil
 }
+
 func certsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 	ok := false
 	certs := []*x509.Certificate{}
@@ -272,11 +302,25 @@ func InitCA(dir string, name string) (*CA, error) {
 func (ca *CA) MakeServerCert(name string, hostnames []string) (*TLSCertificateConfig, error) {
 	serverDir := filepath.Join(ca.Dir, name)
 
+	server, err := newTLSCertificateConfig(serverDir)
+	if err == nil {
+		cert := server.Certs[0]
+		ips, dns := IPAddressesDNSNames(hostnames)
+		missingIps := ipsNotInSlice(ips, cert.IPAddresses)
+		missingDns := stringsNotInSlice(dns, cert.DNSNames)
+		if len(missingIps) == 0 && len(missingDns) == 0 {
+			glog.Infof("Using existing server certificate in %s", serverDir)
+			return server, nil
+		}
+
+		glog.Infof("Existing server certificate in %s was missing some hostnames (%v) or IP addresses (%v)", serverDir, missingDns, missingIps)
+	}
+
 	glog.Infof("Generating server certificate in %s", serverDir)
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate, _ := newServerCertificateTemplate(pkix.Name{CommonName: hostnames[0]}, hostnames)
 	serverCrt, _ := ca.signCertificate(serverTemplate, serverPublicKey)
-	server := &TLSCertificateConfig{
+	server = &TLSCertificateConfig{
 		Roots: ca.Config.Roots,
 		Certs: append([]*x509.Certificate{serverCrt}, ca.Config.Certs...),
 		Key:   serverPrivateKey,
@@ -298,10 +342,22 @@ func (ca *CA) MakeServerCert(name string, hostnames []string) (*TLSCertificateCo
 //	ExtKeyUsage: ExtKeyUsageClientAuth
 func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclient.Config, error) {
 	clientDir := filepath.Join(ca.Dir, username)
-	glog.Infof("Generating client config in %s/.kubeconfig", clientDir)
+	kubeConfig := filepath.Join(clientDir, ".kubeconfig")
+
+	client, err := readClientConfigFromDir(clientDir, defaults)
+	if err == nil {
+		// Always write .kubeconfig to pick up hostname changes
+		if err := writeKubeConfigToDir(&client, username, clientDir); err != nil {
+			return client, err
+		}
+		glog.Infof("Using existing client config in %s", kubeConfig)
+		return client, nil
+	}
+
+	glog.Infof("Generating client config in %s", kubeConfig)
 
 	// Make a copy of the default config
-	client := defaults
+	client = defaults
 
 	// Create cert for system components to use to talk to the API
 	clientPublicKey, clientPrivateKey, _ := NewKeyPair()
@@ -325,12 +381,12 @@ func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclien
 	client.CertData = certData
 	client.KeyData = keyData
 
-	// Only set Username for writing .kubeconfig... certs take precedence over username
-	client.Username = username
-	if err := writeClientConfigToDir(&client, clientDir); err != nil {
+	if err := writeClientCertsToDir(&client, clientDir); err != nil {
 		return client, err
 	}
-	client.Username = ""
+	if err := writeKubeConfigToDir(&client, username, clientDir); err != nil {
+		return client, err
+	}
 
 	return client, nil
 }
@@ -386,15 +442,22 @@ func newServerCertificateTemplate(subject pkix.Name, hosts []string) (*x509.Cert
 		BasicConstraintsValid: true,
 	}
 
-	for _, host := range hosts {
-		if ip := net.ParseIP(host); ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		}
-		// Include IP addresses as DNS names in the cert, for Python's sake
-		template.DNSNames = append(template.DNSNames, host)
-	}
+	template.IPAddresses, template.DNSNames = IPAddressesDNSNames(hosts)
 
 	return template, nil
+}
+
+func IPAddressesDNSNames(hosts []string) ([]net.IP, []string) {
+	ips := []net.IP{}
+	dns := []string{}
+	for _, host := range hosts {
+		if ip := net.ParseIP(host); ip != nil {
+			ips = append(ips, ip)
+		}
+		// Include IP addresses as DNS names in the cert, for Python's sake
+		dns = append(dns, host)
+	}
+	return ips, dns
 }
 
 // Can be used as a certificate in http.Transport TLSClientConfig
@@ -473,4 +536,42 @@ func writeKeyFile(path string, key crypto.PrivateKey) error {
 		return err
 	}
 	return ioutil.WriteFile(path, b, os.FileMode(0600))
+}
+
+func stringsNotInSlice(needles []string, haystack []string) []string {
+	missing := []string{}
+	for _, needle := range needles {
+		if !stringInSlice(needle, haystack) {
+			missing = append(missing, needle)
+		}
+	}
+	return missing
+}
+
+func stringInSlice(needle string, haystack []string) bool {
+	for _, straw := range haystack {
+		if needle == straw {
+			return true
+		}
+	}
+	return false
+}
+
+func ipsNotInSlice(needles []net.IP, haystack []net.IP) []net.IP {
+	missing := []net.IP{}
+	for _, needle := range needles {
+		if !ipInSlice(needle, haystack) {
+			missing = append(missing, needle)
+		}
+	}
+	return missing
+}
+
+func ipInSlice(needle net.IP, haystack []net.IP) bool {
+	for _, straw := range haystack {
+		if needle.Equal(straw) {
+			return true
+		}
+	}
+	return false
 }
