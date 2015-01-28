@@ -166,42 +166,50 @@ func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes
 		return false, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
 	}
 
-	globalAllowed, globalDenied, err := a.authorizeWithNamespaceRules(a.masterAuthorizationNamespace, attributes)
+	globalAuthorizationResult, globalReason, err := a.authorizeWithNamespaceRules(a.masterAuthorizationNamespace, attributes)
 	if err != nil {
 		return false, "", err
 	}
-	if len(globalDenied) > 0 {
-		return false, globalDenied, err
-	}
-	if len(globalAllowed) > 0 {
-		return true, globalAllowed, err
+	switch globalAuthorizationResult {
+	case Allow:
+		return true, globalReason, nil
+	case Deny:
+		return false, globalReason, nil
 	}
 
 	if len(attributes.GetNamespace()) != 0 {
-		namespaceAllowed, namespaceDenied, err := a.authorizeWithNamespaceRules(attributes.GetNamespace(), attributes)
+		namespaceAuthorizationResult, namespaceReason, err := a.authorizeWithNamespaceRules(attributes.GetNamespace(), attributes)
 		if err != nil {
 			return false, "", err
 		}
-		if len(namespaceDenied) > 0 {
-			return false, namespaceDenied, err
-		}
-		if len(namespaceAllowed) > 0 {
-			return true, namespaceAllowed, err
+		switch namespaceAuthorizationResult {
+		case Allow:
+			return true, namespaceReason, nil
+		case Deny:
+			return false, namespaceReason, nil
 		}
 	}
 
 	return false, "denied by default", nil
 }
 
-func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, passedAttributes AuthorizationAttributes) (string, string, error) {
+type authorizationResult string
+
+const (
+	Allow   = authorizationResult("allow")
+	Deny    = authorizationResult("deny")
+	Unknown = authorizationResult("unknown")
+)
+
+func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, passedAttributes AuthorizationAttributes) (authorizationResult, string, error) {
 	attributes, ok := passedAttributes.(openshiftAuthorizationAttributes)
 	if !ok {
-		return "", "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
+		return Deny, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
 	}
 
 	allRules, err := a.getEffectivePolicyRules(namespace, attributes.GetUserInfo())
 	if err != nil {
-		return "", "", err
+		return Deny, "", err
 	}
 
 	// check for denies
@@ -212,10 +220,10 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 
 		matches, err := attributes.ruleMatches(rule)
 		if err != nil {
-			return "", "", err
+			return Deny, "", err
 		}
 		if matches {
-			return "", fmt.Sprintf("denied by rule in %v: %#v", namespace, rule), nil
+			return Deny, fmt.Sprintf("denied by rule in %v: %#v", namespace, rule), nil
 		}
 	}
 
@@ -227,14 +235,14 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 
 		matches, err := attributes.ruleMatches(rule)
 		if err != nil {
-			return "", "", err
+			return Allow, "", err
 		}
 		if matches {
-			return fmt.Sprintf("allowed by rule in %v: %#v", namespace, rule), "", nil
+			return Allow, fmt.Sprintf("allowed by rule in %v: %#v", namespace, rule), nil
 		}
 	}
 
-	return "", "", nil
+	return Unknown, "", nil
 }
 
 func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.PolicyRule) (bool, error) {
@@ -319,6 +327,7 @@ var specialVerbs = map[string]bool{
 	"watch":    true,
 }
 
+// VerbAndKindAndNamespace returns verb, kind, namespace, remaining parts, error
 func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []string, error) {
 	parts := splitPath(req.URL.Path)
 
@@ -342,7 +351,7 @@ func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []strin
 		}
 	}
 
-	// TODO tweak upstream to eliminate this copy
+	// TODO tweak upstream to eliminate this copy  kubernetes/pkg/apiserver/handlers.go
 	// handle input of form /api/{version}/* by adjusting special paths
 	if parts[0] == "api" {
 		if len(parts) > 2 {
@@ -395,6 +404,7 @@ func splitPath(path string) []string {
 	return strings.Split(path, "/")
 }
 
+// TODO enumerate all resourceKinds and verbs instead of using *
 func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 	return &authorizationapi.Policy{
 		ObjectMeta: kapi.ObjectMeta{
@@ -409,65 +419,68 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 					Name:      "cluster-admin",
 					Namespace: masterNamespace,
 				},
-				Rules: append(make([]authorizationapi.PolicyRule, 0),
-					authorizationapi.PolicyRule{
-						Verbs:         append(make([]string, 0), "*"),
-						ResourceKinds: append(make([]string, 0), "*"),
-					}),
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:         []string{"*"},
+						ResourceKinds: []string{"*"},
+					},
+				},
 			},
 			"admin": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "admin",
 					Namespace: masterNamespace,
 				},
-				Rules: append(make([]authorizationapi.PolicyRule, 0),
-					authorizationapi.PolicyRule{
-						Verbs:         append(make([]string, 0), "*", "-create", "-update", "-delete"),
-						ResourceKinds: append(make([]string, 0), "*"),
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:         []string{"*", "-create", "-update", "-delete"},
+						ResourceKinds: []string{"*"},
 					},
-					authorizationapi.PolicyRule{
-						Verbs:         append(make([]string, 0), "create", "update", "delete"),
-						ResourceKinds: append(make([]string, 0), "*", "-roles", "-policyBindings"),
+					{
+						Verbs:         []string{"create", "update", "delete"},
+						ResourceKinds: []string{"*", "-policies", "-policyBindings"},
 					},
-				),
+				},
 			},
 			"edit": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "edit",
 					Namespace: masterNamespace,
 				},
-				Rules: append(make([]authorizationapi.PolicyRule, 0),
-					authorizationapi.PolicyRule{
-						Verbs:         append(make([]string, 0), "*", "-create", "-update", "-delete"),
-						ResourceKinds: append(make([]string, 0), "*", "-roles", "-roleBindings", "-policyBindings", "-policies"),
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:         []string{"*", "-create", "-update", "-delete"},
+						ResourceKinds: []string{"*", "-roles", "-roleBindings", "-policyBindings", "-policies"},
 					},
-					authorizationapi.PolicyRule{
-						Verbs:         append(make([]string, 0), "create", "update", "delete"),
-						ResourceKinds: append(make([]string, 0), "*", "-roles", "-roleBindings", "-policyBindings", "-policies"),
+					{
+						Verbs:         []string{"create", "update", "delete"},
+						ResourceKinds: []string{"*", "-roles", "-roleBindings", "-policyBindings", "-policies"},
 					},
-				),
+				},
 			},
 			"view": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "view",
 					Namespace: masterNamespace,
 				},
-				Rules: append(make([]authorizationapi.PolicyRule, 0),
-					authorizationapi.PolicyRule{
-						Verbs:         append(make([]string, 0), "watch", "list", "get"),
-						ResourceKinds: append(make([]string, 0), "*", "-roles", "-roleBindings", "-policyBindings", "-policies"),
-					}),
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:         []string{"watch", "list", "get"},
+						ResourceKinds: []string{"*", "-roles", "-roleBindings", "-policyBindings", "-policies"},
+					},
+				},
 			},
 			"ComponentRole": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "ComponentRole",
 					Namespace: masterNamespace,
 				},
-				Rules: append(make([]authorizationapi.PolicyRule, 0),
-					authorizationapi.PolicyRule{
-						Verbs:         append(make([]string, 0), "*"),
-						ResourceKinds: append(make([]string, 0), "*"),
-					}),
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:         []string{"*"},
+						ResourceKinds: []string{"*"},
+					},
+				},
 			},
 		},
 	}
@@ -492,9 +505,8 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "ComponentRole",
 					Namespace: masterNamespace,
 				},
-				// until we get components added to their proper groups, enumerate them here
-				UserNames:  append(make([]string, 0), "openshift-client", "kube-client"),
-				GroupNames: append(make([]string, 0), "SystemComponents"),
+				// TODO until we get components added to their proper groups, enumerate them here
+				UserNames: []string{"openshift-client", "kube-client"},
 			},
 			"Cluster-Admins": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -505,8 +517,8 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "cluster-admin",
 					Namespace: masterNamespace,
 				},
-				// until we decide to enforce policy, simply allow every one access
-				GroupNames: append(make([]string, 0), "system:authenticated", "system:unauthenticated"),
+				// TODO until we decide to enforce policy, simply allow every one access
+				GroupNames: []string{"system:authenticated", "system:unauthenticated"},
 			},
 		},
 	}

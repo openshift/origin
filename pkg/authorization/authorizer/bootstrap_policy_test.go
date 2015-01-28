@@ -261,7 +261,7 @@ func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 				Name: "Matthew",
 			},
 			verb:         "update",
-			resourceKind: "roles",
+			resourceKind: "policies",
 			namespace:    "mallet",
 		},
 		expectedAllowed: false,
