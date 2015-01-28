@@ -64,5 +64,5 @@ if [ "${OPENSHIFT}" == "" ]; then
     echo "/tmp/router.json has been created.  In order to start the router please run:"
     echo "openshift cli create -f /tmp/router.json"
 else
-    "${OPENSHIFT}" create -f /tmp/router.json
+    "${OPENSHIFT}" --server="${MASTER_URL}" create -f /tmp/router.json
 fi
