@@ -178,7 +178,7 @@ angular.module('openshiftConsole')
       if (context.projectPromise && type !== "projects") {
         context.projectPromise.done($.proxy(function(project) {
           $.ajax({
-            url: this._urlForType(type, name, context, false, {namespace: project.metadata.namespace}),
+            url: this._urlForType(type, name, context, false, {namespace: project.metadata.name}),
             success: callback
           });
         }, this));
@@ -371,7 +371,7 @@ angular.module('openshiftConsole')
     if (context.projectPromise && type !== "projects") {
       context.projectPromise.done($.proxy(function(project) {
         $.ajax({
-          url: this._urlForType(type, null, context, false, {namespace: project.metadata.namespace}),
+          url: this._urlForType(type, null, context, false, {namespace: project.metadata.name}),
           success: $.proxy(this, "_listOpComplete", type, context)
         });
       }, this));
@@ -420,7 +420,7 @@ angular.module('openshiftConsole')
       }
       if (context.projectPromise && type !== "projects") {
         context.projectPromise.done($.proxy(function(project) {
-          params.namespace = project.metadata.namespace;
+          params.namespace = project.metadata.name;
           var wsUrl = this._urlForType(type, null, context, true, params);
           var ws = new WebSocket(wsUrl);
           this._watchWebsockets(type, context, ws);

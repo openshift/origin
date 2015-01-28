@@ -17,7 +17,6 @@ func TestValidateProject(t *testing.T) {
 			name: "missing id",
 			project: api.Project{
 				ObjectMeta: kapi.ObjectMeta{
-					Namespace: kapi.NamespaceDefault,
 					Annotations: map[string]string{
 						"description": "This is a description",
 					},
@@ -31,8 +30,7 @@ func TestValidateProject(t *testing.T) {
 			name: "invalid id",
 			project: api.Project{
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      "141-.124.$",
-					Namespace: kapi.NamespaceDefault,
+					Name: "141-.124.$",
 					Annotations: map[string]string{
 						"description": "This is a description",
 					},
@@ -43,27 +41,18 @@ func TestValidateProject(t *testing.T) {
 			numErrs: 1,
 		},
 		{
-			name: "missing namespace",
+			name: "has namespace",
 			project: api.Project{
-				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: ""},
+				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},
 				DisplayName: "hi",
 			},
-			// Should fail because the namespace is missing.
-			numErrs: 1,
-		},
-		{
-			name: "invalid namespace",
-			project: api.Project{
-				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "141-.124.$"},
-				DisplayName: "hi",
-			},
-			// Should fail because the namespace is missing.
+			// Should fail because the namespace is supplied.
 			numErrs: 1,
 		},
 		{
 			name: "invalid display name",
 			project: api.Project{
-				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},
+				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: ""},
 				DisplayName: "h\t\ni",
 			},
 			// Should fail because the display name has \t \n
@@ -80,8 +69,7 @@ func TestValidateProject(t *testing.T) {
 
 	project := api.Project{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "foo",
-			Namespace: kapi.NamespaceDefault,
+			Name: "foo",
 			Annotations: map[string]string{
 				"description": "This is a description",
 			},

@@ -58,16 +58,10 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
 
-	// TODO decide if we should set namespace == name, think longer term we need some type of reservation here
-	// but i want to be able to let existing kubernetes ns grow into a project as well
-	if len(project.Namespace) == 0 {
-		project.Namespace = project.Name
-	}
-
 	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
 
-	// TODO set an id if not provided?, set a Namespace attribute if not provided?
-
+	// kubectl auto-inserts a value, we need to ignore this value until we have cluster-scoped actions in kubectl
+	project.Namespace = ""
 	if errs := validation.ValidateProject(project); len(errs) > 0 {
 		return nil, errors.NewInvalid("project", project.Name, errs)
 	}
