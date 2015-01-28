@@ -1,6 +1,7 @@
 #!/bin/bash
 set -ex
 source $(dirname $0)/provision-config.sh
+MINION_IP=$4
 
 pushd $HOME
 # build openshift-sdn
