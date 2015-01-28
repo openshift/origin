@@ -1,0 +1,31 @@
+//
+// Tiles
+// --------------------------------------------------
+
+ .tile {
+  background: @console-panel-color;
+  .panel_default_boxshadow();
+  padding: 10px 20px; 
+  margin-bottom: 20px;
+  width: 100%;
+  .box-sizing(border-box)
+}
+.tile-click {
+  cursor: pointer;
+  position: relative;
+  &:hover {
+    .panel_default_boxshadow_hover();
+    // .btn {
+    //   color: #000 !important;
+    // }
+    // .tile-target {
+    //   color: $openshiftBrightRed;
+    //   &:hover {
+    //     text-decoration: none;
+    //   }
+    // }
+    // .tile-table-cell > .font-icon, .font-icon.logo {
+    //   opacity: .75;
+    // }
+  }
+}
