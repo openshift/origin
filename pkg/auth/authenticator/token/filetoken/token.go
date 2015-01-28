@@ -2,6 +2,7 @@ package filetoken
 
 import (
 	"encoding/csv"
+	"errors"
 	"io"
 	"os"
 
@@ -52,7 +53,7 @@ func NewTokenAuthenticator(path string) (*TokenAuthenticator, error) {
 func (a *TokenAuthenticator) AuthenticateToken(value string) (api.UserInfo, bool, error) {
 	user, ok := a.tokens[value]
 	if !ok {
-		return nil, false, nil
+		return nil, false, errors.New("Invalid token")
 	}
 	return user, true, nil
 }

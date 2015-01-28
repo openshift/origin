@@ -249,8 +249,11 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 	if found {
 		t.Error("Found token, but it should be missing!")
 	}
-	if err != nil {
-		t.Error("Unexpected error: %v", err)
+	if err == nil {
+		t.Error("Expected not found error")
+	}
+	if !apierrs.IsNotFound(err) {
+		t.Error("Expected not found error")
 	}
 	if userInfo != nil {
 		t.Error("Unexpected user: %v", userInfo)
@@ -288,7 +291,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 	if found {
 		t.Error("Found token, but it should be missing!")
 	}
-	if err != nil {
+	if err != ErrExpired {
 		t.Error("Unexpected error: %v", err)
 	}
 	if userInfo != nil {

@@ -316,7 +316,7 @@ func start(cfg *config, args []string) error {
 		if err != nil {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
-		authenticators = append(authenticators, group.NewGroupAdder(bearertoken.New(tokenAuthenticator), []string{authenticatedGroup}))
+		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator))
 
 		var roots *x509.CertPool
 		if osmaster.TLS {
@@ -375,7 +375,7 @@ func start(cfg *config, args []string) error {
 			opts := x509request.DefaultVerifyOptions()
 			opts.Roots = roots
 			certauth := x509request.New(opts, x509request.CommonNameUserConversion)
-			authenticators = append(authenticators, group.NewGroupAdder(certauth, []string{authenticatedGroup}))
+			authenticators = append(authenticators, certauth)
 		} else {
 			// No security, use the same client config for all OpenShift clients
 			osClientConfig := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
@@ -384,11 +384,15 @@ func start(cfg *config, args []string) error {
 		}
 
 		// TODO: make anonymous auth optional?
-		// TODO: should this map to a real user persisted in etcd?
-		authenticators = append(authenticators, authenticator.RequestFunc(func(req *http.Request) (api.UserInfo, bool, error) {
-			return &api.DefaultUserInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
-		}))
-		osmaster.Authenticator = unionrequest.NewUnionAuthentication(authenticators)
+		osmaster.Authenticator = &unionrequest.Authenticator{
+			FailOnError: true,
+			Handlers: []authenticator.Request{
+				group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{authenticatedGroup}),
+				authenticator.RequestFunc(func(req *http.Request) (api.UserInfo, bool, error) {
+					return &api.DefaultUserInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
+				}),
+			},
+		}
 
 		osmaster.BuildClients()
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)

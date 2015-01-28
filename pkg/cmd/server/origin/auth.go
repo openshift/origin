@@ -369,7 +369,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler(sessionStore session.Store)
 		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(currType, sessionStore))
 	}
 
-	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers)
+	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers...)
 	return authRequestHandler
 }
 

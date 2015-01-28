@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
 type mockAuthRequestHandler struct {
@@ -23,7 +22,7 @@ func (mock *mockAuthRequestHandler) AuthenticateRequest(req *http.Request) (auth
 func TestAuthenticateRequestSecondPasses(t *testing.T) {
 	handler1 := &mockAuthRequestHandler{}
 	handler2 := &mockAuthRequestHandler{isAuthenticated: true}
-	authRequestHandler := NewUnionAuthentication([]authenticator.Request{handler1, handler2})
+	authRequestHandler := NewUnionAuthentication(handler1, handler2)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 
 	_, isAuthenticated, err := authRequestHandler.AuthenticateRequest(req)
@@ -38,7 +37,7 @@ func TestAuthenticateRequestSecondPasses(t *testing.T) {
 func TestAuthenticateRequestSuppressUnnecessaryErrors(t *testing.T) {
 	handler1 := &mockAuthRequestHandler{err: errors.New("first")}
 	handler2 := &mockAuthRequestHandler{isAuthenticated: true}
-	authRequestHandler := NewUnionAuthentication([]authenticator.Request{handler1, handler2})
+	authRequestHandler := NewUnionAuthentication(handler1, handler2)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 
 	_, isAuthenticated, err := authRequestHandler.AuthenticateRequest(req)
@@ -53,7 +52,7 @@ func TestAuthenticateRequestSuppressUnnecessaryErrors(t *testing.T) {
 func TestAuthenticateRequestNonePass(t *testing.T) {
 	handler1 := &mockAuthRequestHandler{}
 	handler2 := &mockAuthRequestHandler{}
-	authRequestHandler := NewUnionAuthentication([]authenticator.Request{handler1, handler2})
+	authRequestHandler := NewUnionAuthentication(handler1, handler2)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 
 	_, isAuthenticated, err := authRequestHandler.AuthenticateRequest(req)
@@ -68,7 +67,7 @@ func TestAuthenticateRequestNonePass(t *testing.T) {
 func TestAuthenticateRequestAdditiveErrors(t *testing.T) {
 	handler1 := &mockAuthRequestHandler{err: errors.New("first")}
 	handler2 := &mockAuthRequestHandler{err: errors.New("second")}
-	authRequestHandler := NewUnionAuthentication([]authenticator.Request{handler1, handler2})
+	authRequestHandler := NewUnionAuthentication(handler1, handler2)
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 
 	_, isAuthenticated, err := authRequestHandler.AuthenticateRequest(req)
