@@ -109,7 +109,28 @@ func newTLSCertificateConfig(dir string) (*TLSCertificateConfig, error) {
 	return config, nil
 }
 
-func writeClientConfigToDir(client *kclient.Config, dir string) error {
+func readClientConfigFromDir(dir string, defaults kclient.Config) (kclient.Config, error) {
+	// Make a copy of the default config
+	client := defaults
+
+	var err error
+
+	// read files
+	client.CAFile, client.CertFile, client.KeyFile = filenamesFromDir(dir)
+	if client.CAData, err = ioutil.ReadFile(client.CAFile); err != nil {
+		return client, err
+	}
+	if client.CertData, err = ioutil.ReadFile(client.CertFile); err != nil {
+		return client, err
+	}
+	if client.KeyData, err = ioutil.ReadFile(client.KeyFile); err != nil {
+		return client, err
+	}
+
+	return client, nil
+}
+
+func writeClientCertsToDir(client *kclient.Config, dir string) error {
 	// mkdir
 	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
 		return err
@@ -126,9 +147,17 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 	if err := ioutil.WriteFile(client.KeyFile, client.KeyData, os.FileMode(0600)); err != nil {
 		return err
 	}
+	return nil
+}
+
+func writeKubeConfigToDir(client *kclient.Config, username string, dir string) error {
+	// mkdir
+	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
+		return err
+	}
 
 	clusterName := "master"
-	contextName := clusterName + "-" + client.Username
+	contextName := clusterName + "-" + username
 	config := &clientcmdapi.Config{
 		Clusters: map[string]clientcmdapi.Cluster{
 			clusterName: {
@@ -138,7 +167,7 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 			},
 		},
 		AuthInfos: map[string]clientcmdapi.AuthInfo{
-			client.Username: {
+			username: {
 				Token:             client.BearerToken,
 				ClientCertificate: client.CertFile,
 				ClientKey:         client.KeyFile,
@@ -147,7 +176,7 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 		Contexts: map[string]clientcmdapi.Context{
 			contextName: {
 				Cluster:  clusterName,
-				AuthInfo: client.Username,
+				AuthInfo: username,
 			},
 		},
 		CurrentContext: contextName,
@@ -159,6 +188,7 @@ func writeClientConfigToDir(client *kclient.Config, dir string) error {
 
 	return nil
 }
+
 func certsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 	ok := false
 	certs := []*x509.Certificate{}
@@ -312,10 +342,22 @@ func (ca *CA) MakeServerCert(name string, hostnames []string) (*TLSCertificateCo
 //	ExtKeyUsage: ExtKeyUsageClientAuth
 func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclient.Config, error) {
 	clientDir := filepath.Join(ca.Dir, username)
-	glog.Infof("Generating client config in %s/.kubeconfig", clientDir)
+	kubeConfig := filepath.Join(clientDir, ".kubeconfig")
+
+	client, err := readClientConfigFromDir(clientDir, defaults)
+	if err == nil {
+		// Always write .kubeconfig to pick up hostname changes
+		if err := writeKubeConfigToDir(&client, username, clientDir); err != nil {
+			return client, err
+		}
+		glog.Infof("Using existing client config in %s", kubeConfig)
+		return client, nil
+	}
+
+	glog.Infof("Generating client config in %s", kubeConfig)
 
 	// Make a copy of the default config
-	client := defaults
+	client = defaults
 
 	// Create cert for system components to use to talk to the API
 	clientPublicKey, clientPrivateKey, _ := NewKeyPair()
@@ -339,12 +381,12 @@ func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclien
 	client.CertData = certData
 	client.KeyData = keyData
 
-	// Only set Username for writing .kubeconfig... certs take precedence over username
-	client.Username = username
-	if err := writeClientConfigToDir(&client, clientDir); err != nil {
+	if err := writeClientCertsToDir(&client, clientDir); err != nil {
 		return client, err
 	}
-	client.Username = ""
+	if err := writeKubeConfigToDir(&client, username, clientDir); err != nil {
+		return client, err
+	}
 
 	return client, nil
 }
