@@ -160,6 +160,47 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 	}
 }
 
+func TestGenerateReportsInvalidErrorWhenMissingRepo(t *testing.T) {
+	generator := &DeploymentConfigGenerator{
+		Codec: api.Codec,
+		Client: Client{
+			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+				return referenceDeploymentConfig(), nil
+			},
+			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+				return nil, kerrors.NewNotFound("ImageRepository", name)
+			},
+		},
+	}
+	_, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
+	if err == nil || !kerrors.IsInvalid(err) {
+		t.Fatalf("Unexpected error type: %v", err)
+	}
+	if !strings.Contains(err.Error(), "not found 'repo1'") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestGenerateReportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) {
+	generator := &DeploymentConfigGenerator{
+		Codec: api.Codec,
+		Client: Client{
+			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
+				return nil, kerrors.NewNotFound("DeploymentConfig", name)
+			},
+			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+				return nil, kerrors.NewNotFound("ImageRepository", name)
+			},
+		},
+	}
+	_, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
+	if err == nil || !kerrors.IsNotFound(err) {
+		t.Fatalf("Unexpected error type: %v", err)
+	}
+	if !strings.Contains(err.Error(), "DeploymentConfig \"deploy1\" not found") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
 func TestGenerateReportsErrorWhenRepoHasNoImage(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Codec: api.Codec,
@@ -173,8 +214,8 @@ func TestGenerateReportsErrorWhenRepoHasNoImage(t *testing.T) {
 		},
 	}
 	_, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
-	if err == nil {
-		t.Fatalf("Unexpected non-error")
+	if err == nil || !kerrors.IsInvalid(err) {
+		t.Fatalf("Unexpected error type: %v", err)
 	}
 	if !strings.Contains(err.Error(), "image repository /imageRepo1 does not have a Docker") {
 		t.Errorf("unexpected error message: %v", err)
