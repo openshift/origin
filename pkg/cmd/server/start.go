@@ -32,6 +32,10 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
+	authcontext "github.com/openshift/origin/pkg/auth/context"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
+	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+
 	"github.com/openshift/origin/pkg/auth/group"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -255,6 +259,9 @@ func start(cfg *config, args []string) error {
 			return fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 
+		requestsToUsers := authcontext.NewRequestContextMap()
+		masterAuthorizationNamespace := "master"
+
 		// determine whether public API addresses were specified
 		masterPublicAddr := cfg.MasterAddr
 		if cfg.MasterPublicAddr.Provided {
@@ -282,17 +289,20 @@ func start(cfg *config, args []string) error {
 		}
 
 		osmaster := &origin.MasterConfig{
-			TLS:                          cfg.BindAddr.URL.Scheme == "https",
-			MasterBindAddr:               cfg.BindAddr.URL.Host,
-			MasterAddr:                   cfg.MasterAddr.URL.String(),
-			MasterPublicAddr:             masterPublicAddr.URL.String(),
-			AssetBindAddr:                assetBindAddr,
-			AssetPublicAddr:              assetPublicAddr.String(),
-			KubernetesAddr:               cfg.KubernetesAddr.URL.String(),
-			KubernetesPublicAddr:         k8sPublicAddr.URL.String(),
-			EtcdHelper:                   etcdHelper,
-			AdmissionControl:             admit.NewAlwaysAdmit(),
-			MasterAuthorizationNamespace: "master",
+			TLS:                           cfg.BindAddr.URL.Scheme == "https",
+			MasterBindAddr:                cfg.BindAddr.URL.Host,
+			MasterAddr:                    cfg.MasterAddr.URL.String(),
+			MasterPublicAddr:              masterPublicAddr.URL.String(),
+			AssetBindAddr:                 assetBindAddr,
+			AssetPublicAddr:               assetPublicAddr.String(),
+			KubernetesAddr:                cfg.KubernetesAddr.URL.String(),
+			KubernetesPublicAddr:          k8sPublicAddr.URL.String(),
+			EtcdHelper:                    etcdHelper,
+			AdmissionControl:              admit.NewAlwaysAdmit(),
+			RequestsToUsers:               requestsToUsers,
+			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
+			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestsToUsers),
+			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
 		}
 
 		if startKube {
@@ -479,6 +489,17 @@ func start(cfg *config, args []string) error {
 	select {}
 
 	return nil
+}
+
+func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace string) authorizer.Authorizer {
+	authorizationEtcd := authorizationetcd.New(etcdHelper)
+	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+	return authorizer
+}
+
+func newAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap) authorizer.AuthorizationAttributeBuilder {
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers)
+	return authorizationAttributeBuilder
 }
 
 // getEtcdClient creates an etcd client based on the provided config and waits

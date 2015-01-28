@@ -31,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -74,6 +73,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -103,9 +103,12 @@ type MasterConfig struct {
 
 	TLS bool
 
-	CORSAllowedOrigins []*regexp.Regexp
-	Authenticator      authenticator.Request
-	// TODO Have MasterConfig take a fully formed Authorizer
+	CORSAllowedOrigins            []*regexp.Regexp
+	Authenticator                 authenticator.Request
+	Authorizer                    authorizer.Authorizer
+	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
+	// RequestsToUsers is used by both authentication and authorization.  This is a shared, in-memory map, so they must use exactly the same instance
+	RequestsToUsers              *authcontext.RequestContextMap
 	MasterAuthorizationNamespace string
 
 	EtcdHelper tools.EtcdHelper
@@ -324,9 +327,12 @@ func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstal
 	// Add authentication
 	protectedHandler := http.Handler(protectedContainer)
 	if c.Authenticator != nil {
-		requestsToUsers := authcontext.NewRequestContextMap()
-		c.ensureComponentAuthorizationRules()
-		protectedHandler = c.wireAuthenticationHandling(protectedContainer.ServeMux, protectedHandler, c.Authenticator, requestsToUsers)
+		if c.Authorizer != nil && c.AuthorizationAttributeBuilder != nil {
+			protectedHandler = wrapHandlerWithAuthorization(protectedHandler, c.Authorizer, c.AuthorizationAttributeBuilder)
+			c.ensureComponentAuthorizationRules()
+		}
+
+		protectedHandler = c.wireAuthenticationHandling(protectedContainer.ServeMux, protectedHandler, c.Authenticator, c.RequestsToUsers)
 	}
 
 	// Build container for unprotected endpoints
@@ -378,9 +384,6 @@ func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstal
 // is requesting an operation, the handler wrapper that protects the passed handler behind a handler that requires valid authentication
 // information on the request, and an endpoint that only functions properly with an authenticated user.
 func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
-	// wrapHandlerWithAuthorization binds a handler that will force users to be authorized to perform the actions they are requesting
-	handler = c.wrapHandlerWithAuthorization(handler, requestsToUsers)
-
 	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
 	handler = wrapHandlerWithAuthentication(handler, authenticator, requestsToUsers)
 
@@ -448,12 +451,7 @@ func wrapHandlerWithAuthentication(handler http.Handler, authenticator authentic
 		handler)
 }
 
-// TODO Have MasterConfig take a fully formed Authorizer
-func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler, requestsToUsers *authcontext.RequestContextMap) http.Handler {
-	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers)
-	authorizer := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
-
+func wrapHandlerWithAuthorization(handler http.Handler, authorizer authorizer.Authorizer, authorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
