@@ -117,7 +117,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.network "forwarded_port", guest: 80, host: 1080
       config.vm.network "forwarded_port", guest: 8080, host: 8080
       config.vm.network "forwarded_port", guest: 8443, host: 8443
-    end
+    end if vagrant_openshift_config['virtualbox']
 
     config.vm.provider "libvirt" do |libvirt, override|
       override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
@@ -130,7 +130,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       else
         override.vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh"
       end
-    end
+    end if vagrant_openshift_config['libvirt']
 
     # Set VMware Fusion provider settings
     config.vm.provider "vmware_fusion" do |v, override|
@@ -144,7 +144,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       else
         override.vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh"
       end
-    end
+    end if vagrant_openshift_config['vmware']
 
     # Set AWS provider settings
     config.vm.provider :aws do |aws, override|
@@ -185,7 +185,7 @@ runcmd:
           }
         ]
         end
-    end
+    end if vagrant_openshift_config['aws']
 
     config.vm.define "openshiftdev", primary: true do |config|
       config.vm.hostname = "openshiftdev.local"
