@@ -57,6 +57,7 @@ test: export KUBE_RACE=  -race
 test: build check
 	hack/test-cmd.sh
 	hack/test-integration.sh $(GOFLAGS)
+	hack/test-integration-docker.sh $(GOFLAGS)
 	hack/test-end-to-end.sh
 .PHONY: test
 

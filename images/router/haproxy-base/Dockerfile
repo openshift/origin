@@ -14,11 +14,13 @@ RUN yum install -y gcc make openssl-devel pcre-devel tar wget socat && \
     cd haproxy-ss-* && make TARGET=linux2628 CPU=native USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 && make install && \
     cd .. && rm -rf haproxy-ss-* && \
     mkdir -p /usr/bin && \
-    mkdir -p /var/lib/containers/router/ && \
+    mkdir -p /var/lib/containers/router/{certs,cacerts} && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \
-    touch /var/lib/haproxy/conf/{host_be.map,host_be_ws.map,host_be_ressl.map,host_be_sni.map,haproxy.config} && \
+    touch /var/lib/haproxy/conf/{{os_http_be,os_tcp_be,os_sni_passthrough,os_reencrypt}.map,haproxy.config} && \
     yum -y remove gcc && \
     yum clean all
 
 ADD conf/ /var/lib/haproxy/conf/
+# add the dummy cert to the app cert directory as well to avoid errors with default config
+ADD conf/ /var/lib/containers/router/certs/
 EXPOSE 80

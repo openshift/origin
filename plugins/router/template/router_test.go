@@ -1,163 +1,249 @@
 package templaterouter
 
 import (
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	"testing"
 )
 
+// emptyRouter creates a new, empty template router
 func emptyRouter() templateRouter {
-	return templateRouter{state: map[string]Frontend{}}
+	return templateRouter{state: map[string]ServiceUnit{}}
 }
 
-const (
-	key = "frontend1"
-)
-
-func TestRemoveAlias(t *testing.T) {
+// TestCreateServiceUnit tests creating a service unit and finding it in router state
+func TestCreateServiceUnit(t *testing.T) {
 	router := emptyRouter()
-	router.CreateFrontend(key, "http://127.0.0.1/test_frontend")
-	router.AddAlias(key, "alias1")
-	// Adding the same alias twice to also check that adding an existing alias does not add it twice
-	router.AddAlias(key, "alias1")
-	router.AddAlias(key, "alias2")
+	suKey := "test"
+	router.CreateServiceUnit("test")
 
-	if len(router.state[key].HostAliases) != 3 {
-		t.Errorf("Expected 3 aliases got %v: %v", len(router.state[key].HostAliases), router.state[key].HostAliases)
-	}
-
-	router.RemoveAlias(key, "alias1")
-
-	if len(router.state[key].HostAliases) != 2 {
-		t.Errorf("Expected 2 aliases got %v", len(router.state[key].HostAliases))
-	}
-
-	alias := router.state[key].HostAliases[1]
-	if alias != "alias2" {
-		t.Error("Expected to have alias2 remaining, found %s", alias)
+	if _, ok := router.FindServiceUnit(suKey); !ok {
+		t.Errorf("Unable to find serivce unit %s after creation", suKey)
 	}
 }
 
-func TestDeleteFrontend(t *testing.T) {
+// TestDeleteServiceUnit tests that deleted service units no longer exist in state
+func TestDeleteServiceUnit(t *testing.T) {
 	router := emptyRouter()
-	router.CreateFrontend(key, "http://127.0.0.1/test_frontend")
-	router.AddAlias(key, "alias1")
+	suKey := "test"
+	router.CreateServiceUnit(suKey)
 
-	_, ok := router.state[key]
+	if _, ok := router.FindServiceUnit(suKey); !ok {
+		t.Errorf("Unable to find serivce unit %s after creation", suKey)
+	}
+
+	router.DeleteServiceUnit(suKey)
+
+	if _, ok := router.FindServiceUnit(suKey); ok {
+		t.Errorf("Service unit %s was found in state after delete", suKey)
+	}
+}
+
+// TestAddEndpoints test adding endpoints to service units
+func TestAddEndpoints(t *testing.T) {
+	router := emptyRouter()
+	suKey := "test"
+	router.CreateServiceUnit(suKey)
+
+	if _, ok := router.FindServiceUnit(suKey); !ok {
+		t.Errorf("Unable to find serivce unit %s after creation", suKey)
+	}
+
+	endpoint := Endpoint{
+		ID:   "ep1",
+		IP:   "ip",
+		Port: "port",
+	}
+
+	router.AddEndpoints(suKey, []Endpoint{endpoint})
+
+	su, ok := router.FindServiceUnit(suKey)
+
 	if !ok {
-		t.Error("Expected to find frontend")
-	}
+		t.Errorf("Unable to find created service unit %s", suKey)
+	} else {
+		if len(su.EndpointTable) != 1 {
+			t.Errorf("Expected endpoint table to contain 1 entry")
+		} else {
+			actualEp, ok := su.EndpointTable[endpoint.ID]
 
-	if len(router.state[key].HostAliases) != 2 {
-		t.Error("Expected 1 host alias")
-	}
-
-	router.DeleteFrontend(key)
-
-	_, ok = router.state[key]
-	if ok {
-		t.Error("Expected to not find frontend but it was found")
+			if !ok {
+				t.Errorf("Endpoint %s was not found", endpoint.ID)
+			} else {
+				if endpoint.IP != actualEp.IP || endpoint.Port != actualEp.Port {
+					t.Errorf("Expected endpoint %v did not match actual endpoint %v", endpoint, actualEp)
+				}
+			}
+		}
 	}
 }
 
+// TestDeleteEndpoints tests removing endpoints from service units
+func TestDeleteEndpoints(t *testing.T) {
+	router := emptyRouter()
+	suKey := "test"
+	router.CreateServiceUnit(suKey)
+
+	if _, ok := router.FindServiceUnit(suKey); !ok {
+		t.Errorf("Unable to find serivce unit %s after creation", suKey)
+	}
+
+	router.AddEndpoints(suKey, []Endpoint{
+		{
+			ID:   "ep1",
+			IP:   "ip",
+			Port: "port",
+		},
+	})
+
+	su, ok := router.FindServiceUnit(suKey)
+
+	if !ok {
+		t.Errorf("Unable to find created service unit %s", suKey)
+	} else {
+		if len(su.EndpointTable) != 1 {
+			t.Errorf("Expected endpoint table to contain 1 entry")
+		} else {
+			router.DeleteEndpoints(suKey)
+
+			su, ok := router.FindServiceUnit(suKey)
+
+			if !ok {
+				t.Errorf("Unable to find created service unit %s", suKey)
+			} else {
+				if len(su.EndpointTable) > 0 {
+					t.Errorf("Expected endpoint table to be empty")
+				}
+			}
+		}
+	}
+}
+
+// TestRouteKey tests that route keys are created as expected
+func TestRouteKey(t *testing.T) {
+	router := emptyRouter()
+	route := &routeapi.Route{
+		Host: "test",
+	}
+
+	key := router.routeKey(route)
+
+	if key != "test-" {
+		t.Errorf("Expected key 'test' but got: %s", key)
+	}
+
+	route.Path = "test2"
+
+	key = router.routeKey(route)
+
+	if key != "test-test2" {
+		t.Errorf("Expected key 'test' but got: %s", key)
+	}
+}
+
+// TestAddRoute tests adding a service alias config to a service unit
 func TestAddRoute(t *testing.T) {
 	router := emptyRouter()
-	router.CreateFrontend(key, "http://127.0.0.1/test_frontend")
-	_, ok := router.FindFrontend(key)
+	route := &routeapi.Route{
+		Host: "host",
+		Path: "path",
+		TLS: &routeapi.TLSConfig{
+			Termination:              routeapi.TLSTerminationEdge,
+			Certificate:              "abc",
+			Key:                      "def",
+			CACertificate:            "ghi",
+			DestinationCACertificate: "jkl",
+		},
+	}
+	suKey := "test"
+	router.CreateServiceUnit(suKey)
+
+	router.AddRoute(suKey, route)
+
+	su, ok := router.FindServiceUnit(suKey)
+
 	if !ok {
-		t.Error("Expected frontend to be created")
+		t.Errorf("Unable to find created service unit %s", suKey)
+	} else {
+		routeKey := router.routeKey(route)
+		saCfg, ok := su.ServiceAliasConfigs[routeKey]
+
+		if !ok {
+			t.Errorf("Unable to find created serivce alias config for route %s", routeKey)
+		} else {
+			if saCfg.Host != route.Host || saCfg.Path != route.Path || !compareTLS(route, saCfg, t) {
+				t.Errorf("Route %v did not match serivce alias config %v", route, saCfg)
+			}
+		}
 	}
-
-	protocols := []string{"http", "https", "Sti"}
-	endpoint := Endpoint{ID: "my-endpoint", IP: "127.0.0.1", Port: "8080"}
-	endpoints := []Endpoint{endpoint}
-
-	backend := Backend{FePath: "fe_server1", BePath: "be_server1", Protocols: protocols}
-	router.AddRoute(key, &backend, endpoints)
-
-	if len(router.state[key].Backends) == 0 {
-		t.Error("Expected that frontend has more routes after RouteAdd ")
-	}
-
-	// Creating and endpoint with empty port or IP to check that it is not added
-	endpointEmpty := Endpoint{ID: "my-endpoint", IP: "", Port: ""}
-	endpointsEmpty := []Endpoint{endpointEmpty}
-
-	router.AddRoute(key, &backend, endpointsEmpty)
-	if len(router.state[key].Backends) != 1 {
-		t.Error("Expected that frontend has only backend ")
-	}
-
-	// Adding the same route twice to check and that the backend end is not added twice
-	router.AddRoute(key, &backend, endpoints)
-	if len(router.state[key].Backends) != 1 {
-		t.Error("Expected that frontend has only backend ")
-	}
-
 }
 
-func TestDeleteBackends(t *testing.T) {
+// compareTLS is a utility to help compare cert contents between an route and a config
+func compareTLS(route *routeapi.Route, saCfg ServiceAliasConfig, t *testing.T) bool {
+	return findCert(route.TLS.DestinationCACertificate, saCfg.Certificates, false, t) &&
+		findCert(route.TLS.CACertificate, saCfg.Certificates, false, t) &&
+		findCert(route.TLS.Key, saCfg.Certificates, true, t) &&
+		findCert(route.TLS.Certificate, saCfg.Certificates, false, t)
+}
+
+// findCert is a utility to help find the cert in a config's set of certificates
+func findCert(cert string, certs map[string]Certificate, isPrivateKey bool, t *testing.T) bool {
+	found := false
+
+	for _, c := range certs {
+		if isPrivateKey {
+			if c.PrivateKey == cert {
+				found = true
+				break
+			}
+		} else {
+			if c.Contents == cert {
+				found = true
+				break
+			}
+		}
+	}
+
+	if !found {
+		t.Errorf("unable to find cert %s in %v", cert, certs)
+	}
+
+	return found
+}
+
+// TestRemoveRoute tests removing a ServiceAliasConfig from a ServiceUnit
+func TestRemoveRoute(t *testing.T) {
 	router := emptyRouter()
+	route := &routeapi.Route{
+		Host: "host",
+	}
+	suKey := "test"
+	router.CreateServiceUnit(suKey)
 
-	router.CreateFrontend(key, "http://127.0.0.1/test_frontend")
-	router.AddAlias(key, "alias1")
+	router.AddRoute(suKey, route)
 
-	frontend := router.state[key]
+	su, ok := router.FindServiceUnit(suKey)
 
-	protocols := []string{"http", "https", "Sti"}
-	endpoint := Endpoint{ID: "my-endpoint", IP: "127.0.0.1", Port: "8080"}
-	endpoints := []Endpoint{endpoint}
-
-	backend := Backend{FePath: "fe_server1", BePath: "be_server1", Protocols: protocols}
-	router.AddRoute(key, &backend, endpoints)
-
-	frontend, ok := router.state[key]
 	if !ok {
-		t.Error("Expected to find frontend")
-	}
+		t.Errorf("Unable to find created service unit %s", suKey)
+	} else {
+		routeKey := router.routeKey(route)
+		saCfg, ok := su.ServiceAliasConfigs[routeKey]
 
-	router.DeleteBackends(key)
-	frontend = router.state[key]
-	if len(frontend.Backends) != 0 {
-		t.Error("Expected that frontend has empty backend")
-	}
+		if !ok {
+			t.Errorf("Unable to find created serivce alias config for route %s", routeKey)
+		} else {
+			if saCfg.Host != route.Host || saCfg.Path != route.Path {
+				t.Errorf("Route %v did not match serivce alias config %v", route, saCfg)
+			} else {
+				router.RemoveRoute(suKey, route)
 
-	// Deleting an non existing frontend
-	router.DeleteBackends("frontend1_NOT_EXISTENT")
-	frontend = router.state["frontend1_NOT_EXISTENT"]
-	if len(frontend.Backends) != 0 {
-		t.Error("Expected that frontend has empty backend")
-	}
+				su, _ := router.FindServiceUnit(suKey)
+				_, ok := su.ServiceAliasConfigs[routeKey]
 
-}
-
-func TestCreateFrontend(t *testing.T) {
-	router := emptyRouter()
-
-	router.CreateFrontend(key, "http://127.0.0.1/test_frontend")
-	frontend := router.state[key]
-
-	if len(frontend.HostAliases) != 1 {
-		t.Error("Expected that frontend has 1 host aliases")
-	}
-
-}
-
-func TestCreateFrontendWithEmptyUrl(t *testing.T) {
-	router := emptyRouter()
-	router.CreateFrontend(key, "")
-	frontend := router.state[key]
-
-	if len(frontend.HostAliases) != 0 {
-		t.Error("Expected that frontend has no host aliases")
-	}
-
-}
-
-func TestFindFrontend(t *testing.T) {
-	router := emptyRouter()
-
-	router.CreateFrontend(key, "")
-	_, ok := router.FindFrontend(key)
-	if !ok {
-		t.Error("Failure to find frontend")
+				if ok {
+					t.Errorf("Route %v was expected to be deleted but was still found", route)
+				}
+			}
+		}
 	}
 }

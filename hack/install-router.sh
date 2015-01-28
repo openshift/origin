@@ -62,7 +62,7 @@ sed -i "s|\${OPENSHIFT_CA_DATA}|${OPENSHIFT_CA_DATA}|"     /tmp/router.json
 if [ "${OPENSHIFT}" == "" ]; then
     echo "Unable to find openshift binary"
     echo "/tmp/router.json has been created.  In order to start the router please run:"
-    echo "openshift cli create -f /tmp/router.json"
+    echo "osc create -f /tmp/router.json"
 else
     "${OPENSHIFT}" --server="${MASTER_URL}" create -f /tmp/router.json
 fi

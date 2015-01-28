@@ -1,4 +1,8 @@
-{{/* begin haproxy config template */}}
+{{/*
+    haproxy-config.cfg: contains the main config with helper backends that are used to terminate
+    					encryption before finally sending to a host_be which is the backend that is the final
+    					backend for a route and contains all the endpoints for the service
+*/}}
 {{ define "/var/lib/haproxy/conf/haproxy.config" }}
 global
   # maxconn 4096
@@ -12,7 +16,6 @@ global
 
 defaults
   # maxconn 4096
-  mode http
   # Add x-forwarded-for header.
   timeout connect 5s
   timeout client 30s
@@ -26,42 +29,88 @@ frontend public
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
 
-  acl is_ws hdr(Upgrade) -i WebSocket
-  # websocket traffic, no ssl
-  use_backend be_ws_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ws.map)] if is_ws
-
-  # http traffic
-  use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if TRUE
+  use_backend be_http_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
   default_backend openshift_default
 
+# public ssl accepts all connections and isn't checking certificates yet certificates to use will be
+# determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
+# that terminates encryption in this router (edge)
 frontend public_ssl
   bind :443
-  mode tcp
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
-  # check if there is an sni header that matches those that want an sni based passthrough
-  use_backend be_sni_%[req_ssl_sni,map(/var/lib/haproxy/conf/host_be_sni.map)] if TRUE
+
+  # if the connection is SNI and the route is a passthrough don't use the termination backend, just use the tcp backend
+  acl sni req.ssl_sni -m found
+  acl sni_passthrough req.ssl_sni,map(/var/lib/haproxy/conf/os_sni_passthrough.map) -m found
+  use_backend be_tcp_%[req.ssl_sni,map(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_passthrough
+
+  # if the route is SNI and NOT passthrough enter the termination flow
+  use_backend be_sni if { req.ssl_sni -m found }
+
+  # non SNI requests should enter a default termination backend rather than the custom cert SNI backend since it
+  # will not be able to match a cert to an SNI host
   default_backend be_no_sni
 
-##------------- helper frontends/backends to dissect ssl/sni ----
-#TODO : handle wss
+##########################################################################
+# TLS SNI
+#
+# When using SNI we can terminate encryption with custom certificates.
+# Certs will be stored in a directory and will be matched with the SNI host header
+# which must exist in the CN of the certificate.  Certificates must be concatenated
+# as a single file (handled by the plugin writer) per the haproxy documentation.
+#
+# Finally, check re-encryption settings and re-encrypt or just pass along the unencrypted
+# traffic
+##########################################################################
+backend be_sni
+  server fe_sni 127.0.0.1:10444 weight 1 send-proxy
+
+frontend fe_sni
+  # terminate ssl on edge
+  bind 127.0.0.1:10444 ssl crt /var/lib/containers/router/certs accept-proxy
+  mode http
+
+  # re-ssl?
+  acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
+
+  # regular http
+  use_backend be_http_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
+
+  default_backend openshift_default
+
+##########################################################################
+# END TLS SNI
+##########################################################################
+
+##########################################################################
+# TLS NO SNI
+#
+# When we don't have SNI the only thing we can try to do is terminate the encryption
+# using our wild card certificate.  Once that is complete we can either re-encrypt
+# the traffic or pass it on to the backends
+##########################################################################
+# backend for when sni does not exist, or ssl term needs to happen on the edge
+backend be_no_sni
+  server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
 
 frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:10443 ssl crt /var/lib/haproxy/conf/default_pub_keys.pem accept-proxy
 
   # re-ssl?
-  use_backend be_ressl_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if TRUE
+  acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
 
   # regular http
-  use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if TRUE
+  use_backend be_http_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
 
   default_backend openshift_default
 
-# backend for when sni does not exist, or ssl term needs to happen on the edge
-backend be_no_sni
-  mode tcp
-  server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
+##########################################################################
+# END TLS NO SNI
+##########################################################################
 
 backend openshift_default
   mode http
@@ -70,25 +119,103 @@ backend openshift_default
   option http-pretend-keepalive
   server openshift_backend 127.0.0.1:8080
 
-##-------------- app level backends ----------------
-
-{{   range $id, $frontend := . }}
-backend be_{{$id}} mode http
+##-------------- app level unencrypted backends ----------------
+{{/*
+    Create backends as follows:
+        1. if the config is terminated at the edge or termination is not set create a be_http_<service> backend,
+            traffic will be sent unencrypted to the pods
+        2. if the config is terminated at the pod create a be_tcp_<service> backend, we will use SNI to discover
+            where to send the traffic but should run the be in tcp mode
+        3. if the config is terminated at the
+*/}}
+{{ range $id, $serviceUnit := . }}
+        {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+            {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
+backend be_http_{{$id}}
+  mode http
   balance leastconn
   timeout check 5000ms
-{{     range $endpointID, $endpoint := $frontend.EndpointTable }}
+                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
   server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
-{{     end }}
-{{   end }}
+                {{ end }}
+            {{ end }}
+
+            {{ if eq $cfg.TLSTermination "passthrough" }}
+backend be_tcp_{{$id}}
+  balance leastconn
+  timeout check 5000ms
+                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
+  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+                {{ end }}
+            {{ end }}
+
+            {{ if eq $cfg.TLSTermination "reencrypt" }}
+backend be_secure_{{$id}}
+  balance leastconn
+  timeout check 5000ms
+                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
+  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfg.Host}}_pod.pem
+                {{ end }}
+            {{ end  }}
+        {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}
+{{ end }}{{/* $serviceUnit */}}
+
 {{ end }}{{/* end haproxy config template */}}
 
-{{/* begin host map template */}}
-{{ define "/var/lib/haproxy/conf/host_be.map" }}
-{{   range $id, $frontend := . }}
-{{     range $idx, $host := $frontend.HostAliases }}
-{{       if ne $host "" }}
-{{$host}} {{$id}}
+{{/*--------------------------------- END OF HAPROXY CONFIG, BELOW ARE MAPPING FILES ------------------------*/}}
+{{/*
+    os_http_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
+                        by attaching a prefix (be_http_) by use_backend statements if acls are matched.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_http_be.map" }}
+{{   range $id, $serviceUnit := . }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge"))}}
+{{$cfg.Host}} {{$id}}
 {{       end }}
 {{     end }}
 {{   end }}
-{{ end }}{{/* end host map template */}}
+{{ end }}{{/* end http host map template */}}
+
+{{/*
+    os_tcp_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
+                        by attaching a prefix (be_tcp_ or be_secure_) by use_backend statements if acls are matched.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_tcp_be.map" }}
+{{   range $id, $serviceUnit := . }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt")) }}
+{{$cfg.Host}} {{$id}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end tcp host map template */}}
+
+{{/*
+    os_sni_passthrough.map: contains a mapping of routes that expect to have an sni header and should be passed
+    					through to the host_be.  Driven by the termination type of the ServiceAliasConfigs
+*/}}
+{{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" }}
+{{   range $id, $serviceUnit := . }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if eq $cfg.TLSTermination "passthrough" }}
+{{$cfg.Host}} 1
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end sni passthrough map template */}}
+
+
+{{/*
+    os_reencrypt.map: marker that the host is configured to use a secure backend, allows the selection of a backend
+                    that does specific checks that avoid mitm attacks: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-ssl
+*/}}
+{{ define "/var/lib/haproxy/conf/os_reencrypt.map" }}
+{{   range $id, $serviceUnit := . }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if eq $cfg.TLSTermination "reencrypt" }}
+{{$cfg.Host}} 1
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end sni passthrough map template */}}
