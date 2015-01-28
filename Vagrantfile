@@ -28,6 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "instance_name"     => "origin-dev",
       "os"                => "fedora",
       "dev_cluster"       => false,
+      "insert_key"        => true,
       "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
       "rebuild_yum_cache" => false,
       "cpus"              => 2,
@@ -106,6 +107,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.provider "virtualbox" do |v, override|
       override.vm.box     = vagrant_openshift_config['virtualbox']['box_name']
       override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url']
+      override.ssh.insert_key = vagrant_openshift_config['insert_key']
 
       v.memory            = vagrant_openshift_config['memory']
       v.cpus              = vagrant_openshift_config['cpus']
@@ -122,6 +124,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.provider "libvirt" do |libvirt, override|
       override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
       override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
+      override.ssh.insert_key = vagrant_openshift_config['insert_key']
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory']
       libvirt.cpus        = vagrant_openshift_config['cpus']
@@ -136,6 +139,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.provider "vmware_fusion" do |v, override|
       override.vm.box     = vagrant_openshift_config['vmware']['box_name']
       override.vm.box_url = vagrant_openshift_config['vmware']['box_url']
+      override.ssh.insert_key = vagrant_openshift_config['insert_key']
       v.vmx["memsize"]    = vagrant_openshift_config['memory'].to_s
       v.vmx["numvcpus"]   = vagrant_openshift_config['cpus'].to_s
       v.gui               = false
@@ -159,6 +163,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         override.vm.synced_folder sync_from, sync_to, disabled: true
         override.ssh.username         = vagrant_openshift_config['aws']['ssh_user']
         override.ssh.private_key_path = aws_creds["AWSPrivateKeyPath"] || "PATH TO AWS KEYPAIR PRIVATE KEY"
+        override.ssh.insert_key = true
 
         aws.access_key_id     = aws_creds["AWSAccessKeyId"] || "AWS ACCESS KEY"
         aws.secret_access_key = aws_creds["AWSSecretKey"]   || "AWS SECRET KEY"
