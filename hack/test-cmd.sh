@@ -100,6 +100,7 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 [ "$(openshift ex)" ]
 [ "$(openshift ex config 2>&1)" ]
 [ "$(openshift ex tokens)" ]
+[ "$(openshift ex policy  2>&1)" ]
 [ "$(openshift kubectl)" ]
 [ "$(openshift kube 2>&1)" ]
 
@@ -168,3 +169,11 @@ osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 
 osc get minions,pods
+
+openshift ex policy add-group cluster-admin system:unauthenticated
+openshift ex policy remove-group cluster-admin system:unauthenticated
+openshift ex policy remove-group-from-project system:unauthenticated
+openshift ex policy add-user cluster-admin system:no-user
+openshift ex policy remove-user cluster-admin system:no-user
+openshift ex policy remove-user-from-project system:no-user
+echo "ex policy: ok"
