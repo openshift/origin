@@ -18,6 +18,9 @@ import (
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
 
+// TODO add get and list
+// TODO prevent privilege escalation
+
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	bindingRegistry              policybindingregistry.Registry
