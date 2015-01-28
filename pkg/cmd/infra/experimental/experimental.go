@@ -3,6 +3,7 @@ package experimental
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 )
 
@@ -16,6 +17,7 @@ func NewCommandExperimental(name string) *cobra.Command {
 	}
 
 	cmd.AddCommand(tokens.NewCommandTokens("tokens"))
+	cmd.AddCommand(policy.NewCommandPolicy("policy"))
 
 	return cmd
 }
