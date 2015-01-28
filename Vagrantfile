@@ -170,7 +170,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         aws.keypair_name      = aws_creds["AWSKeyPairName"] || "AWS KEYPAIR NAME"
         aws.ami               = vagrant_openshift_config['aws']['ami']
         aws.region            = vagrant_openshift_config['aws']['ami_region']
-        aws.instance_type     = "m3.large"
+        aws.instance_type     = "c3.large"
         aws.instance_ready_timeout = 240
         aws.tags              = { "Name" => vagrant_openshift_config['instance_name'] }
         aws.user_data         = %{
