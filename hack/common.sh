@@ -53,6 +53,9 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   osc
   openshift-experimental
 )
+readonly OPENSHIFT_BINARY_COPY=(
+  osc
+)
 
 # os::build::binaries_from_targets take a list of build targets and return the
 # full go package to be built
@@ -268,6 +271,15 @@ os::build::place_bins() {
   )
 }
 
+# os::build::make_openshift_binary_copy makes copies for the openshift
+# binary in _output/local/go/bin
+os::build::make_openshift_binary_copy() {
+  if [[ -f "${OS_LOCAL_BINPATH}/openshift" ]]; then
+    for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
+      cp "${OS_LOCAL_BINPATH}/openshift" "${OS_LOCAL_BINPATH}/${linkname}"
+    done
+  fi
+}
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
 # binary in _output/local/go/bin
 os::build::make_openshift_binary_symlinks() {
