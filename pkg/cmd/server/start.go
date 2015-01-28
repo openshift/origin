@@ -214,6 +214,7 @@ func start(cfg *config, args []string) error {
 
 	if startKube {
 		cfg.KubernetesAddr = cfg.MasterAddr
+		cfg.KubernetesPublicAddr = cfg.MasterPublicAddr
 	}
 
 	if env("OPENSHIFT_PROFILE", "") == "web" {
