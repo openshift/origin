@@ -170,13 +170,16 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		t.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
-	kmaster := master.New(&master.Config{
+	handlerContainer := master.NewHandlerContainer(osMux)
+
+	_ = master.New(&master.Config{
 		Client:             kubeClient,
 		EtcdHelper:         etcdHelper,
 		HealthCheckMinions: false,
 		KubeletClient:      kubeletClient,
-		APIPrefix:          "/api/v1beta1",
+		APIPrefix:          "/api",
 		AdmissionControl:   admit.NewAlwaysAdmit(),
+		RestfulContainer:   handlerContainer,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -187,9 +190,6 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		"builds":       buildregistry.NewREST(buildEtcd),
 		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
 	}
-
-	handlerContainer := master.NewHandlerContainer(osMux)
-	apiserver.NewAPIGroupVersion(kmaster.API_v1beta1()).InstallREST(handlerContainer, "/api", "v1beta1")
 
 	osPrefix := "/osapi/v1beta1"
 	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
@@ -207,11 +207,13 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image:          "test-docker-builder",
 			UseLocalImages: false,
+			Codec:          latest.Codec,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
 			Image:                "test-sti-builder",
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			UseLocalImages:       false,
+			Codec:                latest.Codec,
 		},
 		Stop: openshift.stop,
 	}
