@@ -40,6 +40,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
+	pkgutil "github.com/openshift/origin/pkg/util"
 )
 
 const longCommandDesc = `
@@ -337,7 +338,18 @@ func start(cfg *config, args []string) error {
 			// Bootstrap server certs
 			// 172.17.42.1 enables the router to call back out to the master
 			// TODO: Remove 172.17.42.1 once we can figure out how to validate the master's cert from inside a pod, or tell pods the real IP for the master
-			serverCert, err := ca.MakeServerCert("master", []string{cfg.MasterAddr.Host, "localhost", "127.0.0.1", "172.17.42.1", masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host})
+			allHostnames := []string{"localhost", "127.0.0.1", "172.17.42.1", cfg.MasterAddr.Host, masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host, assetPublicAddr.Host}
+			certHostnames := []string{}
+			for _, hostname := range allHostnames {
+				if host, _, err := net.SplitHostPort(hostname); err == nil {
+					// add the hostname without the port
+					certHostnames = append(certHostnames, host)
+				} else {
+					// add the originally specified hostname
+					certHostnames = append(certHostnames, hostname)
+				}
+			}
+			serverCert, err := ca.MakeServerCert("master", pkgutil.UniqueStrings(certHostnames))
 			if err != nil {
 				return err
 			}
