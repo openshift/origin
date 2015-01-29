@@ -20,6 +20,10 @@ type Interface interface {
 	UsersInterface
 	UserIdentityMappingsInterface
 	ProjectsInterface
+	PoliciesNamespacer
+	RolesNamespacer
+	RoleBindingsNamespacer
+	PolicyBindingsNamespacer
 }
 
 func (c *Client) Builds(namespace string) BuildInterface {
@@ -68,6 +72,22 @@ func (c *Client) UserIdentityMappings() UserIdentityMappingInterface {
 
 func (c *Client) Projects() ProjectInterface {
 	return newProjects(c)
+}
+
+func (c *Client) Policies(namespace string) PolicyInterface {
+	return newPolicies(c, namespace)
+}
+
+func (c *Client) PolicyBindings(namespace string) PolicyBindingInterface {
+	return newPolicyBindings(c, namespace)
+}
+
+func (c *Client) Roles(namespace string) RoleInterface {
+	return newRoles(c, namespace)
+}
+
+func (c *Client) RoleBindings(namespace string) RoleBindingInterface {
+	return newRoleBindings(c, namespace)
 }
 
 // Client is an OpenShift client object
