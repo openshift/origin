@@ -4,6 +4,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	_ "github.com/openshift/origin/pkg/authorization/api"
 	_ "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/config/api"
 	_ "github.com/openshift/origin/pkg/deploy/api"
