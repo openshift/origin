@@ -107,6 +107,7 @@ func HTML5ModeHandler(h http.Handler) http.Handler {
 func GeneratedConfigHandler(osAddr string, osPrefix string, k8sAddr string, k8sPrefix string, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/config.js" {
+			w.Header().Add("Cache-Control", "no-cache, no-store")
 			w.Write([]byte(fmt.Sprintf(configTemplate,
 				osAddr,
 				osPrefix,
