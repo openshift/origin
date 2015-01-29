@@ -337,13 +337,16 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		t.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
-	kmaster := master.New(&master.Config{
+	handlerContainer := master.NewHandlerContainer(osMux)
+
+	_ = master.New(&master.Config{
 		Client:             kubeClient,
 		EtcdHelper:         etcdHelper,
 		HealthCheckMinions: false,
 		KubeletClient:      kubeletClient,
-		APIPrefix:          "/api/v1beta1",
+		APIPrefix:          "/api",
 		AdmissionControl:   admit.NewAlwaysAdmit(),
+		RestfulContainer:   handlerContainer,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -371,9 +374,6 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		"builds":                    buildregistry.NewREST(buildEtcd),
 		"buildConfigs":              buildconfigregistry.NewREST(buildEtcd),
 	}
-
-	handlerContainer := master.NewHandlerContainer(osMux)
-	apiserver.NewAPIGroupVersion(kmaster.API_v1beta1()).InstallREST(handlerContainer, "/api", "v1beta1")
 
 	osPrefix := "/osapi/v1beta1"
 	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
