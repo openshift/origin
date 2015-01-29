@@ -40,6 +40,7 @@ mkdir -p $ARTIFACT_DIR
 API_PORT="${API_PORT:-8443}"
 API_SCHEME="${API_SCHEME:-https}"
 API_HOST="${API_HOST:-localhost}"
+PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 KUBELET_SCHEME="${KUBELET_SCHEME:-http}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
 
@@ -155,9 +156,9 @@ echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
 echo "[INFO] Certs dir is:              ${CERT_DIR}"
 
 # Start All-in-one server and wait for health
-# Specify the scheme and port for the master, but let the IP auto-discover
+# Specify the scheme and port for the listen address, but let the IP auto-discover.  Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Starting OpenShift server"
-sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 &> "${LOG_DIR}/openshift.log" &
+sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
@@ -180,6 +181,12 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
 	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 fi
+
+# create test project so that this shows up in the console
+osc create project -f examples/sample-app/project.json
+
+echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:$(($API_PORT + 1)).  You may need to visit ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT} first to accept the certificate."
+
 
 # install the registry
 CERT_DIR="${CERT_DIR}/openshift-client" hack/install-registry.sh

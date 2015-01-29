@@ -110,7 +110,7 @@ All commands assume the `openshift` binary is in your path (normally located und
 
 7. Create a new project in OpenShift
 
-        $ openshift cli create Project -f project.json
+        $ openshift cli create project -f project.json
 
 8. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`
     If you click the `Hello OpenShift` project and leave the tab open, you'll see the page update as you deploy objects into the project and run builds.
