@@ -42,8 +42,17 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy.Never == nil {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 1 {
-		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))
+	if len(container.Env) != 3 {
+		t.Fatalf("Expected 3 elements in Env table, got %d", len(container.Env))
+	}
+	found := false
+	for _, v := range container.Env {
+		if v.Name == "FOO" && v.Value == "bar" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("Expected variable FOO be defined for the container")
 	}
 	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{
@@ -78,6 +87,9 @@ func mockSTIBuild() *buildapi.Build {
 				STIStrategy: &buildapi.STIBuildStrategy{
 					Image:   "repository/sti-builder",
 					Scripts: "http://my.build.com/the/sti/scripts",
+					Env: []kapi.EnvVar{
+						{Name: "FOO", Value: "bar"},
+					},
 				},
 			},
 			Output: buildapi.BuildOutput{

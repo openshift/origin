@@ -16,11 +16,13 @@ func init() {
 			out.Image = in.Image
 			out.Scripts = in.Scripts
 			out.Clean = in.Clean
+			s.Convert(&in.Env, &out.Env, 0)
 			return nil
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
 			out.Scripts = in.Scripts
 			out.Clean = in.Clean
+			s.Convert(&in.Env, &out.Env, 0)
 			if len(in.Image) != 0 {
 				out.Image = in.Image
 			} else {

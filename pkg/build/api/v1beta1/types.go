@@ -194,6 +194,9 @@ type STIBuildStrategy struct {
 	// Image is the image used to execute the build.
 	Image string `json:"image,omitempty"`
 
+	// Additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar `json:"env,omitempty"`
+
 	// Scripts is the location of STI scripts
 	Scripts string `json:"scripts,omitempty"`
 
