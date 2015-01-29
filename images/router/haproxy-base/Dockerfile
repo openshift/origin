@@ -2,9 +2,9 @@
 # This is the HAProxy router base for OpenShift Origin. It contains the necessary
 # HAProxy binaries to be dynamically managed by the OpenShift router.
 #
-# The standard name for this image is openshift/origin-haproxy-router-base
+# The standard name for this image is openshift3_beta/ose-haproxy-router-base
 #
-FROM openshift/origin-base
+FROM openshift3_beta/ose-base
 
 RUN yum install -y gcc make openssl-devel pcre-devel tar wget socat && \
     wget http://www.haproxy.org/download/1.5/src/haproxy-1.5.10.tar.gz  && \

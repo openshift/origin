@@ -5,8 +5,8 @@
 #   KUBERNETES_MASTER - the address of the OpenShift master
 #   KUBERNETES_DEPLOYMENT_ID - the deployment identifier that is running this build
 #
-# The standard name for this image is openshift/origin-deployer
+# The standard name for this image is openshift3_beta/ose-deployer
 #
-FROM openshift/origin
+FROM openshift3_beta/ose
 
 ENTRYPOINT ["/usr/bin/openshift-deploy"]

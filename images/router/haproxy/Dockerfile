@@ -1,13 +1,14 @@
 #
 # This is the HAProxy router for OpenShift Origin.
 #
-# The standard name for this image is openshift/origin-haproxy-router
+# The standard name for this image is openshift3_beta/ose-haproxy-router
 #
-FROM openshift/origin-haproxy-router-base
+FROM openshift3_beta/ose-haproxy-router-base
+
+RUN yum -y install openshift
 
 ADD conf/ /var/lib/haproxy/conf/
 ADD reload-haproxy /var/lib/haproxy/reload-haproxy
-ADD bin/openshift /usr/bin/openshift
 RUN ln -s /usr/bin/openshift /usr/bin/openshift-router
 
 EXPOSE 80
