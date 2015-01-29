@@ -563,7 +563,6 @@ func (c *Command) Usage() error {
 // Used when a user calls help [command]
 // by the default HelpFunc in the commander
 func (c *Command) Help() error {
-	c.mergePersistentFlags()
 	err := tmpl(c.Out(), c.HelpTemplate(), c)
 	return err
 }
