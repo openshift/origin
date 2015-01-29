@@ -8,20 +8,21 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildtest "github.com/openshift/origin/pkg/build/controller/test"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 type okBuildUpdater struct{}
 
-func (obu *okBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
-	return &buildapi.Build{}, nil
+func (okc *okBuildUpdater) Update(namespace string, build *buildapi.Build) error {
+	return nil
 }
 
 type errBuildUpdater struct{}
 
-func (ebu *errBuildUpdater) UpdateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
-	return &buildapi.Build{}, errors.New("UpdateBuild error!")
+func (ec *errBuildUpdater) Update(namespace string, build *buildapi.Build) error {
+	return errors.New("UpdateBuild error!")
 }
 
 type okStrategy struct {
@@ -153,7 +154,7 @@ func TestHandleBuild(t *testing.T) {
 		outStatus     buildapi.BuildStatus
 		buildOutput   buildapi.BuildOutput
 		buildStrategy BuildStrategy
-		buildUpdater  buildUpdater
+		buildUpdater  buildclient.BuildUpdater
 		imageClient   imageRepositoryClient
 		podManager    podManager
 		outputSpec    string
@@ -316,7 +317,7 @@ func TestHandlePod(t *testing.T) {
 		outStatus    buildapi.BuildStatus
 		podStatus    kapi.PodPhase
 		exitCode     int
-		buildUpdater buildUpdater
+		buildUpdater buildclient.BuildUpdater
 	}
 
 	tests := []handlePodTest{

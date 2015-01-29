@@ -1,7 +1,7 @@
 package builder
 
 import (
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 type Builder interface {
@@ -10,7 +10,7 @@ type Builder interface {
 
 // getBuildEnvVars returns a map with the environment variables that should be added
 // to the built image
-func getBuildEnvVars(build *api.Build) map[string]string {
+func getBuildEnvVars(build *buildapi.Build) map[string]string {
 	envVars := map[string]string{
 		"OPENSHIFT_BUILD_NAME":      build.Name,
 		"OPENSHIFT_BUILD_NAMESPACE": build.Namespace,

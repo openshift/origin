@@ -7,6 +7,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -16,18 +18,10 @@ import (
 type ImageChangeController struct {
 	NextImageRepository func() *imageapi.ImageRepository
 	BuildConfigStore    cache.Store
-	BuildConfigUpdater  buildConfigUpdater
-	BuildCreator        buildCreator
+	BuildCreator        buildclient.BuildCreator
+	BuildConfigUpdater  buildclient.BuildConfigUpdater
 	// Stop is an optional channel that controls when the controller exits
 	Stop <-chan struct{}
-}
-
-type buildConfigUpdater interface {
-	UpdateBuildConfig(buildConfig *buildapi.BuildConfig) error
-}
-
-type buildCreator interface {
-	CreateBuild(build *buildapi.BuildConfig, imageSubstitutions map[string]string) error
 }
 
 // Run processes ImageRepository events one by one.
@@ -54,7 +48,8 @@ func (c *ImageChangeController) HandleImageRepo() {
 				continue
 			}
 			icTrigger := trigger.ImageChange
-			if icTrigger.From.Name != imageRepo.Name {
+			// only trigger a build if this image repo matches the name and namespace of the ref in the build trigger
+			if icTrigger.From.Name != imageRepo.Name || (len(icTrigger.From.Namespace) != 0 && icTrigger.From.Namespace != imageRepo.Namespace) {
 				continue
 			}
 			// for every ImageChange trigger, record the image it substitutes for and get the latest
@@ -78,11 +73,12 @@ func (c *ImageChangeController) HandleImageRepo() {
 		}
 
 		if shouldTriggerBuild {
-			glog.V(4).Infof("Running build for buildConfig %s", config.Name)
-			if err := c.BuildCreator.CreateBuild(config, imageSubstitutions); err != nil {
+			glog.V(4).Infof("Running build for buildConfig %s in namespace %s", config.Name, config.Namespace)
+			b := buildutil.GenerateBuildFromConfig(config, nil, imageSubstitutions)
+			if err := c.BuildCreator.Create(config.Namespace, b); err != nil {
 				glog.V(2).Infof("Error starting build for buildConfig %v: %v", config.Name, err)
 			} else {
-				if err := c.BuildConfigUpdater.UpdateBuildConfig(config); err != nil {
+				if err := c.BuildConfigUpdater.Update(config); err != nil {
 					glog.V(2).Infof("Error updating buildConfig %v: %v", config.Name, err)
 				}
 			}

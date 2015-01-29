@@ -11,9 +11,9 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
-type okClient struct{}
+type okBuildConfigGetter struct{}
 
-func (*okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -26,23 +26,21 @@ func (*okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error
 	}, nil
 }
 
-func (*okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
-	return &api.Build{}, nil
+type okBuildCreator struct{}
+
+func (*okBuildCreator) Create(namespace string, build *api.Build) error {
+	return nil
 }
 
-type buildErrorClient struct {
-	okClient
+type errorBuildCreator struct{}
+
+func (*errorBuildCreator) Create(namespace string, build *api.Build) error {
+	return errors.New("Build error!")
 }
 
-func (*buildErrorClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
-	return &api.Build{}, errors.New("Build error!")
-}
+type errorBuildConfigGetter struct{}
 
-type configErrorClient struct {
-	okClient
-}
-
-func (*configErrorClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+func (*errorBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{}, errors.New("BuildConfig error!")
 }
 
@@ -62,7 +60,7 @@ func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 }
 
 func TestParseUrlError(t *testing.T) {
-	server := httptest.NewServer(NewController(&okClient{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL, "application/json", nil)
@@ -77,7 +75,7 @@ func TestParseUrlError(t *testing.T) {
 }
 
 func TestParseUrlOK(t *testing.T) {
-	server := httptest.NewServer(NewController(&okClient{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]Plugin{
 		"pathplugin": &pathPlugin{},
 	}))
 	defer server.Close()
@@ -96,7 +94,7 @@ func TestParseUrlOK(t *testing.T) {
 
 func TestParseUrlLong(t *testing.T) {
 	plugin := &pathPlugin{}
-	server := httptest.NewServer(NewController(&okClient{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]Plugin{
 		"pathplugin": plugin,
 	}))
 	defer server.Close()
@@ -117,7 +115,7 @@ func TestParseUrlLong(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorSecret(t *testing.T) {
-	server := httptest.NewServer(NewController(&okClient{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/wrongsecret/somePlugin",
@@ -133,7 +131,7 @@ func TestInvokeWebhookErrorSecret(t *testing.T) {
 }
 
 func TestInvokeWebhookMissingPlugin(t *testing.T) {
-	server := httptest.NewServer(NewController(&okClient{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/missingplugin",
@@ -150,7 +148,7 @@ func TestInvokeWebhookMissingPlugin(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorBuildConfig(t *testing.T) {
-	server := httptest.NewServer(NewController(&buildErrorClient{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &errorBuildCreator{}, map[string]Plugin{
 		"okPlugin": &pathPlugin{},
 	}))
 	defer server.Close()
@@ -169,7 +167,7 @@ func TestInvokeWebhookErrorBuildConfig(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorGetConfig(t *testing.T) {
-	server := httptest.NewServer(NewController(&configErrorClient{}, nil))
+	server := httptest.NewServer(NewController(&errorBuildConfigGetter{}, &okBuildCreator{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/errPlugin",
@@ -186,7 +184,7 @@ func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
-	server := httptest.NewServer(NewController(&okClient{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]Plugin{
 		"errPlugin": &errPlugin{},
 	}))
 	defer server.Close()
@@ -204,19 +202,25 @@ func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	}
 }
 
-type mockOkClient struct {
+type mockOkBuildCreator struct {
 	testBuildInterface
 }
-
 type testBuildInterface struct {
-	CreateBuildFunc    func(namespace string, build *api.Build) (*api.Build, error)
+	CreateFunc func(namespace string, build *api.Build) error
+}
+
+func (i *testBuildInterface) Create(namespace string, build *api.Build) error {
+	return i.CreateFunc(namespace, build)
+}
+
+type mockOkBuildConfigGetter struct {
+	testBuildConfigInterface
+}
+type testBuildConfigInterface struct {
 	GetBuildConfigFunc func(namespace, name string) (*api.BuildConfig, error)
 }
 
-func (i *testBuildInterface) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
-	return i.CreateBuildFunc(namespace, build)
-}
-func (i *testBuildInterface) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+func (i *testBuildConfigInterface) Get(namespace, name string) (*api.BuildConfig, error) {
 	return i.GetBuildConfigFunc(namespace, name)
 }
 
@@ -226,20 +230,27 @@ func TestInvokeWebhookOk(t *testing.T) {
 		Parameters: api.BuildParameters{},
 	}
 
-	server := httptest.NewServer(NewController(&mockOkClient{
-		testBuildInterface: testBuildInterface{
-			CreateBuildFunc: func(namespace string, build *api.Build) (*api.Build, error) {
-				buildRequest = build
-				return build, nil
-			},
-			GetBuildConfigFunc: func(namespace, name string) (*api.BuildConfig, error) {
-				buildConfig.Name = name
-				return buildConfig, nil
+	server := httptest.NewServer(NewController(
+		&mockOkBuildConfigGetter{
+			testBuildConfigInterface: testBuildConfigInterface{
+				GetBuildConfigFunc: func(namespace, name string) (*api.BuildConfig, error) {
+					buildConfig.Name = name
+					return buildConfig, nil
+				},
 			},
 		},
-	}, map[string]Plugin{
-		"okPlugin": &pathPlugin{},
-	}))
+		&mockOkBuildCreator{
+			testBuildInterface: testBuildInterface{
+				CreateFunc: func(namespace string, build *api.Build) error {
+					buildRequest = build
+					return nil
+				},
+			},
+		},
+
+		map[string]Plugin{
+			"okPlugin": &pathPlugin{},
+		}))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/okPlugin",
@@ -253,6 +264,6 @@ func TestInvokeWebhookOk(t *testing.T) {
 			string(body))
 	}
 	if e, a := buildConfig.Name, buildRequest.Labels[api.BuildConfigLabel]; e != a {
-		t.Fatalf("expected build with label '%s', got '%s'", e, a)
+		t.Fatalf("expected buildconfig names to match '%s', got '%s'", e, a)
 	}
 }

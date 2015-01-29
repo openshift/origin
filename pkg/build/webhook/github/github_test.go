@@ -12,9 +12,9 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
-type okClient struct{}
+type okBuildConfigGetter struct{}
 
-func (c *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, error) {
+func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -35,12 +35,14 @@ func (c *okClient) GetBuildConfig(namespace, name string) (*api.BuildConfig, err
 	}, nil
 }
 
-func (c *okClient) CreateBuild(namespace string, build *api.Build) (*api.Build, error) {
-	return &api.Build{}, nil
+type okBuildCreator struct{}
+
+func (c *okBuildCreator) Create(namespace string, build *api.Build) error {
+	return nil
 }
 
 func TestWrongMethod(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	resp, _ := http.Get(server.URL + "/build100/secret101/github")
@@ -52,7 +54,7 @@ func TestWrongMethod(t *testing.T) {
 }
 
 func TestWrongContentType(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -69,7 +71,7 @@ func TestWrongContentType(t *testing.T) {
 }
 
 func TestWrongUserAgent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -86,7 +88,7 @@ func TestWrongUserAgent(t *testing.T) {
 }
 
 func TestMissingGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -102,7 +104,7 @@ func TestMissingGithubEvent(t *testing.T) {
 }
 
 func TestWrongGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -119,7 +121,7 @@ func TestWrongGithubEvent(t *testing.T) {
 }
 
 func TestJsonPingEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	postFile("ping", "pingevent.json", server.URL+"/build100/secret101/github",
@@ -127,14 +129,14 @@ func TestJsonPingEvent(t *testing.T) {
 }
 
 func TestJsonPushEventError(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	post("push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
 }
 
 func TestJsonPushEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okClient{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	postFile("push", "pushevent.json", server.URL+"/build100/secret101/github",

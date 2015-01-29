@@ -528,7 +528,7 @@ func (c *KubeConfig) executeBuildRequest(method string, client *osclient.Client)
 		if err != nil {
 			glog.Fatalf("failed to trigger build manually: %v", err)
 		}
-		build = buildutil.GenerateBuildFromConfig(buildConfig, buildConfig.Parameters.Revision)
+		build = buildutil.GenerateBuildFromConfig(buildConfig, buildConfig.Parameters.Revision, nil)
 	}
 	request := client.Post().Namespace(c.getNamespace()).Resource("/builds").Body(build)
 	if err := request.Do().Error(); err != nil {

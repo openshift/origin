@@ -31,7 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -148,24 +148,37 @@ func (c *MasterConfig) BuildClients() {
 	c.osClient = osclient
 }
 
+// KubeClient returns the kubernetes client object
 func (c *MasterConfig) KubeClient() *kclient.Client {
 	return c.kubeClient
 }
+
+// DeploymentClient returns the deployment client object
 func (c *MasterConfig) DeploymentClient() *kclient.Client {
 	return c.kubeClient
 }
+
+// BuildLogClient returns the build log client object
 func (c *MasterConfig) BuildLogClient() *kclient.Client {
 	return c.kubeClient
 }
+
+// WebHookClient returns the webhook client object
 func (c *MasterConfig) WebHookClient() *osclient.Client {
 	return c.osClient
 }
+
+// BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.osClient, c.kubeClient
 }
+
+// ImageChangeControllerClient returns the openshift client object
 func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
 	return c.osClient
 }
+
+// DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.osClient, c.kubeClient
 }
@@ -263,8 +276,9 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	}
 
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
+	bcClient, _ := c.BuildControllerClients()
 	container.ServeMux.Handle(whPrefix, http.StripPrefix(whPrefix,
-		webhook.NewController(ClientWebhookInterface{c.WebHookClient()}, map[string]webhook.Plugin{
+		webhook.NewController(buildclient.NewOSClientBuildConfigClient(bcClient), buildclient.NewOSClientBuildClient(bcClient), map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
 		})))
@@ -488,8 +502,9 @@ func (c *MasterConfig) RunBuildController() {
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
-		Client:     osclient,
-		KubeClient: kclient,
+		OSClient:     osclient,
+		KubeClient:   kclient,
+		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image:          dockerImage,
 			UseLocalImages: useLocalImages,
@@ -516,7 +531,10 @@ func (c *MasterConfig) RunBuildController() {
 
 // RunDeploymentController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
-	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: c.ImageChangeControllerClient()}
+	bcClient, _ := c.BuildControllerClients()
+	bcUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
+	bCreator := buildclient.NewOSClientBuildClient(bcClient)
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildCreator: bCreator, BuildConfigUpdater: bcUpdater}
 	factory.Create().Run()
 }
 
@@ -591,21 +609,6 @@ func env(key string, defaultValue string) string {
 		return defaultValue
 	}
 	return val
-}
-
-// ClientWebhookInterface is a webhookBuildInterface which delegates to the OpenShift client interfaces
-type ClientWebhookInterface struct {
-	Client osclient.Interface
-}
-
-// CreateBuild creates build using OpenShift client.
-func (c ClientWebhookInterface) CreateBuild(namespace string, build *buildapi.Build) (*buildapi.Build, error) {
-	return c.Client.Builds(namespace).Create(build)
-}
-
-// GetBuildConfig returns buildConfig using OpenShift client.
-func (c ClientWebhookInterface) GetBuildConfig(namespace, name string) (*buildapi.BuildConfig, error) {
-	return c.Client.BuildConfigs(namespace).Get(name)
 }
 
 type clientDeploymentInterface struct {
