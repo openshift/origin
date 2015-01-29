@@ -15,7 +15,5 @@ os::build::build_binaries "${OS_COMPILE_TARGETS[@]-}"
 OS_BUILD_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
 os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 
-os::build::make_openshift_binary_copy
-
 OS_RELEASE_ARCHIVES="${OS_OUTPUT}/releases"
 os::build::place_bins

@@ -253,6 +253,10 @@ os::build::place_bins() {
       if [[ $platform == $host_platform ]]; then
         platform_src=""
       fi
+      local suffix=""
+      if [[ $platform == "windows/amd64" ]]; then
+        suffix=".exe"
+      fi
 
       local full_binpath_src="${OS_GOPATH}/bin${platform_src}"
       if [[ -d "${full_binpath_src}" ]]; then
@@ -263,6 +267,9 @@ os::build::place_bins() {
         if [[ "${OS_RELEASE_ARCHIVES-}" != "" ]]; then
           local platform_segment="${platform//\//-}"
           local archive_name="openshift-origin-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
+          for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
+            cp "${OS_OUTPUT_BINPATH}/${platform}/openshift${suffix}" "${OS_OUTPUT_BINPATH}/${platform}/${linkname}${suffix}"
+          done
           echo "++ Creating ${archive_name}"
           tar -czf "${OS_RELEASE_ARCHIVES}/${archive_name}" -C "${OS_OUTPUT_BINPATH}/${platform}" .
         fi
@@ -271,15 +278,6 @@ os::build::place_bins() {
   )
 }
 
-# os::build::make_openshift_binary_copy makes copies for the openshift
-# binary in _output/local/go/bin
-os::build::make_openshift_binary_copy() {
-  if [[ -f "${OS_LOCAL_BINPATH}/openshift" ]]; then
-    for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
-      cp "${OS_LOCAL_BINPATH}/openshift" "${OS_LOCAL_BINPATH}/${linkname}"
-    done
-  fi
-}
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
 # binary in _output/local/go/bin
 os::build::make_openshift_binary_symlinks() {
