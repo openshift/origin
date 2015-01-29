@@ -2,7 +2,9 @@
   "id": "node",
   "kind": "Template",
   "apiVersion": "v1beta1",
-  "name": "node-example",
+  "metadata": {
+    "name": "node-example"
+  },
   "description": "
     Example shows how to build a CPM node.
 

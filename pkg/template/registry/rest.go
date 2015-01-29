@@ -12,8 +12,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	utilerr "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
-
-	"github.com/openshift/origin/pkg/config"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
@@ -49,10 +47,6 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	if !ok {
 		return nil, apierr.NewBadRequest("not a template")
 	}
-	if len(tpl.Name) == 0 {
-		tpl.Name = "default"
-	}
-	kapi.FillObjectMetaSystemFields(ctx, &tpl.ObjectMeta)
 	if errs := validation.ValidateTemplate(tpl); len(errs) > 0 {
 		return nil, apierr.NewInvalid("template", tpl.Name, errs)
 	}
@@ -68,7 +62,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 			glog.V(1).Infof(utilerr.NewAggregate(err).Error())
 		}
 
-		if err := config.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); len(err) > 0 {
+		if err := template.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); len(err) > 0 {
 			// TODO: We don't report the processing errors to users as there is no
 			// good way how to do it for just some items.
 			glog.V(1).Infof(utilerr.NewAggregate(err).Error())

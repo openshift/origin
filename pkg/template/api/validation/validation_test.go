@@ -82,7 +82,7 @@ func TestValidateTemplate(t *testing.T) {
 				Parameters: []api.Parameter{
 					*(makeParameter("VALID_NAME", "1")),
 				},
-				Items: []runtime.RawExtension{},
+				Items: []runtime.Object{},
 			},
 			true,
 		},

@@ -22,8 +22,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/golang/glog"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -33,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/client/image"
 	"github.com/openshift/origin/pkg/cmd/client/project"
 	"github.com/openshift/origin/pkg/cmd/client/route"
-	"github.com/openshift/origin/pkg/config"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployclient "github.com/openshift/origin/pkg/deploy/client"
@@ -590,36 +587,8 @@ func (c *KubeConfig) executeTemplateRequest(method string, client *osclient.Clie
 }
 
 func (c *KubeConfig) executeConfigRequest(method string, clients ClientMappings) bool {
-	if method != "apply" {
-		return false
-	}
-	if len(c.Config) == 0 {
-		glog.Fatal("Need to pass valid configuration file (-c config.json)")
-	}
-
-	clientFunc := func(m *kmeta.RESTMapping) (*resource.Helper, error) {
-		mapping, ok := clients[m.Resource]
-		if !ok {
-			return nil, fmt.Errorf("Unable to provide REST client for %v", m.Resource)
-		}
-		return resource.NewHelper(mapping.Client, m), nil
-	}
-
-	result, err := config.Apply(c.getNamespace(), c.readConfigData(), clientFunc)
-	if err != nil {
-		glog.Fatalf("Error applying the config: %v", err)
-	}
-	for _, itemResult := range result {
-		if len(itemResult.Errors) == 0 {
-			glog.Infof(itemResult.Message)
-			continue
-		}
-		for _, itemError := range itemResult.Errors {
-			glog.Errorf("%v", itemError)
-		}
-	}
-
-	return true
+	glog.Fatalf("DEPRECATED: The 'apply' is deprecated, use 'osc create' command instead.")
+	return false
 }
 
 func humanReadablePrinter() *kubecfg.HumanReadablePrinter {

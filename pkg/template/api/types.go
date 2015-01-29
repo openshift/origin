@@ -10,11 +10,8 @@ type Template struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	// Required: Items is an array of Kubernetes resources of Service,
-	// Pod and/or ReplicationController kind.
-	// TODO: Handle unregistered types. Define custom []runtime.Object
-	//       type and its unmarshaller instead of []runtime.Object.
-	Items []runtime.RawExtension `json:"items"`
+	// Required: A list of resources that might reference parameters
+	Items []runtime.Object `json:"items"`
 
 	// Optional: Parameters is an array of Parameters used during the
 	// Template to Config transformation.

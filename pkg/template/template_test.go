@@ -6,10 +6,8 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"testing"
-	"time"
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/template/api"
@@ -21,15 +19,6 @@ func makeParameter(name, value, generate string) api.Parameter {
 		Name:     name,
 		Value:    value,
 		Generate: generate,
-	}
-}
-
-func TestNewTemplate(t *testing.T) {
-	var template api.Template
-
-	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
-	if err := json.Unmarshal(jsonData, &template); err != nil {
-		t.Errorf("Unable to process the JSON template file: %v", err)
 	}
 }
 
@@ -132,9 +121,6 @@ func ExampleProcessTemplateParameters() {
 	config, err := processor.Process(&template)
 	fmt.Println(errors.NewAggregate(err))
 	if config != nil {
-		// Reset the timestamp for the output comparison
-		config.ObjectMeta.CreationTimestamp = util.Date(1980, 1, 1, 0, 0, 0, 0, time.UTC)
-
 		result, err := latest.Codec.Encode(config)
 		if err != nil {
 			fmt.Printf("Unexpected error during encoding Config: %#v", err)
@@ -143,5 +129,5 @@ func ExampleProcessTemplateParameters() {
 	}
 	// Output:
 	//<nil>
-	//{"kind":"Config","apiVersion":"v1beta1","metadata":{"name":"guestbook-example","creationTimestamp":"1980-01-01T00:00:00Z","annotations":{"description":"Example shows how to build a simple multi-tier application using Kubernetes and Docker"}},"items":[{"kind":"Route","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"host":"guestbook.example.com","serviceName":"frontend"},{"kind":"Service","id":"frontend","creationTimestamp":null,"apiVersion":"v1beta1","port":5432,"selector":{"name":"guestbook"},"containerPort":0},{"kind":"Service","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","port":10000,"selector":{"name":"redis-master"},"containerPort":0},{"kind":"Service","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","port":10001,"selector":{"name":"redis-slave"},"containerPort":0},{"kind":"Pod","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","labels":{"name":"redis-master"},"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"master","image":"dockerfile/redis","ports":[{"containerPort":6379}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"imagePullPolicy":""}],"restartPolicy":{}}},"currentState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}},{"kind":"ReplicationController","id":"guestbook","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":3,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"php-redis","image":"brendanburns/php-redis","ports":[{"hostPort":8000,"containerPort":80}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"imagePullPolicy":""}],"restartPolicy":{}}},"labels":{"name":"frontend"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}},{"kind":"ReplicationController","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":2,"replicaSelector":{"name":"redis-slave"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"slave","image":"brendanburns/redis-slave","ports":[{"hostPort":6380,"containerPort":6379}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"imagePullPolicy":""}],"restartPolicy":{}}},"labels":{"name":"redis-slave"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}}]}
+	//{"kind":"Config","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"items":[{"kind":"Route","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"host":"guestbook.example.com","serviceName":"frontend-service"},{"kind":"Service","id":"frontend-service","creationTimestamp":null,"apiVersion":"v1beta1","port":5432,"selector":{"name":"guestbook"},"containerPort":0},{"kind":"Service","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","port":10000,"selector":{"name":"redis-master"},"containerPort":0},{"kind":"Service","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","port":10001,"selector":{"name":"redis-slave"},"containerPort":0},{"kind":"Pod","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","labels":{"name":"redis-master"},"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"master","image":"dockerfile/redis","ports":[{"containerPort":6379}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"imagePullPolicy":""}],"restartPolicy":{}}},"currentState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}},{"kind":"ReplicationController","id":"guestbook","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":3,"replicaSelector":{"name":"frontend-service"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"php-redis","image":"brendanburns/php-redis","ports":[{"hostPort":8000,"containerPort":80}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"imagePullPolicy":""}],"restartPolicy":{}}},"labels":{"name":"frontend-service"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}},{"kind":"ReplicationController","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":2,"replicaSelector":{"name":"redis-slave"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"slave","image":"brendanburns/redis-slave","ports":[{"hostPort":6380,"containerPort":6379}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"imagePullPolicy":""}],"restartPolicy":{}}},"labels":{"name":"redis-slave"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}}]}
 }
