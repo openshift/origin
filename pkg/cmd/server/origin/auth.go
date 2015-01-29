@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 
 	"crypto/tls"
@@ -56,9 +57,17 @@ const (
 	OpenShiftLoginPrefix         = "/login"
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
+
+	OpenShiftWebConsoleClientID = "openshift-web-console"
 )
 
 var (
+	OSWebConsoleClientBase = oauthapi.Client{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: OpenShiftWebConsoleClientID,
+		},
+		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.
+	}
 	// OSBrowserClientBase is used as a skeleton for building a Client.  We can't set the allowed redirecturis because we don't yet know the host:port of the auth server
 	OSBrowserClientBase = oauthapi.Client{
 		ObjectMeta: kapi.ObjectMeta{
@@ -75,14 +84,122 @@ var (
 	}
 )
 
+type AuthRequestHandlerType string
+
+const (
+	// AuthRequestHandlerBearer validates a passed "Authorization: Bearer" token, using the specified TokenStore
+	AuthRequestHandlerBearer AuthRequestHandlerType = "bearer"
+	// AuthRequestHandlerRequestHeader treats any request with an X-Remote-User header as authenticated
+	AuthRequestHandlerRequestHeader AuthRequestHandlerType = "requestheader"
+	// AuthRequestHandlerBasicAuth validates a passed "Authorization: Basic" header using the specified PasswordAuth
+	AuthRequestHandlerBasicAuth AuthRequestHandlerType = "basicauth"
+	// AuthRequestHandlerSession authenticates requests containing user information in the request session
+	AuthRequestHandlerSession AuthRequestHandlerType = "session"
+)
+
+type AuthHandlerType string
+
+const (
+	// AuthHandlerLogin redirects unauthenticated requests to a login page, or sends a www-authenticate challenge. Logins are validated using the specified PasswordAuth
+	AuthHandlerLogin AuthHandlerType = "login"
+	// AuthHandlerGithub redirects unauthenticated requests to GitHub to request an OAuth token.
+	AuthHandlerGithub AuthHandlerType = "github"
+	// AuthHandlerGoogle redirects unauthenticated requests to Google to request an OAuth token.
+	AuthHandlerGoogle AuthHandlerType = "google"
+	// AuthHandlerDeny treats unauthenticated requests as failures
+	AuthHandlerDeny AuthHandlerType = "deny"
+)
+
+type GrantHandlerType string
+
+const (
+	// GrantHandlerAuto auto-approves client authorization grant requests
+	GrantHandlerAuto GrantHandlerType = "auto"
+	// GrantHandlerPrompt prompts the user to approve new client authorization grant requests
+	GrantHandlerPrompt GrantHandlerType = "prompt"
+	// GrantHandlerDeny auto-denies client authorization grant requests
+	GrantHandlerDeny GrantHandlerType = "deny"
+)
+
+type PasswordAuthType string
+
+const (
+	// PasswordAuthAnyPassword treats any non-empty username and password combination as a successful authentication
+	PasswordAuthAnyPassword PasswordAuthType = "anypassword"
+	// PasswordAuthBasicAuthURL validates password credentials by making a request to a remote url using basic auth. See basicauthpassword.Authenticator
+	PasswordAuthBasicAuthURL PasswordAuthType = "basicauthurl"
+)
+
+type TokenStoreType string
+
+const (
+	// Validate bearer tokens by looking in etcd
+	TokenStoreEtcd TokenStoreType = "etcd"
+	// Validate bearer tokens by looking in a CSV file located at the specified TokenFilePath
+	TokenStoreFile TokenStoreType = "file"
+)
+
+func ParseAuthRequestHandlerTypes(types string) []AuthRequestHandlerType {
+	handlerTypes := []AuthRequestHandlerType{}
+	for _, handlerType := range strings.Split(types, ",") {
+		trimmedType := AuthRequestHandlerType(strings.TrimSpace(handlerType))
+		switch trimmedType {
+		case AuthRequestHandlerBearer, AuthRequestHandlerRequestHeader, AuthRequestHandlerBasicAuth, AuthRequestHandlerSession:
+			handlerTypes = append(handlerTypes, trimmedType)
+		default:
+			glog.Fatalf("Unrecognized request handler type: %s", trimmedType)
+		}
+	}
+	return handlerTypes
+}
+
 type AuthConfig struct {
 	// URL to call internally during token request
 	MasterAddr string
 	// URL to direct browsers to the master on
 	MasterPublicAddr string
-	MasterRoots      *x509.CertPool
-	SessionSecrets   []string
-	EtcdHelper       tools.EtcdHelper
+	// Valid redirectURI prefixes to direct browsers to the web console
+	AssetPublicAddresses []string
+	MasterRoots          *x509.CertPool
+	EtcdHelper           tools.EtcdHelper
+
+	// AuthRequestHandlers contains an ordered list of authenticators that decide if a request is authenticated
+	AuthRequestHandlers []AuthRequestHandlerType
+
+	// AuthHandler specifies what handles unauthenticated requests
+	AuthHandler AuthHandlerType
+
+	// GrantHandler specifies what handles requests for new client authorizations
+	GrantHandler GrantHandlerType
+
+	// PasswordAuth specifies how to validate username/passwords. Used by AuthRequestHandlerBasicAuth and AuthHandlerLogin
+	PasswordAuth PasswordAuthType
+	// BasicAuthURL specifies the remote URL to validate username/passwords against using basic auth. Used by PasswordAuthBasicAuthURL.
+	BasicAuthURL string
+
+	// TokenStore specifies how to validate bearer tokens. Used by AuthRequestHandlerBearer.
+	TokenStore TokenStoreType
+	// TokenFilePath is a path to a CSV file to load valid tokens from. Used by TokenStoreFile.
+	TokenFilePath string
+
+	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
+	SessionSecrets []string
+	// SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
+	SessionMaxAgeSeconds int
+
+	// GoogleClientID is the client_id of a client registered with the Google OAuth provider.
+	// It must be authorized to redirect to {MasterPublicAddr}/oauth2callback/google
+	// Used by AuthHandlerGoogle
+	GoogleClientID string
+	// GoogleClientID is the client_secret of a client registered with the Google OAuth provider.
+	GoogleClientSecret string
+
+	// GithubClientID is the client_id of a client registered with the Github OAuth provider.
+	// It must be authorized to redirect to {MasterPublicAddr}/oauth2callback/github
+	// Used by AuthHandlerGithub
+	GithubClientID string
+	// GithubClientID is the client_secret of a client registered with the Github OAuth provider.
+	GithubClientSecret string
 }
 
 // InstallSupport registers endpoints for an OAuth2 server into the provided mux,
@@ -124,9 +241,9 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 
-	CreateOrUpdateDefaultOAuthClients(c.MasterPublicAddr, oauthEtcd)
+	CreateOrUpdateDefaultOAuthClients(c.MasterPublicAddr, c.AssetPublicAddresses, oauthEtcd)
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
-	osOAuthClientConfig.RedirectUrl = c.MasterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint
+	osOAuthClientConfig.RedirectUrl = c.MasterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
 	if c.MasterRoots != nil {
@@ -159,22 +276,37 @@ func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.Client) *osi
 		ClientSecret:             client.Secret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             c.MasterPublicAddr + OpenShiftOAuthAPIPrefix + "/authorize",
-		TokenUrl:                 c.MasterAddr + OpenShiftOAuthAPIPrefix + "/token",
+		AuthorizeUrl:             OpenShiftOAuthAuthorizeURL(c.MasterPublicAddr),
+		TokenUrl:                 OpenShiftOAuthTokenURL(c.MasterPublicAddr),
 		Scope:                    "",
 	}
 	return config
 }
 
-func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, clientRegistry oauthclient.Registry) {
+func OpenShiftOAuthAuthorizeURL(masterAddr string) string {
+	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, osinserver.AuthorizePath)
+}
+func OpenShiftOAuthTokenURL(masterAddr string) string {
+	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, osinserver.TokenPath)
+}
+
+func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry oauthclient.Registry) {
 	clientsToEnsure := []*oauthapi.Client{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: OSWebConsoleClientBase.Name,
+			},
+			Secret:                OSWebConsoleClientBase.Secret,
+			RespondWithChallenges: OSWebConsoleClientBase.RespondWithChallenges,
+			RedirectURIs:          assetPublicAddresses,
+		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: OSBrowserClientBase.Name,
 			},
 			Secret:                OSBrowserClientBase.Secret,
 			RespondWithChallenges: OSBrowserClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -182,7 +314,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, clientRegistry o
 			},
 			Secret:                OSCliClientBase.Secret,
 			RespondWithChallenges: OSCliClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + OpenShiftOAuthAPIPrefix + tokenrequest.DisplayTokenEndpoint},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
 		},
 	}
 
@@ -211,7 +343,7 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authen
 	// this results in really ugly initialization code as we have to pass this concept through to many disparate pieces
 	// of the config that MIGHT need the information.  The first step to fixing it is to see how far it goes, so this
 	// does not attempt to hide the ugly
-	sessionStore := session.NewStore(c.SessionSecrets...)
+	sessionStore := session.NewStore(c.SessionMaxAgeSeconds, c.SessionSecrets...)
 	authRequestHandler := c.getAuthenticationRequestHandler(sessionStore)
 	authHandler := c.getAuthenticationHandler(mux, sessionStore, handlers.EmptyError{})
 
@@ -221,13 +353,13 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authen
 // getGrantHandler returns the object that handles approving or rejecting grant requests
 func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) handlers.GrantHandler {
 	var grantHandler handlers.GrantHandler
-	grantHandlerType := env("ORIGIN_GRANT_HANDLER", "prompt")
+	grantHandlerType := c.GrantHandler
 	switch grantHandlerType {
-	case "empty":
+	case GrantHandlerDeny:
 		grantHandler = handlers.NewEmptyGrant()
-	case "auto":
+	case GrantHandlerAuto:
 		grantHandler = handlers.NewAutoGrant(authregistry)
-	case "prompt":
+	case GrantHandlerPrompt:
 		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
 		grantServer.Install(mux, OpenShiftApprovePrefix)
 		grantHandler = handlers.NewRedirectGrant(OpenShiftApprovePrefix)
@@ -243,18 +375,18 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authHandler handlers.AuthenticationHandler
-	authHandlerType := env("ORIGIN_AUTH_HANDLER", "login")
+	authHandlerType := c.AuthHandler
 	switch authHandlerType {
-	case "google", "github":
-		callbackPath := OpenShiftOAuthCallbackPrefix + "/" + authHandlerType
+	case AuthHandlerGithub, AuthHandlerGoogle:
+		callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, string(authHandlerType))
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(authHandlerType /*for now*/, userRegistry)
+		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authHandlerType) /*for now*/, userRegistry)
 
 		var oauthProvider external.Provider
-		if authHandlerType == "google" {
-			oauthProvider = google.NewProvider(env("ORIGIN_GOOGLE_CLIENT_ID", ""), env("ORIGIN_GOOGLE_CLIENT_SECRET", ""))
-		} else if authHandlerType == "github" {
-			oauthProvider = github.NewProvider(env("ORIGIN_GITHUB_CLIENT_ID", ""), env("ORIGIN_GITHUB_CLIENT_SECRET", ""))
+		if authHandlerType == AuthHandlerGoogle {
+			oauthProvider = google.NewProvider(c.GoogleClientID, c.GoogleClientSecret)
+		} else if authHandlerType == AuthHandlerGithub {
+			oauthProvider = github.NewProvider(c.GithubClientID, c.GithubClientSecret)
 		}
 
 		state := external.DefaultState()
@@ -264,8 +396,8 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 		}
 
 		mux.Handle(callbackPath, oauthHandler)
-		authHandler = handlers.NewUnionAuthenticationHandler(nil, map[string]handlers.AuthenticationRedirector{authHandlerType: oauthHandler}, errorHandler)
-	case "login":
+		authHandler = handlers.NewUnionAuthenticationHandler(nil, map[string]handlers.AuthenticationRedirector{string(authHandlerType): oauthHandler}, errorHandler)
+	case AuthHandlerLogin:
 		passwordAuth := c.getPasswordAuthenticator()
 		authHandler = handlers.NewUnionAuthenticationHandler(
 			map[string]handlers.AuthenticationChallenger{"login": passwordchallenger.NewBasicAuthChallenger("openshift")},
@@ -274,7 +406,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 		)
 		login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, successHandler}, login.DefaultLoginFormRenderer)
 		login.Install(mux, OpenShiftLoginPrefix)
-	case "empty":
+	case AuthHandlerDeny:
 		authHandler = handlers.EmptyAuth{}
 	default:
 		glog.Fatalf("No AuthenticationHandler found that matches %v.  The oauth server cannot start!", authHandlerType)
@@ -286,19 +418,19 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore sess
 func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
-	passwordAuthType := env("ORIGIN_PASSWORD_AUTH_TYPE", "empty")
+	passwordAuthType := c.PasswordAuth
 	userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(passwordAuthType /*for now*/, userRegistry)
+	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(passwordAuthType) /*for now*/, userRegistry)
 
 	var passwordAuth authenticator.Password
 	switch passwordAuthType {
-	case "basic":
-		basicAuthURL := env("ORIGIN_BASIC_AUTH_URL", "")
+	case PasswordAuthBasicAuthURL:
+		basicAuthURL := c.BasicAuthURL
 		if len(basicAuthURL) == 0 {
-			glog.Fatalf("ORIGIN_BASIC_AUTH_URL is required to support basic password auth")
+			glog.Fatalf("BasicAuthURL is required to support basic password auth")
 		}
 		passwordAuth = basicauthpassword.New(basicAuthURL, identityMapper)
-	case "empty":
+	case PasswordAuthAnyPassword:
 		// Accepts any username and password
 		passwordAuth = allowanypassword.New(identityMapper)
 	default:
@@ -311,45 +443,53 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 func (c *AuthConfig) getAuthenticationSuccessHandler(sessionStore session.Store) handlers.AuthenticationSuccessHandler {
 	successHandlers := handlers.AuthenticationSuccessHandlers{}
 
-	authRequestHandlerTypes := env("ORIGIN_AUTH_REQUEST_HANDLERS", "session")
-	for _, currType := range strings.Split(authRequestHandlerTypes, ",") {
-		currType = strings.TrimSpace(currType)
-		switch currType {
-		case "session":
+	for _, requestHandler := range c.AuthRequestHandlers {
+		switch requestHandler {
+		case AuthRequestHandlerSession:
 			successHandlers = append(successHandlers, session.NewAuthenticator(sessionStore, "ssn"))
 		}
 	}
 
-	authHandlerType := env("ORIGIN_AUTH_HANDLER", "login")
-	switch authHandlerType {
-	case "google", "github":
+	switch c.AuthHandler {
+	case AuthHandlerGithub, AuthHandlerGoogle:
 		successHandlers = append(successHandlers, external.DefaultState().(handlers.AuthenticationSuccessHandler))
-	case "login":
+	case AuthHandlerLogin:
 		successHandlers = append(successHandlers, redirectSuccessHandler{})
 	}
 
 	return successHandlers
 }
 
-func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType string, sessionStore session.Store) authenticator.Request {
+func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType AuthRequestHandlerType, sessionStore session.Store) authenticator.Request {
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandler authenticator.Request
 	switch authRequestHandlerType {
-	case "bearer":
-		tokenAuthenticator, err := GetTokenAuthenticator(c.EtcdHelper)
-		if err != nil {
-			glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
+	case AuthRequestHandlerBearer:
+		switch c.TokenStore {
+		case TokenStoreEtcd:
+			tokenAuthenticator, err := GetEtcdTokenAuthenticator(c.EtcdHelper)
+			if err != nil {
+				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
+			}
+			authRequestHandler = bearertoken.New(tokenAuthenticator)
+		case TokenStoreFile:
+			tokenAuthenticator, err := GetCSVTokenAuthenticator(c.TokenFilePath)
+			if err != nil {
+				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
+			}
+			authRequestHandler = bearertoken.New(tokenAuthenticator)
+		default:
+			glog.Fatalf("Unknown TokenStore %s. Must be etcd or file.  The oauth server cannot start!", c.TokenStore)
 		}
-		authRequestHandler = bearertoken.New(tokenAuthenticator)
-	case "requestheader":
+	case AuthRequestHandlerRequestHeader:
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(authRequestHandlerType /*for now*/, userRegistry)
+		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authRequestHandlerType) /*for now*/, userRegistry)
 		authRequestHandler = headerrequest.NewAuthenticator(headerrequest.NewDefaultConfig(), identityMapper)
-	case "basicauth":
+	case AuthRequestHandlerBasicAuth:
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator)
-	case "session":
+	case AuthRequestHandlerSession:
 		authRequestHandler = session.NewAuthenticator(sessionStore, "ssn")
 	default:
 		glog.Fatalf("No AuthenticationRequestHandler found that matches %v.  The oauth server cannot start!", authRequestHandlerType)
@@ -362,28 +502,21 @@ func (c *AuthConfig) getAuthenticationRequestHandler(sessionStore session.Store)
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandlers []authenticator.Request
-	authRequestHandlerTypes := env("ORIGIN_AUTH_REQUEST_HANDLERS", "session")
-	for _, currType := range strings.Split(authRequestHandlerTypes, ",") {
-		currType = strings.TrimSpace(currType)
-
-		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(currType, sessionStore))
+	for _, requestHandler := range c.AuthRequestHandlers {
+		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(requestHandler, sessionStore))
 	}
 
 	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers...)
 	return authRequestHandler
 }
 
-func GetTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, error) {
-	tokenAuthenticatorType := env("ORIGIN_AUTH_TOKEN_AUTHENTICATOR", "etcd")
-	switch tokenAuthenticatorType {
-	case "etcd":
-		oauthRegistry := oauthetcd.New(etcdHelper)
-		return authnregistry.NewTokenAuthenticator(oauthRegistry), nil
-	case "file":
-		return filetoken.NewTokenAuthenticator(env("ORIGIN_AUTH_FILE_TOKEN_AUTHENTICATOR_PATH", "authorizedTokens.csv"))
-	default:
-		return nil, fmt.Errorf("No TokenAuthenticator found that matches %v.  The oauth server cannot start!", tokenAuthenticatorType)
-	}
+func GetEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, error) {
+	oauthRegistry := oauthetcd.New(etcdHelper)
+	return authnregistry.NewTokenAuthenticator(oauthRegistry), nil
+}
+
+func GetCSVTokenAuthenticator(path string) (authenticator.Token, error) {
+	return filetoken.NewTokenAuthenticator(path)
 }
 
 // Captures the original request url as a "then" param in a redirect to a login flow

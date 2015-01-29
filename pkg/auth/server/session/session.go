@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/context"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )
 
@@ -11,17 +12,22 @@ type store struct {
 	store sessions.Store
 }
 
-func NewStore(secrets ...string) Store {
+func NewStore(maxAgeSeconds int, secrets ...string) Store {
 	values := [][]byte{}
 	for _, secret := range secrets {
 		values = append(values, []byte(secret))
 	}
 	cookie := sessions.NewCookieStore(values...)
+	cookie.Options.MaxAge = maxAgeSeconds
 	return store{cookie}
 }
 
 func (s store) Get(req *http.Request, name string) (Session, error) {
 	session, err := s.store.Get(req, name)
+	if err != nil && err.Error() == securecookie.ErrMacInvalid.Error() {
+		err = nil
+		session = nil
+	}
 	return sessionWrapper{session}, err
 }
 

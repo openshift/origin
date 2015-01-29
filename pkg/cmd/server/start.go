@@ -40,6 +40,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
+	pkgutil "github.com/openshift/origin/pkg/util"
 )
 
 const longCommandDesc = `
@@ -274,10 +275,15 @@ func start(cfg *config, args []string) error {
 		assetPublicAddr := *masterPublicAddr.URL
 		assetPublicAddr.Host = net.JoinHostPort(masterPublicAddr.Host, strconv.Itoa(masterPublicAddr.Port+1))
 
+		// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
+		// TODO: allow configuring this
+		// TODO: remove hard-coding of development UI server
+		assetPublicAddresses := []string{assetPublicAddr.String(), "http://localhost:9000", "https://localhost:9000"}
+
 		// always include the all-in-one server's web console as an allowed CORS origin
 		// always include localhost as an allowed CORS origin
-		// always include master and kubernetes public addresses as an allowed CORS origin
-		for _, origin := range []string{assetPublicAddr.Host, masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host, "localhost", "127.0.0.1"} {
+		// always include master public address as an allowed CORS origin
+		for _, origin := range []string{assetPublicAddr.Host, masterPublicAddr.URL.Host, "localhost", "127.0.0.1"} {
 			// TODO: check if origin is already allowed
 			cfg.CORSAllowedOrigins = append(cfg.CORSAllowedOrigins, origin)
 		}
@@ -313,7 +319,7 @@ func start(cfg *config, args []string) error {
 
 		// Build token auth for user's OAuth tokens
 		authenticators := []authenticator.Request{}
-		tokenAuthenticator, err := origin.GetTokenAuthenticator(etcdHelper)
+		tokenAuthenticator, err := origin.GetEtcdTokenAuthenticator(etcdHelper)
 		if err != nil {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
@@ -332,7 +338,18 @@ func start(cfg *config, args []string) error {
 			// Bootstrap server certs
 			// 172.17.42.1 enables the router to call back out to the master
 			// TODO: Remove 172.17.42.1 once we can figure out how to validate the master's cert from inside a pod, or tell pods the real IP for the master
-			serverCert, err := ca.MakeServerCert("master", []string{cfg.MasterAddr.Host, "localhost", "127.0.0.1", "172.17.42.1", masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host})
+			allHostnames := []string{"localhost", "127.0.0.1", "172.17.42.1", cfg.MasterAddr.Host, masterPublicAddr.URL.Host, k8sPublicAddr.URL.Host, assetPublicAddr.Host}
+			certHostnames := []string{}
+			for _, hostname := range allHostnames {
+				if host, _, err := net.SplitHostPort(hostname); err == nil {
+					// add the hostname without the port
+					certHostnames = append(certHostnames, host)
+				} else {
+					// add the originally specified hostname
+					certHostnames = append(certHostnames, hostname)
+				}
+			}
+			serverCert, err := ca.MakeServerCert("master", pkgutil.UniqueStrings(certHostnames))
 			if err != nil {
 				return err
 			}
@@ -398,12 +415,42 @@ func start(cfg *config, args []string) error {
 		osmaster.BuildClients()
 		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
+		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "30"), 10, 0)
+		if err != nil || sessionMaxAgeSeconds <= 0 {
+			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 30 seconds.")
+			sessionMaxAgeSeconds = 30
+		}
+
+		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
+		defaultAuthRequestHandlers := strings.Join([]string{
+			string(origin.AuthRequestHandlerSession),
+			string(origin.AuthRequestHandlerBasicAuth),
+		}, ",")
 		auth := &origin.AuthConfig{
-			MasterAddr:       cfg.MasterAddr.URL.String(),
-			MasterPublicAddr: masterPublicAddr.URL.String(),
-			MasterRoots:      roots,
-			SessionSecrets:   []string{"secret"},
-			EtcdHelper:       etcdHelper,
+			MasterAddr:           cfg.MasterAddr.URL.String(),
+			MasterPublicAddr:     masterPublicAddr.URL.String(),
+			AssetPublicAddresses: assetPublicAddresses,
+			MasterRoots:          roots,
+			EtcdHelper:           etcdHelper,
+
+			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
+			AuthHandler:         origin.AuthHandlerType(env("ORIGIN_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
+			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
+			// Session config
+			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
+			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds), // Since we're auto-granting, we don't need sessions to persist
+			// Password config
+			PasswordAuth: origin.PasswordAuthType(env("ORIGIN_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
+			BasicAuthURL: env("ORIGIN_OAUTH_BASIC_AUTH_URL", ""),
+			// Token config
+			TokenStore:    origin.TokenStoreType(env("ORIGIN_OAUTH_TOKEN_STORE", string(origin.TokenStoreEtcd))),
+			TokenFilePath: env("ORIGIN_OAUTH_TOKEN_FILE_PATH", ""),
+			// Google config
+			GoogleClientID:     env("ORIGIN_OAUTH_GOOGLE_CLIENT_ID", ""),
+			GoogleClientSecret: env("ORIGIN_OAUTH_GOOGLE_CLIENT_SECRET", ""),
+			// Github config
+			GithubClientID:     env("ORIGIN_OAUTH_GITHUB_CLIENT_ID", ""),
+			GithubClientSecret: env("ORIGIN_OAUTH_GITHUB_CLIENT_SECRET", ""),
 		}
 
 		if startKube {

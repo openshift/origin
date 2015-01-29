@@ -2,10 +2,16 @@ package osinserver
 
 import (
 	"net/http"
-	"strings"
+	"path"
 
 	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
+)
+
+const (
+	AuthorizePath = "/authorize"
+	TokenPath     = "/token"
+	InfoPath      = "/info"
 )
 
 type Server struct {
@@ -27,14 +33,12 @@ func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHan
 }
 
 // Install registers the Server OAuth handlers into a mux. It is expected that the
-// provided prefix will serve all operations. Path MUST NOT end in a slash.
+// provided prefix will serve all operations
 func (s *Server) Install(mux Mux, paths ...string) {
 	for _, prefix := range paths {
-		prefix = strings.TrimRight(prefix, "/")
-
-		mux.HandleFunc(prefix+"/authorize", s.handleAuthorize)
-		mux.HandleFunc(prefix+"/token", s.handleToken)
-		mux.HandleFunc(prefix+"/info", s.handleInfo)
+		mux.HandleFunc(path.Join(prefix, AuthorizePath), s.handleAuthorize)
+		mux.HandleFunc(path.Join(prefix, TokenPath), s.handleToken)
+		mux.HandleFunc(path.Join(prefix, InfoPath), s.handleInfo)
 	}
 }
 
