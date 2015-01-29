@@ -38,9 +38,9 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 // then the redirect handler is called.  Otherwise, you get an error (currently) or a redirect to a page letting you choose how you'd like to authenticate.
 // It returns whether the response was written and/or an error
 func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient authapi.Client, w http.ResponseWriter, req *http.Request) (bool, error) {
-	client, ok := apiClient.GetUserData().(*oauthapi.Client)
+	client, ok := apiClient.GetUserData().(*oauthapi.OAuthClient)
 	if !ok {
-		return false, fmt.Errorf("apiClient data was not an oauthapi.Client")
+		return false, fmt.Errorf("apiClient data was not an oauthapi.OAuthClient")
 	}
 
 	if client.RespondWithChallenges {

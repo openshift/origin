@@ -72,19 +72,19 @@ func TestRegistryAndServer(t *testing.T) {
 		ch <- req
 	}))
 
-	validClient := &oapi.Client{
+	validClient := &oapi.OAuthClient{
 		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
 		Secret:       "secret",
 		RedirectURIs: []string{assertServer.URL + "/assert"},
 	}
-	validClientAuth := &oapi.ClientAuthorization{
+	validClientAuth := &oapi.OAuthClientAuthorization{
 		UserName:   "user",
 		ClientName: "test",
 	}
 
 	testCases := map[string]struct {
-		Client      *oapi.Client
-		ClientAuth  *oapi.ClientAuthorization
+		Client      *oapi.OAuthClient
+		ClientAuth  *oapi.OAuthClientAuthorization
 		AuthSuccess bool
 		AuthUser    api.UserInfo
 		Scope       string
@@ -116,7 +116,7 @@ func TestRegistryAndServer(t *testing.T) {
 			AuthUser: &api.DefaultUserInfo{
 				Name: "user",
 			},
-			ClientAuth: &oapi.ClientAuthorization{
+			ClientAuth: &oapi.OAuthClientAuthorization{
 				UserName:   "user",
 				ClientName: "test",
 				Scopes:     []string{"test"},
@@ -134,7 +134,7 @@ func TestRegistryAndServer(t *testing.T) {
 			AuthUser: &api.DefaultUserInfo{
 				Name: "user",
 			},
-			ClientAuth: &oapi.ClientAuthorization{
+			ClientAuth: &oapi.OAuthClientAuthorization{
 				UserName:   "user",
 				ClientName: "test",
 				Scopes:     []string{"test", "other"},
@@ -280,7 +280,7 @@ func TestAuthenticateTokenOtherGetError(t *testing.T) {
 func TestAuthenticateTokenExpired(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
-		AccessToken: &oapi.AccessToken{
+		AccessToken: &oapi.OAuthAccessToken{
 			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now().Add(-1 * time.Hour)}},
 			ExpiresIn:  600, // 10 minutes
 		},
@@ -301,7 +301,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 func TestAuthenticateTokenValidated(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
-		AccessToken: &oapi.AccessToken{
+		AccessToken: &oapi.OAuthAccessToken{
 			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now()}},
 			ExpiresIn:  600, // 10 minutes
 		},

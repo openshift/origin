@@ -16,7 +16,7 @@ func TestCreateValidationError(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	accessToken := &oapi.AccessToken{
+	accessToken := &oapi.OAuthAccessToken{
 		ObjectMeta: api.ObjectMeta{Name: "accessTokenName"},
 		// ClientName: "clientName", // Missing required field
 		UserName: "userName",
@@ -37,7 +37,7 @@ func TestCreateStorageError(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	accessToken := &oapi.AccessToken{
+	accessToken := &oapi.OAuthAccessToken{
 		ObjectMeta: api.ObjectMeta{Name: "accessTokenName"},
 		ClientName: "clientName",
 		UserName:   "userName",
@@ -72,7 +72,7 @@ func TestCreateValid(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	accessToken := &oapi.AccessToken{
+	accessToken := &oapi.OAuthAccessToken{
 		ObjectMeta: api.ObjectMeta{Name: "accessTokenName"},
 		ClientName: "clientName",
 		UserName:   "userName",
@@ -90,7 +90,7 @@ func TestCreateValid(t *testing.T) {
 		switch r := r.Object.(type) {
 		case *api.Status:
 			t.Errorf("Got back unexpected status: %#v", r)
-		case *oapi.AccessToken:
+		case *oapi.OAuthAccessToken:
 		// expected case
 		default:
 			t.Errorf("Got unexpected type: %#v", r)
@@ -121,7 +121,7 @@ func TestGetError(t *testing.T) {
 
 func TestGetValid(t *testing.T) {
 	registry := test.AccessTokenRegistry{
-		AccessToken: &oapi.AccessToken{
+		AccessToken: &oapi.OAuthAccessToken{
 			ObjectMeta: api.ObjectMeta{Name: "accessTokenName"},
 		},
 	}
@@ -161,7 +161,7 @@ func TestListError(t *testing.T) {
 
 func TestListEmpty(t *testing.T) {
 	registry := test.AccessTokenRegistry{
-		AccessTokens: &oapi.AccessTokenList{},
+		AccessTokens: &oapi.OAuthAccessTokenList{},
 	}
 	storage := REST{
 		registry: &registry,
@@ -173,7 +173,7 @@ func TestListEmpty(t *testing.T) {
 		return
 	}
 	switch tokens := tokens.(type) {
-	case *oapi.AccessTokenList:
+	case *oapi.OAuthAccessTokenList:
 		if len(tokens.Items) != 0 {
 			t.Errorf("expected empty list, got %#v", tokens)
 		}
@@ -185,8 +185,8 @@ func TestListEmpty(t *testing.T) {
 
 func TestList(t *testing.T) {
 	registry := test.AccessTokenRegistry{
-		AccessTokens: &oapi.AccessTokenList{
-			Items: []oapi.AccessToken{
+		AccessTokens: &oapi.OAuthAccessTokenList{
+			Items: []oapi.OAuthAccessToken{
 				{},
 				{},
 			},
@@ -202,7 +202,7 @@ func TestList(t *testing.T) {
 		return
 	}
 	switch tokens := tokens.(type) {
-	case *oapi.AccessTokenList:
+	case *oapi.OAuthAccessTokenList:
 		if len(tokens.Items) != 2 {
 			t.Errorf("expected list with 2 items, got %#v", tokens)
 		}
@@ -219,7 +219,7 @@ func TestUpdateNotSupported(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	accessToken := &oapi.AccessToken{
+	accessToken := &oapi.OAuthAccessToken{
 		ObjectMeta: api.ObjectMeta{Name: "accessTokenName"},
 	}
 

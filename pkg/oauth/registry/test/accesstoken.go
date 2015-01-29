@@ -8,24 +8,24 @@ import (
 
 type AccessTokenRegistry struct {
 	Err                    error
-	AccessTokens           *api.AccessTokenList
-	AccessToken            *api.AccessToken
+	AccessTokens           *api.OAuthAccessTokenList
+	AccessToken            *api.OAuthAccessToken
 	DeletedAccessTokenName string
 }
 
-func (r *AccessTokenRegistry) ListAccessTokens(labels labels.Selector) (*api.AccessTokenList, error) {
+func (r *AccessTokenRegistry) ListAccessTokens(labels labels.Selector) (*api.OAuthAccessTokenList, error) {
 	return r.AccessTokens, r.Err
 }
 
-func (r *AccessTokenRegistry) GetAccessToken(name string) (*api.AccessToken, error) {
+func (r *AccessTokenRegistry) GetAccessToken(name string) (*api.OAuthAccessToken, error) {
 	return r.AccessToken, r.Err
 }
 
-func (r *AccessTokenRegistry) CreateAccessToken(token *api.AccessToken) error {
+func (r *AccessTokenRegistry) CreateAccessToken(token *api.OAuthAccessToken) error {
 	return r.Err
 }
 
-func (r *AccessTokenRegistry) UpdateAccessToken(token *api.AccessToken) error {
+func (r *AccessTokenRegistry) UpdateAccessToken(token *api.OAuthAccessToken) error {
 	return r.Err
 }
 

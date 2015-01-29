@@ -18,7 +18,7 @@ const (
 	githubAuthorizeURL = "https://github.com/login/oauth/authorize"
 	githubTokenURL     = "https://github.com/login/oauth/access_token"
 	githubUserApiURL   = "https://api.github.com/user"
-	githubOauthScope   = "user:email"
+	githubOAuthScope   = "user:email"
 )
 
 type provider struct {
@@ -45,7 +45,7 @@ func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 		SendClientSecretInParams: true,
 		AuthorizeUrl:             githubAuthorizeURL,
 		TokenUrl:                 githubTokenURL,
-		Scope:                    githubOauthScope,
+		Scope:                    githubOAuthScope,
 	}
 	return config, nil
 }

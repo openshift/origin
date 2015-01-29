@@ -103,7 +103,7 @@ func (g *autoGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.Resp
 		}
 	} else {
 		// Make sure client name, user name, grant scope, expiration, and redirect uri match
-		clientAuth = &oapi.ClientAuthorization{
+		clientAuth = &oapi.OAuthClientAuthorization{
 			UserName:   user.GetName(),
 			UserUID:    user.GetUID(),
 			ClientName: grant.Client.GetId(),

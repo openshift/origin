@@ -62,20 +62,20 @@ const (
 )
 
 var (
-	OSWebConsoleClientBase = oauthapi.Client{
+	OSWebConsoleClientBase = oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: OpenShiftWebConsoleClientID,
 		},
 		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.
 	}
 	// OSBrowserClientBase is used as a skeleton for building a Client.  We can't set the allowed redirecturis because we don't yet know the host:port of the auth server
-	OSBrowserClientBase = oauthapi.Client{
+	OSBrowserClientBase = oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "openshift-browser-client",
 		},
 		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
 	}
-	OSCliClientBase = oauthapi.Client{
+	OSCliClientBase = oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "openshift-challenging-client",
 		},
@@ -270,7 +270,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 }
 
 // NewOpenShiftOAuthClientConfig provides config for OpenShift OAuth client
-func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.Client) *osincli.ClientConfig {
+func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.OAuthClient) *osincli.ClientConfig {
 	config := &osincli.ClientConfig{
 		ClientId:                 client.Name,
 		ClientSecret:             client.Secret,
@@ -291,7 +291,7 @@ func OpenShiftOAuthTokenURL(masterAddr string) string {
 }
 
 func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry oauthclient.Registry) {
-	clientsToEnsure := []*oauthapi.Client{
+	clientsToEnsure := []*oauthapi.OAuthClient{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: OSWebConsoleClientBase.Name,

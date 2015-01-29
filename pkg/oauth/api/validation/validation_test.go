@@ -9,7 +9,7 @@ import (
 )
 
 func TestValidateClientAuthorization(t *testing.T) {
-	errs := ValidateClientAuthorization(&oapi.ClientAuthorization{
+	errs := ValidateClientAuthorization(&oapi.OAuthClientAuthorization{
 		ObjectMeta: api.ObjectMeta{Name: "authName"},
 		ClientName: "myclientname",
 		UserName:   "myusername",
@@ -20,12 +20,12 @@ func TestValidateClientAuthorization(t *testing.T) {
 	}
 
 	errorCases := map[string]struct {
-		A oapi.ClientAuthorization
+		A oapi.OAuthClientAuthorization
 		T errors.ValidationErrorType
 		F string
 	}{
 		"zero-length name": {
-			A: oapi.ClientAuthorization{
+			A: oapi.OAuthClientAuthorization{
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -34,7 +34,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 			F: "name",
 		},
 		"disallowed namespace": {
-			A: oapi.ClientAuthorization{
+			A: oapi.OAuthClientAuthorization{
 				ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
@@ -62,7 +62,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 }
 
 func TestValidateClient(t *testing.T) {
-	errs := ValidateClient(&oapi.Client{
+	errs := ValidateClient(&oapi.OAuthClient{
 		ObjectMeta: api.ObjectMeta{Name: "clientName"},
 	})
 	if len(errs) != 0 {
@@ -70,17 +70,17 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	errorCases := map[string]struct {
-		Client oapi.Client
+		Client oapi.OAuthClient
 		T      errors.ValidationErrorType
 		F      string
 	}{
 		"zero-length name": {
-			Client: oapi.Client{},
+			Client: oapi.OAuthClient{},
 			T:      errors.ValidationErrorTypeRequired,
 			F:      "name",
 		},
 		"disallowed namespace": {
-			Client: oapi.Client{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
+			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
 			T:      errors.ValidationErrorTypeInvalid,
 			F:      "namespace",
 		},
@@ -103,7 +103,7 @@ func TestValidateClient(t *testing.T) {
 }
 
 func TestValidateAccessTokens(t *testing.T) {
-	errs := ValidateAccessToken(&oapi.AccessToken{
+	errs := ValidateAccessToken(&oapi.OAuthAccessToken{
 		ObjectMeta: api.ObjectMeta{Name: "accessTokenName"},
 		ClientName: "myclient",
 		UserName:   "myusername",
@@ -114,12 +114,12 @@ func TestValidateAccessTokens(t *testing.T) {
 	}
 
 	errorCases := map[string]struct {
-		Token oapi.AccessToken
+		Token oapi.OAuthAccessToken
 		T     errors.ValidationErrorType
 		F     string
 	}{
 		"zero-length name": {
-			Token: oapi.AccessToken{
+			Token: oapi.OAuthAccessToken{
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -128,7 +128,7 @@ func TestValidateAccessTokens(t *testing.T) {
 			F: "name",
 		},
 		"disallowed namespace": {
-			Token: oapi.AccessToken{
+			Token: oapi.OAuthAccessToken{
 				ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"},
 				ClientName: "myclient",
 				UserName:   "myusername",
@@ -156,7 +156,7 @@ func TestValidateAccessTokens(t *testing.T) {
 }
 
 func TestValidateAuthorizeTokens(t *testing.T) {
-	errs := ValidateAuthorizeToken(&oapi.AuthorizeToken{
+	errs := ValidateAuthorizeToken(&oapi.OAuthAuthorizeToken{
 		ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
 		ClientName: "myclient",
 		UserName:   "myusername",
@@ -167,12 +167,12 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 	}
 
 	errorCases := map[string]struct {
-		Token oapi.AuthorizeToken
+		Token oapi.OAuthAuthorizeToken
 		T     errors.ValidationErrorType
 		F     string
 	}{
 		"zero-length name": {
-			Token: oapi.AuthorizeToken{
+			Token: oapi.OAuthAuthorizeToken{
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -181,7 +181,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			F: "name",
 		},
 		"zero-length client name": {
-			Token: oapi.AuthorizeToken{
+			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -190,7 +190,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			F: "clientname",
 		},
 		"zero-length user name": {
-			Token: oapi.AuthorizeToken{
+			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
 				ClientName: "myclient",
 				UserUID:    "myuseruid",
@@ -199,7 +199,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			F: "username",
 		},
 		"zero-length user uid": {
-			Token: oapi.AuthorizeToken{
+			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
 				ClientName: "myclient",
 				UserName:   "myusername",
@@ -208,7 +208,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			F: "useruid",
 		},
 		"disallowed namespace": {
-			Token: oapi.AuthorizeToken{
+			Token: oapi.OAuthAuthorizeToken{
 				ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"},
 				ClientName: "myclient",
 				UserName:   "myusername",

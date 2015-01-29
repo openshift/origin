@@ -34,7 +34,7 @@ func TestGetAccessTokenNotFound(t *testing.T) {
 func TestGetAccessToken(t *testing.T) {
 	key := makeAccessTokenKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.AccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	token, err := registry.GetAccessToken("foo")
 	if err != nil {
@@ -47,7 +47,7 @@ func TestGetAccessToken(t *testing.T) {
 }
 
 func TestListAccessTokensEmpty(t *testing.T) {
-	key := AccessTokenPath
+	key := OAuthAccessTokenPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.ExpectNotFoundGet(key)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -62,14 +62,14 @@ func TestListAccessTokensEmpty(t *testing.T) {
 }
 
 func TestListAccessTokens(t *testing.T) {
-	key := AccessTokenPath
+	key := OAuthAccessTokenPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.AccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.AccessToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -92,7 +92,7 @@ func TestListAccessTokensFiltered(t *testing.T) {
 }
 
 func TestCreateAccessToken(t *testing.T) {
-	token := &oapi.AccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	token := &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -115,7 +115,7 @@ func TestDeleteAccessToken(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
 
-	token := &oapi.AccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	token := &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	if err := registry.CreateAccessToken(token); err != nil {
 		t.Fatalf("unexpected error saving: %v", err)
@@ -153,7 +153,7 @@ func TestGetAuthorizeTokenNotFound(t *testing.T) {
 func TestGetAuthorizeToken(t *testing.T) {
 	key := makeAuthorizeTokenKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.AuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	token, err := registry.GetAuthorizeToken("foo")
 	if err != nil {
@@ -166,7 +166,7 @@ func TestGetAuthorizeToken(t *testing.T) {
 }
 
 func TestListAuthorizeTokensEmpty(t *testing.T) {
-	key := AuthorizeTokenPath
+	key := OAuthAuthorizeTokenPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.ExpectNotFoundGet(key)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -181,14 +181,14 @@ func TestListAuthorizeTokensEmpty(t *testing.T) {
 }
 
 func TestListAuthorizeTokens(t *testing.T) {
-	key := AuthorizeTokenPath
+	key := OAuthAuthorizeTokenPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.AuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.AuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -211,7 +211,7 @@ func TestListAuthorizeTokensFiltered(t *testing.T) {
 }
 
 func TestCreateAuthorizeToken(t *testing.T) {
-	token := &oapi.AuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	token := &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -234,7 +234,7 @@ func TestDeleteAuthorizeToken(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
 
-	token := &oapi.AuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	token := &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	if err := registry.CreateAuthorizeToken(token); err != nil {
 		t.Fatalf("unexpected error saving: %v", err)
@@ -272,7 +272,7 @@ func TestGetClientNotFound(t *testing.T) {
 func TestGetClient(t *testing.T) {
 	key := makeClientKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.Client{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	client, err := registry.GetClient("foo")
 	if err != nil {
@@ -285,7 +285,7 @@ func TestGetClient(t *testing.T) {
 }
 
 func TestListClientsEmpty(t *testing.T) {
-	key := ClientPath
+	key := OAuthClientPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.ExpectNotFoundGet(key)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -300,14 +300,14 @@ func TestListClientsEmpty(t *testing.T) {
 }
 
 func TestListClients(t *testing.T) {
-	key := ClientPath
+	key := OAuthClientPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.Client{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.Client{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -330,7 +330,7 @@ func TestListClientsFiltered(t *testing.T) {
 }
 
 func TestCreateClient(t *testing.T) {
-	client := &oapi.Client{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	client := &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -353,7 +353,7 @@ func TestDeleteClient(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
 
-	client := &oapi.Client{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	client := &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	if err := registry.CreateClient(client); err != nil {
 		t.Fatalf("unexpected error saving: %v", err)
@@ -391,7 +391,7 @@ func TestGetClientAuthorizationNotFound(t *testing.T) {
 func TestGetClientAuthorization(t *testing.T) {
 	key := makeClientAuthorizationKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.ClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	clientAuth, err := registry.GetClientAuthorization("foo")
 	if err != nil {
@@ -404,7 +404,7 @@ func TestGetClientAuthorization(t *testing.T) {
 }
 
 func TestListClientAuthorizationsEmpty(t *testing.T) {
-	key := ClientAuthorizationPath
+	key := OAuthClientAuthorizationPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.ExpectNotFoundGet(key)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -419,14 +419,14 @@ func TestListClientAuthorizationsEmpty(t *testing.T) {
 }
 
 func TestListClientAuthorizations(t *testing.T) {
-	key := ClientAuthorizationPath
+	key := OAuthClientAuthorizationPath
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.ClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.ClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -449,7 +449,7 @@ func TestListClientAuthorizationsFiltered(t *testing.T) {
 }
 
 func TestCreateClientAuthorization(t *testing.T) {
-	clientAuthorization := &oapi.ClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	clientAuthorization := &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -472,7 +472,7 @@ func TestDeleteClientAuthorization(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcdRegistry(fakeClient)
 
-	clientAuth := &oapi.ClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}
+	clientAuth := &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 
 	if err := registry.CreateClientAuthorization(clientAuth); err != nil {
 		t.Fatalf("unexpected error saving: %v", err)
@@ -497,7 +497,7 @@ func TestDeleteClientAuthorization(t *testing.T) {
 }
 
 func TestUpdateClientAuthorizationNotFound(t *testing.T) {
-	clientAuth := &oapi.ClientAuthorization{
+	clientAuth := &oapi.OAuthClientAuthorization{
 		ObjectMeta: api.ObjectMeta{
 			Name:            "foo",
 			ResourceVersion: "1",
@@ -522,7 +522,7 @@ func TestUpdateClientAuthorization(t *testing.T) {
 
 	registry := NewTestEtcdRegistry(fakeClient)
 
-	clientAuth := &oapi.ClientAuthorization{
+	clientAuth := &oapi.OAuthClientAuthorization{
 		ClientName: "myclient",
 		UserName:   "myuser",
 		UserUID:    "myuseruid",

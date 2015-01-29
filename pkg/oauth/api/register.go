@@ -6,22 +6,22 @@ import (
 
 func init() {
 	api.Scheme.AddKnownTypes("",
-		&AccessToken{},
-		&AccessTokenList{},
-		&AuthorizeToken{},
-		&AuthorizeTokenList{},
-		&Client{},
-		&ClientList{},
-		&ClientAuthorization{},
-		&ClientAuthorizationList{},
+		&OAuthAccessToken{},
+		&OAuthAccessTokenList{},
+		&OAuthAuthorizeToken{},
+		&OAuthAuthorizeTokenList{},
+		&OAuthClient{},
+		&OAuthClientList{},
+		&OAuthClientAuthorization{},
+		&OAuthClientAuthorizationList{},
 	)
 }
 
-func (*AccessToken) IsAnAPIObject()             {}
-func (*AuthorizeToken) IsAnAPIObject()          {}
-func (*Client) IsAnAPIObject()                  {}
-func (*AccessTokenList) IsAnAPIObject()         {}
-func (*AuthorizeTokenList) IsAnAPIObject()      {}
-func (*ClientList) IsAnAPIObject()              {}
-func (*ClientAuthorization) IsAnAPIObject()     {}
-func (*ClientAuthorizationList) IsAnAPIObject() {}
+func (*OAuthAccessToken) IsAnAPIObject()             {}
+func (*OAuthAuthorizeToken) IsAnAPIObject()          {}
+func (*OAuthClient) IsAnAPIObject()                  {}
+func (*OAuthAccessTokenList) IsAnAPIObject()         {}
+func (*OAuthAuthorizeTokenList) IsAnAPIObject()      {}
+func (*OAuthClientList) IsAnAPIObject()              {}
+func (*OAuthClientAuthorization) IsAnAPIObject()     {}
+func (*OAuthClientAuthorizationList) IsAnAPIObject() {}

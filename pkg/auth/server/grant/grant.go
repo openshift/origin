@@ -162,7 +162,7 @@ func (l *Grant) handleGrant(user authapi.UserInfo, w http.ResponseWriter, req *h
 		}
 	} else {
 		// Make sure client name, user name, grant scope, expiration, and redirect uri match
-		clientAuth = &oapi.ClientAuthorization{
+		clientAuth = &oapi.OAuthClientAuthorization{
 			UserName:   user.GetName(),
 			UserUID:    user.GetUID(),
 			ClientName: client.Name,

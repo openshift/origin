@@ -269,10 +269,10 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"userIdentityMappings": useridentitymapping.NewREST(userEtcd),
 		"users":                userregistry.NewREST(userEtcd),
 
-		"authorizeTokens":      authorizetokenregistry.NewREST(oauthEtcd),
-		"accessTokens":         accesstokenregistry.NewREST(oauthEtcd),
-		"clients":              clientregistry.NewREST(oauthEtcd),
-		"clientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
+		"oAuthAuthorizeTokens":      authorizetokenregistry.NewREST(oauthEtcd),
+		"oAuthAccessTokens":         accesstokenregistry.NewREST(oauthEtcd),
+		"oAuthClients":              clientregistry.NewREST(oauthEtcd),
+		"oAuthClientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 	}
 
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
