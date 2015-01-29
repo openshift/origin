@@ -6,7 +6,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
-	cmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -60,7 +59,6 @@ func NewCommandCLI(name string) *cobra.Command {
 	// Kubernetes support commands
 	cmds.AddCommand(f.NewCmdLog(out))
 	cmds.AddCommand(f.NewCmdProxy(out))
-	cmds.AddCommand(cmdconfig.NewCmdConfig(out))
 
 	// Origin commands
 	cmds.AddCommand(cmd.NewCmdApply(f, out))

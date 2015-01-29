@@ -93,9 +93,6 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # Begin tests
 #
 
-osc config view --kubeconfig=${KUBECONFIG} | grep "user: admin"
-echo "config: ok"
-
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
 osc delete pods hello-openshift
