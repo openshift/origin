@@ -7,4 +7,5 @@
 *.swp
 .vimrc
 .vagrant-openshift.json
+.vagrant-openshift.config
 .DS_Store

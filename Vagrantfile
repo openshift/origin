@@ -208,4 +208,9 @@ runcmd:
     end
   end
 
+  
+  if File.exist?('.vagrant-openshift.config')
+    eval File.read('.vagrant-openshift.config')
+  end
+
 end
