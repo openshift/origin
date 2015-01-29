@@ -15,22 +15,23 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authfilter "github.com/openshift/origin/pkg/auth/handlers"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -71,6 +72,14 @@ import (
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 	"github.com/openshift/origin/pkg/version"
+
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
+	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
+	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 )
 
 const (
@@ -97,10 +106,12 @@ type MasterConfig struct {
 
 	CORSAllowedOrigins []*regexp.Regexp
 	Authenticator      authenticator.Request
+	// TODO Have MasterConfig take a fully formed Authorizer
+	MasterAuthorizationNamespace string
 
-	EtcdHelper tools.EtcdHelper
+	EtcdHelper      tools.EtcdHelper
+	RequestsToUsers *authcontext.RequestContextMap
 
-	Authorizer       authorizer.Authorizer
 	AdmissionControl admission.Interface
 
 	MasterCertFile string
@@ -198,6 +209,13 @@ func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
 	}
 }
 
+// RequestsTousers is needed in order for authentication and authorization to work.  It must be a singleton per process
+func (c *MasterConfig) EnsureRequestsToUsers() {
+	if c.RequestsToUsers == nil {
+		c.RequestsToUsers = authcontext.NewRequestContextMap()
+	}
+}
+
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(api.NamespaceDefault).Get)
@@ -206,6 +224,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
+	c.EnsureRequestsToUsers()
+
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	imageEtcd := imageetcd.New(c.EtcdHelper, imageetcd.DefaultRegistryFunc(defaultRegistryFunc))
 	deployEtcd := deployetcd.New(c.EtcdHelper)
@@ -213,6 +233,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	projectEtcd := projectetcd.New(c.EtcdHelper)
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
+	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
@@ -260,6 +281,12 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"accessTokens":         accesstokenregistry.NewREST(oauthEtcd),
 		"clients":              clientregistry.NewREST(oauthEtcd),
 		"clientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
+
+		"policies":              policyregistry.NewREST(authorizationEtcd),
+		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
+		"roles":                 roleregistry.NewREST(authorizationEtcd),
+		"roleBindings":          rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.getAuthorizer(c.RequestsToUsers)),
 	}
 
 	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
@@ -317,7 +344,8 @@ func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstal
 	// Add authentication
 	protectedHandler := http.Handler(protectedContainer)
 	if c.Authenticator != nil {
-		protectedHandler = wireAuthenticationHandling(protectedContainer.ServeMux, protectedHandler, c.Authenticator)
+		c.ensureComponentAuthorizationRules()
+		protectedHandler = c.wireAuthenticationHandling(protectedContainer.ServeMux, protectedHandler, c.Authenticator, c.RequestsToUsers)
 	}
 
 	// Build container for unprotected endpoints
@@ -368,16 +396,16 @@ func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstal
 // just to make the RunAPI method easier to read.  These resources include the requestsToUsers map that allows callers to know which user
 // is requesting an operation, the handler wrapper that protects the passed handler behind a handler that requires valid authentication
 // information on the request, and an endpoint that only functions properly with an authenticated user.
-func wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler, authenticator authenticator.Request) http.Handler {
-	// this tracks requests back to users for authorization.  The same instance must be shared between writers and readers
-	requestsToUsers := authcontext.NewRequestContextMap()
+func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
+	// wrapHandlerWithAuthorization binds a handler that will force users to be authorized to perform the actions they are requesting
+	handler = c.wrapHandlerWithAuthorization(handler)
 
 	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
 	handler = wrapHandlerWithAuthentication(handler, authenticator, requestsToUsers)
 
 	// this requires the requests and users to be present
 	userContextMap := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
-		obj, found := requestsToUsers.Get(req)
+		obj, found := c.RequestsToUsers.Get(req)
 		if user, ok := obj.(userregistry.Info); found && ok {
 			return user, true
 		}
@@ -388,6 +416,39 @@ func wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler, auth
 	userregistry.InstallThisUser(osMux, thisUserEndpoint, userContextMap, handler)
 
 	return handler
+}
+
+func (c *MasterConfig) ensureComponentAuthorizationRules() {
+	registry := authorizationetcd.New(c.EtcdHelper)
+	ctx := kapi.WithNamespace(kapi.NewContext(), c.MasterAuthorizationNamespace)
+
+	if existing, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); err == nil || strings.Contains(err.Error(), " not found") {
+		if existing != nil && existing.Name == authorizationapi.PolicyName {
+			return
+		}
+
+		bootstrapGlobalPolicy := authorizer.GetBootstrapPolicy(c.MasterAuthorizationNamespace)
+		if err = registry.CreatePolicy(ctx, bootstrapGlobalPolicy); err != nil {
+			glog.Errorf("Error creating policy: %v due to %v\n", bootstrapGlobalPolicy, err)
+		}
+
+	} else {
+		glog.Errorf("Error getting policy: %v due to %v\n", authorizationapi.PolicyName, err)
+	}
+
+	if existing, err := registry.GetPolicyBinding(ctx, c.MasterAuthorizationNamespace); err == nil || strings.Contains(err.Error(), " not found") {
+		if existing != nil && existing.Name == c.MasterAuthorizationNamespace {
+			return
+		}
+
+		bootstrapGlobalPolicyBinding := authorizer.GetBootstrapPolicyBinding(c.MasterAuthorizationNamespace)
+		if err = registry.CreatePolicyBinding(ctx, bootstrapGlobalPolicyBinding); err != nil {
+			glog.Errorf("Error creating policy: %v due to %v\n", bootstrapGlobalPolicyBinding, err)
+		}
+
+	} else {
+		glog.Errorf("Error getting policy: %v due to %v\n", c.MasterAuthorizationNamespace, err)
+	}
 }
 
 // wrapHandlerWithAuthentication takes a handler and protects it behind a handler that tests to make sure that a user is authenticated.
@@ -404,6 +465,54 @@ func wrapHandlerWithAuthentication(handler http.Handler, authenticator authentic
 			return
 		}),
 		handler)
+}
+
+func (c *MasterConfig) getAuthorizer(requestsToUsers *authcontext.RequestContextMap) authorizer.Authorizer {
+	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
+	authorizer := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+
+	return authorizer
+}
+
+// TODO Have MasterConfig take a fully formed Authorizer
+func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler) http.Handler {
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(c.RequestsToUsers)
+	authorizer := c.getAuthorizer(c.RequestsToUsers)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
+		if err != nil {
+			// fail
+			forbidden(err.Error(), w, req)
+			return
+		}
+		if attributes == nil {
+			// fail
+			forbidden("No attributes", w, req)
+			return
+		}
+
+		allowed, reason, err := authorizer.Authorize(attributes)
+		if err != nil {
+			// fail
+			forbidden(err.Error(), w, req)
+			return
+		}
+
+		if allowed {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		forbidden(reason, w, req)
+	})
+}
+
+// forbidden renders a simple forbidden error
+func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
+	glog.V(1).Infof("!!!!!!!!!!!! FORBIDDING because %v!\n", reason)
+	w.WriteHeader(http.StatusForbidden)
+	fmt.Fprintf(w, "Forbidden: \"%#v\" because \"%v\"", req.RequestURI, reason)
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
