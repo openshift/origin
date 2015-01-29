@@ -35,7 +35,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "memory"            => 1024,
       "virtualbox"        => {
         "box_name" => "fedora_inst",
-        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_virtualbox_inst.box"
+        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
       },
       "vmware"            => {
         "box_name" => "fedora_inst",
