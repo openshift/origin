@@ -29,8 +29,6 @@ trap "cleanup" EXIT
 
 set -e
 
-export OPENSHIFT_ON_PANIC=crash
-
 USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
@@ -68,7 +66,7 @@ echo openshift: $out
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
 # Start openshift
-openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" --hostname="${API_HOST}" --volume-dir="${VOLUME_DIR}" --cert-dir="${CERT_DIR}" --etcd-dir="${ETCD_DATA_DIR}" 1>&2 &
+OPENSHIFT_ON_PANIC=crash openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" --hostname="${API_HOST}" --volume-dir="${VOLUME_DIR}" --cert-dir="${CERT_DIR}" --etcd-dir="${ETCD_DATA_DIR}" 1>&2 &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
