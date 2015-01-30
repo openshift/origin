@@ -94,7 +94,7 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	t.Logf("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid
-	createClient(t, oauthEtcd, &oauthapi.Client{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{oauthServer.URL}})
+	createClient(t, oauthEtcd, &oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{oauthServer.URL}})
 
 	// our simple URL to get back a code.  We want to go through the front proxy
 	rawAuthorizeRequest := proxyServer.URL + origin.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
@@ -138,7 +138,7 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	}
 }
 
-func createClient(t *testing.T, oauthEtcd oauthclient.Registry, client *oauthapi.Client) {
+func createClient(t *testing.T, oauthEtcd oauthclient.Registry, client *oauthapi.OAuthClient) {
 	if err := oauthEtcd.CreateClient(client); err != nil {
 		t.Errorf("Error creating client: %v due to %v\n", client, err)
 	}

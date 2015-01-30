@@ -16,7 +16,7 @@ func TestCreateValidationError(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	client := &oapi.Client{
+	client := &oapi.OAuthClient{
 	// ObjectMeta: api.ObjectMeta{Name: "authTokenName"}, // Missing required field
 	}
 
@@ -34,7 +34,7 @@ func TestCreateStorageError(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	client := &oapi.Client{
+	client := &oapi.OAuthClient{
 		ObjectMeta: api.ObjectMeta{Name: "clientName"},
 	}
 
@@ -66,7 +66,7 @@ func TestCreateValid(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	client := &oapi.Client{
+	client := &oapi.OAuthClient{
 		ObjectMeta: api.ObjectMeta{Name: "clientName"},
 	}
 
@@ -81,7 +81,7 @@ func TestCreateValid(t *testing.T) {
 		switch r := r.Object.(type) {
 		case *api.Status:
 			t.Errorf("Got back unexpected status: %#v", r)
-		case *oapi.Client:
+		case *oapi.OAuthClient:
 			// expected case
 		default:
 			t.Errorf("Got unexpected type: %#v", r)
@@ -112,7 +112,7 @@ func TestGetError(t *testing.T) {
 
 func TestGetValid(t *testing.T) {
 	registry := test.ClientRegistry{
-		Client: &oapi.Client{
+		Client: &oapi.OAuthClient{
 			ObjectMeta: api.ObjectMeta{Name: "clientName"},
 		},
 	}
@@ -152,7 +152,7 @@ func TestListError(t *testing.T) {
 
 func TestListEmpty(t *testing.T) {
 	registry := test.ClientRegistry{
-		Clients: &oapi.ClientList{},
+		Clients: &oapi.OAuthClientList{},
 	}
 	storage := REST{
 		registry: &registry,
@@ -164,7 +164,7 @@ func TestListEmpty(t *testing.T) {
 		return
 	}
 	switch clients := clients.(type) {
-	case *oapi.ClientList:
+	case *oapi.OAuthClientList:
 		if len(clients.Items) != 0 {
 			t.Errorf("expected empty list, got %#v", clients)
 		}
@@ -176,8 +176,8 @@ func TestListEmpty(t *testing.T) {
 
 func TestList(t *testing.T) {
 	registry := test.ClientRegistry{
-		Clients: &oapi.ClientList{
-			Items: []oapi.Client{
+		Clients: &oapi.OAuthClientList{
+			Items: []oapi.OAuthClient{
 				{},
 				{},
 			},
@@ -193,7 +193,7 @@ func TestList(t *testing.T) {
 		return
 	}
 	switch clients := clients.(type) {
-	case *oapi.ClientList:
+	case *oapi.OAuthClientList:
 		if len(clients.Items) != 2 {
 			t.Errorf("expected list with 2 items, got %#v", clients)
 		}
@@ -210,7 +210,7 @@ func TestUpdateNotSupported(t *testing.T) {
 	storage := REST{
 		registry: &registry,
 	}
-	client := &oapi.Client{
+	client := &oapi.OAuthClient{
 		ObjectMeta: api.ObjectMeta{Name: "clientName"},
 	}
 

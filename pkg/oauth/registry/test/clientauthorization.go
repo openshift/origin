@@ -10,10 +10,10 @@ import (
 
 type ClientAuthorizationRegistry struct {
 	Err                            error
-	ClientAuthorizations           *api.ClientAuthorizationList
-	ClientAuthorization            *api.ClientAuthorization
-	CreatedAuthorization           *api.ClientAuthorization
-	UpdatedAuthorization           *api.ClientAuthorization
+	ClientAuthorizations           *api.OAuthClientAuthorizationList
+	ClientAuthorization            *api.OAuthClientAuthorization
+	CreatedAuthorization           *api.OAuthClientAuthorization
+	UpdatedAuthorization           *api.OAuthClientAuthorization
 	DeletedClientAuthorizationName string
 }
 
@@ -21,20 +21,20 @@ func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientNa
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
-func (r *ClientAuthorizationRegistry) ListClientAuthorizations(label, field labels.Selector) (*api.ClientAuthorizationList, error) {
+func (r *ClientAuthorizationRegistry) ListClientAuthorizations(label, field labels.Selector) (*api.OAuthClientAuthorizationList, error) {
 	return r.ClientAuthorizations, r.Err
 }
 
-func (r *ClientAuthorizationRegistry) GetClientAuthorization(name string) (*api.ClientAuthorization, error) {
+func (r *ClientAuthorizationRegistry) GetClientAuthorization(name string) (*api.OAuthClientAuthorization, error) {
 	return r.ClientAuthorization, r.Err
 }
 
-func (r *ClientAuthorizationRegistry) CreateClientAuthorization(grant *api.ClientAuthorization) error {
+func (r *ClientAuthorizationRegistry) CreateClientAuthorization(grant *api.OAuthClientAuthorization) error {
 	r.CreatedAuthorization = grant
 	return r.Err
 }
 
-func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(grant *api.ClientAuthorization) error {
+func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(grant *api.OAuthClientAuthorization) error {
 	r.UpdatedAuthorization = grant
 	return r.Err
 }

@@ -12,7 +12,7 @@ import (
 )
 
 type testClient struct {
-	client *oauthapi.Client
+	client *oauthapi.OAuthClient
 }
 
 func (w *testClient) GetId() string {
@@ -48,7 +48,7 @@ func (h *mockChallenger) AuthenticationChallenge(req *http.Request) (http.Header
 
 func TestNoHandlersRedirect(t *testing.T) {
 	authHandler := NewUnionAuthenticationHandler(nil, nil, nil)
-	client := &testClient{&oauthapi.Client{}}
+	client := &testClient{&oauthapi.OAuthClient{}}
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	responseRecorder := httptest.NewRecorder()
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
@@ -64,7 +64,7 @@ func TestNoHandlersRedirect(t *testing.T) {
 
 func TestNoHandlersChallenge(t *testing.T) {
 	authHandler := NewUnionAuthenticationHandler(nil, nil, nil)
-	client := &testClient{&oauthapi.Client{RespondWithChallenges: true}}
+	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	responseRecorder := httptest.NewRecorder()
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
@@ -80,12 +80,12 @@ func TestNoHandlersChallenge(t *testing.T) {
 
 func TestWithBadClient(t *testing.T) {
 	authHandler := NewUnionAuthenticationHandler(nil, nil, nil)
-	client := &badTestClient{&oauthapi.Client{}}
+	client := &badTestClient{&oauthapi.OAuthClient{}}
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	responseRecorder := httptest.NewRecorder()
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
 
-	expectedError := "apiClient data was not an oauthapi.Client"
+	expectedError := "apiClient data was not an oauthapi.OAuthClient"
 	if err == nil {
 		t.Errorf("Expected error: %v", expectedError)
 	}
@@ -106,7 +106,7 @@ func TestWithOnlyChallengeErrors(t *testing.T) {
 	authHandler := NewUnionAuthenticationHandler(
 		map[string]AuthenticationChallenger{"first": failingChallengeHandler1, "second": failingChallengeHandler2},
 		nil, nil)
-	client := &testClient{&oauthapi.Client{RespondWithChallenges: true}}
+	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	responseRecorder := httptest.NewRecorder()
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
@@ -144,7 +144,7 @@ func TestWithChallengeErrorsAndMergedSuccess(t *testing.T) {
 			"third":  workingChallengeHandler2,
 			"fourth": workingChallengeHandler3},
 		nil, nil)
-	client := &testClient{&oauthapi.Client{RespondWithChallenges: true}}
+	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	responseRecorder := httptest.NewRecorder()
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
@@ -161,7 +161,7 @@ func TestWithChallengeErrorsAndMergedSuccess(t *testing.T) {
 }
 
 type badTestClient struct {
-	client *oauthapi.Client
+	client *oauthapi.OAuthClient
 }
 
 func (w *badTestClient) GetId() string {

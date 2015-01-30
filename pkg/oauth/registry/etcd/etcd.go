@@ -24,41 +24,46 @@ func New(helper tools.EtcdHelper) *Etcd {
 }
 
 const (
-	AccessTokenPath         = "/registry/oauth/accessTokens"
-	AuthorizeTokenPath      = "/registry/oauth/authorizeTokens"
-	ClientPath              = "/registry/oauth/clients"
-	ClientAuthorizationPath = "/registry/oauth/clientAuthorizations"
+	OAuthAccessTokenPath         = "/registry/oauth/accessTokens"
+	OAuthAuthorizeTokenPath      = "/registry/oauth/authorizeTokens"
+	OAuthClientPath              = "/registry/oauth/clients"
+	OAuthClientAuthorizationPath = "/registry/oauth/clientAuthorizations"
+
+	OAuthAccessTokenType         = "oauthAccessToken"
+	OAuthAuthorizeTokenType      = "oauthAuthorizeToken"
+	OAuthClientType              = "oauthClientType"
+	OAuthClientAuthorizationType = "oauthClientAuthorization"
 )
 
 func makeAccessTokenKey(name string) string {
-	return path.Join(AccessTokenPath, name)
+	return path.Join(OAuthAccessTokenPath, name)
 }
 
 func makeAuthorizeTokenKey(name string) string {
-	return path.Join(AuthorizeTokenPath, name)
+	return path.Join(OAuthAuthorizeTokenPath, name)
 }
 
 func makeClientKey(name string) string {
-	return path.Join(ClientPath, name)
+	return path.Join(OAuthClientPath, name)
 }
 
 func makeClientAuthorizationKey(name string) string {
-	return path.Join(ClientAuthorizationPath, name)
+	return path.Join(OAuthClientAuthorizationPath, name)
 }
 
-func (r *Etcd) GetAccessToken(name string) (token *api.AccessToken, err error) {
-	token = &api.AccessToken{}
-	err = etcderrs.InterpretGetError(r.ExtractObj(makeAccessTokenKey(name), token, false), "accessToken", name)
+func (r *Etcd) GetAccessToken(name string) (token *api.OAuthAccessToken, err error) {
+	token = &api.OAuthAccessToken{}
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeAccessTokenKey(name), token, false), OAuthAccessTokenType, name)
 	return
 }
 
-func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.AccessTokenList, error) {
-	list := api.AccessTokenList{}
-	err := r.ExtractToList(AccessTokenPath, &list)
+func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.OAuthAccessTokenList, error) {
+	list := api.OAuthAccessTokenList{}
+	err := r.ExtractToList(OAuthAccessTokenPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
-	filtered := []api.AccessToken{}
+	filtered := []api.OAuthAccessToken{}
 	for _, item := range list.Items {
 		if selector.Matches(labels.Set(item.Labels)) {
 			filtered = append(filtered, item)
@@ -68,64 +73,64 @@ func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.AccessTokenList,
 	return &list, nil
 }
 
-func (r *Etcd) CreateAccessToken(token *api.AccessToken) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeAccessTokenKey(token.Name), token, 0), "accessToken", token.Name)
+func (r *Etcd) CreateAccessToken(token *api.OAuthAccessToken) error {
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeAccessTokenKey(token.Name), token, 0), OAuthAccessTokenType, token.Name)
 	return err
 }
 
-func (r *Etcd) UpdateAccessToken(*api.AccessToken) error {
+func (r *Etcd) UpdateAccessToken(*api.OAuthAccessToken) error {
 	return errors.New("not supported")
 }
 
 func (r *Etcd) DeleteAccessToken(name string) error {
 	key := makeAccessTokenKey(name)
-	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "accessToken", name)
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), OAuthAccessTokenType, name)
 	return err
 }
 
-func (r *Etcd) GetAuthorizeToken(name string) (token *api.AuthorizeToken, err error) {
-	token = &api.AuthorizeToken{}
-	err = etcderrs.InterpretGetError(r.ExtractObj(makeAuthorizeTokenKey(name), token, false), "authorizeToken", name)
+func (r *Etcd) GetAuthorizeToken(name string) (token *api.OAuthAuthorizeToken, err error) {
+	token = &api.OAuthAuthorizeToken{}
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeAuthorizeTokenKey(name), token, false), OAuthAuthorizeTokenType, name)
 	return
 }
 
-func (r *Etcd) ListAuthorizeTokens(selector labels.Selector) (*api.AuthorizeTokenList, error) {
-	list := api.AuthorizeTokenList{}
-	err := r.ExtractToList(AuthorizeTokenPath, &list)
+func (r *Etcd) ListAuthorizeTokens(selector labels.Selector) (*api.OAuthAuthorizeTokenList, error) {
+	list := api.OAuthAuthorizeTokenList{}
+	err := r.ExtractToList(OAuthAuthorizeTokenPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
 	return &list, nil
 }
 
-func (r *Etcd) CreateAuthorizeToken(token *api.AuthorizeToken) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeAuthorizeTokenKey(token.Name), token, 0), "authorizeToken", token.Name)
+func (r *Etcd) CreateAuthorizeToken(token *api.OAuthAuthorizeToken) error {
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeAuthorizeTokenKey(token.Name), token, 0), OAuthAuthorizeTokenType, token.Name)
 	return err
 }
 
-func (r *Etcd) UpdateAuthorizeToken(*api.AuthorizeToken) error {
+func (r *Etcd) UpdateAuthorizeToken(*api.OAuthAuthorizeToken) error {
 	return errors.New("not supported")
 }
 
 func (r *Etcd) DeleteAuthorizeToken(name string) error {
 	key := makeAuthorizeTokenKey(name)
-	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "authorizeToken", name)
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), OAuthAuthorizeTokenType, name)
 	return err
 }
 
-func (r *Etcd) GetClient(name string) (client *api.Client, err error) {
-	client = &api.Client{}
-	err = etcderrs.InterpretGetError(r.ExtractObj(makeClientKey(name), client, false), "client", name)
+func (r *Etcd) GetClient(name string) (client *api.OAuthClient, err error) {
+	client = &api.OAuthClient{}
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeClientKey(name), client, false), OAuthClientType, name)
 	return
 }
 
-func (r *Etcd) ListClients(selector labels.Selector) (*api.ClientList, error) {
-	list := api.ClientList{}
-	err := r.ExtractToList(ClientPath, &list)
+func (r *Etcd) ListClients(selector labels.Selector) (*api.OAuthClientList, error) {
+	list := api.OAuthClientList{}
+	err := r.ExtractToList(OAuthClientPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
-	filtered := []api.Client{}
+	filtered := []api.OAuthClient{}
 	for _, item := range list.Items {
 		if selector.Matches(labels.Set(item.Labels)) {
 			filtered = append(filtered, item)
@@ -135,18 +140,18 @@ func (r *Etcd) ListClients(selector labels.Selector) (*api.ClientList, error) {
 	return &list, nil
 }
 
-func (r *Etcd) CreateClient(client *api.Client) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientKey(client.Name), client, 0), "client", client.Name)
+func (r *Etcd) CreateClient(client *api.OAuthClient) error {
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientKey(client.Name), client, 0), OAuthClientType, client.Name)
 	return err
 }
 
-func (r *Etcd) UpdateClient(_ *api.Client) error {
+func (r *Etcd) UpdateClient(_ *api.OAuthClient) error {
 	return errors.New("not supported")
 }
 
 func (r *Etcd) DeleteClient(name string) error {
 	key := makeClientKey(name)
-	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "client", name)
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), OAuthClientType, name)
 	return err
 }
 
@@ -154,33 +159,33 @@ func (r *Etcd) ClientAuthorizationName(userName, clientName string) string {
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
-func (r *Etcd) GetClientAuthorization(name string) (client *api.ClientAuthorization, err error) {
-	client = &api.ClientAuthorization{}
-	err = etcderrs.InterpretGetError(r.ExtractObj(makeClientAuthorizationKey(name), client, false), "clientAuthorization", name)
+func (r *Etcd) GetClientAuthorization(name string) (client *api.OAuthClientAuthorization, err error) {
+	client = &api.OAuthClientAuthorization{}
+	err = etcderrs.InterpretGetError(r.ExtractObj(makeClientAuthorizationKey(name), client, false), OAuthClientAuthorizationType, name)
 	return
 }
 
-func (r *Etcd) ListClientAuthorizations(label, field labels.Selector) (*api.ClientAuthorizationList, error) {
-	list := api.ClientAuthorizationList{}
-	err := r.ExtractToList(ClientAuthorizationPath, &list)
+func (r *Etcd) ListClientAuthorizations(label, field labels.Selector) (*api.OAuthClientAuthorizationList, error) {
+	list := api.OAuthClientAuthorizationList{}
+	err := r.ExtractToList(OAuthClientAuthorizationPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {
 		return nil, err
 	}
 	return &list, nil
 }
 
-func (r *Etcd) CreateClientAuthorization(client *api.ClientAuthorization) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientAuthorizationKey(client.Name), client, 0), "clientAuthorization", client.Name)
+func (r *Etcd) CreateClientAuthorization(client *api.OAuthClientAuthorization) error {
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientAuthorizationKey(client.Name), client, 0), OAuthClientAuthorizationType, client.Name)
 	return err
 }
 
-func (r *Etcd) UpdateClientAuthorization(client *api.ClientAuthorization) error {
-	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.Name), client), "clientAuthorization", client.Name)
+func (r *Etcd) UpdateClientAuthorization(client *api.OAuthClientAuthorization) error {
+	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.Name), client), OAuthClientAuthorizationType, client.Name)
 	return err
 }
 
 func (r *Etcd) DeleteClientAuthorization(name string) error {
 	key := makeClientAuthorizationKey(name)
-	err := etcderrs.InterpretDeleteError(r.Delete(key, false), "clientAuthorization", name)
+	err := etcderrs.InterpretDeleteError(r.Delete(key, false), OAuthClientAuthorizationType, name)
 	return err
 }

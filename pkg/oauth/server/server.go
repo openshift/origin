@@ -21,10 +21,10 @@ func NewServer(helper tools.EtcdHelper) *Server {
 	registry := etcd.New(helper)
 	s := &Server{
 		storage: map[string]apiserver.RESTStorage{
-			"accessTokens":         accesstoken.NewREST(registry),
-			"authorizeTokens":      authorizetoken.NewREST(registry),
-			"clients":              client.NewREST(registry),
-			"clientAuthorizations": clientauthorization.NewREST(registry),
+			"oauthAccessTokens":         accesstoken.NewREST(registry),
+			"oauthAuthorizeTokens":      authorizetoken.NewREST(registry),
+			"oauthClients":              client.NewREST(registry),
+			"oauthClientAuthorizations": clientauthorization.NewREST(registry),
 		},
 	}
 	return s

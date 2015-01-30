@@ -4,7 +4,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
-type AccessToken struct {
+type OAuthAccessToken struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
@@ -33,7 +33,7 @@ type AccessToken struct {
 	RefreshToken string `json:"refreshToken,omitempty"`
 }
 
-type AuthorizeToken struct {
+type OAuthAuthorizeToken struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
@@ -60,7 +60,7 @@ type AuthorizeToken struct {
 	UserUID string `json:"userUID,omitempty"`
 }
 
-type Client struct {
+type OAuthClient struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
@@ -74,7 +74,7 @@ type Client struct {
 	RedirectURIs []string `json:"redirectURIs,omitempty"`
 }
 
-type ClientAuthorization struct {
+type OAuthClientAuthorization struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
@@ -92,26 +92,26 @@ type ClientAuthorization struct {
 	Scopes []string `json:"scopes,omitempty"`
 }
 
-type AccessTokenList struct {
+type OAuthAccessTokenList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []AccessToken `json:"items"`
+	Items         []OAuthAccessToken `json:"items"`
 }
 
-type AuthorizeTokenList struct {
+type OAuthAuthorizeTokenList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []AuthorizeToken `json:"items,"`
+	Items         []OAuthAuthorizeToken `json:"items,"`
 }
 
-type ClientList struct {
+type OAuthClientList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Client `json:"items"`
+	Items         []OAuthClient `json:"items"`
 }
 
-type ClientAuthorizationList struct {
+type OAuthClientAuthorizationList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClientAuthorization `json:"items"`
+	Items         []OAuthClientAuthorization `json:"items"`
 }

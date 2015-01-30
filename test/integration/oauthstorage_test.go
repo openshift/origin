@@ -31,23 +31,23 @@ type testUser struct {
 	Err      error
 }
 
-func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *api.AuthorizeToken) error {
+func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *api.OAuthAuthorizeToken) error {
 	token.UserName = u.UserName
 	token.UserUID = u.UserUID
 	return u.Err
 }
 
-func (u *testUser) ConvertToAccessToken(_ interface{}, token *api.AccessToken) error {
+func (u *testUser) ConvertToAccessToken(_ interface{}, token *api.OAuthAccessToken) error {
 	token.UserName = u.UserName
 	token.UserUID = u.UserUID
 	return u.Err
 }
 
-func (u *testUser) ConvertFromAuthorizeToken(*api.AuthorizeToken) (interface{}, error) {
+func (u *testUser) ConvertFromAuthorizeToken(*api.OAuthAuthorizeToken) (interface{}, error) {
 	return u.UserName, u.Err
 }
 
-func (u *testUser) ConvertFromAccessToken(*api.AccessToken) (interface{}, error) {
+func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, error) {
 	return u.UserName, u.Err
 }
 
@@ -98,7 +98,7 @@ func TestOAuthStorage(t *testing.T) {
 		ch <- token
 	}))
 
-	registry.CreateClient(&api.Client{
+	registry.CreateClient(&api.OAuthClient{
 		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
 		Secret:       "secret",
 		RedirectURIs: []string{assertServer.URL + "/assert"},

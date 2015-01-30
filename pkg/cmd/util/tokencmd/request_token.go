@@ -50,7 +50,7 @@ func RequestToken(clientCfg *clientcmd.Config, reader io.Reader) (string, error)
 	}
 	osClient.Client = &challengingClient{httpClient, reader}
 
-	_ = osClient.Get().AbsPath("oauth").Resource("authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
+	_ = osClient.Get().AbsPath("oauth", "authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
 
 	if len(tokenGetter.accessToken) == 0 {
 		requestTokenURL := osCfg.Host + "/oauth" /* clean up after auth.go dies */ + tokenrequest.RequestTokenEndpoint

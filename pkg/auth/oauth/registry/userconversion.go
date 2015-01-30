@@ -16,7 +16,7 @@ func NewUserConversion() *UserConversion {
 	return &UserConversion{}
 }
 
-func (s *UserConversion) ConvertToAuthorizeToken(user interface{}, token *oapi.AuthorizeToken) error {
+func (s *UserConversion) ConvertToAuthorizeToken(user interface{}, token *oapi.OAuthAuthorizeToken) error {
 	info, ok := user.(api.UserInfo)
 	if !ok {
 		return errors.New("did not receive UserInfo")
@@ -29,7 +29,7 @@ func (s *UserConversion) ConvertToAuthorizeToken(user interface{}, token *oapi.A
 	return nil
 }
 
-func (s *UserConversion) ConvertToAccessToken(user interface{}, token *oapi.AccessToken) error {
+func (s *UserConversion) ConvertToAccessToken(user interface{}, token *oapi.OAuthAccessToken) error {
 	info, ok := user.(api.UserInfo)
 	if !ok {
 		return errors.New("did not receive UserInfo")
@@ -42,7 +42,7 @@ func (s *UserConversion) ConvertToAccessToken(user interface{}, token *oapi.Acce
 	return nil
 }
 
-func (s *UserConversion) ConvertFromAuthorizeToken(token *oapi.AuthorizeToken) (interface{}, error) {
+func (s *UserConversion) ConvertFromAuthorizeToken(token *oapi.OAuthAuthorizeToken) (interface{}, error) {
 	if token.UserName == "" {
 		return nil, errors.New("token has no user name stored")
 	}
@@ -52,7 +52,7 @@ func (s *UserConversion) ConvertFromAuthorizeToken(token *oapi.AuthorizeToken) (
 	}, nil
 }
 
-func (s *UserConversion) ConvertFromAccessToken(token *oapi.AccessToken) (interface{}, error) {
+func (s *UserConversion) ConvertFromAccessToken(token *oapi.OAuthAccessToken) (interface{}, error) {
 	if token.UserName == "" {
 		return nil, errors.New("token has no user name stored")
 	}
