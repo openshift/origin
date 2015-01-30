@@ -39,7 +39,11 @@ iptables -I INPUT $lineno -p udp -m multiport --dports 4789 -m comment --comment
 
 
 ## docker
-echo "OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'" >/etc/sysconfig/docker
+if [[ -z "${DOCKER_OPTIONS}" ]]
+then
+    DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'
+fi
+echo "OPTIONS='${DOCKER_OPTIONS}'" >/etc/sysconfig/docker
 systemctl daemon-reload
 systemctl restart docker.service
 
