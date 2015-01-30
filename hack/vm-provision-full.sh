@@ -1,13 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 IFS=$'\n\t'
+USERNAME="${1:-vagrant}"
 
 yum update -y
 yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg
 
 if [[ ! -d /data/src/github.com/openshift/origin ]]; then
   mkdir -p /data/src/github.com/openshift/origin
-  chown vagrant:vagrant /data/src/github.com/openshift/origin
+  chown $USERNAME:$USERNAME /data/src/github.com/openshift/origin
 fi
 
 function set_env {
@@ -22,13 +23,13 @@ function set_env {
   fi
 }
 
-set_env /home/vagrant
+set_env /home/$USERNAME
 set_env /root
 
 systemctl enable docker
 systemctl start docker
 
-usermod -a -G docker vagrant
+usermod -a -G docker $USERNAME
 
 echo To install etcd, run hack/install-etcd.sh
 
