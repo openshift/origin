@@ -9,7 +9,9 @@ FROM openshift/origin-base
 RUN mkdir -p /var/lib/openshift
 
 ADD bin/openshift        /usr/bin/openshift
-RUN ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
+RUN ln -s /usr/bin/openshift /usr/bin/osc && \
+    ln -s /usr/bin/openshift /usr/bin/openshift-experimental && \
+    ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
     ln -s /usr/bin/openshift /usr/bin/openshift-docker-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-router
