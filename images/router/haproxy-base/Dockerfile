@@ -11,7 +11,7 @@ RUN yum install -y gcc make openssl-devel pcre-devel tar wget socat && \
     tar xvzf haproxy-1.5.10.tar.gz && \
     groupadd haproxy && \
     useradd -g haproxy haproxy && \
-    cd haproxy-1.5.10 && make TARGET=linux2628 CPU=native USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 && make install && \
+    cd haproxy-1.5.10 && make TARGET=linux2628 CPU=generic USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 && make install && \
     cd .. && rm -rf haproxy-1.5.10 && \
     mkdir -p /usr/bin && \
     mkdir -p /var/lib/containers/router/{certs,cacerts} && \
