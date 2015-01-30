@@ -43,7 +43,17 @@ if [[ -z "${DOCKER_OPTIONS}" ]]
 then
     DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'
 fi
-echo "OPTIONS='${DOCKER_OPTIONS}'" >/etc/sysconfig/docker
+
+if ! grep -q "^OPTIONS='${DOCKER_OPTIONS}'" /etc/sysconfig/docker
+then
+    cat <<EOF > /etc/sysconfig/docker
+# This file has been modified by openshift-sdn. Please modify the
+# DOCKER_OPTIONS variable in the /etc/sysconfig/openshift-sdn-node
+# or /etc/sysconfig/openshift-sdn-master files.
+
+OPTIONS='${DOCKER_OPTIONS}'
+EOF
+fi
 systemctl daemon-reload
 systemctl restart docker.service
 
