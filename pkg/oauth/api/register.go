@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	api.Scheme.AddKnownTypes("v1beta1",
+	api.Scheme.AddKnownTypes("",
 		&AccessToken{},
 		&AccessTokenList{},
 		&AuthorizeToken{},
