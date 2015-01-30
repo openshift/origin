@@ -48,8 +48,9 @@ if ! grep -q "^OPTIONS='${DOCKER_OPTIONS}'" /etc/sysconfig/docker
 then
     cat <<EOF > /etc/sysconfig/docker
 # This file has been modified by openshift-sdn. Please modify the
-# DOCKER_OPTIONS variable in the /etc/sysconfig/openshift-sdn-node
-# or /etc/sysconfig/openshift-sdn-master files.
+# DOCKER_OPTIONS variable in the /etc/sysconfig/openshift-sdn-node,
+# /etc/sysconfig/openshift-sdn-master or /etc/sysconfig/openshift-sdn
+# files (depending on your setup).
 
 OPTIONS='${DOCKER_OPTIONS}'
 EOF

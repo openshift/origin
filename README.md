@@ -27,7 +27,7 @@ Create an openshift cluster on your desktop using vagrant:
 
 ##### Manually add minions to a master
 
-Steps to create manually create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have compiled openshift and openshift-sdn already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Also ensure 'openvswitch' is installed and running (yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch).
+Steps to create manually create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have compiled `openshift` and `openshift-sdn` already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Ensure 'openvswitch' is installed and running (`yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch`). Also verify that the `DOCKER_OPTIONS` variable is unset in your environment, or set to a known-working value (e.g. `DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'`). If you don't know what to put there, it's probably best to leave it unset. :)
 
 On OpenShift master,
 
