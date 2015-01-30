@@ -81,7 +81,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
       config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{ENV['OPENSHIFT_SDN']}"
-      config.vm.network "private_network", ip: "#{master_ip}"
+      config.vm.network "private_network", ip: "#{master_ip}", netmask: "255.255.0.0"
       config.vm.hostname = "openshift-master"
     end
 
@@ -93,7 +93,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
         minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{minion_ip} #{minion_index} #{ENV['OPENSHIFT_SDN']}"
-        minion.vm.network "private_network", ip: "#{minion_ip}"
+        minion.vm.network "private_network", ip: "#{minion_ip}", netmask: "255.255.0.0"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
       end
     end
