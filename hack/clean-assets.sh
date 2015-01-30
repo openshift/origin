@@ -10,11 +10,11 @@ pushd ${OS_ROOT}/assets > /dev/null
   rm -rf bower_components/*
   rm -rf node_components/*
   rm -rf dist/*
-  
+
   if which bower > /dev/null 2>&1 ; then
     # In case upstream components change things without incrementing versions
     echo "Clearing bower cache..."
-    bower cache clean
+    bower cache clean --allow-root
   else
     echo "Skipping bower cache clean, bower not installed."
   fi
