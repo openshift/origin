@@ -93,8 +93,6 @@ type MasterConfig struct {
 	KubernetesPublicAddr string
 	AssetPublicAddr      string
 
-	TLS bool
-
 	CORSAllowedOrigins []*regexp.Regexp
 	Authenticator      authenticator.Request
 
@@ -102,6 +100,8 @@ type MasterConfig struct {
 
 	Authorizer       authorizer.Authorizer
 	AdmissionControl admission.Interface
+
+	TLS bool
 
 	MasterCertFile string
 	MasterKeyFile  string

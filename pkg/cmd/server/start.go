@@ -17,6 +17,7 @@ import (
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -25,6 +26,7 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/api"
@@ -106,6 +108,11 @@ type config struct {
 
 	NodeList flagtypes.StringList
 
+	// ClientConfig is used when connecting to Kubernetes from the master, or
+	// when connecting to the master from a detached node. If the server is an
+	// all-in-one, this value is not used.
+	ClientConfig clientcmd.ClientConfig
+
 	CORSAllowedOrigins flagtypes.StringList
 }
 
@@ -161,9 +168,25 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
+	cfg.ClientConfig = defaultClientConfig(flag)
+
 	cfg.Docker.InstallFlags(flag)
 
 	return cmd
+}
+
+// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
+// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
+func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
+	clientcmd.DefaultCluster.Server = "https://localhost:8443"
+	loadingRules := clientcmd.NewClientConfigLoadingRules()
+	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for connecting to the master.")
+
+	overrides := &clientcmd.ConfigOverrides{}
+	//clientcmd.BindOverrideFlags(overrides, flags, clientcmd.RecommendedConfigOverrideFlags(""))
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+	return clientConfig
 }
 
 // run launches the appropriate startup modes or returns an error.
@@ -192,7 +215,10 @@ func start(cfg *config, args []string) error {
 			if err := defaultMasterAddress(cfg); err != nil {
 				return err
 			}
-			glog.Infof("Starting an OpenShift node, connecting to %s (etcd: %s)", cfg.MasterAddr.String(), cfg.EtcdAddr.String())
+			if !cfg.KubernetesAddr.Provided {
+				cfg.KubernetesAddr = cfg.MasterAddr
+			}
+			glog.Infof("Starting an OpenShift node, connecting to %s", cfg.MasterAddr.String())
 
 		default:
 			return errors.New("You may start an OpenShift all-in-one server with no arguments, or pass 'master' or 'node' to run in that role.")
@@ -224,6 +250,9 @@ func start(cfg *config, args []string) error {
 			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
 		}()
 	}
+
+	// the node can reuse an existing client
+	var existingKubeClient *kclient.Client
 
 	if startMaster {
 		if len(cfg.NodeList) == 1 && cfg.NodeList[0] == "127.0.0.1" {
@@ -310,11 +339,7 @@ func start(cfg *config, args []string) error {
 			}
 		} else {
 			// We're running against another kubernetes server
-			// TODO: configure external kubernetes credentials
-			osmaster.KubeClientConfig = kclient.Config{
-				Host:    cfg.KubernetesAddr.URL.String(),
-				Version: klatest.Version,
-			}
+			osmaster.KubeClientConfig = *clientConfigFromKubeConfig(cfg)
 		}
 
 		// Build token auth for user's OAuth tokens
@@ -495,18 +520,23 @@ func start(cfg *config, args []string) error {
 		osmaster.RunDeploymentConfigController()
 		osmaster.RunDeploymentConfigChangeController()
 		osmaster.RunDeploymentImageChangeTriggerController()
+
+		existingKubeClient = osmaster.KubeClient()
 	}
 
 	if startNode {
-		etcdClient, err := getEtcdClient(cfg)
-		if err != nil {
-			return err
+		if existingKubeClient == nil {
+			config := clientConfigFromKubeConfig(cfg)
+			cli, err := kclient.New(config)
+			if err != nil {
+				glog.Fatalf("Unable to create a client: %v", err)
+			}
+			existingKubeClient = cli
 		}
 
 		if !startMaster {
 			// TODO: recording should occur in individual components
-			// TODO: need an API client in the Kubelet
-			// record.StartRecording(osmaster.KubeClient().Events(""), kapi.EventSource{Component: "node"})
+			record.StartRecording(existingKubeClient.Events(""), kapi.EventSource{Component: "node"})
 		}
 
 		nodeConfig := &kubernetes.NodeConfig{
@@ -518,7 +548,7 @@ func start(cfg *config, args []string) error {
 
 			NetworkContainerImage: env("KUBERNETES_NETWORK_CONTAINER_IMAGE", kubelet.NetworkContainerImage),
 
-			EtcdClient: etcdClient,
+			Client: existingKubeClient,
 		}
 
 		nodeConfig.EnsureVolumeDir()
@@ -609,6 +639,23 @@ func defaultMasterAddress(cfg *config) error {
 		}
 	}
 	return nil
+}
+
+// clientConfigFromKubeConfig reads the client configuration settings for connecting to
+// a Kubernetes master.
+func clientConfigFromKubeConfig(cfg *config) *kclient.Config {
+	config, err := cfg.ClientConfig.ClientConfig()
+	if err != nil {
+		glog.Fatalf("Unable to read client configuration: %v", err)
+	}
+	if len(config.Version) == 0 {
+		config.Version = klatest.Version
+	}
+	kclient.SetKubernetesDefaults(config)
+	if cfg.KubernetesAddr.Provided {
+		config.Host = cfg.KubernetesAddr.URL.String()
+	}
+	return config
 }
 
 // env returns an environment variable or a default value if not specified.
