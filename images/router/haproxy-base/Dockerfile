@@ -7,12 +7,12 @@
 FROM openshift/origin-base
 
 RUN yum install -y gcc make openssl-devel pcre-devel tar wget socat && \
-    wget http://haproxy.1wt.eu/download/1.5/src/snapshot/haproxy-ss-LATEST.tar.gz  && \
-    tar xvzf haproxy-ss-LATEST.tar.gz && \
+    wget http://www.haproxy.org/download/1.5/src/haproxy-1.5.10.tar.gz  && \
+    tar xvzf haproxy-1.5.10.tar.gz && \
     groupadd haproxy && \
     useradd -g haproxy haproxy && \
-    cd haproxy-ss-* && make TARGET=linux2628 CPU=native USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 && make install && \
-    cd .. && rm -rf haproxy-ss-* && \
+    cd haproxy-1.5.10 && make TARGET=linux2628 CPU=native USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 && make install && \
+    cd .. && rm -rf haproxy-1.5.10 && \
     mkdir -p /usr/bin && \
     mkdir -p /var/lib/containers/router/{certs,cacerts} && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \
