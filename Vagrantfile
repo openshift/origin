@@ -97,7 +97,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
 
-  if vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
+  dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
+  if dev_cluster
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
 
@@ -175,8 +176,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # ################################
     # Set VirtualBox provider settings
     config.vm.provider "virtualbox" do |v, override|
-      override.vm.box     = vagrant_openshift_config['virtualbox']['box_name']
-      override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url']
+      override.vm.box     = vagrant_openshift_config['virtualbox']['box_name'] unless dev_cluster
+      override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url'] unless dev_cluster
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
 
       v.memory            = vagrant_openshift_config['memory']
