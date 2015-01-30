@@ -28,8 +28,12 @@ echo "[INFO] Starting end-to-end test"
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 
-TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${BASETMPDIR:-$(mktemp -d ${TMPDIR}/openshift-e2e.XXXX)}"
+if [[ -z "${BASETMPDIR-}" ]]; then
+  TMPDIR="${TMPDIR:-"/tmp"}"
+  BASETMPDIR="${TMPDIR}/openshift-e2e"
+  sudo rm -rf "${BASETMPDIR}"
+  mkdir -p "${BASETMPDIR}"
+fi
 ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 VOLUME_DIR="${BASETMPDIR}/volumes"
 CERT_DIR="${BASETMPDIR}/certs"
@@ -91,7 +95,7 @@ function cleanup()
   if [ "$SKIP_TEARDOWN" != "1" ]; then
     set +e
     echo "[INFO] Tearing down test"
-    pkill -P $$
+    sudo pkill -P $$
     echo "[INFO] Stopping docker containers"; docker ps -aq | xargs -l -r docker stop
     set +u
     if [ "$SKIP_IMAGE_CLEANUP" != "1" ]; then
