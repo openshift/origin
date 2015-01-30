@@ -27,9 +27,6 @@ import (
 )
 
 func filenamesFromDir(dir string) (string, string, string) {
-	if absdir, err := filepath.Abs(dir); err == nil {
-		dir = absdir
-	}
 	return filepath.Join(dir, "root.crt"), filepath.Join(dir, "cert.crt"), filepath.Join(dir, "key.key")
 }
 
@@ -156,21 +153,34 @@ func writeKubeConfigToDir(client *kclient.Config, username string, dir string) e
 		return err
 	}
 
+	caFile, err := filepath.Rel(dir, client.CAFile)
+	if err != nil {
+		return err
+	}
+	certFile, err := filepath.Rel(dir, client.CertFile)
+	if err != nil {
+		return err
+	}
+	keyFile, err := filepath.Rel(dir, client.KeyFile)
+	if err != nil {
+		return err
+	}
+
 	clusterName := "master"
 	contextName := clusterName + "-" + username
 	config := &clientcmdapi.Config{
 		Clusters: map[string]clientcmdapi.Cluster{
 			clusterName: {
 				Server:                client.Host,
-				CertificateAuthority:  client.CAFile,
+				CertificateAuthority:  caFile,
 				InsecureSkipTLSVerify: client.Insecure,
 			},
 		},
 		AuthInfos: map[string]clientcmdapi.AuthInfo{
 			username: {
 				Token:             client.BearerToken,
-				ClientCertificate: client.CertFile,
-				ClientKey:         client.KeyFile,
+				ClientCertificate: certFile,
+				ClientKey:         keyFile,
 			},
 		},
 		Contexts: map[string]clientcmdapi.Context{
