@@ -39,6 +39,12 @@ func (r *Etcd) GetUser(name string) (user *api.User, err error) {
 	return
 }
 
+func (r *Etcd) GetUserIdentityMapping(name string) (mapping *api.UserIdentityMapping, err error) {
+	mapping = &api.UserIdentityMapping{}
+	err = r.ExtractObj(makeUserKey(name), mapping, false)
+	return
+}
+
 // CreateOrUpdateUserIdentityMapping implements useridentitymapping.Registry
 func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, bool, error) {
 	// Create Identity.Name by combining Provider and UserName
