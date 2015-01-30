@@ -39,6 +39,16 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 	if err != nil {
 		return nil, err
 	}
+
+	containerEnv := []kapi.EnvVar{
+		{Name: "BUILD", Value: string(data)},
+		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+	}
+
+	if strategy := build.Parameters.Strategy.STIStrategy; len(strategy.Env) > 0 {
+		containerEnv = append(containerEnv, strategy.Env...)
+	}
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: build.PodName,
@@ -48,9 +58,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 				{
 					Name:  "sti-build",
 					Image: bs.Image,
-					Env: []kapi.EnvVar{
-						{Name: "BUILD", Value: string(data)},
-					},
+					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,
 				},
