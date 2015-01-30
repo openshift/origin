@@ -20,7 +20,7 @@ func DescriberFor(kind string, c *client.Client, host string) (kctl.Describer, b
 	case "Deployment":
 		return &DeploymentDescriber{c}, true
 	case "DeploymentConfig":
-		return &DeploymentConfigDescriber{c}, true
+		return NewDeploymentConfigDescriber(c), true
 	case "Image":
 		return &ImageDescriber{c}, true
 	case "ImageRepository":
@@ -153,57 +153,6 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		formatMeta(out, buildConfig.ObjectMeta)
 		buildDescriber.DescribeParameters(buildConfig.Parameters, out)
 		d.DescribeTriggers(buildConfig, d.host, out)
-		return nil
-	})
-}
-
-// DeploymentDescriber generates information about a deployment
-type DeploymentDescriber struct {
-	client.Interface
-}
-
-func (d *DeploymentDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Deployments(namespace)
-	deployment, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, deployment.ObjectMeta)
-		formatString(out, "Status", bold(deployment.Status))
-		formatString(out, "Strategy", deployment.Strategy.Type)
-		causes := []string{}
-		if deployment.Details != nil {
-			for _, c := range deployment.Details.Causes {
-				causes = append(causes, string(c.Type))
-			}
-		}
-		formatString(out, "Causes", strings.Join(causes, ","))
-		return nil
-	})
-}
-
-// DeploymentConfigDescriber generates information about a DeploymentConfig
-type DeploymentConfigDescriber struct {
-	client.Interface
-}
-
-func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
-	c := d.DeploymentConfigs(namespace)
-	deploymentConfig, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, deploymentConfig.ObjectMeta)
-		formatString(out, "Latest Version", deploymentConfig.LatestVersion)
-		triggers := []string{}
-		for _, t := range deploymentConfig.Triggers {
-			triggers = append(triggers, string(t.Type))
-		}
-		formatString(out, "Triggers", strings.Join(triggers, ","))
 		return nil
 	})
 }

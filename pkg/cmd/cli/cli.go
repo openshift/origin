@@ -71,6 +71,8 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdStartBuild(f, out))
 	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
 
+	cmds.AddCommand(cmd.NewCmdRollback(name, "rollback", f, out))
+
 	return cmds
 }
 

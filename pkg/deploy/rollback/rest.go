@@ -63,7 +63,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 
 	if errs := validation.ValidateDeploymentConfigRollback(rollback); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("deploymentConfigRollback", "", errs)
+		return nil, kerrors.NewInvalid("DeploymentConfigRollback", "", errs)
 	}
 
 	// Roll back "from" the current deployment "to" a target deployment
@@ -71,23 +71,35 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	// Find the target ("to") deployment and decode the DeploymentConfig
 	targetDeployment, err := s.generator.GetDeployment(ctx, rollback.Spec.From.Name)
 	if err != nil {
-		// TODO: correct error type?
-		return nil, kerrors.NewBadRequest(fmt.Sprintf("Couldn't get specified deployment: %v", err))
+		if kerrors.IsNotFound(err) {
+			return nil, newInvalidDeploymentError(rollback, "Deployment not found")
+		}
+		return nil, newInvalidDeploymentError(rollback, fmt.Sprintf("%v", err))
 	}
+
 	to, err := deployutil.DecodeDeploymentConfig(targetDeployment, s.codec)
 	if err != nil {
-		// TODO: correct error type?
-		return nil, kerrors.NewBadRequest(fmt.Sprintf("deploymentConfig on target deployment is invalid: %v", err))
+		return nil, newInvalidDeploymentError(rollback,
+			fmt.Sprintf("Couldn't decode deploymentConfig from deployment: %v", err))
 	}
 
 	// Find the current ("from") version of the target deploymentConfig
 	from, err := s.generator.GetDeploymentConfig(ctx, to.Name)
 	if err != nil {
-		// TODO: correct error type?
-		return nil, kerrors.NewBadRequest(fmt.Sprintf("Couldn't find current deploymentConfig %s/%s: %v", targetDeployment.Namespace, to.Name, err))
+		if kerrors.IsNotFound(err) {
+			return nil, newInvalidDeploymentError(rollback,
+				fmt.Sprintf("Couldn't find a current deploymentConfig %s/%s", targetDeployment.Namespace, to.Name))
+		}
+		return nil, newInvalidDeploymentError(rollback,
+			fmt.Sprintf("Error finding current deploymentConfig %s/%s: %v", targetDeployment.Namespace, to.Name, err))
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return s.generator.GenerateRollback(from, to, &rollback.Spec)
 	}), nil
+}
+
+func newInvalidDeploymentError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
+	err := kerrors.NewFieldInvalid("spec.from.name", rollback.Spec.From.Name, reason)
+	return kerrors.NewInvalid("DeploymentConfigRollback", "", kerrors.ValidationErrorList{err})
 }

@@ -6,6 +6,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/openshift/origin/pkg/client"
+
+	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
 )
 
 type describeClient struct {
@@ -37,7 +39,6 @@ func TestDescribers(t *testing.T) {
 		&BuildDescriber{c},
 		&BuildConfigDescriber{c, ""},
 		&DeploymentDescriber{c},
-		&DeploymentConfigDescriber{c},
 		&ImageDescriber{c},
 		&ImageRepositoryDescriber{c},
 		&RouteDescriber{c},
@@ -53,4 +54,25 @@ func TestDescribers(t *testing.T) {
 			t.Errorf("unexpected out: %s", out)
 		}
 	}
+}
+
+func TestDeploymentConfigDescriber(t *testing.T) {
+	config := deployapitest.OkDeploymentConfig(0)
+	d := NewDeploymentConfigDescriberForConfig(config)
+
+	describe := func() {
+		if output, err := d.Describe("test", "deployment"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		} else {
+			t.Logf("describer output:\n%s\n", output)
+		}
+	}
+
+	describe()
+
+	config.Triggers = append(config.Triggers, deployapitest.OkConfigChangeTrigger())
+	describe()
+
+	config.Template.Strategy = deployapitest.OkCustomStrategy()
+	describe()
 }
