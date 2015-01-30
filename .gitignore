@@ -8,3 +8,4 @@
 .vimrc
 .vagrant-openshift.json
 .DS_Store
+*.pyc
