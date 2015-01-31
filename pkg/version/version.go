@@ -1,7 +1,5 @@
 package version
 
-import ()
-
 var (
 	// commitFromGit is a constant representing the source version that
 	// generated this build. It should be set during build via -ldflags.
