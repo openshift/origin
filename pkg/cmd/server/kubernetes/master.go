@@ -29,6 +29,7 @@ const (
 	KubeAPIPrefix        = "/api"
 	KubeAPIPrefixV1Beta1 = "/api/v1beta1"
 	KubeAPIPrefixV1Beta2 = "/api/v1beta2"
+	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
 )
 
 // MasterConfig defines the required values to start a Kubernetes master
@@ -81,6 +82,10 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		EtcdHelper:         c.EtcdHelper,
 		HealthCheckMinions: true,
 
+		EventTTL: 2 * time.Hour,
+
+		EnableV1Beta3: true,
+
 		PortalNet: c.PortalNet,
 
 		RestfulContainer: container,
@@ -95,6 +100,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	return []string{
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta2),
+		fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1Beta3),
 	}
 }
 
