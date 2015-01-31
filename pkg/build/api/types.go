@@ -332,3 +332,9 @@ type GitInfo struct {
 	GitBuildSource    `json:",inline"`
 	GitSourceRevision `json:",inline"`
 }
+
+// BuildLog is the (unused) resource associated with the build log redirector
+type BuildLog struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+}

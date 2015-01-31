@@ -35,6 +35,7 @@ func init() {
 }
 
 func TestListBuilds(t *testing.T) {
+
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
@@ -49,6 +50,7 @@ func TestListBuilds(t *testing.T) {
 }
 
 func TestCreateBuild(t *testing.T) {
+
 	deleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
@@ -192,7 +194,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	}
 
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, osMux, "/osapi", "v1beta1")
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,

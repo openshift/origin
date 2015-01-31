@@ -314,6 +314,30 @@ func init() {
 			}
 			return nil
 		},
+		func(in *newer.PodStatusResult, out *PodStatusResult, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.State, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PodStatusResult, out *newer.PodStatusResult, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.State, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
 
 		func(in *newer.ReplicationController, out *ReplicationController, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
@@ -562,7 +586,6 @@ func init() {
 			return nil
 		},
 
-		// Event Status <-> Condition
 		// Event Source <-> Source.Component
 		// Event Host <-> Source.Host
 		// TODO: remove this when it becomes possible to specify a field name conversion on a specific type
@@ -573,7 +596,6 @@ func init() {
 			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
-			out.Status = in.Condition
 			out.Reason = in.Reason
 			out.Message = in.Message
 			out.Source = in.Source.Component
@@ -588,7 +610,6 @@ func init() {
 			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
 				return err
 			}
-			out.Condition = in.Status
 			out.Reason = in.Reason
 			out.Message = in.Message
 			out.Source.Component = in.Source
@@ -648,6 +669,74 @@ func init() {
 				} else {
 					(*out)[ResourceName(k)] = util.NewIntOrStringFromInt(int(v.Value()))
 				}
+			}
+			return nil
+		},
+
+		// VolumeSource's HostDir is deprecated in favor of HostPath.
+		// TODO: It would be great if I could just map field names to
+		// convert or else maybe say "convert all members of this
+		// struct" and then fix up only the stuff that changed.
+		func(in *newer.VolumeSource, out *VolumeSource, s conversion.Scope) error {
+			if err := s.Convert(&in.EmptyDir, &out.EmptyDir, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GitRepo, &out.GitRepo, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GCEPersistentDisk, &out.GCEPersistentDisk, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.HostPath, &out.HostDir, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *VolumeSource, out *newer.VolumeSource, s conversion.Scope) error {
+			if err := s.Convert(&in.EmptyDir, &out.EmptyDir, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GitRepo, &out.GitRepo, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GCEPersistentDisk, &out.GCEPersistentDisk, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.HostDir, &out.HostPath, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+
+		func(in *newer.PullPolicy, out *PullPolicy, s conversion.Scope) error {
+			switch *in {
+			case newer.PullAlways:
+				*out = PullAlways
+			case newer.PullNever:
+				*out = PullNever
+			case newer.PullIfNotPresent:
+				*out = PullIfNotPresent
+			case "":
+				*out = ""
+			default:
+				// Let unknown values through - they will get caught by validation
+				*out = PullPolicy(*in)
+			}
+			return nil
+		},
+		func(in *PullPolicy, out *newer.PullPolicy, s conversion.Scope) error {
+			switch *in {
+			case PullAlways:
+				*out = newer.PullAlways
+			case PullNever:
+				*out = newer.PullNever
+			case PullIfNotPresent:
+				*out = newer.PullIfNotPresent
+			case "":
+				*out = ""
+			default:
+				// Let unknown values through - they will get caught by validation
+				*out = newer.PullPolicy(*in)
 			}
 			return nil
 		},

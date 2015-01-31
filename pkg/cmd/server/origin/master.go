@@ -12,7 +12,7 @@ import (
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/elazarl/go-bindata-assetfs"
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -285,7 +285,9 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 	admissionControl := admit.NewAlwaysAdmit()
 
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl).InstallREST(container, OpenShiftAPIPrefix, "v1beta1")
+	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl).InstallREST(container, container.ServeMux, OpenShiftAPIPrefix, "v1beta1"); err != nil {
+		glog.Fatalf("Unable to initialize API: %v", err)
+	}
 
 	var root *restful.WebService
 	for _, svc := range container.RegisteredWebServices() {

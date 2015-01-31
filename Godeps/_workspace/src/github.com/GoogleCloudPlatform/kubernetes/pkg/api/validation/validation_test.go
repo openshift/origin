@@ -53,7 +53,7 @@ func TestValidateLabels(t *testing.T) {
 		{"1.2.3.4/5678": "bar"},
 	}
 	for i := range successCases {
-		errs := validateLabels(successCases[i], "field")
+		errs := ValidateLabels(successCases[i], "field")
 		if len(errs) != 0 {
 			t.Errorf("case[%d] expected success, got %#v", i, errs)
 		}
@@ -67,7 +67,7 @@ func TestValidateLabels(t *testing.T) {
 		{strings.Repeat("a", 254): "bar"},
 	}
 	for i := range errorCases {
-		errs := validateLabels(errorCases[i], "field")
+		errs := ValidateLabels(errorCases[i], "field")
 		if len(errs) != 1 {
 			t.Errorf("case[%d] expected failure", i)
 		}
@@ -77,11 +77,11 @@ func TestValidateLabels(t *testing.T) {
 func TestValidateVolumes(t *testing.T) {
 	successCase := []api.Volume{
 		{Name: "abc"},
-		{Name: "123", Source: &api.VolumeSource{HostDir: &api.HostDir{"/mnt/path2"}}},
-		{Name: "abc-123", Source: &api.VolumeSource{HostDir: &api.HostDir{"/mnt/path3"}}},
-		{Name: "empty", Source: &api.VolumeSource{EmptyDir: &api.EmptyDir{}}},
-		{Name: "gcepd", Source: &api.VolumeSource{GCEPersistentDisk: &api.GCEPersistentDisk{"my-PD", "ext4", 1, false}}},
-		{Name: "gitrepo", Source: &api.VolumeSource{GitRepo: &api.GitRepo{"my-repo", "hashstring"}}},
+		{Name: "123", Source: api.VolumeSource{HostPath: &api.HostPath{"/mnt/path2"}}},
+		{Name: "abc-123", Source: api.VolumeSource{HostPath: &api.HostPath{"/mnt/path3"}}},
+		{Name: "empty", Source: api.VolumeSource{EmptyDir: &api.EmptyDir{}}},
+		{Name: "gcepd", Source: api.VolumeSource{GCEPersistentDisk: &api.GCEPersistentDisk{"my-PD", "ext4", 1, false}}},
+		{Name: "gitrepo", Source: api.VolumeSource{GitRepo: &api.GitRepo{"my-repo", "hashstring"}}},
 	}
 	names, errs := validateVolumes(successCase)
 	if len(errs) != 0 {
@@ -218,6 +218,54 @@ func TestValidateVolumeMounts(t *testing.T) {
 			t.Errorf("expected failure for %s", k)
 		}
 	}
+}
+
+func TestValidatePullPolicy(t *testing.T) {
+	type T struct {
+		Container      api.Container
+		ExpectedPolicy api.PullPolicy
+	}
+	testCases := map[string]T{
+		"NotPresent1": {
+			api.Container{Name: "abc", Image: "image:latest", ImagePullPolicy: "IfNotPresent"},
+			api.PullIfNotPresent,
+		},
+		"NotPresent2": {
+			api.Container{Name: "abc1", Image: "image", ImagePullPolicy: "IfNotPresent"},
+			api.PullIfNotPresent,
+		},
+		"Always1": {
+			api.Container{Name: "123", Image: "image:latest", ImagePullPolicy: "Always"},
+			api.PullAlways,
+		},
+		"Always2": {
+			api.Container{Name: "1234", Image: "image", ImagePullPolicy: "Always"},
+			api.PullAlways,
+		},
+		"Never1": {
+			api.Container{Name: "abc-123", Image: "image:latest", ImagePullPolicy: "Never"},
+			api.PullNever,
+		},
+		"Never2": {
+			api.Container{Name: "abc-1234", Image: "image", ImagePullPolicy: "Never"},
+			api.PullNever,
+		},
+		"DefaultToNotPresent":  {api.Container{Name: "notPresent", Image: "image"}, api.PullIfNotPresent},
+		"DefaultToNotPresent2": {api.Container{Name: "notPresent1", Image: "image:sometag"}, api.PullIfNotPresent},
+		"DefaultToAlways1":     {api.Container{Name: "always", Image: "image:latest"}, api.PullAlways},
+		"DefaultToAlways2":     {api.Container{Name: "always", Image: "foo.bar.com:5000/my/image:latest"}, api.PullAlways},
+	}
+	for k, v := range testCases {
+		ctr := &v.Container
+		errs := validatePullPolicyWithDefault(ctr)
+		if len(errs) != 0 {
+			t.Errorf("case[%s] expected success, got %#v", k, errs)
+		}
+		if ctr.ImagePullPolicy != v.ExpectedPolicy {
+			t.Errorf("case[%s] expected policy %v, got %v", k, v.ExpectedPolicy, ctr.ImagePullPolicy)
+		}
+	}
+
 }
 
 func TestValidateContainers(t *testing.T) {
@@ -366,8 +414,8 @@ func TestValidateManifest(t *testing.T) {
 		{
 			Version: "v1beta1",
 			ID:      "abc",
-			Volumes: []api.Volume{{Name: "vol1", Source: &api.VolumeSource{HostDir: &api.HostDir{"/mnt/vol1"}}},
-				{Name: "vol2", Source: &api.VolumeSource{HostDir: &api.HostDir{"/mnt/vol2"}}}},
+			Volumes: []api.Volume{{Name: "vol1", Source: api.VolumeSource{HostPath: &api.HostPath{"/mnt/vol1"}}},
+				{Name: "vol2", Source: api.VolumeSource{HostPath: &api.HostPath{"/mnt/vol2"}}}},
 			Containers: []api.Container{
 				{
 					Name:       "abc",
@@ -878,7 +926,10 @@ func TestValidateService(t *testing.T) {
 			},
 			existing: api.ServiceList{
 				Items: []api.Service{
-					{Spec: api.ServiceSpec{Port: 80, CreateExternalLoadBalancer: true}},
+					{
+						ObjectMeta: api.ObjectMeta{Name: "def123", Namespace: api.NamespaceDefault},
+						Spec:       api.ServiceSpec{Port: 80, CreateExternalLoadBalancer: true},
+					},
 				},
 			},
 			numErrs: 1,
@@ -895,7 +946,10 @@ func TestValidateService(t *testing.T) {
 			},
 			existing: api.ServiceList{
 				Items: []api.Service{
-					{Spec: api.ServiceSpec{Port: 80}},
+					{
+						ObjectMeta: api.ObjectMeta{Name: "def123", Namespace: api.NamespaceDefault},
+						Spec:       api.ServiceSpec{Port: 80},
+					},
 				},
 			},
 			numErrs: 0,
@@ -911,7 +965,10 @@ func TestValidateService(t *testing.T) {
 			},
 			existing: api.ServiceList{
 				Items: []api.Service{
-					{Spec: api.ServiceSpec{Port: 80, CreateExternalLoadBalancer: true}},
+					{
+						ObjectMeta: api.ObjectMeta{Name: "def123", Namespace: api.NamespaceDefault},
+						Spec:       api.ServiceSpec{Port: 80, CreateExternalLoadBalancer: true},
+					},
 				},
 			},
 			numErrs: 0,
@@ -927,7 +984,10 @@ func TestValidateService(t *testing.T) {
 			},
 			existing: api.ServiceList{
 				Items: []api.Service{
-					{Spec: api.ServiceSpec{Port: 80}},
+					{
+						ObjectMeta: api.ObjectMeta{Name: "def123", Namespace: api.NamespaceDefault},
+						Spec:       api.ServiceSpec{Port: 80},
+					},
 				},
 			},
 			numErrs: 0,
@@ -1001,7 +1061,7 @@ func TestValidateReplicationController(t *testing.T) {
 	invalidVolumePodTemplate := api.PodTemplate{
 		Spec: api.PodTemplateSpec{
 			Spec: api.PodSpec{
-				Volumes: []api.Volume{{Name: "gcepd", Source: &api.VolumeSource{GCEPersistentDisk: &api.GCEPersistentDisk{"my-PD", "ext4", 1, false}}}},
+				Volumes: []api.Volume{{Name: "gcepd", Source: api.VolumeSource{GCEPersistentDisk: &api.GCEPersistentDisk{"my-PD", "ext4", 1, false}}}},
 			},
 		},
 	}
@@ -1074,7 +1134,7 @@ func TestValidateReplicationController(t *testing.T) {
 				Selector: validSelector,
 			},
 		},
-		"read-write presistent disk": {
+		"read-write persistent disk": {
 			ObjectMeta: api.ObjectMeta{Name: "abc"},
 			Spec: api.ReplicationControllerSpec{
 				Selector: validSelector,

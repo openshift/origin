@@ -67,7 +67,8 @@ func NewCmdRollback(parentName string, name string, f *Factory, out io.Writer) *
 			osClient, _, err := f.Clients(cmd)
 			checkErr(err)
 
-			namespace := getOriginNamespace(cmd)
+			namespace, err := f.DefaultNamespace(cmd)
+			checkErr(err)
 
 			// Generate the rollback config
 			newConfig, err := osClient.DeploymentConfigs(namespace).Rollback(rollback)

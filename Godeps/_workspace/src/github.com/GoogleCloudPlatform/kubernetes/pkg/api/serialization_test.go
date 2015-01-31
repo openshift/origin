@@ -19,7 +19,6 @@ package api_test
 import (
 	"encoding/json"
 
-	"flag"
 	"math/rand"
 	"reflect"
 	"strconv"
@@ -37,6 +36,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	fuzz "github.com/google/gofuzz"
+	flag "github.com/spf13/pflag"
 	"speter.net/go/exp/math/dec/inf"
 )
 
@@ -146,7 +146,6 @@ func fuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 				c.RandString(): c.RandString(),
 			}
 		},
-
 		func(q *resource.Quantity, c fuzz.Continue) {
 			// Real Quantity fuzz testing is done elsewhere;
 			// this limited subset of functionality survives
@@ -156,6 +155,10 @@ func fuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			//q.Amount.SetScale(inf.Scale(-c.Intn(12)))
 			q.Amount.SetUnscaled(c.Int63n(1000))
 		},
+		func(p *api.PullPolicy, c fuzz.Continue) {
+			policies := []api.PullPolicy{api.PullAlways, api.PullNever, api.PullIfNotPresent}
+			*p = policies[c.Rand.Intn(len(policies))]
+		},
 	)
 	return f
 }
@@ -163,7 +166,7 @@ func fuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, seed int64) runtime.Object {
 	fuzzerFor(t, forVersion, rand.NewSource(seed)).Fuzz(item)
 
-	j, err := meta.Accessor(item)
+	j, err := meta.TypeAccessor(item)
 	if err != nil {
 		t.Fatalf("Unexpected error %v for %#v", err, item)
 	}
@@ -264,7 +267,7 @@ func TestRoundTripTypes(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Couldn't make a %v? %v", kind, err)
 			}
-			if _, err := meta.Accessor(item); err != nil {
+			if _, err := meta.TypeAccessor(item); err != nil {
 				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
 			}
 			roundTripSame(t, item)

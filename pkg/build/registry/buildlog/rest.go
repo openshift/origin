@@ -7,7 +7,6 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -35,7 +34,7 @@ func (r RealPodControl) getPod(namespace, name string) (*kapi.Pod, error) {
 }
 
 // NewREST creates a new REST for BuildLog
-// Takes build registry and pod client to get neccessary attibutes to assamble
+// Takes build registry and pod client to get necessary attributes to assemble
 // URL to which the request shall be redirected in order to get build logs.
 func NewREST(b build.Registry, pn kclient.PodsNamespacer) apiserver.RESTStorage {
 	return &REST{
@@ -99,25 +98,5 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 func (r *REST) New() runtime.Object {
-	return nil
-}
-
-func (*REST) NewList() runtime.Object {
-	return nil
-}
-
-func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	return nil, fmt.Errorf("BuildLog can't be listed")
-}
-
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("BuildLog can't be deleted")
-}
-
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("BuildLog can't be created")
-}
-
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("BuildLog can't be updated")
+	return &api.BuildLog{}
 }

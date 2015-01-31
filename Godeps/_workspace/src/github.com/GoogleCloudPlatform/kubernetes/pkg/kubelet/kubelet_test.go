@@ -18,6 +18,7 @@ package kubelet
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -32,9 +33,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/health"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume"
+	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/host_path"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/google/cadvisor/info"
 	"github.com/stretchr/testify/mock"
@@ -45,8 +47,7 @@ func init() {
 	util.ReallyCrash = true
 }
 
-func newTestKubelet(t *testing.T) (*Kubelet, *tools.FakeEtcdClient, *dockertools.FakeDockerClient) {
-	fakeEtcdClient := tools.NewFakeEtcdClient(t)
+func newTestKubelet(t *testing.T) (*Kubelet, *dockertools.FakeDockerClient) {
 	fakeDocker := &dockertools.FakeDockerClient{
 		RemovedImages: util.StringSet{},
 	}
@@ -54,11 +55,23 @@ func newTestKubelet(t *testing.T) (*Kubelet, *tools.FakeEtcdClient, *dockertools
 	kubelet := &Kubelet{}
 	kubelet.dockerClient = fakeDocker
 	kubelet.dockerPuller = &dockertools.FakeDockerPuller{}
-	kubelet.etcdClient = fakeEtcdClient
-	kubelet.rootDirectory = "/tmp/kubelet"
+	if tempDir, err := ioutil.TempDir("/tmp", "kubelet_test."); err != nil {
+		t.Fatalf("can't make a temp rootdir: %v", err)
+	} else {
+		kubelet.rootDirectory = tempDir
+	}
+	if err := os.MkdirAll(kubelet.rootDirectory, 0750); err != nil {
+		t.Fatalf("can't mkdir(%q): %v", kubelet.rootDirectory, err)
+	}
 	kubelet.podWorkers = newPodWorkers()
 	kubelet.sourceReady = func(source string) bool { return true }
-	return kubelet, fakeEtcdClient, fakeDocker
+	kubelet.masterServiceNamespace = api.NamespaceDefault
+	kubelet.serviceLister = testServiceLister{}
+	if err := kubelet.setupDataDirs(); err != nil {
+		t.Fatalf("can't initialize kubelet data dirs: %v", err)
+	}
+
+	return kubelet, fakeDocker
 }
 
 func verifyCalls(t *testing.T, fakeDocker *dockertools.FakeDockerClient, calls []string) {
@@ -89,33 +102,60 @@ func verifyBoolean(t *testing.T, expected, value bool) {
 }
 
 func TestKubeletDirs(t *testing.T) {
-	kubelet, _, _ := newTestKubelet(t)
+	kubelet, _ := newTestKubelet(t)
 	root := kubelet.rootDirectory
-	if err := os.MkdirAll(root, 0750); err != nil {
-		t.Fatalf("can't mkdir(%q): %s", root, err)
-	}
 
 	var exp, got string
 
-	got = kubelet.GetPodsDir()
+	got = kubelet.getPodsDir()
 	exp = path.Join(root, "pods")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodDir("abc123")
+	got = kubelet.getPluginsDir()
+	exp = path.Join(root, "plugins")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.getPluginDir("foobar")
+	exp = path.Join(root, "plugins/foobar")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.getPodDir("abc123")
 	exp = path.Join(root, "pods/abc123")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodVolumesDir("abc123")
+	got = kubelet.getPodVolumesDir("abc123")
 	exp = path.Join(root, "pods/abc123/volumes")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodContainerDir("abc123", "def456")
+	got = kubelet.getPodVolumeDir("abc123", "plugin", "foobar")
+	exp = path.Join(root, "pods/abc123/volumes/plugin/foobar")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.getPodPluginsDir("abc123")
+	exp = path.Join(root, "pods/abc123/plugins")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.getPodPluginDir("abc123", "foobar")
+	exp = path.Join(root, "pods/abc123/plugins/foobar")
+	if got != exp {
+		t.Errorf("expected %q', got %q", exp, got)
+	}
+
+	got = kubelet.getPodContainerDir("abc123", "def456")
 	exp = path.Join(root, "pods/abc123/containers/def456")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
@@ -123,7 +163,7 @@ func TestKubeletDirs(t *testing.T) {
 }
 
 func TestKubeletDirsCompat(t *testing.T) {
-	kubelet, _, _ := newTestKubelet(t)
+	kubelet, _ := newTestKubelet(t)
 	root := kubelet.rootDirectory
 	if err := os.MkdirAll(root, 0750); err != nil {
 		t.Fatalf("can't mkdir(%q): %s", root, err)
@@ -147,31 +187,31 @@ func TestKubeletDirsCompat(t *testing.T) {
 		t.Fatalf("can't mkdir(%q): %s", root, err)
 	}
 
-	got = kubelet.GetPodDir("oldpod")
+	got = kubelet.getPodDir("oldpod")
 	exp = path.Join(root, "oldpod")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodDir("newpod")
+	got = kubelet.getPodDir("newpod")
 	exp = path.Join(root, "pods/newpod")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodDir("bothpod")
+	got = kubelet.getPodDir("bothpod")
 	exp = path.Join(root, "pods/bothpod")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodDir("neitherpod")
+	got = kubelet.getPodDir("neitherpod")
 	exp = path.Join(root, "pods/neitherpod")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	root = kubelet.GetPodDir("newpod")
+	root = kubelet.getPodDir("newpod")
 
 	// Old-style container dir.
 	if err := os.MkdirAll(fmt.Sprintf("%s/oldctr", root), 0750); err != nil {
@@ -189,25 +229,25 @@ func TestKubeletDirsCompat(t *testing.T) {
 		t.Fatalf("can't mkdir(%q): %s", root, err)
 	}
 
-	got = kubelet.GetPodContainerDir("newpod", "oldctr")
+	got = kubelet.getPodContainerDir("newpod", "oldctr")
 	exp = path.Join(root, "oldctr")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodContainerDir("newpod", "newctr")
+	got = kubelet.getPodContainerDir("newpod", "newctr")
 	exp = path.Join(root, "containers/newctr")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodContainerDir("newpod", "bothctr")
+	got = kubelet.getPodContainerDir("newpod", "bothctr")
 	exp = path.Join(root, "containers/bothctr")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
 	}
 
-	got = kubelet.GetPodContainerDir("newpod", "neitherctr")
+	got = kubelet.getPodContainerDir("newpod", "neitherctr")
 	exp = path.Join(root, "containers/neitherctr")
 	if got != exp {
 		t.Errorf("expected %q', got %q", exp, got)
@@ -228,7 +268,7 @@ func TestKillContainerWithError(t *testing.T) {
 			},
 		},
 	}
-	kubelet, _, _ := newTestKubelet(t)
+	kubelet, _ := newTestKubelet(t)
 	kubelet.dockerClient = fakeDocker
 	err := kubelet.killContainer(&fakeDocker.ContainerList[0])
 	if err == nil {
@@ -238,7 +278,7 @@ func TestKillContainerWithError(t *testing.T) {
 }
 
 func TestKillContainer(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			ID:    "1234",
@@ -287,7 +327,7 @@ func (cr *channelReader) GetList() [][]api.BoundPod {
 }
 
 func TestSyncPodsDoesNothing(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	container := api.Container{Name: "bar"}
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
@@ -324,7 +364,7 @@ func TestSyncPodsDoesNothing(t *testing.T) {
 }
 
 func TestSyncPodsWithTerminationLog(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	container := api.Container{
 		Name: "bar",
 		TerminationMessagePath: "/dev/somepath",
@@ -354,7 +394,7 @@ func TestSyncPodsWithTerminationLog(t *testing.T) {
 
 	fakeDocker.Lock()
 	parts := strings.Split(fakeDocker.Container.HostConfig.Binds[0], ":")
-	if !matchString(t, kubelet.GetPodContainerDir("12345678", "bar")+"/k8s_bar\\.[a-f0-9]", parts[0]) {
+	if !matchString(t, kubelet.getPodContainerDir("12345678", "bar")+"/k8s_bar\\.[a-f0-9]", parts[0]) {
 		t.Errorf("Unexpected host path: %s", parts[0])
 	}
 	if parts[1] != "/dev/somepath" {
@@ -385,7 +425,7 @@ func matchString(t *testing.T, pattern, str string) bool {
 }
 
 func TestSyncPodsCreatesNetAndContainer(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.networkContainerImage = "custom_image_name"
 	fakeDocker.ContainerList = []docker.APIContainers{}
 	err := kubelet.SyncPods([]api.BoundPod{
@@ -432,7 +472,7 @@ func TestSyncPodsCreatesNetAndContainer(t *testing.T) {
 }
 
 func TestSyncPodsCreatesNetAndContainerPullsImage(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	puller := kubelet.dockerPuller.(*dockertools.FakeDockerPuller)
 	puller.HasImages = []string{}
 	kubelet.networkContainerImage = "custom_image_name"
@@ -447,7 +487,7 @@ func TestSyncPodsCreatesNetAndContainerPullsImage(t *testing.T) {
 			},
 			Spec: api.PodSpec{
 				Containers: []api.Container{
-					{Name: "bar"},
+					{Name: "bar", Image: "something", ImagePullPolicy: "IfNotPresent"},
 				},
 			},
 		},
@@ -462,7 +502,7 @@ func TestSyncPodsCreatesNetAndContainerPullsImage(t *testing.T) {
 
 	fakeDocker.Lock()
 
-	if !reflect.DeepEqual(puller.ImagesPulled, []string{"custom_image_name", ""}) {
+	if !reflect.DeepEqual(puller.ImagesPulled, []string{"custom_image_name", "something"}) {
 		t.Errorf("Unexpected pulled containers: %v", puller.ImagesPulled)
 	}
 
@@ -475,7 +515,7 @@ func TestSyncPodsCreatesNetAndContainerPullsImage(t *testing.T) {
 }
 
 func TestSyncPodsWithNetCreatesContainer(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			// network container
@@ -515,7 +555,7 @@ func TestSyncPodsWithNetCreatesContainer(t *testing.T) {
 }
 
 func TestSyncPodsWithNetCreatesContainerCallsHandler(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	fakeHttp := fakeHTTP{}
 	kubelet.httpClient = &fakeHttp
 	fakeDocker.ContainerList = []docker.APIContainers{
@@ -571,7 +611,7 @@ func TestSyncPodsWithNetCreatesContainerCallsHandler(t *testing.T) {
 }
 
 func TestSyncPodsDeletesWithNoNetContainer(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			// format is // k8s_<container-id>_<pod-fullname>_<pod-uid>
@@ -616,7 +656,7 @@ func TestSyncPodsDeletesWithNoNetContainer(t *testing.T) {
 
 func TestSyncPodsDeletesWhenSourcesAreReady(t *testing.T) {
 	ready := false
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.sourceReady = func(source string) bool { return ready }
 
 	fakeDocker.ContainerList = []docker.APIContainers{
@@ -659,7 +699,7 @@ func TestSyncPodsDeletesWhenSourcesAreReady(t *testing.T) {
 
 func TestSyncPodsDeletesWhenContainerSourceReady(t *testing.T) {
 	ready := false
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.sourceReady = func(source string) bool {
 		if source == "testSource" {
 			return ready
@@ -719,7 +759,7 @@ func TestSyncPodsDeletesWhenContainerSourceReady(t *testing.T) {
 }
 
 func TestSyncPodsDeletes(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			// the k8s prefix is required for the kubelet to manage the container
@@ -757,7 +797,7 @@ func TestSyncPodsDeletes(t *testing.T) {
 }
 
 func TestSyncPodDeletesDuplicate(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	dockerContainers := dockertools.DockerContainers{
 		"1234": &docker.APIContainers{
 			// the k8s prefix is required for the kubelet to manage the container
@@ -807,7 +847,7 @@ func TestSyncPodDeletesDuplicate(t *testing.T) {
 
 type FalseHealthChecker struct{}
 
-func (f *FalseHealthChecker) HealthCheck(podFullName, podUUID string, status api.PodStatus, container api.Container) (health.Status, error) {
+func (f *FalseHealthChecker) HealthCheck(podFullName string, podUID types.UID, status api.PodStatus, container api.Container) (health.Status, error) {
 	return health.Unhealthy, nil
 }
 
@@ -816,7 +856,7 @@ func (f *FalseHealthChecker) CanCheck(probe *api.LivenessProbe) bool {
 }
 
 func TestSyncPodBadHash(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.healthChecker = &FalseHealthChecker{}
 	dockerContainers := dockertools.DockerContainers{
 		"1234": &docker.APIContainers{
@@ -863,7 +903,7 @@ func TestSyncPodBadHash(t *testing.T) {
 }
 
 func TestSyncPodUnhealthy(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.healthChecker = &FalseHealthChecker{}
 	dockerContainers := dockertools.DockerContainers{
 		"1234": &docker.APIContainers{
@@ -913,33 +953,10 @@ func TestSyncPodUnhealthy(t *testing.T) {
 	}
 }
 
-func TestMakeEnvVariables(t *testing.T) {
-	container := api.Container{
-		Env: []api.EnvVar{
-			{
-				Name:  "foo",
-				Value: "bar",
-			},
-			{
-				Name:  "baz",
-				Value: "blah",
-			},
-		},
-	}
-	vars := makeEnvironmentVariables(&container)
-	if len(vars) != len(container.Env) {
-		t.Errorf("Vars don't match.  Expected: %#v Found: %#v", container.Env, vars)
-	}
-	for ix, env := range container.Env {
-		value := fmt.Sprintf("%s=%s", env.Name, env.Value)
-		if value != vars[ix] {
-			t.Errorf("Unexpected value: %s.  Expected: %s", vars[ix], value)
-		}
-	}
-}
-
 func TestMountExternalVolumes(t *testing.T) {
-	kubelet, _, _ := newTestKubelet(t)
+	kubelet, _ := newTestKubelet(t)
+	kubelet.volumePluginMgr.InitPlugins([]volume.Plugin{&volume.FakePlugin{"fake", nil}}, &volumeHost{kubelet})
+
 	pod := api.BoundPod{
 		ObjectMeta: api.ObjectMeta{
 			UID:       "12345678",
@@ -949,25 +966,72 @@ func TestMountExternalVolumes(t *testing.T) {
 		Spec: api.PodSpec{
 			Volumes: []api.Volume{
 				{
-					Name: "host-dir",
-					Source: &api.VolumeSource{
-						HostDir: &api.HostDir{"/dir/path"},
-					},
+					Name:   "vol1",
+					Source: api.VolumeSource{},
 				},
 			},
 		},
 	}
-	podVolumes, _ := kubelet.mountExternalVolumes(&pod)
-	expectedPodVolumes := make(volumeMap)
-	expectedPodVolumes["host-dir"] = &volume.HostDir{"/dir/path"}
+	podVolumes, err := kubelet.mountExternalVolumes(&pod)
+	if err != nil {
+		t.Errorf("Expected sucess: %v", err)
+	}
+	expectedPodVolumes := []string{"vol1"}
 	if len(expectedPodVolumes) != len(podVolumes) {
 		t.Errorf("Unexpected volumes. Expected %#v got %#v.  Manifest was: %#v", expectedPodVolumes, podVolumes, pod)
 	}
-	for name, expectedVolume := range expectedPodVolumes {
+	for _, name := range expectedPodVolumes {
 		if _, ok := podVolumes[name]; !ok {
-			t.Errorf("api.BoundPod volumes map is missing key: %s. %#v", expectedVolume, podVolumes)
+			t.Errorf("api.BoundPod volumes map is missing key: %s. %#v", name, podVolumes)
 		}
 	}
+}
+
+func TestGetPodVolumesFromDisk(t *testing.T) {
+	kubelet, _ := newTestKubelet(t)
+	plug := &volume.FakePlugin{"fake", nil}
+	kubelet.volumePluginMgr.InitPlugins([]volume.Plugin{plug}, &volumeHost{kubelet})
+
+	volsOnDisk := []struct {
+		podUID  types.UID
+		volName string
+	}{
+		{"pod1", "vol1"},
+		{"pod1", "vol2"},
+		{"pod2", "vol1"},
+	}
+
+	expectedPaths := []string{}
+	for i := range volsOnDisk {
+		fv := volume.FakeVolume{volsOnDisk[i].podUID, volsOnDisk[i].volName, plug}
+		fv.SetUp()
+		expectedPaths = append(expectedPaths, fv.GetPath())
+	}
+
+	volumesFound := kubelet.getPodVolumesFromDisk()
+	if len(volumesFound) != len(expectedPaths) {
+		t.Errorf("Expected to find %d cleaners, got %d", len(expectedPaths), len(volumesFound))
+	}
+	for _, ep := range expectedPaths {
+		found := false
+		for _, cl := range volumesFound {
+			if ep == cl.GetPath() {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Could not find a volume with path %s", ep)
+		}
+	}
+}
+
+type stubVolume struct {
+	path string
+}
+
+func (f *stubVolume) GetPath() string {
+	return f.path
 }
 
 func TestMakeVolumesAndBinds(t *testing.T) {
@@ -1005,9 +1069,9 @@ func TestMakeVolumesAndBinds(t *testing.T) {
 	}
 
 	podVolumes := volumeMap{
-		"disk":  &volume.HostDir{"/mnt/disk"},
-		"disk4": &volume.HostDir{"/mnt/host"},
-		"disk5": &volume.EmptyDir{"disk5", "podID", "/var/lib/kubelet"},
+		"disk":  &stubVolume{"/mnt/disk"},
+		"disk4": &stubVolume{"/mnt/host"},
+		"disk5": &stubVolume{"/var/lib/kubelet/podID/volumes/empty/disk5"},
 	}
 
 	binds := makeBinds(&pod, &container, podVolumes)
@@ -1189,7 +1253,7 @@ func TestGetContainerInfo(t *testing.T) {
 	cadvisorReq := &info.ContainerInfoRequest{}
 	mockCadvisor.On("DockerContainer", containerID, cadvisorReq).Return(containerInfo, nil)
 
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.cadvisorClient = mockCadvisor
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
@@ -1239,7 +1303,7 @@ func TestGetRootInfo(t *testing.T) {
 }
 
 func TestGetContainerInfoWithoutCadvisor(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
 			ID: "foobar",
@@ -1265,7 +1329,7 @@ func TestGetContainerInfoWhenCadvisorFailed(t *testing.T) {
 	expectedErr := fmt.Errorf("some error")
 	mockCadvisor.On("DockerContainer", containerID, cadvisorReq).Return(containerInfo, expectedErr)
 
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.cadvisorClient = mockCadvisor
 	fakeDocker.ContainerList = []docker.APIContainers{
 		{
@@ -1293,7 +1357,7 @@ func TestGetContainerInfoWhenCadvisorFailed(t *testing.T) {
 func TestGetContainerInfoOnNonExistContainer(t *testing.T) {
 	mockCadvisor := &mockCadvisorClient{}
 
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.cadvisorClient = mockCadvisor
 	fakeDocker.ContainerList = []docker.APIContainers{}
 
@@ -1318,7 +1382,7 @@ func (f *fakeContainerCommandRunner) RunInContainer(id string, cmd []string) ([]
 
 func TestRunInContainerNoSuchPod(t *testing.T) {
 	fakeCommandRunner := fakeContainerCommandRunner{}
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	fakeDocker.ContainerList = []docker.APIContainers{}
 	kubelet.runner = &fakeCommandRunner
 
@@ -1340,7 +1404,7 @@ func TestRunInContainerNoSuchPod(t *testing.T) {
 
 func TestRunInContainer(t *testing.T) {
 	fakeCommandRunner := fakeContainerCommandRunner{}
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.runner = &fakeCommandRunner
 
 	containerID := "abc1234"
@@ -1369,10 +1433,10 @@ func TestRunInContainer(t *testing.T) {
 		containerName,
 		cmd)
 	if fakeCommandRunner.ID != containerID {
-		t.Errorf("unexected Name: %s", fakeCommandRunner.ID)
+		t.Errorf("unexpected Name: %s", fakeCommandRunner.ID)
 	}
 	if !reflect.DeepEqual(fakeCommandRunner.Cmd, cmd) {
-		t.Errorf("unexpected commnd: %s", fakeCommandRunner.Cmd)
+		t.Errorf("unexpected command: %s", fakeCommandRunner.Cmd)
 	}
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1381,7 +1445,7 @@ func TestRunInContainer(t *testing.T) {
 
 func TestRunHandlerExec(t *testing.T) {
 	fakeCommandRunner := fakeContainerCommandRunner{}
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.runner = &fakeCommandRunner
 
 	containerID := "abc1234"
@@ -1429,7 +1493,7 @@ func (f *fakeHTTP) Get(url string) (*http.Response, error) {
 func TestRunHandlerHttp(t *testing.T) {
 	fakeHttp := fakeHTTP{}
 
-	kubelet, _, _ := newTestKubelet(t)
+	kubelet, _ := newTestKubelet(t)
 	kubelet.httpClient = &fakeHttp
 
 	podName := "podFoo"
@@ -1458,7 +1522,7 @@ func TestRunHandlerHttp(t *testing.T) {
 }
 
 func TestNewHandler(t *testing.T) {
-	kubelet, _, _ := newTestKubelet(t)
+	kubelet, _ := newTestKubelet(t)
 	handler := &api.Handler{
 		HTTPGet: &api.HTTPGetAction{
 			Host: "foo",
@@ -1489,7 +1553,7 @@ func TestNewHandler(t *testing.T) {
 }
 
 func TestSyncPodEventHandlerFails(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	kubelet.httpClient = &fakeHTTP{
 		err: fmt.Errorf("test error"),
 	}
@@ -1651,7 +1715,7 @@ func TestKubeletGarbageCollection(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		kubelet, _, fakeDocker := newTestKubelet(t)
+		kubelet, fakeDocker := newTestKubelet(t)
 		kubelet.maxContainerCount = 5
 		fakeDocker.ContainerList = test.containers
 		fakeDocker.ContainerMap = test.containerDetails
@@ -1818,7 +1882,7 @@ func TestPurgeOldest(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		kubelet, _, fakeDocker := newTestKubelet(t)
+		kubelet, fakeDocker := newTestKubelet(t)
 		kubelet.maxContainerCount = 5
 		fakeDocker.ContainerMap = test.containerDetails
 		kubelet.purgeOldest(test.ids)
@@ -1829,7 +1893,7 @@ func TestPurgeOldest(t *testing.T) {
 }
 
 func TestSyncPodsWithPullPolicy(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
+	kubelet, fakeDocker := newTestKubelet(t)
 	puller := kubelet.dockerPuller.(*dockertools.FakeDockerPuller)
 	puller.HasImages = []string{"existing_one", "want:latest"}
 	kubelet.networkContainerImage = "custom_image_name"
@@ -1860,7 +1924,7 @@ func TestSyncPodsWithPullPolicy(t *testing.T) {
 
 	fakeDocker.Lock()
 
-	if !reflect.DeepEqual(puller.ImagesPulled, []string{"custom_image_name", "pull_always_image", "pull_if_not_present_image", "want:latest"}) {
+	if !reflect.DeepEqual(puller.ImagesPulled, []string{"custom_image_name", "pull_always_image", "pull_if_not_present_image"}) {
 		t.Errorf("Unexpected pulled containers: %v", puller.ImagesPulled)
 	}
 
@@ -1868,29 +1932,6 @@ func TestSyncPodsWithPullPolicy(t *testing.T) {
 		t.Errorf("Unexpected containers created %v", fakeDocker.Created)
 	}
 	fakeDocker.Unlock()
-}
-
-func TestGarbageCollectImages(t *testing.T) {
-	kubelet, _, fakeDocker := newTestKubelet(t)
-
-	fakeDocker.Images = []docker.APIImages{
-		{
-			ID: "foo",
-		},
-		{
-			ID: "bar",
-		},
-	}
-
-	if err := kubelet.GarbageCollectImages(); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if len(fakeDocker.RemovedImages) != 2 ||
-		!fakeDocker.RemovedImages.Has("foo") ||
-		!fakeDocker.RemovedImages.Has("bar") {
-		t.Errorf("unexpected images removed: %v", fakeDocker.RemovedImages)
-	}
 }
 
 func TestParseResolvConf(t *testing.T) {
@@ -1933,6 +1974,278 @@ func TestParseResolvConf(t *testing.T) {
 		}
 		if !reflect.DeepEqual(srch, tc.searches) {
 			t.Errorf("[%d] expected searches %#v, got %#v", i, tc.searches, srch)
+		}
+	}
+}
+
+type testServiceLister struct {
+	services []api.Service
+}
+
+func (ls testServiceLister) List() (api.ServiceList, error) {
+	return api.ServiceList{
+		Items: ls.services,
+	}, nil
+}
+
+func TestMakeEnvironmentVariables(t *testing.T) {
+	services := []api.Service{
+		{
+			ObjectMeta: api.ObjectMeta{Name: "kubernetes", Namespace: api.NamespaceDefault},
+			Spec: api.ServiceSpec{
+				Port:     8081,
+				PortalIP: "1.2.3.1",
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "kubernetes-ro", Namespace: api.NamespaceDefault},
+			Spec: api.ServiceSpec{
+				Port:     8082,
+				PortalIP: "1.2.3.2",
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "test", Namespace: "test1"},
+			Spec: api.ServiceSpec{
+				Port:     8083,
+				PortalIP: "1.2.3.3",
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "kubernetes", Namespace: "test2"},
+			Spec: api.ServiceSpec{
+				Port:     8084,
+				PortalIP: "1.2.3.4",
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "test", Namespace: "test2"},
+			Spec: api.ServiceSpec{
+				Port:     8085,
+				PortalIP: "1.2.3.5",
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "kubernetes", Namespace: "kubernetes"},
+			Spec: api.ServiceSpec{
+				Port:     8086,
+				PortalIP: "1.2.3.6",
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "kubernetes-ro", Namespace: "kubernetes"},
+			Spec: api.ServiceSpec{
+				Port:     8087,
+				PortalIP: "1.2.3.7",
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "not-special", Namespace: "kubernetes"},
+			Spec: api.ServiceSpec{
+				Port:     8088,
+				PortalIP: "1.2.3.8",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name                   string         // the name of the test case
+		ns                     string         // the namespace to generate environment for
+		container              *api.Container // the container to use
+		masterServiceNamespace string         // the namespace to read master service info from
+		nilLister              bool           // whether the lister should be nil
+		expectedEnvs           util.StringSet // a set of expected environment vars
+		expectedEnvSize        int            // total number of expected env vars
+	}{
+		{
+			"api server = Y, kubelet = Y",
+			"test1",
+			&api.Container{
+				Env: []api.EnvVar{
+					{Name: "FOO", Value: "BAR"},
+					{Name: "TEST_SERVICE_HOST", Value: "1.2.3.3"},
+					{Name: "TEST_SERVICE_PORT", Value: "8083"},
+					{Name: "TEST_PORT", Value: "tcp://1.2.3.3:8083"},
+					{Name: "TEST_PORT_8083_TCP", Value: "tcp://1.2.3.3:8083"},
+					{Name: "TEST_PORT_8083_TCP_PROTO", Value: "tcp"},
+					{Name: "TEST_PORT_8083_TCP_PORT", Value: "8083"},
+					{Name: "TEST_PORT_8083_TCP_ADDR", Value: "1.2.3.3"},
+				},
+			},
+			api.NamespaceDefault,
+			false,
+			util.NewStringSet("FOO=BAR",
+				"TEST_SERVICE_HOST=1.2.3.3",
+				"TEST_SERVICE_PORT=8083",
+				"TEST_PORT=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP_PROTO=tcp",
+				"TEST_PORT_8083_TCP_PORT=8083",
+				"TEST_PORT_8083_TCP_ADDR=1.2.3.3",
+				"KUBERNETES_SERVICE_HOST=1.2.3.1",
+				"KUBERNETES_SERVICE_PORT=8081",
+				"KUBERNETES_PORT=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8081_TCP_PORT=8081",
+				"KUBERNETES_PORT_8081_TCP_ADDR=1.2.3.1",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.2",
+				"KUBERNETES_RO_SERVICE_PORT=8082",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8082_TCP_PORT=8082",
+				"KUBERNETES_RO_PORT_8082_TCP_ADDR=1.2.3.2"),
+			22,
+		},
+		{
+			"api server = Y, kubelet = N",
+			"test1",
+			&api.Container{
+				Env: []api.EnvVar{
+					{Name: "FOO", Value: "BAR"},
+					{Name: "TEST_SERVICE_HOST", Value: "1.2.3.3"},
+					{Name: "TEST_SERVICE_PORT", Value: "8083"},
+					{Name: "TEST_PORT", Value: "tcp://1.2.3.3:8083"},
+					{Name: "TEST_PORT_8083_TCP", Value: "tcp://1.2.3.3:8083"},
+					{Name: "TEST_PORT_8083_TCP_PROTO", Value: "tcp"},
+					{Name: "TEST_PORT_8083_TCP_PORT", Value: "8083"},
+					{Name: "TEST_PORT_8083_TCP_ADDR", Value: "1.2.3.3"},
+				},
+			},
+			api.NamespaceDefault,
+			true,
+			util.NewStringSet("FOO=BAR",
+				"TEST_SERVICE_HOST=1.2.3.3",
+				"TEST_SERVICE_PORT=8083",
+				"TEST_PORT=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP_PROTO=tcp",
+				"TEST_PORT_8083_TCP_PORT=8083",
+				"TEST_PORT_8083_TCP_ADDR=1.2.3.3"),
+			8,
+		},
+		{
+			"api server = N; kubelet = Y",
+			"test1",
+			&api.Container{
+				Env: []api.EnvVar{
+					{Name: "FOO", Value: "BAZ"},
+				},
+			},
+			api.NamespaceDefault,
+			false,
+			util.NewStringSet("FOO=BAZ",
+				"TEST_SERVICE_HOST=1.2.3.3",
+				"TEST_SERVICE_PORT=8083",
+				"TEST_PORT=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP_PROTO=tcp",
+				"TEST_PORT_8083_TCP_PORT=8083",
+				"TEST_PORT_8083_TCP_ADDR=1.2.3.3",
+				"KUBERNETES_SERVICE_HOST=1.2.3.1",
+				"KUBERNETES_SERVICE_PORT=8081",
+				"KUBERNETES_PORT=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8081_TCP_PORT=8081",
+				"KUBERNETES_PORT_8081_TCP_ADDR=1.2.3.1",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.2",
+				"KUBERNETES_RO_SERVICE_PORT=8082",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8082_TCP_PORT=8082",
+				"KUBERNETES_RO_PORT_8082_TCP_ADDR=1.2.3.2"),
+			22,
+		},
+		{
+			"master service in pod ns",
+			"test2",
+			&api.Container{
+				Env: []api.EnvVar{
+					{Name: "FOO", Value: "ZAP"},
+				},
+			},
+			"kubernetes",
+			false,
+			util.NewStringSet("FOO=ZAP",
+				"TEST_SERVICE_HOST=1.2.3.5",
+				"TEST_SERVICE_PORT=8085",
+				"TEST_PORT=tcp://1.2.3.5:8085",
+				"TEST_PORT_8085_TCP=tcp://1.2.3.5:8085",
+				"TEST_PORT_8085_TCP_PROTO=tcp",
+				"TEST_PORT_8085_TCP_PORT=8085",
+				"TEST_PORT_8085_TCP_ADDR=1.2.3.5",
+				"KUBERNETES_SERVICE_HOST=1.2.3.4",
+				"KUBERNETES_SERVICE_PORT=8084",
+				"KUBERNETES_PORT=tcp://1.2.3.4:8084",
+				"KUBERNETES_PORT_8084_TCP=tcp://1.2.3.4:8084",
+				"KUBERNETES_PORT_8084_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8084_TCP_PORT=8084",
+				"KUBERNETES_PORT_8084_TCP_ADDR=1.2.3.4",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.7",
+				"KUBERNETES_RO_SERVICE_PORT=8087",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8087_TCP_PORT=8087",
+				"KUBERNETES_RO_PORT_8087_TCP_ADDR=1.2.3.7"),
+			22,
+		},
+		{
+			"pod in master service ns",
+			"kubernetes",
+			&api.Container{},
+			"kubernetes",
+			false,
+			util.NewStringSet(
+				"NOT_SPECIAL_SERVICE_HOST=1.2.3.8",
+				"NOT_SPECIAL_SERVICE_PORT=8088",
+				"NOT_SPECIAL_PORT=tcp://1.2.3.8:8088",
+				"NOT_SPECIAL_PORT_8088_TCP=tcp://1.2.3.8:8088",
+				"NOT_SPECIAL_PORT_8088_TCP_PROTO=tcp",
+				"NOT_SPECIAL_PORT_8088_TCP_PORT=8088",
+				"NOT_SPECIAL_PORT_8088_TCP_ADDR=1.2.3.8",
+				"KUBERNETES_SERVICE_HOST=1.2.3.6",
+				"KUBERNETES_SERVICE_PORT=8086",
+				"KUBERNETES_PORT=tcp://1.2.3.6:8086",
+				"KUBERNETES_PORT_8086_TCP=tcp://1.2.3.6:8086",
+				"KUBERNETES_PORT_8086_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8086_TCP_PORT=8086",
+				"KUBERNETES_PORT_8086_TCP_ADDR=1.2.3.6",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.7",
+				"KUBERNETES_RO_SERVICE_PORT=8087",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8087_TCP_PORT=8087",
+				"KUBERNETES_RO_PORT_8087_TCP_ADDR=1.2.3.7"),
+			21,
+		},
+	}
+
+	for _, tc := range testCases {
+		kl, _ := newTestKubelet(t)
+		kl.masterServiceNamespace = tc.masterServiceNamespace
+		if tc.nilLister {
+			kl.serviceLister = nil
+		} else {
+			kl.serviceLister = testServiceLister{services}
+		}
+
+		result, err := kl.makeEnvironmentVariables(tc.ns, tc.container)
+		if err != nil {
+			t.Errorf("[%v] Unexpected error: %v", tc.name, err)
+		}
+
+		resultSet := util.NewStringSet(result...)
+		if !resultSet.IsSuperset(tc.expectedEnvs) {
+			t.Errorf("[%v] Unexpected env entries; expected {%v}, got {%v}", tc.name, tc.expectedEnvs, resultSet)
+		}
+
+		if a := len(resultSet); a != tc.expectedEnvSize {
+			t.Errorf("[%v] Unexpected number of env vars; expected %v, got %v", tc.name, tc.expectedEnvSize, a)
 		}
 	}
 }

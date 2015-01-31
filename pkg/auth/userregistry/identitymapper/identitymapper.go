@@ -32,7 +32,7 @@ func (p *alwaysCreateUserIdentityToUserMapper) UserFor(identityInfo authapi.User
 
 	ret := &authapi.DefaultUserInfo{
 		Name:  authoritativeMapping.User.Name,
-		UID:   authoritativeMapping.User.UID,
+		UID:   string(authoritativeMapping.User.UID),
 		Extra: authoritativeMapping.Identity.Extra,
 	}
 	return ret, err

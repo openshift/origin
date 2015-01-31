@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -52,7 +53,7 @@ type Volume struct {
 	// Source represents the location and type of a volume to mount.
 	// This is optional for now. If not specified, the Volume is implied to be an EmptyDir.
 	// This implied behavior is deprecated and will be removed in a future version.
-	Source *VolumeSource `json:"source" description:"location and type of volume to mount; at most one of HostDir, EmptyDir, GCEPersistentDisk, or GitRepo; default is EmptyDir"`
+	Source VolumeSource `json:"source,omitempty" description:"location and type of volume to mount; at most one of HostDir, EmptyDir, GCEPersistentDisk, or GitRepo; default is EmptyDir"`
 }
 
 // VolumeSource represents the source location of a valume to mount.
@@ -63,7 +64,7 @@ type VolumeSource struct {
 	// things that are allowed to see the host machine. Most containers will NOT need this.
 	// TODO(jonesdl) We need to restrict who can use host directory mounts and
 	// who can/can not mount host directories as read/write.
-	HostDir *HostDir `json:"hostDir" description:"pre-existing host directory; generally for privileged system daemons or other agents tied to the host"`
+	HostDir *HostPath `json:"hostDir" description:"pre-existing host file or directory; generally for privileged system daemons or other agents tied to the host"`
 	// EmptyDir represents a temporary directory that shares a pod's lifetime.
 	EmptyDir *EmptyDir `json:"emptyDir" description:"temporary directory that shares a pod's lifetime"`
 	// A persistent disk that is mounted to the
@@ -73,8 +74,8 @@ type VolumeSource struct {
 	GitRepo *GitRepo `json:"gitRepo" description:"git repository at a particular revision"`
 }
 
-// HostDir represents bare host directory volume.
-type HostDir struct {
+// HostPath represents bare host directory volume.
+type HostPath struct {
 	Path string `json:"path" description:"path of the directory on the host"`
 }
 
@@ -260,7 +261,7 @@ type Lifecycle struct {
 type TypeMeta struct {
 	Kind              string    `json:"kind,omitempty" description:"kind of object, in CamelCase"`
 	ID                string    `json:"id,omitempty" description:"name of the object; must be a DNS_SUBDOMAIN and unique among all objects of the same kind within the same namespace; used in resource URLs"`
-	UID               string    `json:"uid,omitempty" description:"UUID assigned by the system upon creation, unique across space and time"`
+	UID               types.UID `json:"uid,omitempty" description:"UUID assigned by the system upon creation, unique across space and time"`
 	CreationTimestamp util.Time `json:"creationTimestamp,omitempty" description:"RFC 3339 date and time at which the object was created; recorded by the system; null for lists"`
 	SelfLink          string    `json:"selfLink,omitempty" description:"URL for the object"`
 	ResourceVersion   uint64    `json:"resourceVersion,omitempty" description:"string that identifies the internal version of this object that can be used by clients to determine when objects have changed; value must be treated as opaque by clients and passed unmodified back to the server"`
@@ -372,6 +373,11 @@ type PodState struct {
 	// entry per container in the manifest. The value of this map is ContainerStatus for
 	// the container.
 	Info PodInfo `json:"info,omitempty" description:"map of container name to container status"`
+}
+
+type PodStatusResult struct {
+	TypeMeta `json:",inline"`
+	State    PodState `json:"state,omitempty" description:"current state of the pod"`
 }
 
 // PodList is a list of Pods.
@@ -749,12 +755,12 @@ type ServerOpList struct {
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
 type ObjectReference struct {
-	Kind            string `json:"kind,omitempty" description:"kind of the referent"`
-	Namespace       string `json:"namespace,omitempty" description:"namespace of the referent"`
-	ID              string `json:"name,omitempty" description:"id of the referent"`
-	UID             string `json:"uid,omitempty" description:"uid of the referent"`
-	APIVersion      string `json:"apiVersion,omitempty" description:"API version of the referent"`
-	ResourceVersion string `json:"resourceVersion,omitempty" description:"specific resourceVersion to which this reference is made, if any"`
+	Kind            string    `json:"kind,omitempty" description:"kind of the referent"`
+	Namespace       string    `json:"namespace,omitempty" description:"namespace of the referent"`
+	ID              string    `json:"name,omitempty" description:"id of the referent"`
+	UID             types.UID `json:"uid,omitempty" description:"uid of the referent"`
+	APIVersion      string    `json:"apiVersion,omitempty" description:"API version of the referent"`
+	ResourceVersion string    `json:"resourceVersion,omitempty" description:"specific resourceVersion to which this reference is made, if any"`
 
 	// Optional. If referring to a piece of an object instead of an entire object, this string
 	// should contain information to identify the sub-object. For example, if the object
@@ -782,6 +788,7 @@ type Event struct {
 	// always be used for the same status.
 	// TODO: define a way of making sure these are consistent and don't collide.
 	// TODO: provide exact specification for format.
+	// DEPRECATED: Status (a.k.a Condition) value will be ignored.
 	Status string `json:"status,omitempty" description:"short, machine understandable string that describes the current status of the referred object"`
 
 	// Optional; this should be a short, machine understandable string that gives the reason
@@ -799,7 +806,7 @@ type Event struct {
 	Source string `json:"source,omitempty" description:"component reporting this event; short machine understandable string"`
 
 	// Host name on which the event is generated.
-	Host string `json:"host,omitempty"`
+	Host string `json:"host,omitempty" description:"host name on which this event was generated"`
 
 	// The time at which the client recorded the event. (Time of server receipt is in TypeMeta.)
 	Timestamp util.Time `json:"timestamp,omitempty" description:"time at which the client recorded the event"`
@@ -824,7 +831,7 @@ type ContainerManifest struct {
 	// TODO: UUID on Manifext is deprecated in the future once we are done
 	// with the API refactory. It is required for now to determine the instance
 	// of a Pod.
-	UUID          string        `json:"uuid,omitempty" description:"manifest UUID"`
+	UUID          types.UID     `json:"uuid,omitempty" description:"manifest UUID"`
 	Volumes       []Volume      `json:"volumes" description:"list of volumes that can be mounted by containers belonging to the pod"`
 	Containers    []Container   `json:"containers" description:"list of containers belonging to the pod"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" description:"restart policy for all containers within the pod; one of RestartPolicyAlways, RestartPolicyOnFailure, RestartPolicyNever"`

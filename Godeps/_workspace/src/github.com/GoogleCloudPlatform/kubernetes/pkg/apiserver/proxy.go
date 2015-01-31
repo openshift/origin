@@ -96,6 +96,12 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if len(parts) > 2 {
 		proxyParts := parts[2:]
 		rest = strings.Join(proxyParts, "/")
+		if strings.HasSuffix(req.URL.Path, "/") {
+			// The original path had a trailing slash, which has been stripped
+			// by KindAndNamespace(). We should add it back because some
+			// servers (like etcd) require it.
+			rest = rest + "/"
+		}
 	}
 	storage, ok := r.storage[kind]
 	if !ok {
@@ -163,6 +169,11 @@ type proxyTransport struct {
 }
 
 func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Add reverse proxy headers.
+	req.Header.Set("X-Forwarded-Uri", t.proxyPathPrepend+req.URL.Path)
+	req.Header.Set("X-Forwarded-Host", t.proxyHost)
+	req.Header.Set("X-Forwarded-Proto", t.proxyScheme)
+
 	resp, err := http.DefaultTransport.RoundTrip(req)
 
 	if err != nil {
@@ -174,7 +185,9 @@ func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return resp, nil
 	}
 
-	if resp.Header.Get("Content-Type") != "text/html" {
+	cType := resp.Header.Get("Content-Type")
+	cType = strings.TrimSpace(strings.SplitN(cType, ";", 2)[0])
+	if cType != "text/html" {
 		// Do nothing, simply pass through
 		return resp, nil
 	}
