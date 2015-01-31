@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
@@ -14,6 +15,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
+
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -21,6 +23,7 @@ import (
 
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 
+	"github.com/openshift/origin/pkg/kubelet/app"
 	"github.com/openshift/origin/pkg/service"
 )
 
@@ -103,7 +106,9 @@ func (c *NodeConfig) RunKubelet() {
 		5,
 		cfg.IsSourceSeen,
 		"",
-		net.IP(util.IP{}))
+		net.IP(util.IP{}),
+		kapi.NamespaceDefault,
+		app.ProbeVolumePlugins())
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
 	}

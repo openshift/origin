@@ -24,16 +24,19 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	if e, a := "docker-socket", volume.Name; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	if volume.Source == nil {
+	if volume.Name == "" {
+		t.Fatalf("Unexpected empty volume source name")
+	}
+	if isVolumeSourceEmpty(volume.Source) {
 		t.Fatalf("Unexpected nil volume source")
 	}
-	if volume.Source.HostDir == nil {
+	if volume.Source.HostPath == nil {
 		t.Fatalf("Unexpected nil host directory")
 	}
 	if volume.Source.EmptyDir != nil {
 		t.Errorf("Unexpected non-nil empty directory: %#v", volume.Source.EmptyDir)
 	}
-	if e, a := "/var/run/docker.sock", volume.Source.HostDir.Path; e != a {
+	if e, a := "/var/run/docker.sock", volume.Source.HostPath.Path; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
 
@@ -50,6 +53,18 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	if pod.Spec.Containers[0].Privileged {
 		t.Error("Expected privileged to be false")
 	}
+}
+
+func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
+
+	if volumeSource.EmptyDir == nil &&
+		volumeSource.HostPath == nil &&
+		volumeSource.GCEPersistentDisk == nil &&
+		volumeSource.GitRepo == nil {
+		return true
+	}
+
+	return false
 }
 
 func TestSetupBuildEnvFails(t *testing.T) {

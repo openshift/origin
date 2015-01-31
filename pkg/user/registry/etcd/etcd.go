@@ -7,6 +7,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 
 	"github.com/openshift/origin/pkg/user"
 	"github.com/openshift/origin/pkg/user/api"
@@ -62,14 +63,14 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 		// did not previously exist
 		if existing.Identity.Name == "" {
 			uid := uuid.New()
-			existing.User.UID = uid
+			existing.User.UID = types.UID(uid)
 			existing.User.Name = name
 			if err := r.initializer.InitializeUser(&mapping.Identity, &existing.User); err != nil {
 				return in, err
 			}
 
 			// set these again to prevent bad initialization from messing up data
-			existing.User.UID = uid
+			existing.User.UID = types.UID(uid)
 			existing.User.Name = name
 			existing.Identity = mapping.Identity
 

@@ -45,7 +45,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (api.Use
 
 	info := &api.DefaultUserInfo{
 		Name: user.Name,
-		UID:  user.UID,
+		UID:  string(user.UID),
 	}
 
 	return info, true, nil

@@ -10,11 +10,12 @@ func init() {
 		&BuildList{},
 		&BuildConfig{},
 		&BuildConfigList{},
+		&BuildLog{},
 	)
-	api.Scheme.AddKnownTypeWithName("v1beta1", "BuildLog", &Build{})
 }
 
 func (*Build) IsAnAPIObject()           {}
 func (*BuildList) IsAnAPIObject()       {}
 func (*BuildConfig) IsAnAPIObject()     {}
 func (*BuildConfigList) IsAnAPIObject() {}
+func (*BuildLog) IsAnAPIObject()        {}

@@ -23,7 +23,8 @@ $ kubectl build-logs 566bed879d2d
 				usageError(cmd, "<build> is a required argument")
 			}
 
-			namespace := getOriginNamespace(cmd)
+			namespace, err := f.DefaultNamespace(cmd)
+			checkErr(err)
 
 			mapper, _ := f.Object(cmd)
 			mapping, err := mapper.RESTMapping("BuildLog", kubecmd.GetFlagString(cmd, "api-version"))

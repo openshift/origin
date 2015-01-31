@@ -199,7 +199,7 @@ func TestUserLookup(t *testing.T) {
 	if !ok {
 		t.Fatalf("should have been authenticated")
 	}
-	if user.Name != info.GetName() || user.UID != info.GetUID() {
+	if user.Name != info.GetName() || string(user.UID) != info.GetUID() {
 		t.Errorf("unexpected user info", info)
 	}
 }

@@ -57,8 +57,8 @@ const (
 	// BuildStatusRunning indicates that a pod has been created and a build is running.
 	BuildStatusRunning BuildStatus = "Running"
 
-	BuildStatusComplete BuildStatus = "Complete"
 	// BuildStatusComplete indicates that a build has been successful.
+	BuildStatusComplete BuildStatus = "Complete"
 
 	// BuildStatusFailed indicates that a build has executed and failed.
 	BuildStatusFailed BuildStatus = "Failed"
@@ -339,4 +339,10 @@ type GenericWebHookEvent struct {
 type GitInfo struct {
 	GitBuildSource    `json:",inline"`
 	GitSourceRevision `json:",inline"`
+}
+
+// BuildLog is the (unused) resource associated with the build log redirector
+type BuildLog struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
 }
