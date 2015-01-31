@@ -25,7 +25,9 @@ if [[ $(git remote -v | grep -c 'openshift/kubernetes.git') -eq 0 ]]; then
 fi
 echo "Fetching latest ..."
 git fetch
+git fetch --tags
 popd > /dev/null
+git fetch --tags
 
 echo "Restoring Origin dependencies ..."
 make clean
