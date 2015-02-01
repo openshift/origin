@@ -52,4 +52,4 @@ if ! godep save ./... ; then
 fi
 git add .
 echo "SUCCESS: Added all new dependencies, review Godeps/Godeps.json"
-echo "  To check upstreams, run: git log -E --grep="^UPSTREAM:|^bump" --oneline"
+echo "  To check upstreams, run: git log -E --grep=\"^UPSTREAM:|^bump\" --oneline"
