@@ -37,6 +37,7 @@ type Store interface {
 	Delete(obj interface{}) error
 	List() []interface{}
 	Get(obj interface{}) (item interface{}, exists bool, err error)
+	GetByKey(key string) (item interface{}, exists bool, err error)
 
 	// Replace will delete the contents of the store, using instead the
 	// given list. Store takes ownership of the list, you should not reference
@@ -51,6 +52,9 @@ type KeyFunc func(obj interface{}) (string, error)
 // keys for API objects which implement meta.Interface.
 // The key uses the format: <namespace>/<name>
 func MetaNamespaceKeyFunc(obj interface{}) (string, error) {
+	if _, ok := obj.(string); ok {
+		panic("you probably didn't mean to give a string to this function")
+	}
 	meta, err := meta.Accessor(obj)
 	if err != nil {
 		return "", fmt.Errorf("object has no meta: %v", err)
@@ -117,13 +121,19 @@ func (c *cache) List() []interface{} {
 // Get returns the requested item, or sets exists=false.
 // Get is completely threadsafe as long as you treat all items as immutable.
 func (c *cache) Get(obj interface{}) (item interface{}, exists bool, err error) {
-	id, _ := c.keyFunc(obj)
+	key, _ := c.keyFunc(obj)
 	if err != nil {
 		return nil, false, fmt.Errorf("couldn't create key for object: %v", err)
 	}
+	return c.GetByKey(key)
+}
+
+// GetByKey returns the request item, or exists=false.
+// GetByKey is completely threadsafe as long as you treat all items as immutable.
+func (c *cache) GetByKey(key string) (item interface{}, exists bool, err error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	item, exists = c.items[id]
+	item, exists = c.items[key]
 	return item, exists, nil
 }
 
