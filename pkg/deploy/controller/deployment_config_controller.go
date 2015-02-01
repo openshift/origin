@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"fmt"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -43,30 +46,30 @@ func (c *DeploymentConfigController) HandleDeploymentConfig() {
 	config := c.NextDeploymentConfig()
 	deploy, err := c.shouldDeploy(config)
 	if err != nil {
-		// TODO: better error handling
-		glog.V(2).Infof("Error determining whether to redeploy deploymentConfig %v: %#v", config.Name, err)
+		util.HandleError(fmt.Errorf("unable to decide whether to redeploy %s: %v", labelFor(config), err))
 		return
 	}
-
 	if !deploy {
-		glog.V(4).Infof("Won't deploy from config %s", config.Name)
 		return
 	}
 
-	if deployment, err := deployutil.MakeDeployment(config, c.Codec); err != nil {
-		glog.V(2).Infof("Error making deployment from config %s: %v", config.Name, err)
-	} else {
-		glog.V(2).Infof("Creating new deployment from config %s", config.Name)
-		if _, deployErr := c.DeploymentInterface.CreateDeployment(config.Namespace, deployment); deployErr != nil {
-			glog.V(2).Infof("Error deploying config %s: %v", config.Name, deployErr)
-		}
+	deployment, err := deployutil.MakeDeployment(config, c.Codec)
+	if err != nil {
+		util.HandleError(fmt.Errorf("unable to create deployment for %s: %v", labelFor(config), err))
+		return
+	}
+
+	glog.V(4).Infof("Deploying %s", labelFor(config))
+	if _, deployErr := c.DeploymentInterface.CreateDeployment(config.Namespace, deployment); deployErr != nil {
+		util.HandleError(fmt.Errorf("unable to create deployment %s: %v", labelFor(config), err))
+		return
 	}
 }
 
 // shouldDeploy returns true if the DeploymentConfig should have a new Deployment created.
 func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentConfig) (bool, error) {
 	if config.LatestVersion == 0 {
-		glog.V(4).Infof("Shouldn't deploy config %s with LatestVersion=0", config.Name)
+		glog.V(5).Infof("Waiting for first version of %s", labelFor(config))
 		return false, nil
 	}
 
@@ -75,13 +78,15 @@ func (c *DeploymentConfigController) shouldDeploy(config *deployapi.DeploymentCo
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			glog.V(4).Infof("Should deploy config %s because there's no latest deployment", config.Name)
 			return true, nil
 		}
-		glog.V(4).Infof("Shouldn't deploy config %s because of an error looking up latest deployment", config.Name)
 		return false, err
 	}
 
-	glog.V(4).Infof("Shouldn't deploy because a deployment '%s' already exists for config %s", deployment.Name, config.Name)
+	glog.V(5).Infof("Found deployment for %s - %s:%s", labelFor(config), deployment.UID, deployment.ResourceVersion)
 	return false, nil
+}
+
+func labelFor(config *deployapi.DeploymentConfig) string {
+	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }
