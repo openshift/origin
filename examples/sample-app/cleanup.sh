@@ -6,6 +6,5 @@ echo "Cleaning up openshift etcd content"
 rm -rf openshift.local.etcd
 echo "Cleaning up openshift etcd volumes"
 rm -rf openshift.local.volumes
-echo "Killing all docker containers on host"
-docker kill `docker ps --no-trunc -q`
-
+echo "Stopping all k8s docker containers on host"
+docker ps | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}' |  xargs -l -r docker stop
