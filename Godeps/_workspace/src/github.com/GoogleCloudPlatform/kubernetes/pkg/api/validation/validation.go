@@ -71,7 +71,7 @@ func ValidateObjectMeta(meta *api.ObjectMeta, requiresNamespace bool, nameFn Val
 		}
 	}
 	allErrs = append(allErrs, ValidateLabels(meta.Labels, "labels")...)
-	allErrs = append(allErrs, ValidateLabels(meta.Annotations, "annotations")...)
+	allErrs = append(allErrs, ValidateAnnotations(meta.Annotations, "annotations")...)
 
 	// Clear self link internally
 	// TODO: move to its own area
@@ -106,7 +106,7 @@ func ValidateObjectMetaUpdate(old, meta *api.ObjectMeta) errs.ValidationErrorLis
 	}
 
 	allErrs = append(allErrs, ValidateLabels(meta.Labels, "labels")...)
-	allErrs = append(allErrs, ValidateLabels(meta.Annotations, "annotations")...)
+	allErrs = append(allErrs, ValidateAnnotations(meta.Annotations, "annotations")...)
 
 	// Clear self link internally
 	// TODO: move to its own area
@@ -501,6 +501,17 @@ func ValidateLabels(labels map[string]string, field string) errs.ValidationError
 	return allErrs
 }
 
+// ValidateAnnotations validates that a set of annotations are correctly defined.
+func ValidateAnnotations(labels map[string]string, field string) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	for k := range labels {
+		if !util.IsQualifiedName(strings.ToLower(k)) {
+			allErrs = append(allErrs, errs.NewFieldInvalid(field, k, ""))
+		}
+	}
+	return allErrs
+}
+
 // ValidatePodUpdate tests to see if the update is legal
 func ValidatePodUpdate(newPod, oldPod *api.Pod) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -607,7 +618,7 @@ func ValidateReplicationControllerSpec(spec *api.ReplicationControllerSpec) errs
 		if !selector.Matches(labels) {
 			allErrs = append(allErrs, errs.NewFieldInvalid("template.labels", spec.Template.Labels, "selector does not match template"))
 		}
-		allErrs = append(allErrs, ValidateLabels(spec.Template.Annotations, "annotations")...)
+		allErrs = append(allErrs, ValidateAnnotations(spec.Template.Annotations, "annotations")...)
 		allErrs = append(allErrs, ValidatePodTemplateSpec(spec.Template).Prefix("template")...)
 		// RestartPolicy has already been first-order validated as per ValidatePodTemplateSpec().
 		if spec.Template.Spec.RestartPolicy.Always == nil {
@@ -623,7 +634,7 @@ func ValidateReplicationControllerSpec(spec *api.ReplicationControllerSpec) errs
 func ValidatePodTemplateSpec(spec *api.PodTemplateSpec) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, ValidateLabels(spec.Labels, "labels")...)
-	allErrs = append(allErrs, ValidateLabels(spec.Annotations, "annotations")...)
+	allErrs = append(allErrs, ValidateAnnotations(spec.Annotations, "annotations")...)
 	allErrs = append(allErrs, ValidatePodSpec(&spec.Spec).Prefix("spec")...)
 	allErrs = append(allErrs, ValidateReadOnlyPersistentDisks(spec.Spec.Volumes).Prefix("spec.volumes")...)
 	return allErrs
