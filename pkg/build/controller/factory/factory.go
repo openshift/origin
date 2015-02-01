@@ -144,8 +144,8 @@ func (pe *podEnumerator) Len() int {
 }
 
 // Get returns the item (and ID) with the particular index.
-func (pe *podEnumerator) Get(index int) (string, interface{}) {
-	return pe.Items[index].Name, &pe.Items[index]
+func (pe *podEnumerator) Get(index int) interface{} {
+	return &pe.Items[index]
 }
 
 type typeBasedFactoryStrategy struct {

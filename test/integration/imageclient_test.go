@@ -228,12 +228,11 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		Client:             kubeClient,
-		EtcdHelper:         etcdHelper,
-		HealthCheckMinions: false,
-		KubeletClient:      kubeletClient,
-		APIPrefix:          "/api",
-		RestfulContainer:   handlerContainer,
+		Client:           kubeClient,
+		EtcdHelper:       etcdHelper,
+		KubeletClient:    kubeletClient,
+		APIPrefix:        "/api",
+		RestfulContainer: handlerContainer,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)

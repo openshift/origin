@@ -65,7 +65,6 @@ export PATH="${GO_OUT}:${PATH}"
 function cleanup()
 {
   out=$?
-
   echo
   if [ $out -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"

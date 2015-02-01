@@ -546,7 +546,7 @@ func start(cfg *config, args []string) error {
 
 			VolumeDir: cfg.VolumeDir,
 
-			NetworkContainerImage: env("KUBERNETES_NETWORK_CONTAINER_IMAGE", kubelet.NetworkContainerImage),
+			NetworkContainerImage: env("KUBERNETES_NETWORK_CONTAINER_IMAGE", kubelet.PodInfraContainerImage),
 
 			Client: existingKubeClient,
 		}
