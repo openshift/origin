@@ -51,11 +51,10 @@ type AuthOverrideFlags struct {
 
 // ContextOverrideFlags holds the flag names to be used for binding command line flags for Cluster objects
 type ContextOverrideFlags struct {
-	ClusterName    string
-	AuthInfoName   string
-	Namespace      string
-	NamespaceShort string
-	NamespacePath  string
+	ClusterName   string
+	AuthInfoName  string
+	Namespace     string
+	NamespacePath string
 }
 
 // ClusterOverride holds the flag names to be used for binding command line flags for Cluster objects
@@ -151,6 +150,6 @@ func BindOverrideFlags(overrides *ConfigOverrides, flags *pflag.FlagSet, flagNam
 func BindContextFlags(contextInfo *clientcmdapi.Context, flags *pflag.FlagSet, flagNames ContextOverrideFlags) {
 	flags.StringVar(&contextInfo.Cluster, flagNames.ClusterName, "", "The name of the kubeconfig cluster to use")
 	flags.StringVar(&contextInfo.AuthInfo, flagNames.AuthInfoName, "", "The name of the kubeconfig user to use")
-	flags.StringVarP(&contextInfo.Namespace, flagNames.Namespace, flagNames.NamespaceShort, "", "If present, the namespace scope for this CLI request.")
+	flags.StringVar(&contextInfo.Namespace, flagNames.Namespace, "", "If present, the namespace scope for this CLI request.")
 	flags.StringVar(&contextInfo.NamespacePath, flagNames.NamespacePath, "", "Path to the namespace info file that holds the namespace context to use for CLI requests.")
 }

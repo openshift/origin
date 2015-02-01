@@ -25,6 +25,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 )
 
+// HTTP Status codes not in the golang http package.
+const (
+	StatusUnprocessableEntity = 422
+	StatusTooManyRequests     = 429
+)
+
 // StatusError is an error intended for consumption by a REST API server; it can also be
 // reconstructed by clients from a REST response. Public to allow easy type switches.
 type StatusError struct {
@@ -134,7 +140,7 @@ func NewInvalid(kind, name string, errs ValidationErrorList) error {
 	}
 	return &StatusError{api.Status{
 		Status: api.StatusFailure,
-		Code:   422, // RFC 4918: StatusUnprocessableEntity
+		Code:   StatusUnprocessableEntity, // RFC 4918: StatusUnprocessableEntity
 		Reason: api.StatusReasonInvalid,
 		Details: &api.StatusDetails{
 			Kind:   kind,
@@ -148,14 +154,10 @@ func NewInvalid(kind, name string, errs ValidationErrorList) error {
 // NewBadRequest creates an error that indicates that the request is invalid and can not be processed.
 func NewBadRequest(reason string) error {
 	return &StatusError{api.Status{
-		Status: api.StatusFailure,
-		Code:   http.StatusBadRequest,
-		Reason: api.StatusReasonBadRequest,
-		Details: &api.StatusDetails{
-			Causes: []api.StatusCause{
-				{Message: reason},
-			},
-		},
+		Status:  api.StatusFailure,
+		Code:    http.StatusBadRequest,
+		Reason:  api.StatusReasonBadRequest,
+		Message: reason,
 	}}
 }
 

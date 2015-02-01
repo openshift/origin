@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
 	authhandlers "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/handlers"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
@@ -71,8 +72,10 @@ func RateLimit(rl util.RateLimiter, handler http.Handler) http.Handler {
 			handler.ServeHTTP(w, req)
 			return
 		}
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprintf(w, "Rate limit exceeded.")
+		// Return a 429 status indicating "Too Many Requests"
+		w.Header().Set("Retry-After", "1")
+		w.WriteHeader(errors.StatusTooManyRequests)
+		fmt.Fprintf(w, "Rate limit is 10 QPS or a burst of 200")
 	})
 }
 
@@ -95,7 +98,7 @@ func RecoverPanics(handler http.Handler) http.Handler {
 				http.StatusTemporaryRedirect,
 				http.StatusConflict,
 				http.StatusNotFound,
-				StatusUnprocessableEntity,
+				errors.StatusUnprocessableEntity,
 			),
 		).Log()
 

@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/health"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/probe"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -118,6 +118,46 @@ func TestHTTPKubeletClientNotFound(t *testing.T) {
 	}
 }
 
+func TestHTTPKubeletClientError(t *testing.T) {
+	expectObj := api.PodContainerInfo{
+		ContainerInfo: map[string]api.ContainerStatus{
+			"myID": {},
+		},
+	}
+	_, err := json.Marshal(expectObj)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	fakeHandler := util.FakeHandler{
+		StatusCode:   500,
+		ResponseBody: "Internal server error",
+	}
+	testServer := httptest.NewServer(&fakeHandler)
+	defer testServer.Close()
+
+	hostURL, err := url.Parse(testServer.URL)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	parts := strings.Split(hostURL.Host, ":")
+
+	port, err := strconv.Atoi(parts[1])
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	podInfoGetter := &HTTPKubeletClient{
+		Client: http.DefaultClient,
+		Port:   uint(port),
+	}
+	_, err = podInfoGetter.GetPodStatus(parts[0], api.NamespaceDefault, "foo")
+	if err == nil || !strings.Contains(err.Error(), "HTTP error code 500") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
 func TestNewKubeletClient(t *testing.T) {
 	config := &KubeletConfig{
 		Port:        9000,
@@ -134,8 +174,8 @@ func TestNewKubeletClient(t *testing.T) {
 
 	host := "127.0.0.1"
 	healthStatus, err := client.HealthCheck(host)
-	if healthStatus != health.Unhealthy {
-		t.Errorf("Expected %v and got %v.", health.Unhealthy, healthStatus)
+	if healthStatus != probe.Failure {
+		t.Errorf("Expected %v and got %v.", probe.Failure, healthStatus)
 	}
 	if err != nil {
 		t.Error("Expected a nil error")

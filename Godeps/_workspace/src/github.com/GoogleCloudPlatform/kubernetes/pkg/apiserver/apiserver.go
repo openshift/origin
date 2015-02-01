@@ -31,6 +31,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 
 	"github.com/emicklei/go-restful"
@@ -48,10 +50,6 @@ type defaultAPIServer struct {
 	http.Handler
 	group *APIGroupVersion
 }
-
-const (
-	StatusUnprocessableEntity = 422
-)
 
 // Handle returns a Handler function that exposes the provided storage interfaces
 // as RESTful resources at prefix, serialized by codec, and also includes the support
@@ -93,8 +91,6 @@ func NewAPIGroupVersion(storage map[string]RESTStorage, codec runtime.Codec, can
 		selfLinker:       selfLinker,
 		ops:              NewOperations(),
 		admissionControl: admissionControl,
-		// Delay just long enough to handle most simple write operations
-		asyncOpWait: time.Millisecond * 25,
 	}}
 }
 
@@ -128,8 +124,7 @@ func registerResourceHandlers(ws *restful.WebService, version string, path strin
 
 	createRoute := ws.POST(path).To(h).
 		Doc("create a " + kind).
-		Operation("create" + kind).
-		Reads(versionedObject) // from the request
+		Operation("create" + kind)
 	addParamIf(createRoute, namespaceParam, namespaceScope)
 	if _, ok := storage.(RESTCreater); ok {
 		ws.Route(createRoute.Reads(versionedObject)) // from the request
@@ -200,7 +195,7 @@ func addParamIf(b *restful.RouteBuilder, parameter *restful.Parameter, shouldAdd
 	return b.Param(parameter)
 }
 
-// InstallREST registers the REST handlers (storage, watch, and operations) into a restful Container.
+// InstallREST registers the REST handlers (storage, watch, proxy and redirect) into a restful Container.
 // It is expected that the provided path root prefix will serve all operations. Root MUST NOT end
 // in a slash. A restful WebService is created for the group and version.
 func (g *APIGroupVersion) InstallREST(container *restful.Container, mux Mux, root string, version string) error {
@@ -215,7 +210,6 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, mux Mux, roo
 	}
 	proxyHandler := &ProxyHandler{prefix + "/proxy/", g.handler.storage, g.handler.codec}
 	redirectHandler := &RedirectHandler{g.handler.storage, g.handler.codec}
-	opHandler := &OperationHandler{g.handler.ops, g.handler.codec}
 
 	// Create a new WebService for this APIGroupVersion at the specified path prefix
 	// TODO: Pass in more descriptive documentation
@@ -255,14 +249,16 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, mux Mux, roo
 		strippedHandler.ServeHTTP(resp.ResponseWriter, req.Request)
 	}
 
+	registrationErrors := make([]error, 0)
+
 	for path, storage := range g.handler.storage {
 		// register legacy patterns where namespace is optional in path
 		if err := registerResourceHandlers(ws, version, path, storage, h, false); err != nil {
-			return err
+			registrationErrors = append(registrationErrors, err)
 		}
 		// register pattern where namespace is required in path
 		if err := registerResourceHandlers(ws, version, path, storage, h, true); err != nil {
-			return err
+			registrationErrors = append(registrationErrors, err)
 		}
 	}
 
@@ -272,12 +268,10 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, mux Mux, roo
 	mux.Handle(prefix+"/watch/", http.StripPrefix(prefix+"/watch/", watchHandler))
 	mux.Handle(prefix+"/proxy/", http.StripPrefix(prefix+"/proxy/", proxyHandler))
 	mux.Handle(prefix+"/redirect/", http.StripPrefix(prefix+"/redirect/", redirectHandler))
-	mux.Handle(prefix+"/operations", http.StripPrefix(prefix+"/operations", opHandler))
-	mux.Handle(prefix+"/operations/", http.StripPrefix(prefix+"/operations/", opHandler))
 
 	container.Add(ws)
 
-	return nil
+	return errors.NewAggregate(registrationErrors)
 }
 
 // TODO: Convert to go-restful
@@ -373,6 +367,7 @@ func errorJSON(err error, codec runtime.Codec, w http.ResponseWriter) {
 
 // errorJSONFatal renders an error to the response, and if codec fails will render plaintext
 func errorJSONFatal(err error, codec runtime.Codec, w http.ResponseWriter) {
+	util.HandleError(fmt.Errorf("apiserver was unable to write a JSON response: %v", err))
 	status := errToAPIStatus(err)
 	output, err := codec.Encode(status)
 	if err != nil {
@@ -387,7 +382,6 @@ func errorJSONFatal(err error, codec runtime.Codec, w http.ResponseWriter) {
 
 // writeRawJSON writes a non-API object in JSON.
 func writeRawJSON(statusCode int, object interface{}, w http.ResponseWriter) {
-	// PR #2243: Pretty-print JSON by default.
 	output, err := json.MarshalIndent(object, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
