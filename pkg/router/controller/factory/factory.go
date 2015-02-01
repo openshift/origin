@@ -21,21 +21,27 @@ type RouterControllerFactory struct {
 }
 
 func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller.RouterController {
-	routeEventQueue := oscache.NewEventQueue()
+	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&routeLW{factory.OSClient}, &routeapi.Route{}, routeEventQueue).Run()
 
-	endpointsEventQueue := oscache.NewEventQueue()
+	endpointsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&endpointsLW{factory.KClient}, &kapi.Endpoints{}, endpointsEventQueue).Run()
 
 	return &controller.RouterController{
 		Plugin: plugin,
-		NextEndpoints: func() (watch.EventType, *kapi.Endpoints) {
-			eventType, obj := endpointsEventQueue.Pop()
-			return eventType, obj.(*kapi.Endpoints)
+		NextEndpoints: func() (watch.EventType, *kapi.Endpoints, error) {
+			eventType, obj, err := endpointsEventQueue.Pop()
+			if err != nil {
+				return watch.Error, nil, err
+			}
+			return eventType, obj.(*kapi.Endpoints), nil
 		},
-		NextRoute: func() (watch.EventType, *routeapi.Route) {
-			eventType, obj := routeEventQueue.Pop()
-			return eventType, obj.(*routeapi.Route)
+		NextRoute: func() (watch.EventType, *routeapi.Route, error) {
+			eventType, obj, err := routeEventQueue.Pop()
+			if err != nil {
+				return watch.Error, nil, err
+			}
+			return eventType, obj.(*routeapi.Route), nil
 		},
 	}
 }

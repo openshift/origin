@@ -7,19 +7,23 @@ import (
 
 type FakeBuildStore struct {
 	Build *buildapi.Build
+	Err   error
 }
 
 func NewFakeBuildStore(build *buildapi.Build) FakeBuildStore {
-	return FakeBuildStore{build}
+	return FakeBuildStore{Build: build}
 }
 
-func (s FakeBuildStore) Add(id string, obj interface{}) {
+func (s FakeBuildStore) Add(obj interface{}) error {
+	return s.Err
 }
 
-func (s FakeBuildStore) Update(id string, obj interface{}) {
+func (s FakeBuildStore) Update(obj interface{}) error {
+	return s.Err
 }
 
-func (s FakeBuildStore) Delete(id string) {
+func (s FakeBuildStore) Delete(obj interface{}) error {
+	return s.Err
 }
 
 func (s FakeBuildStore) List() []interface{} {
@@ -30,12 +34,21 @@ func (s FakeBuildStore) ContainedIDs() util.StringSet {
 	return util.NewStringSet()
 }
 
-func (s FakeBuildStore) Get(id string) (item interface{}, exists bool) {
-	if s.Build == nil {
-		return nil, false
-	}
-
-	return s.Build, true
+func (s FakeBuildStore) Get(obj interface{}) (item interface{}, exists bool, err error) {
+	return s.GetByKey("")
 }
 
-func (s FakeBuildStore) Replace(idToObj map[string]interface{}) {}
+func (s FakeBuildStore) GetByKey(id string) (item interface{}, exists bool, err error) {
+	if s.Err != nil {
+		return nil, false, err
+	}
+	if s.Build == nil {
+		return nil, false, nil
+	}
+
+	return s.Build, true, nil
+}
+
+func (s FakeBuildStore) Replace(list []interface{}) error {
+	return nil
+}

@@ -6,36 +6,49 @@ import (
 )
 
 type FakeBuildConfigStore struct {
-	BuildConfig *buildapi.BuildConfig
+	Build *buildapi.BuildConfig
+	Err   error
 }
 
-func NewFakeBuildConfigStore(buildcfg *buildapi.BuildConfig) FakeBuildConfigStore {
-	return FakeBuildConfigStore{buildcfg}
+func NewFakeBuildConfigStore(build *buildapi.BuildConfig) FakeBuildConfigStore {
+	return FakeBuildConfigStore{Build: build}
 }
 
-func (s FakeBuildConfigStore) Add(id string, obj interface{}) {
+func (s FakeBuildConfigStore) Add(obj interface{}) error {
+	return s.Err
 }
 
-func (s FakeBuildConfigStore) Update(id string, obj interface{}) {
+func (s FakeBuildConfigStore) Update(obj interface{}) error {
+	return s.Err
 }
 
-func (s FakeBuildConfigStore) Delete(id string) {
+func (s FakeBuildConfigStore) Delete(obj interface{}) error {
+	return s.Err
 }
 
 func (s FakeBuildConfigStore) List() []interface{} {
-	return []interface{}{s.BuildConfig}
+	return []interface{}{s.Build}
 }
 
 func (s FakeBuildConfigStore) ContainedIDs() util.StringSet {
 	return util.NewStringSet()
 }
 
-func (s FakeBuildConfigStore) Get(id string) (item interface{}, exists bool) {
-	if s.BuildConfig == nil {
-		return nil, false
-	}
-
-	return s.BuildConfig, true
+func (s FakeBuildConfigStore) Get(obj interface{}) (item interface{}, exists bool, err error) {
+	return s.GetByKey("")
 }
 
-func (s FakeBuildConfigStore) Replace(idToObj map[string]interface{}) {}
+func (s FakeBuildConfigStore) GetByKey(id string) (item interface{}, exists bool, err error) {
+	if s.Err != nil {
+		return nil, false, err
+	}
+	if s.Build == nil {
+		return nil, false, nil
+	}
+
+	return s.Build, true, nil
+}
+
+func (s FakeBuildConfigStore) Replace(list []interface{}) error {
+	return nil
+}

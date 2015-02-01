@@ -28,7 +28,7 @@ type DeploymentConfigControllerFactory struct {
 }
 
 func (factory *DeploymentConfigControllerFactory) Create() *controller.DeploymentConfigController {
-	queue := cache.NewFIFO()
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
 
 	return &controller.DeploymentConfigController{
@@ -67,10 +67,10 @@ type DeploymentControllerFactory struct {
 }
 
 func (factory *DeploymentControllerFactory) Create() *controller.DeploymentController {
-	deploymentQueue := cache.NewFIFO()
+	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, deploymentQueue).RunUntil(factory.Stop)
 
-	factory.deploymentStore = cache.NewStore()
+	factory.deploymentStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, factory.deploymentStore).RunUntil(factory.Stop)
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
@@ -81,7 +81,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 	//
 	// TODO: Find a way to get watch events for Pod/container status updates. The polling
 	// strategy is horribly inefficient and should be addressed upstream somehow.
-	podQueue := cache.NewFIFO()
+	podQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).RunUntil(factory.Stop)
 
 	return &controller.DeploymentController{
@@ -200,10 +200,10 @@ type DeploymentConfigChangeControllerFactory struct {
 }
 
 func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.DeploymentConfigChangeController {
-	queue := cache.NewFIFO()
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
 
-	store := cache.NewStore()
+	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, store).RunUntil(factory.Stop)
 
 	return &controller.DeploymentConfigChangeController{
@@ -228,10 +228,10 @@ type ImageChangeControllerFactory struct {
 }
 
 func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
-	queue := cache.NewFIFO()
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).RunUntil(factory.Stop)
 
-	store := cache.NewStore()
+	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, store).RunUntil(factory.Stop)
 
 	return &controller.ImageChangeController{
