@@ -96,10 +96,10 @@ function cleanup()
     set +e
     echo "[INFO] Tearing down test"
     sudo pkill -P $$
-    echo "[INFO] Stopping docker containers"; docker ps -aq | xargs -l -r docker stop
+    echo "[INFO] Stopping k8s docker containers"; docker ps | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'  | xargs -l -r docker stop
     set +u
     if [ "$SKIP_IMAGE_CLEANUP" != "1" ]; then
-      echo "[INFO] Removing docker containers"; docker ps -aq | xargs -l -r docker rm
+      echo "[INFO] Removing k8s docker containers"; docker ps -a | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'  | xargs -l -r docker rm
     fi
     set -u
     set -e
