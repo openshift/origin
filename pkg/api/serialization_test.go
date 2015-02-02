@@ -18,6 +18,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	config "github.com/openshift/origin/pkg/config/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	template "github.com/openshift/origin/pkg/template/api"
@@ -41,6 +42,9 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		// APIVersion and Kind must remain blank in memory.
 		j.APIVersion = ""
 		j.Kind = ""
+	},
+	func(j *runtime.EmbeddedObject, c fuzz.Continue) {
+		// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
 	},
 	func(j *api.ObjectMeta, c fuzz.Continue) {
 		// We have to customize the randomization of TypeMetas because their
@@ -72,6 +76,13 @@ var apiObjectFuzzer = fuzz.New().NilChance(.5).NumElements(1, 1).Funcs(
 		j.Template.Spec.NodeSelector = nil
 		c.Fuzz(&j.Selector)
 		j.Replicas = int(c.RandUint64())
+	},
+	// Roles and RoleBindings maps are never nil
+	func(j *authorizationapi.Policy, c fuzz.Continue) {
+		j.Roles = make(map[string]authorizationapi.Role)
+	},
+	func(j *authorizationapi.PolicyBinding, c fuzz.Continue) {
+		j.RoleBindings = make(map[string]authorizationapi.RoleBinding)
 	},
 	func(j *template.Template, c fuzz.Continue) {
 		c.Fuzz(&j.ObjectMeta)
