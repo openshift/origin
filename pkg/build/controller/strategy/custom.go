@@ -41,13 +41,14 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	if strategy.ExposeDockerSocket {
-		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.PodName)
+		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.PodRef.Name)
 		containerEnv = append(containerEnv, kapi.EnvVar{"DOCKER_SOCKET", dockerSocketPath})
 	}
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: build.PodName,
+			Name:      build.PodRef.Name,
+			Namespace: build.PodRef.Namespace,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{

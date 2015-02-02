@@ -27,11 +27,10 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-
-	if actual.ObjectMeta.Name != expected.PodName {
-		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
+	if actual.ObjectMeta.Name != expected.PodRef.Name ||
+		actual.ObjectMeta.Namespace != expected.PodRef.Namespace {
+		t.Errorf("Expected %#v, but got %#v!", expected.PodRef, actual.ObjectMeta)
 	}
-
 	container := actual.Spec.Containers[0]
 	if container.Name != "custom-build" {
 		t.Errorf("Expected custom-build, but got %s!", container.Name)
@@ -98,7 +97,10 @@ func mockCustomBuild() *buildapi.Build {
 				DockerImageReference: "docker-registry/repository/customBuild",
 			},
 		},
-		Status:  buildapi.BuildStatusNew,
-		PodName: "-the-pod-id",
+		Status: buildapi.BuildStatusNew,
+		PodRef: &kapi.ObjectReference{
+			Name:      "-the-pod-id",
+			Namespace: "-the-pod-namespace",
+		},
 	}
 }

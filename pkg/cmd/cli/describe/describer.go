@@ -108,7 +108,11 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
 		formatString(out, "Status", bold(build.Status))
-		formatString(out, "Build Pod", build.PodName)
+		podName := ""
+		if build.PodRef != nil {
+			podName = build.PodRef.Name
+		}
+		formatString(out, "Build Pod", podName)
 		d.DescribeParameters(build.Parameters, out)
 		return nil
 	})

@@ -70,3 +70,27 @@ func TestImageChangeTriggerFromRename(t *testing.T) {
 		t.Errorf("expected %#v, actual %#v", old, actual)
 	}
 }
+
+func TestPodNameConversion(t *testing.T) {
+	var actual newer.Build
+	oldVersion := current.Build{
+		ObjectMeta: kapi.ObjectMeta{Name: "name", Namespace: "namespace"},
+		PodName:    "podname",
+	}
+	err := Convert(&oldVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.Name != oldVersion.Name {
+		t.Errorf("expected %s, actual %s", oldVersion.Name, actual.Name)
+	}
+	if actual.PodRef == nil {
+		t.Fatalf("unexpected nil PodRef")
+	}
+	if actual.PodRef.Name != oldVersion.PodName {
+		t.Errorf("expected %v, actual %v", oldVersion.PodName, actual.PodRef.Name)
+	}
+	if actual.PodRef.Namespace != oldVersion.Namespace {
+		t.Errorf("expected %v, actual %v", oldVersion.Namespace, actual.PodRef.Namespace)
+	}
+}

@@ -52,16 +52,16 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 
 	// TODO: these must be status errors, not field errors
 	// TODO: choose a more appropriate "try again later" status code, like 202
-	if len(build.PodName) == 0 {
-		return "", errors.NewFieldRequired("Build.PodName", build.PodName)
+	if build.PodRef == nil || len(build.PodRef.Name) == 0 || len(build.PodRef.Namespace) == 0 {
+		return "", errors.NewFieldRequired("Build.podRef", build.PodRef)
 	}
 
-	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
+	pod, err := r.PodControl.getPod(build.PodRef.Namespace, build.PodRef.Name)
 	if err != nil {
-		return "", errors.NewFieldNotFound("Pod.Name", build.PodName)
+		return "", errors.NewFieldNotFound("Build.podRef", build.PodRef)
 	}
 
-	buildPodID := build.PodName
+	buildPodName := build.PodRef.Name
 	buildPodHost := pod.Status.Host
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
@@ -69,7 +69,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	location := &url.URL{
 		Scheme: kubernetes.NodeScheme,
 		Host:   fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
-		Path:   fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
+		Path:   fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodName, buildContainerName),
 	}
 
 	// Pod in which build take place can't be in the Pending or Unknown phase,

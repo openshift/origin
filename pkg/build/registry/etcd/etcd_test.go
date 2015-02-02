@@ -116,8 +116,11 @@ func TestEtcdCreateBuild(t *testing.T) {
 				DockerImageReference: "repository/dataBuild",
 			},
 		},
-		Status:  api.BuildStatusPending,
-		PodName: "-the-pod-id",
+		Status: api.BuildStatusPending,
+		PodRef: &kapi.ObjectReference{
+			Name:      "-the-pod-id",
+			Namespace: "-the-pod-namespace",
+		},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -246,7 +249,14 @@ func TestEtcdWatchBuilds(t *testing.T) {
 	}
 	fakeClient.WaitForWatchCompletion()
 
-	repo := &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}, Status: api.BuildStatusRunning, PodName: "bar"}
+	repo := &api.Build{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+		Status:     api.BuildStatusRunning,
+		PodRef: &kapi.ObjectReference{
+			Name:      "bar",
+			Namespace: "test",
+		},
+	}
 	repoBytes, _ := latest.Codec.Encode(repo)
 	fakeClient.WatchResponse <- &etcd.Response{
 		Action: "set",

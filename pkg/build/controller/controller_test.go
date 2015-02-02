@@ -117,8 +117,11 @@ func mockBuildAndController(status buildapi.BuildStatus, output buildapi.BuildOu
 			},
 			Output: output,
 		},
-		Status:  status,
-		PodName: "-the-pod-id",
+		Status: status,
+		PodRef: &kapi.ObjectReference{
+			Name:      "-the-pod-id",
+			Namespace: "-the-pod-namespace",
+		},
 	}
 	controller = &BuildController{
 		BuildStore:            buildtest.NewFakeBuildStore(build),
@@ -134,7 +137,10 @@ func mockBuildAndController(status buildapi.BuildStatus, output buildapi.BuildOu
 
 func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "PodName",
+			Namespace: "PodNamespace",
+		},
 		Status: kapi.PodStatus{
 			Phase: status,
 			Info: kapi.PodInfo{
@@ -370,7 +376,8 @@ func TestHandlePod(t *testing.T) {
 		build, ctrl := mockBuildAndController(tc.inStatus, buildapi.BuildOutput{})
 		pod := mockPod(tc.podStatus, tc.exitCode)
 		if tc.matchID {
-			build.PodName = pod.Name
+			build.PodRef.Name = pod.Name
+			build.PodRef.Namespace = pod.Namespace
 		}
 		if tc.buildUpdater != nil {
 			ctrl.BuildUpdater = tc.buildUpdater

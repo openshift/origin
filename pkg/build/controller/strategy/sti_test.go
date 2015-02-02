@@ -24,11 +24,16 @@ func TestSTICreateBuildPod(t *testing.T) {
 	}
 
 	expected := mockSTIBuild()
-	actual, _ := strategy.CreateBuildPod(expected)
+	actual, err := strategy.CreateBuildPod(expected)
 
-	if actual.ObjectMeta.Name != expected.PodName {
-		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
+	if actual.ObjectMeta.Name != expected.PodRef.Name ||
+		actual.ObjectMeta.Namespace != expected.PodRef.Namespace {
+		t.Errorf("Expected %#v, but got %#v!", expected.PodRef, actual.ObjectMeta)
+	}
+
 	container := actual.Spec.Containers[0]
 	if container.Name != "sti-build" {
 		t.Errorf("Expected sti-build, but got %s!", container.Name)
@@ -96,7 +101,10 @@ func mockSTIBuild() *buildapi.Build {
 				DockerImageReference: "docker-registry/repository/stiBuild",
 			},
 		},
-		Status:  buildapi.BuildStatusNew,
-		PodName: "-the-pod-id",
+		Status: buildapi.BuildStatusNew,
+		PodRef: &kapi.ObjectReference{
+			Name:      "-the-pod-id",
+			Namespace: "-the-pod-namespace",
+		},
 	}
 }
