@@ -40,6 +40,7 @@ for the latest information on OpenShift.
 // or the global OpenShift command
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
+
 	switch basename {
 	case "openshift-router":
 		cmd = router.NewCommandTemplateRouter(basename)
@@ -54,7 +55,12 @@ func CommandFor(basename string) *cobra.Command {
 	default:
 		cmd = NewCommandOpenShift()
 	}
+
+	cmd.SetUsageTemplate(usageTemplate)
+	cmd.SetHelpTemplate(helpTemplate)
+
 	flagtypes.GLog(cmd.PersistentFlags())
+
 	return cmd
 }
 
