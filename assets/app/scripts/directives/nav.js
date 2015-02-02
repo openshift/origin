@@ -30,7 +30,10 @@ angular.module('openshiftConsole')
         // The double timeout is a hack to guarantee DOM is finished rendering
         $timeout(function () {
           $timeout(function () {
-            $('.selectpicker').selectpicker().change(function() {
+            $('.selectpicker').selectpicker({
+                  iconBase: 'fa',
+                  tickIcon: 'fa-check'
+              }).change(function() {
               var newProject = $( this ).val();
               var currentURL = $location.url();
               var currProjRegex = /\/project\/[^\/]+/;
