@@ -388,8 +388,11 @@ func mockBuild() *api.Build {
 				DockerImageReference: "repository/data-build",
 			},
 		},
-		Status:  api.BuildStatusPending,
-		PodName: "-the-pod-id",
+		Status: api.BuildStatusPending,
+		PodRef: &kapi.ObjectReference{
+			Name:      "-the-pod-id",
+			Namespace: "-the-pod-namespace",
+		},
 	}
 }
 

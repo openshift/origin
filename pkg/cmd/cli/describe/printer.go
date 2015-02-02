@@ -72,7 +72,11 @@ func printParameters(t *templateapi.Template, w io.Writer) error {
 }
 
 func printBuild(build *buildapi.Build, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, build.Parameters.Strategy.Type, build.Status, build.PodName)
+	podName := ""
+	if build.PodRef != nil {
+		podName = build.PodRef.Name
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, build.Parameters.Strategy.Type, build.Status, podName)
 	return err
 }
 

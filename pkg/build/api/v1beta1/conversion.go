@@ -16,13 +16,17 @@ func init() {
 			out.Image = in.Image
 			out.Scripts = in.Scripts
 			out.Clean = in.Clean
-			s.Convert(&in.Env, &out.Env, 0)
+			if err := s.Convert(&in.Env, &out.Env, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
 			out.Scripts = in.Scripts
 			out.Clean = in.Clean
-			s.Convert(&in.Env, &out.Env, 0)
+			if err := s.Convert(&in.Env, &out.Env, 0); err != nil {
+				return err
+			}
 			if len(in.Image) != 0 {
 				out.Image = in.Image
 			} else {
@@ -91,6 +95,61 @@ func init() {
 			out.Tag = in.Tag
 			out.LastTriggeredImageID = in.LastTriggeredImageID
 			out.Image = in.Image
+			return nil
+		},
+		// Switch from podName to PodRef
+		func(in *newer.Build, out *Build, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Parameters, &out.Parameters, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			out.Message = in.Message
+			if in.PodRef != nil {
+				out.PodRef = &kapi.ObjectReference{}
+				if err := s.Convert(&in.PodRef, &out.PodRef, 0); err != nil {
+					return err
+				}
+				out.PodName = in.PodRef.Name
+			}
+			out.Cancelled = in.Cancelled
+			return nil
+		},
+		func(in *Build, out *newer.Build, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Parameters, &out.Parameters, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			out.Message = in.Message
+			if len(in.PodName) != 0 {
+				out.PodRef = &api.ObjectReference{
+					Name:      in.PodName,
+					Namespace: in.Namespace,
+				}
+			}
+			// this field has higher precedence
+			if in.PodRef != nil {
+				out.PodRef = &api.ObjectReference{}
+				if err := s.Convert(&in.PodRef, &out.PodRef, 0); err != nil {
+					return err
+				}
+			}
+			out.Cancelled = in.Cancelled
 			return nil
 		})
 }

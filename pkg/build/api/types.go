@@ -19,8 +19,8 @@ type Build struct {
 	// A human readable message indicating details about why the build has this status
 	Message string `json:"message,omitempty"`
 
-	// PodName is the name of the pod that is used to execute the build
-	PodName string `json:"podName,omitempty"`
+	// PodRef defines a reference to the pod used to execute the build
+	PodRef *kapi.ObjectReference `json:"podRef,omitempty"`
 
 	// Cancelled describes if a cancelling event was triggered for the build.
 	Cancelled bool `json:"cancelled,omitempty"`

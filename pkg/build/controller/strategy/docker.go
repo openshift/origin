@@ -27,7 +27,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: build.PodName,
+			Name:      build.PodRef.Name,
+			Namespace: build.PodRef.Namespace,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{

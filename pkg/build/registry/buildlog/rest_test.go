@@ -134,7 +134,10 @@ func mockBuild(buildStatus api.BuildStatus, podName string) *api.Build {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "foo-build",
 		},
-		Status:  buildStatus,
-		PodName: podName,
+		Status: buildStatus,
+		PodRef: &kapi.ObjectReference{
+			Name:      podName,
+			Namespace: "-the-pod-namespace",
+		},
 	}
 }

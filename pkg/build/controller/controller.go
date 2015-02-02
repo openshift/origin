@@ -101,7 +101,10 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 
 	// set the expected build parameters, which will be saved if no error occurs
 	build.Status = buildapi.BuildStatusPending
-	build.PodName = fmt.Sprintf("build-%s", build.Name)
+	build.PodRef = &kapi.ObjectReference{
+		Name:      fmt.Sprintf("build-%s", build.Name),
+		Namespace: build.Namespace,
+	}
 
 	// override DockerImageReference in the strategy for the copy we send to the server
 	copy, err := kapi.Scheme.Copy(build)
@@ -134,7 +137,7 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	var build *buildapi.Build
 	for _, obj := range bc.BuildStore.List() {
 		b := obj.(*buildapi.Build)
-		if b.PodName == pod.Name {
+		if b.PodRef.Name == pod.Name && b.PodRef.Namespace == pod.Namespace {
 			build = b
 			break
 		}
