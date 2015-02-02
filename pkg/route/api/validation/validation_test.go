@@ -29,6 +29,9 @@ func TestValidateTLSReencryptTermOKCert(t *testing.T) {
 	errs := validateTLS(&api.TLSConfig{
 		Termination:              api.TLSTerminationReencrypt,
 		DestinationCACertificate: "abc",
+		Certificate:              "def",
+		Key:                      "ghi",
+		CACertificate:            "jkl",
 	})
 
 	if len(errs) > 0 {
@@ -100,12 +103,13 @@ func TestValidatePodTermInvalid(t *testing.T) {
 	}
 }
 
+// TestValidateReencryptTermInvalid ensures reencrypt must specify cert, key, cacert, and dest cert
 func TestValidateReencryptTermInvalid(t *testing.T) {
 	errs := validateTLS(&api.TLSConfig{
 		Termination: api.TLSTerminationReencrypt,
 	})
 
-	if len(errs) != 1 {
-		t.Errorf("Unexpected error list encountered: %#v.  Expected 1 error, got %v", errs, len(errs))
+	if len(errs) != 4 {
+		t.Errorf("Unexpected error list encountered: %#v.  Expected 4 errors, got %v", errs, len(errs))
 	}
 }
