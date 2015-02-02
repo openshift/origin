@@ -60,9 +60,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     num_minion = (vagrant_openshift_config['num_minions'] || ENV['OPENSHIFT_NUM_MINIONS'] || 2).to_i
 
     # IP configuration
-    master_ip = "10.245.1.2"
+    master_ip = "10.245.2.2"
     minion_ip_base = "10.245.2."
-    minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+2}" }
+    minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
     minion_ips_str = minion_ips.join(",")
 
     # Determine the OS platform to use
@@ -81,7 +81,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
       config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{ENV['OPENSHIFT_SDN']}"
-      config.vm.network "private_network", ip: "#{master_ip}", netmask: "255.255.0.0"
+      config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
     end
 
@@ -93,7 +93,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
         minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{minion_ip} #{minion_index} #{ENV['OPENSHIFT_SDN']}"
-        minion.vm.network "private_network", ip: "#{minion_ip}", netmask: "255.255.0.0"
+        minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
       end
     end
@@ -112,7 +112,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.customize ["modifyvm", :id, "--cpus", "2"]
       # to make the ha-proxy reachable from the host, you need to add a port forwarding rule from 1080 to 80, which
       # requires root privilege. Use iptables on linux based or ipfw on BSD based OS:
-      # sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 1080 
+      # sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 1080
       # sudo ipfw add 100 fwd 127.0.0.1,1080 tcp from any to any 80 in
       config.vm.network "forwarded_port", guest: 80, host: 1080
       config.vm.network "forwarded_port", guest: 8080, host: 8080
