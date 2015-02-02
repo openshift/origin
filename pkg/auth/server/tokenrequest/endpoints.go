@@ -3,10 +3,13 @@ package tokenrequest
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"io"
 	"net/http"
 	"path"
 
 	"github.com/RangelReale/osincli"
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/auth/server/login"
 )
@@ -47,40 +50,75 @@ func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.
 
 func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
+	data := tokenData{RequestURL: "request"}
 
 	authorizeReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	authorizeData, err := authorizeReq.HandleRequest(req)
 	if err != nil {
+		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error handling auth request: %v<br><br><a href='request'>Request another token</a>", err)
+		renderToken(w, data)
 		return
 	}
 
 	accessReq := endpoints.originOAuthClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, authorizeData)
 	accessData, err := accessReq.GetToken()
 	if err != nil {
+		data.Error = fmt.Sprintf("Error getting token: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error getting token: %v<br><br><a href='request'>Request another token</a>", err)
+		renderToken(w, data)
 		return
 	}
 
 	jsonBytes, err := json.MarshalIndent(accessData.ResponseData, "", "   ")
 	if err != nil {
+		data.Error = fmt.Sprintf("Error marshalling json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error marshalling json: %v", err)
+		renderToken(w, data)
 		return
 	}
 
-	fmt.Fprintf(w, `
-OAuth token generated:
-<pre>%s</pre>
-
-To use this token with curl:
-<pre>curl -H "Authorization: Bearer %s" ...</pre>
-
-To use this token with osc:
-<pre>osc --token %s ...</pre>
-
-<a href='request'>Request another token</a>
-`, jsonBytes, accessData.AccessToken, accessData.AccessToken)
+	data.OAuthJSON = string(jsonBytes)
+	data.AccessToken = accessData.AccessToken
+	renderToken(w, data)
 }
+
+func renderToken(w io.Writer, data tokenData) {
+	if err := tokenTemplate.Execute(w, data); err != nil {
+		glog.Errorf("Unable to render token template: %v", err)
+	}
+}
+
+type tokenData struct {
+	Error       string
+	OAuthJSON   string
+	AccessToken string
+	RequestURL  string
+}
+
+var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
+<style>
+	body    { font-family: sans-serif; font-size: 12pt; margin: 2em 5%; }
+	pre     { padding-left: 1em; border-left: .25em solid #eee; }
+	a       { color: #00f; text-decoration: none; }
+	a:hover { text-decoration: underline; }
+</style>
+
+{{ if .Error }}
+  {{ .Error }}
+{{ else }}
+  <h3>Here is your brand new OAuth access token:</h3>
+  <pre>{{.OAuthJSON}}</pre>
+  
+  <h3>How do I use this token?</h3>
+  <pre>osc --token={{.AccessToken}} &hellip;</pre>
+  <pre>curl -H "Authorization: Bearer {{.AccessToken}}" &hellip;</pre>
+  
+  <h3>How do I delete this token when I'm done?</h3>
+  <pre>osc delete oauthaccesstoken {{.AccessToken}}</pre>
+  <pre>curl -X DELETE &hellip;/osapi/v1beta1/oAuthAccessTokens/{{.AccessToken}}</pre>
+{{ end }}
+
+<br><br>
+<a href="{{.RequestURL}}">Request another token</a>
+`))

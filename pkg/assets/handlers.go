@@ -107,7 +107,7 @@ window.OPENSHIFT_CONFIG = {
   auth: {
   	oauth_authorize_url: "{{ .OAuthAuthorizeURL | js}}",
   	oauth_client_id: "{{ .OAuthClientID | js}}"
-  },
+  }
 };
 `))
 
