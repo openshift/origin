@@ -143,6 +143,7 @@ osc delete routes testroute
 echo "routes: ok"
 
 osc get deploymentConfigs
+osc get dc
 osc create -f test/integration/fixtures/test-deployment-config.json
 osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
@@ -155,6 +156,9 @@ osc get pods
 echo "resize: ok"
 
 osc process -f examples/sample-app/application-template-dockerbuild.json | osc apply -f -
+osc get buildConfigs
+osc get bc
+osc get builds
 echo "buildConfig: ok"
 
 started=$(osc start-build ruby-sample-build)

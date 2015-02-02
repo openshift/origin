@@ -26,7 +26,7 @@ type Factory struct {
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
-	mapper := kubectl.ShortcutExpander{latest.RESTMapper}
+	mapper := ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
 
 	w := &Factory{kubecmd.NewFactory(clientConfig), clientConfig}
 
@@ -95,4 +95,30 @@ func (f *Factory) Clients(cmd *cobra.Command) (*client.Client, *kclient.Client, 
 		return nil, nil, err
 	}
 	return oc, kc, nil
+}
+
+// ShortcutExpander is a RESTMapper that can be used for OpenShift resources.
+type ShortcutExpander struct {
+	meta.RESTMapper
+}
+
+// VersionAndKindForResource implements meta.RESTMapper. It expands the resource first, then invokes the wrapped
+// mapper.
+func (e ShortcutExpander) VersionAndKindForResource(resource string) (defaultVersion, kind string, err error) {
+	resource = expandResourceShortcut(resource)
+	return e.RESTMapper.VersionAndKindForResource(resource)
+}
+
+// expandResourceShortcut will return the expanded version of resource
+// (something that a pkg/api/meta.RESTMapper can understand), if it is
+// indeed a shortcut. Otherwise, will return resource unmodified.
+func expandResourceShortcut(resource string) string {
+	shortForms := map[string]string{
+		"dc": "deploymentConfigs",
+		"bc": "buildConfigs",
+	}
+	if expanded, ok := shortForms[resource]; ok {
+		return expanded
+	}
+	return resource
 }
