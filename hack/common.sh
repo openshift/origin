@@ -51,7 +51,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-sti-build
   openshift-docker-build
   osc
-  openshift-experimental
 )
 readonly OPENSHIFT_BINARY_COPY=(
   osc
