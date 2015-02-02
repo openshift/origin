@@ -31,10 +31,15 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/leaky"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+)
+
+const (
+	PodInfraContainerName = leaky.PodInfraContainerName
 )
 
 // DockerInterface is an abstract interface for testability.  It abstracts the interface of docker.Client.
@@ -368,8 +373,8 @@ var (
 	// ErrNoContainersInPod is returned when there are no containers for a given pod
 	ErrNoContainersInPod = errors.New("no containers exist for this pod")
 
-	// ErrNoNetworkContainerInPod is returned when there is no network container for a given pod
-	ErrNoNetworkContainerInPod = errors.New("No network container exists for this pod")
+	// ErrNoPodInfraContainerInPod is returned when there is no pod infra container for a given pod
+	ErrNoPodInfraContainerInPod = errors.New("No pod infra container exists for this pod")
 
 	// ErrContainerCannotRun is returned when a container is created, but cannot run properly
 	ErrContainerCannotRun = errors.New("Container cannot run")
@@ -397,7 +402,7 @@ func inspectContainer(client DockerInterface, dockerID, containerName, tPath str
 		containerStatus.State.Running = &api.ContainerStateRunning{
 			StartedAt: util.NewTime(inspectResult.State.StartedAt),
 		}
-		if containerName == "net" && inspectResult.NetworkSettings != nil {
+		if containerName == PodInfraContainerName && inspectResult.NetworkSettings != nil {
 			containerStatus.PodIP = inspectResult.NetworkSettings.IPAddress
 		}
 		waiting = false
@@ -450,7 +455,7 @@ func GetDockerPodInfo(client DockerInterface, manifest api.PodSpec, podFullName 
 	for _, container := range manifest.Containers {
 		expectedContainers[container.Name] = container
 	}
-	expectedContainers["net"] = api.Container{}
+	expectedContainers[PodInfraContainerName] = api.Container{}
 
 	containers, err := client.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
@@ -494,9 +499,9 @@ func GetDockerPodInfo(client DockerInterface, manifest api.PodSpec, podFullName 
 		return nil, ErrNoContainersInPod
 	}
 
-	// First make sure we are not missing network container
-	if _, found := info["net"]; !found {
-		return nil, ErrNoNetworkContainerInPod
+	// First make sure we are not missing pod infra container
+	if _, found := info[PodInfraContainerName]; !found {
+		return nil, ErrNoPodInfraContainerInPod
 	}
 
 	if len(info) < (len(manifest.Containers) + 1) {

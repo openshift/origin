@@ -60,6 +60,8 @@ func NewClientConfigLoadingRules() *ClientConfigLoadingRules {
 // This means that the first file to set CurrentContext will have its context preserved.  It also means
 // that if two files specify a "red-user", only values from the first file's red-user are used.  Even
 // non-conflicting entries from the second file's "red-user" are discarded.
+// Relative paths inside of the .kubeconfig files are resolved against the .kubeconfig file's parent folder
+// and only absolute file paths are returned.
 func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 	config := clientcmdapi.NewConfig()
 

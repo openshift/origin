@@ -273,15 +273,10 @@ type ExecAction struct {
 	Command []string `json:"command,omitempty"`
 }
 
-// LivenessProbe describes a liveness probe to be examined to the container.
-// TODO: pass structured data to the actions, and document that data here.
-type LivenessProbe struct {
-	// HTTPGetProbe parameters, required if Type == 'http'
-	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
-	// TCPSocketProbe parameter, required if Type == 'tcp'
-	TCPSocket *TCPSocketAction `json:"tcpSocket,omitempty"`
-	// ExecProbe parameter, required if Type == 'exec'
-	Exec *ExecAction `json:"exec,omitempty"`
+// Probe describes a liveness probe to be examined to the container.
+type Probe struct {
+	// The action taken to determine the health of a container
+	Handler `json:",inline"`
 	// Length of time before health checking is activated.  In seconds.
 	InitialDelaySeconds int64 `json:"initialDelaySeconds,omitempty"`
 }
@@ -297,6 +292,17 @@ const (
 	// PullIfNotPresent means that kubelet pulls if the image isn't present on disk. Container will fail if the image isn't present and the pull fails.
 	PullIfNotPresent PullPolicy = "IfNotPresent"
 )
+
+// CapabilityType represent POSIX capabilities type
+type CapabilityType string
+
+// Capabilities represent POSIX capabilities that can be added or removed to a running container.
+type Capabilities struct {
+	// Added capabilities
+	Add []CapabilityType `json:"add,omitempty"`
+	// Removed capabilities
+	Drop []CapabilityType `json:"drop,omitempty"`
+}
 
 // Container represents a single container that is expected to be run on the host.
 type Container struct {
@@ -316,7 +322,7 @@ type Container struct {
 	// Optional: Defaults to unlimited.
 	CPU           resource.Quantity `json:"cpu,omitempty"`
 	VolumeMounts  []VolumeMount     `json:"volumeMounts,omitempty"`
-	LivenessProbe *LivenessProbe    `json:"livenessProbe,omitempty"`
+	LivenessProbe *Probe            `json:"livenessProbe,omitempty"`
 	Lifecycle     *Lifecycle        `json:"lifecycle,omitempty"`
 	// Optional: Defaults to /dev/termination-log
 	TerminationMessagePath string `json:"terminationMessagePath,omitempty"`
@@ -324,6 +330,8 @@ type Container struct {
 	Privileged bool `json:"privileged,omitempty"`
 	// Optional: Policy for pulling images for this container
 	ImagePullPolicy PullPolicy `json:"imagePullPolicy"`
+	// Optional: Capabilities for container.
+	Capabilities Capabilities `json:"capabilities,omitempty"`
 }
 
 // Handler defines a specific action that should be taken
@@ -334,6 +342,9 @@ type Handler struct {
 	Exec *ExecAction `json:"exec,omitempty"`
 	// HTTPGet specifies the http request to perform.
 	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
+	// TCPSocket specifies an action involving a TCP port.
+	// TODO: implement a realistic TCP lifecycle hook
+	TCPSocket *TCPSocketAction `json:"tcpSocket,omitempty"`
 }
 
 // Lifecycle describes actions that the management system should take in response to container lifecycle
@@ -764,6 +775,8 @@ type NodeResources struct {
 type ResourceName string
 
 const (
+	// The default compute resource namespace for all standard resource types.
+	DefaultResourceNamespace = "kubernetes.io"
 	// CPU, in cores. (500m = .5 cores)
 	ResourceCPU ResourceName = "cpu"
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
@@ -821,12 +834,12 @@ type Status struct {
 	TypeMeta `json:",inline"`
 	ListMeta `json:"metadata,omitempty"`
 
-	// One of: "Success", "Failure", "Working" (for operations not yet completed)
+	// One of: "Success" or "Failure"
 	Status string `json:"status,omitempty"`
 	// A human-readable description of the status of this operation.
 	Message string `json:"message,omitempty"`
 	// A machine-readable description of why this operation is in the
-	// "Failure" or "Working" status. If this value is empty there
+	// "Failure" status. If this value is empty there
 	// is no information available. A Reason clarifies an HTTP status
 	// code but does not override it.
 	Reason StatusReason `json:"reason,omitempty"`
@@ -862,7 +875,6 @@ type StatusDetails struct {
 const (
 	StatusSuccess = "Success"
 	StatusFailure = "Failure"
-	StatusWorking = "Working"
 )
 
 // StatusReason is an enumeration of possible failure causes.  Each StatusReason
@@ -876,18 +888,6 @@ const (
 	// The details field may contain other information about this error.
 	// Status code 500.
 	StatusReasonUnknown StatusReason = ""
-
-	// StatusReasonWorking means the server is processing this request and will complete
-	// at a future time.
-	// Details (optional):
-	//   "kind" string - the name of the resource being referenced ("operation" today)
-	//   "id"   string - the identifier of the Operation resource where updates
-	//                   will be returned
-	// Headers (optional):
-	//   "Location" - HTTP header populated with a URL that can retrieved the final
-	//                status of this operation.
-	// Status code 202
-	StatusReasonWorking StatusReason = "Working"
 
 	// StatusReasonForbidden means the server can be reached and understood the request, but refuses
 	// to take any further action.  It is the result of the server being configured to deny access for some reason
@@ -937,6 +937,12 @@ const (
 	// Status code 422
 	StatusReasonInvalid StatusReason = "Invalid"
 
+	// StatusReasonTimeout means that the request could not be completed within the given time.
+	// Clients can get this response only when they specified a timeout param in the request.
+	// The request might succeed with an increased value of timeout param.
+	// Status code 504
+	StatusReasonTimeout StatusReason = "Timeout"
+
 	// StatusReasonBadRequest means that the request itself was invalid, because the request
 	// doesn't make any sense, for example deleting a read-only object.  This is different than
 	// StatusReasonInvalid above which indicates that the API call could possibly succeed, but the
@@ -979,7 +985,7 @@ type StatusCause struct {
 
 // CauseType is a machine readable value providing more detail about what
 // occured in a status response. An operation may have multiple causes for a
-// status (whether Failure, Success, or Working).
+// status (whether Failure or Success).
 type CauseType string
 
 const (
@@ -1135,4 +1141,105 @@ type List struct {
 	ListMeta `json:"metadata,omitempty"`
 
 	Items []runtime.Object `json:"items"`
+}
+
+// A type of object that is limited
+type LimitType string
+
+const (
+	// Limit that applies to all pods in a namespace
+	LimitTypePod LimitType = "Pod"
+	// Limit that applies to all containers in a namespace
+	LimitTypeContainer LimitType = "Container"
+)
+
+// LimitRangeItem defines a min/max usage limit for any resource that matches on kind
+type LimitRangeItem struct {
+	// Type of resource that this limit applies to
+	Type LimitType `json:"type,omitempty"`
+	// Max usage constraints on this kind by resource name
+	Max ResourceList `json:"max,omitempty"`
+	// Min usage constraints on this kind by resource name
+	Min ResourceList `json:"min,omitempty"`
+}
+
+// LimitRangeSpec defines a min/max usage limit for resources that match on kind
+type LimitRangeSpec struct {
+	// Limits is the list of LimitRangeItem objects that are enforced
+	Limits []LimitRangeItem `json:"limits"`
+}
+
+// LimitRange sets resource usage limits for each kind of resource in a Namespace
+type LimitRange struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec defines the limits enforced
+	Spec LimitRangeSpec `json:"spec,omitempty"`
+}
+
+// LimitRangeList is a list of LimitRange items.
+type LimitRangeList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+
+	// Items is a list of LimitRange objects
+	Items []LimitRange `json:"items"`
+}
+
+// The following identify resource constants for Kubernetes object types
+const (
+	// Pods, number
+	ResourcePods ResourceName = "pods"
+	// Services, number
+	ResourceServices ResourceName = "services"
+	// ReplicationControllers, number
+	ResourceReplicationControllers ResourceName = "replicationcontrollers"
+	// ResourceQuotas, number
+	ResourceQuotas ResourceName = "resourcequotas"
+)
+
+// ResourceQuotaSpec defines the desired hard limits to enforce for Quota
+type ResourceQuotaSpec struct {
+	// Hard is the set of desired hard limits for each named resource
+	Hard ResourceList `json:"hard,omitempty"`
+}
+
+// ResourceQuotaStatus defines the enforced hard limits and observed use
+type ResourceQuotaStatus struct {
+	// Hard is the set of enforced hard limits for each named resource
+	Hard ResourceList `json:"hard,omitempty"`
+	// Used is the current observed total usage of the resource in the namespace
+	Used ResourceList `json:"used,omitempty"`
+}
+
+// ResourceQuota sets aggregate quota restrictions enforced per namespace
+type ResourceQuota struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec defines the desired quota
+	Spec ResourceQuotaSpec `json:"spec,omitempty"`
+
+	// Status defines the actual enforced quota and its current usage
+	Status ResourceQuotaStatus `json:"status,omitempty"`
+}
+
+// ResourceQuotaUsage captures system observed quota status per namespace
+// It is used to enforce atomic updates of a backing ResourceQuota.Status field in storage
+type ResourceQuotaUsage struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Status defines the actual enforced quota and its current usage
+	Status ResourceQuotaStatus `json:"status,omitempty"`
+}
+
+// ResourceQuotaList is a list of ResourceQuota items
+type ResourceQuotaList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+
+	// Items is a list of ResourceQuota objects
+	Items []ResourceQuota `json:"items"`
 }

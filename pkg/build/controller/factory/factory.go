@@ -35,10 +35,10 @@ type BuildControllerFactory struct {
 }
 
 func (factory *BuildControllerFactory) Create() *controller.BuildController {
-	factory.buildStore = cache.NewStore()
+	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore).RunUntil(factory.Stop)
 
-	buildQueue := cache.NewFIFO()
+	buildQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, buildQueue).RunUntil(factory.Stop)
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
@@ -49,7 +49,7 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	//
 	// TODO: Find a way to get watch events for Pod/container status updates. The polling
 	// strategy is horribly inefficient and should be addressed upstream somehow.
-	podQueue := cache.NewFIFO()
+	podQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).RunUntil(factory.Stop)
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
@@ -89,10 +89,10 @@ type ImageChangeControllerFactory struct {
 // Create creates a new ImageChangeController which is used to trigger builds when a new
 // image is available
 func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
-	queue := cache.NewFIFO()
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).RunUntil(factory.Stop)
 
-	store := cache.NewStore()
+	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).RunUntil(factory.Stop)
 
 	return &controller.ImageChangeController{
@@ -144,8 +144,8 @@ func (pe *podEnumerator) Len() int {
 }
 
 // Get returns the item (and ID) with the particular index.
-func (pe *podEnumerator) Get(index int) (string, interface{}) {
-	return pe.Items[index].Name, &pe.Items[index]
+func (pe *podEnumerator) Get(index int) interface{} {
+	return &pe.Items[index]
 }
 
 type typeBasedFactoryStrategy struct {

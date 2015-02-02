@@ -175,13 +175,12 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		Client:             kubeClient,
-		EtcdHelper:         etcdHelper,
-		HealthCheckMinions: false,
-		KubeletClient:      kubeletClient,
-		APIPrefix:          "/api",
-		AdmissionControl:   admit.NewAlwaysAdmit(),
-		RestfulContainer:   handlerContainer,
+		Client:           kubeClient,
+		EtcdHelper:       etcdHelper,
+		KubeletClient:    kubeletClient,
+		APIPrefix:        "/api",
+		AdmissionControl: admit.NewAlwaysAdmit(),
+		RestfulContainer: handlerContainer,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)

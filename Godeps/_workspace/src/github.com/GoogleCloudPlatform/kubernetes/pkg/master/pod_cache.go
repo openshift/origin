@@ -20,8 +20,8 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/leaky"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 
@@ -47,7 +47,7 @@ type PodCache struct {
 	podStatus map[objKey]api.PodStatus
 	// nodes that we know exist. Cleared at the beginning of each
 	// UpdateAllPods call.
-	currentNodes map[objKey]bool
+	currentNodes map[objKey]api.NodeStatus
 }
 
 type objKey struct {
@@ -63,54 +63,82 @@ func NewPodCache(ipCache IPGetter, info client.PodInfoGetter, nodes client.NodeI
 		containerInfo: info,
 		pods:          pods,
 		nodes:         nodes,
-		currentNodes:  map[objKey]bool{},
+		currentNodes:  map[objKey]api.NodeStatus{},
 		podStatus:     map[objKey]api.PodStatus{},
 	}
 }
 
 // GetPodStatus gets the stored pod status.
 func (p *PodCache) GetPodStatus(namespace, name string) (*api.PodStatus, error) {
+	status := p.getPodStatusInternal(namespace, name)
+	if status != nil {
+		return status, nil
+	}
+	return p.updateCacheAndReturn(namespace, name)
+}
+
+func (p *PodCache) updateCacheAndReturn(namespace, name string) (*api.PodStatus, error) {
+	pod, err := p.pods.GetPod(api.WithNamespace(api.NewContext(), namespace), name)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.updatePodStatus(pod); err != nil {
+		return nil, err
+	}
+	status := p.getPodStatusInternal(namespace, name)
+	if status == nil {
+		glog.Warningf("nil status after successful update.  that's odd... (%s %s)", namespace, name)
+		return nil, client.ErrPodInfoNotAvailable
+	}
+	return status, nil
+}
+
+func (p *PodCache) getPodStatusInternal(namespace, name string) *api.PodStatus {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	value, ok := p.podStatus[objKey{namespace, name}]
 	if !ok {
-		return nil, client.ErrPodInfoNotAvailable
+		return nil
 	}
 	// Make a copy
-	return &value, nil
+	return &value
 }
 
-func (p *PodCache) nodeExistsInCache(name string) (exists, cacheHit bool) {
+func (p *PodCache) ClearPodStatus(namespace, name string) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	exists, cacheHit = p.currentNodes[objKey{"", name}]
-	return exists, cacheHit
+
+	delete(p.podStatus, objKey{namespace, name})
+}
+
+func (p *PodCache) getNodeStatusInCache(name string) (*api.NodeStatus, bool) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	nodeStatus, cacheHit := p.currentNodes[objKey{"", name}]
+	return &nodeStatus, cacheHit
 }
 
 // lock must *not* be held
-func (p *PodCache) nodeExists(name string) bool {
-	exists, cacheHit := p.nodeExistsInCache(name)
+func (p *PodCache) getNodeStatus(name string) (*api.NodeStatus, error) {
+	nodeStatus, cacheHit := p.getNodeStatusInCache(name)
 	if cacheHit {
-		return exists
+		return nodeStatus, nil
 	}
 	// TODO: suppose there's N concurrent requests for node "foo"; in that case
 	// it might be useful to block all of them and only look up "foo" once.
 	// (This code will make up to N lookups.) One way of doing that would be to
 	// have a pool of M mutexes and require that before looking up "foo" you must
 	// lock mutex hash("foo") % M.
-	_, err := p.nodes.Get(name)
-	exists = true
+	node, err := p.nodes.Get(name)
 	if err != nil {
-		exists = false
-		if !errors.IsNotFound(err) {
-			glog.Errorf("Unexpected error type verifying minion existence: %+v", err)
-		}
+		glog.Errorf("Unexpected error verifying node existence: %+v", err)
+		return nil, err
 	}
 
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	p.currentNodes[objKey{"", name}] = exists
-	return exists
+	p.currentNodes[objKey{"", name}] = node.Status
+	return &node.Status, nil
 }
 
 // TODO: once Host gets moved to spec, this can take a podSpec + metadata instead of an
@@ -138,10 +166,24 @@ func (p *PodCache) computePodStatus(pod *api.Pod) (api.PodStatus, error) {
 		return newStatus, nil
 	}
 
-	if !p.nodeExists(pod.Status.Host) {
-		// Assigned to non-existing node.
-		newStatus.Phase = api.PodFailed
+	nodeStatus, err := p.getNodeStatus(pod.Status.Host)
+
+	// Assigned to non-existing node.
+	if err != nil || len(nodeStatus.Conditions) == 0 {
+		newStatus.Phase = api.PodUnknown
 		return newStatus, nil
+	}
+
+	// Assigned to an unhealthy node.
+	for _, condition := range nodeStatus.Conditions {
+		if condition.Kind == api.NodeReady && condition.Status == api.ConditionNone {
+			newStatus.Phase = api.PodUnknown
+			return newStatus, nil
+		}
+		if condition.Kind == api.NodeReachable && condition.Status == api.ConditionNone {
+			newStatus.Phase = api.PodUnknown
+			return newStatus, nil
+		}
 	}
 
 	result, err := p.containerInfo.GetPodStatus(pod.Status.Host, pod.Namespace, pod.Name)
@@ -152,7 +194,7 @@ func (p *PodCache) computePodStatus(pod *api.Pod) (api.PodStatus, error) {
 	} else {
 		newStatus.Info = result.Status.Info
 		newStatus.Phase = getPhase(&pod.Spec, newStatus.Info)
-		if netContainerInfo, ok := newStatus.Info["net"]; ok {
+		if netContainerInfo, ok := newStatus.Info[leaky.PodInfraContainerName]; ok {
 			if netContainerInfo.PodIP != "" {
 				newStatus.PodIP = netContainerInfo.PodIP
 			}
@@ -161,10 +203,23 @@ func (p *PodCache) computePodStatus(pod *api.Pod) (api.PodStatus, error) {
 	return newStatus, err
 }
 
-func (p *PodCache) resetNodeExistenceCache() {
+func (p *PodCache) GarbageCollectPodStatus() {
+	pods, err := p.pods.ListPods(api.NewContext(), labels.Everything())
+	if err != nil {
+		glog.Errorf("Error getting pod list: %v", err)
+	}
+	keys := map[objKey]bool{}
+	for _, pod := range pods.Items {
+		keys[objKey{pod.Namespace, pod.Name}] = true
+	}
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	p.currentNodes = map[objKey]bool{}
+	for key := range p.podStatus {
+		if _, found := keys[key]; !found {
+			glog.Infof("Deleting orphaned cache entry: %v", key)
+			delete(p.podStatus, key)
+		}
+	}
 }
 
 // UpdateAllContainers updates information about all containers.
@@ -172,8 +227,6 @@ func (p *PodCache) resetNodeExistenceCache() {
 // calling again, or risk having new info getting clobbered by delayed
 // old info.
 func (p *PodCache) UpdateAllContainers() {
-	p.resetNodeExistenceCache()
-
 	ctx := api.NewContext()
 	pods, err := p.pods.ListPods(ctx, labels.Everything())
 	if err != nil {

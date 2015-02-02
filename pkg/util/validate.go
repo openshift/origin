@@ -27,8 +27,6 @@ func (f *fakeServiceLister) ListServices(kapi.Context) (*kapi.ServiceList, error
 
 // ValidateObject validates the runtime.Object and returns the validation errors
 func ValidateObject(obj runtime.Object) (errors []error) {
-	ctx := kapi.NewDefaultContext()
-
 	if m, err := meta.Accessor(obj); err == nil {
 		if len(m.Namespace()) == 0 {
 			m.SetNamespace(kapi.NamespaceDefault)
@@ -39,7 +37,7 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 	case *kapi.ReplicationController:
 		errors = validation.ValidateReplicationController(t)
 	case *kapi.Service:
-		errors = validation.ValidateService(t, &fakeServiceLister{}, ctx)
+		errors = validation.ValidateService(t)
 	case *kapi.Pod:
 		errors = validation.ValidatePod(t)
 	case *imageapi.Image:

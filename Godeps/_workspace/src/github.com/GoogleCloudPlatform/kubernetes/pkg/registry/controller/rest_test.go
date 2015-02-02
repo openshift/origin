@@ -143,7 +143,7 @@ func TestControllerDecode(t *testing.T) {
 func TestControllerParsing(t *testing.T) {
 	expectedController := api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
-			Name: "nginxController",
+			Name: "nginx-controller",
 			Labels: map[string]string{
 				"name": "nginx",
 			},
@@ -243,9 +243,8 @@ func TestCreateController(t *testing.T) {
 		},
 	}
 	storage := REST{
-		registry:   &mockRegistry,
-		podLister:  &mockPodRegistry,
-		pollPeriod: time.Millisecond * 1,
+		registry:  &mockRegistry,
+		podLister: &mockPodRegistry,
 	}
 	controller := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{Name: "test"},
@@ -278,9 +277,8 @@ func TestCreateController(t *testing.T) {
 func TestControllerStorageValidatesCreate(t *testing.T) {
 	mockRegistry := registrytest.ControllerRegistry{}
 	storage := REST{
-		registry:   &mockRegistry,
-		podLister:  nil,
-		pollPeriod: time.Millisecond * 1,
+		registry:  &mockRegistry,
+		podLister: nil,
 	}
 	failureCases := map[string]api.ReplicationController{
 		"empty ID": {
@@ -309,9 +307,8 @@ func TestControllerStorageValidatesCreate(t *testing.T) {
 func TestControllerStorageValidatesUpdate(t *testing.T) {
 	mockRegistry := registrytest.ControllerRegistry{}
 	storage := REST{
-		registry:   &mockRegistry,
-		podLister:  nil,
-		pollPeriod: time.Millisecond * 1,
+		registry:  &mockRegistry,
+		podLister: nil,
 	}
 	failureCases := map[string]api.ReplicationController{
 		"empty ID": {

@@ -39,6 +39,7 @@ type EventQueue struct {
 	lock   sync.RWMutex
 	cond   sync.Cond
 	store  kcache.Store
+	keyFn  kcache.KeyFunc
 	events map[string]watch.EventType
 	queue  []string
 }
@@ -87,7 +88,12 @@ var watchEventCompressionMatrix = map[watch.EventType]map[watch.EventType]watch.
 
 // handleEvent is called by Add, Update, and Delete to determine the effect
 // of an event of the queue, realize that effect, and update the underlying store.
-func (eq *EventQueue) handleEvent(id string, obj interface{}, newEventType watch.EventType) {
+func (eq *EventQueue) handleEvent(obj interface{}, newEventType watch.EventType) error {
+	key, err := eq.keyFn(obj)
+	if err != nil {
+		return err
+	}
+
 	eq.lock.Lock()
 	defer eq.lock.Unlock()
 
@@ -97,7 +103,7 @@ func (eq *EventQueue) handleEvent(id string, obj interface{}, newEventType watch
 		ok              bool
 	)
 
-	queuedEventType, ok = eq.events[id]
+	queuedEventType, ok = eq.events[key]
 	if !ok {
 		effect = watchEventEffectAdd
 	} else {
@@ -107,12 +113,14 @@ func (eq *EventQueue) handleEvent(id string, obj interface{}, newEventType watch
 		}
 	}
 
-	eq.updateStore(id, obj, newEventType)
+	if err := eq.updateStore(key, obj, newEventType); err != nil {
+		return err
+	}
 
 	switch effect {
 	case watchEventEffectAdd:
-		eq.events[id] = newEventType
-		eq.queue = append(eq.queue, id)
+		eq.events[key] = newEventType
+		eq.queue = append(eq.queue, key)
 		eq.cond.Broadcast()
 	case watchEventEffectCompress:
 		newEventType, ok := watchEventCompressionMatrix[queuedEventType][newEventType]
@@ -120,54 +128,57 @@ func (eq *EventQueue) handleEvent(id string, obj interface{}, newEventType watch
 			panic(fmt.Sprintf("Invalid state transition: %v -> %v", queuedEventType, newEventType))
 		}
 
-		eq.events[id] = newEventType
+		eq.events[key] = newEventType
 	case watchEventEffectDelete:
-		delete(eq.events, id)
-		eq.queue = eq.queueWithout(id)
+		delete(eq.events, key)
+		eq.queue = eq.queueWithout(key)
 	}
+	return nil
 }
 
-// updateStore updates the stored value for the given id.  Note that deletions are not handled
+// updateStore updates the stored value for the given key.  Note that deletions are not handled
 // here; they are performed in Pop in order to provide the deleted value on watch.Deleted events.
-func (eq *EventQueue) updateStore(id string, obj interface{}, eventType watch.EventType) {
+func (eq *EventQueue) updateStore(key string, obj interface{}, eventType watch.EventType) error {
 	if eventType == watch.Deleted {
-		return
+		return nil
 	}
 
+	var err error
 	if eventType == watch.Added {
-		eq.store.Add(id, obj)
+		err = eq.store.Add(obj)
 	} else {
-		eq.store.Update(id, obj)
+		err = eq.store.Update(obj)
 	}
+	return err
 }
 
-// queueWithout returns the internal queue minus the given id.
-func (eq *EventQueue) queueWithout(id string) []string {
+// queueWithout returns the internal queue minus the given key.
+func (eq *EventQueue) queueWithout(key string) []string {
 	rq := make([]string, 0)
-	for _, qid := range eq.queue {
-		if qid == id {
+	for _, qkey := range eq.queue {
+		if qkey == key {
 			continue
 		}
 
-		rq = append(rq, qid)
+		rq = append(rq, qkey)
 	}
 
 	return rq
 }
 
-// Add enqueues a watch.Added event for the given id and state.
-func (eq *EventQueue) Add(id string, obj interface{}) {
-	eq.handleEvent(id, obj, watch.Added)
+// Add enqueues a watch.Added event for the given state.
+func (eq *EventQueue) Add(obj interface{}) error {
+	return eq.handleEvent(obj, watch.Added)
 }
 
-// Update enqueues a watch.Modified event for the given id and state.
-func (eq *EventQueue) Update(id string, obj interface{}) {
-	eq.handleEvent(id, obj, watch.Modified)
+// Update enqueues a watch.Modified event for the given state.
+func (eq *EventQueue) Update(obj interface{}) error {
+	return eq.handleEvent(obj, watch.Modified)
 }
 
-// Delete enqueues a watch.Delete event for the given id.
-func (eq *EventQueue) Delete(id string) {
-	eq.handleEvent(id, nil, watch.Deleted)
+// Delete enqueues a watch.Delete event for the given object.
+func (eq *EventQueue) Delete(obj interface{}) error {
+	return eq.handleEvent(obj, watch.Deleted)
 }
 
 // List returns a list of all enqueued items.
@@ -175,16 +186,14 @@ func (eq *EventQueue) List() []interface{} {
 	eq.lock.RLock()
 	defer eq.lock.RUnlock()
 
-	var (
-		item interface{}
-		ok   bool
-	)
-
 	list := make([]interface{}, 0, len(eq.queue))
-	for _, id := range eq.queue {
-		item, ok = eq.store.Get(id)
+	for _, key := range eq.queue {
+		item, ok, err := eq.store.GetByKey(key)
+		if err != nil {
+			panic(fmt.Sprintf("Failure to get by key %q: %v", key, err))
+		}
 		if !ok {
-			panic(fmt.Sprintf("Tried to list an ID not in backing store: %v", id))
+			panic(fmt.Sprintf("Tried to list an ID not in backing store: %v", key))
 		}
 		list = append(list, item)
 	}
@@ -200,29 +209,38 @@ func (eq *EventQueue) ContainedIDs() util.StringSet {
 	defer eq.lock.RUnlock()
 
 	s := util.StringSet{}
-	for _, id := range eq.queue {
-		s.Insert(id)
+	for _, key := range eq.queue {
+		s.Insert(key)
 	}
 
 	return s
 }
 
 // Get returns the requested item, or sets exists=false.
-func (eq *EventQueue) Get(id string) (item interface{}, exists bool) {
+func (eq *EventQueue) Get(obj interface{}) (item interface{}, exists bool, err error) {
+	key, err := eq.keyFn(obj)
+	if err != nil {
+		return nil, false, err
+	}
+	return eq.GetByKey(key)
+}
+
+// Get returns the requested item, or sets exists=false.
+func (eq *EventQueue) GetByKey(key string) (item interface{}, exists bool, err error) {
 	eq.lock.RLock()
 	defer eq.lock.RUnlock()
 
-	_, ok := eq.events[id]
+	_, ok := eq.events[key]
 	if !ok {
-		return nil, false
+		return nil, false, nil
 	}
 
-	return eq.store.Get(id) // Should always be populated and succeed
+	return eq.store.GetByKey(key) // Should always be populated and succeed
 }
 
 // Pop gets the event and object at the head of the queue.  If the event
-// is a delete event, Pop deletes the id from the underlying cache.
-func (eq *EventQueue) Pop() (watch.EventType, interface{}) {
+// is a delete event, Pop deletes the key from the underlying cache.
+func (eq *EventQueue) Pop() (watch.EventType, interface{}, error) {
 	eq.lock.Lock()
 	defer eq.lock.Unlock()
 
@@ -231,53 +249,66 @@ func (eq *EventQueue) Pop() (watch.EventType, interface{}) {
 			eq.cond.Wait()
 		}
 
-		id := eq.queue[0]
+		key := eq.queue[0]
 		eq.queue = eq.queue[1:]
 
-		eventType := eq.events[id]
-		delete(eq.events, id)
+		eventType := eq.events[key]
+		delete(eq.events, key)
 
-		obj, exists := eq.store.Get(id) // Should always succeed
+		obj, exists, err := eq.store.GetByKey(key) // Should always succeed
+		if err != nil {
+			return watch.Error, nil, err
+		}
 		if !exists {
-			panic(fmt.Sprintf("Pop() of id not in store: %v", id))
+			panic(fmt.Sprintf("Pop() of key not in store: %v", key))
 		}
 
 		if eventType == watch.Deleted {
-			eq.store.Delete(id)
+			if err := eq.store.Delete(obj); err != nil {
+				return watch.Error, nil, err
+			}
 		}
 
-		return eventType, obj
+		return eventType, obj, nil
 	}
 }
 
 // Replace initializes 'eq' with the state contained in the given map and
 // populates the queue with a watch.Modified event for each of the replaced
-// objects.  The backing store takes ownership of idToObjs; you should not
+// objects.  The backing store takes ownership of keyToObjs; you should not
 // reference the map again after calling this function.
-func (eq *EventQueue) Replace(idToObjs map[string]interface{}) {
+func (eq *EventQueue) Replace(objects []interface{}) error {
 	eq.lock.Lock()
 	defer eq.lock.Unlock()
 
 	eq.events = map[string]watch.EventType{}
 	eq.queue = eq.queue[:0]
 
-	for id := range idToObjs {
-		eq.queue = append(eq.queue, id)
-		eq.events[id] = watch.Modified
+	for i := range objects {
+		key, err := eq.keyFn(objects[i])
+		if err != nil {
+			return err
+		}
+		eq.queue = append(eq.queue, key)
+		eq.events[key] = watch.Modified
 	}
-	eq.store.Replace(idToObjs)
+	if err := eq.store.Replace(objects); err != nil {
+		return err
+	}
 
 	if len(eq.queue) > 0 {
 		eq.cond.Broadcast()
 	}
+	return nil
 }
 
 // NewEventQueue returns a new EventQueue ready for action.
-func NewEventQueue() *EventQueue {
+func NewEventQueue(keyFn kcache.KeyFunc) *EventQueue {
 	q := &EventQueue{
-		store:  kcache.NewStore(),
+		store:  kcache.NewStore(keyFn),
 		events: map[string]watch.EventType{},
 		queue:  []string{},
+		keyFn:  keyFn,
 	}
 	q.cond.L = &q.lock
 	return q

@@ -58,7 +58,10 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig() {
 	}
 
 	latestDeploymentID := deployutil.LatestDeploymentNameForConfig(config)
-	obj, exists := dc.DeploymentStore.Get(latestDeploymentID)
+	obj, exists, err := dc.DeploymentStore.Get(&kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Name: latestDeploymentID, Namespace: config.Namespace}})
+	if err != nil {
+		glog.Errorf("Unable to retrieve deployment from store: %v", err)
+	}
 
 	if !exists {
 		glog.V(4).Info("Ignoring config change due to lack of existing deployment")
