@@ -14,22 +14,13 @@ angular.module('openshiftConsole')
     $scope.projectPromise = $.Deferred();
     $scope.projects = {};
 
-    var projectCallback = function(project) {
-      $scope.$apply(function(){
-        $scope.project = project;
-        $scope.projectPromise.resolve(project);
-      });
-    };
+    DataService.get("projects", $scope.projectName, $scope, function(project) {
+      $scope.project = project;
+      $scope.projectPromise.resolve(project);
+    });
 
-    DataService.get("projects", $scope.projectName, $scope, projectCallback);
-
-    var projectsCallback = function(projects) {
-      $scope.$apply(function(){
-        $scope.projects = projects.by("metadata.name");
-      });
-
+    DataService.list("projects", $scope, function(projects) {
+      $scope.projects = projects.by("metadata.name");
       console.log("projects", $scope.projects);
-    };
-    
-    DataService.list("projects", $scope, projectsCallback);
+    });
   });

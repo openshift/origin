@@ -19,41 +19,28 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    var deploymentsCallback = function(deployments) {
-      $scope.$apply(function() {
-        $scope.unfilteredDeployments = deployments.by("metadata.name");
-        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
-        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-        $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);
-        $scope.emptyMessage = "No deployments to show";
-        updateFilterWarning();
-      });
-
+    watches.push(DataService.watch("replicationControllers", $scope, function(deployments) {
+      $scope.unfilteredDeployments = deployments.by("metadata.name");
+      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
+      LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+      $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);
+      $scope.emptyMessage = "No deployments to show";
+      updateFilterWarning();
       console.log("deployments (subscribe)", $scope.deployments);
-    };
-    watches.push(DataService.watch("replicationControllers", $scope, deploymentsCallback));    
-
+    }));    
 
     // Also load images and builds to fill out details in the pod template
-    var imagesCallback = function(images) {
-      $scope.$apply(function() {
-        $scope.images = images.by("metadata.name");
-        $scope.imagesByDockerReference = images.by("dockerImageReference");
-      });
-      
+    watches.push(DataService.watch("images", $scope, function(images) {
+      $scope.images = images.by("metadata.name");
+      $scope.imagesByDockerReference = images.by("dockerImageReference");
       console.log("images (subscribe)", $scope.images);
       console.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
-    };
-    watches.push(DataService.watch("images", $scope, imagesCallback));    
+    }));    
 
-    var buildsCallback = function(builds) {
-      $scope.$apply(function() {
-        $scope.builds = builds.by("metadata.name");
-      });
-
+    watches.push(DataService.watch("builds", $scope, function(builds) {
+      $scope.builds = builds.by("metadata.name");
       console.log("builds (subscribe)", $scope.builds);
-    };
-    watches.push(DataService.watch("builds", $scope, buildsCallback));  
+    }));  
 
     var updateFilterWarning = function() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.deployments) && !$.isEmptyObject($scope.unfilteredDeployments)) {
