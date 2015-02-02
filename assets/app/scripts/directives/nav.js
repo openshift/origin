@@ -18,7 +18,7 @@ angular.module('openshiftConsole')
       templateUrl: "views/_sidebar-main-nav-item.html"
     };
   })
-  .directive('projectNav', function($timeout, $location) {
+  .directive('projectNav', function($timeout, $location, LabelFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -40,6 +40,8 @@ angular.module('openshiftConsole')
                 $location.url(newURL);
               });
             });
+
+            LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element));
           }, 0);
         }, 0);
       }      

@@ -270,6 +270,12 @@ angular.module('openshiftConsole')
     }
   };
 
+  // Takes an array of watch handles and unwatches them
+  DataService.prototype.unwatchAll = function(handles) {
+    for (var i = 0; i < handles.length; i++) {
+      this.unwatch(handles[i]);
+    }    
+  };
 
   DataService.prototype._watchCallbacks = function(type, context) {
     var key = this._uniqueKeyForTypeContext(type, context);
