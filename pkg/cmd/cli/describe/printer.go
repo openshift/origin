@@ -8,6 +8,7 @@ import (
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -26,6 +27,8 @@ var (
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST VERSION"}
 	parameterColumns        = []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}
+	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
+	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
 )
 
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
@@ -47,6 +50,10 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(deploymentConfigColumns, printDeploymentConfig)
 	p.Handler(deploymentConfigColumns, printDeploymentConfigList)
 	p.Handler(parameterColumns, printParameters)
+	p.Handler(policyColumns, printPolicy)
+	p.Handler(policyColumns, printPolicyList)
+	p.Handler(policyBindingColumns, printPolicyBinding)
+	p.Handler(policyBindingColumns, printPolicyBindingList)
 	return p
 }
 
@@ -196,6 +203,48 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer) error {
 func printDeploymentConfigList(list *deployapi.DeploymentConfigList, w io.Writer) error {
 	for _, dc := range list.Items {
 		if err := printDeploymentConfig(&dc, w); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printPolicy(policy *authorizationapi.Policy, w io.Writer) error {
+	roleNames := util.StringSet{}
+	for key := range policy.Roles {
+		roleNames.Insert(key)
+	}
+	rolesString := strings.Join(roleNames.List(), ", ")
+
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", policy.Name, rolesString, policy.LastModified)
+	return err
+}
+
+func printPolicyList(list *authorizationapi.PolicyList, w io.Writer) error {
+	for _, policy := range list.Items {
+		if err := printPolicy(&policy, w); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writer) error {
+	roleBindingNames := util.StringSet{}
+	for key := range policyBinding.RoleBindings {
+		roleBindingNames.Insert(key)
+	}
+	roleBindingsString := strings.Join(roleBindingNames.List(), ", ")
+
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", policyBinding.Name, roleBindingsString, policyBinding.LastModified)
+	return err
+}
+
+func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Writer) error {
+	for _, policyBinding := range list.Items {
+		if err := printPolicyBinding(&policyBinding, w); err != nil {
 			return err
 		}
 	}

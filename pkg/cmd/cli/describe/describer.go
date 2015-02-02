@@ -2,10 +2,12 @@ package describe
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -29,6 +31,10 @@ func DescriberFor(kind string, c *client.Client, host string) (kctl.Describer, b
 		return &RouteDescriber{c}, true
 	case "Project":
 		return &ProjectDescriber{c}, true
+	case "Policy":
+		return &PolicyDescriber{c}, true
+	case "PolicyBinding":
+		return &PolicyBindingDescriber{c}, true
 	}
 	return nil, false
 }
@@ -232,6 +238,95 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
 		formatString(out, "Display Name", project.DisplayName)
+		return nil
+	})
+}
+
+// PolicyDescriber generates information about a Project
+type PolicyDescriber struct {
+	client.Interface
+}
+
+// TODO make something a lot prettier
+func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Policies(namespace)
+	policy, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, policy.ObjectMeta)
+		formatString(out, "Last Modified", policy.LastModified)
+
+		// display the rules in a consistent order
+		sortedKeys := make([]string, 0)
+		for key := range policy.Roles {
+			sortedKeys = append(sortedKeys, key)
+		}
+		sort.Strings(sortedKeys)
+
+		for _, key := range sortedKeys {
+			role := policy.Roles[key]
+			fmt.Fprint(out, key+"\tType\tVerbs\tResource Kinds\tExtension\n")
+			for _, rule := range role.Rules {
+				allowString := "allow"
+				if rule.Deny {
+					allowString = "deny"
+				}
+
+				extensionString := ""
+				if rule.AttributeRestrictions != (kruntime.EmbeddedObject{}) {
+					extensionString = fmt.Sprintf("%v", rule.AttributeRestrictions)
+				}
+
+				fmt.Fprintf(out, "%v\t%v\t%v\t%v\t%v\n",
+					"",
+					allowString,
+					rule.Verbs,
+					rule.ResourceKinds,
+					extensionString)
+
+			}
+		}
+
+		return nil
+	})
+}
+
+// PolicyDescriber generates information about a Project
+type PolicyBindingDescriber struct {
+	client.Interface
+}
+
+// TODO make something a lot prettier
+func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error) {
+	c := d.PolicyBindings(namespace)
+	policyBinding, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, policyBinding.ObjectMeta)
+		formatString(out, "Last Modified", policyBinding.LastModified)
+		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
+
+		// display the rules in a consistent order
+		sortedKeys := make([]string, 0)
+		for key := range policyBinding.RoleBindings {
+			sortedKeys = append(sortedKeys, key)
+		}
+		sort.Strings(sortedKeys)
+
+		for _, key := range sortedKeys {
+			roleBinding := policyBinding.RoleBindings[key]
+			formatString(out, "RoleBinding["+key+"]", " ")
+			formatString(out, "\tRole", roleBinding.RoleRef.Name)
+			formatString(out, "\tUsers", roleBinding.UserNames)
+			formatString(out, "\tGroups", roleBinding.GroupNames)
+		}
+
 		return nil
 	})
 }

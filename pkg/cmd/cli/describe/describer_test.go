@@ -43,6 +43,8 @@ func TestDescribers(t *testing.T) {
 		&ImageRepositoryDescriber{c},
 		&RouteDescriber{c},
 		&ProjectDescriber{c},
+		&PolicyDescriber{c},
+		&PolicyBindingDescriber{c},
 	}
 
 	for _, d := range testDescriberList {
