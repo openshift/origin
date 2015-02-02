@@ -16,19 +16,15 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    var servicesCallback = function(services) {
-      $scope.$apply(function() {
-        $scope.unfilteredServices = services.by("metadata.name");
-        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
-        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-        $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
-        $scope.emptyMessage = "No services to show";
-        updateFilterWarning();
-      });
-
+    watches.push(DataService.watch("services", $scope, function(services) {
+      $scope.unfilteredServices = services.by("metadata.name");
+      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
+      LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+      $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
+      $scope.emptyMessage = "No services to show";
+      updateFilterWarning();
       console.log("services (subscribe)", $scope.unfilteredServices);
-    };
-    watches.push(DataService.watch("services", $scope, servicesCallback));    
+    }));    
 
     var updateFilterWarning = function() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services)  && !$.isEmptyObject($scope.unfilteredServices)) {

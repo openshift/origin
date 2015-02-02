@@ -17,29 +17,21 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    var imagesCallback = function(images) {
-      $scope.$apply(function() {
-        $scope.unfilteredImages = images.by("metadata.name");
-        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredImages, $scope.labelSuggestions);
-        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-        $scope.images = LabelFilter.getLabelSelector().select($scope.unfilteredImages);
-        $scope.emptyMessage = "No images to show";
-        updateFilterWarning();
-      });
-
+    watches.push(DataService.watch("images", $scope, function(images) {
+      $scope.unfilteredImages = images.by("metadata.name");
+      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredImages, $scope.labelSuggestions);
+      LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+      $scope.images = LabelFilter.getLabelSelector().select($scope.unfilteredImages);
+      $scope.emptyMessage = "No images to show";
+      updateFilterWarning();
       console.log("images (subscribe)", $scope.images);
-    };
-    watches.push(DataService.watch("images", $scope, imagesCallback));    
+    }));    
 
     // Also load builds so we can link out to builds associated with images
-    var buildsCallback = function(builds) {
-      $scope.$apply(function() {
-        $scope.builds = builds.by("metadata.name");
-      });
-
+    watches.push(DataService.watch("builds", $scope, function(builds) {
+      $scope.builds = builds.by("metadata.name");
       console.log("builds (subscribe)", $scope.builds);
-    };
-    watches.push(DataService.watch("builds", $scope, buildsCallback));     
+    }));     
 
     var updateFilterWarning = function() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.images) && !$.isEmptyObject($scope.unfilteredImages)) {

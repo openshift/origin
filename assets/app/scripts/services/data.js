@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-.factory('DataService', [function() {
+.factory('DataService', ['$http', '$rootScope', function($http, $rootScope) {
   function Data(array) {
     // TODO just need to check for id until v1beta3
     this._data = {};
@@ -176,17 +176,22 @@ angular.module('openshiftConsole')
     }
     else {
       if (context.projectPromise && type !== "projects") {
-        context.projectPromise.done($.proxy(function(project) {
-          $.ajax({
-            url: this._urlForType(type, name, context, false, {namespace: project.metadata.name}),
-            success: callback
+        var self = this;
+        context.projectPromise.done(function(project) {
+          $http({
+            method: 'GET',
+            url: self._urlForType(type, name, context, false, {namespace: project.metadata.name})
+          }).success(function(data, status, headerFunc, config, statusText) {
+            callback(data);
           });
-        }, this));
+        });
       }
       else {
-        $.ajax({
-          url: this._urlForType(type, name, context),
-          success: callback
+        $http({
+          method: 'GET',
+          url: this._urlForType(type, name, context)
+        }).success(function(data, status, headerFunc, config, statusText) {
+          callback(data);
         });
       }
     }
@@ -374,18 +379,23 @@ angular.module('openshiftConsole')
     // mark the operation as in progress
     this._listInFlight(type, context, true);
 
+    var self = this;
     if (context.projectPromise && type !== "projects") {
-      context.projectPromise.done($.proxy(function(project) {
-        $.ajax({
-          url: this._urlForType(type, null, context, false, {namespace: project.metadata.name}),
-          success: $.proxy(this, "_listOpComplete", type, context)
+      context.projectPromise.done(function(project) {
+        $http({
+          method: 'GET',
+          url: self._urlForType(type, null, context, false, {namespace: project.metadata.name})
+        }).success(function(data, status, headerFunc, config, statusText) {
+          self._listOpComplete(type, context, data);
         });
-      }, this));
+      });
     }
     else {
-      $.ajax({
+      $http({
+        method: 'GET',
         url: this._urlForType(type, null, context),
-        success: $.proxy(this, "_listOpComplete", type, context)
+      }).success(function(data, status, headerFunc, config, statusText) {
+        self._listOpComplete(type, context, data);
       });
     }
   };
@@ -452,7 +462,11 @@ angular.module('openshiftConsole')
       // TODO do we reset all the by() indices, or simply update them, since we should know what keys are there?
       // TODO let the data object handle its own update
       this._data(type, context).update(eventData.object, eventData.type);
-      this._watchCallbacks(type, context).fire(this._data(type, context), eventData.type, eventData.object);
+      var self = this;
+      // Wrap in $apply to mirror $http callback behavior
+      $rootScope.$apply(function() {
+        self._watchCallbacks(type, context).fire(self._data(type, context), eventData.type, eventData.object);
+      });
     }
     catch (e) {
       // TODO report the JSON parsing exception

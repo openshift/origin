@@ -28,33 +28,23 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    var podsCallback = function(pods) {
-      $scope.$apply(function() {
-        $scope.pods = pods.by("metadata.name");
-        $scope.podsByLabel = pods.by("labels", "metadata.name");
-        podsByServiceByLabel();
-      });
-
+    watches.push(DataService.watch("pods", $scope, function(pods) {
+      $scope.pods = pods.by("metadata.name");
+      $scope.podsByLabel = pods.by("labels", "metadata.name");
+      podsByServiceByLabel();
       console.log("podsByLabel (list)", $scope.podsByLabel);      
-    };
+    }, {poll: true}));
 
-    watches.push(DataService.watch("pods", $scope, podsCallback, {poll: true}));
-
-    var servicesCallback = function(services) {
-      $scope.$apply(function() {
-        $scope.unfilteredServices = services.by("metadata.name");
-        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
-        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-        $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
-        podsByServiceByLabel();
-        $scope.emptyMessage = "No services to show";
-        updateFilterWarning();
-      });
-
+    watches.push(DataService.watch("services", $scope, function(services) {
+      $scope.unfilteredServices = services.by("metadata.name");
+      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
+      LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+      $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
+      podsByServiceByLabel();
+      $scope.emptyMessage = "No services to show";
+      updateFilterWarning();
       console.log("services (list)", $scope.services);
-    };
-
-    watches.push(DataService.watch("services", $scope, servicesCallback));
+    }));
 
     var podsByServiceByLabel = function() {
       $scope.podsByServiceByLabel = {};
@@ -89,38 +79,30 @@ angular.module('openshiftConsole')
     }
 
     // Sets up subscription for deployments and deploymentsByConfig
-    var deploymentsCallback = function(deployments, action, deployment) {
-      $scope.$apply(function() {
-        $scope.deployments = deployments.by("metadata.name");
-        $scope.deploymentsByConfig = deployments.by("annotations.deploymentConfig", "metadata.name");
-        if (deployment) {
-          if (action !== "DELETED") {
-            parseEncodedDeploymentConfig(deployment);
-          }
+    watches.push(DataService.watch("replicationControllers", $scope, function(deployments, action, deployment) {
+      $scope.deployments = deployments.by("metadata.name");
+      $scope.deploymentsByConfig = deployments.by("annotations.deploymentConfig", "metadata.name");
+      if (deployment) {
+        if (action !== "DELETED") {
+          parseEncodedDeploymentConfig(deployment);
         }
-        else {
-          $each($scope.deployments, function(name, dep) {
-            parseEncodedDeploymentConfig(dep);
-          });
-        }
-      });
-
+      }
+      else {
+        $each($scope.deployments, function(name, dep) {
+          parseEncodedDeploymentConfig(dep);
+        });
+      }
       console.log("deployments (subscribe)", $scope.deployments);
       console.log("deploymentsByConfig (subscribe)", $scope.deploymentsByConfig);
-    };
-    watches.push(DataService.watch("replicationControllers", $scope, deploymentsCallback));
+    }));
 
     // Sets up subscription for images and imagesByDockerReference
-    var imagesCallback = function(images) {
-      $scope.$apply(function() {
-        $scope.images = images.by("metadata.name");
-        $scope.imagesByDockerReference = images.by("dockerImageReference");
-      });
-      
+    watches.push(DataService.watch("images", $scope, function(images) {
+      $scope.images = images.by("metadata.name");
+      $scope.imagesByDockerReference = images.by("dockerImageReference");
       console.log("images (subscribe)", $scope.images);
       console.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
-    };
-    watches.push(DataService.watch("images", $scope, imagesCallback));
+    }));
 
 
     var associateDeploymentConfigTriggersToBuild = function(deploymentConfig, build) {
@@ -143,51 +125,43 @@ angular.module('openshiftConsole')
     };
 
     // Sets up subscription for deploymentConfigs, associates builds to triggers on deploymentConfigs
-    var deploymentConfigsCallback = function(deploymentConfigs, action, deploymentConfig) {
-      $scope.$apply(function() {
-        $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
-        if (!action) {
-          $each($scope.deploymentConfigs, function(name, depConfig) {
-            $each($scope.builds, function(name, build) {
-              associateDeploymentConfigTriggersToBuild(depConfig, build);
-            });   
-          });
-        }
-        else if (action !== 'DELETED') {
+    watches.push(DataService.watch("deploymentConfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
+      $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
+      if (!action) {
+        $each($scope.deploymentConfigs, function(name, depConfig) {
           $each($scope.builds, function(name, build) {
-            associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
-          });
-        }
-      });
-
+            associateDeploymentConfigTriggersToBuild(depConfig, build);
+          });   
+        });
+      }
+      else if (action !== 'DELETED') {
+        $each($scope.builds, function(name, build) {
+          associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
+        });
+      }
       console.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
-    };
-    watches.push(DataService.watch("deploymentConfigs", $scope, deploymentConfigsCallback));
+    }));
 
     // Sets up subscription for builds, associates builds to triggers on deploymentConfigs
-    var buildsCallback = function(builds, action, build) {
-      $scope.$apply(function() {
-        $scope.builds = builds.by("metadata.name");
-        if (!action) {
-          $each($scope.builds, function(name, bld) {
-            $each($scope.deploymentConfigs, function(name, depConfig) {
-              associateDeploymentConfigTriggersToBuild(depConfig, bld);
-            });
-          });
-        }        
-        else if (action === 'ADDED' || action === 'MODIFIED') {
+    watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
+      $scope.builds = builds.by("metadata.name");
+      if (!action) {
+        $each($scope.builds, function(name, bld) {
           $each($scope.deploymentConfigs, function(name, depConfig) {
-            associateDeploymentConfigTriggersToBuild(depConfig, build);
+            associateDeploymentConfigTriggersToBuild(depConfig, bld);
           });
-        }
-        else if (action === 'DELETED'){
-          // TODO
-        }
-      });
-
+        });
+      }        
+      else if (action === 'ADDED' || action === 'MODIFIED') {
+        $each($scope.deploymentConfigs, function(name, depConfig) {
+          associateDeploymentConfigTriggersToBuild(depConfig, build);
+        });
+      }
+      else if (action === 'DELETED'){
+        // TODO
+      }
       console.log("builds (subscribe)", $scope.builds);
-    };
-    watches.push(DataService.watch("builds", $scope, buildsCallback));
+    }));
 
     var updateFilterWarning = function() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services) && !$.isEmptyObject($scope.unfilteredServices)) {
@@ -203,7 +177,6 @@ angular.module('openshiftConsole')
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop
-
       $scope.$apply(function() {
         $scope.services = labelSelector.select($scope.unfilteredServices);
         podsByServiceByLabel();
