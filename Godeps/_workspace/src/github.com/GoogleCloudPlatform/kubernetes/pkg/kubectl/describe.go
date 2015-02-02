@@ -47,8 +47,100 @@ func DescriberFor(kind string, c *client.Client) (Describer, bool) {
 		return &ServiceDescriber{c}, true
 	case "Minion", "Node":
 		return &MinionDescriber{c}, true
+	case "LimitRange":
+		return &LimitRangeDescriber{c}, true
+	case "ResourceQuota":
+		return &ResourceQuotaDescriber{c}, true
 	}
 	return nil, false
+}
+
+// LimitRangeDescriber generates information about a limit range
+type LimitRangeDescriber struct {
+	client.Interface
+}
+
+func (d *LimitRangeDescriber) Describe(namespace, name string) (string, error) {
+	lr := d.LimitRanges(namespace)
+
+	limitRange, err := lr.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", limitRange.Name)
+		fmt.Fprintf(out, "Type\tResource\tMin\tMax\n")
+		fmt.Fprintf(out, "----\t--------\t---\t---\n")
+		for i := range limitRange.Spec.Limits {
+			item := limitRange.Spec.Limits[i]
+			maxResources := item.Max
+			minResources := item.Min
+
+			set := map[api.ResourceName]bool{}
+			for k := range maxResources {
+				set[k] = true
+			}
+			for k := range minResources {
+				set[k] = true
+			}
+
+			for k := range set {
+				// if no value is set, we output -
+				maxValue := "-"
+				minValue := "-"
+
+				maxQuantity, maxQuantityFound := maxResources[k]
+				if maxQuantityFound {
+					maxValue = maxQuantity.String()
+				}
+
+				minQuantity, minQuantityFound := minResources[k]
+				if minQuantityFound {
+					minValue = minQuantity.String()
+				}
+
+				msg := "%v\t%v\t%v\t%v\n"
+				fmt.Fprintf(out, msg, item.Type, k, minValue, maxValue)
+			}
+		}
+		return nil
+	})
+}
+
+// ResourceQuotaDescriber generates information about a resource quota
+type ResourceQuotaDescriber struct {
+	client.Interface
+}
+
+func (d *ResourceQuotaDescriber) Describe(namespace, name string) (string, error) {
+	rq := d.ResourceQuotas(namespace)
+
+	resourceQuota, err := rq.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", resourceQuota.Name)
+		fmt.Fprintf(out, "Resource\tUsed\tHard\n")
+		fmt.Fprintf(out, "--------\t----\t----\n")
+
+		resources := []api.ResourceName{}
+		for resource := range resourceQuota.Status.Hard {
+			resources = append(resources, resource)
+		}
+		sort.Sort(SortableResourceNames(resources))
+
+		msg := "%v\t%v\t%v\n"
+		for i := range resources {
+			resource := resources[i]
+			hardQuantity := resourceQuota.Status.Hard[resource]
+			usedQuantity := resourceQuota.Status.Used[resource]
+			fmt.Fprintf(out, msg, resource, usedQuantity.String(), hardQuantity.String())
+		}
+		return nil
+	})
 }
 
 // PodDescriber generates information about a pod and the replication controllers that
@@ -200,13 +292,12 @@ func describeEvents(el *api.EventList, w io.Writer) {
 		return
 	}
 	sort.Sort(SortableEvents(el.Items))
-	fmt.Fprint(w, "Events:\nTime\tFrom\tSubobjectPath\tCondition\tReason\tMessage\n")
+	fmt.Fprint(w, "Events:\nTime\tFrom\tSubobjectPath\tReason\tMessage\n")
 	for _, e := range el.Items {
-		fmt.Fprintf(w, "%s\t%v\t%v\t%v\t%v\t%v\n",
+		fmt.Fprintf(w, "%s\t%v\t%v\t%v\t%v\n",
 			e.Timestamp.Time.Format(time.RFC1123Z),
 			e.Source,
 			e.InvolvedObject.FieldPath,
-			e.Condition,
 			e.Reason,
 			e.Message)
 	}

@@ -17,7 +17,7 @@ import (
 const (
 	googleAuthorizeURL = "https://accounts.google.com/o/oauth2/auth"
 	googleTokenURL     = "https://accounts.google.com/o/oauth2/token"
-	googleOauthScope   = "profile email"
+	googleOAuthScope   = "profile email"
 )
 
 type provider struct {
@@ -37,7 +37,7 @@ func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 		SendClientSecretInParams: true,
 		AuthorizeUrl:             googleAuthorizeURL,
 		TokenUrl:                 googleTokenURL,
-		Scope:                    googleOauthScope,
+		Scope:                    googleOAuthScope,
 	}
 	return config, nil
 }

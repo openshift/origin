@@ -63,7 +63,7 @@ func TestGenericTypeMeta(t *testing.T) {
 	if e, a := "foo", accessor.Name(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
-	if e, a := "uid", accessor.UID(); e != a {
+	if e, a := "uid", string(accessor.UID()); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := "a", accessor.APIVersion(); e != a {
@@ -76,6 +76,17 @@ func TestGenericTypeMeta(t *testing.T) {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := "some/place/only/we/know", accessor.SelfLink(); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+
+	typeAccessor, err := TypeAccessor(&j)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := "a", accessor.APIVersion(); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := "b", accessor.Kind(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 
@@ -107,6 +118,15 @@ func TestGenericTypeMeta(t *testing.T) {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := "google.com", j.SelfLink; e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+
+	typeAccessor.SetAPIVersion("d")
+	typeAccessor.SetKind("e")
+	if e, a := "d", j.APIVersion; e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := "e", j.Kind; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 }
@@ -162,7 +182,7 @@ func TestGenericTypeMetaAccessor(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if e, a := "uid", uid; e != a {
+	if e, a := "uid", string(uid); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	apiVersion, err := accessor.APIVersion(j)
@@ -311,7 +331,7 @@ func TestGenericObjectMeta(t *testing.T) {
 	if e, a := "foo", accessor.Name(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
-	if e, a := "uid", accessor.UID(); e != a {
+	if e, a := "uid", string(accessor.UID()); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := "a", accessor.APIVersion(); e != a {
@@ -403,7 +423,7 @@ func TestGenericListMeta(t *testing.T) {
 	if e, a := "", accessor.Name(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
-	if e, a := "", accessor.UID(); e != a {
+	if e, a := "", string(accessor.UID()); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := "a", accessor.APIVersion(); e != a {

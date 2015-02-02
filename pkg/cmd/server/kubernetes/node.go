@@ -1,12 +1,17 @@
 package kubernetes
 
 import (
+	"crypto/tls"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
@@ -14,13 +19,14 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
-	"github.com/coreos/go-etcd/etcd"
+
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 
+	"github.com/openshift/origin/pkg/kubelet/app"
 	"github.com/openshift/origin/pkg/service"
 )
 
@@ -46,8 +52,14 @@ type NodeConfig struct {
 	// The image used as the Kubelet network namespace and volume container.
 	NetworkContainerImage string
 
-	// A client to connect to etcd
-	EtcdClient *etcd.Client
+	// Whether to enable TLS serving
+	TLS bool
+
+	KubeletCertFile string
+	KubeletKeyFile  string
+
+	// A client to connect to the master.
+	Client *client.Client
 	// A client to connect to Docker
 	DockerClient *docker.Client
 }
@@ -88,12 +100,12 @@ func (c *NodeConfig) RunKubelet() {
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	kubelet.SetupCapabilities(true)
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
-	kconfig.NewSourceEtcd(kconfig.EtcdKeyForHost(c.NodeHost), c.EtcdClient, cfg.Channel("etcd"))
+	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
 	k, err := kubelet.NewMainKubelet(
 		c.NodeHost,
 		c.DockerClient,
-		c.EtcdClient,
 		nil,
+		c.Client,
 		c.VolumeDir,
 		c.NetworkContainerImage,
 		30*time.Second,
@@ -103,21 +115,41 @@ func (c *NodeConfig) RunKubelet() {
 		5,
 		cfg.IsSourceSeen,
 		"",
-		net.IP(util.IP{}))
+		net.IP(util.IP{}),
+		kapi.NamespaceDefault,
+		app.ProbeVolumePlugins())
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
 	}
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
-	// this parameter must be true, otherwise buildLogs won't work
-	enableDebuggingHandlers := true
+	handler := kubelet.NewServer(k, true)
+
+	server := &http.Server{
+		Addr:           net.JoinHostPort(c.BindHost, strconv.Itoa(NodePort)),
+		Handler:        &handler,
+		ReadTimeout:    5 * time.Minute,
+		WriteTimeout:   5 * time.Minute,
+		MaxHeaderBytes: 1 << 20,
+	}
+
 	go util.Forever(func() {
 		glog.Infof("Started Kubelet for node %s, server at %s:%d", c.NodeHost, c.BindHost, NodePort)
-		kubelet.ListenAndServeKubeletServer(k, net.ParseIP(c.BindHost), uint(NodePort), enableDebuggingHandlers)
+
+		if c.TLS {
+			server.TLSConfig = &tls.Config{
+				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+				MinVersion: tls.VersionTLS10,
+				// Populate PeerCertificates in requests, but don't reject connections without certificates
+				// This allows certificates to be validated by authenticators, while still allowing other auth types
+				ClientAuth: tls.RequestClientCert,
+			}
+			glog.Fatal(server.ListenAndServeTLS(c.KubeletCertFile, c.KubeletKeyFile))
+		} else {
+			glog.Fatal(server.ListenAndServe())
+		}
 	}, 0)
 
-	// this mirrors 1fc92bef53fdd1bc70f623c0693736c763cff45f
-	// I don't fully understand what a cadvisor is, but it seems that we're supposed to run it separately from the rest of the kubelet
 	go func() {
 		defer util.HandleCrash()
 		// TODO: Monitor this connection, reconnect if needed?
@@ -129,7 +161,7 @@ func (c *NodeConfig) RunKubelet() {
 			return
 		}
 		glog.V(1).Infof("Successfully created cadvisor client.")
-		// this binds the cadvisor to the kubelet for later references
+		// this binds the cadvisor to the kubelet for later reference
 		k.SetCadvisorClient(cadvisorClient)
 	}()
 
@@ -140,20 +172,27 @@ func (c *NodeConfig) RunProxy() {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
-	pconfig.NewConfigSourceEtcd(c.EtcdClient,
-		serviceConfig.Channel("etcd"),
-		endpointsConfig.Channel("etcd"))
+	pconfig.NewSourceAPI(
+		c.Client.Services(kapi.NamespaceAll),
+		c.Client.Endpoints(kapi.NamespaceAll),
+		30*time.Second,
+		serviceConfig.Channel("api"),
+		endpointsConfig.Channel("api"))
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
 
-	// TODO clearly this needs fixing
+	ip := net.ParseIP(c.BindHost)
+	if ip == nil {
+		glog.Fatalf("The provided value to bind to must be an IP: %q", c.BindHost)
+	}
+
 	protocol := iptables.ProtocolIpv4
-	// if net.IP(c.BindHost).To4() == nil {
-	// 	protocol = iptables.ProtocolIpv6
-	// }
+	if ip.To4() == nil {
+		protocol = iptables.ProtocolIpv6
+	}
 
 	var proxier pconfig.ServiceConfigHandler
-	proxier = proxy.NewProxier(loadBalancer, net.ParseIP(c.BindHost), iptables.New(exec.New(), protocol))
+	proxier = proxy.NewProxier(loadBalancer, ip, iptables.New(exec.New(), protocol))
 	if proxier == nil || reflect.ValueOf(proxier).IsNil() { // explicitly declared interfaces aren't plain nil, you must reflect inside to see if it's really nil or not
 		glog.Errorf("WARNING: Could not modify iptables.  iptables must be mutable by this process to use services.  Do you have root permissions?")
 		proxier = &service.FailingServiceConfigProxy{}

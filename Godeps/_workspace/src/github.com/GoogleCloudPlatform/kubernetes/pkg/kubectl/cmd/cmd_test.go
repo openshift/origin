@@ -21,11 +21,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	. "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -92,13 +94,15 @@ func (t *testDescriber) Describe(namespace, name string) (output string, err err
 }
 
 type testFactory struct {
-	Mapper    meta.RESTMapper
-	Typer     runtime.ObjectTyper
-	Client    kubectl.RESTClient
-	Describer kubectl.Describer
-	Printer   kubectl.ResourcePrinter
-	Validator validation.Schema
-	Err       error
+	Mapper       meta.RESTMapper
+	Typer        runtime.ObjectTyper
+	Client       kubectl.RESTClient
+	Describer    kubectl.Describer
+	Printer      kubectl.ResourcePrinter
+	Validator    validation.Schema
+	Namespace    string
+	ClientConfig *client.Config
+	Err          error
 }
 
 func NewTestFactory() (*Factory, *testFactory, runtime.Codec) {
@@ -124,6 +128,12 @@ func NewTestFactory() (*Factory, *testFactory, runtime.Codec) {
 		Validator: func(cmd *cobra.Command) (validation.Schema, error) {
 			return t.Validator, t.Err
 		},
+		DefaultNamespace: func(cmd *cobra.Command) (string, error) {
+			return t.Namespace, t.Err
+		},
+		ClientConfig: func(cmd *cobra.Command) (*client.Config, error) {
+			return t.ClientConfig, t.Err
+		},
 	}, t, codec
 }
 
@@ -147,6 +157,12 @@ func NewAPIFactory() (*Factory, *testFactory, runtime.Codec) {
 		Validator: func(cmd *cobra.Command) (validation.Schema, error) {
 			return t.Validator, t.Err
 		},
+		DefaultNamespace: func(cmd *cobra.Command) (string, error) {
+			return t.Namespace, t.Err
+		},
+		ClientConfig: func(cmd *cobra.Command) (*client.Config, error) {
+			return t.ClientConfig, t.Err
+		},
 	}, t, latest.Codec
 }
 
@@ -156,4 +172,28 @@ func objBody(codec runtime.Codec, obj runtime.Object) io.ReadCloser {
 
 func stringBody(body string) io.ReadCloser {
 	return ioutil.NopCloser(bytes.NewReader([]byte(body)))
+}
+
+// Verify that resource.RESTClients constructed from a factory respect mapping.APIVersion
+func TestClientVersions(t *testing.T) {
+	f := NewFactory(nil)
+
+	versions := []string{
+		"v1beta1",
+		"v1beta2",
+		"v1beta3",
+	}
+	for _, version := range versions {
+		mapping := &meta.RESTMapping{
+			APIVersion: version,
+		}
+		c, err := f.RESTClient(nil, mapping)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		client := c.(*client.RESTClient)
+		if client.APIVersion() != version {
+			t.Errorf("unexpected Client APIVersion: %s %v", client.APIVersion, client)
+		}
+	}
 }

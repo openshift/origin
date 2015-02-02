@@ -24,6 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	docker "github.com/fsouza/go-dockerclient"
 )
@@ -91,9 +92,9 @@ func verifyPackUnpack(t *testing.T, podNamespace, podUID, podName, containerName
 	util.DeepHashObject(hasher, *container)
 	computedHash := uint64(hasher.Sum32())
 	podFullName := fmt.Sprintf("%s.%s", podName, podNamespace)
-	name := BuildDockerName(podUID, podFullName, container)
+	name := BuildDockerName(types.UID(podUID), podFullName, container)
 	returnedPodFullName, returnedUID, returnedContainerName, hash := ParseDockerName(name)
-	if podFullName != returnedPodFullName || podUID != returnedUID || containerName != returnedContainerName || computedHash != hash {
+	if podFullName != returnedPodFullName || podUID != string(returnedUID) || containerName != returnedContainerName || computedHash != hash {
 		t.Errorf("For (%s, %s, %s, %d), unpacked (%s, %s, %s, %d)", podFullName, podUID, containerName, computedHash, returnedPodFullName, returnedUID, returnedContainerName, hash)
 	}
 }
@@ -114,7 +115,7 @@ func TestContainerManifestNaming(t *testing.T) {
 	podFullName := fmt.Sprintf("%s.%s", podName, podNamespace)
 
 	returnedPodFullName, returnedPodUID, returnedContainerName, hash := ParseDockerName(name)
-	if returnedPodFullName != podFullName || returnedPodUID != podUID || returnedContainerName != container.Name || hash != 0 {
+	if returnedPodFullName != podFullName || string(returnedPodUID) != podUID || returnedContainerName != container.Name || hash != 0 {
 		t.Errorf("unexpected parse: %s %s %s %d", returnedPodFullName, returnedPodUID, returnedContainerName, hash)
 	}
 }
@@ -168,7 +169,7 @@ func TestDockerContainerCommand(t *testing.T) {
 		t.Errorf("unexpected command CWD: %s", cmd.Dir)
 	}
 	if !reflect.DeepEqual(cmd.Args, []string{"/usr/sbin/nsinit", "exec", "ls"}) {
-		t.Errorf("unexpectd command args: %s", cmd.Args)
+		t.Errorf("unexpected command args: %s", cmd.Args)
 	}
 }
 
@@ -247,6 +248,50 @@ func TestDockerKeyringLookup(t *testing.T) {
 		// no host match
 		{"example.com", empty, false},
 		{"foo.example.com", empty, false},
+	}
+
+	for i, tt := range tests {
+		match, ok := dk.Lookup(tt.image)
+		if tt.ok != ok {
+			t.Errorf("case %d: expected ok=%t, got %t", i, tt.ok, ok)
+		}
+
+		if !reflect.DeepEqual(tt.match, match) {
+			t.Errorf("case %d: expected match=%#v, got %#v", i, tt.match, match)
+		}
+	}
+}
+
+// This validates that dockercfg entries with a scheme and url path are properly matched
+// by images that only match the hostname.
+// NOTE: the above covers the case of a more specific match trumping just hostname.
+func TestIssue3797(t *testing.T) {
+	rex := docker.AuthConfiguration{
+		Username: "rex",
+		Password: "tiny arms",
+		Email:    "rex@example.com",
+	}
+
+	dk := &credentialprovider.BasicDockerKeyring{}
+	dk.Add(credentialprovider.DockerConfig{
+		"https://quay.io/v1/": credentialprovider.DockerConfigEntry{
+			Username: rex.Username,
+			Password: rex.Password,
+			Email:    rex.Email,
+		},
+	})
+
+	tests := []struct {
+		image string
+		match docker.AuthConfiguration
+		ok    bool
+	}{
+		// direct match
+		{"quay.io", rex, true},
+
+		// partial matches
+		{"quay.io/foo", rex, true},
+		{"quay.io/foo/bar", rex, true},
 	}
 
 	for i, tt := range tests {

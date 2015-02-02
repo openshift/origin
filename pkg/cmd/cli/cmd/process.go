@@ -57,10 +57,13 @@ Examples:
 			schema, err := f.Validator(cmd)
 			checkErr(err)
 
-			namespace := getOriginNamespace(cmd)
+			cfg, err := f.ClientConfig(cmd)
+			checkErr(err)
+			namespace, err := f.DefaultNamespace(cmd)
+			checkErr(err)
 			mapper, typer := f.Object(cmd)
 
-			mapping, _, _, data := kubecmd.ResourceFromFile(cmd, filename, typer, mapper, schema)
+			mapping, _, _, data := kubecmd.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
 			obj, err := mapping.Codec.Decode(data)
 			checkErr(err)
 

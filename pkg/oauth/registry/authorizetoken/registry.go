@@ -9,13 +9,13 @@ import (
 // Registry is an interface for things that know how to store AuthorizeToken objects.
 type Registry interface {
 	// ListAuthorizeTokens obtains a list of authorize tokens that match a selector.
-	ListAuthorizeTokens(selector labels.Selector) (*api.AuthorizeTokenList, error)
+	ListAuthorizeTokens(selector labels.Selector) (*api.OAuthAuthorizeTokenList, error)
 	// GetAuthorizeToken retrieves a specific authorize token.
-	GetAuthorizeToken(name string) (*api.AuthorizeToken, error)
+	GetAuthorizeToken(name string) (*api.OAuthAuthorizeToken, error)
 	// CreateAuthorizeToken creates a new authorize token.
-	CreateAuthorizeToken(token *api.AuthorizeToken) error
+	CreateAuthorizeToken(token *api.OAuthAuthorizeToken) error
 	// UpdateAuthorizeToken updates an authorize token.
-	UpdateAuthorizeToken(token *api.AuthorizeToken) error
+	UpdateAuthorizeToken(token *api.OAuthAuthorizeToken) error
 	// DeleteAuthorizeToken deletes an authorize token.
 	DeleteAuthorizeToken(name string) error
 }

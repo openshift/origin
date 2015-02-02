@@ -18,6 +18,7 @@ package meta
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 )
 
 // VersionInterfaces contains the interfaces one should use for dealing with types of a particular version.
@@ -31,6 +32,7 @@ type VersionInterfaces struct {
 // internal API objects. Attempting to set or retrieve a field on an object that does
 // not support that field (Name, UID, Namespace on lists) will be a no-op and return
 // a default value.
+// TODO: rename to ObjectInterface when we clear up these interfaces.
 type Interface interface {
 	TypeInterface
 
@@ -38,8 +40,8 @@ type Interface interface {
 	SetNamespace(namespace string)
 	Name() string
 	SetName(name string)
-	UID() string
-	SetUID(uid string)
+	UID() types.UID
+	SetUID(uid types.UID)
 	ResourceVersion() string
 	SetResourceVersion(version string)
 	SelfLink() string
@@ -51,8 +53,6 @@ type Interface interface {
 }
 
 // TypeInterface exposes the type and APIVersion of versioned or internal API objects.
-// TODO: remove the need for this interface by refactoring runtime encoding to avoid
-// needing this object.
 type TypeInterface interface {
 	APIVersion() string
 	SetAPIVersion(version string)
@@ -79,8 +79,8 @@ type MetadataAccessor interface {
 	Name(obj runtime.Object) (string, error)
 	SetName(obj runtime.Object, name string) error
 
-	UID(obj runtime.Object) (string, error)
-	SetUID(obj runtime.Object, uid string) error
+	UID(obj runtime.Object) (types.UID, error)
+	SetUID(obj runtime.Object, uid types.UID) error
 
 	SelfLink(obj runtime.Object) (string, error)
 	SetSelfLink(obj runtime.Object, selfLink string) error

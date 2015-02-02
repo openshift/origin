@@ -31,6 +31,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 
 	"github.com/emicklei/go-restful"
@@ -49,10 +51,6 @@ type defaultAPIServer struct {
 	group *APIGroupVersion
 }
 
-const (
-	StatusUnprocessableEntity = 422
-)
-
 // Handle returns a Handler function that exposes the provided storage interfaces
 // as RESTful resources at prefix, serialized by codec, and also includes the support
 // http resources.
@@ -62,9 +60,9 @@ func Handle(storage map[string]RESTStorage, codec runtime.Codec, root string, ve
 	group := NewAPIGroupVersion(storage, codec, prefix, selfLinker, admissionControl)
 	container := restful.NewContainer()
 	mux := container.ServeMux
-	group.InstallREST(container, root, version)
+	group.InstallREST(container, mux, root, version)
 	ws := new(restful.WebService)
-	InstallSupport(container, ws)
+	InstallSupport(mux, ws)
 	container.Add(ws)
 	return &defaultAPIServer{mux, group}
 }
@@ -93,8 +91,6 @@ func NewAPIGroupVersion(storage map[string]RESTStorage, codec runtime.Codec, can
 		selfLinker:       selfLinker,
 		ops:              NewOperations(),
 		admissionControl: admissionControl,
-		// Delay just long enough to handle most simple write operations
-		asyncOpWait: time.Millisecond * 25,
 	}}
 }
 
@@ -103,36 +99,32 @@ func indirectArbitraryPointer(ptrToObject interface{}) interface{} {
 	return reflect.Indirect(reflect.ValueOf(ptrToObject)).Interface()
 }
 
-func registerResourceHandlers(ws *restful.WebService, version string, path string, storage RESTStorage, kinds map[string]reflect.Type, h restful.RouteFunction, namespaceScope bool) {
-	glog.V(3).Infof("Installing /%s/%s\n", version, path)
+func registerResourceHandlers(ws *restful.WebService, version string, path string, storage RESTStorage, h restful.RouteFunction, namespaceScope bool) error {
 	object := storage.New()
 	_, kind, err := api.Scheme.ObjectVersionAndKind(object)
 	if err != nil {
-		glog.Warningf("error getting kind: %v\n", err)
-		return
+		return err
 	}
 	versionedPtr, err := api.Scheme.New(version, kind)
 	if err != nil {
-		glog.Warningf("error making object: %v\n", err)
-		return
+		return err
 	}
 	versionedObject := indirectArbitraryPointer(versionedPtr)
-	glog.V(3).Infoln("type: ", reflect.TypeOf(versionedObject))
 
 	// See github.com/emicklei/go-restful/blob/master/jsr311.go for routing logic
 	// and status-code behavior
 	if namespaceScope {
 		path = "ns/{namespace}/" + path
 	}
-	glog.V(3).Infof("Installing version=/%s, kind=/%s, path=/%s\n", version, kind, path)
+
+	glog.V(5).Infof("Installing version=/%s, kind=/%s, path=/%s", version, kind, path)
 
 	nameParam := ws.PathParameter("name", "name of the "+kind).DataType("string")
 	namespaceParam := ws.PathParameter("namespace", "object name and auth scope, such as for teams and projects").DataType("string")
 
 	createRoute := ws.POST(path).To(h).
 		Doc("create a " + kind).
-		Operation("create" + kind).
-		Reads(versionedObject) // from the request
+		Operation("create" + kind)
 	addParamIf(createRoute, namespaceParam, namespaceScope)
 	if _, ok := storage.(RESTCreater); ok {
 		ws.Route(createRoute.Reads(versionedObject)) // from the request
@@ -149,11 +141,10 @@ func registerResourceHandlers(ws *restful.WebService, version string, path strin
 		_, listKind, err := api.Scheme.ObjectVersionAndKind(list)
 		versionedListPtr, err := api.Scheme.New(version, listKind)
 		if err != nil {
-			glog.Errorf("error making list object: %v\n", err)
-			return
+			return err
 		}
 		versionedList := indirectArbitraryPointer(versionedListPtr)
-		glog.V(3).Infoln("type: ", reflect.TypeOf(versionedList))
+		glog.V(5).Infoln("type: ", reflect.TypeOf(versionedList))
 		ws.Route(listRoute.Returns(http.StatusOK, "OK", versionedList))
 	} else {
 		ws.Route(listRoute.Returns(http.StatusMethodNotAllowed, "listing objects is not supported", nil))
@@ -192,6 +183,8 @@ func registerResourceHandlers(ws *restful.WebService, version string, path strin
 	} else {
 		ws.Route(deleteRoute.Returns(http.StatusMethodNotAllowed, "deleting objects is not supported", nil))
 	}
+
+	return nil
 }
 
 // Adds the given param to the given route builder if shouldAdd is true. Does nothing if shouldAdd is false.
@@ -202,10 +195,10 @@ func addParamIf(b *restful.RouteBuilder, parameter *restful.Parameter, shouldAdd
 	return b.Param(parameter)
 }
 
-// InstallREST registers the REST handlers (storage, watch, and operations) into a restful Container.
+// InstallREST registers the REST handlers (storage, watch, proxy and redirect) into a restful Container.
 // It is expected that the provided path root prefix will serve all operations. Root MUST NOT end
 // in a slash. A restful WebService is created for the group and version.
-func (g *APIGroupVersion) InstallREST(container *restful.Container, root string, version string) {
+func (g *APIGroupVersion) InstallREST(container *restful.Container, mux Mux, root string, version string) error {
 	prefix := path.Join(root, version)
 	restHandler := &g.handler
 	strippedHandler := http.StripPrefix(prefix, restHandler)
@@ -217,7 +210,6 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, root string,
 	}
 	proxyHandler := &ProxyHandler{prefix + "/proxy/", g.handler.storage, g.handler.codec}
 	redirectHandler := &RedirectHandler{g.handler.storage, g.handler.codec}
-	opHandler := &OperationHandler{g.handler.ops, g.handler.codec}
 
 	// Create a new WebService for this APIGroupVersion at the specified path prefix
 	// TODO: Pass in more descriptive documentation
@@ -232,9 +224,6 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, root string,
 	ws.ApiVersion(version)
 
 	// TODO: add scheme to APIGroupVersion rather than using api.Scheme
-
-	kinds := api.Scheme.KnownTypes(version)
-	glog.V(4).Infof("InstallREST: %v kinds: %#v", version, kinds)
 
 	// TODO: #2057: Return API resources on "/".
 
@@ -260,25 +249,29 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container, root string,
 		strippedHandler.ServeHTTP(resp.ResponseWriter, req.Request)
 	}
 
+	registrationErrors := make([]error, 0)
+
 	for path, storage := range g.handler.storage {
 		// register legacy patterns where namespace is optional in path
-		registerResourceHandlers(ws, version, path, storage, kinds, h, false)
+		if err := registerResourceHandlers(ws, version, path, storage, h, false); err != nil {
+			registrationErrors = append(registrationErrors, err)
+		}
 		// register pattern where namespace is required in path
-		registerResourceHandlers(ws, version, path, storage, kinds, h, true)
+		if err := registerResourceHandlers(ws, version, path, storage, h, true); err != nil {
+			registrationErrors = append(registrationErrors, err)
+		}
 	}
 
 	// TODO: port the rest of these. Sadly, if we don't, we'll have inconsistent
 	// API behavior, as well as lack of documentation
-	mux := container.ServeMux
-
 	// Note: update GetAttribs() when adding a handler.
 	mux.Handle(prefix+"/watch/", http.StripPrefix(prefix+"/watch/", watchHandler))
 	mux.Handle(prefix+"/proxy/", http.StripPrefix(prefix+"/proxy/", proxyHandler))
 	mux.Handle(prefix+"/redirect/", http.StripPrefix(prefix+"/redirect/", redirectHandler))
-	mux.Handle(prefix+"/operations", http.StripPrefix(prefix+"/operations", opHandler))
-	mux.Handle(prefix+"/operations/", http.StripPrefix(prefix+"/operations/", opHandler))
 
 	container.Add(ws)
+
+	return errors.NewAggregate(registrationErrors)
 }
 
 // TODO: Convert to go-restful
@@ -295,9 +288,9 @@ func InstallValidator(mux Mux, servers func() map[string]Server) {
 
 // TODO: document all handlers
 // InstallSupport registers the APIServer support functions
-func InstallSupport(container *restful.Container, ws *restful.WebService) {
+func InstallSupport(mux Mux, ws *restful.WebService) {
 	// TODO: convert healthz to restful and remove container arg
-	healthz.InstallHandler(container.ServeMux)
+	healthz.InstallHandler(mux)
 
 	// Set up a service to return the git code version.
 	ws.Path("/version")
@@ -374,6 +367,7 @@ func errorJSON(err error, codec runtime.Codec, w http.ResponseWriter) {
 
 // errorJSONFatal renders an error to the response, and if codec fails will render plaintext
 func errorJSONFatal(err error, codec runtime.Codec, w http.ResponseWriter) {
+	util.HandleError(fmt.Errorf("apiserver was unable to write a JSON response: %v", err))
 	status := errToAPIStatus(err)
 	output, err := codec.Encode(status)
 	if err != nil {
@@ -388,7 +382,6 @@ func errorJSONFatal(err error, codec runtime.Codec, w http.ResponseWriter) {
 
 // writeRawJSON writes a non-API object in JSON.
 func writeRawJSON(statusCode int, object interface{}, w http.ResponseWriter) {
-	// PR #2243: Pretty-print JSON by default.
 	output, err := json.MarshalIndent(object, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

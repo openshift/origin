@@ -20,6 +20,10 @@ type Interface interface {
 	UsersInterface
 	UserIdentityMappingsInterface
 	ProjectsInterface
+	PoliciesNamespacer
+	RolesNamespacer
+	RoleBindingsNamespacer
+	PolicyBindingsNamespacer
 }
 
 func (c *Client) Builds(namespace string) BuildInterface {
@@ -82,6 +86,22 @@ func (c *Client) Projects() ProjectInterface {
 // TemplateConfigs provides a REST client for TemplateConfig
 func (c *Client) TemplateConfigs(namespace string) TemplateConfigInterface {
 	return newTemplateConfigs(c, namespace)
+}
+
+func (c *Client) Policies(namespace string) PolicyInterface {
+	return newPolicies(c, namespace)
+}
+
+func (c *Client) PolicyBindings(namespace string) PolicyBindingInterface {
+	return newPolicyBindings(c, namespace)
+}
+
+func (c *Client) Roles(namespace string) RoleInterface {
+	return newRoles(c, namespace)
+}
+
+func (c *Client) RoleBindings(namespace string) RoleBindingInterface {
+	return newRoleBindings(c, namespace)
 }
 
 // Client is an OpenShift client object

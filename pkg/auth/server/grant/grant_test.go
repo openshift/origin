@@ -36,7 +36,7 @@ func badAuth(err error) *testAuth {
 }
 
 func goodClientRegistry(clientID string, redirectURIs []string) *test.ClientRegistry {
-	client := &oapi.Client{ObjectMeta: kapi.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
+	client := &oapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
 	client.Name = clientID
 	return &test.ClientRegistry{Client: client}
 }
@@ -48,7 +48,7 @@ func emptyAuthRegistry() *test.ClientAuthorizationRegistry {
 	return &test.ClientAuthorizationRegistry{}
 }
 func existingAuthRegistry(scopes []string) *test.ClientAuthorizationRegistry {
-	auth := oapi.ClientAuthorization{
+	auth := oapi.OAuthClientAuthorization{
 		UserName:   "existingUserName",
 		UserUID:    "existingUserUID",
 		ClientName: "existingClientName",

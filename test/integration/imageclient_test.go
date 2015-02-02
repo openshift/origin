@@ -228,12 +228,11 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		Client:             kubeClient,
-		EtcdHelper:         etcdHelper,
-		HealthCheckMinions: false,
-		KubeletClient:      kubeletClient,
-		APIPrefix:          "/api/v1beta1",
-		RestfulContainer:   handlerContainer,
+		Client:           kubeClient,
+		EtcdHelper:       etcdHelper,
+		KubeletClient:    kubeletClient,
+		APIPrefix:        "/api",
+		RestfulContainer: handlerContainer,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -248,7 +247,7 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 	}
 
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, osMux, "/osapi", "v1beta1")
 
 	return openshift
 }

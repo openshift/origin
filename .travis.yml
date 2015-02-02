@@ -22,7 +22,7 @@ install:
   - ./hack/install-assets.sh
 
 script:
-  - KUBE_RACE="-race" KUBE_COVER="-cover -covermode=atomic" ./hack/test-go.sh
+  - KUBE_RACE="-race" KUBE_COVER="-cover -covermode=atomic" ./hack/test-go.sh "" -p=4
   - ./hack/test-cmd.sh
   - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH ./hack/test-integration.sh
   - ./hack/test-assets.sh

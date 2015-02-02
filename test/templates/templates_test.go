@@ -59,7 +59,7 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	osPrefix := "/osapi/v1beta1"
 	handlerContainer := master.NewHandlerContainer(osMux)
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, osMux, "/osapi", "v1beta1")
 
 	walkJSONFiles("fixtures", func(name, path string, _ []byte) {
 		config := &config.Config{}

@@ -25,6 +25,13 @@ func OkCustomStrategy() deployapi.DeploymentStrategy {
 func OkCustomParams() *deployapi.CustomDeploymentStrategyParams {
 	return &deployapi.CustomDeploymentStrategyParams{
 		Image: "openshift/origin-deployer",
+		Environment: []kapi.EnvVar{
+			{
+				Name:  "ENV1",
+				Value: "VAL1",
+			},
+		},
+		Command: []string{"/bin/echo", "hello", "world"},
 	}
 }
 
@@ -56,6 +63,12 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 					Image:  "registry:8080/repo1:ref1",
 					CPU:    resource.Quantity{Amount: inf.NewDec(0, 3), Format: "DecimalSI"},
 					Memory: resource.Quantity{Amount: inf.NewDec(0, 0), Format: "DecimalSI"},
+					Env: []kapi.EnvVar{
+						{
+							Name:  "ENV1",
+							Value: "VAL1",
+						},
+					},
 				},
 				{
 					Name:   "container2",

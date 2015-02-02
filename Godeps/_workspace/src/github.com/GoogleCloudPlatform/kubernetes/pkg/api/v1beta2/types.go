@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -52,7 +53,7 @@ type Volume struct {
 	// Source represents the location and type of a volume to mount.
 	// This is optional for now. If not specified, the Volume is implied to be an EmptyDir.
 	// This implied behavior is deprecated and will be removed in a future version.
-	Source *VolumeSource `json:"source" description:"location and type of volume to mount; at most one of HostDir, EmptyDir, GCEPersistentDisk, or GitRepo; default is EmptyDir"`
+	Source VolumeSource `json:"source,omitempty" description:"location and type of volume to mount; at most one of HostDir, EmptyDir, GCEPersistentDisk, or GitRepo; default is EmptyDir"`
 }
 
 // VolumeSource represents the source location of a valume to mount.
@@ -63,7 +64,7 @@ type VolumeSource struct {
 	// things that are allowed to see the host machine. Most containers will NOT need this.
 	// TODO(jonesdl) We need to restrict who can use host directory mounts and
 	// who can/can not mount host directories as read/write.
-	HostDir *HostDir `json:"hostDir" description:"pre-existing host directory; generally for privileged system daemons or other agents tied to the host"`
+	HostDir *HostPath `json:"hostDir" description:"pre-existing host file or directory; generally for privileged system daemons or other agents tied to the host"`
 	// EmptyDir represents a temporary directory that shares a pod's lifetime.
 	EmptyDir *EmptyDir `json:"emptyDir" description:"temporary directory that shares a pod's lifetime"`
 	// A persistent disk that is mounted to the
@@ -73,8 +74,8 @@ type VolumeSource struct {
 	GitRepo *GitRepo `json:"gitRepo" description:"git repository at a particular revision"`
 }
 
-// HostDir represents bare host directory volume.
-type HostDir struct {
+// HostPath represents bare host directory volume.
+type HostPath struct {
 	Path string `json:"path" description:"path of the directory on the host"`
 }
 
@@ -204,6 +205,17 @@ const (
 	PullIfNotPresent PullPolicy = "PullIfNotPresent"
 )
 
+// CapabilityType represent POSIX capabilities type
+type CapabilityType string
+
+// Capabilities represent POSIX capabilities that can be added or removed to a running container.
+type Capabilities struct {
+	// Added capabilities
+	Add []CapabilityType `json:"add,omitempty" description:"added capabilities"`
+	// Removed capabilities
+	Drop []CapabilityType `json:"drop,omitempty" description:"droped capabilities"`
+}
+
 // Container represents a single container that is expected to be run on the host.
 type Container struct {
 	// Required: This must be a DNS_LABEL.  Each container in a pod must
@@ -230,6 +242,8 @@ type Container struct {
 	Privileged bool `json:"privileged,omitempty" description:"whether or not the container is granted privileged status; defaults to false"`
 	// Optional: Policy for pulling images for this container
 	ImagePullPolicy PullPolicy `json:"imagePullPolicy" description:"image pull policy; one of PullAlways, PullNever, PullIfNotPresent; defaults to PullAlways if :latest tag is specified, or PullIfNotPresent otherwise"`
+	// Optional: Capabilities for container.
+	Capabilities Capabilities `json:"capabilities,omitempty" description:"capabilities for container"`
 }
 
 // Handler defines a specific action that should be taken
@@ -237,9 +251,12 @@ type Container struct {
 type Handler struct {
 	// One and only one of the following should be specified.
 	// Exec specifies the action to take.
-	Exec *ExecAction `json:"exec,omitempty" description:"exec-based hook handler"`
+	Exec *ExecAction `json:"exec,omitempty" description:"exec-based handler"`
 	// HTTPGet specifies the http request to perform.
-	HTTPGet *HTTPGetAction `json:"httpGet,omitempty" description:"HTTP-based hook handler"`
+	HTTPGet *HTTPGetAction `json:"httpGet,omitempty" description:"HTTP-based handler"`
+	// TCPSocket specifies an action involving a TCP port.
+	// TODO: implement a realistic TCP lifecycle hook
+	TCPSocket *TCPSocketAction `json:"tcpSocket,omitempty"  description:"TCP-based handler; TCP hooks not yet supported"`
 }
 
 // Lifecycle describes actions that the management system should take in response to container lifecycle
@@ -260,7 +277,7 @@ type Lifecycle struct {
 type TypeMeta struct {
 	Kind              string    `json:"kind,omitempty" description:"kind of object, in CamelCase"`
 	ID                string    `json:"id,omitempty" description:"name of the object; must be a DNS_SUBDOMAIN and unique among all objects of the same kind within the same namespace; used in resource URLs"`
-	UID               string    `json:"uid,omitempty" description:"UUID assigned by the system upon creation, unique across space and time"`
+	UID               types.UID `json:"uid,omitempty" description:"UUID assigned by the system upon creation, unique across space and time"`
 	CreationTimestamp util.Time `json:"creationTimestamp,omitempty" description:"RFC 3339 date and time at which the object was created; recorded by the system; null for lists"`
 	SelfLink          string    `json:"selfLink,omitempty" description:"URL for the object"`
 	ResourceVersion   uint64    `json:"resourceVersion,omitempty" description:"string that identifies the internal version of this object that can be used by clients to determine when objects have changed; value must be treated as opaque by clients and passed unmodified back to the server"`
@@ -374,6 +391,11 @@ type PodState struct {
 	Info PodInfo `json:"info,omitempty" description:"map of container name to container status"`
 }
 
+type PodStatusResult struct {
+	TypeMeta `json:",inline"`
+	State    PodState `json:"state,omitempty" description:"current state of the pod"`
+}
+
 // PodList is a list of Pods.
 type PodList struct {
 	TypeMeta `json:",inline"`
@@ -414,6 +436,7 @@ type ReplicationController struct {
 // PodTemplate holds the information used for creating pods.
 type PodTemplate struct {
 	DesiredState PodState          `json:"desiredState,omitempty" description:"specification of the desired state of pods created from this template"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty" description:"a selector which must be true for the pod to fit on a node"`
 	Labels       map[string]string `json:"labels,omitempty" description:"map of string keys and values that can be used to organize and categorize the pods created from the template; must match the selector of the replication controller to which the template belongs; may match selectors of services"`
 }
 
@@ -587,15 +610,15 @@ type Binding struct {
 // import both.
 type Status struct {
 	TypeMeta `json:",inline"`
-	// One of: "Success", "Failure", "Working" (for operations not yet completed)
-	Status string `json:"status,omitempty" description:"status of the operation; either Working (not yet completed), Success, or Failure"`
+	// One of: "Success" or "Failure"
+	Status string `json:"status,omitempty" description:"status of the operation; either Success or Failure"`
 	// A human-readable description of the status of this operation.
 	Message string `json:"message,omitempty" description:"human-readable description of the status of this operation"`
 	// A machine-readable description of why this operation is in the
-	// "Failure" or "Working" status. If this value is empty there
+	// "Failure" status. If this value is empty there
 	// is no information available. A Reason clarifies an HTTP status
 	// code but does not override it.
-	Reason StatusReason `json:"reason,omitempty" description:"machine-readable description of why this operation is in the 'Failure' or 'Working' status; if this value is empty there is no information available; a reason clarifies an HTTP status code but does not override it"`
+	Reason StatusReason `json:"reason,omitempty" description:"machine-readable description of why this operation is in the 'Failure' status; if this value is empty there is no information available; a reason clarifies an HTTP status code but does not override it"`
 	// Extended data associated with the reason.  Each reason may define its
 	// own extended details. This field is optional and the data returned
 	// is not guaranteed to conform to any schema except that defined by
@@ -627,7 +650,6 @@ type StatusDetails struct {
 const (
 	StatusSuccess = "Success"
 	StatusFailure = "Failure"
-	StatusWorking = "Working"
 )
 
 // StatusReason is an enumeration of possible failure causes.  Each StatusReason
@@ -641,18 +663,6 @@ const (
 	// The details field may contain other information about this error.
 	// Status code 500.
 	StatusReasonUnknown StatusReason = ""
-
-	// StatusReasonWorking means the server is processing this request and will complete
-	// at a future time.
-	// Details (optional):
-	//   "kind" string - the name of the resource being referenced ("operation" today)
-	//   "id"   string - the identifier of the Operation resource where updates
-	//                   will be returned
-	// Headers (optional):
-	//   "Location" - HTTP header populated with a URL that can retrieved the final
-	//                status of this operation.
-	// Status code 202
-	StatusReasonWorking StatusReason = "Working"
 
 	// StatusReasonNotFound means one or more resources required for this operation
 	// could not be found.
@@ -715,7 +725,7 @@ type StatusCause struct {
 
 // CauseType is a machine readable value providing more detail about what
 // occured in a status response. An operation may have multiple causes for a
-// status (whether Failure, Success, or Working).
+// status (whether Failure or Success).
 type CauseType string
 
 const (
@@ -749,12 +759,12 @@ type ServerOpList struct {
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
 type ObjectReference struct {
-	Kind            string `json:"kind,omitempty" description:"kind of the referent"`
-	Namespace       string `json:"namespace,omitempty" description:"namespace of the referent"`
-	ID              string `json:"name,omitempty" description:"id of the referent"`
-	UID             string `json:"uid,omitempty" description:"uid of the referent"`
-	APIVersion      string `json:"apiVersion,omitempty" description:"API version of the referent"`
-	ResourceVersion string `json:"resourceVersion,omitempty" description:"specific resourceVersion to which this reference is made, if any"`
+	Kind            string    `json:"kind,omitempty" description:"kind of the referent"`
+	Namespace       string    `json:"namespace,omitempty" description:"namespace of the referent"`
+	ID              string    `json:"name,omitempty" description:"id of the referent"`
+	UID             types.UID `json:"uid,omitempty" description:"uid of the referent"`
+	APIVersion      string    `json:"apiVersion,omitempty" description:"API version of the referent"`
+	ResourceVersion string    `json:"resourceVersion,omitempty" description:"specific resourceVersion to which this reference is made, if any"`
 
 	// Optional. If referring to a piece of an object instead of an entire object, this string
 	// should contain information to identify the sub-object. For example, if the object
@@ -782,6 +792,7 @@ type Event struct {
 	// always be used for the same status.
 	// TODO: define a way of making sure these are consistent and don't collide.
 	// TODO: provide exact specification for format.
+	// DEPRECATED: Status (a.k.a Condition) value will be ignored.
 	Status string `json:"status,omitempty" description:"short, machine understandable string that describes the current status of the referred object"`
 
 	// Optional; this should be a short, machine understandable string that gives the reason
@@ -799,7 +810,7 @@ type Event struct {
 	Source string `json:"source,omitempty" description:"component reporting this event; short machine understandable string"`
 
 	// Host name on which the event is generated.
-	Host string `json:"host,omitempty"`
+	Host string `json:"host,omitempty" description:"host name on which this event was generated"`
 
 	// The time at which the client recorded the event. (Time of server receipt is in TypeMeta.)
 	Timestamp util.Time `json:"timestamp,omitempty" description:"time at which the client recorded the event"`
@@ -824,7 +835,7 @@ type ContainerManifest struct {
 	// TODO: UUID on Manifext is deprecated in the future once we are done
 	// with the API refactory. It is required for now to determine the instance
 	// of a Pod.
-	UUID          string        `json:"uuid,omitempty" description:"manifest UUID"`
+	UUID          types.UID     `json:"uuid,omitempty" description:"manifest UUID"`
 	Volumes       []Volume      `json:"volumes" description:"list of volumes that can be mounted by containers belonging to the pod"`
 	Containers    []Container   `json:"containers" description:"list of containers belonging to the pod"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" description:"restart policy for all containers within the pod; one of RestartPolicyAlways, RestartPolicyOnFailure, RestartPolicyNever"`
@@ -897,4 +908,100 @@ type BoundPods struct {
 type List struct {
 	TypeMeta `json:",inline"`
 	Items    []runtime.RawExtension `json:"items" description:"list of objects"`
+}
+
+// A type of object that is limited
+type LimitType string
+
+const (
+	// Limit that applies to all pods in a namespace
+	LimitTypePod LimitType = "Pod"
+	// Limit that applies to all containers in a namespace
+	LimitTypeContainer LimitType = "Container"
+)
+
+// LimitRangeItem defines a min/max usage limit for any resource that matches on kind
+type LimitRangeItem struct {
+	// Type of resource that this limit applies to
+	Type LimitType `json:"type,omitempty"`
+	// Max usage constraints on this kind by resource name
+	Max ResourceList `json:"max,omitempty"`
+	// Min usage constraints on this kind by resource name
+	Min ResourceList `json:"min,omitempty"`
+}
+
+// LimitRangeSpec defines a min/max usage limit for resources that match on kind
+type LimitRangeSpec struct {
+	// Limits is the list of LimitRangeItem objects that are enforced
+	Limits []LimitRangeItem `json:"limits"`
+}
+
+// LimitRange sets resource usage limits for each kind of resource in a Namespace
+type LimitRange struct {
+	TypeMeta `json:",inline"`
+
+	// Spec defines the limits enforced
+	Spec LimitRangeSpec `json:"spec,omitempty"`
+}
+
+// LimitRangeList is a list of LimitRange items.
+type LimitRangeList struct {
+	TypeMeta `json:",inline"`
+
+	// Items is a list of LimitRange objects
+	Items []LimitRange `json:"items"`
+}
+
+// The following identify resource constants for Kubernetes object types
+const (
+	// Pods, number
+	ResourcePods ResourceName = "pods"
+	// Services, number
+	ResourceServices ResourceName = "services"
+	// ReplicationControllers, number
+	ResourceReplicationControllers ResourceName = "replicationcontrollers"
+	// ResourceQuotas, number
+	ResourceQuotas ResourceName = "resourcequotas"
+)
+
+// ResourceQuotaSpec defines the desired hard limits to enforce for Quota
+type ResourceQuotaSpec struct {
+	// Hard is the set of desired hard limits for each named resource
+	Hard ResourceList `json:"hard,omitempty"`
+}
+
+// ResourceQuotaStatus defines the enforced hard limits and observed use
+type ResourceQuotaStatus struct {
+	// Hard is the set of enforced hard limits for each named resource
+	Hard ResourceList `json:"hard,omitempty"`
+	// Used is the current observed total usage of the resource in the namespace
+	Used ResourceList `json:"used,omitempty"`
+}
+
+// ResourceQuota sets aggregate quota restrictions enforced per namespace
+type ResourceQuota struct {
+	TypeMeta `json:",inline"`
+
+	// Spec defines the desired quota
+	Spec ResourceQuotaSpec `json:"spec,omitempty"`
+
+	// Status defines the actual enforced quota and its current usage
+	Status ResourceQuotaStatus `json:"status,omitempty"`
+}
+
+// ResourceQuotaUsage captures system observed quota status per namespace
+// It is used to enforce atomic updates of a backing ResourceQuota.Status field in storage
+type ResourceQuotaUsage struct {
+	TypeMeta `json:",inline"`
+
+	// Status defines the actual enforced quota and its current usage
+	Status ResourceQuotaStatus `json:"status,omitempty"`
+}
+
+// ResourceQuotaList is a list of ResourceQuota items
+type ResourceQuotaList struct {
+	TypeMeta `json:",inline"`
+
+	// Items is a list of ResourceQuota objects
+	Items []ResourceQuota `json:"items"`
 }

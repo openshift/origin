@@ -8,24 +8,24 @@ import (
 
 type ClientRegistry struct {
 	Err               error
-	Clients           *api.ClientList
-	Client            *api.Client
+	Clients           *api.OAuthClientList
+	Client            *api.OAuthClient
 	DeletedClientName string
 }
 
-func (r *ClientRegistry) ListClients(labels labels.Selector) (*api.ClientList, error) {
+func (r *ClientRegistry) ListClients(labels labels.Selector) (*api.OAuthClientList, error) {
 	return r.Clients, r.Err
 }
 
-func (r *ClientRegistry) GetClient(name string) (*api.Client, error) {
+func (r *ClientRegistry) GetClient(name string) (*api.OAuthClient, error) {
 	return r.Client, r.Err
 }
 
-func (r *ClientRegistry) CreateClient(client *api.Client) error {
+func (r *ClientRegistry) CreateClient(client *api.OAuthClient) error {
 	return r.Err
 }
 
-func (r *ClientRegistry) UpdateClient(client *api.Client) error {
+func (r *ClientRegistry) UpdateClient(client *api.OAuthClient) error {
 	return r.Err
 }
 

@@ -65,7 +65,7 @@ func validateToken(token string, clientCfg *clientcmd.Config) {
 }
 
 func getTokenInfo(token string, osClient *osclient.Client) (string, *osintypes.InfoResponseData, error) {
-	osResult := osClient.Get().AbsPath("oauth").Resource("info").Param("code", token).Do()
+	osResult := osClient.Get().AbsPath("oauth", "info").Param("code", token).Do()
 	if osResult.Error() != nil {
 		return "", nil, fmt.Errorf("Error making info request: %v", osResult.Error())
 	}

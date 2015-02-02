@@ -36,7 +36,8 @@ Examples:
 			client, _, err := f.Clients(cmd)
 			checkErr(err)
 
-			namespace := getOriginNamespace(cmd)
+			namespace, err := f.DefaultNamespace(cmd)
+			checkErr(err)
 
 			var newBuild *build.Build
 			if len(buildName) == 0 {

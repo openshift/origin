@@ -17,14 +17,13 @@ limitations under the License.
 package kubelet
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/health"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
@@ -45,17 +44,8 @@ func MonitorCAdvisor(k *Kubelet, cp uint) {
 	k.SetCadvisorClient(cadvisorClient)
 }
 
-// TODO: move this into the kubelet itself
-func InitHealthChecking(k *Kubelet) {
-	// TODO: These should probably become more plugin-ish: register a factory func
-	// in each checker's init(), iterate those here.
-	health.AddHealthChecker(health.NewExecHealthChecker(k))
-	health.AddHealthChecker(health.NewHTTPHealthChecker(&http.Client{}))
-	health.AddHealthChecker(&health.TCPHealthChecker{})
-}
-
 // TODO: move this into a pkg/tools/etcd_tools
-func EtcdClientOrDie(etcdServerList util.StringList, etcdConfigFile string) *etcd.Client {
+func EtcdClientOrDie(etcdServerList util.StringList, etcdConfigFile string) tools.EtcdClient {
 	if len(etcdServerList) > 0 {
 		return etcd.NewClient(etcdServerList)
 	} else if etcdConfigFile != "" {

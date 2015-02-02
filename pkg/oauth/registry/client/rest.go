@@ -27,11 +27,11 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 
 // New returns a new Client for use with Create and Update.
 func (s *REST) New() runtime.Object {
-	return &api.Client{}
+	return &api.OAuthClient{}
 }
 
 func (*REST) NewList() runtime.Object {
-	return &api.Client{}
+	return &api.OAuthClient{}
 }
 
 // Get retrieves an Client by id.
@@ -55,7 +55,7 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 
 // Create registers the given Client.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	client, ok := obj.(*api.Client)
+	client, ok := obj.(*api.OAuthClient)
 	if !ok {
 		return nil, fmt.Errorf("not an client: %#v", obj)
 	}
@@ -63,7 +63,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	kapi.FillObjectMetaSystemFields(ctx, &client.ObjectMeta)
 
 	if errs := validation.ValidateClient(client); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("client", client.Name, errs)
+		return nil, kerrors.NewInvalid("oauthClient", client.Name, errs)
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {

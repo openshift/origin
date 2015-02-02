@@ -9,9 +9,9 @@ import (
 // Registry is an interface for things that know how to store ClientAuthorization objects.
 type Registry interface {
 	ClientAuthorizationName(userName, clientName string) string
-	ListClientAuthorizations(label, field labels.Selector) (*api.ClientAuthorizationList, error)
-	GetClientAuthorization(name string) (*api.ClientAuthorization, error)
-	CreateClientAuthorization(token *api.ClientAuthorization) error
-	UpdateClientAuthorization(token *api.ClientAuthorization) error
+	ListClientAuthorizations(label, field labels.Selector) (*api.OAuthClientAuthorizationList, error)
+	GetClientAuthorization(name string) (*api.OAuthClientAuthorization, error)
+	CreateClientAuthorization(token *api.OAuthClientAuthorization) error
+	UpdateClientAuthorization(token *api.OAuthClientAuthorization) error
 	DeleteClientAuthorization(name string) error
 }

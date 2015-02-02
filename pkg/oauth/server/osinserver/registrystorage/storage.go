@@ -17,10 +17,10 @@ import (
 )
 
 type UserConversion interface {
-	ConvertToAuthorizeToken(interface{}, *api.AuthorizeToken) error
-	ConvertToAccessToken(interface{}, *api.AccessToken) error
-	ConvertFromAuthorizeToken(*api.AuthorizeToken) (interface{}, error)
-	ConvertFromAccessToken(*api.AccessToken) (interface{}, error)
+	ConvertToAuthorizeToken(interface{}, *api.OAuthAuthorizeToken) error
+	ConvertToAccessToken(interface{}, *api.OAuthAccessToken) error
+	ConvertFromAuthorizeToken(*api.OAuthAuthorizeToken) (interface{}, error)
+	ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, error)
 }
 
 type storage struct {
@@ -41,7 +41,7 @@ func New(access accesstoken.Registry, authorize authorizetoken.Registry, client 
 
 type clientWrapper struct {
 	id     string
-	client *api.Client
+	client *api.OAuthClient
 }
 
 func (w *clientWrapper) GetId() string {
@@ -152,8 +152,8 @@ func (s *storage) RemoveRefresh(token string) error {
 	return errors.New("not implemented")
 }
 
-func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.AuthorizeToken, error) {
-	token := &api.AuthorizeToken{
+func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthAuthorizeToken, error) {
+	token := &api.OAuthAuthorizeToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.Code,
 			CreationTimestamp: util.Time{data.CreatedAt},
@@ -170,7 +170,7 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.Author
 	return token, nil
 }
 
-func (s *storage) convertFromAuthorizeToken(authorize *api.AuthorizeToken) (*osin.AuthorizeData, error) {
+func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) (*osin.AuthorizeData, error) {
 	user, err := s.user.ConvertFromAuthorizeToken(authorize)
 	if err != nil {
 		return nil, err
@@ -192,8 +192,8 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.AuthorizeToken) (*osi
 	}, nil
 }
 
-func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.AccessToken, error) {
-	token := &api.AccessToken{
+func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessToken, error) {
+	token := &api.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.AccessToken,
 			CreationTimestamp: util.Time{data.CreatedAt},
@@ -213,7 +213,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.AccessToken,
 	return token, nil
 }
 
-func (s *storage) convertFromAccessToken(access *api.AccessToken) (*osin.AccessData, error) {
+func (s *storage) convertFromAccessToken(access *api.OAuthAccessToken) (*osin.AccessData, error) {
 	user, err := s.user.ConvertFromAccessToken(access)
 	if err != nil {
 		return nil, err

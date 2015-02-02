@@ -26,11 +26,11 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 
 // New returns a new ClientAuthorization for use with Create and Update.
 func (s *REST) New() runtime.Object {
-	return &api.ClientAuthorization{}
+	return &api.OAuthClientAuthorization{}
 }
 
 func (*REST) NewList() runtime.Object {
-	return &api.ClientAuthorization{}
+	return &api.OAuthClientAuthorization{}
 }
 
 // Get retrieves an ClientAuthorization by id.
@@ -49,7 +49,7 @@ func (s *REST) List(ctx kapi.Context, label, fields labels.Selector) (runtime.Ob
 
 // Create registers the given ClientAuthorization.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	authorization, ok := obj.(*api.ClientAuthorization)
+	authorization, ok := obj.(*api.OAuthClientAuthorization)
 	if !ok {
 		return nil, fmt.Errorf("not an authorization: %#v", obj)
 	}
@@ -62,7 +62,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	kapi.FillObjectMetaSystemFields(ctx, &authorization.ObjectMeta)
 
 	if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("clientAuthorization", authorization.Name, errs)
+		return nil, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
@@ -75,13 +75,13 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 
 // Update modifies an existing client authorization
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	authorization, ok := obj.(*api.ClientAuthorization)
+	authorization, ok := obj.(*api.OAuthClientAuthorization)
 	if !ok {
 		return nil, fmt.Errorf("not an authorization: %#v", obj)
 	}
 
 	if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("clientAuthorization", authorization.Name, errs)
+		return nil, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
 	}
 
 	oldauth, err := s.registry.GetClientAuthorization(authorization.Name)
@@ -89,7 +89,7 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, err
 	}
 	if errs := validation.ValidateClientAuthorizationUpdate(authorization, oldauth); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("clientAuthorization", authorization.Name, errs)
+		return nil, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
 	}
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {

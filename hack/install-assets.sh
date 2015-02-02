@@ -53,8 +53,8 @@ pushd ${OS_ROOT}/assets > /dev/null
   cmd "npm install"
 
   # In case upstream components change things without incrementing versions
-  cmd "bower cache clean"
-  cmd "bower install"
+  cmd "bower cache clean --allow-root"
+  cmd "bower install --allow-root"
 popd > /dev/null
 
 pushd ${OS_ROOT}/Godeps/_workspace > /dev/null

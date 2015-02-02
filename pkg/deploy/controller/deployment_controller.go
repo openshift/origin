@@ -118,7 +118,11 @@ func (dc *DeploymentController) HandlePod() {
 		return
 	}
 
-	deploymentObj, deploymentExists := dc.DeploymentStore.Get(deploymentID)
+	deploymentObj, deploymentExists, err := dc.DeploymentStore.Get(&kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Name: deploymentID, Namespace: pod.Namespace}})
+	if err != nil {
+		glog.Errorf("Unable to retrieve deployment from store: %v", err)
+		return
+	}
 	if !deploymentExists {
 		glog.V(2).Infof("Couldn't find deployment %s associated with pod %s", deploymentID, pod.Name)
 		return

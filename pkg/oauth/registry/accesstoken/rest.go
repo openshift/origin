@@ -26,11 +26,11 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 
 // New returns a new AccessToken for use with Create and Update.
 func (s *REST) New() runtime.Object {
-	return &api.AccessToken{}
+	return &api.OAuthAccessToken{}
 }
 
 func (*REST) NewList() runtime.Object {
-	return &api.AccessToken{}
+	return &api.OAuthAccessToken{}
 }
 
 // Get retrieves an AccessToken by id.
@@ -54,7 +54,7 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 
 // Create registers the given AccessToken.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	token, ok := obj.(*api.AccessToken)
+	token, ok := obj.(*api.OAuthAccessToken)
 	if !ok {
 		return nil, fmt.Errorf("not an token: %#v", obj)
 	}

@@ -215,12 +215,14 @@ func (h *HumanReadablePrinter) validatePrintHandlerFunc(printFunc reflect.Value)
 	return nil
 }
 
-var podColumns = []string{"POD", "CONTAINER(S)", "IMAGE(S)", "HOST", "LABELS", "STATUS"}
+var podColumns = []string{"POD", "IP", "CONTAINER(S)", "IMAGE(S)", "HOST", "LABELS", "STATUS"}
 var replicationControllerColumns = []string{"CONTROLLER", "CONTAINER(S)", "IMAGE(S)", "SELECTOR", "REPLICAS"}
 var serviceColumns = []string{"NAME", "LABELS", "SELECTOR", "IP", "PORT"}
-var minionColumns = []string{"NAME", "LABELS"}
+var minionColumns = []string{"NAME", "LABELS", "STATUS"}
 var statusColumns = []string{"STATUS"}
-var eventColumns = []string{"TIME", "NAME", "KIND", "SUBOBJECT", "CONDITION", "REASON", "SOURCE", "MESSAGE"}
+var eventColumns = []string{"TIME", "NAME", "KIND", "SUBOBJECT", "REASON", "SOURCE", "MESSAGE"}
+var limitRangeColumns = []string{"NAME"}
+var resourceQuotaColumns = []string{"NAME"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -235,6 +237,10 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(statusColumns, printStatus)
 	h.Handler(eventColumns, printEvent)
 	h.Handler(eventColumns, printEventList)
+	h.Handler(limitRangeColumns, printLimitRange)
+	h.Handler(limitRangeColumns, printLimitRangeList)
+	h.Handler(resourceQuotaColumns, printResourceQuota)
+	h.Handler(resourceQuotaColumns, printResourceQuotaList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -267,7 +273,7 @@ func printPod(pod *api.Pod, w io.Writer) error {
 	if len(containers) > 0 {
 		firstContainer, containers = containers[0], containers[1:]
 	}
-	_, err := fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\t%s\t%s\n",
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 		pod.Name,
 		pod.Status.PodIP,
 		firstContainer.Name,
@@ -280,7 +286,7 @@ func printPod(pod *api.Pod, w io.Writer) error {
 	}
 	// Lay out all the other containers on separate lines.
 	for _, container := range containers {
-		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", "", container.Name, container.Image, "", "", "")
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", "", "", container.Name, container.Image, "", "", "")
 		if err != nil {
 			return err
 		}
@@ -347,7 +353,26 @@ func printServiceList(list *api.ServiceList, w io.Writer) error {
 }
 
 func printMinion(minion *api.Node, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\n", minion.Name, formatLabels(minion.Labels))
+	conditionMap := make(map[api.NodeConditionKind]*api.NodeCondition)
+	NodeAllConditions := []api.NodeConditionKind{api.NodeReady, api.NodeReachable}
+	for i := range minion.Status.Conditions {
+		cond := minion.Status.Conditions[i]
+		conditionMap[cond.Kind] = &cond
+	}
+	var status []string
+	for _, validCondition := range NodeAllConditions {
+		if condition, ok := conditionMap[validCondition]; ok {
+			if condition.Status == api.ConditionFull {
+				status = append(status, string(condition.Kind))
+			} else {
+				status = append(status, "Not"+string(condition.Kind))
+			}
+		}
+	}
+	if len(status) == 0 {
+		status = append(status, "Unknown")
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", minion.Name, formatLabels(minion.Labels), strings.Join(status, ","))
 	return err
 }
 
@@ -367,12 +392,11 @@ func printStatus(status *api.Status, w io.Writer) error {
 
 func printEvent(event *api.Event, w io.Writer) error {
 	_, err := fmt.Fprintf(
-		w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 		event.Timestamp.Time.Format(time.RFC1123Z),
 		event.InvolvedObject.Name,
 		event.InvolvedObject.Kind,
 		event.InvolvedObject.FieldPath,
-		event.Condition,
 		event.Reason,
 		event.Source,
 		event.Message,
@@ -385,6 +409,42 @@ func printEventList(list *api.EventList, w io.Writer) error {
 	sort.Sort(SortableEvents(list.Items))
 	for i := range list.Items {
 		if err := printEvent(&list.Items[i], w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printLimitRange(limitRange *api.LimitRange, w io.Writer) error {
+	_, err := fmt.Fprintf(
+		w, "%s\n",
+		limitRange.Name,
+	)
+	return err
+}
+
+// Prints the LimitRangeList in a human-friendly format.
+func printLimitRangeList(list *api.LimitRangeList, w io.Writer) error {
+	for i := range list.Items {
+		if err := printLimitRange(&list.Items[i], w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printResourceQuota(resourceQuota *api.ResourceQuota, w io.Writer) error {
+	_, err := fmt.Fprintf(
+		w, "%s\n",
+		resourceQuota.Name,
+	)
+	return err
+}
+
+// Prints the ResourceQuotaList in a human-friendly format.
+func printResourceQuotaList(list *api.ResourceQuotaList, w io.Writer) error {
+	for i := range list.Items {
+		if err := printResourceQuota(&list.Items[i], w); err != nil {
 			return err
 		}
 	}

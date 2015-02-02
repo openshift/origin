@@ -324,6 +324,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 
 	osMux := http.NewServeMux()
+	muxHelper := &apiserver.MuxHelper{osMux, []string{}}
 	openshift.Server = httptest.NewServer(osMux)
 
 	kubeClient := client.NewOrDie(&client.Config{Host: openshift.Server.URL, Version: klatest.Version})
@@ -340,13 +341,12 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		Client:             kubeClient,
-		EtcdHelper:         etcdHelper,
-		HealthCheckMinions: false,
-		KubeletClient:      kubeletClient,
-		APIPrefix:          "/api",
-		AdmissionControl:   admit.NewAlwaysAdmit(),
-		RestfulContainer:   handlerContainer,
+		Client:           kubeClient,
+		EtcdHelper:       etcdHelper,
+		KubeletClient:    kubeletClient,
+		APIPrefix:        "/api",
+		AdmissionControl: admit.NewAlwaysAdmit(),
+		RestfulContainer: handlerContainer,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -376,7 +376,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, muxHelper, "/osapi", "v1beta1")
 
 	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
 		Client:     osClient,
@@ -409,6 +409,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 
 	biccFactory.Create().Run()
+
 	return openshift
 }
 

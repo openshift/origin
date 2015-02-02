@@ -27,7 +27,7 @@ var Codec = runtime.CodecFor(api.Scheme, "v1beta1")
 func init() {
 	api.Scheme.AddKnownTypes("v1beta1",
 		&Pod{},
-		&PodContainerInfo{},
+		&PodStatusResult{},
 		&PodList{},
 		&ReplicationController{},
 		&ReplicationControllerList{},
@@ -48,6 +48,11 @@ func init() {
 		&BoundPod{},
 		&BoundPods{},
 		&List{},
+		&LimitRange{},
+		&LimitRangeList{},
+		&ResourceQuota{},
+		&ResourceQuotaList{},
+		&ResourceQuotaUsage{},
 	)
 	// Future names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta1", "Node", &Minion{})
@@ -57,7 +62,7 @@ func init() {
 }
 
 func (*Pod) IsAnAPIObject()                       {}
-func (*PodContainerInfo) IsAnAPIObject()          {}
+func (*PodStatusResult) IsAnAPIObject()           {}
 func (*PodList) IsAnAPIObject()                   {}
 func (*ReplicationController) IsAnAPIObject()     {}
 func (*ReplicationControllerList) IsAnAPIObject() {}
@@ -78,3 +83,8 @@ func (*ContainerManifestList) IsAnAPIObject()     {}
 func (*BoundPod) IsAnAPIObject()                  {}
 func (*BoundPods) IsAnAPIObject()                 {}
 func (*List) IsAnAPIObject()                      {}
+func (*LimitRange) IsAnAPIObject()                {}
+func (*LimitRangeList) IsAnAPIObject()            {}
+func (*ResourceQuota) IsAnAPIObject()             {}
+func (*ResourceQuotaList) IsAnAPIObject()         {}
+func (*ResourceQuotaUsage) IsAnAPIObject()        {}

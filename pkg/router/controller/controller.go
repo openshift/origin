@@ -17,8 +17,8 @@ import (
 type RouterController struct {
 	lock          sync.Mutex
 	Plugin        router.Plugin
-	NextRoute     func() (watch.EventType, *routeapi.Route)
-	NextEndpoints func() (watch.EventType, *kapi.Endpoints)
+	NextRoute     func() (watch.EventType, *routeapi.Route, error)
+	NextEndpoints func() (watch.EventType, *kapi.Endpoints, error)
 }
 
 // Run begins watching and syncing.
@@ -30,7 +30,11 @@ func (c *RouterController) Run() {
 
 // HandleRoute handles a single Route event and synchronizes the router backend.
 func (c *RouterController) HandleRoute() {
-	eventType, route := c.NextRoute()
+	eventType, route, err := c.NextRoute()
+	if err != nil {
+		glog.Errorf("Unable to read routes: %v", err)
+		return
+	}
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -44,7 +48,11 @@ func (c *RouterController) HandleRoute() {
 
 // HandleEndpoints handles a single Endpoints event and refreshes the router backend.
 func (c *RouterController) HandleEndpoints() {
-	eventType, endpoints := c.NextEndpoints()
+	eventType, endpoints, err := c.NextEndpoints()
+	if err != nil {
+		glog.Errorf("Unable to read endpoints: %v", err)
+		return
+	}
 
 	c.lock.Lock()
 	defer c.lock.Unlock()

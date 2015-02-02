@@ -8,6 +8,7 @@ import (
 )
 
 const UserNameKey = "user.name"
+const UserUIDKey = "user.uid"
 
 type Authenticator struct {
 	store Store
@@ -26,6 +27,7 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bo
 	if err != nil {
 		return nil, false, err
 	}
+
 	nameObj, ok := session.Values()[UserNameKey]
 	if !ok {
 		return nil, false, nil
@@ -38,8 +40,19 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bo
 		return nil, false, nil
 	}
 
+	uidObj, ok := session.Values()[UserUIDKey]
+	if !ok {
+		return nil, false, nil
+	}
+	uid, ok := uidObj.(string)
+	if !ok {
+		return nil, false, errors.New("user.uid on session is not a string")
+	}
+	// Tolerate empty string UIDs in the session
+
 	return &api.DefaultUserInfo{
 		Name: name,
+		UID:  uid,
 	}, true, nil
 }
 
@@ -50,6 +63,8 @@ func (a *Authenticator) AuthenticationSucceeded(user api.UserInfo, state string,
 	}
 	values := session.Values()
 	values[UserNameKey] = user.GetName()
+	values[UserUIDKey] = user.GetUID()
+	// TODO: should we save groups, scope, and extra in the session as well?
 	return false, a.store.Save(w, req)
 }
 
@@ -59,5 +74,6 @@ func (a *Authenticator) InvalidateAuthentication(context api.UserInfo, w http.Re
 		return err
 	}
 	session.Values()[UserNameKey] = ""
+	session.Values()[UserUIDKey] = ""
 	return a.store.Save(w, req)
 }

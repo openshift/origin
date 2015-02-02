@@ -22,37 +22,46 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
+type cacheable struct {
+	key   string
+	value interface{}
+}
+
+func keyFunc(obj interface{}) (string, error) {
+	return obj.(cacheable).key, nil
+}
+
 func TestEventQueue_basic(t *testing.T) {
-	q := NewEventQueue()
+	q := NewEventQueue(keyFunc)
 
 	const amount = 500
 	go func() {
 		for i := 0; i < amount; i++ {
-			q.Add(string([]rune{'a', rune(i)}), i+1)
+			q.Add(cacheable{string([]rune{'a', rune(i)}), i + 1})
 		}
 	}()
 	go func() {
 		for u := uint(0); u < amount; u++ {
-			q.Add(string([]rune{'b', rune(u)}), u+1)
+			q.Add(cacheable{string([]rune{'b', rune(u)}), u + 1})
 		}
 	}()
 
 	lastInt := int(0)
 	lastUint := uint(0)
 	for i := 0; i < amount*2; i++ {
-		_, obj := q.Pop()
-
-		switch obj.(type) {
+		_, obj, _ := q.Pop()
+		value := obj.(cacheable).value
+		switch v := value.(type) {
 		case int:
-			if obj.(int) <= lastInt {
-				t.Errorf("got %v (int) out of order, last was %v", obj, lastInt)
+			if v <= lastInt {
+				t.Errorf("got %v (int) out of order, last was %v", v, lastInt)
 			}
-			lastInt = obj.(int)
+			lastInt = v
 		case uint:
-			if obj.(uint) <= lastUint {
-				t.Errorf("got %v (uint) out of order, last was %v", obj, lastUint)
+			if v <= lastUint {
+				t.Errorf("got %v (uint) out of order, last was %v", v, lastUint)
 			} else {
-				lastUint = obj.(uint)
+				lastUint = v
 			}
 		default:
 			t.Fatalf("unexpected type %#v", obj)
@@ -61,17 +70,18 @@ func TestEventQueue_basic(t *testing.T) {
 }
 
 func TestEventQueue_initialEventIsDelete(t *testing.T) {
-	q := NewEventQueue()
+	q := NewEventQueue(keyFunc)
 
-	q.Replace(map[string]interface{}{
-		"foo": 2,
+	q.Replace([]interface{}{
+		cacheable{"foo", 2},
 	})
 
-	q.Delete("foo")
+	q.Delete(cacheable{key: "foo"})
 
-	event, thing := q.Pop()
+	event, thing, _ := q.Pop()
 
-	if thing != 2 {
+	value := thing.(cacheable).value
+	if value != 2 {
 		t.Fatalf("expected %v, got %v", 2, thing)
 	}
 
@@ -81,16 +91,17 @@ func TestEventQueue_initialEventIsDelete(t *testing.T) {
 }
 
 func TestEventQueue_compressAddDelete(t *testing.T) {
-	q := NewEventQueue()
+	q := NewEventQueue(keyFunc)
 
-	q.Add("foo", 10)
-	q.Delete("foo")
-	q.Add("zab", 30)
+	q.Add(cacheable{"foo", 10})
+	q.Delete(cacheable{key: "foo"})
+	q.Add(cacheable{"zab", 30})
 
-	event, thing := q.Pop()
+	event, thing, _ := q.Pop()
 
-	if thing != 30 {
-		t.Fatalf("expected %v, got %v", 30, thing)
+	value := thing.(cacheable).value
+	if value != 30 {
+		t.Fatalf("expected %v, got %v", 30, value)
 	}
 
 	if event != watch.Added {
@@ -99,15 +110,15 @@ func TestEventQueue_compressAddDelete(t *testing.T) {
 }
 
 func TestEventQueue_compressAddUpdate(t *testing.T) {
-	q := NewEventQueue()
+	q := NewEventQueue(keyFunc)
 
-	q.Add("foo", 10)
-	q.Update("foo", 11)
+	q.Add(cacheable{"foo", 10})
+	q.Update(cacheable{"foo", 11})
 
-	event, thing := q.Pop()
-
-	if thing != 11 {
-		t.Fatalf("expected %v, got %v", 11, thing)
+	event, thing, _ := q.Pop()
+	value := thing.(cacheable).value
+	if value != 11 {
+		t.Fatalf("expected %v, got %v", 11, value)
 	}
 
 	if event != watch.Added {
@@ -116,19 +127,19 @@ func TestEventQueue_compressAddUpdate(t *testing.T) {
 }
 
 func TestEventQueue_compressTwoUpdates(t *testing.T) {
-	q := NewEventQueue()
+	q := NewEventQueue(keyFunc)
 
-	q.Replace(map[string]interface{}{
-		"foo": 2,
+	q.Replace([]interface{}{
+		cacheable{"foo", 2},
 	})
 
-	q.Update("foo", 3)
-	q.Update("foo", 4)
+	q.Update(cacheable{"foo", 3})
+	q.Update(cacheable{"foo", 4})
 
-	event, thing := q.Pop()
-
-	if thing != 4 {
-		t.Fatalf("expected %v, got %v", 4, thing)
+	event, thing, _ := q.Pop()
+	value := thing.(cacheable).value
+	if value != 4 {
+		t.Fatalf("expected %v, got %v", 4, value)
 	}
 
 	if event != watch.Modified {
@@ -137,19 +148,19 @@ func TestEventQueue_compressTwoUpdates(t *testing.T) {
 }
 
 func TestEventQueue_compressUpdateDelete(t *testing.T) {
-	q := NewEventQueue()
+	q := NewEventQueue(keyFunc)
 
-	q.Replace(map[string]interface{}{
-		"foo": 2,
+	q.Replace([]interface{}{
+		cacheable{"foo", 2},
 	})
 
-	q.Update("foo", 3)
-	q.Delete("foo")
+	q.Update(cacheable{"foo", 3})
+	q.Delete(cacheable{key: "foo"})
 
-	event, thing := q.Pop()
-
-	if thing != 3 {
-		t.Fatalf("expected %v, got %v", 3, thing)
+	event, thing, _ := q.Pop()
+	value := thing.(cacheable).value
+	if value != 3 {
+		t.Fatalf("expected %v, got %v", 3, value)
 	}
 
 	if event != watch.Deleted {
@@ -158,18 +169,18 @@ func TestEventQueue_compressUpdateDelete(t *testing.T) {
 }
 
 func TestEventQueue_modifyEventsFromReplace(t *testing.T) {
-	q := NewEventQueue()
+	q := NewEventQueue(keyFunc)
 
-	q.Replace(map[string]interface{}{
-		"foo": 2,
+	q.Replace([]interface{}{
+		cacheable{"foo", 2},
 	})
 
-	q.Update("foo", 2)
+	q.Update(cacheable{"foo", 2})
 
-	event, thing := q.Pop()
-
-	if thing != 2 {
-		t.Fatalf("expected %v, got %v", 3, thing)
+	event, thing, _ := q.Pop()
+	value := thing.(cacheable).value
+	if value != 2 {
+		t.Fatalf("expected %v, got %v", 2, value)
 	}
 
 	if event != watch.Modified {

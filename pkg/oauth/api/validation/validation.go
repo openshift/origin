@@ -6,7 +6,7 @@ import (
 	"github.com/openshift/origin/pkg/oauth/api"
 )
 
-func ValidateAccessToken(accessToken *api.AccessToken) errs.ValidationErrorList {
+func ValidateAccessToken(accessToken *api.OAuthAccessToken) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(accessToken.Name) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("name", accessToken.Name))
@@ -27,7 +27,7 @@ func ValidateAccessToken(accessToken *api.AccessToken) errs.ValidationErrorList 
 	return allErrs
 }
 
-func ValidateAuthorizeToken(authorizeToken *api.AuthorizeToken) errs.ValidationErrorList {
+func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(authorizeToken.Name) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("name", authorizeToken.Name))
@@ -48,7 +48,7 @@ func ValidateAuthorizeToken(authorizeToken *api.AuthorizeToken) errs.ValidationE
 	return allErrs
 }
 
-func ValidateClient(client *api.Client) errs.ValidationErrorList {
+func ValidateClient(client *api.OAuthClient) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(client.Name) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("name", client.Name))
@@ -60,7 +60,7 @@ func ValidateClient(client *api.Client) errs.ValidationErrorList {
 	return allErrs
 }
 
-func ValidateClientAuthorization(clientAuthorization *api.ClientAuthorization) errs.ValidationErrorList {
+func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorization) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(clientAuthorization.Name) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("name", clientAuthorization.Name))
@@ -81,7 +81,7 @@ func ValidateClientAuthorization(clientAuthorization *api.ClientAuthorization) e
 	return allErrs
 }
 
-func ValidateClientAuthorizationUpdate(newAuth *api.ClientAuthorization, oldAuth *api.ClientAuthorization) errs.ValidationErrorList {
+func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, oldAuth *api.OAuthClientAuthorization) errs.ValidationErrorList {
 	allErrs := ValidateClientAuthorization(newAuth)
 	if oldAuth.Name != newAuth.Name {
 		allErrs = append(allErrs, errs.NewFieldInvalid("name", newAuth.Name, "name is not a mutable field"))

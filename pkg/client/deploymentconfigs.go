@@ -21,6 +21,7 @@ type DeploymentConfigInterface interface {
 	Delete(name string) error
 	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
+	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 }
 
 // deploymentConfigs implements DeploymentConfigsNamespacer interface
@@ -92,5 +93,16 @@ func (c *deploymentConfigs) Watch(label, field labels.Selector, resourceVersion 
 func (c *deploymentConfigs) Generate(name string) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
 	err = c.r.Get().Namespace(c.ns).Resource("generateDeploymentConfigs").Name(name).Do().Into(result)
+	return
+}
+
+func (c *deploymentConfigs) Rollback(config *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
+	result = &deployapi.DeploymentConfig{}
+	err = c.r.Post().
+		Namespace(c.ns).
+		Resource("deploymentConfigRollbacks").
+		Body(config).
+		Do().
+		Into(result)
 	return
 }

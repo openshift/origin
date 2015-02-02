@@ -2,6 +2,7 @@ package rollback
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -88,7 +89,7 @@ func TestCreateGeneratorError(t *testing.T) {
 	rest := REST{
 		generator: Client{
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-				return nil, errors.New("something terrible happened")
+				return nil, kerrors.NewInternalError(fmt.Errorf("something terrible happened"))
 			},
 			RCFn: func(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)

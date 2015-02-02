@@ -29,6 +29,7 @@ const (
 	KubeAPIPrefix        = "/api"
 	KubeAPIPrefixV1Beta1 = "/api/v1beta1"
 	KubeAPIPrefixV1Beta2 = "/api/v1beta2"
+	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
 )
 
 // MasterConfig defines the required values to start a Kubernetes master
@@ -77,9 +78,12 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		ReadWritePort: c.MasterPort,
 		ReadOnlyPort:  c.MasterPort,
 
-		Client:             c.KubeClient,
-		EtcdHelper:         c.EtcdHelper,
-		HealthCheckMinions: true,
+		Client:     c.KubeClient,
+		EtcdHelper: c.EtcdHelper,
+
+		EventTTL: 2 * time.Hour,
+
+		EnableV1Beta3: true,
 
 		PortalNet: c.PortalNet,
 
@@ -95,6 +99,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	return []string{
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta2),
+		fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1Beta3),
 	}
 }
 
@@ -133,8 +138,16 @@ func (c *MasterConfig) RunMinionController() {
 		},
 	}
 
-	minionController := minionControllerPkg.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient)
-	minionController.Run(10 * time.Second)
+	// TODO: enable this for TLS and make configurable
+	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{
+		Port:        10250,
+		EnableHttps: false,
+	})
+	if err != nil {
+		glog.Fatalf("Failure to create kubelet client: %v", err)
+	}
+	minionController := minionControllerPkg.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient)
+	minionController.Run(10*time.Second, 10)
 
 	glog.Infof("Started Kubernetes Minion Controller")
 }

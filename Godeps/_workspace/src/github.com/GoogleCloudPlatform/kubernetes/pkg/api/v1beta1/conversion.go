@@ -314,6 +314,30 @@ func init() {
 			}
 			return nil
 		},
+		func(in *newer.PodStatusResult, out *PodStatusResult, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.State, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PodStatusResult, out *newer.PodStatusResult, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.State, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
 
 		func(in *newer.ReplicationController, out *ReplicationController, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
@@ -386,6 +410,9 @@ func init() {
 				return err
 			}
 			out.DesiredState.Host = in.Spec.Host
+			if err := s.Convert(&in.Spec.NodeSelector, &out.NodeSelector, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.ObjectMeta.Labels, &out.Labels, 0); err != nil {
 				return err
 			}
@@ -396,6 +423,9 @@ func init() {
 				return err
 			}
 			out.Spec.Host = in.DesiredState.Host
+			if err := s.Convert(&in.NodeSelector, &out.Spec.NodeSelector, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Labels, &out.ObjectMeta.Labels, 0); err != nil {
 				return err
 			}
@@ -538,7 +568,160 @@ func init() {
 			out.Status.HostIP = in.HostIP
 			return s.Convert(&in.NodeResources.Capacity, &out.Spec.Capacity, 0)
 		},
-
+		func(in *newer.LimitRange, out *LimitRange, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *LimitRange, out *newer.LimitRange, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.LimitRangeSpec, out *LimitRangeSpec, s conversion.Scope) error {
+			*out = LimitRangeSpec{}
+			out.Limits = make([]LimitRangeItem, len(in.Limits), len(in.Limits))
+			for i := range in.Limits {
+				if err := s.Convert(&in.Limits[i], &out.Limits[i], 0); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func(in *LimitRangeSpec, out *newer.LimitRangeSpec, s conversion.Scope) error {
+			*out = newer.LimitRangeSpec{}
+			out.Limits = make([]newer.LimitRangeItem, len(in.Limits), len(in.Limits))
+			for i := range in.Limits {
+				if err := s.Convert(&in.Limits[i], &out.Limits[i], 0); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func(in *newer.LimitRangeItem, out *LimitRangeItem, s conversion.Scope) error {
+			*out = LimitRangeItem{}
+			out.Type = LimitType(in.Type)
+			if err := s.Convert(&in.Max, &out.Max, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Min, &out.Min, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *LimitRangeItem, out *newer.LimitRangeItem, s conversion.Scope) error {
+			*out = newer.LimitRangeItem{}
+			out.Type = newer.LimitType(in.Type)
+			if err := s.Convert(&in.Max, &out.Max, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Min, &out.Min, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.ResourceQuota, out *ResourceQuota, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *ResourceQuota, out *newer.ResourceQuota, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.ResourceQuotaUsage, out *ResourceQuotaUsage, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *ResourceQuotaUsage, out *newer.ResourceQuotaUsage, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.ResourceQuotaSpec, out *ResourceQuotaSpec, s conversion.Scope) error {
+			*out = ResourceQuotaSpec{}
+			if err := s.Convert(&in.Hard, &out.Hard, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *ResourceQuotaSpec, out *newer.ResourceQuotaSpec, s conversion.Scope) error {
+			*out = newer.ResourceQuotaSpec{}
+			if err := s.Convert(&in.Hard, &out.Hard, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.ResourceQuotaStatus, out *ResourceQuotaStatus, s conversion.Scope) error {
+			*out = ResourceQuotaStatus{}
+			if err := s.Convert(&in.Hard, &out.Hard, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Used, &out.Used, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *ResourceQuotaStatus, out *newer.ResourceQuotaStatus, s conversion.Scope) error {
+			*out = newer.ResourceQuotaStatus{}
+			if err := s.Convert(&in.Hard, &out.Hard, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Used, &out.Used, 0); err != nil {
+				return err
+			}
+			return nil
+		},
 		// Object ID <-> Name
 		// TODO: amend the conversion package to allow overriding specific fields.
 		func(in *ObjectReference, out *newer.ObjectReference, s conversion.Scope) error {
@@ -562,7 +745,6 @@ func init() {
 			return nil
 		},
 
-		// Event Status <-> Condition
 		// Event Source <-> Source.Component
 		// Event Host <-> Source.Host
 		// TODO: remove this when it becomes possible to specify a field name conversion on a specific type
@@ -573,7 +755,6 @@ func init() {
 			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
-			out.Status = in.Condition
 			out.Reason = in.Reason
 			out.Message = in.Message
 			out.Source = in.Source.Component
@@ -588,7 +769,6 @@ func init() {
 			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
 				return err
 			}
-			out.Condition = in.Status
 			out.Reason = in.Reason
 			out.Message = in.Message
 			out.Source.Component = in.Source
@@ -649,6 +829,101 @@ func init() {
 					(*out)[ResourceName(k)] = util.NewIntOrStringFromInt(int(v.Value()))
 				}
 			}
+			return nil
+		},
+
+		// VolumeSource's HostDir is deprecated in favor of HostPath.
+		// TODO: It would be great if I could just map field names to
+		// convert or else maybe say "convert all members of this
+		// struct" and then fix up only the stuff that changed.
+		func(in *newer.VolumeSource, out *VolumeSource, s conversion.Scope) error {
+			if err := s.Convert(&in.EmptyDir, &out.EmptyDir, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GitRepo, &out.GitRepo, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GCEPersistentDisk, &out.GCEPersistentDisk, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.HostPath, &out.HostDir, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *VolumeSource, out *newer.VolumeSource, s conversion.Scope) error {
+			if err := s.Convert(&in.EmptyDir, &out.EmptyDir, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GitRepo, &out.GitRepo, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.GCEPersistentDisk, &out.GCEPersistentDisk, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.HostDir, &out.HostPath, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+
+		func(in *newer.PullPolicy, out *PullPolicy, s conversion.Scope) error {
+			switch *in {
+			case newer.PullAlways:
+				*out = PullAlways
+			case newer.PullNever:
+				*out = PullNever
+			case newer.PullIfNotPresent:
+				*out = PullIfNotPresent
+			case "":
+				*out = ""
+			default:
+				// Let unknown values through - they will get caught by validation
+				*out = PullPolicy(*in)
+			}
+			return nil
+		},
+		func(in *PullPolicy, out *newer.PullPolicy, s conversion.Scope) error {
+			switch *in {
+			case PullAlways:
+				*out = newer.PullAlways
+			case PullNever:
+				*out = newer.PullNever
+			case PullIfNotPresent:
+				*out = newer.PullIfNotPresent
+			case "":
+				*out = ""
+			default:
+				// Let unknown values through - they will get caught by validation
+				*out = newer.PullPolicy(*in)
+			}
+			return nil
+		},
+
+		func(in *newer.Probe, out *LivenessProbe, s conversion.Scope) error {
+			if err := s.Convert(&in.Exec, &out.Exec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.HTTPGet, &out.HTTPGet, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TCPSocket, &out.TCPSocket, 0); err != nil {
+				return err
+			}
+			out.InitialDelaySeconds = in.InitialDelaySeconds
+			return nil
+		},
+		func(in *LivenessProbe, out *newer.Probe, s conversion.Scope) error {
+			if err := s.Convert(&in.Exec, &out.Exec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.HTTPGet, &out.HTTPGet, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TCPSocket, &out.TCPSocket, 0); err != nil {
+				return err
+			}
+			out.InitialDelaySeconds = in.InitialDelaySeconds
 			return nil
 		},
 	)

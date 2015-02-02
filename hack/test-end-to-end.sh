@@ -28,8 +28,12 @@ echo "[INFO] Starting end-to-end test"
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 
-TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${BASETMPDIR:-$(mktemp -d ${TMPDIR}/openshift-e2e.XXXX)}"
+if [[ -z "${BASETMPDIR-}" ]]; then
+  TMPDIR="${TMPDIR:-"/tmp"}"
+  BASETMPDIR="${TMPDIR}/openshift-e2e"
+  sudo rm -rf "${BASETMPDIR}"
+  mkdir -p "${BASETMPDIR}"
+fi
 ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 VOLUME_DIR="${BASETMPDIR}/volumes"
 CERT_DIR="${BASETMPDIR}/certs"
@@ -61,7 +65,6 @@ export PATH="${GO_OUT}:${PATH}"
 function cleanup()
 {
   out=$?
-
   echo
   if [ $out -ne 0 ]; then
     echo "[FAIL] !!!!! Test Failed !!!!"
@@ -81,31 +84,27 @@ function cleanup()
   osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
   osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
   osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
-
   curl -L http://localhost:4001/v2/keys/?recursive=true > "${ARTIFACT_DIR}/etcd_dump.json"
-  set -e
+  echo
 
-  echo ""
-
-  set +u
-  if [ "$SKIP_TEARDOWN" != "1" ]; then
-    set +e
+  if [[ -z "${SKIP_TEARDOWN-}" ]]; then
     echo "[INFO] Tearing down test"
-    pkill -P $$
-    echo "[INFO] Stopping docker containers"; docker ps -aq | xargs -l -r docker stop
+    pgid="$(ps opgid= "$$")"
+    sudo kill -- "-${pgid}"
     set +u
-    if [ "$SKIP_IMAGE_CLEANUP" != "1" ]; then
-      echo "[INFO] Removing docker containers"; docker ps -aq | xargs -l -r docker rm
+    echo "[INFO] Stopping k8s docker containers"; docker ps | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'  | xargs -l -r docker stop
+    if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+      echo "[INFO] Removing k8s docker containers"; docker ps -a | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'  | xargs -l -r docker rm
     fi
     set -u
-    set -e
   fi
-  set -u
-
   set -e
+
+  # clean up zero byte log files
   # Clean up large log files so they don't end up on jenkins
-  find ${ARTIFACT_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-  find ${LOG_DIR} -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+  find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+  find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+  find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
 
   echo "[INFO] Exiting"
   exit $out

@@ -6,6 +6,7 @@
 /examples/sample-app/logs/openshift.log
 *.swp
 .vimrc
-.vagrant-openshift.json
+.vagrant-openshift.json*
 .DS_Store
-*.pyc
+.idea
+origin.iml

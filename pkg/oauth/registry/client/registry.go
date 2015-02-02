@@ -9,13 +9,13 @@ import (
 // Registry is an interface for things that know how to store Client objects.
 type Registry interface {
 	// ListClients obtains a list of clients that match a selector.
-	ListClients(selector labels.Selector) (*api.ClientList, error)
+	ListClients(selector labels.Selector) (*api.OAuthClientList, error)
 	// GetClient retrieves a specific client.
-	GetClient(name string) (*api.Client, error)
+	GetClient(name string) (*api.OAuthClient, error)
 	// CreateClient creates a new client.
-	CreateClient(client *api.Client) error
+	CreateClient(client *api.OAuthClient) error
 	// UpdateClient updates an client.
-	UpdateClient(client *api.Client) error
+	UpdateClient(client *api.OAuthClient) error
 	// DeleteClient deletes an client.
 	DeleteClient(name string) error
 }

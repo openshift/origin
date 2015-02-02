@@ -32,6 +32,7 @@ import (
 
 type PodStatusGetter interface {
 	GetPodStatus(namespace, name string) (*api.PodStatus, error)
+	ClearPodStatus(namespace, name string)
 }
 
 // REST implements the RESTStorage interface in terms of a PodRegistry.
@@ -62,7 +63,7 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RE
 	if len(pod.Name) == 0 {
 		// TODO properly handle auto-generated names.
 		// See https://github.com/GoogleCloudPlatform/kubernetes/issues/148 170 & 1135
-		pod.Name = pod.UID
+		pod.Name = string(pod.UID)
 	}
 	if errs := validation.ValidatePod(pod); len(errs) > 0 {
 		return nil, errors.NewInvalid("pod", pod.Name, errs)
@@ -77,6 +78,12 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RE
 
 func (rs *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult, error) {
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
+		namespace, found := api.NamespaceFrom(ctx)
+		if !found {
+			return &api.Status{Status: api.StatusFailure}, nil
+		}
+		rs.podCache.ClearPodStatus(namespace, id)
+
 		return &api.Status{Status: api.StatusSuccess}, rs.registry.DeletePod(ctx, id)
 	}), nil
 }

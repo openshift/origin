@@ -35,17 +35,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	watchjson "github.com/GoogleCloudPlatform/kubernetes/pkg/watch/json"
+	"github.com/golang/glog"
 )
 
 // specialParams lists parameters that are handled specially and which users of Request
 // are therefore not allowed to set manually.
-var specialParams = util.NewStringSet("sync", "timeout")
-
-// PollFunc is called when a server operation returns 202 accepted. The name of the
-// operation is extracted from the response and passed to this function. Return a
-// request to retrieve the result of the operation, or false for the second argument
-// if polling should end.
-type PollFunc func(name string) (*Request, bool)
+var specialParams = util.NewStringSet("timeout")
 
 // HTTPClient is an interface for testing a request object.
 type HTTPClient interface {
@@ -85,10 +80,6 @@ type Request struct {
 	baseURL *url.URL
 	codec   runtime.Codec
 
-	// optional, will be invoked if the server returns a 202 to decide
-	// whether to poll.
-	poller PollFunc
-
 	// If true, add "?namespace=<namespace>" as a query parameter, if false put ns/<namespace> in path
 	// Query parameter is considered legacy behavior
 	namespaceInQuery bool
@@ -107,7 +98,6 @@ type Request struct {
 	resource     string
 	resourceName string
 	selector     labels.Selector
-	sync         bool
 	timeout      time.Duration
 
 	// output
@@ -174,15 +164,6 @@ func (r *Request) Name(resourceName string) *Request {
 		return r
 	}
 	r.resourceName = resourceName
-	return r
-}
-
-// Sync sets sync/async call status by setting the "sync" parameter to "true"/"false".
-func (r *Request) Sync(sync bool) *Request {
-	if r.err != nil {
-		return r
-	}
-	r.sync = sync
 	return r
 }
 
@@ -270,7 +251,7 @@ func (r *Request) setParam(paramName, value string) *Request {
 }
 
 // Timeout makes the request use the given duration as a timeout. Sets the "timeout"
-// parameter. Ignored if sync=false.
+// parameter.
 func (r *Request) Timeout(d time.Duration) *Request {
 	if r.err != nil {
 		return r
@@ -314,22 +295,6 @@ func (r *Request) Body(obj interface{}) *Request {
 	return r
 }
 
-// NoPoll indicates a server "working" response should be returned as an error
-func (r *Request) NoPoll() *Request {
-	return r.Poller(nil)
-}
-
-// Poller indicates this request should use the specified poll function to determine whether
-// a server "working" response should be retried. The poller is responsible for waiting or
-// outputting messages to the client.
-func (r *Request) Poller(poller PollFunc) *Request {
-	if r.err != nil {
-		return r
-	}
-	r.poller = poller
-	return r
-}
-
 func (r *Request) finalURL() string {
 	p := r.path
 	if r.namespaceSet && !r.namespaceInQuery && len(r.namespace) > 0 {
@@ -359,13 +324,9 @@ func (r *Request) finalURL() string {
 		query.Add("namespace", r.namespace)
 	}
 
-	// sync and timeout are handled specially here, to allow setting them
-	// in any order.
-	if r.sync {
-		query.Add("sync", "true")
-		if r.timeout != 0 {
-			query.Add("timeout", r.timeout.String())
-		}
+	// timeout is handled specially here.
+	if r.timeout != 0 {
+		query.Add("timeout", r.timeout.String())
 	}
 	finalURL.RawQuery = query.Encode()
 	return finalURL.String()
@@ -443,7 +404,7 @@ func (r *Request) Stream() (io.ReadCloser, error) {
 }
 
 // Do formats and executes the request. Returns a Result object for easy response
-// processing. Handles polling the server in the event a continuation was sent.
+// processing.
 //
 // Error type:
 //  * If the request can't be constructed, or an error happened earlier while building its
@@ -456,6 +417,10 @@ func (r *Request) Do() Result {
 	if client == nil {
 		client = http.DefaultClient
 	}
+
+	// Right now we make about ten retry attempts if we get a Retry-After response.
+	// TODO: Change to a timeout based approach.
+	retries := 0
 
 	for {
 		if r.err != nil {
@@ -473,34 +438,23 @@ func (r *Request) Do() Result {
 		}
 
 		respBody, created, err := r.transformResponse(resp, req)
-		if poll, ok := r.shouldPoll(err); ok {
-			r = poll
-			continue
-		}
 
+		// Check to see if we got a 429 Too Many Requests response code.
+		if resp.StatusCode == errors.StatusTooManyRequests {
+			if retries < 10 {
+				retries++
+				if waitFor := resp.Header.Get("Retry-After"); waitFor != "" {
+					delay, err := strconv.Atoi(waitFor)
+					if err == nil {
+						glog.V(4).Infof("Got a Retry-After %s response for attempt %d to %v", waitFor, retries, r.finalURL())
+						time.Sleep(time.Duration(delay) * time.Second)
+						continue
+					}
+				}
+			}
+		}
 		return Result{respBody, created, err, r.codec}
 	}
-}
-
-// shouldPoll checks the server error for an incomplete operation
-// and if found returns a request that would check the response.
-// If no polling is necessary or possible, it will return false.
-func (r *Request) shouldPoll(err error) (*Request, bool) {
-	if err == nil || r.poller == nil {
-		return nil, false
-	}
-	apistatus, ok := err.(APIStatus)
-	if !ok {
-		return nil, false
-	}
-	status := apistatus.Status()
-	if status.Status != api.StatusWorking {
-		return nil, false
-	}
-	if status.Details == nil || len(status.Details.ID) == 0 {
-		return nil, false
-	}
-	return r.poller(status.Details.ID)
 }
 
 // transformResponse converts an API response into a structured API object.

@@ -48,3 +48,8 @@ func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConf
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "generate-deploymentconfig"})
 	return nil, nil
 }
+
+func (c *FakeDeploymentConfigs) Rollback(config *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "rollback"})
+	return nil, nil
+}

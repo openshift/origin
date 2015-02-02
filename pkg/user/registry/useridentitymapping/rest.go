@@ -33,7 +33,7 @@ func (*REST) NewList() runtime.Object {
 
 // Get retrieves an UserIdentityMapping by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	return nil, errors.New("not implemented")
+	return s.registry.GetUserIdentityMapping(id)
 }
 
 // List retrieves a list of UserIdentityMappings that match selector.
