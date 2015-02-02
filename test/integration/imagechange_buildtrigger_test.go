@@ -42,16 +42,16 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
-	created, err := openshift.Client.BuildConfigs(testNamespace).Create(config)
-	if err != nil {
-		t.Fatalf("Couldn't create BuildConfig: %v", err)
-	}
-
-	watch2, err := openshift.Client.BuildConfigs(testNamespace).Watch(labels.Everything(), labels.Everything(), created.ResourceVersion)
+	watch2, err := openshift.Client.BuildConfigs(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
 	defer watch2.Stop()
+
+	if _, err := openshift.Client.BuildConfigs(testNamespace).Create(config); err != nil {
+		t.Fatalf("Couldn't create BuildConfig: %v", err)
+	}
+	<-watch2.ResultChan()
 
 	imageRepo.Tags["latest"] = "ref-2"
 
@@ -70,14 +70,13 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 
 	event = <-watch2.ResultChan()
-	event = <-watch2.ResultChan()
-
-	updatedConfig, err := openshift.Client.BuildConfigs(testNamespace).Get(config.Name)
-	if err != nil {
-		t.Fatalf("Couldn't get BuildConfig: %v", err)
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	if updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID != "ref-2" {
-		t.Errorf("Expected imageID ref-2, got %s", updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID)
+	updatedConfig := event.Object.(*buildapi.BuildConfig)
+
+	if e, a := "ref-2", updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+		t.Errorf("Expected imageID %s, got %s", e, a)
 	}
 }
 
