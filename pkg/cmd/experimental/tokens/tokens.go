@@ -1,6 +1,8 @@
 package tokens
 
 import (
+	"os"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -13,13 +15,16 @@ const (
 	TOKEN_FILE_PARAM = "token-file"
 )
 
-func NewCommandTokens(name string) *cobra.Command {
+func NewCmdTokens(name string) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "manage authentication tokens",
 		Long:  `manage authentication tokens`,
-		Run:   runHelp,
+		Run: func(c *cobra.Command, args []string) {
+			c.SetOutput(os.Stdout)
+			c.Help()
+		},
 	}
 
 	// copied out of kubernetes kubectl so that I'll be ready when that and osc finally merge in
@@ -35,10 +40,6 @@ func NewCommandTokens(name string) *cobra.Command {
 	cmds.AddCommand(NewCmdWhoAmI(clientCfg))
 
 	return cmds
-}
-
-func runHelp(cmd *cobra.Command, args []string) {
-	cmd.Help()
 }
 
 func getFlagString(cmd *cobra.Command, flag string) string {

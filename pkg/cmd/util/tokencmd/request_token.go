@@ -92,6 +92,9 @@ var (
 // Do watches for unauthorized challenges.  If we know to respond, we respond to the challenge
 func (client *challengingClient) Do(req *http.Request) (*http.Response, error) {
 	resp, err := client.delegate.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	if resp.StatusCode == http.StatusUnauthorized {
 		if wantsBasicAuth, realm := isBasicAuthChallenge(resp); wantsBasicAuth {
 			fmt.Printf("Authenticate for \"%v\"\n", realm)

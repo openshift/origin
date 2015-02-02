@@ -2,16 +2,17 @@ package openshift
 
 import (
 	"fmt"
+	"os"
 
 	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/cli"
-	"github.com/openshift/origin/pkg/cmd/client"
+	"github.com/openshift/origin/pkg/cmd/experimental/config"
+	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
-	"github.com/openshift/origin/pkg/cmd/infra/experimental"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/version"
@@ -49,9 +50,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-docker-build":
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "osc":
-		cmd = cli.NewCommandCLI(basename)
-	case "openshift-experimental":
-		cmd = experimental.NewCommandExperimental(basename)
+		cmd = cli.NewCommandCLI(basename, basename)
 	default:
 		cmd = NewCommandOpenShift()
 	}
@@ -66,13 +65,15 @@ func NewCommandOpenShift() *cobra.Command {
 		Short: "OpenShift helps you build, deploy, and manage your cloud applications",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
+			c.SetOutput(os.Stdout)
 			c.Help()
 		},
 	}
 
 	root.AddCommand(server.NewCommandStartServer("start"))
-	root.AddCommand(client.NewCommandKubecfg("kube")) // DEPRECATED, use cli instead
-	root.AddCommand(cli.NewCommandCLI("cli"))
+	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
+	root.AddCommand(cli.NewCmdKubectl("kube"))
+	root.AddCommand(newExperimentalCommand("openshift", "ex"))
 	root.AddCommand(newVersionCommand("version"))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
@@ -85,17 +86,31 @@ func NewCommandOpenShift() *cobra.Command {
 		deployer.NewCommandDeployer("deploy"),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
-		experimental.NewCommandExperimental("experimental"),
 	)
 	root.AddCommand(infra)
 
 	return root
 }
 
+func newExperimentalCommand(parentName, name string) *cobra.Command {
+	experimental := &cobra.Command{
+		Use:   name,
+		Short: "Experimental commands under active development",
+		Long:  "The commands grouped here are under development and may change without notice.",
+		Run: func(c *cobra.Command, args []string) {
+			c.SetOutput(os.Stdout)
+			c.Help()
+		},
+	}
+	experimental.AddCommand(config.NewCmdConfig(fmt.Sprintf("%s %s", parentName, name), "config"))
+	experimental.AddCommand(tokens.NewCmdTokens("tokens"))
+	return experimental
+}
+
 // newVersionCommand creates a command for displaying the version of this binary
-func newVersionCommand(use string) *cobra.Command {
+func newVersionCommand(name string) *cobra.Command {
 	return &cobra.Command{
-		Use:   use,
+		Use:   name,
 		Short: "Display version",
 		Run: func(c *cobra.Command, args []string) {
 			fmt.Printf("openshift %v\n", version.Get())
