@@ -17,22 +17,6 @@ import (
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 )
 
-type openshiftAuthorizer struct {
-	masterAuthorizationNamespace string
-	policyRegistry               policyregistry.Registry
-	policyBindingRegistry        policybindingregistry.Registry
-}
-type openshiftAuthorizationAttributes struct {
-	user              authenticationapi.UserInfo
-	verb              string
-	resourceKind      string
-	namespace         string
-	requestAttributes interface{}
-}
-type openshiftAuthorizationAttributeBuilder struct {
-	requestsToUsers *authcontext.RequestContextMap
-}
-
 type Authorizer interface {
 	Authorize(a AuthorizationAttributes) (allowed bool, reason string, err error)
 }
@@ -49,9 +33,28 @@ type AuthorizationAttributes interface {
 	GetRequestAttributes() interface{}
 }
 
+type openshiftAuthorizer struct {
+	masterAuthorizationNamespace string
+	policyRegistry               policyregistry.Registry
+	policyBindingRegistry        policybindingregistry.Registry
+}
+
 func NewAuthorizer(masterAuthorizationNamespace string, policyRuleBindingRegistry policyregistry.Registry, policyBindingRegistry policybindingregistry.Registry) Authorizer {
 	return &openshiftAuthorizer{masterAuthorizationNamespace, policyRuleBindingRegistry, policyBindingRegistry}
 }
+
+type openshiftAuthorizationAttributes struct {
+	user              authenticationapi.UserInfo
+	verb              string
+	resourceKind      string
+	namespace         string
+	requestAttributes interface{}
+}
+
+type openshiftAuthorizationAttributeBuilder struct {
+	requestsToUsers *authcontext.RequestContextMap
+}
+
 func NewAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap) AuthorizationAttributeBuilder {
 	return &openshiftAuthorizationAttributeBuilder{requestsToUsers}
 }
@@ -283,15 +286,19 @@ func (a openshiftAuthorizationAttributes) kindMatches(rule authorizationapi.Poli
 func (a openshiftAuthorizationAttributes) GetUserInfo() authenticationapi.UserInfo {
 	return a.user
 }
+
 func (a openshiftAuthorizationAttributes) GetVerb() string {
 	return a.verb
 }
+
 func (a openshiftAuthorizationAttributes) GetResourceKind() string {
 	return a.resourceKind
 }
+
 func (a openshiftAuthorizationAttributes) GetNamespace() string {
 	return a.namespace
 }
+
 func (a openshiftAuthorizationAttributes) GetRequestAttributes() interface{} {
 	return a.requestAttributes
 }
@@ -328,9 +335,14 @@ var specialVerbs = map[string]bool{
 	"watch":    true,
 }
 
+var ErrNoStandardParts = errors.New("the provided URL does not match the standard API form")
+
 // VerbAndKindAndNamespace returns verb, kind, namespace, remaining parts, error
 func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []string, error) {
 	parts := splitPath(req.URL.Path)
+	if len(parts) == 0 {
+		return "", "", "", nil, ErrNoStandardParts
+	}
 
 	verb := ""
 	switch req.Method {
@@ -348,7 +360,7 @@ func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []strin
 		if len(parts) > 2 {
 			parts = parts[2:]
 		} else {
-			return "", "", "", nil, fmt.Errorf("Unable to determine kind and namespace from url, %v", req.URL)
+			return "", "", "", nil, ErrNoStandardParts
 		}
 	}
 
@@ -358,7 +370,7 @@ func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []strin
 		if len(parts) > 2 {
 			parts = parts[2:]
 		} else {
-			return "", "", "", parts, fmt.Errorf("Unable to determine kind and namespace from url, %v", req.URL)
+			return "", "", "", parts, ErrNoStandardParts
 		}
 	}
 
@@ -368,7 +380,7 @@ func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []strin
 		if len(parts) > 1 {
 			parts = parts[1:]
 		} else {
-			return "", "", "", parts, fmt.Errorf("Unable to determine kind and namespace from url, %v", req.URL)
+			return "", "", "", parts, ErrNoStandardParts
 		}
 	}
 
@@ -377,7 +389,7 @@ func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []strin
 		if len(parts) < 3 {
 			return "", "", "", parts, fmt.Errorf("ResourceTypeAndNamespace expects a path of form /ns/{namespace}/*")
 		}
-		return verb, parts[1], parts[2], parts[2:], fmt.Errorf("Unable to determine kind and namespace from url, %v", req.URL)
+		return verb, parts[1], parts[2], parts[2:], ErrNoStandardParts
 	}
 
 	// URL forms: /{kind}/*
