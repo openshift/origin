@@ -24,5 +24,7 @@ ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
 
 ENV OS_VERSION_FILE /go/src/github.com/openshift/origin/os-version-defs
 
+ADD build.sh /opt/bin/build.sh
+
 # Expect a tar with the source of OpenShift Origin (and /os-version-defs in the root)
 CMD tar mxzf - && hack/build-cross.sh
