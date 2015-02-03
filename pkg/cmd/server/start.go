@@ -258,7 +258,9 @@ func start(cfg *config, args []string) error {
 		if len(cfg.NodeList) == 1 && cfg.NodeList[0] == "127.0.0.1" {
 			cfg.NodeList[0] = cfg.Hostname
 		}
-		for _, s := range cfg.NodeList {
+		for i, s := range cfg.NodeList {
+			s = strings.ToLower(s)
+			cfg.NodeList[i] = s
 			glog.Infof("  Node: %s", s)
 		}
 
@@ -318,14 +320,15 @@ func start(cfg *config, args []string) error {
 		}
 
 		osmaster := &origin.MasterConfig{
-			TLS:                          cfg.BindAddr.URL.Scheme == "https",
-			MasterBindAddr:               cfg.BindAddr.URL.Host,
-			MasterAddr:                   cfg.MasterAddr.URL.String(),
-			MasterPublicAddr:             masterPublicAddr.URL.String(),
-			AssetBindAddr:                assetBindAddr,
-			AssetPublicAddr:              assetPublicAddr.String(),
-			KubernetesAddr:               cfg.KubernetesAddr.URL.String(),
-			KubernetesPublicAddr:         k8sPublicAddr.URL.String(),
+			TLS:                  cfg.BindAddr.URL.Scheme == "https",
+			MasterBindAddr:       cfg.BindAddr.URL.Host,
+			MasterAddr:           cfg.MasterAddr.URL.String(),
+			MasterPublicAddr:     masterPublicAddr.URL.String(),
+			AssetBindAddr:        assetBindAddr,
+			AssetPublicAddr:      assetPublicAddr.String(),
+			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
+			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
+
 			EtcdHelper:                   etcdHelper,
 			AdmissionControl:             admit.NewAlwaysAdmit(),
 			MasterAuthorizationNamespace: "master",
@@ -438,7 +441,6 @@ func start(cfg *config, args []string) error {
 		}
 
 		osmaster.BuildClients()
-		osmaster.EnsureCORSAllowedOrigins(cfg.CORSAllowedOrigins)
 
 		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "30"), 10, 0)
 		if err != nil || sessionMaxAgeSeconds <= 0 {
@@ -493,10 +495,7 @@ func start(cfg *config, args []string) error {
 			}
 			kmaster.EnsurePortalFlags()
 
-			osmaster.Run(
-				[]origin.APIInstaller{kmaster, osmaster, &origin.SwaggerAPI{}},
-				[]origin.APIInstaller{auth},
-			)
+			osmaster.Run([]origin.APIInstaller{kmaster}, []origin.APIInstaller{auth})
 
 			kmaster.RunScheduler()
 			kmaster.RunReplicationController()
@@ -504,10 +503,11 @@ func start(cfg *config, args []string) error {
 			kmaster.RunMinionController()
 
 		} else {
-			osmaster.Run(
-				[]origin.APIInstaller{osmaster, &origin.SwaggerAPI{}},
-				[]origin.APIInstaller{auth},
-			)
+			proxy := &kubernetes.ProxyConfig{
+				KubernetesAddr: cfg.KubernetesAddr.URL,
+				ClientConfig:   &osmaster.KubeClientConfig,
+			}
+			osmaster.Run([]origin.APIInstaller{proxy}, []origin.APIInstaller{auth})
 		}
 
 		// TODO: recording should occur in individual components

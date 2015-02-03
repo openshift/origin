@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/token/filetoken"
+	authcontext "github.com/openshift/origin/pkg/auth/context"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
@@ -38,6 +39,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/session"
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -559,4 +561,49 @@ func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then st
 
 	http.Redirect(w, req, then, http.StatusFound)
 	return true, nil
+}
+
+// currentUserContextFilter replaces the the last segment of the provided URL with the current user's name
+func currentUserContextFilter(requestsToUsers *authcontext.RequestContextMap) restful.FilterFunction {
+	return func(req *restful.Request, res *restful.Response, chain *restful.FilterChain) {
+		name := path.Base(req.Request.URL.Path)
+		if name != "~" {
+			chain.ProcessFilter(req, res)
+			return
+		}
+
+		val, found := requestsToUsers.Get(req.Request)
+		if !found {
+			http.Error(res.ResponseWriter, "Need to be authenticated to access this method", http.StatusUnauthorized)
+			return
+		}
+		user, ok := val.(userregistry.Info)
+		if !ok {
+			http.Error(res.ResponseWriter, "Unable to convert internal object", http.StatusInternalServerError)
+			return
+		}
+
+		base := path.Dir(req.Request.URL.Path)
+		req.Request.URL.Path = path.Join(base, user.GetName())
+
+		chain.ProcessFilter(req, res)
+	}
+}
+
+// authenticationHandlerFilter creates a filter object that will enforce authentication directly
+func authenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		user, ok, err := authenticator.AuthenticateRequest(req)
+		if err != nil || !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized"))
+			return
+		}
+		glog.V(4).Infof("user %v -> %v", user, req.URL)
+
+		requestsToUsers.Set(req, user)
+		defer requestsToUsers.Remove(req)
+
+		handler.ServeHTTP(w, req)
+	})
 }
