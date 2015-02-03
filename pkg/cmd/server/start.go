@@ -16,6 +16,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
@@ -477,6 +478,12 @@ func start(cfg *config, args []string) error {
 			GithubClientID:     env("ORIGIN_OAUTH_GITHUB_CLIENT_ID", ""),
 			GithubClientSecret: env("ORIGIN_OAUTH_GITHUB_CLIENT_SECRET", ""),
 		}
+
+		// Allow privileged containers
+		// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
+		capabilities.Initialize(capabilities.Capabilities{
+			AllowPrivileged: true,
+		})
 
 		if startKube {
 			portalNet := net.IPNet(cfg.PortalNet)

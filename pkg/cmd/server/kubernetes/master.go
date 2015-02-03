@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
@@ -58,12 +57,6 @@ func (c *MasterConfig) EnsurePortalFlags() {
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
-	// Allow privileged containers
-	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	capabilities.Initialize(capabilities.Capabilities{
-		AllowPrivileged: true,
-	})
-
 	kubeletClient, err := kclient.NewKubeletClient(
 		&kclient.KubeletConfig{
 			Port: 10250,
