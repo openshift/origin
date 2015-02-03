@@ -106,7 +106,10 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 
 func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		ObjectMeta:    kapi.ObjectMeta{Name: "config"},
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: kapi.NamespaceDefault,
+			Name:      "config",
+		},
 		LatestVersion: version,
 		Triggers: []deployapi.DeploymentTriggerPolicy{
 			OkImageChangeTrigger(),
