@@ -414,8 +414,8 @@
 		},
 		{
 			"ImportPath": "github.com/docker/docker/dockerversion",
-			"Comment": "v1.4.1-108-g364720b",
-			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
+			"Comment": "v1.4.1-656-g2115131",
+			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/archive",
@@ -429,11 +429,16 @@
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/httputils",
-			"Comment": "v1.4.1-108-g364720b",
-			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
+			"Comment": "v1.4.1-656-g2115131",
+			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/ioutils",
+			"Comment": "v1.4.1-656-g2115131",
+			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/mflag",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
 		},
@@ -454,18 +459,18 @@
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/tarsum",
-			"Comment": "v1.4.1-108-g364720b",
-			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
+			"Comment": "v1.4.1-656-g2115131",
+			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/term",
-			"Comment": "v1.4.1-108-g364720b",
-			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
+			"Comment": "v1.4.1-656-g2115131",
+			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/timeutils",
-			"Comment": "v1.4.1-108-g364720b",
-			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
+			"Comment": "v1.4.1-656-g2115131",
+			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/units",
@@ -474,8 +479,8 @@
 		},
 		{
 			"ImportPath": "github.com/docker/docker/utils",
-			"Comment": "v1.4.1-108-g364720b",
-			"Rev": "364720b5e7e725cdc466171de873eefdb8609a33"
+			"Comment": "v1.4.1-656-g2115131",
+			"Rev": "211513156dc1ace48e630b4bf4ea0fcfdc8d9abf"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar",
