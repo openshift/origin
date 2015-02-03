@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"code.google.com/p/go-uuid/uuid"
+	etcderrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
@@ -36,6 +37,7 @@ func makeUserKey(id string) string {
 func (r *Etcd) GetUser(name string) (user *api.User, err error) {
 	mapping := &api.UserIdentityMapping{}
 	err = r.ExtractObj(makeUserKey(name), mapping, false)
+	err = etcderrs.InterpretGetError(err, "User", name)
 	user = &mapping.User
 	return
 }
@@ -43,6 +45,7 @@ func (r *Etcd) GetUser(name string) (user *api.User, err error) {
 func (r *Etcd) GetUserIdentityMapping(name string) (mapping *api.UserIdentityMapping, err error) {
 	mapping = &api.UserIdentityMapping{}
 	err = r.ExtractObj(makeUserKey(name), mapping, false)
+	err = etcderrs.InterpretGetError(err, "UserIdentityMapping", name)
 	return
 }
 
@@ -89,6 +92,7 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 	})
 
 	if err != nil && err != errExists {
+		err = etcderrs.InterpretCreateError(err, "UserIdentityMapping", name)
 		return nil, false, err
 	}
 	return found, created, nil
