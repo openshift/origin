@@ -93,10 +93,6 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	return location.String(), nil
 }
 
-func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	return nil, fmt.Errorf("BuildLog can't be retrieved")
-}
-
 func (r *REST) New() runtime.Object {
 	return &api.BuildLog{}
 }

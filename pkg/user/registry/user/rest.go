@@ -1,11 +1,8 @@
 package user
 
 import (
-	"errors"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -26,31 +23,7 @@ func (s *REST) New() runtime.Object {
 	return &api.User{}
 }
 
-func (*REST) NewList() runtime.Object {
-	return &api.User{}
-}
-
 // Get retrieves an UserIdentityMapping by id.
 func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return s.registry.GetUser(id)
-}
-
-// List retrieves a list of UserIdentityMappings that match selector.
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	return nil, errors.New("not implemented")
-}
-
-// Create registers the given UserIdentityMapping.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.New("not implemented")
-}
-
-// Update is not supported for UserIdentityMappings, as they are immutable.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.New("not implemented")
-}
-
-// Delete asynchronously deletes an UserIdentityMapping specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.New("not implemented")
 }
