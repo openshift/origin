@@ -92,7 +92,14 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 			formatString(out, "Ref", p.Source.Git.Ref)
 		}
 	}
-	formatString(out, "Output To", p.Output.To)
+	if p.Output.To != nil {
+		if p.Output.To.Namespace != "" {
+			formatString(out, "Output to", fmt.Sprintf("%s/%s", p.Output.To.Namespace, p.Output.To.Name))
+		} else {
+			formatString(out, "Output to", p.Output.To.Name)
+		}
+	}
+
 	formatString(out, "Output Spec", p.Output.DockerImageReference)
 	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
 		formatString(out, "Git Commit", p.Revision.Git.Commit)
@@ -139,7 +146,11 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host s
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
 		}
-		formatString(out, "Image Repository Trigger", trigger.ImageChange.From.Name)
+		if trigger.ImageChange.From.Namespace != "" {
+			formatString(out, "Image Repository Trigger", fmt.Sprintf("%s/%s", trigger.ImageChange.From.Namespace, trigger.ImageChange.From.Name))
+		} else {
+			formatString(out, "Image Repository Trigger", trigger.ImageChange.From.Name)
+		}
 		formatString(out, "- Tag", trigger.ImageChange.Tag)
 		formatString(out, "- Image", trigger.ImageChange.Image)
 		formatString(out, "- LastTriggeredImageID", trigger.ImageChange.LastTriggeredImageID)
