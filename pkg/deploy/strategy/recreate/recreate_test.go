@@ -1,7 +1,9 @@
 package recreate
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
@@ -14,12 +16,13 @@ func TestFirstDeployment(t *testing.T) {
 	var updatedController *kapi.ReplicationController
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 
-	strategy := &DeploymentStrategy{
-		Codec: api.Codec,
-		ReplicationController: &testControllerClient{
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
 			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected call to getReplicationController")
-				return nil, nil
+				return deployment, nil
 			},
 			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				updatedController = ctrl
@@ -43,32 +46,40 @@ func TestFirstDeployment(t *testing.T) {
 	}
 }
 
-func TestSecondDeployment(t *testing.T) {
+func TestSecondDeploymentSuccessfulRetries(t *testing.T) {
 	updatedControllers := make(map[string]*kapi.ReplicationController)
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	newConfig := deploytest.OkDeploymentConfig(2)
+	newDeployment, _ := deployutil.MakeDeployment(newConfig, kapi.Codec)
 
-	strategy := &DeploymentStrategy{
-		Codec: api.Codec,
-		ReplicationController: &testControllerClient{
+	errorCounts := map[string]int{}
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
 			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				if e, a := oldDeployment.Namespace, namespace; e != a {
-					t.Fatalf("expected getReplicationController call with %s, got %s", e, a)
+				switch name {
+				case oldDeployment.Name:
+					return oldDeployment, nil
+				case newDeployment.Name:
+					return newDeployment, nil
+				default:
+					t.Fatalf("unexpected call to getReplicationController: %s/%s", namespace, name)
+					return nil, nil
 				}
-
-				if e, a := oldDeployment.Name, name; e != a {
-					t.Fatalf("expected getReplicationController call with %s, got %s", e, a)
-				}
-				return oldDeployment, nil
 			},
 			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				if errorCounts[ctrl.Name] < 3 {
+					errorCounts[ctrl.Name] = errorCounts[ctrl.Name] + 1
+					return nil, fmt.Errorf("test error %d", errorCounts[ctrl.Name])
+				}
 				updatedControllers[ctrl.Name] = ctrl
 				return ctrl, nil
 			},
 		},
 	}
-
-	newConfig := deploytest.OkDeploymentConfig(2)
-	newDeployment, _ := deployutil.MakeDeployment(newConfig, kapi.Codec)
 
 	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
 		{
@@ -87,6 +98,102 @@ func TestSecondDeployment(t *testing.T) {
 
 	if e, a := 1, updatedControllers[newDeployment.Name].Spec.Replicas; e != a {
 		t.Fatalf("expected new controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestSecondDeploymentFailedInitialRetries(t *testing.T) {
+	updatedControllers := make(map[string]*kapi.ReplicationController)
+	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	newConfig := deploytest.OkDeploymentConfig(2)
+	newDeployment, _ := deployutil.MakeDeployment(newConfig, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Millisecond,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				switch name {
+				case oldDeployment.Name:
+					return oldDeployment, nil
+				case newDeployment.Name:
+					return newDeployment, nil
+				default:
+					t.Fatalf("unexpected call to getReplicationController: %s/%s", namespace, name)
+					return nil, nil
+				}
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				return nil, fmt.Errorf("update failure")
+			},
+		},
+	}
+
+	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
+		{
+			Namespace: oldDeployment.Namespace,
+			Name:      oldDeployment.Name,
+		},
+	})
+
+	if err == nil {
+		t.Fatalf("expected a deploy error: %#v", err)
+	}
+
+	if len(updatedControllers) > 0 {
+		t.Fatalf("unexpected controller updates: %v", updatedControllers)
+	}
+}
+
+func TestSecondDeploymentFailedDisableRetries(t *testing.T) {
+	updatedControllers := make(map[string]*kapi.ReplicationController)
+	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	newConfig := deploytest.OkDeploymentConfig(2)
+	newDeployment, _ := deployutil.MakeDeployment(newConfig, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Millisecond,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				switch name {
+				case oldDeployment.Name:
+					return oldDeployment, nil
+				case newDeployment.Name:
+					return newDeployment, nil
+				default:
+					t.Fatalf("unexpected call to getReplicationController: %s/%s", namespace, name)
+					return nil, nil
+				}
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				switch ctrl.Name {
+				case newDeployment.Name:
+					return newDeployment, nil
+				case oldDeployment.Name:
+					return nil, fmt.Errorf("update error")
+				default:
+					t.Fatalf("unexpected call to getReplicationController: %s/%s", namespace, ctrl.Name)
+					return nil, nil
+				}
+			},
+		},
+	}
+
+	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
+		{
+			Namespace: oldDeployment.Namespace,
+			Name:      oldDeployment.Name,
+		},
+	})
+
+	if err == nil {
+		t.Fatalf("expcted a deploy error: %#v", err)
+	}
+
+	if len(updatedControllers) > 0 {
+		t.Fatalf("unexpected controller updates: %v", updatedControllers)
 	}
 }
 

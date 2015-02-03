@@ -83,11 +83,7 @@ func deploy(kClient kclient.Interface, namespace, deploymentName string) error {
 	}
 
 	// TODO: Choose a strategy based on some input
-	strategy := &strategy.DeploymentStrategy{
-		ReplicationController: strategy.RealReplicationController{KubeClient: kClient},
-		Codec: latest.Codec,
-	}
-
+	strategy := strategy.NewRecreateDeploymentStrategy(kClient, latest.Codec)
 	return strategy.Deploy(newDeployment, oldDeployments)
 }
 
