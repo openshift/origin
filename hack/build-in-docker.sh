@@ -8,4 +8,5 @@ set -o nounset
 set -o pipefail
 
 origin_path="src/github.com/openshift/origin"
-docker run -v ${GOPATH}/${origin_path}:/go/${origin_path} openshift/origin-release /opt/bin/build.sh
+docker run --rm -v ${GOPATH}/${origin_path}:/go/${origin_path} \
+  openshift/origin-release /usr/bin/openshift-origin-build.sh $@

@@ -11,7 +11,7 @@ RUN yum install -y hg golang golang-pkg-darwin golang-pkg-windows && yum clean a
 ENV GOPATH /go
 
 # Get the code coverage tool and godep
-RUN go get code.google.com/p/go.tools/cmd/cover github.com/tools/godep
+RUN go get code.google.com/p/go.tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint
 
 # Mark this as a os-build container
 RUN touch /os-build-image
@@ -24,7 +24,8 @@ ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
 
 ENV OS_VERSION_FILE /go/src/github.com/openshift/origin/os-version-defs
 
-ADD build.sh /opt/bin/build.sh
+# Allows building Origin sources mounted using volume
+ADD openshift-origin-build.sh /usr/bin/openshift-origin-build.sh
 
 # Expect a tar with the source of OpenShift Origin (and /os-version-defs in the root)
 CMD tar mxzf - && hack/build-cross.sh
