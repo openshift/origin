@@ -157,7 +157,7 @@ echo "[INFO] Certs dir is:              ${CERT_DIR}"
 # Start All-in-one server and wait for health
 # Specify the scheme and port for the listen address, but let the IP auto-discover.  Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Starting OpenShift server"
-sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 &> "${LOG_DIR}/openshift.log" &
+sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 --latest-images &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
