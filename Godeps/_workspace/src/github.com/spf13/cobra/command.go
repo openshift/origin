@@ -308,6 +308,9 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 				// only accept a single prefix match - multiple matches would be ambiguous
 				if len(matches) == 1 {
 					return innerfind(matches[0], argsMinusX(args, argsWOflags[0]))
+				} else if len(matches) == 0 && len(args) > 0 && args[0] == "help" {
+					// special case help command
+					return innerfind(c, argsMinusX(append(args, "--help"), argsWOflags[0]))
 				}
 			}
 		}
@@ -344,6 +347,7 @@ func (c *Command) Root() *Command {
 func (c *Command) findAndExecute(args []string) (err error) {
 
 	cmd, a, e := c.Find(args)
+
 	if e != nil {
 		return e
 	}
@@ -708,6 +712,7 @@ func (c *Command) assureHelpFlag() {
 	if c.Flags().Lookup("help") == nil && c.PersistentFlags().Lookup("help") == nil {
 		c.PersistentFlags().BoolVarP(&c.helpFlagVal, "help", "h", false, "help for "+c.Name())
 	}
+	c.mergePersistentFlags()
 }
 
 // Get the local FlagSet specifically set in the current command
