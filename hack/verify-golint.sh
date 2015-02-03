@@ -10,10 +10,9 @@ if ! which golint &>/dev/null; then
 fi
 
 GO_VERSION=($(go version))
-echo "Detected go version: $(go version)"
 
-if [[ ${GO_VERSION[2]} != "go1.2" && ${GO_VERSION[2]} != "go1.3.1" && ${GO_VERSION[2]} != "go1.3.3" ]]; then
-  echo "Unknown go version, skipping golint."
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.2|go1.3') ]]; then
+  echo "Unknown go version '${GO_VERSION}', skipping golint."
   exit 0
 fi
 
@@ -27,9 +26,16 @@ bad_files=""
 
 if [ "$arg" == "-m" ]; then
   head=$(git rev-parse --short HEAD | xargs echo -n)
-  bad_files=$(git diff-tree --no-commit-id --name-only -r master..$head | \
+  set +e
+  modified_files=$(git diff-tree --no-commit-id --name-only -r master..$head | \
     grep "^pkg" | grep ".go$" | grep -v "bindata.go$" | grep -v "Godeps" | \
-    grep -v "third_party" | xargs golint)
+    grep -v "third_party")
+  if [ -n "${modified_files}" ]; then
+    echo -e "Checking modified files: ${modified_files}\n"
+    for f in $modified_files; do golint $f; done
+    echo
+  fi
+  set -e
 else
   find_files() {
     find . -not \( \
