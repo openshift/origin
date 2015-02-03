@@ -1,7 +1,6 @@
 ## SDN solutions for Openshift
 
-# WORK IN PROGRESS
-# DO NOT USE THIS YET
+Software to get an overlay network up and running for a docker cluster. This is still a work in progress. Do not use it in production.
 
 #### Build and Install
 
@@ -42,7 +41,7 @@ To add a node to the cluster, do the following on the node:
 		-minion 	: run it in minion mode (will watch etcd servers for new minion subnets)
 		-public-ip	: use this field for suggesting the publicly reachable IP address of this minion
 		-hostname	: the name that will be used to register the minion with openshift-master
-	$ openshift start node --master=http://openshift-master:8080
+	$ openshift start node --master=https://openshift-master:8443
 
 Back on the master, to finally register the node:
 
@@ -69,7 +68,7 @@ Steps:
 1. Run etcd somewhere, and run the openshift-sdn master to watch it in sync mode. 
 
 		$ systemctl start etcd
-		$ openshift-sdn -master -sync
+		$ openshift-sdn -master -sync  # use -etcd-endpoints=http://target:4001 if etcd is not running locally
 
 2. To add a node, make sure the 'hostname/dns' is reachable from the machine that is running 'openshift-sdn master'. Then start the openshift-sdn in minion mode with sync flag.
 
