@@ -21,10 +21,12 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/probe"
@@ -113,14 +115,14 @@ func (s *NodeController) RegisterNodes(nodes *api.NodeList, retryCount int, retr
 				continue
 			}
 			_, err := s.kubeClient.Nodes().Create(&node)
-			if err == nil {
+			if err == nil || apierrors.IsAlreadyExists(err) {
 				registered.Insert(node.Name)
-				glog.Infof("Registered node in registry: %s", node.Name)
+				glog.V(2).Infof("Registered node in registry: %s", node.Name)
 			} else {
 				glog.Errorf("Error registrying node %s, retrying: %s", node.Name, err)
 			}
 			if registered.Len() == len(nodes.Items) {
-				glog.Infof("Successfully Registered all nodes")
+				glog.V(4).Infof("Successfully Registered all nodes")
 				return nil
 			}
 		}
@@ -242,7 +244,7 @@ func (s *NodeController) StaticNodes() (*api.NodeList, error) {
 	result := &api.NodeList{}
 	for _, nodeID := range s.nodes {
 		node := api.Node{
-			ObjectMeta: api.ObjectMeta{Name: nodeID},
+			ObjectMeta: api.ObjectMeta{Name: strings.ToLower(nodeID)},
 			Spec:       api.NodeSpec{Capacity: s.staticResources.Capacity},
 		}
 		addr := net.ParseIP(nodeID)
@@ -277,7 +279,7 @@ func (s *NodeController) CloudNodes() (*api.NodeList, error) {
 	}
 	for i := range matches {
 		node := api.Node{}
-		node.Name = matches[i]
+		node.Name = strings.ToLower(matches[i])
 		hostIP, err := instances.IPAddress(matches[i])
 		if err != nil {
 			glog.Errorf("error getting instance ip address for %s: %v", matches[i], err)
