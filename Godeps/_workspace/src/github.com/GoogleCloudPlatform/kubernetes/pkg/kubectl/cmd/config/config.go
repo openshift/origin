@@ -31,6 +31,7 @@ import (
 type pathOptions struct {
 	local         bool
 	global        bool
+	envvar        bool
 	specifiedFile string
 }
 
@@ -49,6 +50,7 @@ func NewCmdConfig(out io.Writer) *cobra.Command {
 	// file paths are common to all sub commands
 	cmd.PersistentFlags().BoolVar(&pathOptions.local, "local", true, "use the .kubeconfig in the current directory")
 	cmd.PersistentFlags().BoolVar(&pathOptions.global, "global", false, "use the .kubeconfig from "+os.Getenv("HOME"))
+	cmd.PersistentFlags().BoolVar(&pathOptions.envvar, "envvar", false, "use the .kubeconfig from $KUBECONFIG")
 	cmd.PersistentFlags().StringVar(&pathOptions.specifiedFile, "kubeconfig", "", "use a particular .kubeconfig file")
 
 	cmd.AddCommand(NewCmdConfigView(out, pathOptions))
@@ -66,12 +68,16 @@ func (o *pathOptions) getStartingConfig() (*clientcmdapi.Config, string, error) 
 	filename := ""
 	config := clientcmdapi.NewConfig()
 	switch {
+	case len(o.specifiedFile) > 0:
+		filename = o.specifiedFile
+		config = getConfigFromFileOrDie(filename)
+
 	case o.global:
 		filename = os.Getenv("HOME") + "/.kube/.kubeconfig"
 		config = getConfigFromFileOrDie(filename)
 
-	case len(o.specifiedFile) > 0:
-		filename = o.specifiedFile
+	case o.envvar:
+		filename = os.Getenv("KUBECONFIG")
 		config = getConfigFromFileOrDie(filename)
 
 	case o.local:
