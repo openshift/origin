@@ -503,7 +503,11 @@ func start(cfg *config, args []string) error {
 			kmaster.RunMinionController()
 
 		} else {
-			osmaster.Run([]origin.APIInstaller{}, []origin.APIInstaller{auth})
+			proxy := &kubernetes.ProxyConfig{
+				KubernetesAddr: cfg.KubernetesAddr.URL,
+				ClientConfig:   &osmaster.KubeClientConfig,
+			}
+			osmaster.Run([]origin.APIInstaller{proxy}, []origin.APIInstaller{auth})
 		}
 
 		// TODO: recording should occur in individual components
