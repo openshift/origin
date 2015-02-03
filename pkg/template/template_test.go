@@ -25,7 +25,7 @@ func makeParameter(name, value, generate string) api.Parameter {
 func TestAddParameter(t *testing.T) {
 	var template api.Template
 
-	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
+	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
 	json.Unmarshal(jsonData, &template)
 
 	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", ""))
@@ -106,7 +106,7 @@ func TestParameterGenerators(t *testing.T) {
 
 func ExampleProcessTemplateParameters() {
 	var template api.Template
-	jsonData, _ := ioutil.ReadFile("../../examples/guestbook/template.json")
+	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
 	latest.Codec.DecodeInto(jsonData, &template)
 
 	generators := map[string]generator.Generator{

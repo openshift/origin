@@ -148,7 +148,7 @@ osc create -f test/integration/fixtures/test-deployment-config.json
 osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
-osc process -f examples/guestbook/template.json | osc apply -f -
+osc process -f test/templates/fixtures/guestbook.json | osc apply -f -
 echo "template+config: ok"
 
 openshift kube resize --replicas=2 rc guestbook

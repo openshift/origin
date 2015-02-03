@@ -184,13 +184,13 @@ cli process
 This command processes a Template into a valid Config resource. The processing
 will take care of generating values for parameters specified in the Template and
 substituting the values in the corresponding places. An example Template can be
-found in [examples/guestbook/template.json](https://github.com/openshift/origin/blob/master/examples/guestbook/template.json).
+found in [examples/sample-app/application-template-stibuild.json](https://github.com/openshift/origin/blob/master/examples/sample-app/application-template-stibuild.json).
 
 ### Example Usage
 
 ```
-$ openshift cli process -f examples/guestbook/template.json > config.json
-$ openshift cli process -f template.json | openshift cli apply -f -
+$ openshift cli process -f sample-app/application-template-stibuild.json > config.json
+$ openshift cli process -f sample-app/application-template-stibuild.json | openshift cli apply -f -
 ```
 
 cli build-logs
