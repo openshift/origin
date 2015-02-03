@@ -2,9 +2,11 @@ package kubernetes
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -17,7 +19,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
+	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
 
 	"github.com/fsouza/go-dockerclient"
@@ -35,6 +37,22 @@ const NodeScheme = "http"
 
 // NodePort is the default Kubelet port for serving information about the node.
 const NodePort = 10250
+
+type commandExecutor interface {
+	LookPath(executable string) (string, error)
+	Run(command string, args ...string) error
+}
+
+type defaultCommandExecutor struct{}
+
+func (ce defaultCommandExecutor) LookPath(executable string) (string, error) {
+	return exec.LookPath(executable)
+}
+
+func (ce defaultCommandExecutor) Run(command string, args ...string) error {
+	c := exec.Command(command, args...)
+	return c.Run()
+}
 
 // NodeConfig represents the required parameters to start the OpenShift node
 // through Kubernetes. All fields are required.
@@ -80,17 +98,32 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 // an absolute path and create the directory if it does not exist. Will exit if
 // an error is encountered.
 func (c *NodeConfig) EnsureVolumeDir() {
-	rootDirectory, err := filepath.Abs(c.VolumeDir)
+	if volumeDir, err := c.initializeVolumeDir(&defaultCommandExecutor{}, c.VolumeDir); err != nil {
+		glog.Fatal(err)
+	} else {
+		c.VolumeDir = volumeDir
+	}
+}
+
+func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (string, error) {
+	rootDirectory, err := filepath.Abs(path)
 	if err != nil {
-		glog.Fatalf("Error converting volume directory to an absolute path: %v", err)
+		return "", fmt.Errorf("Error converting volume directory to an absolute path: %v", err)
 	}
 
 	if _, err := os.Stat(rootDirectory); os.IsNotExist(err) {
 		if mkdirErr := os.MkdirAll(rootDirectory, 0750); mkdirErr != nil {
-			glog.Fatalf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, mkdirErr)
+			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, mkdirErr)
+		}
+		if chconPath, chconLookupErr := ce.LookPath("chcon"); chconLookupErr != nil {
+			glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory context: %s", chconLookupErr)
+		} else {
+			if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
+				return "", fmt.Errorf("Error running 'chcon' to set the kubelet volume root directory context: %s", err)
+			}
 		}
 	}
-	c.VolumeDir = rootDirectory
+	return rootDirectory, nil
 }
 
 // RunKubelet starts the Kubelet.
@@ -192,7 +225,7 @@ func (c *NodeConfig) RunProxy() {
 	}
 
 	var proxier pconfig.ServiceConfigHandler
-	proxier = proxy.NewProxier(loadBalancer, ip, iptables.New(exec.New(), protocol))
+	proxier = proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol))
 	if proxier == nil || reflect.ValueOf(proxier).IsNil() { // explicitly declared interfaces aren't plain nil, you must reflect inside to see if it's really nil or not
 		glog.Errorf("WARNING: Could not modify iptables.  iptables must be mutable by this process to use services.  Do you have root permissions?")
 		proxier = &service.FailingServiceConfigProxy{}
