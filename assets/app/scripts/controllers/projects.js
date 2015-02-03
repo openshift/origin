@@ -8,13 +8,18 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $location, DataService) {   
+  .controller('ProjectsController', function ($scope, $location, DataService, AuthService) {   
     $scope.projects = {};
+    $scope.alerts = $scope.alerts || {};
+    $scope.emptyMessage = "Loading...";
 
-    DataService.list("projects", $scope, function(projects) {
-      $scope.projects = projects.by("metadata.name");
+    AuthService.withUser().then(function() {
+      DataService.list("projects", $scope, function(projects) {
+        $scope.projects = projects.by("metadata.name");
+        $scope.emptyMessage = "You have no projects. For an example, run <code>openshift cli create -f examples/sample-app/project.json</code>, then refresh this page.";
+      });
     });
-
+  
     $scope.tileClickHandler = function(evt) {
       var t = $(evt.target);
       if (t && t.is('a')){

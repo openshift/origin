@@ -38,13 +38,13 @@
           <li>
             <a href="http://docs.openshift.org/latest/welcome/index.html">Documentation</a>
           </li>
-          <!-- Put this back in when we have a user context to show
-          <li class="dropdown">
-            <a href="#">
+          <li class="dropdown" ng-if="user">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
               <span class="pficon pficon-user"></span>
-              Jack Johnson <b class="caret"></b>
+              {{user.metadata.name}} <b class="caret"></b>
             </a>
             <ul class="dropdown-menu">
+              <!--
               <li>
                 <a href="#">Account</a>
               </li>
@@ -52,11 +52,12 @@
                 <a href="#">Settings</a>
               </li>
               <li class="divider"></li>
+              -->
               <li>
-                <a href="#">Log out</a>
+                <a href="/logout">Log out</a>
               </li>
             </ul>
-          </li> -->
+          </li>
         </ul>
       </div>
 
@@ -106,7 +107,11 @@
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
         <script src="scripts/app.js"></script>
         <script src="scripts/helpers.js"></script>
+        <script src="scripts/services/ws.js"></script>
+        <script src="scripts/services/userstore.js"></script>
+        <script src="scripts/services/auth.js"></script>
         <script src="scripts/services/data.js"></script>
+        <script src="scripts/services/login.js"></script>
         <script src="scripts/services/labelFilter.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/project.js"></script>
@@ -116,6 +121,9 @@
         <script src="scripts/controllers/images.js"></script>        
         <script src="scripts/controllers/deployments.js"></script>
         <script src="scripts/controllers/services.js"></script>
+        <script src="scripts/controllers/util/oauth.js"></script>
+        <script src="scripts/controllers/util/error.js"></script>
+        <script src="scripts/controllers/util/logout.js"></script>
         <script src="scripts/directives/date.js"></script>
         <script src="scripts/directives/resources.js"></script>
         <script src="scripts/directives/nav.js"></script>

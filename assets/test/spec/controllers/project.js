@@ -25,22 +25,34 @@ describe('Controller: ProjectController', function () {
     });
   }));
 
+  angular.module('openshiftConsole').config(function(AuthServiceProvider) {
+    AuthServiceProvider.LoginService('RedirectLoginService');
+    AuthServiceProvider.UserStore('MemoryUserStore');
+  });
+
   // load the controller's module
   beforeEach(module('openshiftConsole'));
 
   var ProjectController,
-    scope;
+    scope,
+    timeout;
 
   // Initialize the controller and a mock scope
-  beforeEach(inject(function ($controller, $rootScope) {
+  beforeEach(inject(function ($controller, $rootScope, $q, $timeout, MemoryUserStore) {
+    // Set up a stub user
+    MemoryUserStore.setToken("myToken");
+    MemoryUserStore.setUser({metadata: {name: "My User"}});
+
     scope = $rootScope.$new();
+    timeout = $timeout;
+
     ProjectController = $controller('ProjectController', {
       $scope: scope,
       $routeParams: {project: "foo"},
       DataService: {
-        get: function(type, id, context, callback, opts) {
+        get: function(type, id, context, opts) {
           // TODO return mocked project data
-          callback({});
+          return $q.when({});
         },
         list: function() {
           // TODO return mocked data for different types
@@ -52,11 +64,22 @@ describe('Controller: ProjectController', function () {
     });
   }));
 
+  it('should set the user', function () {
+    // Flush async withUser and DataService calls
+    timeout.flush();
+    expect(scope.user).toBeDefined();
+    expect(scope.user).not.toBe(null);
+  });
+
   it('should set the projectName', function () {
+    // Flush async withUser and DataService calls
+    timeout.flush();
     expect(scope.projectName).toBe("foo");
   });
 
   it('should set up the promise and resolve it when project is returned', function () {
+    // Flush async withUser and DataService calls
+    timeout.flush();
     expect(scope.projectPromise.state()).toBe("resolved");
   });
 });

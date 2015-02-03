@@ -110,10 +110,39 @@ angular
       }) 
       .when('/project/:project/browse/services', {
         templateUrl: 'views/services.html'
-      })       
+      })
+
+      .when('/oauth', {
+        templateUrl: 'views/util/oauth.html',
+        controller: 'OAuthController'
+      })
+      .when('/error', {
+        templateUrl: 'views/util/error.html',
+        controller: 'ErrorController'
+      })
+      .when('/logout', {
+        templateUrl: 'views/util/logout.html',
+        controller: 'LogoutController'
+      })
+
       .otherwise({
         redirectTo: '/'
       });
+  })
+  .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider) {
+    if (window.OPENSHIFT_CONFIG) {
+
+   	  $httpProvider.interceptors.push('AuthInterceptor');
+
+      AuthServiceProvider.LoginService('RedirectLoginService');
+      // TODO: fall back to cookie store when session storage is unavailable (see known issues at http://caniuse.com/#search=sessionstorage)
+      AuthServiceProvider.UserStore('SessionUserStore');
+
+      var authcfg = window.OPENSHIFT_CONFIG.auth;
+      RedirectLoginServiceProvider.OAuthClientID(authcfg.oauth_client_id);
+      RedirectLoginServiceProvider.OAuthAuthorizeURI(authcfg.oauth_authorize_uri);
+      RedirectLoginServiceProvider.OAuthRedirectURI(authcfg.oauth_redirect_base + "/oauth");
+    }
   })
   .run(['mainNavTabs', "HawtioNav", function (tabs, HawtioNav) {
     for (var i = 0; i < tabs.length; i++) {
