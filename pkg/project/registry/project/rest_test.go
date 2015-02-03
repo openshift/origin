@@ -198,20 +198,6 @@ func TestGetProjectOK(t *testing.T) {
 	}
 }
 
-func TestUpdateProject(t *testing.T) {
-	storage := REST{}
-	channel, err := storage.Update(nil, &api.Project{})
-	if channel != nil {
-		t.Errorf("Unexpected non-nil channel: %#v", channel)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if strings.Index(err.Error(), "Projects may not be changed.") == -1 {
-		t.Errorf("Expected 'may not be changed' error, got: %#v", err)
-	}
-}
-
 func TestDeleteProject(t *testing.T) {
 	mockRegistry := test.NewProjectRegistry()
 	storage := REST{registry: mockRegistry}

@@ -32,20 +32,6 @@ func (s *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
 }
 
-func (*REST) NewList() runtime.Object {
-	return &api.ImageRepositoryMapping{}
-}
-
-// List is not supported.
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", "")
-}
-
-// Get is not supported.
-func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", id)
-}
-
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	mapping := obj.(*api.ImageRepositoryMapping)
@@ -106,14 +92,4 @@ func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepo
 		})
 	}
 	return nil, errors.NewNotFound("ImageRepository", "")
-}
-
-// Update is not supported.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("ImageRepositoryMappings may not be changed.")
-}
-
-// Delete is not supported.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }

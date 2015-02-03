@@ -212,32 +212,6 @@ func TestList(t *testing.T) {
 	}
 }
 
-func TestUpdateNotSupported(t *testing.T) {
-	registry := test.AuthorizeTokenRegistry{
-		Err: errors.New("Storage Error"),
-	}
-	storage := REST{
-		registry: &registry,
-	}
-	authorizeToken := &oapi.OAuthAuthorizeToken{
-		ObjectMeta: api.ObjectMeta{Name: "authTokenName"},
-		ClientName: "clientName",
-		UserName:   "userName",
-		UserUID:    "userUID",
-	}
-
-	ctx := api.NewContext()
-	_, err := storage.Update(ctx, authorizeToken)
-	if err == nil {
-		t.Errorf("expected unsupported error, but update succeeded")
-		return
-	}
-	if err == registry.Err {
-		t.Errorf("expected unsupported error, but registry was called")
-		return
-	}
-}
-
 func TestDeleteError(t *testing.T) {
 	registry := test.AuthorizeTokenRegistry{
 		Err: errors.New("Sample Error"),

@@ -33,24 +33,3 @@ func TestNewRESTDefaultsName(t *testing.T) {
 		t.Fatalf("unexpected return object: %#v", obj)
 	}
 }
-
-func TestStorageNotImplementedFunctions(t *testing.T) {
-	storage := NewREST()
-
-	if _, err := storage.List(nil, nil, nil); err == nil {
-		t.Errorf("Expected not implemented error.")
-	}
-
-	if _, err := storage.Get(nil, ""); err == nil {
-		t.Errorf("Expected not implemented error.")
-	}
-
-	if _, err := storage.Update(nil, nil); err == nil {
-		t.Errorf("Expected not implemented error.")
-	}
-
-	_, err := storage.Delete(nil, "")
-	if err != nil {
-		t.Errorf("Unexpected error when deleting: %v", err)
-	}
-}
