@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/golang/glog"
 
@@ -36,7 +36,7 @@ func (c *ImageChangeController) Run() {
 // HandleImageRepo processes the next ImageRepository event.
 func (c *ImageChangeController) HandleImageRepo() {
 	imageRepo := c.NextImageRepository()
-	configNames := []string{}
+	configsToGenerate := []*deployapi.DeploymentConfig{}
 	firedTriggersForConfig := make(map[string][]deployapi.DeploymentTriggerImageChangeParams)
 
 	for _, c := range c.DeploymentConfigStore.List() {
@@ -46,9 +46,12 @@ func (c *ImageChangeController) HandleImageRepo() {
 		// Extract relevant triggers for this imageRepo for this config
 		triggersForConfig := []deployapi.DeploymentTriggerImageChangeParams{}
 		for _, trigger := range config.Triggers {
-			if trigger.Type == deployapi.DeploymentTriggerOnImageChange &&
-				trigger.ImageChangeParams.Automatic &&
-				trigger.ImageChangeParams.RepositoryName == imageRepo.DockerImageRepository {
+			if trigger.Type != deployapi.DeploymentTriggerOnImageChange ||
+				!trigger.ImageChangeParams.Automatic {
+				continue
+			}
+			if triggerMatchesImage(config, trigger.ImageChangeParams, imageRepo) {
+				glog.V(4).Infof("Found matching %s trigger for deploymentConfig %s: %#v", trigger.Type, config.Name, trigger.ImageChangeParams)
 				triggersForConfig = append(triggersForConfig, *trigger.ImageChangeParams)
 			}
 		}
@@ -62,67 +65,100 @@ func (c *ImageChangeController) HandleImageRepo() {
 				}
 
 				// The container image's tag name is by convention the same as the image ID it references
-				_, containerImageID := parseImage(container.Image)
+				_, _, _, containerImageID, err := imageapi.SplitDockerPullSpec(container.Image)
+				if err != nil {
+					glog.V(4).Infof("Skipping container %s; container's image is invalid: %v", container.Name, err)
+					continue
+				}
+
 				if repoImageID, repoHasTag := imageRepo.Tags[params.Tag]; repoHasTag && repoImageID != containerImageID {
-					configNames = append(configNames, config.Name)
+					configsToGenerate = append(configsToGenerate, config)
 					firedTriggersForConfig[config.Name] = append(firedTriggersForConfig[config.Name], params)
 				}
 			}
 		}
 	}
 
-	for _, configName := range configNames {
-		glog.V(4).Infof("Regenerating deploymentConfig %s", configName)
-		err := c.regenerate(imageRepo.Namespace, configName, firedTriggersForConfig[configName])
+	for _, config := range configsToGenerate {
+		glog.V(4).Infof("Regenerating deploymentConfig %s/%s", config.Namespace, config.Name)
+		err := c.regenerate(imageRepo, config, firedTriggersForConfig[config.Name])
 		if err != nil {
-			glog.V(2).Infof("Error regenerating deploymentConfig %v: %v", configName, err)
+			glog.V(2).Infof("Error regenerating deploymentConfig %s/%s: %v", config.Namespace, config.Name, err)
 		}
 	}
 }
 
-func (c *ImageChangeController) regenerate(namespace, configName string, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
-	newConfig, err := c.DeploymentConfigInterface.GenerateDeploymentConfig(namespace, configName)
+// triggerMatchesImages decides whether a given trigger for config matches the provided image repo.
+// When matching:
+// - The trigger From field is preferred over the deprecated RepositoryName field.
+// - The namespace of the trigger is preferred over the config's namespace.
+func triggerMatchesImage(config *deployapi.DeploymentConfig, trigger *deployapi.DeploymentTriggerImageChangeParams, repo *imageapi.ImageRepository) bool {
+	if len(trigger.From.Name) > 0 {
+		namespace := trigger.From.Namespace
+		if len(namespace) == 0 {
+			namespace = config.Namespace
+		}
+
+		return repo.Namespace == namespace && repo.Name == trigger.From.Name
+	}
+
+	// This is an invalid state (as one of From.Name or RepositoryName is required), but
+	// account for it anyway.
+	if len(trigger.RepositoryName) == 0 {
+		return false
+	}
+
+	// If the repo's repository information isn't yet available, we can't assume it'll match.
+	return len(repo.Status.DockerImageRepository) > 0 &&
+		trigger.RepositoryName == repo.Status.DockerImageRepository
+}
+
+func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, config *deployapi.DeploymentConfig, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
+	// Get a regenerated config which includes the new image repo references
+	newConfig, err := c.DeploymentConfigInterface.GenerateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
-		glog.V(2).Infof("Error generating new version of deploymentConfig %v", configName)
+		glog.V(2).Infof("Error generating new version of deploymentConfig %v", config.Name)
 		return err
 	}
 
-	// update the deployment config with the trigger that resulted in the new config being generated
-	newConfig.Details = generateTriggerDetails(triggers)
-
-	_, err = c.DeploymentConfigInterface.UpdateDeploymentConfig(newConfig.Namespace, newConfig)
-	if err != nil {
-		glog.V(2).Infof("Error updating deploymentConfig %v", configName)
-		return err
-	}
-
-	return nil
-}
-
-func parseImage(name string) (string, string) {
-	index := strings.LastIndex(name, ":")
-	if index == -1 {
-		return "", ""
-	}
-
-	return name[:index], name[index+1:]
-}
-
-func generateTriggerDetails(triggers []deployapi.DeploymentTriggerImageChangeParams) *deployapi.DeploymentDetails {
-	// Generate the DeploymentCause objects from each DeploymentTriggerImageChangeParams object
-	// Using separate structs to ensure flexibility in the future if these structs need to diverge
+	// Update the deployment config with the trigger that resulted in the new config
 	causes := []*deployapi.DeploymentCause{}
 	for _, trigger := range triggers {
+		repoName := trigger.RepositoryName
+
+		if len(repoName) == 0 {
+			if len(imageRepo.Status.DockerImageRepository) == 0 {
+				// If the trigger relies on a image repo reference, and we don't know what docker repo
+				// it points at, we can't build a cause for the reference yet.
+				continue
+			}
+
+			id, ok := imageRepo.Tags[trigger.Tag]
+			if !ok {
+				// TODO: not really sure what to do here
+			}
+			repoName = fmt.Sprintf("%s:%s", imageRepo.Status.DockerImageRepository, id)
+		}
+
 		causes = append(causes,
 			&deployapi.DeploymentCause{
 				Type: deployapi.DeploymentTriggerOnImageChange,
 				ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
-					RepositoryName: trigger.RepositoryName,
+					RepositoryName: repoName,
 					Tag:            trigger.Tag,
 				},
 			})
 	}
-	return &deployapi.DeploymentDetails{
+	newConfig.Details = &deployapi.DeploymentDetails{
 		Causes: causes,
 	}
+
+	// Persist the new config
+	_, err = c.DeploymentConfigInterface.UpdateDeploymentConfig(newConfig.Namespace, newConfig)
+	if err != nil {
+		glog.V(2).Infof("Error updating deploymentConfig %v", newConfig.Name)
+		return err
+	}
+
+	return nil
 }
