@@ -110,6 +110,12 @@ type MasterConfig struct {
 
 	AdmissionControl admission.Interface
 
+	// true if the system should use pullIfPresent for images (which means updates will not be fetched aggressively)
+	UseLocalImages bool
+
+	// a function that returns the appropriate image to use for a named component
+	ImageFor func(component string) string
+
 	TLS bool
 
 	MasterCertFile string
@@ -605,9 +611,9 @@ func (c *MasterConfig) RunAssetServer() {
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
 func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
-	dockerImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/origin-docker-builder")
-	stiImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/origin-sti-builder")
-	useLocalImages := env("USE_LOCAL_IMAGES", "true") == "true"
+	dockerImage := c.ImageFor("docker-builder")
+	stiImage := c.ImageFor("sti-builder")
+	useLocalImages := c.UseLocalImages
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
@@ -658,8 +664,8 @@ func (c *MasterConfig) RunDeploymentController() {
 			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 			{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
 		},
-		UseLocalImages:        env("USE_LOCAL_IMAGES", "true") == "true",
-		RecreateStrategyImage: env("OPENSHIFT_DEPLOY_RECREATE_IMAGE", "openshift/origin-deployer"),
+		UseLocalImages:        c.UseLocalImages,
+		RecreateStrategyImage: c.ImageFor("deployer"),
 	}
 
 	envvars := clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())
