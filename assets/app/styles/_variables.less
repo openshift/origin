@@ -1,32 +1,51 @@
-@font-path:                                                            "../styles/fonts";
-@fa-font-path:                                                         @font-path;
+@font-path: "../styles/fonts";
+@fa-font-path: @font-path;
 
 
 // Patternfly overrides
-@navbar-pf-bg-color:                                                    @navbar-os-bg-color;
+@navbar-pf-bg-color: @navbar-os-bg-color;
 
 
 // OpenShift Console specific
-@console-panel-color:                                                   #fff;
-@console-text-color-default:                                            ;
-@navbar-os-bg-color:                                                    #34383c;
-@navbar-os-project-bg:                                                  #e9eaec;
-@navbar-os-project-border-color:                                        @sidebar-os-hover-bg;
-@navbar-os-project-font-size:                                           11px;
-@navbar-project-menu-lg:                                                (@sidebar-os-width-lg - 40);
-@navbar-project-menu-md:                                                (@sidebar-os-width-md - 40);
-@navbar-project-menu-sm:                                                (@sidebar-os-width-sm - 40); 
-@sidebar-os-bg:                                                         @navbar-os-project-bg;
-@sidebar-os-drawer:                                                     #e0e2e4;
-@sidebar-os-drawer-box-shadow:                                          inset -3px 0px 3px -3px rgba(0,0,0,0.1);
-@sidebar-os-hover-bg:                                                   #d7d9dc;
-@sidebar-os-transition:                                                 150ms cubic-bezier(0.4, 0, 0.2, 1) all;
-@sidebar-os-width-lg:                                                   480px;
-@sidebar-os-width-md:                                                   380px;
-@sidebar-os-width-sm:                                                   280px;
-@screen-xlg-min:                                                        1600px;
+@console-panel-color: #fff;
+@console-bright-blue: #00a8e1;
+@console-dark-blue: #006e9c;
+@console-text-color-default: @gray-dark;
+@font-size-base: 13px;
+@navbar-os-bg-color: #34383c;
+@navbar-os-label-filter-bg: @navbar-os-project-menu-bg;
+@navbar-os-project-bg: #f1f1f1;
+@navbar-os-project-border-color: darken(@navbar-os-project-bg, 5%);
+@navbar-project-label-color: lighten(@navbar-os-project-menu-color, 10%);
+@navbar-os-project-menu-bg: #fff;
+@navbar-os-project-menu-border: 1px solid @btn-default-border;
+@navbar-os-project-menu-color: #333;
+@navbar-project-menu-lg: (@sidebar-os-width-lg - 40);
+@navbar-project-menu-md: (@sidebar-os-width-md - 40);
+@navbar-project-menu-sm: (@sidebar-os-width-sm - 40); 
+@sidebar-os-bg: @sidebar-os-drawer;
+@sidebar-os-drawer: #fff;
+@sidebar-os-drawer-box-shadow: inset -3px 0px 3px -3px rgba(0,0,0,0.3);
+@sidebar-os-hover-bg: darken(@sidebar-os-bg, 3%);
+@sidebar-os-padding-x: 15px;
+@sidebar-os-padding-y: 10px;
+@sidebar-os-active: @console-bright-blue;
+@sidebar-os-transition: 150ms cubic-bezier(0.4, 0, 0.2, 1) all;
+@sidebar-os-width-lg: 480px;
+@sidebar-os-width-md: 380px;
+@sidebar-os-width-sm: 280px;
+@screen-xlg-min: 1600px;
+
 
 // Bootstrap overrides
-@body-bg:                                                               #F6F6F7;
+@body-bg: #f9f9f9;
+
+@font-size-h1: ceil(@font-size-base * 1.84); // ~24px
+@font-size-h2: ceil(@font-size-base * 1.68); // ~22px
+@font-size-h3: ceil(@font-size-base * 1.31); // ~17px
+@font-size-h4: ceil(@font-size-base * 1.077); // ~14px
+@font-size-h5: @font-size-base; // ~13px
+@font-size-large: ceil(@font-size-base * 1.077); // ~14px
+@font-size-small: ceil(@font-size-base * .93); // ~12px
 
 

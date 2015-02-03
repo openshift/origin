@@ -8,10 +8,13 @@
 // Selectize variable overrides
 @color-top: transparent;
 @color-bottom: transparent;
+@label-filter-default-width: 250px;
+@selectize-active-label-bg: #006e9c;
 @selectize-arrow-size: 0;
-@selectize-border-radius: 2px;
+@selectize-border-radius: 1px;
 @selectize-color-border: @btn-default-border;
 @selectize-color-dropdown-border-top: transparent;
+@selectize-color-item: @console-dark-blue;
 @selectize-color-item-border: @btn-default-border;
 @selectize-padding-x: 10px;
 @selectize-padding-y: 10px;
@@ -24,8 +27,11 @@
 
 // Override selectize remove_button code
 .selectize-control.plugin-remove_button {
-  [data-value] .remove {
-    border-left: 1px solid lighten(@selectize-vertical-gradient-color-start, 18%); //
+  [data-value] {
+    font-size: @font-size-base;
+    .remove {
+      border-left: 1px solid darken(@console-dark-blue, 5%);
+    }
   }
 }
 
@@ -36,6 +42,15 @@
       .selectize-vertical-gradient(@color-top, @color-bottom);
     }
   }
+  &.multi {
+    .selectize-input {
+      [data-value] {
+        text-shadow: 0 1px 0 rgba(0,0,0,0.2);
+        .selectize-border-radius(1px);
+        .selectize-vertical-gradient(@selectize-color-item, @selectize-color-item);
+      }
+    }
+  }
 }
 .selectize-control.single .selectize-input, .selectize-dropdown.single {
   border-color: @btn-default-border;
@@ -44,49 +59,64 @@
 
 // Custom code for label filter
 .filter {
-  .label-filter {
-    background-color: #fff;
-    display: table-cell;
-    padding: 5px 0;
-    min-width: 250px;
-    border: 1px solid @btn-default-border;
-    border-radius: @selectize-border-radius;
-    .selectize-control {
-      display: inline-block;
-      .selectize-input {
-        padding-right: 2px;
-        vertical-align: middle;
-        border: 0;
-        box-shadow: none;
-        &.full {
-          min-width: initial;
-          &:after {
-            border: 0;
+  .navbar-filter-widget {
+    .clearfix();
+    .label-filter {
+      background: @navbar-os-label-filter-bg;
+      float: left;
+      min-width: @label-filter-default-width;
+      min-height: 47px; // match height of project select
+      margin-right: 15px;
+      border: @navbar-os-project-menu-border;
+      border-radius: @selectize-border-radius;
+      .selectize-control {
+        display: inline-block;
+        .selectize-input {
+          vertical-align: middle;
+          padding-bottom: 0px;
+          border: 0;
+          box-shadow: none;
+          font-size: @font-size-large;
+          line-height: @line-height-base;
+          &.full {
+            min-width: initial;
+            &:after {
+              border: 0;
+            }
+          }
+          input {
+            font-size: @font-size-large;
           }
         }
-      }
-      .selectize-dropdown {
-        min-width: 100px;
-        width: auto !important; // overwrite inline width
-        white-space: nowrap;
-        z-index: 9999;
-        margin: 5px 0 0 -1px;
-        .selectize-dropdown-content {
-          .option {
-            &.selected {}
+        .selectize-dropdown {
+          min-width: 100px;
+          width: auto !important; // overwrite inline width
+          white-space: nowrap;
+          z-index: 9999;
+          margin: 6px 0 0 -1px;
+          border: @navbar-os-project-menu-border; 
+          .selectize-dropdown-content {
+            .option {
+              &.selected {}
+            }
+          }
+        }
+        &.label-filter-key {
+          .selectize-input {
+            &.not-full {
+              width: @label-filter-default-width;
+            }
           }
         }
       }
     }
-  }
-  .label-filter-add.btn {
-    margin-right: @selectize-padding-x;
-    opacity: 1;
-    float: right;
-    margin-top: 6px;
-    margin-left: 15px;
-    &.disabled {
-      opacity: .5;
+    .label-filter-add.btn {
+      margin-right: @selectize-padding-x;
+      opacity: 1;
+      margin-top: 8px;
+      &.disabled {
+        opacity: .75;
+      }
     }
   }
 
@@ -94,18 +124,32 @@
     margin-top: 3px;
     .label-filter-active {
       display: block;
+      margin: 2px 0;
       .label {
+        border-radius: 1px;
         display: inline-block;
+        font-weight: normal;
         padding-top: .3em;
+      }
+      .label-filtering-remove-all i.fa.fa-times {
+        margin-left: 3px;
       }
     }
     .label-filter-active-filters {
       display: block;
       .label {
+        background: @selectize-active-label-bg;
         display: inline-block;
+        font-weight: normal;
         padding-bottom: .3em;
         padding-top: .3em;
         margin-right: 3px;
+        max-width: 350px;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        +.label {
+          margin-top:2px;
+        }
       }
     }
   }
@@ -132,6 +176,7 @@
         .label {
           +.label {
             margin-left: 3px;
+            margin-top: 2px;
             margin-right: 0;
           }
         }

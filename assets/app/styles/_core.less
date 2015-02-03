@@ -6,8 +6,8 @@
   background-color: @body-bg;
   .container-main {
     background-color: @body-bg;
-    z-index: 10;
-    width: 100%;  
+    z-index: 5;
+    width: 100%;
     overflow-y: auto;
     position: relative;
     padding-top: 10px;
@@ -47,14 +47,12 @@
   }
 }
 
-
-/* navbar-project */
-
 .console-os .navbar-project {
-  border-bottom: 1px solid @sidebar-os-hover-bg;
-  padding-bottom: 20px;
+  border-bottom: 1px solid @navbar-os-project-border-color; 
+  padding-bottom: 15px;
   position: relative;
   background: @navbar-os-project-bg;
+  min-height: 95px;
   .navbar-project-menu {
     position: relative;
     display: block;
@@ -62,9 +60,32 @@
     margin: 0 20px;
   }
   label.control-label {
+    color: @navbar-project-label-color;
     font-size: 11px;
     font-weight: 400;
     margin: 8px 0 0 0;
+  }
+  .bootstrap-select > .btn {
+    width: 100%;
+    padding: 10px 25px 10px 10px;
+    font-size: @font-size-large;
+    line-height: @line-height-base;
+    color: @navbar-os-project-menu-color;
+    font-weight: 400;
+    background: @navbar-os-project-menu-bg;
+    border: @navbar-os-project-menu-border;
+    .caret {
+      font-size: @font-size-large + 5;
+    }
+  }
+  .dropdown-menu.open {
+    .dropdown-menu.inner.selectpicker {
+      li {
+        a {
+          padding: 5px 10px;
+        }
+      }
+    }
   }
   .navbar-project-search {
     display: inline-block;
@@ -73,23 +94,16 @@
     margin-bottom: 0;
     .form-control {
       height: 47px;
+      margin-bottom: 0;
     }
-  }
-  .bootstrap-select > .btn {
-    width: 100%;
-    padding-right: 25px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    font-size: 15px;
-    color: inherit;
-    font-weight: 400;
   }
 }
 @media (min-width: @screen-sm-min) {
   .console-os .navbar-project {
     .navbar-project-menu {
       display: inline-block;
-      position: absolute;
+      // position: absolute;
+      float: left;
       width: @navbar-project-menu-sm;
     }
     .navbar-search {
@@ -117,4 +131,3 @@
     }
   }
 }
-

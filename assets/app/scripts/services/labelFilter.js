@@ -182,26 +182,26 @@ angular.module('openshiftConsole')
 
     this._labelFilterKeyInput = $('<select>')
       .addClass("label-filter-key")
-      .prop("placeholder", "Label key")
+      .attr("placeholder", "Label key ")
       .appendTo(labelFilterElem);
 
     this._labelFilterOperatorInput = $('<select>')
       .addClass("label-filter-operator")
-      .prop("placeholder", "matching(...)")
+      .attr("placeholder", "matching(...)")
       .hide()
       .appendTo(labelFilterElem);      
 
     this._labelFilterValuesInput = $('<select>')
       .addClass("label-filter-values")
-      .prop("placeholder", "Value(s)")
-      .prop("multiple", true)
+      .attr("placeholder", "Value(s)")
+      .attr("multiple", true)
       .hide()
       .appendTo(labelFilterElem);   
 
     this._labelFilterAddBtn = $('<button>')
-      .addClass("label-filter-add btn disabled")
-      .prop("disabled", true)
-      .appendTo(labelFilterElem)
+      .addClass("label-filter-add btn btn-default btn-lg disabled")
+      .attr("disabled", true)
+      .appendTo(filterInputElement)
       .append(
         $('<i>')
           .addClass("fa fa-plus")
@@ -218,7 +218,7 @@ angular.module('openshiftConsole')
       .appendTo(activeFiltersElement)
       .append(
         $('<a>')
-          .addClass("label-filtering-remove-all label label-success")
+          .addClass("label-filtering-remove-all label label-primary")
           .prop("href", "javascript:;")
           .append(
             $('<i>')

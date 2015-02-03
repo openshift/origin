@@ -5,13 +5,13 @@
 .console-os {
   .wrap {
     .sidebar {
-      background: @navbar-os-project-bg;
+      background: @sidebar-os-bg;
       .sidebar-drawer {}
       .navbar-sidebar {
         .sidebar-header {
-          border: 0;
           padding-bottom: 0;
           margin: 0;
+          display: block;
           &:before {
             content: " ";
             display: table;
@@ -39,11 +39,32 @@
           .box-shadow(none);
         }
         ul.nav-sidenav > li {
-          border-bottom: 1px solid @sidebar-os-hover-bg;
+          border-bottom: 1px solid @navbar-os-project-border-color;
+          &.active {
+            > a {
+              border-bottom: 1px solid @navbar-os-project-border-color;
+              &:after {
+                content: '';
+                width: 4px;
+                height: 100%;
+                left:0;
+                top:0;
+                display: block;
+                position: absolute;
+                background-color: @sidebar-os-active;
+              }
+              .fa {
+                color: @sidebar-os-active;
+              }
+            }
+          }
           > a {
             color: inherit;
             &:hover, &:focus {
               background-color: @sidebar-os-hover-bg;
+            }
+            .fa {
+              color: lighten(@navbar-os-project-menu-color, 50%);
             }
           }
           &.active {
@@ -58,7 +79,7 @@
               > li {
                 > a {
                   &:hover, &:focus {
-                    background-color: @sidebar-os-hover-bg;
+                    background-color: transparent;
                   }
                 }
               }
@@ -85,12 +106,13 @@
       transition:@sidebar-os-transition;
       margin-left: 80px;
       .sidebar {
-        border-right: 1px solid @sidebar-os-hover-bg;
+        border-right: 1px solid @navbar-os-project-border-color;
         position: absolute;
         height: 100%;
         left: 0;
         width: 80px;
         .sidebar-drawer {
+          border-bottom: 0;
           display: block;
           width: 80px; // width when no sidebar-drawer shown
           position: absolute;
@@ -102,15 +124,20 @@
         }
         .navbar-sidebar {
           font-size: 12px;
-          .sidebar-header {}
+          .sidebar-header {
+            display: none;
+          }
           ul.nav-sidenav > li {
             position: initial;
+            &.active > a {
+              border-bottom: 0;
+            }
             > a {
               text-align: center;
-              padding: 15px 10px;
+              padding: @sidebar-os-padding-x @sidebar-os-padding-y;
               .fa {
                 display: inline;
-                font-size: 17px;
+                font-size: 20px;
               }
               span {
                 display: block;
@@ -129,13 +156,6 @@
                 margin-bottom: 20px;
                 > li > a {
                   padding: 10px 0;
-                  &:focus,
-                  &:hover {
-                    padding-left: 15px;
-                    padding-right: 15px;
-                    margin-left: -15px;
-                    margin-right: -15px;
-                  }
                 }
               }
             }
@@ -145,13 +165,19 @@
     }
     &.show-drawer .wrap {
       margin-left: @sidebar-os-width-sm;
-      .sidebar .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
-        display: inline-block;
-        position: absolute;
-        top: 30px;
-        margin-left: 95px;
-        width: 170px;
-      } 
+      .sidebar .navbar-sidebar ul.nav-sidenav > li {
+        &.active a {
+          margin-right: -1px;
+          padding-right: @sidebar-os-padding-x + 1;
+        }
+        .sidenav-secondary {
+          display: inline-block;
+          position: absolute;
+          top: 30px;
+          margin-left: 95px;
+          width: 170px;
+        }
+      }
       .sidebar .sidebar-drawer {
         width: @sidebar-os-width-sm;
         &:before {
@@ -216,7 +242,7 @@
           ul.nav-sidenav > li {
             > a {
               text-align: left;
-              padding: 20px;
+              padding: (@sidebar-os-padding-y * 2);
               .fa {
                 margin-right: 10px;
               }
