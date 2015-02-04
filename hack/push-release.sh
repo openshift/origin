@@ -28,6 +28,7 @@ base_images=(
 )
 images=(
   openshift/origin
+  openshift/origin-pod
   openshift/origin-deployer
   openshift/origin-docker-builder
   openshift/origin-sti-builder

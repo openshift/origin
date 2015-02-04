@@ -20,7 +20,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
@@ -43,6 +42,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	pkgutil "github.com/openshift/origin/pkg/util"
 )
 
@@ -97,6 +97,9 @@ type config struct {
 	// addresses for external clients
 	MasterPublicAddr     flagtypes.Addr
 	KubernetesPublicAddr flagtypes.Addr
+
+	ImageFormat         string
+	LatestReleaseImages bool
 
 	Hostname  string
 	VolumeDir string
@@ -160,6 +163,9 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified, no Kubernetes components will be started.")
 	flag.Var(&cfg.KubernetesPublicAddr, "public-kubernetes", "The Kubernetes server address for use by public clients, if different. (host, host:port, or URL). Defaults to same as --kubernetes.")
 	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
+
+	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format. By default, the master will use the latest release.")
+	flag.BoolVar(&cfg.LatestReleaseImages, "latest-images", false, "If true, attempt to use the latest images for the cluster instead of the latest release.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	flag.StringVar(&cfg.EtcdDir, "etcd-dir", "openshift.local.etcd", "The etcd data directory.")
@@ -252,6 +258,12 @@ func start(cfg *config, args []string) error {
 		}()
 	}
 
+	// define a function for resolving components to names
+	imageResolverFn := func(component string) string {
+		return expandImage(component, cfg.ImageFormat, cfg.LatestReleaseImages)
+	}
+	useLocalImages := env("USE_LOCAL_IMAGES", "false") == "true"
+
 	// the node can reuse an existing client
 	var existingKubeClient *kclient.Client
 
@@ -264,6 +276,8 @@ func start(cfg *config, args []string) error {
 			cfg.NodeList[i] = s
 			glog.Infof("  Node: %s", s)
 		}
+
+		glog.Infof("Using images from %q", imageResolverFn("<component>"))
 
 		if startEtcd {
 			etcdConfig := &etcd.Config{
@@ -330,9 +344,13 @@ func start(cfg *config, args []string) error {
 			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
 			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
 
-			EtcdHelper:                   etcdHelper,
+			EtcdHelper: etcdHelper,
+
 			AdmissionControl:             admit.NewAlwaysAdmit(),
 			MasterAuthorizationNamespace: "master",
+
+			UseLocalImages: useLocalImages,
+			ImageFor:       imageResolverFn,
 		}
 
 		if startKube {
@@ -553,7 +571,7 @@ func start(cfg *config, args []string) error {
 
 			VolumeDir: cfg.VolumeDir,
 
-			NetworkContainerImage: env("KUBERNETES_NETWORK_CONTAINER_IMAGE", kubelet.PodInfraContainerImage),
+			NetworkContainerImage: imageResolverFn("pod"),
 
 			Client: existingKubeClient,
 		}
@@ -672,4 +690,35 @@ func env(key string, defaultValue string) string {
 		return defaultValue
 	}
 	return val
+}
+
+func expandImage(component, defaultValue string, latest bool) string {
+	template := defaultValue
+	if s, ok := imageComponentEnvExpander(component); ok {
+		template = s
+	}
+	value, err := variable.ExpandStrict(template, func(key string) (string, bool) {
+		switch key {
+		case "component":
+			return component, true
+		case "version":
+			if latest {
+				return "latest", true
+			}
+		}
+		return "", false
+	}, variable.Versions)
+	if err != nil {
+		glog.Fatalf("Unable to find an image for %q due to an error processing the format: %v", err)
+	}
+	return value
+}
+
+func imageComponentEnvExpander(key string) (string, bool) {
+	s := strings.Replace(strings.ToUpper(key), "-", "_", -1)
+	val := os.Getenv(fmt.Sprintf("OPENSHIFT_%s_IMAGE", s))
+	if len(val) == 0 {
+		return "", false
+	}
+	return val, true
 }
