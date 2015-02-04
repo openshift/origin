@@ -66,7 +66,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 		}
 
 		printStrategy(deploymentConfig.Template.Strategy, out)
-		printTriggers(deploymentConfig.Triggers, out)
+		printTriggers(deploymentConfig.Namespace, deploymentConfig.Triggers, out)
 		printReplicationController(deploymentConfig.Template.ControllerTemplate, out)
 
 		return nil
@@ -90,7 +90,7 @@ func printStrategy(strategy deployapi.DeploymentStrategy, w io.Writer) {
 	}
 }
 
-func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w io.Writer) {
+func printTriggers(configNamespace string, triggers []deployapi.DeploymentTriggerPolicy, w io.Writer) {
 	if len(triggers) == 0 {
 		fmt.Fprint(w, "No triggers.")
 		return
@@ -103,9 +103,17 @@ func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w io.Writer) {
 		case deployapi.DeploymentTriggerOnConfigChange:
 			fmt.Fprintf(w, "\t\t<no options>\n")
 		case deployapi.DeploymentTriggerOnImageChange:
+			repo := t.ImageChangeParams.RepositoryName
+			if len(t.ImageChangeParams.From.Name) > 0 {
+				namespace := t.ImageChangeParams.From.Namespace
+				if len(namespace) == 0 {
+					namespace = configNamespace
+				}
+				repo = fmt.Sprintf("%s/%s", namespace, t.ImageChangeParams.From.Name)
+			}
 			fmt.Fprintf(w, "\t\tAutomatic:\t%v\n\t\tRepository:\t%s\n\t\tTag:\t%s\n",
 				t.ImageChangeParams.Automatic,
-				t.ImageChangeParams.RepositoryName,
+				repo,
 				t.ImageChangeParams.Tag,
 			)
 		default:

@@ -73,6 +73,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	describe()
 
 	config.Triggers = append(config.Triggers, deployapitest.OkConfigChangeTrigger())
+	config.Triggers = append(config.Triggers, deployapitest.OkImageChangeTriggerNew())
 	describe()
 
 	config.Template.Strategy = deployapitest.OkCustomStrategy()

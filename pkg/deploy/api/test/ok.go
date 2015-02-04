@@ -104,6 +104,23 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 	}
 }
 
+func OkImageChangeTriggerNew() deployapi.DeploymentTriggerPolicy {
+	return deployapi.DeploymentTriggerPolicy{
+		Type: deployapi.DeploymentTriggerOnImageChange,
+		ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
+			Automatic: true,
+			ContainerNames: []string{
+				"container1",
+			},
+			From: kapi.ObjectReference{
+				Namespace: kapi.NamespaceDefault,
+				Name:      "imageRepo",
+			},
+			Tag: "tag1",
+		},
+	}
+}
+
 func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
