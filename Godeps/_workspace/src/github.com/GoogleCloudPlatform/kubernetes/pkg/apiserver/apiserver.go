@@ -23,12 +23,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
-	"reflect"
 	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -55,12 +55,13 @@ type defaultAPIServer struct {
 // as RESTful resources at prefix, serialized by codec, and also includes the support
 // http resources.
 // Note: This method is used only in tests.
-func Handle(storage map[string]RESTStorage, codec runtime.Codec, root string, version string, selfLinker runtime.SelfLinker, admissionControl admission.Interface) http.Handler {
+func Handle(storage map[string]RESTStorage, codec runtime.Codec, root string, version string, selfLinker runtime.SelfLinker, admissionControl admission.Interface, mapper meta.RESTMapper) http.Handler {
 	prefix := root + "/" + version
-	group := NewAPIGroupVersion(storage, codec, prefix, selfLinker, admissionControl)
+	group := NewAPIGroupVersion(storage, codec, prefix, selfLinker, admissionControl, mapper)
 	container := restful.NewContainer()
+	container.Router(restful.CurlyRouter{})
 	mux := container.ServeMux
-	group.InstallREST(container, mux, root, version)
+	group.InstallREST(container, root, version)
 	ws := new(restful.WebService)
 	InstallSupport(mux, ws)
 	container.Add(ws)
@@ -76,6 +77,7 @@ func Handle(storage map[string]RESTStorage, codec runtime.Codec, root string, ve
 // TODO: consider migrating this to go-restful which is a more full-featured version of the same thing.
 type APIGroupVersion struct {
 	handler RESTHandler
+	mapper  meta.RESTMapper
 }
 
 // NewAPIGroupVersion returns an object that will serve a set of REST resources and their
@@ -83,194 +85,27 @@ type APIGroupVersion struct {
 // This is a helper method for registering multiple sets of REST handlers under different
 // prefixes onto a server.
 // TODO: add multitype codec serialization
-func NewAPIGroupVersion(storage map[string]RESTStorage, codec runtime.Codec, canonicalPrefix string, selfLinker runtime.SelfLinker, admissionControl admission.Interface) *APIGroupVersion {
-	return &APIGroupVersion{RESTHandler{
-		storage:          storage,
-		codec:            codec,
-		canonicalPrefix:  canonicalPrefix,
-		selfLinker:       selfLinker,
-		ops:              NewOperations(),
-		admissionControl: admissionControl,
-	}}
-}
-
-// This magic incantation returns *ptrToObject for an arbitrary pointer
-func indirectArbitraryPointer(ptrToObject interface{}) interface{} {
-	return reflect.Indirect(reflect.ValueOf(ptrToObject)).Interface()
-}
-
-func registerResourceHandlers(ws *restful.WebService, version string, path string, storage RESTStorage, h restful.RouteFunction, namespaceScope bool) error {
-	object := storage.New()
-	_, kind, err := api.Scheme.ObjectVersionAndKind(object)
-	if err != nil {
-		return err
+func NewAPIGroupVersion(storage map[string]RESTStorage, codec runtime.Codec, canonicalPrefix string, selfLinker runtime.SelfLinker, admissionControl admission.Interface, mapper meta.RESTMapper) *APIGroupVersion {
+	return &APIGroupVersion{
+		handler: RESTHandler{
+			storage:          storage,
+			codec:            codec,
+			canonicalPrefix:  canonicalPrefix,
+			selfLinker:       selfLinker,
+			ops:              NewOperations(),
+			admissionControl: admissionControl,
+		},
+		mapper: mapper,
 	}
-	versionedPtr, err := api.Scheme.New(version, kind)
-	if err != nil {
-		return err
-	}
-	versionedObject := indirectArbitraryPointer(versionedPtr)
-
-	// See github.com/emicklei/go-restful/blob/master/jsr311.go for routing logic
-	// and status-code behavior
-	if namespaceScope {
-		path = "ns/{namespace}/" + path
-	}
-
-	glog.V(5).Infof("Installing version=/%s, kind=/%s, path=/%s", version, kind, path)
-
-	nameParam := ws.PathParameter("name", "name of the "+kind).DataType("string")
-	namespaceParam := ws.PathParameter("namespace", "object name and auth scope, such as for teams and projects").DataType("string")
-
-	createRoute := ws.POST(path).To(h).
-		Doc("create a " + kind).
-		Operation("create" + kind)
-	addParamIf(createRoute, namespaceParam, namespaceScope)
-	if _, ok := storage.(RESTCreater); ok {
-		ws.Route(createRoute.Reads(versionedObject)) // from the request
-	} else {
-		ws.Route(createRoute.Returns(http.StatusMethodNotAllowed, "creating objects is not supported", nil))
-	}
-
-	listRoute := ws.GET(path).To(h).
-		Doc("list objects of kind " + kind).
-		Operation("list" + kind)
-	addParamIf(listRoute, namespaceParam, namespaceScope)
-	if lister, ok := storage.(RESTLister); ok {
-		list := lister.NewList()
-		_, listKind, err := api.Scheme.ObjectVersionAndKind(list)
-		versionedListPtr, err := api.Scheme.New(version, listKind)
-		if err != nil {
-			return err
-		}
-		versionedList := indirectArbitraryPointer(versionedListPtr)
-		glog.V(5).Infoln("type: ", reflect.TypeOf(versionedList))
-		ws.Route(listRoute.Returns(http.StatusOK, "OK", versionedList))
-	} else {
-		ws.Route(listRoute.Returns(http.StatusMethodNotAllowed, "listing objects is not supported", nil))
-	}
-
-	getRoute := ws.GET(path + "/{name}").To(h).
-		Doc("read the specified " + kind).
-		Operation("read" + kind).
-		Param(nameParam)
-	addParamIf(getRoute, namespaceParam, namespaceScope)
-	if _, ok := storage.(RESTGetter); ok {
-		ws.Route(getRoute.Writes(versionedObject)) // on the response
-	} else {
-		ws.Route(getRoute.Returns(http.StatusMethodNotAllowed, "reading individual objects is not supported", nil))
-	}
-
-	updateRoute := ws.PUT(path + "/{name}").To(h).
-		Doc("update the specified " + kind).
-		Operation("update" + kind).
-		Param(nameParam)
-	addParamIf(updateRoute, namespaceParam, namespaceScope)
-	if _, ok := storage.(RESTUpdater); ok {
-		ws.Route(updateRoute.Reads(versionedObject)) // from the request
-	} else {
-		ws.Route(updateRoute.Returns(http.StatusMethodNotAllowed, "updating objects is not supported", nil))
-	}
-
-	// TODO: Support PATCH
-	deleteRoute := ws.DELETE(path + "/{name}").To(h).
-		Doc("delete the specified " + kind).
-		Operation("delete" + kind).
-		Param(nameParam)
-	addParamIf(deleteRoute, namespaceParam, namespaceScope)
-	if _, ok := storage.(RESTDeleter); ok {
-		ws.Route(deleteRoute)
-	} else {
-		ws.Route(deleteRoute.Returns(http.StatusMethodNotAllowed, "deleting objects is not supported", nil))
-	}
-
-	return nil
-}
-
-// Adds the given param to the given route builder if shouldAdd is true. Does nothing if shouldAdd is false.
-func addParamIf(b *restful.RouteBuilder, parameter *restful.Parameter, shouldAdd bool) *restful.RouteBuilder {
-	if !shouldAdd {
-		return b
-	}
-	return b.Param(parameter)
 }
 
 // InstallREST registers the REST handlers (storage, watch, proxy and redirect) into a restful Container.
 // It is expected that the provided path root prefix will serve all operations. Root MUST NOT end
 // in a slash. A restful WebService is created for the group and version.
-func (g *APIGroupVersion) InstallREST(container *restful.Container, mux Mux, root string, version string) error {
+func (g *APIGroupVersion) InstallREST(container *restful.Container, root string, version string) error {
 	prefix := path.Join(root, version)
-	restHandler := &g.handler
-	strippedHandler := http.StripPrefix(prefix, restHandler)
-	watchHandler := &WatchHandler{
-		storage:         g.handler.storage,
-		codec:           g.handler.codec,
-		canonicalPrefix: g.handler.canonicalPrefix,
-		selfLinker:      g.handler.selfLinker,
-	}
-	proxyHandler := &ProxyHandler{prefix + "/proxy/", g.handler.storage, g.handler.codec}
-	redirectHandler := &RedirectHandler{g.handler.storage, g.handler.codec}
-
-	// Create a new WebService for this APIGroupVersion at the specified path prefix
-	// TODO: Pass in more descriptive documentation
-	ws := new(restful.WebService)
-	ws.Path(prefix)
-	ws.Doc("API at " + root + ", version " + version)
-	// TODO: change to restful.MIME_JSON when we convert YAML->JSON and set content type in client
-	ws.Consumes("*/*")
-	ws.Produces(restful.MIME_JSON)
-	// TODO: require json on input
-	//ws.Consumes(restful.MIME_JSON)
-	ws.ApiVersion(version)
-
-	// TODO: add scheme to APIGroupVersion rather than using api.Scheme
-
-	// TODO: #2057: Return API resources on "/".
-
-	// TODO: Add status documentation using Returns()
-	// Errors (see api/errors/errors.go as well as go-restful router):
-	// http.StatusNotFound, http.StatusMethodNotAllowed,
-	// http.StatusUnsupportedMediaType, http.StatusNotAcceptable,
-	// http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden,
-	// http.StatusRequestTimeout, http.StatusConflict, http.StatusPreconditionFailed,
-	// 422 (StatusUnprocessableEntity), http.StatusInternalServerError,
-	// http.StatusServiceUnavailable
-	// and api error codes
-	// Note that if we specify a versioned Status object here, we may need to
-	// create one for the tests, also
-	// Success:
-	// http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent
-	//
-	// test/integration/auth_test.go is currently the most comprehensive status code test
-
-	// TODO: eliminate all the restful wrappers
-	// TODO: create a separate handler per verb
-	h := func(req *restful.Request, resp *restful.Response) {
-		strippedHandler.ServeHTTP(resp.ResponseWriter, req.Request)
-	}
-
-	registrationErrors := make([]error, 0)
-
-	for path, storage := range g.handler.storage {
-		// register legacy patterns where namespace is optional in path
-		if err := registerResourceHandlers(ws, version, path, storage, h, false); err != nil {
-			registrationErrors = append(registrationErrors, err)
-		}
-		// register pattern where namespace is required in path
-		if err := registerResourceHandlers(ws, version, path, storage, h, true); err != nil {
-			registrationErrors = append(registrationErrors, err)
-		}
-	}
-
-	// TODO: port the rest of these. Sadly, if we don't, we'll have inconsistent
-	// API behavior, as well as lack of documentation
-	// Note: update GetAttribs() when adding a handler.
-	mux.Handle(prefix+"/watch/", http.StripPrefix(prefix+"/watch/", watchHandler))
-	mux.Handle(prefix+"/proxy/", http.StripPrefix(prefix+"/proxy/", proxyHandler))
-	mux.Handle(prefix+"/redirect/", http.StripPrefix(prefix+"/redirect/", redirectHandler))
-
+	ws, registrationErrors := (&APIInstaller{prefix, version, &g.handler, g.mapper}).Install()
 	container.Add(ws)
-
 	return errors.NewAggregate(registrationErrors)
 }
 

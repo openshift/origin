@@ -44,6 +44,12 @@ func SplitOpenShiftPullSpec(spec string) (registry, namespace, name, tag string,
 	}
 }
 
+// IsPullSpec returns true if the provided string appears to be a valid Docker pull spec.
+func IsPullSpec(spec string) bool {
+	_, _, _, _, err := SplitDockerPullSpec(spec)
+	return err == nil
+}
+
 // JoinDockerPullSpec turns a set of components of a Docker pull specification into a single
 // string. Attempts to match as closely as possible the Docker spec up to 1.3. Future API
 // revisions may change the pull syntax.

@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -184,6 +186,7 @@ func (dc *DeploymentController) makeDeploymentPod(deployment *kapi.ReplicationCo
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: fmt.Sprintf("deploy-%s-", deployment.Name),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},

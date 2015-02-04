@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/auth/group"
@@ -344,6 +345,8 @@ func start(cfg *config, args []string) error {
 			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
 			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
 
+			CORSAllowedOrigins: cfg.CORSAllowedOrigins,
+
 			EtcdHelper: etcdHelper,
 
 			AdmissionControl:             admit.NewAlwaysAdmit(),
@@ -371,6 +374,11 @@ func start(cfg *config, args []string) error {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
 		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator))
+		// Allow token as access_token param for WebSockets
+		// TODO: make the param name configurable
+		// TODO: limit this authenticator to watch methods, if possible
+		// TODO: prevent access_token param from getting logged, if possible
+		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator))
 
 		var roots *x509.CertPool
 		if osmaster.TLS {
@@ -507,9 +515,20 @@ func start(cfg *config, args []string) error {
 
 		if startKube {
 			portalNet := net.IPNet(cfg.PortalNet)
+			masterIP := net.ParseIP(cfg.MasterAddr.Host)
+			if masterIP == nil {
+				addrs, err := net.LookupIP(cfg.MasterAddr.Host)
+				if err != nil {
+					glog.Fatalf("Unable to find an IP for %q - specify an IP directly? %v", cfg.MasterAddr.Host, err)
+				}
+				if len(addrs) == 0 {
+					glog.Fatalf("Unable to find an IP for %q - specify an IP directly?", cfg.MasterAddr.Host)
+				}
+				masterIP = addrs[0]
+			}
 
 			kmaster := &kubernetes.MasterConfig{
-				MasterHost:       cfg.MasterAddr.Host,
+				MasterIP:         masterIP,
 				MasterPort:       cfg.MasterAddr.Port,
 				NodeHosts:        cfg.NodeList,
 				PortalNet:        &portalNet,

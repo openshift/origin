@@ -102,7 +102,50 @@ func init() {
 			return interfaces, true
 		},
 	)
-	originMapper.Add(api.Scheme, true, Versions...)
+
+	// list of versions we support on the server
+	versions := Versions
+
+	// versions that used mixed case URL formats
+	versionMixedCase := map[string]bool{
+		"v1beta1": true,
+	}
+
+	// backwards compatibility, prior to v1beta2, we identified the namespace as a query parameter
+	versionToNamespaceScope := map[string]kmeta.RESTScope{
+		"v1beta1": kmeta.RESTScopeNamespaceLegacy,
+	}
+
+	// the list of kinds that are scoped at the root of the api hierarchy
+	// if a kind is not enumerated here, it is assumed to have a namespace scope
+	kindToRootScope := map[string]bool{
+		"Project": true,
+
+		"User":                true,
+		"Identity":            true,
+		"UserIdentityMapping": true,
+
+		"OAuthAccessToken":         true,
+		"OAuthAuthorizeToken":      true,
+		"OAuthClient":              true,
+		"OAuthClientAuthorization": true,
+	}
+
+	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
+	for _, version := range versions {
+		for kind := range api.Scheme.KnownTypes(version) {
+			mixedCase, found := versionMixedCase[version]
+			if !found {
+				mixedCase = false
+			}
+			scope := versionToNamespaceScope[version]
+			_, found = kindToRootScope[kind]
+			if found {
+				scope = kmeta.RESTScopeRoot
+			}
+			originMapper.Add(scope, kind, version, mixedCase)
+		}
+	}
 
 	// For Origin we use MultiRESTMapper that handles both Origin and Kubernetes
 	// objects

@@ -1,0 +1,39 @@
+{
+    "kind": "ImageRepositoryList",
+    "apiVersion": "v1beta1",
+    "items": [
+        {
+            "apiVersion": "v1beta1",
+            "dockerImageRepository": "openshift/ruby-20-centos",
+            "kind": "ImageRepository",
+            "metadata": {
+                "name": "ruby-20-centos"
+            },
+            "tags": {
+                "latest": "latest"
+            }
+        },
+        {
+            "apiVersion": "v1beta1",
+            "dockerImageRepository": "openshift/nodejs-0-10-centos",
+            "kind": "ImageRepository",
+            "metadata": {
+                "name": "nodejs-0-10-centos"
+            },
+            "tags": {
+                "latest": "latest"
+            }
+        },
+        {
+            "apiVersion": "v1beta1",
+            "dockerImageRepository": "openshift/wildfly-8-centos",
+            "kind": "ImageRepository",
+            "metadata": {
+                "name": "wildfly-8-centos"
+            },
+            "tags": {
+                "latest": "latest"
+            }
+        }
+    ]
+}

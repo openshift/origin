@@ -209,9 +209,9 @@ the present working directory is the same directory as this README.
 
 14. Trigger an initial build of your application
  * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository from step 10.
- * Otherwise you can simulate the webhook invocation by running:
+ * Otherwise you can request a new build by running:
 
-        $ curl -X POST https://localhost:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
+        $ osc start-build ruby-sample-build
 
 15. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 

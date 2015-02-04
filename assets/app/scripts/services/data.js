@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-.factory('DataService', ['$http', '$rootScope', function($http, $rootScope) {
+.factory('DataService', function($http, $ws, $rootScope, $q) {
   function Data(array) {
     // TODO just need to check for id until v1beta3
     this._data = {};
@@ -158,43 +158,76 @@ angular.module('openshiftConsole')
 // type:      API type (e.g. "pods")
 // name:      API name, the unique name for the object 
 // context:   API context (e.g. {project: "..."})
-// callback:  function to be called with the requested object,
-//            parameters passed to the callback:
-//            object: the requested object or an error if the object does not exist
-// opts:      options (currently none, placeholder)
-  DataService.prototype.get = function(type, name, context, callback, opts) {
-    if (this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
+// opts:      force - always request (default is false)
+//            http - options to pass to the inner $http call
+  DataService.prototype.get = function(type, name, context, opts) {
+    opts = opts || {};
+
+    var force = !!opts.force;
+    delete opts.force;
+
+    var deferred = $q.defer();
+
+    if (!force && this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
       // TODO can take out the id bit once v1beta3 is there
       var obj = this._data(type, context).by('metadata.name')[name];
       if (obj) {
-        callback(obj);
+        $rootScope.$apply(function(){
+          deferred.resolve(obj);
+        });
       }
       else {
-        // TODO
-        // callback(simulation of API object not found error?)
+        $rootScope.$apply(function(){
+          // simulation of API object not found
+          deferred.reject({
+          	data: {}, 
+          	status: 404, 
+          	headers: function() { return null }, 
+          	config: {}
+          });
+        });
       }
     }
     else {
       if (context.projectPromise && type !== "projects") {
         var self = this;
         context.projectPromise.done(function(project) {
-          $http({
+          $http(angular.extend({
             method: 'GET',
             url: self._urlForType(type, name, context, false, {namespace: project.metadata.name})
-          }).success(function(data, status, headerFunc, config, statusText) {
-            callback(data);
+          }, opts.http || {}))
+          .success(function(data, status, headerFunc, config, statusText) {
+            deferred.resolve(data);
+          })
+          .error(function(data, status, headers, config) {
+            deferred.reject({
+              data: data,
+              status: status,
+              headers: headers,
+              config: config
+            });
           });
         });
       }
       else {
-        $http({
+        $http(angular.extend({
           method: 'GET',
           url: this._urlForType(type, name, context)
-        }).success(function(data, status, headerFunc, config, statusText) {
-          callback(data);
+        }, opts.http || {}))
+        .success(function(data, status, headerFunc, config, statusText) {
+          deferred.resolve(data);
+        })
+        .error(function(data, status, headers, config) {
+          deferred.reject({
+            data: data, 
+            status: status, 
+            headers: headers, 
+            config: config
+          });
         });
       }
     }
+    return deferred.promise;
   };
 
 // type:      API type (e.g. "pods")
@@ -429,27 +462,36 @@ angular.module('openshiftConsole')
     // send a subscription request to for each type
 
     // Only listen for updates if websockets are available
-    if (WebSocket) {
+    if ($ws.available()) {
+      var self = this;
       var params = {};
       if (resourceVersion) {
         params.resourceVersion = resourceVersion;
       }
       if (context.projectPromise && type !== "projects") {
-        context.projectPromise.done($.proxy(function(project) {
+        context.projectPromise.done(function(project) {
           params.namespace = project.metadata.name;
-          var wsUrl = this._urlForType(type, null, context, true, params);
-          var ws = new WebSocket(wsUrl);
-          this._watchWebsockets(type, context, ws);
-          ws.onclose = $.proxy(this, "_watchOpOnClose", type, context);
-          ws.onmessage = $.proxy(this, "_watchOpOnMessage", type, context);
-        }, this));
+          $ws({
+            method: "WATCH",
+            url: self._urlForType(type, null, context, true, params),
+            onclose: $.proxy(self, "_watchOpOnClose", type, context),
+            onmessage: $.proxy(self, "_watchOpOnMessage", type, context)
+          }).then(function(ws) {
+            console.log("Watching", ws);
+            self._watchWebsockets(type, context, ws);
+          });
+        });
       }
       else {
-        var wsUrl = this._urlForType(type, null, context, true, params);
-        var ws = new WebSocket(wsUrl);
-        this._watchWebsockets(type, context, ws);
-        ws.onclose = $.proxy(this, "_watchOpOnClose", type, context);
-        ws.onmessage = $.proxy(this, "_watchOpOnMessage", type, context);
+        $ws({
+          method: "WATCH",
+          url: self._urlForType(type, null, context, true, params),
+          onclose: $.proxy(self, "_watchOpOnClose", type, context),
+          onmessage: $.proxy(self, "_watchOpOnMessage", type, context)
+        }).then(function(ws){
+          console.log("Watching", ws);
+          self._watchWebsockets(type, context, ws);
+        });
       }
     }
   };
@@ -509,6 +551,7 @@ angular.module('openshiftConsole')
     deploymentConfigs : apicfg.openshift,
     images : apicfg.openshift,
     projects : apicfg.openshift,
+    users: apicfg.openshift,
     pods : apicfg.k8s,
     services : apicfg.k8s,
     replicationControllers: apicfg.k8s
@@ -547,4 +590,4 @@ angular.module('openshiftConsole')
   };
 
   return new DataService();
-}]);
+});

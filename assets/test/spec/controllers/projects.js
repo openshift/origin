@@ -25,15 +25,27 @@ describe('Controller: ProjectsController', function () {
     });
   }));
 
+  angular.module('openshiftConsole').config(function(AuthServiceProvider) {
+    AuthServiceProvider.LoginService('RedirectLoginService');
+    AuthServiceProvider.UserStore('MemoryUserStore');
+  });
+
   // load the controller's module
   beforeEach(module('openshiftConsole'));
 
   var ProjectsController,
-    scope;
+    scope,
+    timeout;
 
   // Initialize the controller and a mock scope
-  beforeEach(inject(function ($controller, $rootScope) {
+  beforeEach(inject(function ($controller, $timeout, $rootScope, MemoryUserStore) {
+    // Set up a stub user
+    MemoryUserStore.setToken("myToken");
+    MemoryUserStore.setUser({metadata: {name: "My User"}});
+
     scope = $rootScope.$new();
+    timeout = $timeout;
+
     ProjectsController = $controller('ProjectsController', {
       $scope: scope,
       DataService: {
@@ -44,6 +56,13 @@ describe('Controller: ProjectsController', function () {
       }
     });
   }));
+
+  it('should set the user', function () {
+    // Flush async withUser and DataService calls
+    timeout.flush();
+    expect(scope.user).toBeDefined();
+    expect(scope.user).not.toBe(null);
+  });
 
   it('should create the empty project list', function () {
     expect(scope.projects).toBeDefined();

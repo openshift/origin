@@ -76,9 +76,9 @@ OS_PID=$!
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${CERT_DIR}/admin/root.crt"
 fi
-wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.2 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.2 60
+wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
 # Set KUBERNETES_MASTER for osc
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
@@ -100,8 +100,42 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 [ "$(openshift ex)" ]
 [ "$(openshift ex config 2>&1)" ]
 [ "$(openshift ex tokens)" ]
+[ "$(openshift ex policy  2>&1)" ]
 [ "$(openshift kubectl)" ]
 [ "$(openshift kube 2>&1)" ]
+
+# help for root commands must be consistent
+[ "$(openshift | grep 'OpenShift for Admins')" ]
+[ "$(osc | grep 'OpenShift Client')" ]
+[ "$(openshift cli | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl | grep 'OpenShift Client')" ]
+
+# help for root commands with --help flag must be consistent
+[ "$(openshift --help 2>&1 | grep 'OpenShift for Admins')" ]
+[ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl --help 2>&1 | grep 'OpenShift Client')" ]
+
+# help for root commands through help command must be consistent
+[ "$(openshift help cli 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift help kubectl 2>&1 | grep 'OpenShift Client')" ]
+
+# help for given command with --help flag must be consistent
+[ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift start --help 2>&1 | grep 'Start an OpenShift server')" ]
+
+# help for given command through help command must be consistent
+[ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help start 2>&1 | grep 'Start an OpenShift server')" ]
+
+# runnable commands with required flags must error consistently
+[ "$(osc get 2>&1 | grep 'you must provide one or more resources')" ]
+[ "$(openshift cli get 2>&1 | grep 'you must provide one or more resources')" ]
+[ "$(openshift kubectl get 2>&1 | grep 'you must provide one or more resources')" ]
 
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
@@ -128,6 +162,17 @@ osc apply -f examples/sample-app/docker-registry-config.json
 [ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
 osc delete -f examples/sample-app/docker-registry-config.json
 osc delete imageRepositories test
+[ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
+osc create -f examples/image-repositories/image-repositories.json
+[ -n "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories nodejs-0-10-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
+osc delete imageRepositories ruby-20-centos
+osc delete imageRepositories nodejs-0-10-centos
+osc delete imageRepositories wildfly-8-centos
+[ -z "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories nodejs-0-10-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
 echo "imageRepositories: ok"
 
 osc create -f test/integration/fixtures/test-image-repository.json
@@ -168,3 +213,11 @@ osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 
 osc get minions,pods
+
+openshift ex policy add-group cluster-admin system:unauthenticated
+openshift ex policy remove-group cluster-admin system:unauthenticated
+openshift ex policy remove-group-from-project system:unauthenticated
+openshift ex policy add-user cluster-admin system:no-user
+openshift ex policy remove-user cluster-admin system:no-user
+openshift ex policy remove-user-from-project system:no-user
+echo "ex policy: ok"

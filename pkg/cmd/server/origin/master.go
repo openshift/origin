@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -110,7 +111,7 @@ type MasterConfig struct {
 
 	AdmissionControl admission.Interface
 
-	// true if the system should use pullIfPresent for images (which means updates will not be fetched aggressively)
+	// true if the system should use pullIfNotPresent for images (which means updates will not be fetched aggressively)
 	UseLocalImages bool
 
 	// a function that returns the appropriate image to use for a named component
@@ -297,7 +298,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	admissionControl := admit.NewAlwaysAdmit()
 
-	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl).InstallREST(container, container.ServeMux, OpenShiftAPIPrefix, "v1beta1"); err != nil {
+	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl, latest.RESTMapper).InstallREST(container, OpenShiftAPIPrefix, "v1beta1"); err != nil {
 		glog.Fatalf("Unable to initialize API: %v", err)
 	}
 
@@ -316,15 +317,15 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			routes := svc.Routes()
 			for i := range routes {
 				route := &routes[i]
-				if route.Method == "GET" && (route.Path == OpenShiftAPIPrefixV1Beta1+"/ns/{namespace}/users/{name}" || route.Path == OpenShiftAPIPrefixV1Beta1+"/users/{name}") {
+				if route.Method == "GET" && (route.Path == OpenShiftAPIPrefixV1Beta1+"/users/{name}") {
 					route.Filters = append(route.Filters, filter)
 					userRoutesChanged++
 				}
 			}
 		}
 	}
-	if userRoutesChanged != 2 {
-		glog.Fatalf("Could not find both user routes to install the current user filter.")
+	if userRoutesChanged != 1 {
+		glog.Fatalf("Could not find user route to install the current user filter.")
 	}
 	if root == nil {
 		root = new(restful.WebService)
@@ -398,20 +399,16 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	swagger.RegisterSwaggerService(swaggerConfig, open)
 	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
 
-	// copy
+	handler = open
 
 	// add CORS support
-	if len(c.CORSAllowedOrigins) != 0 {
-		open.Filter(restful.CrossOriginResourceSharing{
-			AllowedHeaders: []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "X-Requested-With", "If-Modified-Since"},
-			AllowedDomains: c.CORSAllowedOrigins,
-			AllowedMethods: []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
-		}.Filter)
+	if origins := c.ensureCORSAllowedOrigins(); len(origins) != 0 {
+		handler = apiserver.CORS(handler, origins, nil, nil, "true")
 	}
 
 	server := &http.Server{
 		Addr:           c.MasterBindAddr,
-		Handler:        open,
+		Handler:        handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
@@ -550,6 +547,7 @@ func (c *MasterConfig) RunAssetServer() {
 		KubernetesAddr:    k8sURL.Host,
 		KubernetesPrefix:  "/api",
 		OAuthAuthorizeURL: OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthRedirectBase: c.AssetPublicAddr,
 		OAuthClientID:     OpenShiftWebConsoleClientID,
 	}
 
@@ -702,6 +700,19 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	factory := deploycontrollerfactory.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
+// regexes, or exits if it cannot.
+func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
+	if len(c.CORSAllowedOrigins) == 0 {
+		return []*regexp.Regexp{}
+	}
+	allowedOriginRegexps, err := util.CompileRegexps(util.StringList(c.CORSAllowedOrigins))
+	if err != nil {
+		glog.Fatalf("Invalid --cors-allowed-origins: %v", err)
+	}
+	return allowedOriginRegexps
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version

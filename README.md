@@ -110,8 +110,6 @@ You can see some other examples of using Kubernetes at a lower level - stay tune
 
 * [Kubernetes walkthrough](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/walkthrough)
 * [Kubernetes guestbook](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/guestbook)
-* [OpenShift guestbook template](https://github.com/openshift/origin/blob/master/examples/guestbook) is an example of how entire applications can be packaged together.
-
 
 ### Troubleshooting
 
@@ -176,10 +174,6 @@ FAQ
     most of that work upstream, with integration and final packaging occurring in OpenShift.  As we
     iterate through the next few months, you'll see this repository focus more on integration and
     plugins, with more and more features becoming part of Kubernetes.
-
-    OpenShift tracks the Kubernetes upstream at
-    [github.com/openshift/kubernetes](https://github.com/openshift/kubernetes).  See the wiki in
-    that project for more on how we manage the process of integrating prototyped features.
 
 2. What about [geard](https://github.com/openshift/geard)?
 

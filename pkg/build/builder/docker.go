@@ -141,6 +141,10 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	fileStat, err := os.Lstat(dockerfilePath)
+	if err != nil {
+		return err
+	}
+
 	filePerm := fileStat.Mode()
 
 	fileData, err := ioutil.ReadFile(dockerfilePath)
