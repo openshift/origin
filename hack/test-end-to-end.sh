@@ -164,23 +164,25 @@ OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CA_BUNDLE="${CERT_DIR}/master/root.crt"
+  export CURL_CERT="${CERT_DIR}/admin/cert.crt"
+  export CURL_KEY="${CERT_DIR}/admin/key.key"
 fi
 
 wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "[INFO] apiserver: " 0.5 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "[INFO] apiserver(minions): " 0.2 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80        
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
 # Set KUBERNETES_MASTER for osc
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 if [[ "${API_SCHEME}" == "https" ]]; then
-	# Read client cert data in to send to containerized components
-	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
+  # Read client cert data in to send to containerized components
+  sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
 
-	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
-	sudo chmod -R a+rwX "${CERT_DIR}/admin/"
-	export HOME="${CERT_DIR}/admin"
-	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
-	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
+  # Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
+  sudo chmod -R a+rwX "${CERT_DIR}/admin/"
+  export HOME="${CERT_DIR}/admin"
+  export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
+  echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 fi
 
 # create test project so that this shows up in the console
@@ -244,7 +246,7 @@ wait_for_app "test"
 if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
     echo "[INFO] Installing router with master url of ${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT} and starting pod..."
     echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
-    "${OS_ROOT}/hack/install-router.sh" "router1" "${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT}"
+    CERT_DIR="${CERT_DIR}/openshift-client" "${OS_ROOT}/hack/install-router.sh" "router1" "${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT}"
     wait_for_command "osc get pods | grep router1 | grep -i Running" $((5*TIME_MIN))
 
     echo "[INFO] Validating routed app response..."

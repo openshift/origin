@@ -29,6 +29,14 @@
                             "value": "${OPENSHIFT_CA_DATA}"
                         },
                         {
+                            "name": "OPENSHIFT_KEY_DATA",
+                            "value": "${OPENSHIFT_KEY_DATA}"
+                        },
+                        {
+                            "name": "OPENSHIFT_CERT_DATA",
+                            "value": "${OPENSHIFT_CERT_DATA}"
+                        },
+                        {
                             "name": "OPENSHIFT_INSECURE",
                             "value": "${OPENSHIFT_INSECURE}"
                         }

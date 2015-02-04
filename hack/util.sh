@@ -92,9 +92,19 @@ function wait_for_url {
   wait=${3:-0.2}
   times=${4:-10}
 
+  CURL_CERT=${CURL_CERT:-}
+  CURL_KEY=${CURL_KEY:-}
+  clientcert_args=""
+
+  if [ -n "${CURL_CERT}" ]; then
+   if [ -n "${CURL_KEY}" ]; then
+     clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY}"
+   fi
+  fi
+
   set +e
   for i in $(seq 1 $times); do
-    out=$(curl -fs $url 2>/dev/null)
+    out=$(curl ${clientcert_args} -fs $url 2>/dev/null)
     if [ $? -eq 0 ]; then
       set -e
       echo ${prefix}${out}
@@ -103,7 +113,7 @@ function wait_for_url {
     sleep $wait
   done
   echo "ERROR: gave up waiting for $url"
-  curl $url
+  curl ${clientcert_args} $url
   set -e
   return 1
 }

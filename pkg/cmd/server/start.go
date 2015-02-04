@@ -428,21 +428,21 @@ func start(cfg *config, args []string) error {
 			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
 
 			// Openshift client
-			if osmaster.OSClientConfig, err = ca.MakeClientConfig("openshift-client", osClientConfigTemplate); err != nil {
+			if osmaster.OSClientConfig, err = ca.MakeClientConfig("system", "openshift-client", nil, osClientConfigTemplate); err != nil {
 				return err
 			}
 			// Openshift deployer client
-			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("openshift-deployer", osClientConfigTemplate); err != nil {
+			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("system", "openshift-deployer", nil, osClientConfigTemplate); err != nil {
 				return err
 			}
 			// Admin config (creates files on disk for osc)
-			if _, err = ca.MakeClientConfig("admin", osClientConfigTemplate); err != nil {
+			if _, err = ca.MakeClientConfig("system", "admin", nil, osClientConfigTemplate); err != nil {
 				return err
 			}
 
 			// If we're running our own Kubernetes, build client credentials
 			if startKube {
-				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", osmaster.KubeClientConfig); err != nil {
+				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("system", "kube-client", nil, osmaster.KubeClientConfig); err != nil {
 					return err
 				}
 			}

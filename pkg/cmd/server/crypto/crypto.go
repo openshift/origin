@@ -350,7 +350,7 @@ func (ca *CA) MakeServerCert(name string, hostnames []string) (*TLSCertificateCo
 // The generated certificate has the following attributes:
 //	CommonName: username
 //	ExtKeyUsage: ExtKeyUsageClientAuth
-func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclient.Config, error) {
+func (ca *CA) MakeClientConfig(provider, username string, groups []string, defaults kclient.Config) (kclient.Config, error) {
 	clientDir := filepath.Join(ca.Dir, username)
 	kubeConfig := filepath.Join(clientDir, ".kubeconfig")
 
@@ -371,7 +371,7 @@ func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclien
 
 	// Create cert for system components to use to talk to the API
 	clientPublicKey, clientPrivateKey, _ := NewKeyPair()
-	clientTemplate, _ := newClientCertificateTemplate(pkix.Name{CommonName: username})
+	clientTemplate, _ := newClientCertificateTemplate(pkix.Name{CommonName: provider + ":" + username})
 	clientCrt, _ := ca.signCertificate(clientTemplate, clientPublicKey)
 
 	caData, err := encodeCertificates(ca.Config.Roots...)
