@@ -298,7 +298,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	admissionControl := admit.NewAlwaysAdmit()
 
-	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl).InstallREST(container, container.ServeMux, OpenShiftAPIPrefix, "v1beta1"); err != nil {
+	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl, latest.RESTMapper).InstallREST(container, OpenShiftAPIPrefix, "v1beta1"); err != nil {
 		glog.Fatalf("Unable to initialize API: %v", err)
 	}
 
@@ -317,15 +317,15 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			routes := svc.Routes()
 			for i := range routes {
 				route := &routes[i]
-				if route.Method == "GET" && (route.Path == OpenShiftAPIPrefixV1Beta1+"/ns/{namespace}/users/{name}" || route.Path == OpenShiftAPIPrefixV1Beta1+"/users/{name}") {
+				if route.Method == "GET" && (route.Path == OpenShiftAPIPrefixV1Beta1+"/users/{name}") {
 					route.Filters = append(route.Filters, filter)
 					userRoutesChanged++
 				}
 			}
 		}
 	}
-	if userRoutesChanged != 2 {
-		glog.Fatalf("Could not find both user routes to install the current user filter.")
+	if userRoutesChanged != 1 {
+		glog.Fatalf("Could not find user route to install the current user filter.")
 	}
 	if root == nil {
 		root = new(restful.WebService)

@@ -18,7 +18,6 @@ package controller
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"reflect"
 	"strings"
@@ -26,7 +25,6 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/probe"
@@ -35,7 +33,9 @@ import (
 )
 
 var (
-	ErrRegistration = errors.New("unable to register all nodes.")
+	ErrRegistration   = errors.New("unable to register all nodes.")
+	ErrQueryIPAddress = errors.New("unable to query IP address.")
+	ErrCloudInstance  = errors.New("cloud provider doesn't support instances.")
 )
 
 type NodeController struct {
@@ -81,12 +81,16 @@ func (s *NodeController) Run(period time.Duration, retryCount int) {
 	} else {
 		nodes, err = s.StaticNodes()
 		if err != nil {
-			glog.Errorf("Error loading initial static nodes")
+			glog.Errorf("Error loading initial static nodes: %v", err)
 		}
 	}
 	nodes = s.DoChecks(nodes)
-	if err := s.RegisterNodes(nodes, retryCount, period); err != nil {
-		glog.Errorf("Error registrying node list: %+v", nodes)
+	nodes, err = s.PopulateIPs(nodes)
+	if err != nil {
+		glog.Errorf("Error getting nodes ips: %v", err)
+	}
+	if err = s.RegisterNodes(nodes, retryCount, period); err != nil {
+		glog.Errorf("Error registrying node list %+v: %v", nodes, err)
 	}
 
 	// Start syncing node list from cloudprovider.
@@ -109,20 +113,21 @@ func (s *NodeController) Run(period time.Duration, retryCount int) {
 // RegisterNodes registers the given list of nodes, it keeps retrying for `retryCount` times.
 func (s *NodeController) RegisterNodes(nodes *api.NodeList, retryCount int, retryInterval time.Duration) error {
 	registered := util.NewStringSet()
+	nodes = s.canonicalizeName(nodes)
 	for i := 0; i < retryCount; i++ {
 		for _, node := range nodes.Items {
 			if registered.Has(node.Name) {
 				continue
 			}
 			_, err := s.kubeClient.Nodes().Create(&node)
-			if err == nil || apierrors.IsAlreadyExists(err) {
+			if err == nil {
 				registered.Insert(node.Name)
-				glog.V(2).Infof("Registered node in registry: %s", node.Name)
+				glog.Infof("Registered node in registry: %s", node.Name)
 			} else {
 				glog.Errorf("Error registrying node %s, retrying: %s", node.Name, err)
 			}
 			if registered.Len() == len(nodes.Items) {
-				glog.V(4).Infof("Successfully Registered all nodes")
+				glog.Infof("Successfully Registered all nodes")
 				return nil
 			}
 		}
@@ -185,6 +190,10 @@ func (s *NodeController) SyncNodeStatus() error {
 		oldNodes[node.Name] = node
 	}
 	nodes = s.DoChecks(nodes)
+	nodes, err = s.PopulateIPs(nodes)
+	if err != nil {
+		return err
+	}
 	for _, node := range nodes.Items {
 		if reflect.DeepEqual(node, oldNodes[node.Name]) {
 			glog.V(2).Infof("skip updating node %v", node.Name)
@@ -197,6 +206,43 @@ func (s *NodeController) SyncNodeStatus() error {
 		}
 	}
 	return nil
+}
+
+// PopulateIPs queries IPs for given list of nodes.
+func (s *NodeController) PopulateIPs(nodes *api.NodeList) (*api.NodeList, error) {
+	if s.isRunningCloudProvider() {
+		instances, ok := s.cloud.Instances()
+		if !ok {
+			return nodes, ErrCloudInstance
+		}
+		for i := range nodes.Items {
+			node := &nodes.Items[i]
+			hostIP, err := instances.IPAddress(node.Name)
+			if err != nil {
+				glog.Errorf("error getting instance ip address for %s: %v", node.Name, err)
+			} else {
+				node.Status.HostIP = hostIP.String()
+			}
+		}
+	} else {
+		for i := range nodes.Items {
+			node := &nodes.Items[i]
+			addr := net.ParseIP(node.Name)
+			if addr != nil {
+				node.Status.HostIP = node.Name
+			} else {
+				addrs, err := net.LookupIP(node.Name)
+				if err != nil {
+					glog.Errorf("Can't get ip address of node %s: %v", node.Name, err)
+				} else if len(addrs) == 0 {
+					glog.Errorf("No ip address for node %v", node.Name)
+				} else {
+					node.Status.HostIP = addrs[0].String()
+				}
+			}
+		}
+	}
+	return nodes, nil
 }
 
 // DoChecks performs health checking for given list of nodes.
@@ -244,21 +290,8 @@ func (s *NodeController) StaticNodes() (*api.NodeList, error) {
 	result := &api.NodeList{}
 	for _, nodeID := range s.nodes {
 		node := api.Node{
-			ObjectMeta: api.ObjectMeta{Name: strings.ToLower(nodeID)},
+			ObjectMeta: api.ObjectMeta{Name: nodeID},
 			Spec:       api.NodeSpec{Capacity: s.staticResources.Capacity},
-		}
-		addr := net.ParseIP(nodeID)
-		if addr != nil {
-			node.Status.HostIP = nodeID
-		} else {
-			addrs, err := net.LookupIP(nodeID)
-			if err != nil {
-				glog.Errorf("Can't get ip address of node %v", nodeID)
-			} else if len(addrs) == 0 {
-				glog.Errorf("No ip address for node %v", nodeID)
-			} else {
-				node.Status.HostIP = addrs[0].String()
-			}
 		}
 		result.Items = append(result.Items, node)
 	}
@@ -271,7 +304,7 @@ func (s *NodeController) CloudNodes() (*api.NodeList, error) {
 	result := &api.NodeList{}
 	instances, ok := s.cloud.Instances()
 	if !ok {
-		return result, fmt.Errorf("cloud doesn't support instances")
+		return result, ErrCloudInstance
 	}
 	matches, err := instances.List(s.matchRE)
 	if err != nil {
@@ -279,13 +312,7 @@ func (s *NodeController) CloudNodes() (*api.NodeList, error) {
 	}
 	for i := range matches {
 		node := api.Node{}
-		node.Name = strings.ToLower(matches[i])
-		hostIP, err := instances.IPAddress(matches[i])
-		if err != nil {
-			glog.Errorf("error getting instance ip address for %s: %v", matches[i], err)
-		} else {
-			node.Status.HostIP = hostIP.String()
-		}
+		node.Name = matches[i]
 		resources, err := instances.GetNodeResources(matches[i])
 		if err != nil {
 			return nil, err
@@ -304,4 +331,12 @@ func (s *NodeController) CloudNodes() (*api.NodeList, error) {
 // isRunningCloudProvider checks if cluster is running with cloud provider.
 func (s *NodeController) isRunningCloudProvider() bool {
 	return s.cloud != nil && len(s.matchRE) > 0
+}
+
+// canonicalizeName takes a node list and lowercases all nodes' name.
+func (s *NodeController) canonicalizeName(nodes *api.NodeList) *api.NodeList {
+	for i := range nodes.Items {
+		nodes.Items[i].Name = strings.ToLower(nodes.Items[i].Name)
+	}
+	return nodes
 }

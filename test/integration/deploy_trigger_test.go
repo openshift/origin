@@ -324,7 +324,6 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 
 	osMux := http.NewServeMux()
-	muxHelper := &apiserver.MuxHelper{osMux, []string{}}
 	openshift.Server = httptest.NewServer(osMux)
 
 	kubeClient := client.NewOrDie(&client.Config{Host: openshift.Server.URL, Version: klatest.Version})
@@ -376,7 +375,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, muxHelper, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
 		Client:     osClient,

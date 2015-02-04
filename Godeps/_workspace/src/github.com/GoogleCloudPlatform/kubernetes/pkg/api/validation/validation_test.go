@@ -37,6 +37,30 @@ func expectPrefix(t *testing.T, prefix string, errs errors.ValidationErrorList) 
 	}
 }
 
+// Ensure custom name functions are allowed
+func TestValidateObjectMetaCustomName(t *testing.T) {
+	errs := ValidateObjectMeta(&api.ObjectMeta{Name: "test", GenerateName: "foo"}, false, func(s string, prefix bool) (bool, string) {
+		if s == "test" {
+			return true, ""
+		}
+		return false, "name-gen"
+	})
+	if len(errs) != 1 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	if !strings.Contains(errs[0].Error(), "name-gen") {
+		t.Errorf("unexpected error message: %v", errs)
+	}
+}
+
+// Ensure trailing slash is allowed in generate name
+func TestValidateObjectMetaTrimsTrailingSlash(t *testing.T) {
+	errs := ValidateObjectMeta(&api.ObjectMeta{Name: "test", GenerateName: "foo-"}, false, nameIsDNSSubdomain)
+	if len(errs) != 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
 func TestValidateLabels(t *testing.T) {
 	successCases := []map[string]string{
 		{"simple": "bar"},
@@ -68,6 +92,43 @@ func TestValidateLabels(t *testing.T) {
 	}
 	for i := range errorCases {
 		errs := ValidateLabels(errorCases[i], "field")
+		if len(errs) != 1 {
+			t.Errorf("case[%d] expected failure", i)
+		}
+	}
+}
+
+func TestValidateAnnotations(t *testing.T) {
+	successCases := []map[string]string{
+		{"simple": "bar"},
+		{"now-with-dashes": "bar"},
+		{"1-starts-with-num": "bar"},
+		{"1234": "bar"},
+		{"simple/simple": "bar"},
+		{"now-with-dashes/simple": "bar"},
+		{"now-with-dashes/now-with-dashes": "bar"},
+		{"now.with.dots/simple": "bar"},
+		{"now-with.dashes-and.dots/simple": "bar"},
+		{"1-num.2-num/3-num": "bar"},
+		{"1234/5678": "bar"},
+		{"1.2.3.4/5678": "bar"},
+		{"UpperCase123": "bar"},
+	}
+	for i := range successCases {
+		errs := ValidateAnnotations(successCases[i], "field")
+		if len(errs) != 0 {
+			t.Errorf("case[%d] expected success, got %#v", i, errs)
+		}
+	}
+
+	errorCases := []map[string]string{
+		{"nospecialchars^=@": "bar"},
+		{"cantendwithadash-": "bar"},
+		{"only/one/slash": "bar"},
+		{strings.Repeat("a", 254): "bar"},
+	}
+	for i := range errorCases {
+		errs := ValidateAnnotations(errorCases[i], "field")
 		if len(errs) != 1 {
 			t.Errorf("case[%d] expected failure", i)
 		}
@@ -268,6 +329,13 @@ func TestValidatePullPolicy(t *testing.T) {
 
 }
 
+func getResourceLimits(cpu, memory string) api.ResourceList {
+	res := api.ResourceList{}
+	res[api.ResourceCPU] = resource.MustParse(cpu)
+	res[api.ResourceMemory] = resource.MustParse(memory)
+	return res
+}
+
 func TestValidateContainers(t *testing.T) {
 	volumes := util.StringSet{}
 	capabilities.SetForTests(capabilities.Capabilities{
@@ -284,6 +352,17 @@ func TestValidateContainers(t *testing.T) {
 			Lifecycle: &api.Lifecycle{
 				PreStop: &api.Handler{
 					Exec: &api.ExecAction{Command: []string{"ls", "-l"}},
+				},
+			},
+		},
+		{
+			Name:  "resources-test",
+			Image: "image",
+			Resources: api.ResourceRequirementSpec{
+				Limits: api.ResourceList{
+					api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+					api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+					api.ResourceName("my.org/resource"):  resource.MustParse("10m"),
 				},
 			},
 		},
@@ -348,6 +427,35 @@ func TestValidateContainers(t *testing.T) {
 		},
 		"privilege disabled": {
 			{Name: "abc", Image: "image", Privileged: true},
+		},
+		"invalid compute resource": {
+			{
+				Name:  "abc-123",
+				Image: "image",
+				Resources: api.ResourceRequirementSpec{
+					Limits: api.ResourceList{
+						"disk": resource.MustParse("10G"),
+					},
+				},
+			},
+		},
+		"Resource CPU invalid": {
+			{
+				Name:  "abc-123",
+				Image: "image",
+				Resources: api.ResourceRequirementSpec{
+					Limits: getResourceLimits("-10", "0"),
+				},
+			},
+		},
+		"Resource Memory invalid": {
+			{
+				Name:  "abc-123",
+				Image: "image",
+				Resources: api.ResourceRequirementSpec{
+					Limits: getResourceLimits("0", "-10"),
+				},
+			},
 		},
 	}
 	for k, v := range errorCases {
@@ -422,8 +530,12 @@ func TestValidateManifest(t *testing.T) {
 					Image:      "image",
 					Command:    []string{"foo", "bar"},
 					WorkingDir: "/tmp",
-					Memory:     resource.MustParse("1"),
-					CPU:        resource.MustParse("1"),
+					Resources: api.ResourceRequirementSpec{
+						Limits: api.ResourceList{
+							"cpu":    resource.MustParse("1"),
+							"memory": resource.MustParse("1"),
+						},
+					},
 					Ports: []api.Port{
 						{Name: "p1", ContainerPort: 80, HostPort: 8080},
 						{Name: "p2", ContainerPort: 81},
@@ -711,7 +823,9 @@ func TestValidatePodUpdate(t *testing.T) {
 					Containers: []api.Container{
 						{
 							Image: "foo:V1",
-							CPU:   resource.MustParse("100m"),
+							Resources: api.ResourceRequirementSpec{
+								Limits: getResourceLimits("100m", "0"),
+							},
 						},
 					},
 				},
@@ -722,7 +836,9 @@ func TestValidatePodUpdate(t *testing.T) {
 					Containers: []api.Container{
 						{
 							Image: "foo:V2",
-							CPU:   resource.MustParse("1000m"),
+							Resources: api.ResourceRequirementSpec{
+								Limits: getResourceLimits("1000m", "0"),
+							},
 						},
 					},
 				},
@@ -861,13 +977,45 @@ func TestValidateService(t *testing.T) {
 		{
 			name: "invalid id",
 			svc: api.Service{
-				ObjectMeta: api.ObjectMeta{Name: "123abc", Namespace: api.NamespaceDefault},
+				ObjectMeta: api.ObjectMeta{Name: "-123abc", Namespace: api.NamespaceDefault},
 				Spec: api.ServiceSpec{
 					Port:     8675,
 					Selector: map[string]string{"foo": "bar"},
 				},
 			},
 			// Should fail because the ID is invalid.
+			numErrs: 1,
+		},
+		{
+			name: "invalid generate.base",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{
+					Name:         "valid",
+					GenerateName: "-123abc",
+					Namespace:    api.NamespaceDefault,
+				},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+				},
+			},
+			// Should fail because the Base value for generation is invalid
+			numErrs: 1,
+		},
+		{
+			name: "invalid generateName",
+			svc: api.Service{
+				ObjectMeta: api.ObjectMeta{
+					Name:         "valid",
+					GenerateName: "abc1234567abc1234567abc1234567abc1234567abc1234567abc1234567",
+					Namespace:    api.NamespaceDefault,
+				},
+				Spec: api.ServiceSpec{
+					Port:     8675,
+					Selector: map[string]string{"foo": "bar"},
+				},
+			},
+			// Should fail because the generate name type is invalid.
 			numErrs: 1,
 		},
 		{
@@ -1334,7 +1482,9 @@ func TestValidateMinion(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "abc"},
+			ObjectMeta: api.ObjectMeta{
+				Name: "abc",
+			},
 			Status: api.NodeStatus{
 				HostIP: "something",
 			},
@@ -1675,8 +1825,6 @@ func TestValidateResourceNames(t *testing.T) {
 		{"", false},
 		{".", false},
 		{"..", false},
-		{"kubernetes.io/cpu", true},
-		{"kubernetes.io/disk", false},
 		{"my.favorite.app.co/12345", true},
 		{"my.favorite.app.co/_12345", false},
 		{"my.favorite.app.co/12345_", false},
@@ -1687,7 +1835,7 @@ func TestValidateResourceNames(t *testing.T) {
 		{"kubernetes.io/will/not/work/", false},
 	}
 	for _, item := range table {
-		err := ValidateResourceName(item.input)
+		err := validateResourceName(item.input)
 		if len(err) != 0 && item.success {
 			t.Errorf("expected no failure for input %q", item.input)
 		} else if len(err) == 0 && !item.success {

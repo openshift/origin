@@ -51,9 +51,10 @@ type AuthOverrideFlags struct {
 
 // ContextOverrideFlags holds the flag names to be used for binding command line flags for Cluster objects
 type ContextOverrideFlags struct {
-	ClusterName    string
-	AuthInfoName   string
-	Namespace      string
+	ClusterName  string
+	AuthInfoName string
+	Namespace    string
+	// allow the potential for shorter namespace flags for commands that tend to work across namespaces
 	NamespaceShort string
 	NamespacePath  string
 }
