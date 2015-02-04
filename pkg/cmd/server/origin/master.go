@@ -547,6 +547,7 @@ func (c *MasterConfig) RunAssetServer() {
 		KubernetesAddr:    k8sURL.Host,
 		KubernetesPrefix:  "/api",
 		OAuthAuthorizeURL: OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthRedirectBase: c.AssetPublicAddr,
 		OAuthClientID:     OpenShiftWebConsoleClientID,
 	}
 

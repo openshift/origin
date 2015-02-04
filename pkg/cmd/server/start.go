@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/auth/group"
@@ -373,6 +374,11 @@ func start(cfg *config, args []string) error {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
 		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator))
+		// Allow token as access_token param for WebSockets
+		// TODO: make the param name configurable
+		// TODO: limit this authenticator to watch methods, if possible
+		// TODO: prevent access_token param from getting logged, if possible
+		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator))
 
 		var roots *x509.CertPool
 		if osmaster.TLS {
