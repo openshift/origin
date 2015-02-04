@@ -147,10 +147,6 @@ the present working directory is the same directory as this README.
 
         $ osc create -f project.json
 
-    Ensure that all further `osc` usage is scoped to this project:
-
-        $ osc namespace test
-
 9. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`
 
     * You will need to have the browser accept the certificate at
@@ -191,7 +187,7 @@ the present working directory is the same directory as this README.
 13. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
-        $ osc process -f application-template-stibuild.json | osc create -f -
+        $ osc process -n test -f application-template-stibuild.json | osc create -n test -f -
 
     This will define a number of related OpenShift entities in the project:
 
@@ -211,15 +207,15 @@ the present working directory is the same directory as this README.
  * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository from step 10.
  * Otherwise you can request a new build by running:
 
-        $ osc start-build ruby-sample-build
+        $ osc start-build -n test ruby-sample-build
 
 15. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
-        $ osc get builds
+        $ osc get -n test builds
 
     You can add the --watch flag to wait for updates until the build completes:
 
-        $ osc get builds --watch
+        $ osc get -n test builds --watch
 
     Sample output:
 
@@ -237,7 +233,7 @@ the present working directory is the same directory as this README.
      command (substituting your build name from the "osc get builds"
      output):
 
-         $ osc build-logs 20f54507-3dcd-11e4-984b-3c970e3bf0b7
+         $ osc build-logs -n test 20f54507-3dcd-11e4-984b-3c970e3bf0b7
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a
@@ -245,7 +241,7 @@ the present working directory is the same directory as this README.
 
 16. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
 
-        $ osc get pods
+        $ osc get -n test pods
 
     Sample output:
 
@@ -256,7 +252,7 @@ the present working directory is the same directory as this README.
 
 17. Determine the IP for the frontend service:
 
-        $ osc get services
+        $ osc get -n test services
 
     Sample output:
 
@@ -278,7 +274,7 @@ the present working directory is the same directory as this README.
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ curl -X POST https://localhost:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test
+            $ osc start-build -n test ruby-sample-build
 
 
 20. Repeat step 15 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
@@ -292,7 +288,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - List the existing services:
 
-        $ osc get services
+        $ osc get -n test services
 
     Sample output:
 
@@ -304,7 +300,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - To remove the **frontend** service use the command:
 
-        $ osc delete service frontend
+        $ osc delete service -n test frontend
 
     Sample output:
 
@@ -314,7 +310,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - Check the service was removed:
 
-        $ osc get services
+        $ osc get -n test services
 
     Sample output:
 
@@ -335,7 +331,7 @@ Another interesting example is deleting a pod.
 
   - List available pods:
 
-        $ osc get pods
+        $ osc get -n test pods
 
     Sample output:
 
@@ -346,7 +342,7 @@ Another interesting example is deleting a pod.
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ osc delete pod 4a792f55-605f-11e4-b0db-3c970e3bf0b7
+        $ osc delete pod -n test 4a792f55-605f-11e4-b0db-3c970e3bf0b7
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 
