@@ -89,8 +89,10 @@ function cleanup()
 
   if [[ -z "${SKIP_TEARDOWN-}" ]]; then
     echo "[INFO] Tearing down test"
-    pgid="$(ps opgid= "$$")"
-    sudo kill -- "-${pgid}"
+    pids="$(jobs -pr)"
+    echo "[INFO] Children: ${pids}"
+    sudo kill ${pids}
+    sudo ps f
     set +u
     echo "[INFO] Stopping k8s docker containers"; docker ps | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'  | xargs -l -r docker stop
     if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
