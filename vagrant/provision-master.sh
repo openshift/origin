@@ -55,7 +55,7 @@ systemctl enable openshift-master.service
 systemctl start openshift-master.service
 
 # if SDN requires service on master, then set it up
-if [ "${OPENSHIFT_SDN}" == "ovs-simple" ]; then
+if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
   $(dirname $0)/provision-master-sdn.sh $@
 fi
 

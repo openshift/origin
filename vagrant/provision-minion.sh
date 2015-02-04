@@ -32,7 +32,7 @@ pushd /vagrant
   cp _output/local/go/bin/openshift /usr/bin
 popd
 
-if [ "${OPENSHIFT_SDN}" == "ovs-simple" ]; then
+if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
   $(dirname $0)/provision-node-sdn.sh $@
 else
   # Setup default networking between the nodes
