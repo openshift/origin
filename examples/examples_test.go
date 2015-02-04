@@ -79,6 +79,9 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"docker-registry-config": &configapi.Config{},
 			"application-template":   &templateapi.Template{},
 		},
+		"../examples/image-repositories": {
+			"image-repositories": &imageapi.ImageRepositoryList{},
+		},
 		"../test/integration/fixtures": {
 			"test-deployment-config": &deployapi.DeploymentConfig{},
 			"test-image-repository":  &imageapi.ImageRepository{},
