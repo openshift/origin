@@ -103,6 +103,39 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 [ "$(openshift kubectl)" ]
 [ "$(openshift kube 2>&1)" ]
 
+# help for root commands must be consistent
+[ "$(openshift | grep 'OpenShift for Admins')" ]
+[ "$(osc | grep 'OpenShift Client')" ]
+[ "$(openshift cli | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl | grep 'OpenShift Client')" ]
+
+# help for root commands with --help flag must be consistent
+[ "$(openshift --help 2>&1 | grep 'OpenShift for Admins')" ]
+[ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl --help 2>&1 | grep 'OpenShift Client')" ]
+
+# help for root commands through help command must be consistent
+[ "$(openshift help cli 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift help kubectl 2>&1 | grep 'OpenShift Client')" ]
+
+# help for given command with --help flag must be consistent
+[ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift start --help 2>&1 | grep 'Start an OpenShift server')" ]
+
+# help for given command through help command must be consistent
+[ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help start 2>&1 | grep 'Start an OpenShift server')" ]
+
+# runnable commands with required flags must error consistently
+[ "$(osc get 2>&1 | grep 'you must provide one or more resources')" ]
+[ "$(openshift cli get 2>&1 | grep 'you must provide one or more resources')" ]
+[ "$(openshift kubectl get 2>&1 | grep 'you must provide one or more resources')" ]
+
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
 osc delete pods hello-openshift

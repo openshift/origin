@@ -308,6 +308,9 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 				// only accept a single prefix match - multiple matches would be ambiguous
 				if len(matches) == 1 {
 					return innerfind(matches[0], argsMinusX(args, argsWOflags[0]))
+				} else if len(matches) == 0 && len(args) > 0 && args[0] == "help" {
+					// special case help command
+					return innerfind(c, argsMinusX(append(args, "--help"), argsWOflags[0]))
 				}
 			}
 		}
@@ -344,6 +347,7 @@ func (c *Command) Root() *Command {
 func (c *Command) findAndExecute(args []string) (err error) {
 
 	cmd, a, e := c.Find(args)
+
 	if e != nil {
 		return e
 	}
@@ -424,6 +428,8 @@ func (c *Command) Execute() (err error) {
 	} else {
 		args = c.args
 	}
+
+	c.assureHelpFlag()
 
 	if len(args) == 0 {
 		// Only the executable is called and the root is runnable, run it
@@ -563,6 +569,7 @@ func (c *Command) Usage() error {
 // Used when a user calls help [command]
 // by the default HelpFunc in the commander
 func (c *Command) Help() error {
+	c.mergePersistentFlags()
 	err := tmpl(c.Out(), c.HelpTemplate(), c)
 	return err
 }
@@ -675,7 +682,12 @@ func (c *Command) Runnable() bool {
 
 // Determine if the command has children commands
 func (c *Command) HasSubCommands() bool {
-	return len(c.commands) > 0
+	for _, sub := range c.commands {
+		if sub.Runnable() {
+			return true
+		}
+	}
+	return false
 }
 
 // Determine if the command is a child command
@@ -691,9 +703,16 @@ func (c *Command) Flags() *flag.FlagSet {
 			c.flagErrorBuf = new(bytes.Buffer)
 		}
 		c.flags.SetOutput(c.flagErrorBuf)
-		c.PersistentFlags().BoolVarP(&c.helpFlagVal, "help", "h", false, "help for "+c.Name())
+		c.assureHelpFlag()
 	}
 	return c.flags
+}
+
+func (c *Command) assureHelpFlag() {
+	if c.Flags().Lookup("help") == nil && c.PersistentFlags().Lookup("help") == nil {
+		c.PersistentFlags().BoolVarP(&c.helpFlagVal, "help", "h", false, "help for "+c.Name())
+	}
+	c.mergePersistentFlags()
 }
 
 // Get the local FlagSet specifically set in the current command
