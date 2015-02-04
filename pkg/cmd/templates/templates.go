@@ -25,11 +25,7 @@ Use "{{.Root.Name}} help [command]" for more information about that command.{{en
 	CliHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}
 `
-	CliUsageTemplate = `{{ $cmd := . }}
-Usage: {{if .Runnable}}
-  {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{end}}{{if .HasSubCommands}}
-  {{ .CommandPath}} [command]{{end}}{{if gt .Aliases 0}}
-
+	CliUsageTemplate = `{{ $cmd := . }}{{if gt .Aliases 0}}
 Aliases:
   {{.NameAndAliases}}{{end}}
 {{ if .HasSubCommands}}
