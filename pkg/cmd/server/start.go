@@ -507,9 +507,20 @@ func start(cfg *config, args []string) error {
 
 		if startKube {
 			portalNet := net.IPNet(cfg.PortalNet)
+			masterIP := net.ParseIP(cfg.MasterAddr.Host)
+			if masterIP == nil {
+				addrs, err := net.LookupIP(cfg.MasterAddr.Host)
+				if err != nil {
+					glog.Fatalf("Unable to find an IP for %q - specify an IP directly? %v", cfg.MasterAddr.Host, err)
+				}
+				if len(addrs) == 0 {
+					glog.Fatalf("Unable to find an IP for %q - specify an IP directly?", cfg.MasterAddr.Host)
+				}
+				masterIP = addrs[0]
+			}
 
 			kmaster := &kubernetes.MasterConfig{
-				MasterHost:       cfg.MasterAddr.Host,
+				MasterIP:         masterIP,
 				MasterPort:       cfg.MasterAddr.Port,
 				NodeHosts:        cfg.NodeList,
 				PortalNet:        &portalNet,

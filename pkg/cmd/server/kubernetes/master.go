@@ -33,7 +33,7 @@ const (
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
-	MasterHost string
+	MasterIP   net.IP
 	MasterPort int
 	NodeHosts  []string
 	PortalNet  *net.IPNet
@@ -67,7 +67,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	}
 
 	masterConfig := &master.Config{
-		PublicAddress: c.MasterHost,
+		PublicAddress: c.MasterIP,
 		ReadWritePort: c.MasterPort,
 		ReadOnlyPort:  c.MasterPort,
 
