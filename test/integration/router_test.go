@@ -18,7 +18,7 @@ import (
 	tr "github.com/openshift/origin/test/integration/router"
 )
 
-const defaultRouterImage = "openshift/origin-haproxy-router"
+const defaultRouterImage = "openshift/origin-haproxy-router:latest"
 
 // init ensures docker exists for this test
 func init() {
@@ -233,6 +233,12 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 		},
 	}
 
+	err = pullIfNotPresent(dockerCli, getRouterImage())
+
+	if err != nil {
+		return "", err
+	}
+
 	container, err := dockerCli.CreateContainer(containerOpts)
 
 	if err != nil {
@@ -268,6 +274,31 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 	}
 
 	return container.ID, nil
+}
+
+// pullIfNotPresent checks for a docker image and tries to pull it if it receives a 'no such image' error
+func pullIfNotPresent(dockerCli *dockerClient.Client, image string) error {
+	_, err := dockerCli.InspectImage(image)
+
+	if err != nil {
+		if err.Error() == "no such image" {
+			pio := dockerClient.PullImageOptions{
+				Repository: image,
+			}
+
+			auth := dockerClient.AuthConfiguration{}
+
+			e := dockerCli.PullImage(pio, auth)
+
+			if e != nil {
+				return e
+			}
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // validateServer performs a basic run through by validating each of the configured urls for the simulator to
