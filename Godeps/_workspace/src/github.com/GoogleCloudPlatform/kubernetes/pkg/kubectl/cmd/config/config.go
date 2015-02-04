@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -48,7 +49,7 @@ func NewCmdConfig(out io.Writer) *cobra.Command {
 	}
 
 	// file paths are common to all sub commands
-	cmd.PersistentFlags().BoolVar(&pathOptions.local, "local", true, "use the .kubeconfig in the current directory")
+	cmd.PersistentFlags().BoolVar(&pathOptions.local, "local", false, "use the .kubeconfig in the current directory")
 	cmd.PersistentFlags().BoolVar(&pathOptions.global, "global", false, "use the .kubeconfig from "+os.Getenv("HOME"))
 	cmd.PersistentFlags().BoolVar(&pathOptions.envvar, "envvar", false, "use the .kubeconfig from $KUBECONFIG")
 	cmd.PersistentFlags().StringVar(&pathOptions.specifiedFile, "kubeconfig", "", "use a particular .kubeconfig file")
@@ -67,22 +68,53 @@ func NewCmdConfig(out io.Writer) *cobra.Command {
 func (o *pathOptions) getStartingConfig() (*clientcmdapi.Config, string, error) {
 	filename := ""
 	config := clientcmdapi.NewConfig()
-	switch {
-	case len(o.specifiedFile) > 0:
+
+	if len(o.specifiedFile) > 0 {
 		filename = o.specifiedFile
 		config = getConfigFromFileOrDie(filename)
+	}
 
-	case o.global:
+	if o.global {
+		if len(filename) > 0 {
+			return nil, "", fmt.Errorf("already loading from %v, cannot specify global as well", filename)
+		}
+
 		filename = os.Getenv("HOME") + "/.kube/.kubeconfig"
 		config = getConfigFromFileOrDie(filename)
+	}
 
-	case o.envvar:
-		filename = os.Getenv("KUBECONFIG")
+	if o.envvar {
+		if len(filename) > 0 {
+			return nil, "", fmt.Errorf("already loading from %v, cannot specify global as well", filename)
+		}
+
+		filename = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+		if len(filename) == 0 {
+			return nil, "", fmt.Errorf("environment variable %v does not have a value", clientcmd.RecommendedConfigPathEnvVar)
+		}
+
 		config = getConfigFromFileOrDie(filename)
+	}
 
-	case o.local:
+	if o.local {
+		if len(filename) > 0 {
+			return nil, "", fmt.Errorf("already loading from %v, cannot specify global as well", filename)
+		}
+
 		filename = ".kubeconfig"
 		config = getConfigFromFileOrDie(filename)
+
+	}
+
+	// no specific flag was set, first attempt to use the envvar, then use local
+	if len(filename) == 0 {
+		if len(os.Getenv(clientcmd.RecommendedConfigPathEnvVar)) > 0 {
+			filename = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+			config = getConfigFromFileOrDie(filename)
+		} else {
+			filename = ".kubeconfig"
+			config = getConfigFromFileOrDie(filename)
+		}
 	}
 
 	return config, filename, nil

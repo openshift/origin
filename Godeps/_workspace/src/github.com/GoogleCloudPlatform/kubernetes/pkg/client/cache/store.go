@@ -52,9 +52,6 @@ type KeyFunc func(obj interface{}) (string, error)
 // keys for API objects which implement meta.Interface.
 // The key uses the format: <namespace>/<name>
 func MetaNamespaceKeyFunc(obj interface{}) (string, error) {
-	if _, ok := obj.(string); ok {
-		panic("you probably didn't mean to give a string to this function")
-	}
 	meta, err := meta.Accessor(obj)
 	if err != nil {
 		return "", fmt.Errorf("object has no meta: %v", err)
@@ -72,37 +69,37 @@ type cache struct {
 
 // Add inserts an item into the cache.
 func (c *cache) Add(obj interface{}) error {
-	id, err := c.keyFunc(obj)
+	key, err := c.keyFunc(obj)
 	if err != nil {
 		return fmt.Errorf("couldn't create key for object: %v", err)
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.items[id] = obj
+	c.items[key] = obj
 	return nil
 }
 
 // Update sets an item in the cache to its updated state.
 func (c *cache) Update(obj interface{}) error {
-	id, err := c.keyFunc(obj)
+	key, err := c.keyFunc(obj)
 	if err != nil {
 		return fmt.Errorf("couldn't create key for object: %v", err)
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.items[id] = obj
+	c.items[key] = obj
 	return nil
 }
 
 // Delete removes an item from the cache.
 func (c *cache) Delete(obj interface{}) error {
-	id, err := c.keyFunc(obj)
+	key, err := c.keyFunc(obj)
 	if err != nil {
 		return fmt.Errorf("couldn't create key for object: %v", err)
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	delete(c.items, id)
+	delete(c.items, key)
 	return nil
 }
 

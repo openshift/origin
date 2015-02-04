@@ -26,7 +26,7 @@
 //	if err := memcache.Set(c, item1); err != nil {
 //		return err
 //	}
-package memcache // import "google.golang.org/appengine/memcache"
+package memcache
 
 import (
 	"bytes"

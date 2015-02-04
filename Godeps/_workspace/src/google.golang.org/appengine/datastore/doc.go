@@ -313,4 +313,4 @@ Example code:
 		fmt.Fprintf(w, "Count=%d", count)
 	}
 */
-package datastore // import "google.golang.org/appengine/datastore"
+package datastore
