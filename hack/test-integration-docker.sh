@@ -22,4 +22,6 @@ trap cleanup EXIT SIGINT
 echo
 echo Docker integration test cases ...
 echo
-KUBE_RACE="${KUBE_RACE:--race}" KUBE_COVER=" " "${OS_ROOT}/hack/test-go.sh" test/integration -tags 'integration docker' "${@:1}"
+# A long timeout is set here in case the docker images do not exist.  To speed execution of this test
+# either pre-build or pre-pull the docker images that are being used.
+KUBE_TIMEOUT="-timeout 600s" KUBE_RACE="${KUBE_RACE:--race}" KUBE_COVER=" " "${OS_ROOT}/hack/test-go.sh" test/integration -tags 'integration docker' "${@:1}"
