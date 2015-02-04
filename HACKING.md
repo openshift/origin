@@ -245,6 +245,7 @@ already merged in Kubernetes and we don't need to specifically add it to our God
 4. Read over the commit history and make sure you have every UPSTREAM commit since the last rebase 
 (except only for the empty ones).
 
+
 ### 4. Refactor Origin to be compliant with upstream changes
 
 After making sure we have all the dependencies in place and up-to-date, we need to work in the Origin 
@@ -255,7 +256,8 @@ refactorings, architectural changes or behavior changes introduced in Kubernetes
 2. `hack/test-go.sh` runs without errors.
 3. `hack/test-cmd.sh` runs without errors.
 3. `hack/test-integration.sh` runs without errors.
-3. `hack/test-end-to-end.sh` runs without errors.
+3. `hack/test-end-to-end.sh` runs without errors.  
+    See *Building a Release* above for setting up the environment for the *test-end-to-end.sh* tests.
 
 It is helpful to look at the Kubernetes commit history to be aware of the major topics. Although it 
 can potentially break or change any part of Origin, the most affected parts are usually:
