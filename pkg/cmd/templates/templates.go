@@ -38,5 +38,10 @@ Available Commands: {{range .Commands}}{{if .Runnable}}
 {{end}}
 {{ if .HasLocalFlags}}Options:
 {{.LocalFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}
-Use "{{.Root.Name}} help [command]" for more information about that command.{{end}}`
+Use "{{.Root.Name}} help [command]" for more information about that command.{{end}}{{ if .HasAnyPersistentFlags}}
+Use "{{.Root.Name}} options" for a list of global command-line options.{{end}}`
+
+	OptionsUsageTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
+
+{{.AllPersistentFlags.FlagUsages}}{{end}}`
 )
