@@ -203,20 +203,6 @@ func TestGetImageOK(t *testing.T) {
 	}
 }
 
-func TestUpdateImage(t *testing.T) {
-	storage := REST{}
-	channel, err := storage.Update(kapi.NewDefaultContext(), &api.Image{})
-	if channel != nil {
-		t.Errorf("Unexpected non-nil channel: %#v", channel)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if strings.Index(err.Error(), "Images may not be changed.") == -1 {
-		t.Errorf("Expected 'may not be changed' error, got: %#v", err)
-	}
-}
-
 func TestDeleteImage(t *testing.T) {
 	mockRegistry := test.NewImageRegistry()
 	storage := REST{registry: mockRegistry}

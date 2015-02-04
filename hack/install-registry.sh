@@ -1,5 +1,16 @@
 #!/bin/sh
 
+# This uses osc to bootstrap a Docker registry image as a pod under a running OpenShift.
+# It uses the key/certs in the directory specified by CERT_DIR to configure the registry
+# for connecting securely to the OpenShift master's.
+#
+# To use key/certs generated automatically by "openshift start", look for the
+# openshift.local.certificates/master/ directory underneath where it was started.
+# For instance, if the openshift home directory is /var/lib/openshift, then run:
+# CERT_DIR=/var/lib/openshift/openshift.local.certificates/master hack/install-registry.sh
+#
+# You may also need to set KUBERNETES_MASTER if the master is not listening at https://localhost:8443/
+
 set -o errexit
 set -o nounset
 set -o pipefail

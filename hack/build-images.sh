@@ -37,6 +37,15 @@ cp -f "${imagedir}/openshift" images/router/haproxy/bin
 # build hello-openshift binary
 "${OS_ROOT}/hack/build-go.sh" examples/hello-openshift
 
+# build pod binary
+# TODO: move me to build release
+"${OS_ROOT}/hack/build-go.sh" images/pod
+cp -f "_output/local/go/bin/pod" images/pod/bin
+
+# images that depend on scratch
+echo "--- openshift/origin-pod ---"
+docker build -t openshift/origin-pod            images/pod
+
 # images that depend on openshift/origin-base
 echo "--- openshift/origin ---"
 docker build -t openshift/origin                images/origin

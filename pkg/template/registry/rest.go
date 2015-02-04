@@ -1,7 +1,6 @@
 package template
 
 import (
-	"errors"
 	"math/rand"
 	"time"
 
@@ -30,18 +29,6 @@ func (s *REST) New() runtime.Object {
 	return &api.Template{}
 }
 
-func (*REST) NewList() runtime.Object {
-	return &api.Template{}
-}
-
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	return nil, errors.New("not implemented")
-}
-
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {
@@ -68,15 +55,5 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 			glog.V(1).Infof(utilerr.NewAggregate(err).Error())
 		}
 		return cfg, nil
-	}), nil
-}
-
-func (s *REST) Update(ctx kapi.Context, tpl runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return nil, errors.New("not implemented")
 	}), nil
 }

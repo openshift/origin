@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/elazarl/go-bindata-assetfs"
 	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
@@ -30,7 +30,6 @@ import (
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
-	authfilter "github.com/openshift/origin/pkg/auth/handlers"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
@@ -84,6 +83,7 @@ import (
 const (
 	OpenShiftAPIPrefix        = "/osapi"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/v1beta1"
+	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -101,7 +101,7 @@ type MasterConfig struct {
 	KubernetesPublicAddr string
 	AssetPublicAddr      string
 
-	CORSAllowedOrigins []*regexp.Regexp
+	CORSAllowedOrigins []string
 	Authenticator      authenticator.Request
 	// TODO Have MasterConfig take a fully formed Authorizer
 	MasterAuthorizationNamespace string
@@ -109,6 +109,12 @@ type MasterConfig struct {
 	EtcdHelper tools.EtcdHelper
 
 	AdmissionControl admission.Interface
+
+	// true if the system should use pullIfPresent for images (which means updates will not be fetched aggressively)
+	UseLocalImages bool
+
+	// a function that returns the appropriate image to use for a named component
+	ImageFor func(component string) string
 
 	TLS bool
 
@@ -135,12 +141,23 @@ type MasterConfig struct {
 
 	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
 	DeployerOSClientConfig kclient.Config
+
+	// requestsToUsers is a shared auth context map
+	requestsToUsers *authcontext.RequestContextMap
 }
 
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
 	// Returns an array of strings describing what was installed
 	InstallAPI(*restful.Container) []string
+}
+
+// APIInstallFunc is a function for installing APIs
+type APIInstallFunc func(*restful.Container) []string
+
+// InstallAPI implements APIInstaller
+func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
+	return fn(container)
 }
 
 func (c *MasterConfig) BuildClients() {
@@ -208,19 +225,7 @@ func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client 
 	return c.osClient
 }
 
-// EnsureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
-// regexes, or exits if it cannot.
-func (c *MasterConfig) EnsureCORSAllowedOrigins(origins []string) {
-	if len(origins) > 0 {
-		allowedOriginRegexps, err := util.CompileRegexps(util.StringList(origins))
-		if err != nil {
-			glog.Fatalf("Invalid CORS allowed origin, --corsAllowedOrigins flag was set to %v - %v", strings.Join(origins, ","), err)
-		}
-		c.CORSAllowedOrigins = allowedOriginRegexps
-	}
-}
-
-func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
+func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(api.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
@@ -290,14 +295,6 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		"roleBindings":   rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
 	}
 
-	whPrefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
-	bcClient, _ := c.BuildControllerClients()
-	container.ServeMux.Handle(whPrefix, http.StripPrefix(whPrefix,
-		webhook.NewController(buildclient.NewOSClientBuildConfigClient(bcClient), buildclient.NewOSClientBuildClient(bcClient), map[string]webhook.Plugin{
-			"generic": generic.New(),
-			"github":  github.New(),
-		})))
-
 	admissionControl := admit.NewAlwaysAdmit()
 
 	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl).InstallREST(container, container.ServeMux, OpenShiftAPIPrefix, "v1beta1"); err != nil {
@@ -305,13 +302,29 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	}
 
 	var root *restful.WebService
+	userRoutesChanged := 0
 	for _, svc := range container.RegisteredWebServices() {
 		switch svc.RootPath() {
 		case "/":
 			root = svc
 		case OpenShiftAPIPrefixV1Beta1:
 			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
+
+			// add the current user filter
+			// TODO: factor this better
+			filter := currentUserContextFilter(c.getRequestsToUsers())
+			routes := svc.Routes()
+			for i := range routes {
+				route := &routes[i]
+				if route.Method == "GET" && (route.Path == OpenShiftAPIPrefixV1Beta1+"/ns/{namespace}/users/{name}" || route.Path == OpenShiftAPIPrefixV1Beta1+"/users/{name}") {
+					route.Filters = append(route.Filters, filter)
+					userRoutesChanged++
+				}
+			}
 		}
+	}
+	if userRoutesChanged != 2 {
+		glog.Fatalf("Could not find both user routes to install the current user filter.")
 	}
 	if root == nil {
 		root = new(restful.WebService)
@@ -322,6 +335,23 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	return []string{
 		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta1),
 	}
+}
+
+func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []string {
+	bcClient, _ := c.BuildControllerClients()
+	handler := webhook.NewController(
+		buildclient.NewOSClientBuildConfigClient(bcClient),
+		buildclient.NewOSClientBuildClient(bcClient),
+		map[string]webhook.Plugin{
+			"generic": generic.New(),
+			"github":  github.New(),
+		})
+
+	// TODO: go-restfulize this
+	prefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
+	handler = http.StripPrefix(prefix, handler)
+	container.Handle(prefix, handler)
+	return []string{}
 }
 
 //initAPIVersionRoute initializes the osapi endpoint to behave similiar to the upstream api endpoint
@@ -337,39 +367,51 @@ func initAPIVersionRoute(root *restful.WebService, version string) {
 // All endpoints get configured CORS behavior
 // Protected installers' endpoints are protected by API authentication and authorization.
 // Unprotected installers' endpoints do not have any additional protection added.
-func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstallers []APIInstaller) {
+func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller) {
 	var extra []string
 
-	// Build container for protected endpoints
-	protectedContainer := kmaster.NewHandlerContainer(http.NewServeMux())
-	for _, i := range protectedInstallers {
-		extra = append(extra, i.InstallAPI(protectedContainer)...)
-	}
-	// Add authentication
-	protectedHandler := http.Handler(protectedContainer)
-	if c.Authenticator != nil {
-		requestsToUsers := authcontext.NewRequestContextMap()
-		c.ensureComponentAuthorizationRules()
-		protectedHandler = c.wireAuthenticationHandling(protectedContainer.ServeMux, protectedHandler, c.Authenticator, requestsToUsers)
-	}
+	c.ensureComponentAuthorizationRules()
 
-	// Build container for unprotected endpoints
-	rootMux := http.NewServeMux()
-	rootHandler := http.Handler(rootMux)
-	unprotectedContainer := kmaster.NewHandlerContainer(rootMux)
-	for _, i := range unprotectedInstallers {
-		extra = append(extra, i.InstallAPI(unprotectedContainer)...)
+	safe := kmaster.NewHandlerContainer(http.NewServeMux())
+	open := kmaster.NewHandlerContainer(http.NewServeMux())
+
+	// enforce authentication on protected endpoints
+	protected = append(protected, APIInstallFunc(c.InstallProtectedAPI))
+	for _, i := range protected {
+		extra = append(extra, i.InstallAPI(safe)...)
 	}
-	// Add CORS support
-	if len(c.CORSAllowedOrigins) > 0 {
-		rootHandler = apiserver.CORS(rootHandler, c.CORSAllowedOrigins, nil, nil, "true")
+	handler := c.authorizationFilter(safe)
+	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestsToUsers())
+
+	// unprotected resources
+	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
+	for _, i := range unprotected {
+		extra = append(extra, i.InstallAPI(open)...)
 	}
-	// Delegate all unhandled endpoints to the api handler
-	rootMux.Handle("/", protectedHandler)
+	open.Handle("/", handler)
+
+	// install swagger
+	swaggerConfig := swagger.Config{
+		WebServices: append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
+		ApiPath:     swaggerAPIPrefix,
+	}
+	swagger.RegisterSwaggerService(swaggerConfig, open)
+	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
+
+	// copy
+
+	// add CORS support
+	if len(c.CORSAllowedOrigins) != 0 {
+		open.Filter(restful.CrossOriginResourceSharing{
+			AllowedHeaders: []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "X-Requested-With", "If-Modified-Since"},
+			AllowedDomains: c.CORSAllowedOrigins,
+			AllowedMethods: []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
+		}.Filter)
+	}
 
 	server := &http.Server{
 		Addr:           c.MasterBindAddr,
-		Handler:        rootHandler,
+		Handler:        open,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
@@ -397,32 +439,15 @@ func (c *MasterConfig) Run(protectedInstallers []APIInstaller, unprotectedInstal
 	cmdutil.WaitForSuccessfulDial("tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
-// wireAuthenticationHandling creates and binds all the objects that we only care about if authentication is turned on.  It's pulled out
-// just to make the RunAPI method easier to read.  These resources include the requestsToUsers map that allows callers to know which user
-// is requesting an operation, the handler wrapper that protects the passed handler behind a handler that requires valid authentication
-// information on the request, and an endpoint that only functions properly with an authenticated user.
-func (c *MasterConfig) wireAuthenticationHandling(osMux *http.ServeMux, handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
-	// wrapHandlerWithAuthorization binds a handler that will force users to be authorized to perform the actions they are requesting
-	handler = c.wrapHandlerWithAuthorization(handler, requestsToUsers)
-
-	// wrapHandlerWithAuthentication binds a handler that will correlate the users and requests
-	handler = wrapHandlerWithAuthentication(handler, authenticator, requestsToUsers)
-
-	// this requires the requests and users to be present
-	userContextMap := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
-		obj, found := requestsToUsers.Get(req)
-		if user, ok := obj.(userregistry.Info); found && ok {
-			return user, true
-		}
-		return nil, false
-	})
-	// TODO: this is flawed, needs to be able to identify the right endpoints
-	thisUserEndpoint := OpenShiftAPIPrefixV1Beta1 + "/users/~"
-	userregistry.InstallThisUser(osMux, thisUserEndpoint, userContextMap, handler)
-
-	return handler
+// getRequestsToUsers returns the shared user context
+func (c *MasterConfig) getRequestsToUsers() *authcontext.RequestContextMap {
+	if c.requestsToUsers == nil {
+		c.requestsToUsers = authcontext.NewRequestContextMap()
+	}
+	return c.requestsToUsers
 }
 
+// ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	registry := authorizationetcd.New(c.EtcdHelper)
 	ctx := kapi.WithNamespace(kapi.NewContext(), c.MasterAuthorizationNamespace)
@@ -456,30 +481,21 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	}
 }
 
-// wrapHandlerWithAuthentication takes a handler and protects it behind a handler that tests to make sure that a user is authenticated.
-// if the request does have value auth information, then the request is allowed through the passed handler.  If the request does not have
-// valid auth information, then the request is passed to a failure handler.  Until we get authentication for system componenets, the
-// failure handler logs and passes through.
-func wrapHandlerWithAuthentication(handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
-	return authfilter.NewRequestAuthenticator(
-		requestsToUsers,
-		authenticator,
-		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Unauthorized"))
-			return
-		}),
-		handler)
-}
-
 // TODO Have MasterConfig take a fully formed Authorizer
-func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler, requestsToUsers *authcontext.RequestContextMap) http.Handler {
+func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers)
-	authorizer := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(c.getRequestsToUsers())
+	authz := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
+		// TODO: this significantly relaxes the authorization guarantees - however the unprotected resources need
+		// to be clearly split out upstream in a way that we can detect.
+		if err == authorizer.ErrNoStandardParts {
+			glog.V(4).Infof("Allowing %q because it is not a recognized form", req.RequestURI)
+			handler.ServeHTTP(w, req)
+			return
+		}
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)
@@ -491,19 +507,18 @@ func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler, reques
 			return
 		}
 
-		allowed, reason, err := authorizer.Authorize(attributes)
+		allowed, reason, err := authz.Authorize(attributes)
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)
 			return
 		}
-
-		if allowed {
-			handler.ServeHTTP(w, req)
+		if !allowed {
+			forbidden(reason, w, req)
 			return
 		}
 
-		forbidden(reason, w, req)
+		handler.ServeHTTP(w, req)
 	})
 }
 
@@ -511,7 +526,7 @@ func (c *MasterConfig) wrapHandlerWithAuthorization(handler http.Handler, reques
 func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
 	glog.V(1).Infof("!!!!!!!!!!!! FORBIDDING because %v!\n", reason)
 	w.WriteHeader(http.StatusForbidden)
-	fmt.Fprintf(w, "Forbidden: \"%#v\" because \"%v\"", req.RequestURI, reason)
+	fmt.Fprintf(w, "Forbidden: %q %s", req.RequestURI, reason)
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
@@ -596,9 +611,9 @@ func (c *MasterConfig) RunAssetServer() {
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
 func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
-	dockerImage := env("OPENSHIFT_DOCKER_BUILDER_IMAGE", "openshift/origin-docker-builder")
-	stiImage := env("OPENSHIFT_STI_BUILDER_IMAGE", "openshift/origin-sti-builder")
-	useLocalImages := env("USE_LOCAL_IMAGES", "true") == "true"
+	dockerImage := c.ImageFor("docker-builder")
+	stiImage := c.ImageFor("sti-builder")
+	useLocalImages := c.UseLocalImages
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
@@ -649,8 +664,8 @@ func (c *MasterConfig) RunDeploymentController() {
 			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 			{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
 		},
-		UseLocalImages:        env("USE_LOCAL_IMAGES", "true") == "true",
-		RecreateStrategyImage: env("OPENSHIFT_DEPLOY_RECREATE_IMAGE", "openshift/origin-deployer"),
+		UseLocalImages:        c.UseLocalImages,
+		RecreateStrategyImage: c.ImageFor("deployer"),
 	}
 
 	envvars := clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())

@@ -106,9 +106,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     num_minion = (vagrant_openshift_config['num_minions'] || ENV['OPENSHIFT_NUM_MINIONS'] || 2).to_i
 
     # IP configuration
-    master_ip = "10.245.1.2"
+    master_ip = "10.245.2.2"
     minion_ip_base = "10.245.2."
-    minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+2}" }
+    minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
     minion_ips_str = minion_ips.join(",")
 
     # Determine the OS platform to use
@@ -185,7 +185,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.customize ["modifyvm", :id, "--cpus", "2"]
       # to make the ha-proxy reachable from the host, you need to add a port forwarding rule from 1080 to 80, which
       # requires root privilege. Use iptables on linux based or ipfw on BSD based OS:
-      # sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 1080 
+      # sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 1080
       # sudo ipfw add 100 fwd 127.0.0.1,1080 tcp from any to any 80 in
     end if vagrant_openshift_config['virtualbox']
 

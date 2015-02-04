@@ -27,21 +27,23 @@ on all resources.  Some commands you can try:
 Note: This is an alpha release of OpenShift and will change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
 `
+const defaultClusterURL = "https://localhost:8443"
 
-func NewCommandCLI(name string) *cobra.Command {
+func NewCommandCLI(name, fullName string) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:     name,
 		Aliases: []string{"kubectl"},
 		Short:   "Client tools for OpenShift",
-		Long:    fmt.Sprintf(longDesc, name),
+		Long:    fmt.Sprintf(longDesc, fullName),
 		Run: func(c *cobra.Command, args []string) {
+			c.SetOutput(os.Stdout)
 			c.Help()
 		},
 	}
 
 	// Override global default to https and port 8443
-	clientcmd.DefaultCluster.Server = "https://localhost:8443"
+	clientcmd.DefaultCluster.Server = defaultClusterURL
 
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
 	clientConfig := defaultClientConfig(cmds.PersistentFlags())
@@ -51,10 +53,8 @@ func NewCommandCLI(name string) *cobra.Command {
 	// Kubernetes CRUD commands
 	cmds.AddCommand(f.NewCmdGet(out))
 	cmds.AddCommand(f.NewCmdDescribe(out))
-	cmds.AddCommand(
-		// Deprecate 'osc apply' with 'osc create' command.
-		applyToCreate(f.NewCmdCreate(out)),
-	)
+	// Deprecate 'osc apply' with 'osc create' command.
+	cmds.AddCommand(applyToCreate(f.NewCmdCreate(out)))
 	cmds.AddCommand(f.NewCmdUpdate(out))
 	cmds.AddCommand(f.NewCmdDelete(out))
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
@@ -74,6 +74,23 @@ func NewCommandCLI(name string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdRollback(name, "rollback", f, out))
 
 	return cmds
+}
+
+// NewCmdKubectl provides exactly the functionality from Kubernetes,
+// but with support for OpenShift resources
+func NewCmdKubectl(name string) *cobra.Command {
+	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
+	clientcmd.DefaultCluster.Server = defaultClusterURL
+	clientConfig := defaultClientConfig(flags)
+	f := cmd.NewFactory(clientConfig)
+	cmd := f.NewKubectlCommand(os.Stdout)
+	cmd.Use = name
+	cmd.Short = "Kubernetes cluster management via kubectl"
+	cmd.Long = cmd.Long + "\n\nThis command is provided for direct management of the Kubernetes cluster OpenShift runs on."
+	flags.VisitAll(func(flag *pflag.Flag) {
+		cmd.PersistentFlags().AddFlag(flag)
+	})
+	return cmd
 }
 
 // applyToCreate injects the deprecation notice about for 'apply' command into

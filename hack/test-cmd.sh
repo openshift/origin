@@ -10,6 +10,8 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 
+os::log::install_errexit
+
 function cleanup()
 {
     out=$?
@@ -39,9 +41,11 @@ API_HOST=${API_HOST:-127.0.0.1}
 KUBELET_SCHEME=${KUBELET_SCHEME:-http}
 KUBELET_PORT=${KUBELET_PORT:-10250}
 
-ETCD_DATA_DIR=$(mktemp -d /tmp/openshift.local.etcd.XXXX)
-VOLUME_DIR=$(mktemp -d /tmp/openshift.local.volumes.XXXX)
-CERT_DIR="${CERT_DIR:-$(mktemp -d /tmp/openshift.local.certificates.XXXX)}"
+TEMP_DIR=$(mktemp -d /tmp/openshift-cmd.XXXX)
+ETCD_DATA_DIR="${TEMP_DIR}/etcd"
+VOLUME_DIR="${TEMP_DIR}/volumes"
+CERT_DIR="${TEMP_DIR}/certs"
+mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${CERT_DIR}"
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -91,6 +95,14 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # Begin tests
 #
 
+# verify some default commands
+[ "$(openshift cli)" ]
+[ "$(openshift ex)" ]
+[ "$(openshift ex config 2>&1)" ]
+[ "$(openshift ex tokens)" ]
+[ "$(openshift kubectl)" ]
+[ "$(openshift kube 2>&1)" ]
+
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
 osc delete pods hello-openshift
@@ -131,14 +143,22 @@ osc delete routes testroute
 echo "routes: ok"
 
 osc get deploymentConfigs
+osc get dc
 osc create -f test/integration/fixtures/test-deployment-config.json
 osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
-osc process -f examples/guestbook/template.json | osc apply -f -
+osc process -f test/templates/fixtures/guestbook.json | osc apply -f -
 echo "template+config: ok"
 
+openshift kube resize --replicas=2 rc guestbook
+osc get pods
+echo "resize: ok"
+
 osc process -f examples/sample-app/application-template-dockerbuild.json | osc apply -f -
+osc get buildConfigs
+osc get bc
+osc get builds
 echo "buildConfig: ok"
 
 started=$(osc start-build ruby-sample-build)

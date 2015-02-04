@@ -170,6 +170,45 @@
   margin-top: 10px;
 }
 
+.label-filter {
+  .selectize-control {
+    display: inline-block;
+
+    &.label-filter-key {
+      min-width: 150px;
+    }
+
+    &.label-filter-operator {
+      min-width: 110px;
+    }
+
+    &.label-filter-values {
+      min-width: 150px;
+    }
+
+    .selectize-input {
+      height: 47px;
+      font-size: 15px;
+      line-height: 26px;
+
+      input {
+        height: 31px;
+        font-size: 15px;
+        line-height: 26px;
+      }
+    }
+  }
+
+  .label-filter-add {
+    vertical-align: top;
+    margin-top: 8px;
+  }
+
+  .label-filter-active-filter + .label-filter-active-filter {
+    margin-left: 3px;
+  }
+}
+
 @media (min-width:600px)  {
   .console-os .navbar-project-menu {
     width: 45%;

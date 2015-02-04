@@ -61,9 +61,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	kubelet.SetupCapabilities(true)
 	cases := map[string]map[string]runtime.Object{
-		"../examples/guestbook": {
-			"template": &templateapi.Template{},
-		},
 		"../examples/hello-openshift": {
 			"hello-pod":     &kapi.Pod{},
 			"hello-project": &projectapi.Project{},
@@ -92,6 +89,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 		},
 		"../test/templates/fixtures": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
+			"guestbook":       &templateapi.Template{},
 		},
 	}
 

@@ -47,9 +47,6 @@
       },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "labels": {
-        "name": "origin-ruby-sample"
-      }
     },
     {
       "metadata":{
@@ -57,9 +54,6 @@
       },
       "kind": "ImageRepository",
       "apiVersion": "v1beta1",
-      "labels": {
-        "name": "custom-docker-builder"
-      }
     },
     {
       "metadata":{

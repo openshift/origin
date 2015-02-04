@@ -301,3 +301,24 @@ you can use the generic selector below, but it's slower:
 .icon-cartridge-custom:before {
   content: "\ee54";
 }
+
+
+// needed for dual icon alignment
+.font-icon-block {
+  display: inline-block;
+  position: relative;
+  .font-icon:nth-child(n+2) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    text-shadow: none;
+  }
+}
+
+.font-icon {
+  display: inline-block;
+  top: 0;
+  &.font-icon-inline  {
+    position: relative;
+  }
+}

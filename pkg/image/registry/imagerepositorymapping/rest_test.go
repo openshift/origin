@@ -10,79 +10,10 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/test"
 )
-
-func TestGetImageRepositoryMapping(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
-
-	obj, err := storage.Get(kapi.NewDefaultContext(), "foo")
-	if obj != nil {
-		t.Errorf("Unexpected non-nil object %#v", obj)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if !errors.IsNotFound(err) {
-		t.Errorf("Expected 'not found' error, got %#v", err)
-	}
-}
-
-func TestListImageRepositoryMappings(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
-
-	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
-	if list != nil {
-		t.Errorf("Unexpected non-nil list %#v", list)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if !errors.IsNotFound(err) {
-		t.Errorf("Expected 'not found' error, got %#v", err)
-	}
-}
-
-func TestDeleteImageRepositoryMapping(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
-
-	channel, err := storage.Delete(kapi.NewDefaultContext(), "repo1")
-	if channel != nil {
-		t.Errorf("Unexpected non-nil channel %#v", channel)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if !errors.IsNotFound(err) {
-		t.Errorf("Expected 'not found' error, got %#v", err)
-	}
-}
-
-func TestUpdateImageRepositoryMapping(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
-
-	channel, err := storage.Update(kapi.NewDefaultContext(), &api.ImageList{})
-	if channel != nil {
-		t.Errorf("Unexpected non-nil channel %#v", channel)
-	}
-	if err == nil {
-		t.Fatal("Unexpected nil err")
-	}
-	if strings.Index(err.Error(), "ImageRepositoryMappings may not be changed.") == -1 {
-		t.Errorf("Expected 'may not be changed' error, got %#v", err)
-	}
-}
 
 func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 	imageRegistry := test.NewImageRegistry()

@@ -1,13 +1,11 @@
 package imagerepositorytag
 
 import (
-	"fmt"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -30,11 +28,6 @@ func NewREST(imageRegistry image.Registry, imageRepositoryRegistry imagereposito
 // New returns a new ImageRepositoryMapping for use with Create.
 func (s *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
-}
-
-// List is not supported.
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", "")
 }
 
 // nameAndTag splits a string into its name component and tag component, and returns an error
@@ -72,19 +65,4 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, errors.NewNotFound("imageRepositoryTag", tag)
 	}
 	return s.imageRegistry.GetImage(ctx, imageName)
-}
-
-// Create is not supported.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", "")
-}
-
-// Update is not supported.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	return nil, fmt.Errorf("ImageRepositoryTags may not be changed.")
-}
-
-// Delete is not supported.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return nil, errors.NewNotFound("imageRepositoryMapping", id)
 }
