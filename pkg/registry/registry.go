@@ -154,7 +154,7 @@ func (sub *EtcdSubnetRegistry) GetMinions() (*[]string, error) {
 
 	for _, node := range resp.Node.Nodes {
 		if node.Key == "" {
-			log.Errorf("Error unmarshaling GetMinions response node %s", node.Key)
+			log.Errorf("Error unmarshalling GetMinions response node %s", node.Key)
 			continue
 		}
 		_, minion := path.Split(node.Key)
@@ -180,7 +180,7 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]Subnet, error) {
 		var s Subnet
 		err := json.Unmarshal([]byte(node.Value), &s)
 		if err != nil {
-			log.Errorf("Error unmarshaling GetSubnets response node %s (%s)", node.Value, err.Error())
+			log.Errorf("Error unmarshalling GetSubnets response node %s (%s)", node.Value, err.Error())
 			continue
 		}
 		subnets = append(subnets, s)
@@ -192,7 +192,7 @@ func (sub *EtcdSubnetRegistry) GetSubnet(minionip string) (*Subnet, error) {
 	key := path.Join(sub.etcdCfg.SubnetPath, minionip)
 	resp, err := sub.client().Get(key, false, false)
 	if err == nil {
-		log.Infof("unmashaling %s", resp.Node.Value)
+		log.Infof("unmarshalling %s", resp.Node.Value)
 		var sub Subnet
 		if err = json.Unmarshal([]byte(resp.Node.Value), &sub); err == nil {
 			return &sub, nil
