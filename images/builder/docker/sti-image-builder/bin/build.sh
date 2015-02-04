@@ -17,8 +17,11 @@ if ! [ $? -eq 0 ]; then
   exit $result
 fi
 
+# If the STI image Dockerfile does not exists in the root of the repository,
+# you can specify the CONTEXT_DIR.
+context_dir=${CONTEXT_DIR:-"."}
 
-pushd $source_dir >/dev/null
+pushd "${source_dir}/${context_dir}" >/dev/null
   # Checkout desired ref
   if ! [ -z "$SOURCE_REF" ]; then
     git checkout $SOURCE_REF
