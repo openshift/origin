@@ -3,14 +3,14 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit ce90d0925011705e50de71cb29ac3eb5a5c40d9a
+%global commit e7765f65e3a458475117bf1f41e05fba24ccaa9d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 Name:           openshift
-Version:        0.2.1
+Version:        0.2.2
 #Release:        1git%{shortcommit}%{?dist}
-Release:        4%{?dist}
+Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -156,6 +156,167 @@ install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-nod
 
 
 %changelog
+* Wed Feb 04 2015 Scott Dodson <sdodson@redhat.com> 0.2.2-0
+- Merge tag 'v0.2.2' (sdodson@redhat.com)
+- Merge pull request #861 from smarterclayton/version_images
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #851 from bparees/remove_guestbook
+  (dmcphers+openshiftbot@redhat.com)
+- Expose two new flags on master --images and --latest-images
+  (ccoleman@redhat.com)
+- Create an openshift/origin-pod image (ccoleman@redhat.com)
+- Merge pull request #840 from mfojtik/gofmt (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #850 from sg00dwin/refactor-css-and-filter
+  (dmcphers+openshiftbot@redhat.com)
+- remove guestbook example (bparees@redhat.com)
+- Merge pull request #847 from bparees/build_description
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #849 from phemmer/kubernetes_capabilities
+  (dmcphers+openshiftbot@redhat.com)
+- Refactor css, variablize more values and restructure label filter markup
+  (sgoodwin@redhat.com)
+- Merge pull request #841 from mfojtik/build_in_docker
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #846 from ironcladlou/deployer-race-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #839 from smarterclayton/add_auth_proxy
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #842 from deads2k/deads-registry-errors
+  (dmcphers+openshiftbot@redhat.com)
+- better description of output to field (bparees@redhat.com)
+- move kubernetes capabilities to server start (patrick.hemmer@gmail.com)
+- Add --check option to run golint and gofmt in ./hack/build-in-docker.sh
+  (mfojtik@redhat.com)
+- Add retry logic to recreate deployment strategy (ironcladlou@gmail.com)
+- Very simple authorizing proxy for Kubernetes (ccoleman@redhat.com)
+- Unify authorization logic into a more structured form (ccoleman@redhat.com)
+- User registry should transform server errors (ccoleman@redhat.com)
+- UPSTREAM: Handle case insensitive node names and squash logging
+  (ccoleman@redhat.com)
+- remove unnecessary rest methods (deads@redhat.com)
+- UPSTREAM: add flag to manage $KUBECONFIG files: #4053, bugzilla 1188208
+  (deads@redhat.com)
+- Add ./hack/build-in-docker.sh script (mfojtik@redhat.com)
+- Fix Go version checking in verify-gofmt (mfojtik@redhat.com)
+- Merge pull request #833 from csrwng/update_docker_pkgs
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #831 from
+  derekwaynecarr/sample_projects_have_different_names
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #808 from sdodson/haproxy-1510
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #837 from liggitt/login (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #819 from sosiouxme/201502-sample-app-docs
+  (dmcphers+openshiftbot@redhat.com)
+- Use $http (jliggitt@redhat.com)
+- Merge pull request #789 from fabianofranz/cobra_local_global_flags_separation
+  (dmcphers+openshiftbot@redhat.com)
+- sample-app docs: update for TLS, namespace, context (lmeyer@redhat.com)
+- Merge pull request #801 from jwforres/filter_widget
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #834 from bparees/imagerepo_labels
+  (dmcphers+openshiftbot@redhat.com)
+- Removed "Additional Help Topics" section from help template
+  (contact@fabianofranz.com)
+- Use our own templates to cli help and usage (contact@fabianofranz.com)
+- UPSTREAM: spf13/cobra help display separate groups of flags
+  (contact@fabianofranz.com)
+- Merge pull request #825 from smarterclayton/update_kubectl
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #798 from lhuard1A/fix_vagrant_net
+  (dmcphers+openshiftbot@redhat.com)
+- Label filtering widget in the web console, styles by @sg00dwin
+  (jforrest@redhat.com)
+- Merge pull request #829 from deads2k/deads-ignore-local-kubeconfig
+  (dmcphers+openshiftbot@redhat.com)
+- remove unnecessary labels from sample imagerepos (bparees@redhat.com)
+- Add shortcuts for build configs and deployment configs (ccoleman@redhat.com)
+- Remove kubecfg, expose kubectl in its place (ccoleman@redhat.com)
+- bump(github.com/docker/docker):211513156dc1ace48e630b4bf4ea0fcfdc8d9abf
+  (cewong@redhat.com)
+- Update project display name for sample app (decarr@redhat.com)
+- UPSTREAM: typos (contact@fabianofranz.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Merge pull request #812 from liggitt/display_token
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #675 from deads2k/deads-openshift-authorization-impl
+  (dmcphers+openshiftbot@redhat.com)
+- ignore local .kubeconfig (deads@redhat.com)
+- Improve /oauth/token/request page (jliggitt@redhat.com)
+- Merge pull request #804 from danmcp/master (dmcphers+openshiftbot@redhat.com)
+- Compile haproxy with generic CPU instructions (sdodson@redhat.com)
+- Fix multi minion setup (dmcphers@redhat.com)
+- policy authorizer (deads@redhat.com)
+- policy client (deads@redhat.com)
+- policy storage (deads@redhat.com)
+- policy types (deads@redhat.com)
+- Fix the Vagrant network setup (lhuard@amadeus.com)
+- Remove empty log files and use a slightly different process kill method
+  (ccoleman@redhat.com)
+- Refactor to match upstream master changes (ccoleman@redhat.com)
+- Better debug output in deployment_config_controller (ccoleman@redhat.com)
+- Adapt to upstream changes for cache.Store (ccoleman@redhat.com)
+- UPSTREAM: Relax validation around annotations (ccoleman@redhat.com)
+- UPSTREAM: Support GetByKey so EventStore can de-dup (ccoleman@redhat.com)
+- UPSTREAM: Add 'release' field to raven-go (ccoleman@redhat.com)
+- UPSTREAM: Allow namespace short to be set (ccoleman@redhat.com)
+- UPSTREAM: api registration right on mux makes it invisible to container
+  (contact@fabianofranz.com)
+- UPSTREAM: Disable auto-pull when tag is "latest" (ccoleman@redhat.com)
+- UPSTREAM: Disable UIs for Kubernetes and etcd (ccoleman@redhat.com)
+- bump(github.com/GoogleCloudPlatform/kubernetes):e335e2d3e26a9a58d3b189ccf41ce
+  b3770d1bfa9 (ccoleman@redhat.com)
+- Escape helper echo in rebase-kube (ccoleman@redhat.com)
+- only kill and remove k8s managed containers (bparees@redhat.com)
+- Gofmt whitespace flaw (ccoleman@redhat.com)
+- Helper function for rebase output (ccoleman@redhat.com)
+- UPSTREAM: Disable UIs for Kubernetes and etcd (ccoleman@redhat.com)
+- UPSTREAM: Disable auto-pull when tag is "latest" (ccoleman@redhat.com)
+- Merge pull request #816 from smarterclayton/properly_vesrion
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #797 from smarterclayton/wire_up_api_to_node
+  (dmcphers+openshiftbot@redhat.com)
+- Godeps: update tags to be accurate (ccoleman@redhat.com)
+- Properly version Kubernetes and OpenShift binaries (ccoleman@redhat.com)
+- Merge pull request #815 from smarterclayton/travis_flake
+  (dmcphers+openshiftbot@redhat.com)
+- Connect the node to the master via and a built in client
+  (ccoleman@redhat.com)
+- Rebase fixes (ccoleman@redhat.com)
+- Fix flaky travis by limiting parallel builds (ccoleman@redhat.com)
+- UPSTREAM: api registration right on mux makes it invisible to container
+  (contact@fabianofranz.com)
+- UPSTREAM: Allow namespace short to be set (ccoleman@redhat.com)
+- bump(github.com/GoogleCloudPlatform/kubernetes):e0acd75629ec29bde764bcde29367
+  146ae8b389b (jhonce@redhat.com)
+- Merge pull request #811 from smarterclayton/pkill_must_be_sudo
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #786 from ironcladlou/rollback-cli
+  (dmcphers+openshiftbot@redhat.com)
+- pkill on test-end-to-end.sh must be sudo (ccoleman@redhat.com)
+- Merge pull request #810 from liggitt/oauth_token_user_uid
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #809 from liggitt/relative_kubeconfig
+  (dmcphers+openshiftbot@redhat.com)
+- Set user UID in session (jliggitt@redhat.com)
+- Implement deployment rollback CLI support (ironcladlou@gmail.com)
+- Merge pull request #792 from liggitt/oauth_prefix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #807 from danmcp/allow_root
+  (dmcphers+openshiftbot@redhat.com)
+- Make file references relative in generated .kubeconfig files
+  (jliggitt@redhat.com)
+- Add ability to retrieve userIdentityMapping (jliggitt@redhat.com)
+- Add "Oauth" prefix to oauth types (jliggitt@redhat.com)
+- Register internal OAuth API objects correctly (jliggitt@redhat.com)
+- Merge pull request #788 from sosiouxme/201501-vagrant-providers
+  (dmcphers+openshiftbot@redhat.com)
+- Allow bower to run as root (dmcphers@redhat.com)
+- Vagrantfile: improve providers and usability/readability (lmeyer@redhat.com)
+- UPSTREAM: resolve relative paths in .kubeconfig (deads@redhat.com)
+- Pin haproxy to 1.5.10 (sdodson@redhat.com)
+- Fix the Vagrant network setup (lhuard@amadeus.com)
+
 * Fri Jan 30 2015 Scott Dodson <sdodson@redhat.com> 0.2.1-4
 - new package built with tito
 
