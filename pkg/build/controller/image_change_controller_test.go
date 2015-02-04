@@ -77,7 +77,9 @@ func mockImageChangeController(buildcfg *buildapi.BuildConfig, repoName, dockerI
 		ObjectMeta: kapi.ObjectMeta{
 			Name: repoName,
 		},
-		DockerImageRepository: dockerImageRepo,
+		Status: imageapi.ImageRepositoryStatus{
+			DockerImageRepository: dockerImageRepo,
+		},
 		Tags: tags,
 	}
 
@@ -277,5 +279,21 @@ func TestBuildCreateError(t *testing.T) {
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Fatal("Expected no buildConfig update on BuildCreate error!")
+	}
+}
+
+func TestNewImageIDNoDockerRepo(t *testing.T) {
+	// No docker repository associated with the imagerepo, so no build can be created
+	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
+	controller := mockImageChangeController(buildcfg, "testImageRepo", "", map[string]string{"testTag": "newImageID123"})
+	controller.HandleImageRepo()
+	buildCreator := controller.BuildCreator.(*mockBuildCreator)
+	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+
+	if buildCreator.build != nil {
+		t.Error("New build created when no change happened!")
+	}
+	if buildConfigUpdater.buildcfg != nil {
+		t.Error("BuildConfig was updated when no change happened!")
 	}
 }

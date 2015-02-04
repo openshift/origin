@@ -49,7 +49,9 @@ func (c *ImageChangeController) HandleImageRepo() {
 			}
 			icTrigger := trigger.ImageChange
 			// only trigger a build if this image repo matches the name and namespace of the ref in the build trigger
-			if icTrigger.From.Name != imageRepo.Name || (len(icTrigger.From.Namespace) != 0 && icTrigger.From.Namespace != imageRepo.Namespace) {
+			// also do not trigger if the imagerepo does not have a valid DockerImageRepository value for us to pull
+			// the image from
+			if imageRepo.Status.DockerImageRepository == "" || icTrigger.From.Name != imageRepo.Name || (len(icTrigger.From.Namespace) != 0 && icTrigger.From.Namespace != imageRepo.Namespace) {
 				continue
 			}
 			// for every ImageChange trigger, record the image it substitutes for and get the latest
@@ -66,7 +68,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 
 			// (must be different) to trigger a build
 			if icTrigger.LastTriggeredImageID != imageID {
-				imageSubstitutions[icTrigger.Image] = imageRepo.DockerImageRepository + ":" + imageID
+				imageSubstitutions[icTrigger.Image] = imageRepo.Status.DockerImageRepository + ":" + imageID
 				shouldTriggerBuild = true
 				icTrigger.LastTriggeredImageID = imageID
 			}
