@@ -344,6 +344,8 @@ func start(cfg *config, args []string) error {
 			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
 			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
 
+			CORSAllowedOrigins: cfg.CORSAllowedOrigins,
+
 			EtcdHelper: etcdHelper,
 
 			AdmissionControl:             admit.NewAlwaysAdmit(),

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -398,20 +399,16 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	swagger.RegisterSwaggerService(swaggerConfig, open)
 	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
 
-	// copy
+	handler = open
 
 	// add CORS support
-	if len(c.CORSAllowedOrigins) != 0 {
-		open.Filter(restful.CrossOriginResourceSharing{
-			AllowedHeaders: []string{"Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization", "X-Requested-With", "If-Modified-Since"},
-			AllowedDomains: c.CORSAllowedOrigins,
-			AllowedMethods: []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
-		}.Filter)
+	if origins := c.ensureCORSAllowedOrigins(); len(origins) != 0 {
+		handler = apiserver.CORS(handler, origins, nil, nil, "true")
 	}
 
 	server := &http.Server{
 		Addr:           c.MasterBindAddr,
-		Handler:        open,
+		Handler:        handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
@@ -702,6 +699,19 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	factory := deploycontrollerfactory.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
+// regexes, or exits if it cannot.
+func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
+	if len(c.CORSAllowedOrigins) == 0 {
+		return []*regexp.Regexp{}
+	}
+	allowedOriginRegexps, err := util.CompileRegexps(util.StringList(c.CORSAllowedOrigins))
+	if err != nil {
+		glog.Fatalf("Invalid --cors-allowed-origins: %v", err)
+	}
+	return allowedOriginRegexps
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
