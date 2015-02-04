@@ -33,8 +33,20 @@ func validateTLS(tls *routeapi.TLSConfig) errs.ValidationErrorList {
 		return nil
 	}
 
-	//reencrypt must specify pod cert
+	//reencrypt must specify cert, key, cacert, and destination ca cert
 	if tls.Termination == routeapi.TLSTerminationReencrypt {
+		if len(tls.Certificate) == 0 {
+			result = append(result, errs.NewFieldRequired("certificate", tls.Certificate))
+		}
+
+		if len(tls.Key) == 0 {
+			result = append(result, errs.NewFieldRequired("key", tls.Key))
+		}
+
+		if len(tls.CACertificate) == 0 {
+			result = append(result, errs.NewFieldRequired("caCertificate", tls.CACertificate))
+		}
+
 		if len(tls.DestinationCACertificate) == 0 {
 			result = append(result, errs.NewFieldRequired("destinationCACertificate", tls.DestinationCACertificate))
 		}
