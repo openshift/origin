@@ -175,10 +175,6 @@ FAQ
     iterate through the next few months, you'll see this repository focus more on integration and
     plugins, with more and more features becoming part of Kubernetes.
 
-    OpenShift tracks the Kubernetes upstream at
-    [github.com/openshift/kubernetes](https://github.com/openshift/kubernetes).  See the wiki in
-    that project for more on how we manage the process of integrating prototyped features.
-
 2. What about [geard](https://github.com/openshift/geard)?
 
     Geard started as a prototype vehicle for the next generation of the OpenShift node - as an
