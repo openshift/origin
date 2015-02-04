@@ -208,11 +208,22 @@ osc get bc
 osc get builds
 echo "buildConfig: ok"
 
-started=$(osc start-build ruby-sample-build)
+osc create -f test/integration/fixtures/test-buildcli.json
+# a build for which there is not an upstream tag in the corresponding imagerepo, so
+# the build should use the image field as defined in the buildconfig
+started=$(osc start-build ruby-sample-build-invalidtag)
 echo "start-build: ok"
+osc describe build ${started} | grep openshift/ruby-20-centos$
 
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
+
+# a build for which there is an upstream tag in the corresponding imagerepo, so
+# the build should use that specific tag of the image instead of the image field
+# as defined in the buildconfig
+started=$(osc start-build ruby-sample-build-validtag)
+osc describe build ${started} | grep openshift/ruby-20-centos:success$
+osc cancel-build "${started}" --dump-logs --restart
 
 osc get minions,pods
 
