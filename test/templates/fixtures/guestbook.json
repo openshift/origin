@@ -41,7 +41,7 @@
       "apiVersion": "v1beta1",
       "port": 5432,
       "selector": {
-        "name": "guestbook"
+        "name": "frontend-service"
       }
     },
     {
