@@ -41,6 +41,11 @@ fi
 
 usermod -a -G docker vagrant
 
+# Copy over the certificates directory and modify the kubeconfig file to use the master ip
+cp -r /vagrant/openshift.local.certificates /
+chown -R vagrant.vagrant /openshift.local.certificates
+sed -ie "s/10.0.2.15/${MASTER_IP}/g" /openshift.local.certificates/admin/.kubeconfig
+
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-node.service
 [Unit]
@@ -48,7 +53,7 @@ Description=openshift node
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start node --master=http://${MASTER_IP}:8080
+ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/admin/.kubeconfig --master=https://${MASTER_IP}:8443
 Restart=on-failure
 RestartSec=10s
 
@@ -60,6 +65,10 @@ EOF
 systemctl daemon-reload
 systemctl enable openshift-node.service
 systemctl start openshift-node.service
+
+# Set up the KUBECONFIG environment variable for use by the client
+echo 'export KUBECONFIG=/openshift.local.certificates/admin/.kubeconfig' >> /root/.bash_profile
+echo 'export KUBECONFIG=/openshift.local.certificates/admin/.kubeconfig' >> /home/vagrant/.bash_profile
 
 # Register with the master
 #curl -X POST -H 'Accept: application/json' -d "{\"kind\":\"Minion\", \"id\":"${MINION_IP}", \"apiVersion\":\"v1beta1\", \"hostIP\":"${MINION_IP}" }" http://${MASTER_IP}:8080/api/v1beta1/minions

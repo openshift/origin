@@ -42,7 +42,8 @@ Description=openshift master
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start master --master=http://${MASTER_IP}:8080 --listen=http://0.0.0.0:8080 --nodes=${node_list}
+ExecStart=/usr/bin/openshift start master --public-master=${MASTER_IP} --nodes=${node_list}
+WorkingDirectory=/vagrant/
 
 [Install]
 WantedBy=multi-user.target
@@ -57,3 +58,7 @@ systemctl start openshift-master.service
 if [ "${OPENSHIFT_SDN}" == "ovs-simple" ]; then
   $(dirname $0)/provision-master-sdn.sh $@
 fi
+
+# Set up the KUBECONFIG environment variable for use by the client
+echo 'export KUBECONFIG=/vagrant/openshift.local.certificates/admin/.kubeconfig' >> /root/.bash_profile
+echo 'export KUBECONFIG=/vagrant/openshift.local.certificates/admin/.kubeconfig' >> /home/vagrant/.bash_profile
