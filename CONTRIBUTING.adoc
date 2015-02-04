@@ -102,10 +102,9 @@ Follow these steps to ensure that virtual box interfaces are unmanaged:
 	$ ip link list | grep vboxnet  -A 1 | grep link/ether | awk '{print "mac:" $2}' |  paste -sd ";" -
 
 == Development: What's on the Menu?
-Right now you can see what's happening with OpenShift development in two repositories:
+Right now you can see what's happening with OpenShift development at:
 
-1. The OpenShift Origin repo: https://github.com/openshift/origin[github.com/openshift/origin]
-2. The OpenShift Kubernetes fork: https://github.com/openshift/kubernetes[github.com/openshift/kubernetes]
+https://github.com/openshift/origin[github.com/openshift/origin]
 
 Here's a quick summary of what we're doing there:
 
@@ -125,27 +124,8 @@ From here, you can follow the https://github.com/openshift/origin/#getting-start
 
 Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
 
-=== The OpenShift Kubernetes Fork
-The OpenShift team is using this fork of the https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] project for two primary purposes:
-
-* As a staging area for pull requests to the upstream project
-* As a build area for Kubernetes that includes OpenShift-specific features that the upstream community does not want to add to the main project
-
 *If you are interested in contributing to Kubernetes directly:* +
 https://github.com/GoogleCloudPlatform/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
-
-*If you are more interested in the OpenShift-specific use of Kubernetes:* +
-First, https://help.github.com/articles/fork-a-repo[fork our fork] of Kubernetes and make a local copy for yourself:
-
-----
-$ go get github.com/openshift/kubernetes
-$ cd $GOPATH/src/github.com/openshift/kubernetes
-$ git remote add <YOUR_GITHUB_USERNAME> git@github.com:<YOUR_GITHUB_USERNAME>/kubernetes
-----
-
-From there, head to the https://github.com/openshift/kubernetes#development[Development section] of the README for general information on tinkering with Kubernetes.
-
-When you're ready to get your hands dirty, check out the roadmap info in the next section.
 
 === Troubleshooting
 

@@ -158,14 +158,6 @@ $ go get github.com/openshift/origin
 $ go get github.com/GoogleCloudPlatform/kubernetes
 ```
 
-You will also need [openshift/kubernetes](https://github.com/openshift/kubernetes) as a remote of 
-[GoogleCloudPlatform/kubernetes](https://github.com/GoogleCloudPlatform/kubernetes):
-
-```
-$ cd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes
-$ git remote add openshift git@github.com:openshift/kubernetes.git
-```
-
 Check out the version of Kubernetes you want to rebase as a branch or tag named `stable_proposed` in
 [GoogleCloudPlatform/kubernetes](https://github.com/GoogleCloudPlatform/kubernetes). For example,
 if you are going to rebase the latest `master` of Kubernetes:

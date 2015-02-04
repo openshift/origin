@@ -17,12 +17,6 @@ echo "Hit ENTER to continue or CTRL+C to cancel"
 read
 
 pushd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes > /dev/null
-if [[ $(git remote -v | grep -c 'openshift/kubernetes.git') -eq 0 ]]; then
-  echo "You must have the OpenShift kubernetes repo set as a remote in $(pwd)"
-  echo
-  echo "  $ git remote add openshift git@github.com:openshift/kubernetes.git"
-  echo
-fi
 echo "Fetching latest ..."
 git fetch
 popd > /dev/null
