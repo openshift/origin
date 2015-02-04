@@ -110,7 +110,7 @@ type MasterConfig struct {
 
 	AdmissionControl admission.Interface
 
-	// true if the system should use pullIfPresent for images (which means updates will not be fetched aggressively)
+	// true if the system should use pullIfNotPresent for images (which means updates will not be fetched aggressively)
 	UseLocalImages bool
 
 	// a function that returns the appropriate image to use for a named component
