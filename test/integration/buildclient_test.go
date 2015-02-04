@@ -193,7 +193,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	}
 
 	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit()).InstallREST(handlerContainer, osMux, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
