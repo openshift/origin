@@ -1,0 +1,124 @@
+package generator
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/generate/dockerfile"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+)
+
+// Generators for ImageRef
+// - Name              -> ImageRef
+// - ImageRepo + tag   -> ImageRef
+
+// ImageRefGenerator generates ImageRefs
+type ImageRefGenerator interface {
+	FromName(name string) (*app.ImageRef, error)
+	FromNameAndPorts(name string, ports []string) (*app.ImageRef, error)
+	FromRepository(repo *imageapi.ImageRepository, tag string) (*app.ImageRef, error)
+	FromDockerfile(name string, dir string, context string) (*app.ImageRef, error)
+}
+
+type imageRefGenerator struct {
+	dockerParser dockerfile.Parser
+}
+
+// NewImageRefGenerator creates a new ImageRefGenerator
+func NewImageRefGenerator() ImageRefGenerator {
+	return &imageRefGenerator{
+		dockerParser: dockerfile.NewParser(),
+	}
+}
+
+// FromName generates an ImageRef from a given name
+func (g *imageRefGenerator) FromName(name string) (*app.ImageRef, error) {
+	registry, namespace, name, tag, err := imageapi.SplitDockerPullSpec(name)
+	if err != nil {
+		return nil, err
+	}
+	return &app.ImageRef{
+		Registry:          registry,
+		Namespace:         namespace,
+		Name:              name,
+		Tag:               tag,
+		AsImageRepository: true,
+	}, nil
+}
+
+func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*app.ImageRef, error) {
+	present := struct{}{}
+	imageRef, err := g.FromName(name)
+	if err != nil {
+		return nil, err
+	}
+	exposedPorts := map[string]struct{}{}
+
+	for _, p := range ports {
+		exposedPorts[p] = present
+	}
+
+	imageRef.Info = &imageapi.DockerImage{
+		Config: imageapi.DockerConfig{
+			ExposedPorts: exposedPorts,
+		},
+	}
+	return imageRef, nil
+}
+
+func (g *imageRefGenerator) FromDockerfile(name string, dir string, context string) (*app.ImageRef, error) {
+	// Look for Dockerfile in repository
+	file, err := os.Open(filepath.Join(dir, context, "Dockerfile"))
+	if err != nil {
+		return nil, err
+	}
+
+	dockerFile, err := g.dockerParser.Parse(file)
+	if err != nil {
+		return nil, err
+	}
+
+	expose, ok := dockerFile.GetDirective("EXPOSE")
+	if !ok {
+		return nil, err
+	}
+	ports := []string{}
+	for _, e := range expose {
+		ps := strings.Split(e, " ")
+		ports = append(ports, ps...)
+	}
+	return g.FromNameAndPorts(name, ports)
+}
+
+// FromRepository generates an ImageRef from an OpenShift ImageRepository
+func (g *imageRefGenerator) FromRepository(repo *imageapi.ImageRepository, tag string) (*app.ImageRef, error) {
+	pullSpec := repo.Status.DockerImageRepository
+	if len(pullSpec) == 0 {
+		// need to know the default OpenShift registry
+		return nil, fmt.Errorf("the repository does not resolve to a pullable Docker repository")
+	}
+	registry, namespace, name, repoTag, err := imageapi.SplitDockerPullSpec(pullSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tag) == 0 {
+		if len(repoTag) != 0 {
+			tag = repoTag
+		} else {
+			tag = "latest"
+		}
+	}
+
+	return &app.ImageRef{
+		Registry:  registry,
+		Namespace: namespace,
+		Name:      name,
+		Tag:       tag,
+
+		Repository: repo,
+	}, nil
+}
