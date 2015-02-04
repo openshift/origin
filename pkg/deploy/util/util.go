@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+	//	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -24,10 +24,10 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 // TODO: Resources are currently ignored due to the formats not surviving encoding/decoding
 // in a consistent manner (e.g. 0 is represented sometimes as 0.000)
 func HashPodSpec(t api.PodSpec) uint64 {
-	for i := range t.Containers {
+	/*for i := range t.Containers {
 		t.Containers[i].CPU = resource.Quantity{}
 		t.Containers[i].Memory = resource.Quantity{}
-	}
+	}*/
 
 	jsonString, err := json.Marshal(t)
 	if err != nil {
