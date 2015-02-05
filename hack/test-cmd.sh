@@ -158,9 +158,9 @@ echo "images: ok"
 osc get imageRepositories
 osc create -f test/integration/fixtures/test-image-repository.json
 [ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/sample-app/docker-registry-config.json
+osc create -f test/integration/fixtures/docker-registry-config.json
 [ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
-osc delete -f examples/sample-app/docker-registry-config.json
+osc delete -f test/integration/fixtures/docker-registry-config.json
 osc delete imageRepositories test
 [ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-repositories/image-repositories.json

@@ -65,19 +65,21 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"hello-pod":     &kapi.Pod{},
 			"hello-project": &projectapi.Project{},
 		},
+		"../examples/docker-registry": {
+			"docker-registry-template": &templateapi.Template{},
+		},
 		"../examples/sample-app": {
 			"github-webhook-example":           nil, // Skip.
-			"docker-registry-config":           &configapi.Config{},
-			"docker-registry-template":         &templateapi.Template{},
 			"application-template-stibuild":    &templateapi.Template{},
 			"application-template-dockerbuild": &templateapi.Template{},
 			"application-template-custombuild": &templateapi.Template{},
+			"docker-registry-template":         &templateapi.Template{},
 			"project":                          &projectapi.Project{},
 		},
 		"../examples/jenkins": {
-			"jenkins-config":         &configapi.Config{},
-			"docker-registry-config": &configapi.Config{},
-			"application-template":   &templateapi.Template{},
+			"jenkins-config":           &configapi.Config{},
+			"docker-registry-template": &templateapi.Template{},
+			"application-template":     &templateapi.Template{},
 		},
 		"../examples/image-repositories": {
 			"image-repositories": &imageapi.ImageRepositoryList{},

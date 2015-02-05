@@ -50,7 +50,7 @@ Inside the OpenShift Docker container, you'll need to fetch some of the code
 bits that are used in the sample app.
 
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-config.json
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-template.json
     $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json
 
