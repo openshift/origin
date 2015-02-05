@@ -27,6 +27,7 @@ describe('Controller: ProjectsController', function () {
 
   angular.module('openshiftConsole').config(function(AuthServiceProvider) {
     AuthServiceProvider.LoginService('RedirectLoginService');
+    AuthServiceProvider.LogoutService('DeleteTokenLogoutService');
     AuthServiceProvider.UserStore('MemoryUserStore');
   });
 

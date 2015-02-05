@@ -40,34 +40,45 @@ angular.module('openshiftConsole')
     }
     return _loginService;
   };
+  var _logoutService = "";
+  this.LogoutService = function(logoutServiceName) {
+    if (logoutServiceName) {
+      _logoutService = logoutServiceName;
+    }
+    return _logoutService;
+  };
 
-  this.$get = function($q, $injector, $rootScope) {
+  var loadService = function(injector, name, setter) {
+  	if (!name) {
+  	  throw setter + " not set";
+  	} else if (angular.isString(name)) {
+  	  return injector.get(name);
+  	} else {
+  	  return injector.invoke(name);
+  	}
+  };
+
+  this.$get = function($q, $injector, $log, $rootScope) {
     if (debug) { console.log('AuthServiceProvider.$get', arguments); }
 
     var _loginCallbacks = $.Callbacks();
+    var _logoutCallbacks = $.Callbacks();
     var _userChangedCallbacks = $.Callbacks();
   
     var _loginPromise = null;
+    var _logoutPromise = null;
   
-    var userStore;
-    if (!_userStore) {
-      throw "AuthServiceProvider.UserStore() not set";
-    } else if (angular.isString(_userStore)) {
-      userStore = $injector.get(_userStore);
-    } else {
-      userStore = $injector.invoke(_userStore);
-    }
-
-    var loginService;
-    if (!_loginService) {
-      throw "AuthServiceProvider.LoginService() not set";
-    } else if (angular.isString(_loginService)) {
-      loginService = $injector.get(_loginService);
-    } else {
-      loginService = $injector.invoke(_loginService);
-    }
+    var userStore = loadService($injector, _userStore, "AuthServiceProvider.UserStore()");
+    var loginService = loadService($injector, _loginService, "AuthServiceProvider.LoginService()");
+    var logoutService = loadService($injector, _logoutService, "AuthServiceProvider.LogoutService()");
 
     return {
+      // Returns true if currently logged in.
+      isLoggedIn: function() {
+        return !!userStore.getUser();
+      },
+
+      // Returns a promise of a user, which is resolved with a logged in user. Triggers a login if needed.
       withUser: function() {
         var user = userStore.getUser();
         if (user) {
@@ -144,10 +155,41 @@ angular.module('openshiftConsole')
         });
         return _loginPromise;
       },
+
+      startLogout: function() {
+        if (_logoutPromise) {
+          if (debug) { console.log("Logout already in progress"); }
+          return _logoutPromise;
+        }
+        var self = this;
+        var user = userStore.getUser();
+        var token = userStore.getToken();
+        var wasLoggedIn = this.isLoggedIn();
+        _logoutPromise = logoutService.logout(user, token).then(function() {
+          if (debug) { console.log("Logout service success"); }
+        }).catch(function(err) {
+          if (debug) { console.log("Logout service error", err); }
+        }).finally(function() {
+          // Clear the user and token
+          self.setUser(null, null);
+          // Make sure isLoggedIn() returns false before we fire logout callbacks
+          var isLoggedIn = self.isLoggedIn();
+          // Only fire logout callbacks if we transitioned from a logged in state to a logged out state
+          if (wasLoggedIn && !isLoggedIn) {
+            _logoutCallbacks.fire();
+          }
+          _logoutPromise = null;
+        });
+        return _logoutPromise;
+      },
   
       // TODO: add a way to unregister once we start doing in-page logins
       onLogin: function(callback) {
         _loginCallbacks.add(callback);
+      },
+      // TODO: add a way to unregister once we start doing in-page logouts
+      onLogout: function(callback) {
+        _logoutCallbacks.add(callback);
       },
       // TODO: add a way to unregister once we start doing in-page user changes
       onUserChanged: function(callback) {

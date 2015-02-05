@@ -135,6 +135,7 @@ angular
    	  $httpProvider.interceptors.push('AuthInterceptor');
 
       AuthServiceProvider.LoginService('RedirectLoginService');
+      AuthServiceProvider.LogoutService('DeleteTokenLogoutService');
       // TODO: fall back to cookie store when localStorage is unavailable (see known issues at http://caniuse.com/#feat=namevalue-storage)
       AuthServiceProvider.UserStore('LocalStorageUserStore');
 
