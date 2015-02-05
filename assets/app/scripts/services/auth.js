@@ -1,6 +1,6 @@
 angular.module('openshiftConsole')
 // In a config step, set the desired user store and login service. For example:
-//   AuthServiceProvider.setUserStore('SessionUserStore')
+//   AuthServiceProvider.setUserStore('LocalStorageUserStore')
 //   AuthServiceProvider.setLoginService('RedirectLoginService')
 //
 // AuthService provides the following functions:
