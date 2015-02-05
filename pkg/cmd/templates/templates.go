@@ -2,40 +2,41 @@ package templates
 
 import "strings"
 
-func decorate(template string) string {
-	if len(strings.Trim(template, " ")) > 0 {
+func decorate(template string, trim bool) string {
+	if trim && len(strings.Trim(template, " ")) > 0 {
 		trimmed := strings.Trim(template, "\n")
-		return trimmed
-	} else {
-		return template
+		return funcs + trimmed
 	}
+	return funcs + template
 }
 
 func MainHelpTemplate() string {
-	return mainHelpTemplate
+	return decorate(mainHelpTemplate, false)
 }
 
 func MainUsageTemplate() string {
-	return mainUsageTemplate
+	return decorate(mainUsageTemplate, false)
 }
 
 func CliHelpTemplate() string {
-	return cliHelpTemplate
+	return decorate(cliHelpTemplate, false)
 }
 
 func CliUsageTemplate() string {
-	return decorate(cliUsageTemplate)
+	return decorate(cliUsageTemplate, true)
 }
 
 func OptionsHelpTemplate() string {
-	return optionsHelpTemplate
+	return decorate(optionsHelpTemplate, false)
 }
 
 func OptionsUsageTemplate() string {
-	return optionsUsageTemplate
+	return decorate(optionsUsageTemplate, false)
 }
 
 const (
+	funcs = `{{$isRootCmd := or (eq .Name "cli") (eq .Name "osc")}}{{define "rootCli"}}{{if eq .Root.Name "osc"}}osc{{else}}openshift cli{{end}}{{end}}`
+
 	mainHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
@@ -65,9 +66,10 @@ Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
   {{rpad .Name 20 }}{{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if .HasLocalFlags}}Options:
-{{.LocalFlags.FlagUsages}}{{end}}{{ if ne .Name .Root.Name}}Use "{{.Root.Name}} --help" for a list of all commands available in {{.Root.Name}}.
-{{end}}{{ if .HasSubCommands }}Use "{{.Root.Name}} <command> --help" for more information about a given command.
-{{end}}{{ if .HasAnyPersistentFlags}}Use "{{.Root.Name}} options --help" for a list of global command-line options (applies to all commands).
+{{.LocalFlags.FlagUsages}}
+{{end}}{{ if not $isRootCmd}}Use "{{template "rootCli" .}} --help" for a list of all commands available in {{template "rootCli" .}}.
+{{end}}{{ if .HasSubCommands }}Use "{{template "rootCli" .}} <command> --help" for more information about a given command.
+{{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options --help" for a list of global command-line options (applies to all commands).
 {{end}}`
 
 	optionsHelpTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
