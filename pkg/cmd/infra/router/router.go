@@ -50,8 +50,8 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 		},
 	}
 
-	cmd.SetUsageTemplate(templates.MainUsageTemplate)
-	cmd.SetHelpTemplate(templates.MainHelpTemplate)
+	cmd.SetUsageTemplate(templates.MainUsageTemplate())
+	cmd.SetHelpTemplate(templates.MainHelpTemplate())
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)

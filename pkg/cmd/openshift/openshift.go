@@ -77,8 +77,8 @@ func NewCommandOpenShift() *cobra.Command {
 		},
 	}
 
-	root.SetUsageTemplate(templates.MainUsageTemplate)
-	root.SetHelpTemplate(templates.MainHelpTemplate)
+	root.SetUsageTemplate(templates.MainUsageTemplate())
+	root.SetHelpTemplate(templates.MainHelpTemplate())
 
 	root.AddCommand(server.NewCommandStartServer("start"))
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
