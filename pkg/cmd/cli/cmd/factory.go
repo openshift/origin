@@ -64,7 +64,11 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 			if err != nil {
 				return nil, fmt.Errorf("unable to describe %s: %v", mapping.Kind, err)
 			}
-			describer, ok := describe.DescriberFor(mapping.Kind, cli, "")
+			kubeClient, err := kclient.New(cfg)
+			if err != nil {
+				return nil, fmt.Errorf("unable to describe %s: %v", mapping.Kind, err)
+			}
+			describer, ok := describe.DescriberFor(mapping.Kind, cli, kubeClient, "")
 			if !ok {
 				return nil, fmt.Errorf("no description has been implemented for %q", mapping.Kind)
 			}

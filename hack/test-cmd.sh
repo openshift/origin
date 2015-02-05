@@ -190,6 +190,7 @@ echo "routes: ok"
 osc get deploymentConfigs
 osc get dc
 osc create -f test/integration/fixtures/test-deployment-config.json
+osc describe deploymentConfigs test-deployment-config
 osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
