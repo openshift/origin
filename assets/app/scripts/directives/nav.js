@@ -27,26 +27,44 @@ angular.module('openshiftConsole')
       },       
       templateUrl: 'views/_project-nav.html',
       link: function ($scope, element, attrs) {
-        // The double timeout is a hack to guarantee DOM is finished rendering
-        $timeout(function () {
-          $timeout(function () {
-            $('.selectpicker').selectpicker({
-                  iconBase: 'fa',
-                  tickIcon: 'fa-check'
-              }).change(function() {
-              var newProject = $( this ).val();
-              var currentURL = $location.url();
-              var currProjRegex = /\/project\/[^\/]+/;
-              var currProjPrefix = currProjRegex.exec(currentURL);
-              var newURL = currentURL.replace(currProjPrefix, "/project/" + encodeURIComponent(newProject));
-              $scope.$apply(function() {
-                $location.url(newURL);
-              });
-            });
+        var select = $('.selectpicker', element);
 
-            LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element));
-          }, 0);
-        }, 0);
+        var updateOptions = function(projects) {
+          $each(projects, function(name, project) {
+            $('<option>')
+              .attr("value", project.metadata.name)
+              .attr("selected", project.metadata.name == $scope.selected)
+              .text(project.displayName || project.metadata.name)
+              .appendTo(select);
+          });
+          // TODO add back in when we support create project 
+          // <option data-divider="true"></option>
+          // <option>Create new</option>          
+        };
+
+        updateOptions($scope.projects);
+
+        select.selectpicker({
+              iconBase: 'fa',
+              tickIcon: 'fa-check'
+          }).change(function() {
+          var newProject = $( this ).val();
+          var currentURL = $location.url();
+          var currProjRegex = /\/project\/[^\/]+/;
+          var currProjPrefix = currProjRegex.exec(currentURL);
+          var newURL = currentURL.replace(currProjPrefix, "/project/" + encodeURIComponent(newProject));
+          $scope.$apply(function() {
+            $location.url(newURL);
+          });
+        });
+
+        LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element));
+
+        $scope.$watch("projects", function(projects) {
+          select.empty();
+          updateOptions(projects);
+          select.selectpicker('refresh');
+        });
       }      
     };
   })
