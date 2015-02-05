@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -58,9 +59,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = NewCommandOpenShift()
 	}
 
-	cmd.SetUsageTemplate(usageTemplate)
-	cmd.SetHelpTemplate(helpTemplate)
-
 	flagtypes.GLog(cmd.PersistentFlags())
 
 	return cmd
@@ -78,6 +76,9 @@ func NewCommandOpenShift() *cobra.Command {
 		},
 	}
 
+	root.SetUsageTemplate(templates.MainUsageTemplate)
+	root.SetHelpTemplate(templates.MainHelpTemplate)
+
 	root.AddCommand(server.NewCommandStartServer("start"))
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
@@ -89,6 +90,7 @@ func NewCommandOpenShift() *cobra.Command {
 	infra := &cobra.Command{
 		Use: "infra", // Because this command exposes no description, it will not be shown in help
 	}
+
 	infra.AddCommand(
 		router.NewCommandTemplateRouter("router"),
 		deployer.NewCommandDeployer("deploy"),
