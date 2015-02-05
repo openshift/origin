@@ -105,61 +105,138 @@ func TestImageChangeForUnregisteredTag(t *testing.T) {
 	controller.HandleImageRepo()
 }
 
-func TestImageChange(t *testing.T) {
-	var (
-		generatedConfig          *deployapi.DeploymentConfig
-		updatedConfig            *deployapi.DeploymentConfig
-		generatedConfigNamespace string
-		updatedConfigNamespace   string
-	)
-
-	controller := &ImageChangeController{
-		DeploymentConfigInterface: &testIcDeploymentConfigInterface{
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				updatedConfigNamespace = namespace
-				updatedConfig = config
-				return updatedConfig, nil
-			},
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				generatedConfigNamespace = namespace
-				generatedConfig = regeneratedConfig(namespace)
-				return generatedConfig, nil
-			},
+func TestImageChangeMatchScenarios(t *testing.T) {
+	params := map[string]*deployapi.DeploymentTriggerImageChangeParams{
+		"params.1": {
+			Automatic:      true,
+			ContainerNames: []string{"container-1"},
+			From:           kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoA"},
+			Tag:            "test-tag",
 		},
-		NextImageRepository: func() *imageapi.ImageRepository {
-			return tagUpdate()
+		"params.2": {
+			Automatic:      true,
+			ContainerNames: []string{"container-1"},
+			From:           kapi.ObjectReference{Name: "repoA"},
+			Tag:            "test-tag",
 		},
-		DeploymentConfigStore: deploytest.NewFakeDeploymentConfigStore(imageChangeDeploymentConfig()),
+		"params.3": {
+			Automatic:      true,
+			ContainerNames: []string{"container-1"},
+			RepositoryName: "registry:8080/openshift/test-image",
+			Tag:            "test-tag",
+		},
 	}
 
-	controller.HandleImageRepo()
-
-	if generatedConfig == nil {
-		t.Fatalf("expected config generation to occur")
+	updates := map[string]*imageapi.ImageRepository{
+		"repo.1": {
+			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
+			Status:     imageapi.ImageRepositoryStatus{"registry:8080/openshift/test-image"},
+			Tags:       map[string]string{"test-tag": "ref-2"},
+		},
+		"repo.2": {
+			ObjectMeta: kapi.ObjectMeta{Name: "repoB", Namespace: kapi.NamespaceDefault},
+			Status:     imageapi.ImageRepositoryStatus{"registry:8080/openshift/test-image"},
+			Tags:       map[string]string{"test-tag": "ref-3"},
+		},
+		"repo.3": {
+			ObjectMeta: kapi.ObjectMeta{Name: "repoC", Namespace: kapi.NamespaceDefault},
+			Status:     imageapi.ImageRepositoryStatus{"registry:8080/openshift/test-image-B"},
+			Tags:       map[string]string{"test-tag": "ref-2"},
+		},
+		"repo.4": {
+			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
+			Tags:       map[string]string{"test-tag": "ref-2"},
+		},
 	}
 
-	if updatedConfig == nil {
-		t.Fatalf("expected an updated deployment config")
-	} else if updatedConfig.Details == nil {
-		t.Fatalf("expected config change details to be set")
-	} else if updatedConfig.Details.Causes == nil {
-		t.Fatalf("expected config change causes to be set")
-	} else if updatedConfig.Details.Causes[0].Type != deployapi.DeploymentTriggerOnImageChange {
-		t.Fatalf("expected ChangeLog details to be set to image change trigger, got %s", updatedConfig.Details.Causes[0].Type)
-	}
-	if generatedConfigNamespace != nonDefaultNamespace {
-		t.Errorf("Expected generatedConfigNamespace %v, got %v", nonDefaultNamespace, generatedConfigNamespace)
-	}
-	if updatedConfigNamespace != nonDefaultNamespace {
-		t.Errorf("Expected updatedConfigNamespace %v, got %v", nonDefaultNamespace, updatedConfigNamespace)
+	scenarios := []struct {
+		param   string
+		repo    string
+		matches bool
+		causes  []string
+	}{
+		{"params.1", "repo.1", true, []string{"registry:8080/openshift/test-image:ref-2"}},
+		{"params.1", "repo.2", false, []string{}},
+		{"params.1", "repo.3", false, []string{}},
+		// This case relies on a brittle assumption that we'll sometimes has an empty
+		// imageRepo.Status.DockerImageRepository, but we'll still feed it through the
+		// generator anyway (which could return a config with no diffs).
+		{"params.1", "repo.4", true, []string{}},
+		{"params.2", "repo.1", true, []string{"registry:8080/openshift/test-image:ref-2"}},
+		{"params.2", "repo.2", false, []string{}},
+		{"params.2", "repo.3", false, []string{}},
+		// Same as params.1 -> repo.4, see above
+		{"params.2", "repo.4", true, []string{}},
+		{"params.3", "repo.1", true, []string{"registry:8080/openshift/test-image"}},
+		{"params.3", "repo.2", true, []string{"registry:8080/openshift/test-image"}},
+		{"params.3", "repo.3", false, []string{}},
+		{"params.3", "repo.4", false, []string{}},
 	}
 
-	if e, a := updatedConfig.Name, generatedConfig.Name; e != a {
-		t.Fatalf("expected updated config with id %s, got %s", e, a)
-	}
+	for _, s := range scenarios {
+		config := imageChangeDeploymentConfig()
+		config.Namespace = kapi.NamespaceDefault
+		config.Triggers = []deployapi.DeploymentTriggerPolicy{
+			{
+				Type:              deployapi.DeploymentTriggerOnImageChange,
+				ImageChangeParams: params[s.param],
+			},
+		}
 
-	if e, a := updatedConfig.Name, generatedConfig.Name; e != a {
-		t.Fatalf("expected updated config with id %s, got %s", e, a)
+		updated := false
+		generated := false
+
+		controller := &ImageChangeController{
+			DeploymentConfigInterface: &testIcDeploymentConfigInterface{
+				UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+					if !s.matches {
+						t.Fatalf("unexpected deployment config update for scenario: %v", s)
+					}
+					updated = true
+					return config, nil
+				},
+				GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+					if !s.matches {
+						t.Fatalf("unexpected generator call for scenario: %v", s)
+					}
+					generated = true
+					return config, nil
+				},
+			},
+			NextImageRepository: func() *imageapi.ImageRepository {
+				return updates[s.repo]
+			},
+			DeploymentConfigStore: deploytest.NewFakeDeploymentConfigStore(config),
+		}
+
+		t.Logf("running scenario: %v", s)
+		controller.HandleImageRepo()
+
+		// assert updates/generations occured
+		if s.matches && !updated {
+			t.Fatalf("expected update for scenario: %v", s)
+		}
+
+		if s.matches && !generated {
+			t.Fatalf("expected generation for scenario: %v", s)
+		}
+
+		// assert causes are correct relative to expected updates
+		if updated {
+			if e, a := len(s.causes), len(config.Details.Causes); e != a {
+				t.Fatalf("expected cause length %d, got %d", e, a)
+			}
+
+			for i, cause := range config.Details.Causes {
+				if e, a := s.causes[i], cause.ImageTrigger.RepositoryName; e != a {
+					t.Fatalf("expected cause repositoryName %s, got %s", e, a)
+				}
+			}
+		} else {
+			if config.Details != nil && len(config.Details.Causes) != 0 {
+				t.Fatalf("expected cause length 0, got %d", len(config.Details.Causes))
+			}
+		}
 	}
 }
 
