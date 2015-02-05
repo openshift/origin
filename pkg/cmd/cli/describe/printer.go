@@ -12,9 +12,11 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 var (
@@ -29,6 +31,14 @@ var (
 	parameterColumns        = []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
+
+	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
+	oauthClientAuthorizationColumns = []string{"NAME", "USER NAME", "CLIENT NAME", "SCOPES"}
+	oauthAccessTokenColumns         = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
+	oauthAuthorizeTokenColumns      = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
+
+	userColumns                = []string{"NAME", "UID", "FULL NAME"}
+	userIdentityMappingColumns = []string{"NAME", "IDENTITY PROVIDER", "IDENTITY USERNAME", "USER NAME"}
 )
 
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
@@ -54,6 +64,18 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(policyColumns, printPolicyList)
 	p.Handler(policyBindingColumns, printPolicyBinding)
 	p.Handler(policyBindingColumns, printPolicyBindingList)
+
+	p.Handler(oauthClientColumns, printOAuthClient)
+	p.Handler(oauthClientColumns, printOAuthClientList)
+	p.Handler(oauthClientAuthorizationColumns, printOAuthClientAuthorization)
+	p.Handler(oauthClientAuthorizationColumns, printOAuthClientAuthorizationList)
+	p.Handler(oauthAccessTokenColumns, printOAuthAccessToken)
+	p.Handler(oauthAccessTokenColumns, printOAuthAccessTokenList)
+	p.Handler(oauthAuthorizeTokenColumns, printOAuthAuthorizeToken)
+	p.Handler(oauthAuthorizeTokenColumns, printOAuthAuthorizeTokenList)
+
+	p.Handler(userColumns, printUser)
+	p.Handler(userIdentityMappingColumns, printUserIdentityMapping)
 	return p
 }
 
@@ -250,4 +272,70 @@ func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Write
 	}
 
 	return nil
+}
+
+func printOAuthClient(client *oauthapi.OAuthClient, w io.Writer) error {
+	challenge := "FALSE"
+	if client.RespondWithChallenges {
+		challenge = "TRUE"
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", client.Name, client.Secret, challenge, strings.Join(client.RedirectURIs, ","))
+	return err
+}
+func printOAuthClientList(list *oauthapi.OAuthClientList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printOAuthClient(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printOAuthClientAuthorization(auth *oauthapi.OAuthClientAuthorization, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", auth.Name, auth.UserName, auth.ClientName, strings.Join(auth.Scopes, ","))
+	return err
+}
+func printOAuthClientAuthorizationList(list *oauthapi.OAuthClientAuthorizationList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printOAuthClientAuthorization(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printOAuthAccessToken(token *oauthapi.OAuthAccessToken, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\n", token.Name, token.UserName, token.ClientName, token.CreationTimestamp, token.ExpiresIn, token.RedirectURI, strings.Join(token.Scopes, ","))
+	return err
+}
+func printOAuthAccessTokenList(list *oauthapi.OAuthAccessTokenList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printOAuthAccessToken(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printOAuthAuthorizeToken(token *oauthapi.OAuthAuthorizeToken, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\n", token.Name, token.UserName, token.ClientName, token.CreationTimestamp, token.ExpiresIn, token.RedirectURI, strings.Join(token.Scopes, ","))
+	return err
+}
+func printOAuthAuthorizeTokenList(list *oauthapi.OAuthAuthorizeTokenList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printOAuthAuthorizeToken(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printUser(user *userapi.User, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", user.Name, user.UID, user.FullName)
+	return err
+}
+
+func printUserIdentityMapping(mapping *userapi.UserIdentityMapping, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", mapping.Name, mapping.Identity.Provider, mapping.Identity.UserName, mapping.User.Name)
+	return err
 }
