@@ -52,8 +52,8 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	f.BindFlags(cmds.PersistentFlags())
 	out := os.Stdout
 
-	cmds.SetUsageTemplate(templates.CliUsageTemplate)
-	cmds.SetHelpTemplate(templates.CliHelpTemplate)
+	cmds.SetUsageTemplate(templates.CliUsageTemplate())
+	cmds.SetHelpTemplate(templates.CliHelpTemplate())
 
 	// Kubernetes CRUD commands
 	cmds.AddCommand(f.NewCmdGet(out))

@@ -26,8 +26,8 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 			cmd.RunSTIBuild()
 		},
 	}
-	cmd.SetUsageTemplate(templates.MainUsageTemplate)
-	cmd.SetHelpTemplate(templates.MainHelpTemplate)
+	cmd.SetUsageTemplate(templates.MainUsageTemplate())
+	cmd.SetHelpTemplate(templates.MainHelpTemplate())
 	return cmd
 }
 
@@ -48,7 +48,7 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 			cmd.RunDockerBuild()
 		},
 	}
-	cmd.SetUsageTemplate(templates.MainUsageTemplate)
-	cmd.SetHelpTemplate(templates.MainHelpTemplate)
+	cmd.SetUsageTemplate(templates.MainUsageTemplate())
+	cmd.SetHelpTemplate(templates.MainHelpTemplate())
 	return cmd
 }
