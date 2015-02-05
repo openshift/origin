@@ -68,7 +68,7 @@ func (a *Authenticator) AuthenticationSucceeded(user api.UserInfo, state string,
 	return false, a.store.Save(w, req)
 }
 
-func (a *Authenticator) InvalidateAuthentication(context api.UserInfo, w http.ResponseWriter, req *http.Request) error {
+func (a *Authenticator) InvalidateAuthentication(w http.ResponseWriter, req *http.Request) error {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
 		return err

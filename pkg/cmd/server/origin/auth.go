@@ -13,6 +13,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -188,6 +189,10 @@ type AuthConfig struct {
 	SessionSecrets []string
 	// SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
 	SessionMaxAgeSeconds int
+	// SessionName is the cookie name used to store the session
+	SessionName string
+	// sessionAuth holds the Authenticator built from the exported Session* options. It should only be accessed via getSessionAuth(), since it is lazily built.
+	sessionAuth *session.Authenticator
 
 	// GoogleClientID is the client_id of a client registered with the Google OAuth provider.
 	// It must be authorized to redirect to {MasterPublicAddr}/oauth2callback/google
@@ -213,7 +218,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
-	authRequestHandler, authHandler := c.getAuthorizeAuthenticationHandlers(mux)
+	authRequestHandler, authHandler, authFinalizer := c.getAuthorizeAuthenticationHandlers(mux)
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
@@ -235,6 +240,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 				grantHandler,
 				handlers.EmptyError{},
 			),
+			authFinalizer,
 		},
 		osinserver.AccessHandlers{
 			handlers.NewDenyAccessAuthenticator(),
@@ -340,16 +346,20 @@ func getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", false, false)
 }
 
-func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler) {
-	// things based on sessionStore only work if they can share exactly the same instance of sessionStore
-	// this results in really ugly initialization code as we have to pass this concept through to many disparate pieces
-	// of the config that MIGHT need the information.  The first step to fixing it is to see how far it goes, so this
-	// does not attempt to hide the ugly
-	sessionStore := session.NewStore(c.SessionMaxAgeSeconds, c.SessionSecrets...)
-	authRequestHandler := c.getAuthenticationRequestHandler(sessionStore)
-	authHandler := c.getAuthenticationHandler(mux, sessionStore, handlers.EmptyError{})
+func (c *AuthConfig) getSessionAuth() *session.Authenticator {
+	if c.sessionAuth == nil {
+		sessionStore := session.NewStore(c.SessionMaxAgeSeconds, c.SessionSecrets...)
+		c.sessionAuth = session.NewAuthenticator(sessionStore, c.SessionName)
+	}
+	return c.sessionAuth
+}
 
-	return authRequestHandler, authHandler
+func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler) {
+	authRequestHandler := c.getAuthenticationRequestHandler()
+	authHandler := c.getAuthenticationHandler(mux, handlers.EmptyError{})
+	authFinalizer := c.getAuthenticationFinalizer()
+
+	return authRequestHandler, authHandler, authFinalizer
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
@@ -371,8 +381,27 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 	return grantHandler
 }
 
-func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, sessionStore session.Store, errorHandler handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
-	successHandler := c.getAuthenticationSuccessHandler(sessionStore)
+// getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request
+func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
+	for _, requestHandler := range c.AuthRequestHandlers {
+		switch requestHandler {
+		case AuthRequestHandlerSession:
+			// The session needs to know the authorize flow is done so it can invalidate the session
+			return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+				_ = c.getSessionAuth().InvalidateAuthentication(w, ar.HttpRequest)
+				return false, nil
+			})
+		}
+	}
+
+	// Otherwise return a no-op finalizer
+	return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+		return false, nil
+	})
+}
+
+func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
+	successHandler := c.getAuthenticationSuccessHandler()
 
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
@@ -442,13 +471,14 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	return passwordAuth
 }
 
-func (c *AuthConfig) getAuthenticationSuccessHandler(sessionStore session.Store) handlers.AuthenticationSuccessHandler {
+func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSuccessHandler {
 	successHandlers := handlers.AuthenticationSuccessHandlers{}
 
 	for _, requestHandler := range c.AuthRequestHandlers {
 		switch requestHandler {
 		case AuthRequestHandlerSession:
-			successHandlers = append(successHandlers, session.NewAuthenticator(sessionStore, "ssn"))
+			// The session needs to know so it can write auth info into the session
+			successHandlers = append(successHandlers, c.getSessionAuth())
 		}
 	}
 
@@ -462,7 +492,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler(sessionStore session.Store)
 	return successHandlers
 }
 
-func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType AuthRequestHandlerType, sessionStore session.Store) authenticator.Request {
+func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType AuthRequestHandlerType) authenticator.Request {
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandler authenticator.Request
@@ -492,7 +522,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator)
 	case AuthRequestHandlerSession:
-		authRequestHandler = session.NewAuthenticator(sessionStore, "ssn")
+		authRequestHandler = c.getSessionAuth()
 	default:
 		glog.Fatalf("No AuthenticationRequestHandler found that matches %v.  The oauth server cannot start!", authRequestHandlerType)
 	}
@@ -500,12 +530,12 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 	return authRequestHandler
 }
 
-func (c *AuthConfig) getAuthenticationRequestHandler(sessionStore session.Store) authenticator.Request {
+func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
 	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandlers []authenticator.Request
 	for _, requestHandler := range c.AuthRequestHandlers {
-		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(requestHandler, sessionStore))
+		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(requestHandler))
 	}
 
 	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers...)
