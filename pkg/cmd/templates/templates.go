@@ -69,7 +69,7 @@ Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
 {{.LocalFlags.FlagUsages}}
 {{end}}{{ if not $isRootCmd}}Use "{{template "rootCli" .}} --help" for a list of all commands available in {{template "rootCli" .}}.
 {{end}}{{ if .HasSubCommands }}Use "{{template "rootCli" .}} <command> --help" for more information about a given command.
-{{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options --help" for a list of global command-line options (applies to all commands).
+{{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).
 {{end}}`
 
 	optionsHelpTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
