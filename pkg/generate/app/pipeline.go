@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"sort"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -154,11 +155,20 @@ func makeValidServiceName(name string) (string, string) {
 	name = strings.TrimFunc(name, func(r rune) bool { return r == '-' })
 	switch {
 	case len(name) == 0:
-		name = "service-"
+		return "", "service-"
 	case len(name) > maxServiceNameLength:
 		name = name[:maxServiceNameLength]
 	}
-	return "", name
+	return name, ""
+}
+
+func sortedPorts(ports []kapi.Port) []int {
+	result := []int{}
+	for _, p := range ports {
+		result = append(result, p.ContainerPort)
+	}
+	sort.Ints(result)
+	return result
 }
 
 func AddServices(objects Objects) Objects {
@@ -167,8 +177,8 @@ func AddServices(objects Objects) Objects {
 		switch t := o.(type) {
 		case *deploy.DeploymentConfig:
 			for _, container := range t.Template.ControllerTemplate.Template.Spec.Containers {
-				for _, port := range container.Ports {
-					p := port.ContainerPort
+				ports := sortedPorts(container.Ports)
+				for _, p := range ports {
 					name, generateName := makeValidServiceName(t.Name)
 					svcs = append(svcs, &kapi.Service{
 						ObjectMeta: kapi.ObjectMeta{
@@ -181,6 +191,7 @@ func AddServices(objects Objects) Objects {
 							Selector:      t.Template.ControllerTemplate.Selector,
 						},
 					})
+					break
 				}
 				break
 			}
