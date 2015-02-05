@@ -6,6 +6,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 )
 
-func DescriberFor(kind string, c *client.Client, host string) (kctl.Describer, bool) {
+func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
 	switch kind {
 	case "Build":
 		return &BuildDescriber{c}, true
@@ -22,7 +23,7 @@ func DescriberFor(kind string, c *client.Client, host string) (kctl.Describer, b
 	case "Deployment":
 		return &DeploymentDescriber{c}, true
 	case "DeploymentConfig":
-		return NewDeploymentConfigDescriber(c), true
+		return NewDeploymentConfigDescriber(c, kclient), true
 	case "Image":
 		return &ImageDescriber{c}, true
 	case "ImageRepository":

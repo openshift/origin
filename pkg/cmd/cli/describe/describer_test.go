@@ -4,10 +4,15 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/client"
 
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 type describeClient struct {
@@ -24,7 +29,7 @@ func TestDescribeFor(t *testing.T) {
 		"Image", "ImageRepository", "Route", "Project",
 	}
 	for _, o := range testTypesList {
-		_, ok := DescriberFor(o, c, "")
+		_, ok := DescriberFor(o, c, &kclient.Fake{}, "")
 		if !ok {
 			t.Errorf("Unable to obtain describer for %s", o)
 		}
@@ -59,8 +64,23 @@ func TestDescribers(t *testing.T) {
 }
 
 func TestDeploymentConfigDescriber(t *testing.T) {
-	config := deployapitest.OkDeploymentConfig(0)
-	d := NewDeploymentConfigDescriberForConfig(config)
+	config := deployapitest.OkDeploymentConfig(1)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	podList := &kapi.PodList{}
+
+	d := &DeploymentConfigDescriber{
+		client: &genericDeploymentDescriberClient{
+			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				return config, nil
+			},
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
+				return podList, nil
+			},
+		},
+	}
 
 	describe := func() {
 		if output, err := d.Describe("test", "deployment"); err != nil {
@@ -70,6 +90,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 		}
 	}
 
+	podList.Items = []kapi.Pod{*mkPod(kapi.PodRunning, 0)}
 	describe()
 
 	config.Triggers = append(config.Triggers, deployapitest.OkConfigChangeTrigger())
@@ -77,4 +98,24 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 
 	config.Template.Strategy = deployapitest.OkCustomStrategy()
 	describe()
+
+	config.Triggers[0].ImageChangeParams.RepositoryName = ""
+	config.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{Name: "imageRepo"}
+	describe()
+}
+
+func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
+	return &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
+		Status: kapi.PodStatus{
+			Phase: status,
+			Info: kapi.PodInfo{
+				"container1": kapi.ContainerStatus{
+					State: kapi.ContainerState{
+						Termination: &kapi.ContainerStateTerminated{ExitCode: exitCode},
+					},
+				},
+			},
+		},
+	}
 }

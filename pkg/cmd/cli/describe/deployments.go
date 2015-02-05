@@ -8,9 +8,13 @@ import (
 	"text/tabwriter"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	labels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // DeploymentConfigDescriber generates information about a DeploymentConfig
@@ -19,39 +23,63 @@ type DeploymentConfigDescriber struct {
 }
 
 type deploymentDescriberClient interface {
-	GetDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
+	getDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
+	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
+	listPods(namespace string, selector labels.Selector) (*kapi.PodList, error)
 }
 
 type genericDeploymentDescriberClient struct {
-	getDeploymentConfig func(namespace, name string) (*deployapi.DeploymentConfig, error)
+	getDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
+	getDeploymentFunc       func(namespace, name string) (*kapi.ReplicationController, error)
+	listPodsFunc            func(namespace string, selector labels.Selector) (*kapi.PodList, error)
 }
 
-func (c *genericDeploymentDescriberClient) GetDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return c.getDeploymentConfig(namespace, name)
+func (c *genericDeploymentDescriberClient) getDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
+	return c.getDeploymentConfigFunc(namespace, name)
+}
+
+func (c *genericDeploymentDescriberClient) getDeployment(namespace, name string) (*kapi.ReplicationController, error) {
+	return c.getDeploymentFunc(namespace, name)
+}
+
+func (c *genericDeploymentDescriberClient) listPods(namespace string, selector labels.Selector) (*kapi.PodList, error) {
+	return c.listPodsFunc(namespace, selector)
 }
 
 func NewDeploymentConfigDescriberForConfig(config *deployapi.DeploymentConfig) *DeploymentConfigDescriber {
 	return &DeploymentConfigDescriber{
 		client: &genericDeploymentDescriberClient{
-			getDeploymentConfig: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				return config, nil
+			},
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return nil, kerrors.NewNotFound("ReplicatonController", name)
+			},
+			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
+				return nil, kerrors.NewNotFound("PodList", fmt.Sprintf("%v", selector))
 			},
 		},
 	}
 }
 
-func NewDeploymentConfigDescriber(client client.Interface) *DeploymentConfigDescriber {
+func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Interface) *DeploymentConfigDescriber {
 	return &DeploymentConfigDescriber{
 		client: &genericDeploymentDescriberClient{
-			getDeploymentConfig: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				return client.DeploymentConfigs(namespace).Get(name)
+			},
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return kclient.ReplicationControllers(namespace).Get(name)
+			},
+			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
+				return kclient.Pods(namespace).List(selector)
 			},
 		},
 	}
 }
 
 func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
-	deploymentConfig, err := d.client.GetDeploymentConfig(namespace, name)
+	deploymentConfig, err := d.client.getDeploymentConfig(namespace, name)
 	if err != nil {
 		return "", err
 	}
@@ -67,7 +95,19 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 
 		printStrategy(deploymentConfig.Template.Strategy, out)
 		printTriggers(deploymentConfig.Triggers, out)
-		printReplicationController(deploymentConfig.Template.ControllerTemplate, out)
+		printReplicationControllerSpec(deploymentConfig.Template.ControllerTemplate, out)
+
+		deploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
+		deployment, err := d.client.getDeployment(namespace, deploymentName)
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				formatString(out, "Latest Deployment", "<none>")
+			} else {
+				formatString(out, "Latest Deployment", fmt.Sprintf("error: %v", err))
+			}
+		} else {
+			printDeploymentRc(deployment, d.client, out)
+		}
 
 		return nil
 	})
@@ -92,7 +132,7 @@ func printStrategy(strategy deployapi.DeploymentStrategy, w io.Writer) {
 
 func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w io.Writer) {
 	if len(triggers) == 0 {
-		fmt.Fprint(w, "No triggers.")
+		fmt.Fprint(w, "Triggers:\t<none>\n")
 		return
 	}
 
@@ -103,18 +143,26 @@ func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w io.Writer) {
 		case deployapi.DeploymentTriggerOnConfigChange:
 			fmt.Fprintf(w, "\t\t<no options>\n")
 		case deployapi.DeploymentTriggerOnImageChange:
-			fmt.Fprintf(w, "\t\tAutomatic:\t%v\n\t\tRepository:\t%s\n\t\tTag:\t%s\n",
-				t.ImageChangeParams.Automatic,
-				t.ImageChangeParams.RepositoryName,
-				t.ImageChangeParams.Tag,
-			)
+			if len(t.ImageChangeParams.RepositoryName) > 0 {
+				fmt.Fprintf(w, "\t\tAutomatic:\t%v\n\t\tRepository:\t%s\n\t\tTag:\t%s\n",
+					t.ImageChangeParams.Automatic,
+					t.ImageChangeParams.RepositoryName,
+					t.ImageChangeParams.Tag,
+				)
+			} else if len(t.ImageChangeParams.From.Name) > 0 {
+				fmt.Fprintf(w, "\t\tAutomatic:\t%v\n\t\tImage Repository:\t%s\n\t\tTag:\t%s\n",
+					t.ImageChangeParams.Automatic,
+					t.ImageChangeParams.From.Name,
+					t.ImageChangeParams.Tag,
+				)
+			}
 		default:
 			fmt.Fprint(w, "unknown\n")
 		}
 	}
 }
 
-func printReplicationController(spec kapi.ReplicationControllerSpec, w io.Writer) error {
+func printReplicationControllerSpec(spec kapi.ReplicationControllerSpec, w io.Writer) error {
 	fmt.Fprint(w, "Template:\n")
 
 	fmt.Fprintf(w, "\tSelector:\t%s\n\tReplicas:\t%d\n",
@@ -129,6 +177,43 @@ func printReplicationController(spec kapi.ReplicationControllerSpec, w io.Writer
 			formatLabels(convertEnv(container.Env)))
 	}
 	return nil
+}
+
+func printDeploymentRc(deployment *kapi.ReplicationController, client deploymentDescriberClient, w io.Writer) error {
+	running, waiting, succeeded, failed, err := getPodStatusForDeployment(deployment, client)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprint(w, "Latest Deployment:\n")
+	fmt.Fprintf(w, "\tName:\t%s\n", deployment.Name)
+	fmt.Fprintf(w, "\tStatus:\t%s\n", deployment.Annotations[deployapi.DeploymentStatusAnnotation])
+	fmt.Fprintf(w, "\tSelector:\t%s\n", formatLabels(deployment.Spec.Selector))
+	fmt.Fprintf(w, "\tLabels:\t%s\n", formatLabels(deployment.Labels))
+	fmt.Fprintf(w, "\tReplicas:\t%d current / %d desired\n", deployment.Status.Replicas, deployment.Spec.Replicas)
+	fmt.Fprintf(w, "\tPods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
+
+	return nil
+}
+
+func getPodStatusForDeployment(deployment *kapi.ReplicationController, client deploymentDescriberClient) (running, waiting, succeeded, failed int, err error) {
+	rcPods, err := client.listPods(deployment.Namespace, labels.SelectorFromSet(deployment.Spec.Selector))
+	if err != nil {
+		return
+	}
+	for _, pod := range rcPods.Items {
+		switch pod.Status.Phase {
+		case kapi.PodRunning:
+			running++
+		case kapi.PodPending:
+			waiting++
+		case kapi.PodSucceeded:
+			succeeded++
+		case kapi.PodFailed:
+			failed++
+		}
+	}
+	return
 }
 
 // DeploymentDescriber generates information about a deployment
