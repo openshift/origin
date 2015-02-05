@@ -39,7 +39,7 @@ cp -f "${imagedir}/openshift" images/router/haproxy/bin
 
 # build pod binary
 # TODO: move me to build release
-"${OS_ROOT}/hack/build-go.sh" images/pod
+"${OS_ROOT}/hack/build-go.sh" -tags=linux images/pod
 cp -f "_output/local/go/bin/pod" images/pod/bin
 
 # images that depend on scratch
