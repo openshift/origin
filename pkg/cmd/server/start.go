@@ -469,10 +469,12 @@ func start(cfg *config, args []string) error {
 
 		osmaster.BuildClients()
 
-		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "30"), 10, 0)
+		// Sessions need to last as long as we expect the grant flow to take
+		// Session auth is invalidated at the end of an authorize flow, so it can only be used once
+		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "300"), 10, 0)
 		if err != nil || sessionMaxAgeSeconds <= 0 {
-			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 30 seconds.")
-			sessionMaxAgeSeconds = 30
+			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 5 minutes.")
+			sessionMaxAgeSeconds = 300
 		}
 
 		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
@@ -492,7 +494,8 @@ func start(cfg *config, args []string) error {
 			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
 			// Session config
 			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
-			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds), // Since we're auto-granting, we don't need sessions to persist
+			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds),
+			SessionName:          env("ORIGIN_OAUTH_SESSION_NAME", "ssn"),
 			// Password config
 			PasswordAuth: origin.PasswordAuthType(env("ORIGIN_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
 			BasicAuthURL: env("ORIGIN_OAUTH_BASIC_AUTH_URL", ""),
