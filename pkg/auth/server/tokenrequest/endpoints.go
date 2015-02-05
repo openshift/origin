@@ -40,7 +40,7 @@ func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 	}
 }
 
-// this works for getting a token in your browser and seeing what your token is
+// requestToken works for getting a token in your browser and seeing what your token is
 func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
 	authReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	oauthURL := authReq.GetAuthorizeUrlWithParams("")

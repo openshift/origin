@@ -3,11 +3,10 @@ package policy
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/client"
 )

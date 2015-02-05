@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/spf13/cobra"
-
 	kubectl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	"github.com/spf13/cobra"
 
 	describe "github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"

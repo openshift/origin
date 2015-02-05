@@ -25,19 +25,19 @@ type router interface {
 	// frontend key is used; all call sites make certain the frontend
 	// is created.
 
-	// CreateFrontend creates a new frontend named with the given id.
+	// CreateServiceUnit creates a new service named with the given id.
 	CreateServiceUnit(id string)
-	// FindFrontend finds the frontend with the given id.
+	// FindServiceUnit finds the service with the given id.
 	FindServiceUnit(id string) (v ServiceUnit, ok bool)
 
-	// AddRoute adds new Endpoints for the given id.
+	// AddEndpoints adds new Endpoints for the given id.
 	AddEndpoints(id string, endpoints []Endpoint)
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
 	DeleteEndpoints(id string)
 
 	// AddRoute adds a route for the given id
 	AddRoute(id string, route *routeapi.Route)
-	// RemoveAlias removes the given alias for the given id.
+	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
 
 	// Commit refreshes the backend and persists the router state.

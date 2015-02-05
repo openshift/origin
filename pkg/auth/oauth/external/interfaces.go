@@ -1,7 +1,4 @@
-/*
-Package external implements an OAuth flow with an external identity provider
-*/
-
+// Package external implements an OAuth flow with an external identity provider
 package external
 
 import (

@@ -50,7 +50,7 @@ func NewExternalOAuthRedirector(provider Provider, state State, redirectURL stri
 	}, nil
 }
 
-// Implements oauth.handlers.RedirectAuthHandler
+// AuthenticationRedirect implements oauth.handlers.RedirectAuthHandler
 func (h *Handler) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
 	glog.V(4).Infof("Authentication needed for %v", h)
 
@@ -70,7 +70,7 @@ func (h *Handler) AuthenticationRedirect(w http.ResponseWriter, req *http.Reques
 	return nil
 }
 
-// Handles the callback request in response to an external oauth flow
+// ServeHTTP handles the callback request in response to an external oauth flow
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Extract auth code
@@ -135,12 +135,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Provides default state-building, validation, and parsing to contain CSRF and "then" redirection
+// defaultState provides default state-building, validation, and parsing to contain CSRF and "then" redirection
 type defaultState struct{}
 
 func DefaultState() State {
 	return defaultState{}
 }
+
 func (defaultState) Generate(w http.ResponseWriter, req *http.Request) (string, error) {
 	state := url.Values{
 		"csrf": {"..."}, // TODO: get csrf
@@ -148,6 +149,7 @@ func (defaultState) Generate(w http.ResponseWriter, req *http.Request) (string, 
 	}
 	return state.Encode(), nil
 }
+
 func (defaultState) Check(state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	values, err := url.ParseQuery(state)
 	if err != nil {
@@ -165,6 +167,7 @@ func (defaultState) Check(state string, w http.ResponseWriter, req *http.Request
 
 	return true, nil
 }
+
 func (defaultState) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	values, err := url.ParseQuery(state)
 	if err != nil {

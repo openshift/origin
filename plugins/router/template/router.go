@@ -89,7 +89,7 @@ func (r *templateRouter) writeState() error {
 	return nil
 }
 
-// write the config to disk
+// writeConfig writes the config to disk
 func (r *templateRouter) writeConfig() error {
 	//write out any certificate files that don't exist
 	//TODO: better way so this doesn't need to create lots of files every time state is written, probably too expensive
@@ -128,40 +128,40 @@ func (r *templateRouter) reloadRouter() error {
 	return err
 }
 
-// CreateFrontend creates a new frontend named with the given id.
+// CreateServiceUnit creates a new service named with the given id.
 func (r *templateRouter) CreateServiceUnit(id string) {
-	frontend := ServiceUnit{
+	service := ServiceUnit{
 		Name:                id,
 		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
 		EndpointTable:       make(map[string]Endpoint),
 	}
 
-	r.state[id] = frontend
+	r.state[id] = service
 }
 
-// FindServiceUnit finds the frontend with the given id.
+// FindServiceUnit finds the service with the given id.
 func (r *templateRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
 	v, ok = r.state[id]
 	return
 }
 
-// DeleteFrontend deletes the frontend with the given id.
+// DeleteFrontend deletes the service with the given id.
 func (r *templateRouter) DeleteServiceUnit(id string) {
 	delete(r.state, id)
 }
 
-// DeleteEndpoints deletes the endpoints for the frontend with the given id.
+// DeleteEndpoints deletes the endpoints for the service with the given id.
 func (r *templateRouter) DeleteEndpoints(id string) {
-	frontend, ok := r.FindServiceUnit(id)
+	service, ok := r.FindServiceUnit(id)
 	if !ok {
 		return
 	}
-	frontend.EndpointTable = make(map[string]Endpoint)
+	service.EndpointTable = make(map[string]Endpoint)
 
-	r.state[id] = frontend
+	r.state[id] = service
 }
 
-//generate route key in form of Host-Path
+// routeKey generates route key in form of Host-Path
 func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	return route.Host + "-" + route.Path
 }
@@ -218,7 +218,7 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
 	r.state[id] = frontend
 }
 
-// RemoveAlias removes the given alias for the given id.
+// RemoveRoute removes the given route for the given id.
 func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
 	_, ok := r.state[id]
 
@@ -229,7 +229,7 @@ func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
 	delete(r.state[id].ServiceAliasConfigs, r.routeKey(route))
 }
 
-// AddRoute adds new Endpoints for the given id.
+// AddEndpoints adds new Endpoints for the given id.
 func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	frontend, _ := r.FindServiceUnit(id)
 

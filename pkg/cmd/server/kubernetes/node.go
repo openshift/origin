@@ -21,13 +21,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
-
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-
 	"github.com/openshift/origin/pkg/kubelet/app"
 	"github.com/openshift/origin/pkg/service"
 )

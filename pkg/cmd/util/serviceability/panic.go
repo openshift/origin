@@ -4,9 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/golang/glog"
 )
 
 // BehaviorOnPanic is a helper for setting the crash mode of OpenShift when a panic is caught.

@@ -3,8 +3,9 @@ package cmd
 import (
 	"io"
 
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/spf13/cobra"
+
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
 func NewCmdOptions(f *Factory, out io.Writer) *cobra.Command {

@@ -92,7 +92,7 @@ func (a *openshiftAuthorizer) getPolicy(namespace string) (*authorizationapi.Pol
 	return policy, nil
 }
 
-// getPolicy provides a point for easy caching
+// getPolicyBindings provides a point for easy caching
 func (a *openshiftAuthorizer) getPolicyBindings(namespace string) ([]authorizationapi.PolicyBinding, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
 	policyBindingList, err := a.policyBindingRegistry.ListPolicyBindings(ctx, klabels.Everything(), klabels.Everything())
@@ -120,7 +120,6 @@ func (a *openshiftAuthorizer) getRoleBindings(namespace string) ([]authorization
 	return ret, nil
 }
 
-// getRole
 func (a *openshiftAuthorizer) getRole(roleBinding authorizationapi.RoleBinding) (*authorizationapi.Role, error) {
 	roleNamespace := roleBinding.RoleRef.Namespace
 	roleName := roleBinding.RoleRef.Name

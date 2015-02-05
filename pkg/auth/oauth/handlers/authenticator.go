@@ -86,7 +86,7 @@ func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 	return nil
 }
 
-// NewDenyAuthenticator returns an Authenticator which rejects all non-token access requests
+// NewDenyAccessAuthenticator returns an AccessAuthenticator which rejects all non-token access requests
 func NewDenyAccessAuthenticator() *AccessAuthenticator {
 	return &AccessAuthenticator{Deny, Deny, Deny}
 }

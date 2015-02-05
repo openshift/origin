@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
+	"github.com/spf13/cobra"
 )
 
 func NewCmdConfig(parentName, name string) *cobra.Command {

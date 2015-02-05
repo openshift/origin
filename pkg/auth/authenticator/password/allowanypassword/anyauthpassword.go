@@ -19,7 +19,7 @@ func New(identityMapper authapi.UserIdentityMapper) authenticator.Password {
 	return &alwaysAcceptPasswordAuthenticator{identityMapper}
 }
 
-// alwaysAcceptPasswordAuthenticator.AuthenticatePassword approves any login attempt with non-blank username and password
+// AuthenticatePassword approves any login attempt with non-blank username and password
 func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, password string) (authapi.UserInfo, bool, error) {
 	if username == "" || password == "" {
 		return nil, false, nil
