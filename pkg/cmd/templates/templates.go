@@ -35,7 +35,7 @@ func OptionsUsageTemplate() string {
 }
 
 const (
-	funcs = `{{$isRootCmd := or (eq .Name "cli") (eq .Name "osc")}}{{define "rootCli"}}{{if eq .Root.Name "osc"}}osc{{else}}openshift cli{{end}}{{end}}`
+	funcs = `{{$isRootCmd := or (and (eq .Name "cli") (eq .Root.Name "openshift")) (eq .Name "osc")}}{{define "rootCli"}}{{if eq .Root.Name "osc"}}osc{{else}}openshift cli{{end}}{{end}}`
 
 	mainHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
@@ -43,7 +43,7 @@ const (
 	mainUsageTemplate = `{{ $cmd := . }}
 Usage: {{if .Runnable}}
   {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{end}}{{if .HasSubCommands}}
-  {{ .CommandPath}} [command]{{end}}{{if gt .Aliases 0}}
+  {{ .CommandPath}} <command>{{end}}{{if gt .Aliases 0}}
 
 Aliases:
   {{.NameAndAliases}}{{end}}
@@ -55,7 +55,7 @@ Available Commands: {{range .Commands}}{{if .Runnable}}
 {{.LocalFlags.FlagUsages}}{{end}}
 {{ if .HasAnyPersistentFlags}}Global Options:
 {{.AllPersistentFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}
-Use "{{.Root.Name}} help [command]" for more information about that command.
+Use "{{.Root.Name}} <command> --help" for more information about a given command.
 {{end}}`
 
 	cliHelpTemplate = `{{.Long | trim}}
