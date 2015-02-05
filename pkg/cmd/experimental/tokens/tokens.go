@@ -5,10 +5,13 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const (
@@ -27,17 +30,16 @@ func NewCmdTokens(name string) *cobra.Command {
 		},
 	}
 
-	// copied out of kubernetes kubectl so that I'll be ready when that and osc finally merge in
-	// Globally persistent flags across all subcommands.
-	// TODO Change flag names to consts to allow safer lookup from subcommands.
-	// TODO Add a verbose flag that turns on glog logging. Probably need a way
-	// to do that automatically for every subcommand.
-	clientCfg := clientcmd.NewConfig()
-	clientCfg.Bind(cmds.PersistentFlags())
+	// Override global default to https and port 8443
+	clientcmd.DefaultCluster.Server = "https://localhost:8443"
 
-	cmds.AddCommand(NewCmdValidateToken(clientCfg))
-	cmds.AddCommand(NewCmdRequestToken(clientCfg))
-	cmds.AddCommand(NewCmdWhoAmI(clientCfg))
+	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
+	f := cmd.NewFactory(defaultClientConfig(cmds.PersistentFlags()))
+	f.BindFlags(cmds.PersistentFlags())
+
+	cmds.AddCommand(NewCmdValidateToken(f))
+	cmds.AddCommand(NewCmdRequestToken(f))
+	cmds.AddCommand(NewCmdWhoAmI(f))
 
 	return cmds
 }
@@ -50,6 +52,20 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 	return f.Value.String()
 }
 
-func getRequestTokenURL(clientCfg *clientcmd.Config) string {
-	return clientCfg.KubeConfig().Host + origin.OpenShiftLoginPrefix + tokenrequest.RequestTokenEndpoint
+func getRequestTokenURL(clientCfg *client.Config) string {
+	return clientCfg.Host + origin.OpenShiftLoginPrefix + tokenrequest.RequestTokenEndpoint
+}
+
+// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
+// TODO find and merge duplicates, this is also in other places
+func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
+	loadingRules := clientcmd.NewClientConfigLoadingRules()
+	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
+
+	overrides := &clientcmd.ConfigOverrides{}
+	clientcmd.BindOverrideFlags(overrides, flags, clientcmd.RecommendedConfigOverrideFlags(""))
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+
+	return clientConfig
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
 	"github.com/openshift/origin/pkg/cmd/experimental/generate"
+	"github.com/openshift/origin/pkg/cmd/experimental/login"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -116,6 +117,7 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(tokens.NewCmdTokens("tokens"))
 	experimental.AddCommand(policy.NewCommandPolicy("policy"))
 	experimental.AddCommand(generate.NewCmdGenerate("generate"))
+	experimental.AddCommand(login.NewCmdLogin("login", experimental))
 	return experimental
 }
 
