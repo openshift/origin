@@ -25,12 +25,9 @@ Use "{{.Root.Name}} help [command]" for more information about that command.{{en
 	CliHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}
 `
-	CliUsageTemplate = `{{ $cmd := . }}{{if gt .Aliases 0}}
-Aliases:
-  {{.NameAndAliases}}{{end}}
-{{ if .HasSubCommands}}
-Available Commands: {{range .Commands}}{{if .Runnable}}
-  {{rpad .Use .UsagePadding }} {{.Short}}{{end}}{{end}}
+	CliUsageTemplate = `{{ $cmd := . }}{{ if .HasSubCommands}}
+Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
+ {{rpad .Use .UsagePadding }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if .HasLocalFlags}}Options:
 {{.LocalFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}

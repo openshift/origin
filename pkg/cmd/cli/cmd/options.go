@@ -9,8 +9,7 @@ import (
 
 func NewCmdOptions(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "options",
-		Short: "List options that can be passed to any command",
+		Use: "options",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
