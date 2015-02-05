@@ -220,8 +220,18 @@ func start(cfg *config, args []string) error {
 
 		case "node":
 			startNode = true
-			if err := defaultMasterAddress(cfg); err != nil {
-				return err
+
+			// TODO client config currently doesn't let you override the defaults
+			// so it is defaulting to https://localhost:8443 for MasterAddr if
+			// it isn't set by --master or --kubeconfig
+			if !cfg.MasterAddr.Provided {
+				config, err := cfg.ClientConfig.ClientConfig()
+				if err != nil {
+					glog.Fatalf("Unable to read client configuration: %v", err)
+				}
+				if len(config.Host) > 0 {
+					cfg.MasterAddr.Set(config.Host)
+				}
 			}
 			if !cfg.KubernetesAddr.Provided {
 				cfg.KubernetesAddr = cfg.MasterAddr
