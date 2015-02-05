@@ -29,17 +29,17 @@ func (e ErrNoMatch) UsageError(commandName string) string {
 }
 
 type ErrMultipleMatches struct {
-	image   string
-	matches []*ComponentMatch
+	Image   string
+	Matches []*ComponentMatch
 }
 
 func (e ErrMultipleMatches) Error() string {
-	return fmt.Sprintf("multiple images matched %q: %d", e.image, len(e.matches))
+	return fmt.Sprintf("multiple images matched %q: %d", e.Image, len(e.Matches))
 }
 
 func (e ErrMultipleMatches) UsageError(commandName string) string {
 	buf := &bytes.Buffer{}
-	for _, match := range e.matches {
+	for _, match := range e.Matches {
 		fmt.Fprintf(buf, "* %[1]s (use %[2]s)\n", match.Name, match.Argument)
 		fmt.Fprintf(buf, "  %s\n\n", match.Description)
 	}
@@ -47,5 +47,5 @@ func (e ErrMultipleMatches) UsageError(commandName string) string {
 The argument %[1]q could apply to the following images or image repositories:
 
 %[2]s
-`, e.image, buf.String())
+`, e.Image, buf.String())
 }

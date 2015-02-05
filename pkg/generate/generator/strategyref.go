@@ -25,16 +25,18 @@ type BuildStrategyRefGenerator struct {
 	dockerfileParser  dockerfile.Parser
 	sourceDetectors   source.Detectors
 	imageRefGenerator ImageRefGenerator
+	resolver          app.Resolver
 }
 
 // NewBuildStrategyRefGenerator creates a BuildStrategyRefGenerator
-func NewBuildStrategyRefGenerator(sourceDetectors source.Detectors) *BuildStrategyRefGenerator {
+func NewBuildStrategyRefGenerator(sourceDetectors source.Detectors, resolver app.Resolver) *BuildStrategyRefGenerator {
 	return &BuildStrategyRefGenerator{
 		gitRepository:     git.NewRepository(),
 		dockerfileFinder:  dockerfile.NewFinder(),
 		dockerfileParser:  dockerfile.NewParser(),
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
+		resolver:          resolver,
 	}
 }
 
@@ -93,20 +95,22 @@ func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef app.Sou
 	if !ok {
 		return nil, errors.InvalidDockerfile
 	}
+	ports, ok := dockerFile.GetDirective("EXPOSE")
 
-	return g.FromDockerContextAndParent(context, parentImageName[0])
+	parentRef, err := g.imageRefGenerator.FromNameAndPorts(parentImageName[0], ports)
+	if err != nil {
+		return nil, err
+	}
+
+	return g.FromDockerContextAndParent(context, parentRef)
 
 }
 
 // FromContextAndParent generates a build strategy ref from a context path and parent image name
-func (g *BuildStrategyRefGenerator) FromDockerContextAndParent(context string, parentImageName string) (*app.BuildStrategyRef, error) {
-	var parentImage, err = g.imageRefGenerator.FromName(parentImageName)
-	if err != nil {
-		return nil, err
-	}
+func (g *BuildStrategyRefGenerator) FromDockerContextAndParent(context string, parentRef *app.ImageRef) (*app.BuildStrategyRef, error) {
 	return &app.BuildStrategyRef{
 		IsDockerBuild: true,
-		Base:          parentImage,
+		Base:          parentRef,
 		DockerContext: context,
 	}, nil
 }
@@ -131,6 +135,9 @@ func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*app.Ima
 		imageName = "openshift/nodejs-0-10-centos"
 	default:
 		return nil, errors.NoBuilderFound
+	}
+	if g.resolver != nil {
+		return g.imageRefGenerator.FromNameAndResolver(imageName, g.resolver)
 	}
 	return g.imageRefGenerator.FromName(imageName)
 }

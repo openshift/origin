@@ -50,7 +50,11 @@ func TestFromDockerContextAndParent(t *testing.T) {
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
 	}
-	strategy, err := g.FromDockerContextAndParent("docker/context", "test/parentImage")
+	imgRef, err := g.imageRefGenerator.FromName("test/parentImage")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	strategy, err := g.FromDockerContextAndParent("docker/context", imgRef)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
