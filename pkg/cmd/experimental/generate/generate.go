@@ -97,7 +97,7 @@ func NewCmdGenerate(name string) *cobra.Command {
 				osClient = nil
 			}
 			if len(args) == 1 {
-				if source.IsRemoteRepository(args[0]) {
+				if genapp.IsRemoteRepository(args[0]) {
 					input.sourceURL = args[0]
 				} else {
 					input.sourceDir = args[0]
@@ -195,15 +195,15 @@ func generateSourceRef(url string, dir string, ref string, name string) (*genapp
 	return result, nil
 }
 
-func generateBuildStrategyRef(srcRef *genapp.SourceRef, dockerContext string, builderImage string) (*genapp.BuildStrategyRef, error) {
-	strategyRefGen := gen.NewBuildStrategyRefGenerator(source.DefaultDetectors)
+func generateBuildStrategyRef(srcRef *genapp.SourceRef, dockerContext string, builderImage string, resolver genapp.Resolver) (*genapp.BuildStrategyRef, error) {
+	strategyRefGen := gen.NewBuildStrategyRefGenerator(source.DefaultDetectors, resolver)
 	imageRefGen := gen.NewImageRefGenerator()
 	if len(dockerContext) > 0 {
 		glog.V(3).Infof("Generating build strategy reference using dockerContext: %s", dockerContext)
 		return strategyRefGen.FromSourceRefAndDockerContext(*srcRef, dockerContext)
 	} else if len(builderImage) > 0 {
 		glog.V(3).Infof("Generating build strategy reference using builder image: %s", builderImage)
-		builderRef, err := imageRefGen.FromName(builderImage)
+		builderRef, err := imageRefGen.FromNameAndResolver(builderImage, resolver)
 		if err != nil {
 			return nil, err
 		}
@@ -211,23 +211,6 @@ func generateBuildStrategyRef(srcRef *genapp.SourceRef, dockerContext string, bu
 	} else {
 		glog.V(3).Infof("Detecting build strategy using source reference: %#v", srcRef)
 		return strategyRefGen.FromSourceRef(*srcRef)
-	}
-}
-
-func generateOutputImageRef(srcRef *genapp.SourceRef, strategyRef *genapp.BuildStrategyRef, ports string) (*genapp.ImageRef, error) {
-	imageRefGen := gen.NewImageRefGenerator()
-	name, ok := srcRef.SuggestName()
-	if !ok {
-		return nil, fmt.Errorf("cannot suggest a name for the output image. Please specify one with the --output-image argument")
-	}
-	if len(ports) > 0 {
-		portList := strings.Split(ports, ",")
-		return imageRefGen.FromNameAndPorts(name, portList)
-	}
-	if strategyRef.IsDockerBuild {
-		return imageRefGen.FromDockerfile(name, srcRef.Dir, strategyRef.DockerContext)
-	} else {
-		return imageRefGen.FromName(name)
 	}
 }
 
@@ -240,34 +223,13 @@ func generateApp(input params, imageResolver genapp.Resolver, out io.Writer) err
 	glog.V(2).Infof("Source reference: %#v", srcRef)
 
 	// Get a BuildStrategyRef
-	strategyRef, err := generateBuildStrategyRef(srcRef, input.dockerContext, input.builderImage)
+	strategyRef, err := generateBuildStrategyRef(srcRef, input.dockerContext, input.builderImage, imageResolver)
 	if err != nil {
 		return err
 	}
 	glog.V(2).Infof("Generated build strategy reference: %#v", strategyRef)
 
-	// Get an ImageRef for Output
-	outputRef, err := generateOutputImageRef(srcRef, strategyRef, input.ports)
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("Generated output image reference: %#v", outputRef)
-
-	outputRefCopy := *outputRef
-	baseRef := &outputRefCopy
-	if !strategyRef.IsDockerBuild {
-		if baseImageMatch, err := imageResolver.Resolve(strategyRef.Base.RepoName()); err == nil {
-			if inputRef, err := genapp.InputImageFromMatch(baseImageMatch); err == nil {
-				if len(input.ports) > 0 {
-					inputRef.Info = baseRef.Info
-				}
-				baseRef = inputRef
-			}
-		}
-	}
-	baseRef.AsImageRepository = false
-
-	pipeline, err := genapp.NewBuildPipeline(outputRef.Name, baseRef, strategyRef, srcRef)
+	pipeline, err := genapp.NewBuildPipeline(srcRef.Name, strategyRef.Base, strategyRef, srcRef)
 	if err != nil {
 		return err
 	}

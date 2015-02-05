@@ -145,9 +145,9 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 	match, err := WeightedResolvers(r).Resolve(value)
 	if err != nil {
 		if multiple, ok := err.(ErrMultipleMatches); ok {
-			sort.Sort(ScoredComponentMatches(multiple.matches))
-			if multiple.matches[0].Score == 0.0 && (len(multiple.matches) == 1 || multiple.matches[1].Score != 0.0) {
-				return multiple.matches[0], nil
+			sort.Sort(ScoredComponentMatches(multiple.Matches))
+			if multiple.Matches[0].Score == 0.0 && (len(multiple.Matches) == 1 || multiple.Matches[1].Score != 0.0) {
+				return multiple.Matches[0], nil
 			}
 		}
 		return nil, err
@@ -167,7 +167,7 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 		match, err := resolver.Resolve(value)
 		if err != nil {
 			if multiple, ok := err.(ErrMultipleMatches); ok {
-				for _, match := range multiple.matches {
+				for _, match := range multiple.Matches {
 					if resolver.Weight != 0.0 {
 						match.Score = match.Score * resolver.Weight
 					}

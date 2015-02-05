@@ -94,7 +94,7 @@ func (r DockerClientResolver) Resolve(value string) (*ComponentMatch, error) {
 	case 1:
 		return matches[0], nil
 	default:
-		return nil, ErrMultipleMatches{image: value, matches: matches}
+		return nil, ErrMultipleMatches{Image: value, Matches: matches}
 	}
 }
 
