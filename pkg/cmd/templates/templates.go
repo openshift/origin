@@ -27,7 +27,7 @@ Use "{{.Root.Name}} help [command]" for more information about that command.{{en
 `
 	CliUsageTemplate = `{{ $cmd := . }}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
- {{rpad .Use .UsagePadding }} {{.Short}}{{end}}{{end}}{{end}}
+ {{rpad .Name 20 }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if .HasLocalFlags}}Options:
 {{.LocalFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}
