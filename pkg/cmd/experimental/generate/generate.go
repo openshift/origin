@@ -147,7 +147,7 @@ func newImageResolver(namespace string, osClient osclient.Interface, dockerClien
 	resolver := genapp.PerfectMatchWeightedResolver{}
 
 	if dockerClient != nil {
-		localDockerResolver := &genapp.DockerClientResolver{dockerClient}
+		localDockerResolver := &genapp.DockerClientResolver{Client: dockerClient}
 		resolver = append(resolver, genapp.WeightedResolver{localDockerResolver, 0.0})
 	}
 

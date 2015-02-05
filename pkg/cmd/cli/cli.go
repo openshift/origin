@@ -69,7 +69,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(f.NewCmdProxy(out))
 
 	// Origin commands
-	// cmds.AddCommand(cmd.NewCmdNewApplication(f, out))
+	cmds.AddCommand(cmd.NewCmdNewApplication(f, out))
 	cmds.AddCommand(cmd.NewCmdProcess(f, out))
 
 	// Origin build commands

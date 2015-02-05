@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -140,24 +141,24 @@ func (g PipelineGroup) String() string {
 	return strings.Join(s, "+")
 }
 
-const MaxServiceNameLen = 24
+const maxServiceNameLength = 24
 
-var InvalidServiceChars = regexp.MustCompile("[^-a-z0-9]")
+var invalidServiceChars = regexp.MustCompile("[^-a-z0-9]")
 
-func makeValidServiceName(name string) string {
+func makeValidServiceName(name string) (string, string) {
+	if ok, _ := validation.ValidateServiceName(name, false); ok {
+		return name, ""
+	}
 	name = strings.ToLower(name)
-	name = InvalidServiceChars.ReplaceAllString(name, "")
-	if len(name) == 0 {
-		return fmt.Sprintf("svc-%d", rand.Intn(100000))
+	name = invalidServiceChars.ReplaceAllString(name, "")
+	name = strings.TrimFunc(name, func(r rune) bool { return r == '-' })
+	switch {
+	case len(name) == 0:
+		name = "service-"
+	case len(name) > maxServiceNameLength:
+		name = name[:maxServiceNameLength]
 	}
-	if len(name) > MaxServiceNameLen-5 {
-		name = name[:MaxServiceNameLen-5]
-	}
-	name = fmt.Sprintf("%s-%d", name, rand.Intn(9999))
-	if strings.HasPrefix(name, "-") {
-		name = "0" + name[1:]
-	}
-	return name
+	return "", name
 }
 
 func AddServices(objects Objects) Objects {
@@ -168,9 +169,11 @@ func AddServices(objects Objects) Objects {
 			for _, container := range t.Template.ControllerTemplate.Template.Spec.Containers {
 				for _, port := range container.Ports {
 					p := port.ContainerPort
+					name, generateName := makeValidServiceName(t.Name)
 					svcs = append(svcs, &kapi.Service{
 						ObjectMeta: kapi.ObjectMeta{
-							Name: makeValidServiceName(t.Name),
+							Name:         name,
+							GenerateName: generateName,
 						},
 						Spec: kapi.ServiceSpec{
 							ContainerPort: kutil.NewIntOrStringFromInt(p),
