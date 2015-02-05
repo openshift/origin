@@ -75,12 +75,10 @@ func TestInitializeVolumeDir(t *testing.T) {
 			if testCase.chconFound && !ce.runCalled {
 				t.Fatalf("%d: expected chcon run", i)
 			}
-			haveErr := err != nil
-			expectErr := testCase.chconRunErr != nil
-			if expectErr != haveErr {
-				t.Fatalf("%d: expected chcon run err: %t, got: %t, %s", i, expectErr, haveErr, err)
+			if err != nil {
+				t.Fatalf("%d: unexpected err: %s", i, err)
 			}
-			if !haveErr && path != nc.VolumeDir {
+			if path != nc.VolumeDir {
 				t.Fatalf("%d:, expected path(%s) == nc.VolumeDir(%s)", i, path, nc.VolumeDir)
 			}
 		} else {
