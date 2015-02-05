@@ -119,6 +119,16 @@ func (m ScoredComponentMatches) Len() int           { return len(m) }
 func (m ScoredComponentMatches) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 func (m ScoredComponentMatches) Less(i, j int) bool { return m[i].Score < m[j].Score }
 
+func (m ScoredComponentMatches) Exact() []*ComponentMatch {
+	out := []*ComponentMatch{}
+	for _, match := range m {
+		if match.Score == 0.0 {
+			out = append(out, match)
+		}
+	}
+	return out
+}
+
 type WeightedResolver struct {
 	Resolver
 	Weight float32

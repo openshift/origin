@@ -33,11 +33,7 @@ OpenShift is built around Docker and the Kubernetes cluster container manager.  
 Docker installed on this machine to start your server.
 
 Note: This is an alpha release of OpenShift and will change significantly.  See
-
-    https://github.com/openshift/origin
-
-for the latest information on OpenShift.
-
+    https://github.com/openshift/origin for the latest information on OpenShift.
 `
 
 // CommandFor returns the appropriate command for this base name,
