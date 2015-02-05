@@ -4,11 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"code.google.com/p/go-uuid/uuid"
 	etcderrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/user"
 	"github.com/openshift/origin/pkg/user/api"
@@ -53,7 +52,6 @@ func (r *Etcd) GetUserIdentityMapping(name string) (mapping *api.UserIdentityMap
 func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, bool, error) {
 	// Create Identity.Name by combining Provider and UserName
 	name := fmt.Sprintf("%s:%s", mapping.Identity.Provider, mapping.Identity.UserName)
-	mapping.Identity.Name = name
 	key := makeUserKey(name)
 
 	// track the object we set into etcd to return
@@ -64,18 +62,36 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 		existing := *in.(*api.UserIdentityMapping)
 
 		// did not previously exist
-		if existing.Identity.Name == "" {
-			uid := uuid.New()
-			existing.User.UID = types.UID(uid)
+		if existing.Name == "" {
+			now := util.Now()
+
+			// TODO: move these initializations the rest layer once we stop using the registry directly
+			existing.Name = name
+			existing.UID = util.NewUUID()
+			existing.CreationTimestamp = now
+			existing.Identity = mapping.Identity
+
+			identityuid := util.NewUUID()
+			existing.Identity.Name = name
+			existing.Identity.UID = identityuid
+			existing.Identity.CreationTimestamp = now
+
+			useruid := util.NewUUID()
 			existing.User.Name = name
-			if err := r.initializer.InitializeUser(&mapping.Identity, &existing.User); err != nil {
+			existing.User.UID = useruid
+			existing.User.CreationTimestamp = now
+
+			if err := r.initializer.InitializeUser(&existing.Identity, &existing.User); err != nil {
 				return in, err
 			}
 
 			// set these again to prevent bad initialization from messing up data
-			existing.User.UID = types.UID(uid)
+			existing.Identity.Name = name
+			existing.Identity.UID = identityuid
+			existing.Identity.CreationTimestamp = now
 			existing.User.Name = name
-			existing.Identity = mapping.Identity
+			existing.User.UID = useruid
+			existing.User.CreationTimestamp = now
 
 			found = &existing
 			created = true
