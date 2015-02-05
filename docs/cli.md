@@ -1,9 +1,9 @@
-cli command line interface
+osc command line interface
 ==============================
 
-The `cli` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s).
+The `osc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s).
 
-cli is *verb focused*. The base verbs are *get*, *create*, *delete*,
+osc is *verb focused*. The base verbs are *get*, *create*, *delete*,
 *update* and *describe*. These verbs can be used to manage both Kubernetes and
 OpenShift resources.
 
@@ -29,7 +29,7 @@ Common Flags
 | --insecure-skip-tls-verify | Skip SSL certificate validation (will make HTTPS insecure) |
 | --help (-h)                | Display help for specified command |
 
-cli get
+osc get
 -----------
 
 This command can be used for displaying one or many resources. Possible
@@ -41,10 +41,10 @@ events).
 ### Example Usage
 
 ```
-$ openshift cli get pods
-$ openshift cli get replicationController 1234-56-7890-234234-456456
-$ openshift cli get service database
-$ openshift cli get -f json pods
+$ osc get pods
+$ osc get replicationController 1234-56-7890-234234-456456
+$ osc get service database
+$ osc get -f json pods
 ```
 
 ### Output formatting
@@ -66,18 +66,18 @@ Available formats include:
 
 An example of using `-o template` to retrieve the *name* of the first build:
 
-`$ openshift cli get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+`$ osc get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
 
 ### Selectors
 
-cli `get` provides also 'selectors' that you can use to filter the output
+osc `get` provides also 'selectors' that you can use to filter the output
 by applying key-value pairs that will be matched with the resource labels:
 
-`$ openshift clic get pods -s template=production`
+`$ osc get pods -s template=production`
 
 This command will return only pods whose `labels` include `"template": "production"`
 
-cli create
+osc create
 --------------
 
 This command can be used to create resources. It does not require pointers about
@@ -87,12 +87,12 @@ After successful creation, the resource name will be printed to the console.
 ### Example Usage
 
 ```
-$ openshift cli create -f pod.json
-$ cat pod.json | openshift cli create -f -
-$ openshift cli create -f http://server/pod.json
+$ osc create -f pod.json
+$ cat pod.json | osc create -f -
+$ osc create -f http://server/pod.json
 ```
 
-cli update
+osc update
 ---------------
 
 This command can be used to update existing resources.
@@ -100,12 +100,12 @@ This command can be used to update existing resources.
 ### Example Usage
 
 ```
-$ openshift cli update -f pod.json
-$ cat pod.json | openshift cli update -f -
-$ openshift cli update -f http://server/pod.json
+$ osc update -f pod.json
+$ cat pod.json | osc update -f -
+$ osc update -f http://server/pod.json
 ```
 
-cli delete
+osc delete
 --------------
 
 This command deletes the resource.
@@ -113,11 +113,11 @@ This command deletes the resource.
 ### Example Usage
 
 ```
-$ openshift cli delete -f pod.json
-$ openshift cli delete pod 1234-56-7890-234234-456456
+$ osc delete -f pod.json
+$ osc delete pod 1234-56-7890-234234-456456
 ```
 
-cli describe
+osc describe
 ----------------
 
 The `describe` command is a wordier version of `get` which also integrates other
@@ -125,60 +125,31 @@ information that's related to a given resource.
 
 ### Example Usage
 
-`$ openshift cli describe service frontend`
+`$ osc describe service frontend`
 
-cli createall
+osc namespace
 -----------------
 
-This command creates multiple resources defined in JSON or YAML file provided
-using the `-f` option. The list of resources is defined as an 'array'.
-
-### Example Usage
-
-```
-$ openshift cli createall -f resources.json
-$ cat resources.json | openshift cli createall -f -
-```
-
-cli namespace
------------------
-
-You can use this command to set the default namespace used for all cli
+You can use this command to set the default namespace used for all osc
 commands.
 
 ### Example Usage
 
-`$ openshift cli namespace myuser`
+`$ osc namespace myuser`
 
-cli log
+osc log
 ------------
 
 This command dumps the logs from a given Pod container. You can list the
 containers from a Pod using the following command:
 
-`$ openshift cli get -o yaml pod POD_ID`
+`$ osc get -o yaml pod POD_ID`
 
 ### Example Usage
 
-`$ openshift cli log frontend-pod mysql-container`
+`$ osc log frontend-pod mysql-container`
 
-cli apply
--------------
-
-> **NOTE**: This command will be later replaced by upstream (see: [kubectl createall](https://github.com/openshift/origin/blob/master/docs/cli.md#kubectl-createall)).
-
-This command takes a Config resource that defines a list of resources and performs
-create operation on them. Look at [examples/sample-app/docker-registry-config.json](https://github.com/openshift/origin/blob/master/examples/sample-app/docker-registry-config.json).
-
-
-### Example Usage
-
-```
-$ openshift cli apply -f examples/sample-app/docker-registry-config.json
-$ cat config.json | openshift cli apply -f -
-```
-
-cli process
+osc process
 ---------------
 
 This command processes a Template into a valid Config resource. The processing
@@ -189,11 +160,11 @@ found in [examples/sample-app/application-template-stibuild.json](https://github
 ### Example Usage
 
 ```
-$ openshift cli process -f sample-app/application-template-stibuild.json > config.json
-$ openshift cli process -f sample-app/application-template-stibuild.json | openshift cli apply -f -
+$ osc process -f examples/guestbook/template.json > config.json
+$ osc process -f template.json | osc create -f -
 ```
 
-cli build-logs
+osc build-logs
 ------------------
 
 > **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/openshift/origin/blob/master/docs/cli.md#kubectl-log)).
@@ -202,8 +173,8 @@ This command will retrieve the logs from a Build container. It allows you to
 debug broken Build. If the build is still running, this command can stream the
 logs from the container to console. You can obtain a list of builds by using:
 
-`$ openshift cli get builds`
+`$ osc get builds`
 
 ### Example Usage
 
-`$ openshift cli build-logs rubyapp-build`
+`$ osc build-logs rubyapp-build`

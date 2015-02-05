@@ -22,10 +22,10 @@ Manually starts build from existing build or buildConfig
 NOTE: This command is experimental and is subject to change in the future.
 
 Examples:
-  $ kubectl start-build 3bd2ug53b
+  $ osc start-build 3bd2ug53b
   <Starts build from buildConfig matching the name "3bd2ug53b">
 
-  $ kubectl start-build --from-build=3bd2ug53b
+  $ osc start-build --from-build=3bd2ug53b
   <Starts build from build matching the name "3bd2ug53b">`,
 		Run: func(cmd *cobra.Command, args []string) {
 			buildName := kubecmd.GetFlagString(cmd, "from-build")
