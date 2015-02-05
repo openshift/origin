@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router"
@@ -48,6 +49,9 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 			}
 		},
 	}
+
+	cmd.SetUsageTemplate(templates.MainUsageTemplate)
+	cmd.SetHelpTemplate(templates.MainHelpTemplate)
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)

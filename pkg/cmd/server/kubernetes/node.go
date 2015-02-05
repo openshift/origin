@@ -112,14 +112,14 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 	}
 
 	if _, err := os.Stat(rootDirectory); os.IsNotExist(err) {
-		if mkdirErr := os.MkdirAll(rootDirectory, 0750); mkdirErr != nil {
-			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, mkdirErr)
+		if err := os.MkdirAll(rootDirectory, 0750); err != nil {
+			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
 		}
-		if chconPath, chconLookupErr := ce.LookPath("chcon"); chconLookupErr != nil {
-			glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory context: %s", chconLookupErr)
+		if chconPath, err := ce.LookPath("chcon"); err != nil {
+			glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 		} else {
 			if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
-				return "", fmt.Errorf("Error running 'chcon' to set the kubelet volume root directory context: %s", err)
+				glog.Warning("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 			}
 		}
 	}

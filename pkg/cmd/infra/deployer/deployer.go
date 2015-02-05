@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -65,6 +66,9 @@ func NewCommandDeployer(name string) *cobra.Command {
 			}
 		},
 	}
+
+	cmd.SetUsageTemplate(templates.MainUsageTemplate)
+	cmd.SetHelpTemplate(templates.MainHelpTemplate)
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)

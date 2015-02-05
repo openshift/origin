@@ -11,3 +11,4 @@
 .DS_Store
 .idea
 origin.iml
+*.pyc
