@@ -2,8 +2,7 @@ package templates
 
 const (
 	MainHelpTemplate = `{{.Long | trim}}
-{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}
-`
+{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
 	MainUsageTemplate = `{{ $cmd := . }}
 Usage: {{if .Runnable}}
@@ -20,21 +19,24 @@ Available Commands: {{range .Commands}}{{if .Runnable}}
 {{.LocalFlags.FlagUsages}}{{end}}
 {{ if .HasAnyPersistentFlags}}Global Options:
 {{.AllPersistentFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}
-Use "{{.Root.Name}} help [command]" for more information about that command.{{end}}`
+Use "{{.Root.Name}} help [command]" for more information about that command.{{end}}
+`
 
 	CliHelpTemplate = `{{.Long | trim}}
-{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}
-`
+{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
+
 	CliUsageTemplate = `{{ $cmd := . }}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
  {{rpad .Name 20 }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if .HasLocalFlags}}Options:
-{{.LocalFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}
-Use "{{.Root.Name}} help [command]" for more information about that command.{{end}}{{ if .HasAnyPersistentFlags}}
-Use "{{.Root.Name}} options" for a list of global command-line options.{{end}}`
+{{.LocalFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}Use "{{.Root.Name}} help [command]" for more information about that command.{{end}}{{ if .HasAnyPersistentFlags}}
+Use "{{.Root.Name}} options" for a list of global command-line options.{{end}}
+`
 
-	OptionsUsageTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
+	OptionsHelpTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
 
 {{.AllPersistentFlags.FlagUsages}}{{end}}`
+
+	OptionsUsageTemplate = ``
 )
