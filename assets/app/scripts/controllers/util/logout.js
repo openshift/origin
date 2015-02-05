@@ -8,13 +8,27 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('LogoutController', function ($rootScope, $scope, AuthService) {
-  	// If clearing the user results in a change from authenticated to unauthenticated, force the page in response
-  	AuthService.onUserChanged(function(){
-  		console.log("LogoutController - user changed, reloading the page");
-  		window.location.reload(false);
-  	});
+  .controller('LogoutController', function ($scope, $log, AuthService) {
+    $log.debug("LogoutController");
 
-  	// TODO: actually run the logout flow, delete the token, etc
-  	AuthService.setUser(null, null);
+    if (AuthService.isLoggedIn()) {
+      $log.debug("LogoutController, logged in, initiating logout");
+      $scope.logoutMessage = "Logging out...";
+
+      AuthService.startLogout().finally(function(){
+        // Make sure the logout completed
+        if (AuthService.isLoggedIn()) {
+          $log.debug("LogoutController, logout failed, still logged in");
+          $scope.logoutMessage = 'You could not be logged out. Return to the <a href="/">console</a>.';
+        } else {
+          // TODO: redirect to configurable logout destination
+          $log.debug("LogoutController, logout completed, reloading the page");
+          window.location.reload(false);
+        }
+      });
+    } else {
+      // TODO: redirect to configurable logout destination
+      $log.debug("LogoutController, not logged in, logout complete");
+      $scope.logoutMessage = 'You are logged out. Return to the <a href="/">console</a>.';
+    }
   });
