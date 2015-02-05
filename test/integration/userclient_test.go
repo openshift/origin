@@ -72,16 +72,57 @@ func TestUserInitialization(t *testing.T) {
 	}
 
 	expectedUser := api.User{
-		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-		FullName:   "Mr. Test",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: ":test",
+			// Copy the UID and timestamp from the actual one
+			UID:               actual.User.UID,
+			CreationTimestamp: actual.User.CreationTimestamp,
+		},
+		FullName: "Mr. Test",
 	}
-	expectedUser.Name = ":test"
-	expectedUser.UID = actual.User.UID
+	// Copy the UID and timestamp from the actual one
+	mapping.Identity.UID = actual.Identity.UID
+	mapping.Identity.CreationTimestamp = actual.Identity.CreationTimestamp
 	expected := &api.UserIdentityMapping{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: ":test",
+			// Copy the UID and timestamp from the actual one
+			UID:               actual.UID,
+			CreationTimestamp: actual.CreationTimestamp,
+		},
 		Identity: mapping.Identity,
 		User:     expectedUser,
 	}
 	compareIgnoringSelfLinkAndVersion(t, expected, actual)
+
+	// Make sure uid, name, and creation timestamp get initialized
+	if len(actual.UID) == 0 {
+		t.Fatalf("Expected UID to be set")
+	}
+	if len(actual.Name) == 0 {
+		t.Fatalf("Expected Name to be set")
+	}
+	if actual.CreationTimestamp.IsZero() {
+		t.Fatalf("Expected CreationTimestamp to be set")
+	}
+	if len(actual.User.UID) == 0 {
+		t.Fatalf("Expected UID to be set")
+	}
+	if len(actual.User.Name) == 0 {
+		t.Fatalf("Expected Name to be set")
+	}
+	if actual.User.CreationTimestamp.IsZero() {
+		t.Fatalf("Expected CreationTimestamp to be set")
+	}
+	if len(actual.Identity.UID) == 0 {
+		t.Fatalf("Expected UID to be set")
+	}
+	if len(actual.Identity.Name) == 0 {
+		t.Fatalf("Expected Name to be set")
+	}
+	if actual.Identity.CreationTimestamp.IsZero() {
+		t.Fatalf("Expected CreationTimestamp to be set")
+	}
 
 	user, err := userRegistry.GetUser(expected.User.Name)
 	if err != nil {
@@ -158,12 +199,24 @@ func TestUserLookup(t *testing.T) {
 		// TODO: t.Errorf("expected created to be true")
 	}
 	expectedUser := api.User{
-		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-		FullName:   "Mr. Test",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: ":test",
+			// Copy the UID and timestamp from the actual one
+			UID:               actual.User.UID,
+			CreationTimestamp: actual.User.CreationTimestamp,
+		},
+		FullName: "Mr. Test",
 	}
-	expectedUser.Name = ":test"
-	expectedUser.UID = actual.User.UID
+	// Copy the UID and timestamp from the actual one
+	mapping.Identity.UID = actual.Identity.UID
+	mapping.Identity.CreationTimestamp = actual.Identity.CreationTimestamp
 	expected := &api.UserIdentityMapping{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: ":test",
+			// Copy the UID and timestamp from the actual one
+			UID:               actual.UID,
+			CreationTimestamp: actual.CreationTimestamp,
+		},
 		Identity: mapping.Identity,
 		User:     expectedUser,
 	}
