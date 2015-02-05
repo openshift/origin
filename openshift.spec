@@ -6,6 +6,17 @@
 %global commit 21fb40637c4e3507cca1fcab6c4d56b06950a149
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
+# String used for --images flag
+# If you're setting docker_registry make sure it ends in a trailing /
+%if "%{dist}" == "el7ose"
+  %global docker_registry registry.access.redhat.com/
+  %global docker_namespace openshift3_beta
+  %global docker_prefix ose
+%else
+  %global docker_namespace openshift
+  %global docker_prefix origin
+%endif
+%global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
 Version:        0.2
@@ -83,6 +94,8 @@ do
         -X github.com/openshift/origin/pkg/version.commitFromGit 
             %{shortcommit}" %{import_path}/cmd/${cmd}
 done
+# set the IMAGES
+sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
 
 %install
 
