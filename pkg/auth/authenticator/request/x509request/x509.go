@@ -2,6 +2,7 @@ package x509request
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"net/http"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
@@ -70,6 +71,16 @@ func DefaultVerifyOptions() x509.VerifyOptions {
 	}
 }
 
+// SubjectToUserConversion calls SubjectToUser on the subject of the first certificate in the chain.
+// If the resulting user has no name, it returns nil, false, nil
+var SubjectToUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
+	user := SubjectToUser(chain[0].Subject)
+	if len(user.GetName()) == 0 {
+		return nil, false, nil
+	}
+	return user, true, nil
+})
+
 // CommonNameUserConversion builds user info from a certificate chain using the subject's CommonName
 var CommonNameUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
 	if len(chain[0].Subject.CommonName) == 0 {
@@ -93,3 +104,18 @@ var EmailAddressUserConversion = UserConversionFunc(func(chain []*x509.Certifica
 	}
 	return &user.DefaultInfo{Name: chain[0].EmailAddresses[0]}, true, nil
 })
+
+func UserToSubject(u user.Info) pkix.Name {
+	return pkix.Name{
+		CommonName:   u.GetName(),
+		SerialNumber: u.GetUID(),
+		Organization: u.GetGroups(),
+	}
+}
+func SubjectToUser(subject pkix.Name) user.Info {
+	return &user.DefaultInfo{
+		Name:   subject.CommonName,
+		UID:    subject.SerialNumber,
+		Groups: subject.Organization,
+	}
+}
