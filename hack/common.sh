@@ -313,7 +313,7 @@ os::build::os_version_vars() {
     fi
 
     # Use git describe to find the version based on annotated tags.
-    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --abbrev=14 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
       if [[ "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
         # git describe --dirty only considers changes to existing files, but
         # that is problematic since new untracked .go files affect the build,
