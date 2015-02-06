@@ -1,2 +1,3 @@
 ROLE="master"
 OPTIONS="--loglevel=0"
+IMAGES='openshift/origin-${component}'

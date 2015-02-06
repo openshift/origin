@@ -6,9 +6,24 @@
 %global commit e7765f65e3a458475117bf1f41e05fba24ccaa9d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
+# Openshift specific ldflags from hack/common.sh os::build:ldflags
+%{!?ldflags:
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.2.2-134-gc9e7c25aaf0e61-dirty -X github.com/openshift/origin/pkg/version.commitFromGit c9e7c25 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 72ad4f1 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.10.0-46-g72ad4f1
+}
+# String used for --images flag
+# If you're setting docker_registry make sure it ends in a trailing /
+%if "%{dist}" == "el7ose"
+  %global docker_registry registry.access.redhat.com/
+  %global docker_namespace openshift3_beta
+  %global docker_prefix ose
+%else
+  %global docker_namespace openshift
+  %global docker_prefix origin
+%endif
+%global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}
 
 Name:           openshift
-Version:        0.2.2
+Version:        0.3.0
 #Release:        1git%{shortcommit}%{?dist}
 Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
@@ -77,12 +92,10 @@ export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopa
 for cmd in openshift
 do
     #go build %{import_path}/cmd/${cmd}
-    go build -ldflags \
-        "-X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 
-            %{shortcommit}
-        -X github.com/openshift/origin/pkg/version.commitFromGit 
-            %{shortcommit}" %{import_path}/cmd/${cmd}
+    go build -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
+# set the IMAGES
+sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
 
 %install
 
