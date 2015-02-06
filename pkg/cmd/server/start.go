@@ -165,7 +165,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.KubernetesPublicAddr, "public-kubernetes", "The Kubernetes server address for use by public clients, if different. (host, host:port, or URL). Defaults to same as --kubernetes.")
 	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
-	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format. By default, the master will use the latest release.")
+	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format on both master and nodes. The latest release will be used by default.")
 	flag.BoolVar(&cfg.LatestReleaseImages, "latest-images", false, "If true, attempt to use the latest images for the cluster instead of the latest release.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
