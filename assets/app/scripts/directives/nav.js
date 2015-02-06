@@ -21,19 +21,15 @@ angular.module('openshiftConsole')
   .directive('projectNav', function($timeout, $location, LabelFilter) {
     return {
       restrict: 'E',
-      scope: {
-        projects: '=',
-        selected: '='
-      },       
       templateUrl: 'views/_project-nav.html',
       link: function ($scope, element, attrs) {
         var select = $('.selectpicker', element);
 
         var updateOptions = function(projects) {
-          $each(projects, function(name, project) {
+          angular.forEach(projects, function(project) {
             $('<option>')
               .attr("value", project.metadata.name)
-              .attr("selected", project.metadata.name == $scope.selected)
+              .attr("selected", project.metadata.name == $scope.projectName)
               .text(project.displayName || project.metadata.name)
               .appendTo(select);
           });
@@ -57,13 +53,17 @@ angular.module('openshiftConsole')
             $location.url(newURL);
           });
         });
-
-        LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element));
-
         $scope.$watch("projects", function(projects) {
           select.empty();
           updateOptions(projects);
           select.selectpicker('refresh');
+        });
+
+        LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element));
+        LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);
+
+        $scope.$watch("renderOptions", function(renderOptions) {
+          LabelFilter.toggleFilterWidget(!renderOptions || !renderOptions.hideFilterWidget);
         });
       }      
     };

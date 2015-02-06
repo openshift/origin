@@ -14,6 +14,9 @@ angular.module('openshiftConsole')
     $scope.project = {};
     $scope.projectPromise = $.Deferred();
     $scope.projects = {};
+    $scope.renderOptions = {
+      hideFilterWidget: false
+    };
 
     AuthService.withUser().then(function() {
       DataService.get("projects", $scope.projectName, $scope).then(function(project) {

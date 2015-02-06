@@ -48,12 +48,12 @@ angular.module('openshiftConsole')
 
     var podsByServiceByLabel = function() {
       $scope.podsByServiceByLabel = {};
-      $each($scope.services, function(name, service) {
+      angular.forEach($scope.services, function(service, name) {
         var servicePods = [];
-        $each(service.spec.selector, function(selectorKey, selectorValue) {
+        angular.forEach(service.spec.selector, function(selectorValue, selectorKey) {
           if ($scope.podsByLabel[selectorKey]) {
             var pods = $scope.podsByLabel[selectorKey][selectorValue] || {};
-            $each(pods, function(name, pod) {
+            angular.forEach(pods, function(pod) {
               servicePods.push(pod);
             });
           }
@@ -88,7 +88,7 @@ angular.module('openshiftConsole')
         }
       }
       else {
-        $each($scope.deployments, function(name, dep) {
+        angular.forEach($scope.deployments, function(dep) {
           parseEncodedDeploymentConfig(dep);
         });
       }
@@ -128,14 +128,14 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("deploymentConfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
       $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
       if (!action) {
-        $each($scope.deploymentConfigs, function(name, depConfig) {
-          $each($scope.builds, function(name, build) {
+        angular.forEach($scope.deploymentConfigs, function(depConfig) {
+          angular.forEach($scope.builds, function(build) {
             associateDeploymentConfigTriggersToBuild(depConfig, build);
           });   
         });
       }
       else if (action !== 'DELETED') {
-        $each($scope.builds, function(name, build) {
+        angular.forEach($scope.builds, function(build) {
           associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
         });
       }
@@ -146,14 +146,14 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
       $scope.builds = builds.by("metadata.name");
       if (!action) {
-        $each($scope.builds, function(name, bld) {
-          $each($scope.deploymentConfigs, function(name, depConfig) {
+        angular.forEach($scope.builds, function(bld) {
+          angular.forEach($scope.deploymentConfigs, function(depConfig) {
             associateDeploymentConfigTriggersToBuild(depConfig, bld);
           });
         });
       }        
       else if (action === 'ADDED' || action === 'MODIFIED') {
-        $each($scope.deploymentConfigs, function(name, depConfig) {
+        angular.forEach($scope.deploymentConfigs, function(depConfig) {
           associateDeploymentConfigTriggersToBuild(depConfig, build);
         });
       }
