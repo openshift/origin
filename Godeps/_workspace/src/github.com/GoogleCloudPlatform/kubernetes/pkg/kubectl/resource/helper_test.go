@@ -187,7 +187,7 @@ func TestHelperCreate(t *testing.T) {
 		if test.Object != nil {
 			data = []byte(runtime.EncodeOrDie(testapi.Codec(), test.Object))
 		}
-		err := modifier.Create("bar", test.Modify, data)
+		_, err := modifier.Create("bar", test.Modify, data)
 		if (err != nil) != test.Err {
 			t.Errorf("%d: unexpected error: %t %v", i, test.Err, err)
 		}
@@ -437,7 +437,7 @@ func TestHelperUpdate(t *testing.T) {
 		if test.Object != nil {
 			data = []byte(runtime.EncodeOrDie(testapi.Codec(), test.Object))
 		}
-		err := modifier.Update("bar", "foo", test.Overwrite, data)
+		_, err := modifier.Update("bar", "foo", test.Overwrite, data)
 		if (err != nil) != test.Err {
 			t.Errorf("%d: unexpected error: %t %v", i, test.Err, err)
 		}
