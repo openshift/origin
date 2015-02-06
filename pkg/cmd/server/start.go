@@ -66,17 +66,18 @@ so if you have problems tell OpenShift what public address it will be via --mast
 You may also pass an optional argument to the start command to start OpenShift in one of the
 following roles:
 
-    $ openshift start master --nodes host1,host2,host3,...
+    $ openshift start master --nodes=<host1,host2,host3,...>
 
-      Launches the server and control plane for OpenShift. You must pass a list of the node
-      hostnames you want to watch (limitation).
+      Launches the server and control plane for OpenShift. You may pass a list of the node
+      hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
 
-    $ openshift start node --master masterIP
+    $ openshift start node --master=<masterIP>
 
       Launches a new node and attempts to connect to the master on the provided IP.
 
-You may also pass --etcd to connect to an external etcd server instead of running an integrated
-instance.
+You may also pass --etcd=<address> to connect to an external etcd server instead of running an
+integrated instance, or --kubernetes=<addr> and --kubeconfig=<path> to connect to an existing
+Kubernetes cluster.
 `
 
 const (
