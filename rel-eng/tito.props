@@ -1,6 +1,6 @@
 [buildconfig]
-builder = embeddedcommitbuilder.EmbeddedCommitBuilder
-tagger = embeddedcommittagger.EmbeddedCommitTagger
+builder = openshift.builder.OpenshiftBuilder
+tagger = openshift.tagger.OpenshiftTagger
 changelog_do_not_remove_cherrypick = 0
 changelog_format = %s (%ae)
 lib_dir = rel-eng/lib
