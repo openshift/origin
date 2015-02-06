@@ -28,6 +28,7 @@ type AuthorizationAttributeBuilder interface {
 type AuthorizationAttributes interface {
 	GetUserInfo() authenticationapi.UserInfo
 	GetVerb() string
+	GetResource() string
 	GetNamespace() string
 	// GetRequestAttributes is of type interface{} because different verbs and different Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements
 	GetRequestAttributes() interface{}
@@ -46,7 +47,7 @@ func NewAuthorizer(masterAuthorizationNamespace string, policyRuleBindingRegistr
 type openshiftAuthorizationAttributes struct {
 	user              authenticationapi.UserInfo
 	verb              string
-	resourceKind      string
+	resource          string
 	namespace         string
 	requestAttributes interface{}
 }
@@ -161,8 +162,6 @@ func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user aut
 }
 
 func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes) (bool, string, error) {
-	// fmt.Printf("#### checking %#v\n", passedAttributes)
-
 	attributes, ok := passedAttributes.(openshiftAuthorizationAttributes)
 	if !ok {
 		return false, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
@@ -214,27 +213,7 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 		return Deny, "", err
 	}
 
-	// check for denies
 	for _, rule := range allRules {
-		if !rule.Deny {
-			continue
-		}
-
-		matches, err := attributes.ruleMatches(rule)
-		if err != nil {
-			return Deny, "", err
-		}
-		if matches {
-			return Deny, fmt.Sprintf("denied by rule in %v: %#v", namespace, rule), nil
-		}
-	}
-
-	// check for allows
-	for _, rule := range allRules {
-		if rule.Deny {
-			continue
-		}
-
 		matches, err := attributes.ruleMatches(rule)
 		if err != nil {
 			return Allow, "", err
@@ -248,8 +227,10 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 }
 
 func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.PolicyRule) (bool, error) {
-	if a.verbMatches(rule) {
-		if a.kindMatches(rule) {
+	resourceNames := resolveResources(rule)
+
+	if a.verbMatches(util.NewStringSet(rule.Verbs...)) {
+		if a.resourceMatches(resourceNames) {
 			return true, nil
 		}
 	}
@@ -257,27 +238,43 @@ func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.Poli
 	return false, nil
 }
 
-func (a openshiftAuthorizationAttributes) verbMatches(rule authorizationapi.PolicyRule) bool {
+func resolveResources(rule authorizationapi.PolicyRule) util.StringSet {
+	ret := util.StringSet{}
+	toVisit := rule.Resources
+	visited := util.StringSet{}
 
+	for i := 0; i < len(toVisit); i++ {
+		currResource := toVisit[i]
+		if visited.Has(currResource) {
+			continue
+		}
+		visited.Insert(currResource)
+
+		if strings.Index(currResource, authorizationapi.ResourceGroupPrefix+":") != 0 {
+			ret.Insert(strings.ToLower(currResource))
+			continue
+		}
+
+		if resourceNames, exists := authorizationapi.GroupsToResources[currResource]; exists {
+			toVisit = append(toVisit, resourceNames...)
+		}
+	}
+
+	return ret
+}
+
+func (a openshiftAuthorizationAttributes) verbMatches(verbs util.StringSet) bool {
 	verbMatches := false
-	verbMatches = verbMatches || contains(rule.Verbs, a.GetVerb())
-	verbMatches = verbMatches || contains(rule.Verbs, authorizationapi.VerbAll)
-
-	//check for negations that would force this match to false
-	verbMatches = verbMatches && !contains(rule.Verbs, "-"+a.GetVerb())
-	verbMatches = verbMatches && !contains(rule.Verbs, "-"+authorizationapi.VerbAll)
+	verbMatches = verbMatches || verbs.Has(strings.ToLower(a.GetVerb()))
+	verbMatches = verbMatches || verbs.Has(authorizationapi.VerbAll)
 
 	return verbMatches
 }
 
-func (a openshiftAuthorizationAttributes) kindMatches(rule authorizationapi.PolicyRule) bool {
+func (a openshiftAuthorizationAttributes) resourceMatches(resourceNames util.StringSet) bool {
 	kindMatches := false
-	kindMatches = kindMatches || contains(rule.ResourceKinds, a.GetResourceKind())
-	kindMatches = kindMatches || contains(rule.ResourceKinds, authorizationapi.ResourceAll)
-
-	//check for negations that would force this match to false
-	kindMatches = kindMatches && !contains(rule.ResourceKinds, "-"+a.GetResourceKind())
-	kindMatches = kindMatches && !contains(rule.ResourceKinds, "-"+authorizationapi.ResourceAll)
+	kindMatches = kindMatches || resourceNames.Has(strings.ToLower(a.GetResource()))
+	kindMatches = kindMatches || resourceNames.Has(authorizationapi.ResourceAll)
 
 	return kindMatches
 }
@@ -290,8 +287,8 @@ func (a openshiftAuthorizationAttributes) GetVerb() string {
 	return a.verb
 }
 
-func (a openshiftAuthorizationAttributes) GetResourceKind() string {
-	return a.resourceKind
+func (a openshiftAuthorizationAttributes) GetResource() string {
+	return a.resource
 }
 
 func (a openshiftAuthorizationAttributes) GetNamespace() string {
@@ -320,7 +317,7 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 	return openshiftAuthorizationAttributes{
 		user:              userInfo,
 		verb:              verb,
-		resourceKind:      kind,
+		resource:          kind,
 		namespace:         namespace,
 		requestAttributes: nil,
 	}, nil
@@ -416,7 +413,7 @@ func splitPath(path string) []string {
 	return strings.Split(path, "/")
 }
 
-// TODO enumerate all resourceKinds and verbs instead of using *
+// TODO enumerate all resources and verbs instead of using *
 func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 	return &authorizationapi.Policy{
 		ObjectMeta: kapi.ObjectMeta{
@@ -433,8 +430,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:         []string{authorizationapi.VerbAll},
-						ResourceKinds: []string{authorizationapi.ResourceAll},
+						Verbs:     []string{authorizationapi.VerbAll},
+						Resources: []string{authorizationapi.ResourceAll},
 					},
 				},
 			},
@@ -445,12 +442,12 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:         []string{authorizationapi.VerbAll, "-create", "-update", "-delete"},
-						ResourceKinds: []string{authorizationapi.ResourceAll},
+						Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+						Resources: []string{authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName},
 					},
 					{
-						Verbs:         []string{"create", "update", "delete"},
-						ResourceKinds: []string{authorizationapi.ResourceAll, "-policies", "-policyBindings"},
+						Verbs:     []string{"get", "list", "watch"},
+						Resources: []string{authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName},
 					},
 				},
 			},
@@ -461,12 +458,12 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:         []string{authorizationapi.VerbAll, "-create", "-update", "-delete"},
-						ResourceKinds: []string{authorizationapi.ResourceAll, "-roles", "-roleBindings", "-policyBindings", "-policies"},
+						Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+						Resources: []string{authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName},
 					},
 					{
-						Verbs:         []string{"create", "update", "delete"},
-						ResourceKinds: []string{authorizationapi.ResourceAll, "-roles", "-roleBindings", "-policyBindings", "-policies"},
+						Verbs:     []string{"get", "list", "watch"},
+						Resources: []string{authorizationapi.KubeAllGroupName},
 					},
 				},
 			},
@@ -477,8 +474,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:         []string{"watch", "list", "get"},
-						ResourceKinds: []string{authorizationapi.ResourceAll, "-roles", "-roleBindings", "-policyBindings", "-policies"},
+						Verbs:     []string{"get", "list", "watch"},
+						Resources: []string{authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName},
 					},
 				},
 			},
@@ -489,8 +486,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:         []string{authorizationapi.VerbAll},
-						ResourceKinds: []string{authorizationapi.ResourceAll},
+						Verbs:     []string{authorizationapi.VerbAll},
+						Resources: []string{authorizationapi.ResourceAll},
 					},
 				},
 			},

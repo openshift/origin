@@ -16,15 +16,16 @@ import (
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
-	// Deny is true if any request matching this rule should be denied.  If false, any request matching this rule is allowed.
-	Deny bool `json:"deny"`
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
 	Verbs []string `json:"verbs"`
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
 	AttributeRestrictions kruntime.RawExtension `json:"attributeRestrictions"`
-	// ResourceKinds is a list of kinds this rule applies to.  ResourceAll represents all kinds.
-	ResourceKinds []string `json:"resourceKinds""`
+	// ResourceKinds is a list of resources this rule applies to.  ResourceAll represents all resources.
+	// DEPRECATED
+	ResourceKinds []string `json:"resourceKinds"`
+	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
+	Resources []string `json:"resources"`
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
