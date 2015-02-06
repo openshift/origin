@@ -16,7 +16,7 @@
   %global docker_namespace openshift
   %global docker_prefix origin
 %endif
-%global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
+%global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}
 
 Name:           openshift
 Version:        0.2
