@@ -5,14 +5,17 @@ import (
 	"io"
 	"os"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 type usage interface {
@@ -80,7 +83,7 @@ func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
 				glog.Fatalf("Did not recognize the following arguments: %v", unknown)
 			}
 
-			obj, err := config.Run(out)
+			result, err := config.Run(out)
 			if err != nil {
 				if errs, ok := err.(errors.Aggregate); ok {
 					if len(errs.Errors()) == 1 {
@@ -98,7 +101,7 @@ func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
 			}
 
 			if len(kcmd.GetFlagString(c, "output")) != 0 {
-				if err := kcmd.PrintObject(c, obj.List, f.Factory, out); err != nil {
+				if err := kcmd.PrintObject(c, result.List, f.Factory, out); err != nil {
 					glog.Fatalf("Error: %v", err)
 				}
 				return
@@ -107,7 +110,7 @@ func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
 			mapper, typer := f.Object(c)
 			resourceMapper := &resource.Mapper{typer, mapper, kcmd.ClientMapperForCommand(c, f.Factory)}
 			errs := []error{}
-			for _, item := range obj.List.Items {
+			for i, item := range result.List.Items {
 				info, err := resourceMapper.InfoForObject(item)
 				if err != nil {
 					errs = append(errs, err)
@@ -119,19 +122,36 @@ func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
 					glog.Error(err)
 					continue
 				}
-				if err := resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data); err != nil {
+				obj, err := resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
+				if err != nil {
 					errs = append(errs, err)
 					glog.Error(err)
 					continue
 				}
+				info.Refresh(obj, true)
+				result.List.Items[i] = obj
 				fmt.Fprintf(out, "%s\n", info.Name)
 			}
 			if len(errs) != 0 {
 				os.Exit(1)
 			}
 
-			for _, s := range obj.BuildNames {
-				fmt.Fprintf(os.Stderr, "A build was created - run `osc start-build %s` to start it\n", s)
+			hasMissingRepo := false
+			for _, item := range result.List.Items {
+				switch t := item.(type) {
+				case *kapi.Service:
+					fmt.Fprintf(os.Stderr, "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Port, t.Spec.ContainerPort.IntVal)
+				case *buildapi.BuildConfig:
+					fmt.Fprintf(os.Stderr, "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
+				case *imageapi.ImageRepository:
+					if len(t.Status.DockerImageRepository) == 0 {
+						if hasMissingRepo {
+							continue
+						}
+						hasMissingRepo = true
+						fmt.Fprintf(os.Stderr, "WARNING: We created an image repository %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
+					}
+				}
 			}
 		},
 	}
