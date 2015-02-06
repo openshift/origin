@@ -41,6 +41,20 @@ func TestValidateProject(t *testing.T) {
 			numErrs: 1,
 		},
 		{
+			name: "invalid id with hyphen",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "-frank-jones",
+					Annotations: map[string]string{
+						"description": "This is a description",
+					},
+				},
+				DisplayName: "hi",
+			},
+			// Should fail because the ID is invalid.
+			numErrs: 1,
+		},
+		{
 			name: "has namespace",
 			project: api.Project{
 				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},
