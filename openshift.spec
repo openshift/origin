@@ -149,10 +149,15 @@ install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-nod
 %{_prefix}/lib/tuned/openshift-node
 
 %post -n tuned-profiles-openshift-node
-/usr/sbin/tuned-adm profile openshift-node
+/usr/sbin/tuned-adm profile openshift-node > /dev/null 2>&1
 
-%postun -n tuned-profiles-openshift-node
-/usr/sbin/tuned-adm profile default
+%preun -n tuned-profiles-openshift-node
+# reset the tuned profile to the recommended profile
+# $1 = 0 when we're being removed > 0 during upgrades
+if [ "$1" = 0 ]; then
+  recommended=`/usr/sbin/tuned-adm recommend`
+  /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
+fi
 
 
 %changelog

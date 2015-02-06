@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -31,9 +31,8 @@ type AppConfig struct {
 
 	TypeOfBuild string
 
-	localDockerResolver    app.Resolver
-	dockerRegistryResolver app.Resolver
-	imageStreamResolver    app.Resolver
+	dockerResolver      app.Resolver
+	imageStreamResolver app.Resolver
 
 	searcher app.Searcher
 	detector app.Detector
@@ -50,17 +49,20 @@ type errlist interface {
 
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
-		searcher: &mockSearcher{},
 		detector: app.SourceRepositoryEnumerator{
 			Detectors: source.DefaultDetectors,
 			Tester:    dockerfile.NewTester(),
 		},
-		dockerRegistryResolver: app.DockerRegistryResolver{dockerregistry.NewClient()},
+		dockerResolver: app.DockerRegistryResolver{dockerregistry.NewClient()},
 	}
 }
 
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
-	c.localDockerResolver = app.DockerClientResolver{dockerclient}
+	c.dockerResolver = app.DockerClientResolver{
+		Client: dockerclient,
+
+		RegistryResolver: c.dockerResolver,
+	}
 }
 
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
@@ -100,7 +102,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 	}
 	b.AddImages(c.DockerImages, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--docker-image=%q", input.From)
-		input.Resolver = c.dockerRegistryResolver
+		input.Resolver = c.dockerResolver
 		return input
 	})
 	b.AddImages(c.ImageStreams, func(input *app.ComponentInput) app.ComponentReference {
@@ -111,8 +113,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 	b.AddImages(c.Components, func(input *app.ComponentInput) app.ComponentReference {
 		input.Resolver = app.PerfectMatchWeightedResolver{
 			app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
-			app.WeightedResolver{Resolver: c.dockerRegistryResolver, Weight: 0.0},
-			app.WeightedResolver{Resolver: c.localDockerResolver, Weight: 0.0},
+			app.WeightedResolver{Resolver: c.dockerResolver, Weight: 0.0},
 		}
 		return input
 	})
@@ -280,39 +281,46 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 	return pipelines, nil
 }
 
+var ErrNoInputs = fmt.Errorf("no inputs provided")
+
+type AppResult struct {
+	List *kapi.List
+
+	BuildNames []string
+	HasSource  bool
+}
+
 // Run executes the provided config.
-func (c *AppConfig) Run(out io.Writer, helpFn func() error) error {
+func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 	components, repositories, environment, err := c.validate()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hasSource := len(repositories) != 0
 	hasImages := len(components) != 0
 	if !hasSource && !hasImages {
-		// display help page
-		// TODO: return usage error, which should trigger help display
-		return helpFn()
+		return nil, ErrNoInputs
 	}
 
 	if err := c.resolve(components); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := c.ensureHasSource(components, repositories); err != nil {
-		return err
+		return nil, err
 	}
 
 	glog.V(4).Infof("Code %v", repositories)
 	glog.V(4).Infof("Images %v", components)
 
 	if err := c.detectSource(repositories); err != nil {
-		return err
+		return nil, err
 	}
 
 	pipelines, err := c.buildPipelines(components, app.Environment(environment))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	objects := app.Objects{}
@@ -320,19 +328,27 @@ func (c *AppConfig) Run(out io.Writer, helpFn func() error) error {
 	for _, p := range pipelines {
 		obj, err := p.Objects(accept)
 		if err != nil {
-			return fmt.Errorf("can't setup %q: %v", p.From, err)
+			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
 		}
 		objects = append(objects, obj...)
 	}
 
 	objects = app.AddServices(objects)
 
-	list := &kapi.List{Items: objects}
-	p, _, err := kubectl.GetPrinter("yaml", "")
-	if err != nil {
-		return err
+	buildNames := []string{}
+	for _, obj := range objects {
+		switch t := obj.(type) {
+		case *buildapi.BuildConfig:
+			buildNames = append(buildNames, t.Name)
+		}
 	}
-	return p.PrintObj(list, out)
+
+	list := &kapi.List{Items: objects}
+	return &AppResult{
+		List:       list,
+		BuildNames: buildNames,
+		HasSource:  hasSource,
+	}, nil
 }
 
 type mockSearcher struct{}

@@ -2,9 +2,11 @@ package builder
 
 import (
 	"github.com/fsouza/go-dockerclient"
-	"github.com/openshift/origin/pkg/build/api"
+	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/sti"
 	stiapi "github.com/openshift/source-to-image/pkg/sti/api"
+
+	"github.com/openshift/origin/pkg/build/api"
 )
 
 // STIBuilder performs an STI build given the build object
@@ -45,6 +47,7 @@ func (s *STIBuilder) Build() error {
 	} else if s.build.Parameters.Source.Git.Ref != "" {
 		request.Ref = s.build.Parameters.Source.Git.Ref
 	}
+	glog.V(2).Infof("Creating a new STI builder with build request: %#v\n", request)
 	builder, err := sti.NewBuilder(request)
 	if err != nil {
 		return err

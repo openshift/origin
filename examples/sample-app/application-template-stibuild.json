@@ -94,7 +94,7 @@
           "type": "STI",
           "stiStrategy": {
             "image": "openshift/ruby-20-centos",
-            "scripts": "http://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
+            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
           }
         },
         "output": {

@@ -2,13 +2,17 @@
 // Tiles
 // --------------------------------------------------
 
- .tile {
+.tile {
   background: @console-panel-color;
   .panel_default_boxshadow();
   padding: 10px 20px; 
   margin-bottom: 20px;
   width: 100%;
-  .box-sizing(border-box)
+  .box-sizing(border-box);
+
+  h1, h2, h3 {
+    margin-top: 0px;
+  }
 }
 .tile-click {
   cursor: pointer;

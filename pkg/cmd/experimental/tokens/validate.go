@@ -7,18 +7,25 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/oauth/osintypes"
 )
 
-func NewCmdValidateToken(clientCfg *clientcmd.Config) *cobra.Command {
+func NewCmdValidateToken(f *cmd.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate-token",
 		Short: "validate an access token",
 		Long:  `validate an access token`,
 		Run: func(cmd *cobra.Command, args []string) {
 			tokenValue := getFlagString(cmd, "token")
+
+			clientCfg, err := f.OpenShiftClientConfig.ClientConfig()
+			if err != nil {
+				fmt.Errorf("%v\n", err)
+			}
+
 			validateToken(tokenValue, clientCfg)
 		},
 	}
@@ -26,18 +33,16 @@ func NewCmdValidateToken(clientCfg *clientcmd.Config) *cobra.Command {
 	return cmd
 }
 
-func validateToken(token string, clientCfg *clientcmd.Config) {
+func validateToken(token string, clientConfig *kclient.Config) {
 	if len(token) == 0 {
 		fmt.Println("You must provide a token to validate")
 		return
 	}
 	fmt.Printf("Using token: %v\n", token)
 
-	// This will be pulled out of the auth config file after https://github.com/GoogleCloudPlatform/kubernetes/pull/2437
-	osCfg := clientCfg.OpenShiftConfig()
-	osCfg.BearerToken = token
+	clientConfig.BearerToken = token
 
-	osClient, err := osclient.New(osCfg)
+	osClient, err := osclient.New(clientConfig)
 	if err != nil {
 		fmt.Printf("Error building osClient: %v\n", err)
 		return
@@ -46,7 +51,7 @@ func validateToken(token string, clientCfg *clientcmd.Config) {
 	jsonResponse, _, err := getTokenInfo(token, osClient)
 	if err != nil {
 		fmt.Printf("%v\n", err)
-		fmt.Println("Try visiting " + getRequestTokenURL(clientCfg) + " for a new token.")
+		fmt.Println("Try visiting " + getRequestTokenURL(clientConfig) + " for a new token.")
 		return
 	}
 	fmt.Printf("%v\n", string(jsonResponse))

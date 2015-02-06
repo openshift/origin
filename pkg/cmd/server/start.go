@@ -66,17 +66,18 @@ so if you have problems tell OpenShift what public address it will be via --mast
 You may also pass an optional argument to the start command to start OpenShift in one of the
 following roles:
 
-    $ openshift start master --nodes host1,host2,host3,...
+    $ openshift start master --nodes=<host1,host2,host3,...>
 
-      Launches the server and control plane for OpenShift. You must pass a list of the node
-      hostnames you want to watch (limitation).
+      Launches the server and control plane for OpenShift. You may pass a list of the node
+      hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
 
-    $ openshift start node --master masterIP
+    $ openshift start node --master=<masterIP>
 
       Launches a new node and attempts to connect to the master on the provided IP.
 
-You may also pass --etcd to connect to an external etcd server instead of running an integrated
-instance.
+You may also pass --etcd=<address> to connect to an external etcd server instead of running an
+integrated instance, or --kubernetes=<addr> and --kubeconfig=<path> to connect to an existing
+Kubernetes cluster.
 `
 
 const (
@@ -165,7 +166,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.KubernetesPublicAddr, "public-kubernetes", "The Kubernetes server address for use by public clients, if different. (host, host:port, or URL). Defaults to same as --kubernetes.")
 	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
-	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format. By default, the master will use the latest release.")
+	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format on both master and nodes. The latest release will be used by default.")
 	flag.BoolVar(&cfg.LatestReleaseImages, "latest-images", false, "If true, attempt to use the latest images for the cluster instead of the latest release.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
@@ -220,8 +221,18 @@ func start(cfg *config, args []string) error {
 
 		case "node":
 			startNode = true
-			if err := defaultMasterAddress(cfg); err != nil {
-				return err
+
+			// TODO client config currently doesn't let you override the defaults
+			// so it is defaulting to https://localhost:8443 for MasterAddr if
+			// it isn't set by --master or --kubeconfig
+			if !cfg.MasterAddr.Provided {
+				config, err := cfg.ClientConfig.ClientConfig()
+				if err != nil {
+					glog.Fatalf("Unable to read client configuration: %v", err)
+				}
+				if len(config.Host) > 0 {
+					cfg.MasterAddr.Set(config.Host)
+				}
 			}
 			if !cfg.KubernetesAddr.Provided {
 				cfg.KubernetesAddr = cfg.MasterAddr
@@ -469,10 +480,12 @@ func start(cfg *config, args []string) error {
 
 		osmaster.BuildClients()
 
-		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "30"), 10, 0)
+		// Sessions need to last as long as we expect the grant flow to take
+		// Session auth is invalidated at the end of an authorize flow, so it can only be used once
+		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "300"), 10, 0)
 		if err != nil || sessionMaxAgeSeconds <= 0 {
-			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 30 seconds.")
-			sessionMaxAgeSeconds = 30
+			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 5 minutes.")
+			sessionMaxAgeSeconds = 300
 		}
 
 		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
@@ -492,7 +505,8 @@ func start(cfg *config, args []string) error {
 			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
 			// Session config
 			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
-			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds), // Since we're auto-granting, we don't need sessions to persist
+			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds),
+			SessionName:          env("ORIGIN_OAUTH_SESSION_NAME", "ssn"),
 			// Password config
 			PasswordAuth: origin.PasswordAuthType(env("ORIGIN_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
 			BasicAuthURL: env("ORIGIN_OAUTH_BASIC_AUTH_URL", ""),

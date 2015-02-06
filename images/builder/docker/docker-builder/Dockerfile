@@ -13,4 +13,4 @@
 FROM openshift/origin
 
 ENV HOME /root
-ENTRYPOINT ["/usr/bin/openshift-docker-build"]
+ENTRYPOINT ["/usr/bin/openshift-docker-build", "--loglevel=5"]

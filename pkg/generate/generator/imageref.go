@@ -19,6 +19,7 @@ import (
 type ImageRefGenerator interface {
 	FromName(name string) (*app.ImageRef, error)
 	FromNameAndPorts(name string, ports []string) (*app.ImageRef, error)
+	FromNameAndResolver(name string, resolver app.Resolver) (*app.ImageRef, error)
 	FromRepository(repo *imageapi.ImageRepository, tag string) (*app.ImageRef, error)
 	FromDockerfile(name string, dir string, context string) (*app.ImageRef, error)
 }
@@ -47,6 +48,26 @@ func (g *imageRefGenerator) FromName(name string) (*app.ImageRef, error) {
 		Tag:               tag,
 		AsImageRepository: true,
 	}, nil
+}
+
+func (g *imageRefGenerator) FromNameAndResolver(name string, resolver app.Resolver) (*app.ImageRef, error) {
+	imageRef, err := g.FromName(name)
+	if err != nil {
+		return nil, err
+	}
+	imageMatch, err := resolver.Resolve(imageRef.RepoName())
+	if multiple, ok := err.(app.ErrMultipleMatches); ok {
+		for _, m := range multiple.Matches {
+			if m.Image != nil {
+				imageMatch = m
+				break
+			}
+		}
+	}
+	if imageMatch != nil {
+		imageRef.Info = imageMatch.Image
+	}
+	return imageRef, nil
 }
 
 func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*app.ImageRef, error) {

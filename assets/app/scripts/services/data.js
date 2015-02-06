@@ -158,6 +158,54 @@ angular.module('openshiftConsole')
 // type:      API type (e.g. "pods")
 // name:      API name, the unique name for the object 
 // context:   API context (e.g. {project: "..."})
+// opts:      http - options to pass to the inner $http call
+// Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
+  DataService.prototype.delete = function(type, name, context, opts) {
+  	opts = opts || {};
+  	var deferred = $q.defer();
+    if (context.projectPromise && type !== "projects") {
+      var self = this;
+      context.projectPromise.done(function(project) {
+        $http(angular.extend({
+          method: 'DELETE',
+          url: self._urlForType(type, name, context, false, {namespace: project.metadata.name})
+        }, opts.http || {}))
+        .success(function(data, status, headerFunc, config, statusText) {
+          deferred.resolve(data);
+        })
+        .error(function(data, status, headers, config) {
+          deferred.reject({
+            data: data,
+            status: status,
+            headers: headers,
+            config: config
+          });
+        });
+      });
+    }
+    else {
+      $http(angular.extend({
+        method: 'DELETE',
+        url: this._urlForType(type, name, context)
+      }, opts.http || {}))
+      .success(function(data, status, headerFunc, config, statusText) {
+        deferred.resolve(data);
+      })
+      .error(function(data, status, headers, config) {
+        deferred.reject({
+          data: data, 
+          status: status, 
+          headers: headers, 
+          config: config
+        });
+      });
+    }
+  	return deferred.promise;
+  };
+
+// type:      API type (e.g. "pods")
+// name:      API name, the unique name for the object 
+// context:   API context (e.g. {project: "..."})
 // opts:      force - always request (default is false)
 //            http - options to pass to the inner $http call
   DataService.prototype.get = function(type, name, context, opts) {
@@ -547,14 +595,16 @@ angular.module('openshiftConsole')
   // an introspection endpoint that would give us this mapping
   // https://github.com/openshift/origin/issues/230
   var SERVER_TYPE_MAP = {
-    builds : apicfg.openshift,
-    deploymentConfigs : apicfg.openshift,
-    images : apicfg.openshift,
-    projects : apicfg.openshift,
-    users: apicfg.openshift,
-    pods : apicfg.k8s,
-    services : apicfg.k8s,
-    replicationControllers: apicfg.k8s
+    builds:                 apicfg.openshift,
+    deploymentConfigs:      apicfg.openshift,
+    images:                 apicfg.openshift,
+    oAuthAccessTokens:      apicfg.openshift,
+    projects:               apicfg.openshift,
+    users:                  apicfg.openshift,
+
+    pods:                   apicfg.k8s,
+    replicationControllers: apicfg.k8s,
+    services:               apicfg.k8s
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {

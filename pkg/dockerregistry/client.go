@@ -13,7 +13,7 @@ import (
 
 // Client includes methods for accessing a Docker registry by name.
 type Client interface {
-	// Connect to a Docker registry by name. Pass "" for the DockerHub
+	// Connect to a Docker registry by name. Pass "" for the Docker Hub
 	Connect(registry string) (Connection, error)
 }
 

@@ -212,14 +212,14 @@ docker tag -f centos:centos7 ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
 docker push ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
 echo "[INFO] Pushed centos7"
 
-# Process template and apply
+# Process template and create
 echo "[INFO] Submitting application template json for processing..."
 osc process -n test -f examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
 osc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
 osc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
 
 echo "[INFO] Applying STI application config"
-osc apply -n test -f "${STI_CONFIG_FILE}"
+osc create -n test -f "${STI_CONFIG_FILE}"
 
 # Trigger build
 echo "[INFO] Invoking generic web hook to trigger new sti build using curl"
@@ -228,14 +228,14 @@ wait_for_build "test"
 wait_for_app "test"
 
 #echo "[INFO] Applying Docker application config"
-#osc apply -n docker -f "${DOCKER_CONFIG_FILE}"
+#osc create -n docker -f "${DOCKER_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=docker && sleep 3
 #wait_for_build "docker"
 #wait_for_app "docker"
 
 #echo "[INFO] Applying Custom application config"
-#osc apply -n custom -f "${CUSTOM_CONFIG_FILE}"
+#osc create -n custom -f "${CUSTOM_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=custom && sleep 3
 #wait_for_build "custom"

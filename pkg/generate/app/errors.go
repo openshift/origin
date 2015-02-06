@@ -18,32 +18,34 @@ func (e ErrNoMatch) Error() string {
 }
 
 func (e ErrNoMatch) UsageError(commandName string) string {
-	return fmt.Sprintf(`
-%[3]s - you can try to search for images or templates that may match this name with:
+	return fmt.Sprintf("%[3]s - does a Docker image with that name exist?", e.value, commandName, e.Error())
 
-    $ %[2]s -S %[1]q
+	/*`
+	  %[3]s - you can try to search for images or templates that may match this name with:
 
-`, e.value, commandName, e.Error())
+	      $ %[2]s -S %[1]q
+
+	  `*/
 }
 
 type ErrMultipleMatches struct {
-	image   string
-	matches []*ComponentMatch
+	Image   string
+	Matches []*ComponentMatch
 }
 
 func (e ErrMultipleMatches) Error() string {
-	return fmt.Sprintf("multiple images matched %q: %d", e.image, len(e.matches))
+	return fmt.Sprintf("multiple images matched %q: %d", e.Image, len(e.Matches))
 }
 
 func (e ErrMultipleMatches) UsageError(commandName string) string {
 	buf := &bytes.Buffer{}
-	for _, match := range e.matches {
+	for _, match := range e.Matches {
 		fmt.Fprintf(buf, "* %[1]s (use %[2]s)\n", match.Name, match.Argument)
 		fmt.Fprintf(buf, "  %s\n\n", match.Description)
 	}
 	return fmt.Sprintf(`
-The argument %[1]q could apply to the following images or templates:
+The argument %[1]q could apply to the following images or image repositories:
 
 %[2]s
-`, e.image, buf.String())
+`, e.Image, buf.String())
 }

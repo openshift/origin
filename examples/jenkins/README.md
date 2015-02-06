@@ -16,31 +16,31 @@ Steps
 
 2. Start the docker registry services
 
-        $ openshift kubectl apply -f docker-registry-config.json
+        $ osc create -f docker-registry-config.json
 
 3. Start the Jenkins services
 
-        $ openshift kubectl apply -f jenkins-config.json
+        $ osc create -f jenkins-config.json
 
 4. Determine the IP address of the docker-registry service:
 
-        $ openshift kubectl get services docker-registry -o template --template="{{ .portalIP }}"
+        $ osc get services docker-registry -o template --template="{{ .portalIP }}"
         
 5. Edit the application-template.json file by replacing all occurences of `172.30.17.3` with the IP address from the previous step.
 
 5. Create the application configuration
 
-        $ openshift kubectl process -f application-template.json | openshift kubectl apply -f -
+        $ osc process -f application-template.json | osc create -f -
  
 6. Locate the Jenkins service endpoint and go to it in your browser:
 
-        $ openshift kubectl get services | grep jenkins | awk '{print $4":"$5}'
+        $ osc get services | grep jenkins | awk '{print $4":"$5}'
 
     Once it is available, proceed to the next step.
     
 7. Create the Jenkins job named rubyJob:
 
-        $ JENKINS_ENDPOINT=`openshift kubectl get services | grep jenkins | awk '{print $4":"$5}'`
+        $ JENKINS_ENDPOINT=`osc get services | grep jenkins | awk '{print $4":"$5}'`
         $ cat job.xml | curl -X POST -H "Content-Type: application/xml" -H "Expect: " --data-binary @- http://$JENKINS_ENDPOINT/createItem?name=rubyJob
 
 8. Run the Jenkins build
@@ -56,5 +56,5 @@ Steps
 
 10. Confirm both the test and production services are available by browsing to both services:
 
-        $ openshift kubectl get services | grep frontend
+        $ osc get services | grep frontend
    

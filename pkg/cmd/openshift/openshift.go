@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
 	"github.com/openshift/origin/pkg/cmd/experimental/generate"
+	"github.com/openshift/origin/pkg/cmd/experimental/login"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -32,11 +33,7 @@ OpenShift is built around Docker and the Kubernetes cluster container manager.  
 Docker installed on this machine to start your server.
 
 Note: This is an alpha release of OpenShift and will change significantly.  See
-
-    https://github.com/openshift/origin
-
-for the latest information on OpenShift.
-
+    https://github.com/openshift/origin for the latest information on OpenShift.
 `
 
 // CommandFor returns the appropriate command for this base name,
@@ -76,8 +73,8 @@ func NewCommandOpenShift() *cobra.Command {
 		},
 	}
 
-	root.SetUsageTemplate(templates.MainUsageTemplate)
-	root.SetHelpTemplate(templates.MainHelpTemplate)
+	root.SetUsageTemplate(templates.MainUsageTemplate())
+	root.SetHelpTemplate(templates.MainHelpTemplate())
 
 	root.AddCommand(server.NewCommandStartServer("start"))
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
@@ -116,6 +113,7 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(tokens.NewCmdTokens("tokens"))
 	experimental.AddCommand(policy.NewCommandPolicy("policy"))
 	experimental.AddCommand(generate.NewCmdGenerate("generate"))
+	experimental.AddCommand(login.NewCmdLogin("login", experimental))
 	return experimental
 }
 

@@ -135,8 +135,9 @@ angular
    	  $httpProvider.interceptors.push('AuthInterceptor');
 
       AuthServiceProvider.LoginService('RedirectLoginService');
-      // TODO: fall back to cookie store when session storage is unavailable (see known issues at http://caniuse.com/#search=sessionstorage)
-      AuthServiceProvider.UserStore('SessionUserStore');
+      AuthServiceProvider.LogoutService('DeleteTokenLogoutService');
+      // TODO: fall back to cookie store when localStorage is unavailable (see known issues at http://caniuse.com/#feat=namevalue-storage)
+      AuthServiceProvider.UserStore('LocalStorageUserStore');
 
       var authcfg = window.OPENSHIFT_CONFIG.auth;
       RedirectLoginServiceProvider.OAuthClientID(authcfg.oauth_client_id);
