@@ -153,7 +153,7 @@ func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 
 	from := registry
 	if len(registry) == 0 {
-		registry = "DockerHub"
+		registry = "Docker Hub"
 	}
 	return &ComponentMatch{
 		Value:       value,

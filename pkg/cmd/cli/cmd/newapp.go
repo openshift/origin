@@ -37,13 +37,13 @@ Examples:
   <try to create an application based on the source code in the current directory>
 
   $ osc new-app mysql
-  <use the public DockerHub MySQL image to create an app>
+  <use the public Docker Hub MySQL image to create an app>
 
   $ osc new-app myregistry.com/mycompany/mysql
   <use a MySQL image in a private registry to create an app>
 
   $ osc new-app openshift/ruby-20-centos~git@github.com/mfojtik/sinatra-app-example
-  <build an application using the OpenShift Ruby DockerHub image and an example repo>
+  <build an application using the OpenShift Ruby Docker Hub image and an example repo>
 
 If you specify source code, you may need to run a build with 'start-build' after the
 application is created.
