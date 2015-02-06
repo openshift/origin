@@ -66,17 +66,18 @@ so if you have problems tell OpenShift what public address it will be via --mast
 You may also pass an optional argument to the start command to start OpenShift in one of the
 following roles:
 
-    $ openshift start master --nodes host1,host2,host3,...
+    $ openshift start master --nodes=<host1,host2,host3,...>
 
-      Launches the server and control plane for OpenShift. You must pass a list of the node
-      hostnames you want to watch (limitation).
+      Launches the server and control plane for OpenShift. You may pass a list of the node
+      hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
 
-    $ openshift start node --master masterIP
+    $ openshift start node --master=<masterIP>
 
       Launches a new node and attempts to connect to the master on the provided IP.
 
-You may also pass --etcd to connect to an external etcd server instead of running an integrated
-instance.
+You may also pass --etcd=<address> to connect to an external etcd server instead of running an
+integrated instance, or --kubernetes=<addr> and --kubeconfig=<path> to connect to an existing
+Kubernetes cluster.
 `
 
 const (
@@ -165,7 +166,7 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.KubernetesPublicAddr, "public-kubernetes", "The Kubernetes server address for use by public clients, if different. (host, host:port, or URL). Defaults to same as --kubernetes.")
 	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
-	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format. By default, the master will use the latest release.")
+	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format on both master and nodes. The latest release will be used by default.")
 	flag.BoolVar(&cfg.LatestReleaseImages, "latest-images", false, "If true, attempt to use the latest images for the cluster instead of the latest release.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")

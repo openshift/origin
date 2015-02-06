@@ -21,9 +21,22 @@ The OpenShift client exposes commands for managing your applications, as well as
 tools to interact with each component of your system.
 
 At the present time, the CLI wraps many of the upstream Kubernetes commands and works generically
-on all resources.  Some commands you can try:
+on all resources.  To create a new application, try:
 
-    $ %[1]s get pods
+    $ %[1]s new-app openshift/ruby-20-centos~git@github.com/mfojtik/sinatra-app-example
+
+This will create an application based on the Docker image 'openshift/ruby-20-centos' that builds
+the source code at 'github.com/mfojtik/sinatra-app-example'. To start the build, run
+
+    $ %[1]s start-build sinatra-app-example
+
+and watch the build logs and build status with:
+
+    $ %[1]s get builds
+    $ %[1]s build-logs <name_of_build>
+
+You'll be able to view the deployed application on the IP and port of the service that new-app
+created for you.
 
 Note: This is an alpha release of OpenShift and will change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
@@ -55,29 +68,26 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.SetUsageTemplate(templates.CliUsageTemplate())
 	cmds.SetHelpTemplate(templates.CliHelpTemplate())
 
-	// Kubernetes CRUD commands
+	cmds.AddCommand(cmd.NewCmdNewApplication(f, out))
+	cmds.AddCommand(cmd.NewCmdStartBuild(f, out))
+	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
+	cmds.AddCommand(cmd.NewCmdBuildLogs(f, out))
+	cmds.AddCommand(cmd.NewCmdRollback(name, "rollback", f, out))
+
 	cmds.AddCommand(f.NewCmdGet(out))
 	cmds.AddCommand(f.NewCmdDescribe(out))
 	// Deprecate 'osc apply' with 'osc create' command.
 	cmds.AddCommand(applyToCreate(f.NewCmdCreate(out)))
+	cmds.AddCommand(cmd.NewCmdProcess(f, out))
 	cmds.AddCommand(f.NewCmdUpdate(out))
 	cmds.AddCommand(f.NewCmdDelete(out))
-	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
 
-	// Kubernetes support commands
 	cmds.AddCommand(f.NewCmdLog(out))
 	cmds.AddCommand(f.NewCmdProxy(out))
 
-	// Origin commands
-	cmds.AddCommand(cmd.NewCmdNewApplication(f, out))
-	cmds.AddCommand(cmd.NewCmdProcess(f, out))
+	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
 
 	// Origin build commands
-	cmds.AddCommand(cmd.NewCmdBuildLogs(f, out))
-	cmds.AddCommand(cmd.NewCmdStartBuild(f, out))
-	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
-
-	cmds.AddCommand(cmd.NewCmdRollback(name, "rollback", f, out))
 
 	cmds.AddCommand(cmd.NewCmdOptions(f, out))
 
