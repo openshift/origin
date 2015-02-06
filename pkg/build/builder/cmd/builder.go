@@ -41,13 +41,17 @@ func run(builderFactory factoryFunc) {
 		authcfg     docker.AuthConfiguration
 		authPresent bool
 	)
-	if len(build.Parameters.Output.DockerImageReference) != 0 {
-		registry, _, _, _, err := image.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference)
-		if err != nil {
-			log.Fatalf("Output does not have a valid Docker image reference: %v", err)
+	if len(build.Parameters.Output.DockerImageReference) == 0 {
+		if build.Parameters.Output.To != nil {
+			log.Fatalf("Cannot determine an output image reference. Make sure a registry service is running.")
 		}
-		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(registry)
+		log.Fatal("Build output has an empty Docker image reference.")
 	}
+	registry, _, _, _, err := image.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference)
+	if err != nil {
+		log.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+	}
+	authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(registry)
 
 	b := builderFactory(client, endpoint, authcfg, authPresent, &build)
 	if err = b.Build(); err != nil {
