@@ -96,6 +96,18 @@ func TestMakeDeploymentOk(t *testing.T) {
 		}
 	}
 
+	expectedAnnotations = map[string]string{
+		deployapi.DeploymentAnnotation:        deployment.Name,
+		deployapi.DeploymentConfigAnnotation:  config.Name,
+		deployapi.DeploymentVersionAnnotation: strconv.Itoa(config.LatestVersion),
+	}
+
+	for key, expected := range expectedAnnotations {
+		if actual := deployment.Spec.Template.Annotations[key]; actual != expected {
+			t.Fatalf("expected pod template annotation %s=%s, got %s", key, expected, actual)
+		}
+	}
+
 	if len(deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation]) == 0 {
 		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
 	}

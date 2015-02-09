@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -77,30 +78,67 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 		return nil, err
 	}
 
+	deploymentName := LatestDeploymentNameForConfig(config)
+
+	podSpec := api.PodSpec{}
+	if err := api.Scheme.Convert(&config.Template.ControllerTemplate.Template.Spec, &podSpec); err != nil {
+		return nil, fmt.Errorf("Couldn't clone podTemplateSpec: %v", err)
+	}
+
+	controllerLabels := make(labels.Set)
+	for k, v := range config.Labels {
+		controllerLabels[k] = v
+	}
+
+	// Ensure that pods created by this deployment controller can be safely associated back
+	// to the controller, and that multiple deployment controllers for the same config don't
+	// manipulate each others' pods.
+	selector := map[string]string{}
+	for k, v := range config.Template.ControllerTemplate.Selector {
+		selector[k] = v
+	}
+	selector[deployapi.DeploymentConfigLabel] = config.Name
+	selector[deployapi.DeploymentLabel] = deploymentName
+
+	podLabels := make(labels.Set)
+	for k, v := range config.Template.ControllerTemplate.Template.Labels {
+		podLabels[k] = v
+	}
+	podLabels[deployapi.DeploymentConfigLabel] = config.Name
+	podLabels[deployapi.DeploymentLabel] = deploymentName
+
+	podAnnotations := make(labels.Set)
+	for k, v := range config.Template.ControllerTemplate.Template.Annotations {
+		podAnnotations[k] = v
+	}
+	podAnnotations[deployapi.DeploymentAnnotation] = deploymentName
+	podAnnotations[deployapi.DeploymentConfigAnnotation] = config.Name
+	podAnnotations[deployapi.DeploymentVersionAnnotation] = strconv.Itoa(config.LatestVersion)
+
 	deployment := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
-			Name: LatestDeploymentNameForConfig(config),
+			Name: deploymentName,
 			Annotations: map[string]string{
 				deployapi.DeploymentConfigAnnotation:        config.Name,
 				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
 				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
 				deployapi.DeploymentVersionAnnotation:       strconv.Itoa(config.LatestVersion),
 			},
-			Labels: config.Labels,
+			Labels: controllerLabels,
 		},
-		Spec: config.Template.ControllerTemplate,
+		Spec: api.ReplicationControllerSpec{
+			// The deployment should be inactive initially
+			Replicas: 0,
+			Selector: selector,
+			Template: &api.PodTemplateSpec{
+				ObjectMeta: api.ObjectMeta{
+					Labels:      podLabels,
+					Annotations: podAnnotations,
+				},
+				Spec: podSpec,
+			},
+		},
 	}
-
-	// The deployment should be inactive initially
-	deployment.Spec.Replicas = 0
-
-	// Ensure that pods created by this deployment controller can be safely associated back
-	// to the controller, and that multiple deployment controllers for the same config don't
-	// manipulate each others' pods.
-	deployment.Spec.Template.Labels[deployapi.DeploymentConfigLabel] = config.Name
-	deployment.Spec.Template.Labels[deployapi.DeploymentLabel] = deployment.Name
-	deployment.Spec.Selector[deployapi.DeploymentConfigLabel] = config.Name
-	deployment.Spec.Selector[deployapi.DeploymentLabel] = deployment.Name
 
 	return deployment, nil
 }
