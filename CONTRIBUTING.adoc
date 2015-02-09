@@ -55,26 +55,35 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 1.  http://www.vagrantup.com/downloads[Install Vagrant]
 
-2.  Clone the project and change into the directory:
+2.  https://www.virtualbox.org/wiki/Downloads[Install VirtualBox] (Ex: `yum install VirtualBox`)
 
+3.  Clone the project and change into the directory:
+
+        $ mkdir -p $GOPATH/src/github.com/openshift
+        $ cd $GOPATH/src/github.com/openshift
         $ git clone git://github.com/openshift/origin
         $ cd origin
 
-3.  Bring up the VM:
+4.  Bring up the VM:
 
         $ vagrant up
 
-4.  SSH in:
+5.  SSH in:
 
         $ vagrant ssh
 
-5.  Run a build (ssh puts you into the correct origin directory):
+6.  Run a build (ssh puts you into the correct origin directory):
 
+        $ cd /data/src/github.com/openshift/origin
         $ hack/build-go.sh
 
-6.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
+7.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
-        $ openshift start
+        $ sudo systemctl start openshift
+
+8.  On your host system, try browsing to: https://localhost:8444
+
+TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
 
 TIP: In some cases (eg. after git pull), you might run `make clean` in the `origin` directory to clean up outdated compiled files.
 
