@@ -342,8 +342,8 @@ the ip address shown below with the correct one for your environment.
             
 
 
-Cleaning up
------------
+Additional Operations
+---------------------
 
 In addition to creating resources, you can delete resources based on IDs. For example, if you want to remove only the containers or services created during the demo:
 
@@ -414,7 +414,8 @@ Another interesting example is deleting a pod.
         CONTAINER ID        IMAGE                                                COMMAND                CREATED              STATUS                          PORTS               NAMES
         068ffffa9624        127.0.0.1:5001/openshift/origin-ruby-sample:latest   "ruby /tmp/app.rb"     3 minutes ago        Exited (0) About a minute ago                       k8s_ruby-helloworld
 
-
+Cleaning Up
+-----------
 To clean up all of your environment, you can run the script:
 
         $ sudo ./cleanup.sh
