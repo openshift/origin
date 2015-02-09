@@ -28,6 +28,8 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 )
 
 func init() {
@@ -186,10 +188,12 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
 	buildEtcd := buildetcd.New(etcdHelper)
+	imageEtcd := imageetcd.New(etcdHelper, imageetcd.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
 
 	storage := map[string]apiserver.RESTStorage{
-		"builds":       buildregistry.NewREST(buildEtcd),
-		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
+		"builds":            buildregistry.NewREST(buildEtcd),
+		"buildConfigs":      buildconfigregistry.NewREST(buildEtcd),
+		"imageRepositories": imagerepository.NewREST(imageEtcd),
 	}
 
 	osPrefix := "/osapi/v1beta1"
@@ -197,7 +201,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(buildclient.NewOSClientBuildConfigClient(osClient), buildclient.NewOSClientBuildClient(osClient), map[string]webhook.Plugin{
+		webhook.NewController(buildclient.NewOSClientBuildConfigClient(osClient), buildclient.NewOSClientBuildClient(osClient), osClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter), map[string]webhook.Plugin{
 			"github": github.New(),
 		})))
 

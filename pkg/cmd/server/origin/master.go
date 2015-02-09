@@ -343,6 +343,7 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 	handler := webhook.NewController(
 		buildclient.NewOSClientBuildConfigClient(bcClient),
 		buildclient.NewOSClientBuildClient(bcClient),
+		bcClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),

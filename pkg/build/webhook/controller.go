@@ -8,7 +8,8 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	"github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	osclient "github.com/openshift/origin/pkg/client"
 )
 
 // Plugin for Webhook verification is dependent on the sending side, it can be
@@ -26,6 +27,7 @@ type Plugin interface {
 type controller struct {
 	buildCreator      buildclient.BuildCreator
 	buildConfigGetter buildclient.BuildConfigGetter
+	imageRepoGetter   osclient.ImageRepositoryNamespaceGetter
 	plugins           map[string]Plugin
 }
 
@@ -39,10 +41,11 @@ type urlVars struct {
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
-func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildCreator buildclient.BuildCreator, plugins map[string]Plugin) http.Handler {
+func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildCreator buildclient.BuildCreator, imageRepoGetter osclient.ImageRepositoryNamespaceGetter, plugins map[string]Plugin) http.Handler {
 	return &controller{
 		buildConfigGetter: buildConfigGetter,
 		buildCreator:      buildCreator,
+		imageRepoGetter:   imageRepoGetter,
 		plugins:           plugins,
 	}
 }
@@ -74,8 +77,11 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !proceed {
 		return
 	}
-	build := util.GenerateBuildFromConfig(buildCfg, revision, nil)
-
+	build, err := buildutil.GenerateBuildWithImageTag(buildCfg, revision, c.imageRepoGetter)
+	if err != nil {
+		badRequest(w, err.Error())
+		return
+	}
 	if err := c.buildCreator.Create(uv.namespace, build); err != nil {
 		badRequest(w, err.Error())
 	}

@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
 
-	build "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/util"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	osclient "github.com/openshift/origin/pkg/client"
 )
 
 func NewCmdStartBuild(f *Factory, out io.Writer) *cobra.Command {
@@ -38,18 +40,19 @@ Examples:
 			namespace, err := f.DefaultNamespace(cmd)
 			checkErr(err)
 
-			var newBuild *build.Build
+			var newBuild *buildapi.Build
 			if len(buildName) == 0 {
 				// from build config
 				config, err := client.BuildConfigs(namespace).Get(args[0])
 				checkErr(err)
 
-				newBuild = util.GenerateBuildFromConfig(config, nil, nil)
+				newBuild, err = buildutil.GenerateBuildWithImageTag(config, nil, client.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter))
+				checkErr(err)
 			} else {
 				build, err := client.Builds(namespace).Get(buildName)
 				checkErr(err)
 
-				newBuild = util.GenerateBuildFromBuild(build)
+				newBuild = buildutil.GenerateBuildFromBuild(build)
 			}
 
 			newBuild, err = client.Builds(namespace).Create(newBuild)
