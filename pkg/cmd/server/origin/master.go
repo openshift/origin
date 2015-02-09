@@ -2,6 +2,7 @@ package origin
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -123,6 +124,10 @@ type MasterConfig struct {
 	MasterKeyFile  string
 	AssetCertFile  string
 	AssetKeyFile   string
+
+	// ClientCAs will be used to request client certificates in connections to the API.
+	// This CertPool should contain all the CAs that will be used for client certificate verification.
+	ClientCAs *x509.CertPool
 
 	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
 	// It should only be accessed via the *Client() helper methods.
@@ -425,6 +430,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 				// Populate PeerCertificates in requests, but don't reject connections without certificates
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
+				ClientCAs:  c.ClientCAs,
 			}
 			glog.Fatal(server.ListenAndServeTLS(c.MasterCertFile, c.MasterKeyFile))
 		} else {
@@ -588,9 +594,6 @@ func (c *MasterConfig) RunAssetServer() {
 			server.TLSConfig = &tls.Config{
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 				MinVersion: tls.VersionTLS10,
-				// Populate PeerCertificates in requests, but don't reject connections without certificates
-				// This allows certificates to be validated by authenticators, while still allowing other auth types
-				ClientAuth: tls.RequestClientCert,
 			}
 			glog.Infof("OpenShift UI listening at https://%s", c.AssetBindAddr)
 			glog.Fatal(server.ListenAndServeTLS(c.AssetCertFile, c.AssetKeyFile))
