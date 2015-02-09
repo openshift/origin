@@ -79,23 +79,23 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 	return string(util.NewUUID())
 }
 
-func getExistingRoleBindingForRole(roleNamespace, role, bindingNamespace string, client *client.Client) (*authorizationapi.RoleBinding, *util.StringSet, error) {
+func getExistingRoleBindingsForRole(roleNamespace, role, bindingNamespace string, client *client.Client) ([]*authorizationapi.RoleBinding, *util.StringSet, error) {
 	existingBindings, err := client.PolicyBindings(bindingNamespace).Get(roleNamespace)
 	if err != nil && !strings.Contains(err.Error(), " not found") {
 		return nil, &util.StringSet{}, err
 	}
 
+	ret := make([]*authorizationapi.RoleBinding, 0)
 	roleBindingNames := &util.StringSet{}
-	roleBinding := (*authorizationapi.RoleBinding)(nil)
 	// see if we can find an existing binding that points to the role in question.
 	for _, currBinding := range existingBindings.RoleBindings {
 		roleBindingNames.Insert(currBinding.Name)
 
 		if currBinding.RoleRef.Name == role {
 			t := currBinding
-			roleBinding = &t
+			ret = append(ret, &t)
 		}
 	}
 
-	return roleBinding, roleBindingNames, nil
+	return ret, roleBindingNames, nil
 }

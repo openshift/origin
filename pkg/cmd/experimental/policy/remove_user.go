@@ -69,22 +69,24 @@ func (o *removeUserOptions) run() error {
 		return err
 	}
 
-	roleBinding, _, err := getExistingRoleBindingForRole(o.roleNamespace, o.roleName, namespace, client)
+	roleBindings, _, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, namespace, client)
 	if err != nil {
 		return err
 	}
-	if roleBinding == nil {
+	if len(roleBindings) == 0 {
 		return fmt.Errorf("unable to locate RoleBinding for %v::%v in %v", o.roleNamespace, o.roleName, namespace)
 	}
 
-	users := util.StringSet{}
-	users.Insert(roleBinding.UserNames...)
-	users.Delete(o.userNames...)
-	roleBinding.UserNames = users.List()
+	for _, roleBinding := range roleBindings {
+		users := util.StringSet{}
+		users.Insert(roleBinding.UserNames...)
+		users.Delete(o.userNames...)
+		roleBinding.UserNames = users.List()
 
-	_, err = client.RoleBindings(namespace).Update(roleBinding)
-	if err != nil {
-		return err
+		_, err = client.RoleBindings(namespace).Update(roleBinding)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
