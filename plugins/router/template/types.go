@@ -18,11 +18,11 @@ type ServiceUnit struct {
 
 // ServiceAliasConfig is a route for a service.  Uniquely identified by host + path.
 type ServiceAliasConfig struct {
-	// Required host name ie www.example.com
+	// Host is a required host name ie. www.example.com
 	Host string
-	// An optional path.  Ie. www.example.com/myservice where "myservice" is the path
+	// Path is an optional path ie. www.example.com/myservice where "myservice" is the path
 	Path string
-	// Termination policy for this backend, drives the mapping files and router configuration
+	// TLSTermination is the termination policy for this backend and drives the mapping files and router configuration
 	TLSTermination routeapi.TLSTerminationType
 	// Certificates used for securing this backend.  Keyed by the cert id
 	Certificates map[string]Certificate

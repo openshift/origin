@@ -9,12 +9,12 @@ import (
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 )
 
 func NewCmdLogin(name string, parent *cobra.Command) *cobra.Command {

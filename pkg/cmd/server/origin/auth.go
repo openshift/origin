@@ -1,14 +1,13 @@
 package origin
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
-
-	"crypto/tls"
-	"crypto/x509"
 
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -40,8 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/session"
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -53,6 +50,7 @@ import (
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
 
 const (
@@ -60,8 +58,7 @@ const (
 	OpenShiftLoginPrefix         = "/login"
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
-
-	OpenShiftWebConsoleClientID = "openshift-web-console"
+	OpenShiftWebConsoleClientID  = "openshift-web-console"
 )
 
 var (

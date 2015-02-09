@@ -3,14 +3,14 @@ package etcd
 import (
 	"fmt"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	ktools "github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
-	ktools "github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/openshift/origin/pkg/route/api"
 )
 

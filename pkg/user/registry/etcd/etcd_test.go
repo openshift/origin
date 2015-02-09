@@ -8,10 +8,9 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/coreos/go-etcd/etcd"
 
 	"github.com/openshift/origin/pkg/api/latest"
-
-	"github.com/coreos/go-etcd/etcd"
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )

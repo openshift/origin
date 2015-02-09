@@ -18,15 +18,18 @@ type testClient struct {
 func (w *testClient) GetId() string {
 	return w.client.Name
 }
+
 func (w *testClient) GetSecret() string {
 	return w.client.Secret
 }
+
 func (w *testClient) GetRedirectUri() string {
 	if len(w.client.RedirectURIs) == 0 {
 		return ""
 	}
 	return strings.Join(w.client.RedirectURIs, ",")
 }
+
 func (w *testClient) GetUserData() interface{} {
 	return w.client
 }
@@ -167,15 +170,18 @@ type badTestClient struct {
 func (w *badTestClient) GetId() string {
 	return w.client.Name
 }
+
 func (w *badTestClient) GetSecret() string {
 	return w.client.Secret
 }
+
 func (w *badTestClient) GetRedirectUri() string {
 	if len(w.client.RedirectURIs) == 0 {
 		return ""
 	}
 	return strings.Join(w.client.RedirectURIs, ",")
 }
+
 func (w *badTestClient) GetUserData() interface{} {
 	return "w.client"
 }

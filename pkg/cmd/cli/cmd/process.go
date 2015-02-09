@@ -8,9 +8,10 @@ import (
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
-	"github.com/spf13/cobra"
 )
 
 // injectUserVars injects user specified variables into the Template

@@ -6,12 +6,9 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
-	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
-
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
@@ -22,6 +19,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
+	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 )
 
 const (

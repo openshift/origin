@@ -10,13 +10,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/coreos/go-etcd/etcd"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/route/api"
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we

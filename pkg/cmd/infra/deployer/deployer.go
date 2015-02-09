@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/glog"
-	"github.com/spf13/cobra"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/templates"

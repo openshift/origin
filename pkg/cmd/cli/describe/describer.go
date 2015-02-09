@@ -306,7 +306,7 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 	})
 }
 
-// PolicyDescriber generates information about a Project
+// PolicyBindingDescriber generates information about a Project
 type PolicyBindingDescriber struct {
 	client.Interface
 }

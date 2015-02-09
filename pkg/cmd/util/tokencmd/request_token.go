@@ -8,6 +8,7 @@ import (
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	"github.com/openshift/origin/pkg/client"
 )

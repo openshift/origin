@@ -1,8 +1,9 @@
 package validation
 
 import (
-	"github.com/openshift/origin/pkg/route/api"
 	"testing"
+
+	"github.com/openshift/origin/pkg/route/api"
 )
 
 func TestValidateTLSNoTLSTermOk(t *testing.T) {

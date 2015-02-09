@@ -5,7 +5,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-// Image is the type representing a docker image and its various properties when
+// DockerImage is the type representing a docker image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage struct {
 	kapi.TypeMeta `json:",inline"`
