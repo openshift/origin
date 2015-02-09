@@ -452,6 +452,7 @@ func start(cfg *config, args []string) error {
 			for _, root := range ca.Config.Roots {
 				roots.AddCert(root)
 			}
+			osmaster.ClientCAs = roots
 
 			// build cert authenticator
 			// TODO: add cert users to etcd?

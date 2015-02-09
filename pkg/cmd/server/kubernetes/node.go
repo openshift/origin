@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -73,6 +74,10 @@ type NodeConfig struct {
 
 	KubeletCertFile string
 	KubeletKeyFile  string
+
+	// ClientCAs will be used to request client certificates in connections to the node.
+	// This CertPool should contain all the CAs that will be used for client certificate verification.
+	ClientCAs *x509.CertPool
 
 	// A client to connect to the master.
 	Client *client.Client
@@ -174,6 +179,7 @@ func (c *NodeConfig) RunKubelet() {
 				// Populate PeerCertificates in requests, but don't reject connections without certificates
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
+				ClientCAs:  c.ClientCAs,
 			}
 			glog.Fatal(server.ListenAndServeTLS(c.KubeletCertFile, c.KubeletKeyFile))
 		} else {
