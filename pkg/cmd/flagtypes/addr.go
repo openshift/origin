@@ -91,10 +91,9 @@ func (a *Addr) Set(value string) error {
 				port = 80
 			case "https":
 				port = 443
+			default:
+				return fmt.Errorf("no port specified")
 			}
-		}
-		if port == 0 {
-			return fmt.Errorf("no port specified")
 		}
 		a.Host = addr.Host
 		a.Port = port
