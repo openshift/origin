@@ -28,6 +28,9 @@ type PolicyRule struct {
 	Resources []string `json:"resources"`
 	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
 	ResourceNames []string `json:"resourceNames,omitempty"`
+	// NonResourceURLsSlice is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+	// This name is intentionally different than the internal type so that the DefaultConvert works nicely and because the ordering may be different.
+	NonResourceURLsSlice []string `json:"nonResourceURLs,omitempty"`
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
