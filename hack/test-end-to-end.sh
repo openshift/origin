@@ -242,16 +242,13 @@ wait_for_app "test"
 #wait_for_app "custom"
 
 if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
-    echo "{'id':'route', 'kind': 'Route', 'apiVersion': 'v1beta1', 'serviceName': 'frontend', 'host': 'end-to-end'}" > "${ARTIFACT_DIR}/route.json"
-    osc create -n test routes -f "${ARTIFACT_DIR}/route.json"
-
     echo "[INFO] Installing router with master url of ${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT} and starting pod..."
     echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
     "${OS_ROOT}/hack/install-router.sh" "router1" "${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT}"
     wait_for_command "osc get pods | grep router1 | grep -i Running" $((5*TIME_MIN))
 
     echo "[INFO] Validating routed app response..."
-    validate_response "-H Host:end-to-end http://${CONTAINER_ACCESSIBLE_API_HOST}" "Hello from OpenShift" 0.2 50
+    validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 else
     echo "[INFO] Validating app response..."
     validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
