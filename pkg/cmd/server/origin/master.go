@@ -551,6 +551,8 @@ func (c *MasterConfig) RunAssetServer() {
 		OAuthClientID:     OpenShiftWebConsoleClientID,
 	}
 
+	assets.RegisterMimeTypes()
+
 	mux.Handle("/",
 		// Gzip first so that inner handlers can react to the addition of the Vary header
 		assets.GzipHandler(
