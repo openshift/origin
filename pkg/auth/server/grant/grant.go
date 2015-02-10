@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	ohandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
@@ -23,6 +24,9 @@ const (
 	userNameParam    = "user_name"
 	scopesParam      = "scopes"
 	redirectURIParam = "redirect_uri"
+
+	approveParam = "approve"
+	denyParam    = "deny"
 )
 
 // FormRenderer is responsible for rendering a Form to prompt the user
@@ -38,12 +42,20 @@ type Form struct {
 }
 
 type FormValues struct {
-	Then        string
-	CSRF        string
-	ClientID    string
-	UserName    string
-	Scopes      string
-	RedirectURI string
+	Then             string
+	ThenParam        string
+	CSRF             string
+	CSRFParam        string
+	ClientID         string
+	ClientIDParam    string
+	UserName         string
+	UserNameParam    string
+	Scopes           string
+	ScopesParam      string
+	RedirectURI      string
+	RedirectURIParam string
+	ApproveParam     string
+	DenyParam        string
 }
 
 type Grant struct {
@@ -120,12 +132,20 @@ func (l *Grant) handleForm(user authapi.UserInfo, w http.ResponseWriter, req *ht
 	form := Form{
 		Action: uri.String(),
 		Values: FormValues{
-			Then:        then,
-			CSRF:        csrf,
-			ClientID:    client.Name,
-			UserName:    user.GetName(),
-			Scopes:      scopes,
-			RedirectURI: redirectURI,
+			Then:             then,
+			ThenParam:        thenParam,
+			CSRF:             csrf,
+			CSRFParam:        csrfParam,
+			ClientID:         client.Name,
+			ClientIDParam:    clientIDParam,
+			UserName:         user.GetName(),
+			UserNameParam:    userNameParam,
+			Scopes:           scopes,
+			ScopesParam:      scopesParam,
+			RedirectURI:      redirectURI,
+			RedirectURIParam: redirectURIParam,
+			ApproveParam:     approveParam,
+			DenyParam:        denyParam,
 		},
 	}
 
@@ -140,9 +160,23 @@ func (l *Grant) handleGrant(user authapi.UserInfo, w http.ResponseWriter, req *h
 	}
 
 	then := req.FormValue("then")
-	clientID := req.FormValue("client_id")
 	scopes := req.FormValue("scopes")
 
+	if len(req.FormValue(approveParam)) == 0 {
+		// Redirect with rejection param
+		url, err := url.Parse(then)
+		if len(then) == 0 || err != nil {
+			l.failed("Access denied, but no redirect URL was specified", w, req)
+			return
+		}
+		q := url.Query()
+		q["error"] = []string{ohandlers.GrantDeniedError}
+		url.RawQuery = q.Encode()
+		http.Redirect(w, req, url.String(), http.StatusFound)
+		return
+	}
+
+	clientID := req.FormValue("client_id")
 	client, err := l.clientregistry.GetClient(clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
@@ -225,24 +259,35 @@ func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *htt
 	}
 }
 
+// TODO: allow template to be read from an external file
 var grantTemplate = template.Must(template.New("grantForm").Parse(`
+<style>
+	body    { font-family: sans-serif; font-size: 12pt; margin: 2em 5%; background-color: #F9F9F9; }
+	pre     { padding-left: 1em; border-left: .25em solid #eee; }
+	a       { color: #00f; text-decoration: none; }
+	a:hover { text-decoration: underline; }
+</style>
 {{ if .Error }}
 <div class="message">{{ .Error }}</div>
 {{ else }}
 <form action="{{ .Action }}" method="POST">
-  <input type="hidden" name="then" value="{{ .Values.Then }}">
-  <input type="hidden" name="csrf" value="{{ .Values.CSRF }}">
-  <input type="hidden" name="client_id" value="{{ .Values.ClientID }}">
-  <input type="hidden" name="user_name" value="{{ .Values.UserName }}">
-  <input type="hidden" name="scopes" value="{{ .Values.Scopes }}">
-  <input type="hidden" name="redirect_uri" value="{{ .Values.RedirectURI }}">
+  <input type="hidden" name="{{ .Values.ThenParam }}" value="{{ .Values.Then }}">
+  <input type="hidden" name="{{ .Values.CSRFParam }}" value="{{ .Values.CSRF }}">
+  <input type="hidden" name="{{ .Values.ClientIDParam }}" value="{{ .Values.ClientID }}">
+  <input type="hidden" name="{{ .Values.UserNameParam }}" value="{{ .Values.UserName }}">
+  <input type="hidden" name="{{ .Values.ScopesParam }}" value="{{ .Values.Scopes }}">
+  <input type="hidden" name="{{ .Values.RedirectURIParam }}" value="{{ .Values.RedirectURI }}">
 
-  <div>Do you approve this client?</div>
-  <div>Client:     {{ .Values.ClientID }}</div>
-  <div>Scope:      {{ .Values.Scopes }}</div>
-  <div>URI:        {{ .Values.RedirectURI }}</div>
+<h3>Approve Client?</h3>
+<p>Do you approve granting an access token to the following OAuth client?</p>
+<pre>
+Client: {{ .Values.ClientID }}
+Scope:  {{ .Values.Scopes }}
+URI:    {{ .Values.RedirectURI }}
+</pre>
   
-  <input type="submit" value="Approve">
+  <input type="submit" name="{{ .Values.ApproveParam }}" value="Approve">
+  <input type="submit" name="{{ .Values.DenyParam }}" value="Reject">
 </form>
 {{ end }}
 `))

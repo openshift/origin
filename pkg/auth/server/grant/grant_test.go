@@ -165,6 +165,7 @@ func TestGrant(t *testing.T) {
 			AuthRegistry:   emptyAuthRegistry(),
 			Path:           "/grant",
 			PostValues: url.Values{
+				"approve":      {"true"},
 				"client_id":    {"myclient"},
 				"scopes":       {"myscope1 myscope2"},
 				"redirect_uri": {"/myredirect"},
@@ -183,6 +184,7 @@ func TestGrant(t *testing.T) {
 			AuthRegistry:   emptyAuthRegistry(),
 			Path:           "/grant",
 			PostValues: url.Values{
+				"approve":      {"true"},
 				"client_id":    {"myclient"},
 				"scopes":       {"myscope1 myscope2"},
 				"redirect_uri": {"/myredirect"},
@@ -202,6 +204,7 @@ func TestGrant(t *testing.T) {
 			AuthRegistry:   emptyAuthRegistry(),
 			Path:           "/grant",
 			PostValues: url.Values{
+				"approve":      {"true"},
 				"client_id":    {"myclient"},
 				"scopes":       {"myscope1 myscope2"},
 				"redirect_uri": {"/myredirect"},
@@ -223,6 +226,7 @@ func TestGrant(t *testing.T) {
 			AuthRegistry:   existingAuthRegistry([]string{"myscope2", "myscope1"}),
 			Path:           "/grant",
 			PostValues: url.Values{
+				"approve":      {"true"},
 				"client_id":    {"myclient"},
 				"scopes":       {"myscope1 myscope2"},
 				"redirect_uri": {"/myredirect"},
@@ -242,6 +246,7 @@ func TestGrant(t *testing.T) {
 			AuthRegistry:   existingAuthRegistry([]string{"existingscope2", "existingscope1"}),
 			Path:           "/grant",
 			PostValues: url.Values{
+				"approve":      {"true"},
 				"client_id":    {"myclient"},
 				"scopes":       {"newscope1 existingscope1"},
 				"redirect_uri": {"/myredirect"},
@@ -252,6 +257,25 @@ func TestGrant(t *testing.T) {
 			ExpectStatusCode:        302,
 			ExpectUpdatedAuthScopes: []string{"existingscope1", "existingscope2", "newscope1"},
 			ExpectRedirect:          "/authorize",
+		},
+
+		"successful reject grant": {
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
+			Auth:           goodAuth("username"),
+			ClientRegistry: goodClientRegistry("myclient", []string{"myredirect"}),
+			AuthRegistry:   existingAuthRegistry([]string{"existingscope2", "existingscope1"}),
+			Path:           "/grant",
+			PostValues: url.Values{
+				"deny":         {"true"},
+				"client_id":    {"myclient"},
+				"scopes":       {"newscope1 existingscope1"},
+				"redirect_uri": {"/myredirect"},
+				"then":         {"/authorize"},
+				"csrf":         {"test"},
+			},
+
+			ExpectStatusCode: 302,
+			ExpectRedirect:   "/authorize?error=grant_denied",
 		},
 	}
 
