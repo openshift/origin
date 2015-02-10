@@ -21,7 +21,8 @@ popd
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-master-sdn.service
 [Unit]
-Description=openshift SDN master
+Description=OpenShift SDN Master
+Requires=openshift-master.service
 After=openshift-master.service
 
 [Service]
@@ -33,5 +34,4 @@ EOF
 
 # Start the service
 systemctl daemon-reload
-systemctl enable openshift-master-sdn.service
 systemctl start openshift-master-sdn.service
