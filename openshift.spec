@@ -108,12 +108,18 @@ ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
 mkdir -p %{buildroot}/usr/lib/tuned/openshift-node
 install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-node/tuned.conf
 
+mkdir -p %{buildroot}%{_datarootdir}/openshift/examples
+install -m 0644 -T images/router/haproxy/pod.json %{buildroot}%{_datarootdir}/openshift/examples/router.json
+install -m 0755 -t %{buildroot}%{_bindir}/ hack/install-router.sh
+
 %files
 %defattr(-,root,root,-)
 %doc README.md LICENSE
 %{_bindir}/openshift
 %{_bindir}/osc
+%{_bindir}/install-router.sh
 %{_sharedstatedir}/openshift
+%{_datarootdir}/openshift/examples/router.json
 
 %files master
 %defattr(-,root,root,-)

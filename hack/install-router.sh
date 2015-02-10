@@ -9,6 +9,11 @@ MASTER_URL="${2}"
 OPENSHIFT="${3}"
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+if [[ -f /usr/share/openshift/examples/router.json ]]; then
+  ROUTER_JSON="/usr/share/openshift/examples/router.json"
+else
+  ROUTER_JSON="${OS_ROOT}/images/router/haproxy/pod.json"
+fi
 
 if [[ "${ROUTER_ID}" == "" ]]; then
 	echo "No router id provided, cannot create router..."
@@ -32,6 +37,10 @@ fi
 
 OPENSHIFT_INSECURE="${OPENSHIFT_INSECURE:-false}"
 OPENSHIFT_CA_DATA="${OPENSHIFT_CA_DATA:-}"
+if [[ "${OPENSHIFT_CA_DATA}" == "" ]] && \
+   [ -f /var/lib/openshift/openshift.local.certificates/master/root.crt ]; then
+  OPENSHIFT_CA_DATA=$(</var/lib/openshift/openshift.local.certificates/master/root.crt)
+fi
 
 if [[ "${MASTER_URL}" == "https"* ]]; then
 	if [[ "$OPENSHIFT_CA_DATA" == "" ]]; then
@@ -51,7 +60,7 @@ fi
 
 # update the template file
 echo "Creating router file and starting pod..."
-cp "${OS_ROOT}/images/router/haproxy/pod.json" /tmp/router.json
+cp ${ROUTER_JSON} /tmp/router.json
 sed -i "s|ROUTER_ID|${ROUTER_ID}|g" /tmp/router.json
 sed -i "s|\${OPENSHIFT_MASTER}|${MASTER_URL}|"       /tmp/router.json
 sed -i "s|\${OPENSHIFT_INSECURE}|${OPENSHIFT_INSECURE}|"   /tmp/router.json
