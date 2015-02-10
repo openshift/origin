@@ -12,7 +12,7 @@
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
-%if "%{dist}" == "el7ose"
+%if "%{dist}" == ".el7ose"
   %global docker_registry registry.access.redhat.com/
   %global docker_namespace openshift3_beta
   %global docker_prefix ose
