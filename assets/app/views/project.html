@@ -16,7 +16,7 @@
           <div class="col-md-12">
             <div class="tile">
               <h2 class="service">{{serviceId}}
-                <span class="small"> - routing {{services[serviceId].protocol}} traffic on {{services[serviceId].portalIP}}:{{services[serviceId].port}} to port {{services[serviceId].containerPort}}</span>
+                <span class="small"> - routing {{services[serviceId].spec.protocol}} traffic on {{services[serviceId].spec.portalIP}}:{{services[serviceId].spec.port}} to port {{services[serviceId].spec.containerPort}}</span>
                 <span class="connector connector-vertical" style="left: 50%; top: 35px; height: 21px;">
                   <span class="connector-endpoint connector-endpoint-top"></span>
                   <span class="connector-line" style="height: 21px;"></span>
@@ -24,7 +24,7 @@
                 </span>
               </h2>
               <div class="separator"></div>
-              <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigs" ng-if="!deploymentConfig || services[serviceId].selector.name == deploymentConfig.template.controllerTemplate.replicaSelector.name">
+              <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigs" ng-if="!deploymentConfig || services[serviceId].spec.selector.name == deploymentConfig.template.controllerTemplate.replicaSelector.name">
                 <!-- deploymentConfig could be null when we have any deployments that were not generated from a deploymentConfig -->
                 <div ng-if="deploymentConfig">
                   <div ng-repeat="trigger in deploymentConfig.triggers">
@@ -40,9 +40,9 @@
                   </div>
                 </div>
                 <div ng-repeat="deployment in deploymentsByConfig[deploymentConfigId]" style="margin-top: 10px; text-align: center;">
-                  <div ng-if="servicePodsByLabel.deployment[deployment.id]">
+                  <div ng-if="servicePodsByLabel.deployment[deployment.metadata.name]">
                     <div class="small muted" ng-if="deployment" style="margin-bottom: 10px;">
-                      <relative-timestamp timestamp="deployment.creationTimestamp"></relative-timestamp>
+                      <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
                       <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
                         <span>, triggered by 
                           <span ng-repeat="cause in deployment.details.causes">
@@ -54,8 +54,8 @@
                     </div>
                     <div style="display: inline-block;">
                       <!-- TODO figure out why podTemplate can't be done the same way as pods -->
-                      <pod-template ng-init="podTemplate = deployment.desiredState.podTemplate"></pod-template>
-                      <pods pods="servicePodsByLabel.deployment[deployment.id]"></pods>
+                      <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
+                      <pods pods="servicePodsByLabel.deployment[deployment.metadata.name]"></pods>
                     </div>
                   </div>
                 </div>

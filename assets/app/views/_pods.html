@@ -3,7 +3,7 @@
   pods - a hash of pod objects by id
 -->
 <div class="flex-row">
-  <span class="animate-repeat pod pod-{{pod.currentState.status.toLowerCase()}} flex"  ng-repeat="pod in pods">
-    <strong>{{pod.currentState.status}}</strong><div ng-if="pod.currentState.podIP" class="small muted">{{pod.currentState.podIP}}</div><div ng-if="!pod.currentState.podIP" class="small muted">allocating IP...</div>
+  <span class="animate-repeat pod pod-{{pod.status.phase.toLowerCase()}} flex"  ng-repeat="pod in pods">
+    <strong>{{pod.status.phase}}</strong><div ng-if="pod.status.podIP" class="small muted">{{pod.status.podIP}}</div><div ng-if="!pod.status.podIP" class="small muted">allocating IP...</div>
   </span>
 </div>
