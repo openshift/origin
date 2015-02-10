@@ -127,6 +127,10 @@ type redirectGrant struct {
 	url string
 }
 
+// If a user denies a grant, a grant handler can return control to the /authorize handler with an error=grant_denied parameter
+// and the denial will be returned to the client, rather than re-calling GrantNeeded
+const GrantDeniedError = "grant_denied"
+
 // NewRedirectGrant returns a grant handler that redirects to the given URL when a grant is needed.
 // The following query parameters are added to the URL:
 //   then - original request URL
@@ -139,6 +143,11 @@ func NewRedirectGrant(url string) GrantHandler {
 
 // GrantNeeded implements the GrantHandler interface
 func (g *redirectGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+	// If the current request has an error=grant_denied parameter, the user denied the grant
+	if err := req.FormValue("error"); err == GrantDeniedError {
+		return false, nil
+	}
+
 	redirectURL, err := url.Parse(g.url)
 	if err != nil {
 		return false, err
