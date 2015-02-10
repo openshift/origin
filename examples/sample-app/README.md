@@ -106,7 +106,7 @@ the present working directory is the same directory as this README.
 
         $ sudo chmod +r ./openshift.local.certificates/master/key.key
         $ pushd ../..
-        $ CERT_DIR=examples/sample-app/openshift.local.certificates/master hack/install-registry.sh
+        $ CERT_DIR=`pwd`/openshift.local.certificates/master hack/install-registry.sh
         $ popd
 
     Note that the private docker registry is using ephemeral storage,
