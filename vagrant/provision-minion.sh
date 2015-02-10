@@ -39,8 +39,6 @@ else
   $(dirname $0)/provision-gre-network.sh $@
 fi
 
-usermod -a -G docker vagrant
-
 # Copy over the certificates directory and modify the kubeconfig file to use the master ip
 cp -r /vagrant/openshift.local.certificates /
 chown -R vagrant.vagrant /openshift.local.certificates
@@ -50,6 +48,7 @@ sed -ie "s/10.0.2.15/${MASTER_IP}/g" /openshift.local.certificates/admin/.kubeco
 cat <<EOF > /usr/lib/systemd/system/openshift-node.service
 [Unit]
 Description=openshift node
+Requires=docker.service
 After=network.service
 
 [Service]
