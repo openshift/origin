@@ -481,14 +481,6 @@ func start(cfg *config, args []string) error {
 
 		osmaster.BuildClients()
 
-		// Sessions need to last as long as we expect the grant flow to take
-		// Session auth is invalidated at the end of an authorize flow, so it can only be used once
-		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "300"), 10, 0)
-		if err != nil || sessionMaxAgeSeconds <= 0 {
-			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 5 minutes.")
-			sessionMaxAgeSeconds = 300
-		}
-
 		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
 		defaultAuthRequestHandlers := strings.Join([]string{
 			string(origin.AuthRequestHandlerSession),
@@ -501,6 +493,10 @@ func start(cfg *config, args []string) error {
 			MasterRoots:          roots,
 			EtcdHelper:           etcdHelper,
 
+			// Max token ages
+			AuthorizeTokenMaxAgeSeconds: envInt("ORIGIN_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS", 300, 1),
+			AccessTokenMaxAgeSeconds:    envInt("ORIGIN_OAUTH_ACCESS_TOKEN_MAX_AGE_SECONDS", 3600, 1),
+			// Handlers
 			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
 			AuthHandler:         origin.AuthHandlerType(env("ORIGIN_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
 			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
@@ -508,7 +504,7 @@ func start(cfg *config, args []string) error {
 			RequestHeaders: strings.Split(env("ORIGIN_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
 			// Session config
 			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
-			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds),
+			SessionMaxAgeSeconds: envInt("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", 300, 1),
 			SessionName:          env("ORIGIN_OAUTH_SESSION_NAME", "ssn"),
 			// Password config
 			PasswordAuth: origin.PasswordAuthType(env("ORIGIN_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
@@ -717,6 +713,15 @@ func clientConfigFromKubeConfig(cfg *config) *kclient.Config {
 		config.Host = cfg.KubernetesAddr.URL.String()
 	}
 	return config
+}
+
+func envInt(key string, defaultValue int32, minValue int32) int32 {
+	value, err := strconv.ParseInt(env(key, fmt.Sprintf("%d", defaultValue)), 10, 32)
+	if err != nil || int32(value) < minValue {
+		glog.Warningf("Invalid %s. Defaulting to %d.", key, defaultValue)
+		return defaultValue
+	}
+	return int32(value)
 }
 
 // env returns an environment variable or a default value if not specified.

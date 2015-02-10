@@ -163,6 +163,11 @@ type AuthConfig struct {
 	MasterRoots          *x509.CertPool
 	EtcdHelper           tools.EtcdHelper
 
+	// Max age of authorize tokens
+	AuthorizeTokenMaxAgeSeconds int32
+	// Max age of access tokens
+	AccessTokenMaxAgeSeconds int32
+
 	// AuthRequestHandlers contains an ordered list of authenticators that decide if a request is authenticated
 	AuthRequestHandlers []AuthRequestHandlerType
 
@@ -188,7 +193,7 @@ type AuthConfig struct {
 	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
 	SessionSecrets []string
 	// SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
-	SessionMaxAgeSeconds int
+	SessionMaxAgeSeconds int32
 	// SessionName is the cookie name used to store the session
 	SessionName string
 	// sessionAuth holds the Authenticator built from the exported Session* options. It should only be accessed via getSessionAuth(), since it is lazily built.
@@ -222,6 +227,12 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
+	if c.AuthorizeTokenMaxAgeSeconds > 0 {
+		config.AuthorizationExpiration = c.AuthorizeTokenMaxAgeSeconds
+	}
+	if c.AccessTokenMaxAgeSeconds > 0 {
+		config.AccessExpiration = c.AccessTokenMaxAgeSeconds
+	}
 
 	grantChecker := registry.NewClientAuthorizationGrantChecker(oauthEtcd)
 	grantHandler := c.getGrantHandler(mux, authRequestHandler, oauthEtcd, oauthEtcd)
@@ -348,7 +359,7 @@ func getCSRF() csrf.CSRF {
 
 func (c *AuthConfig) getSessionAuth() *session.Authenticator {
 	if c.sessionAuth == nil {
-		sessionStore := session.NewStore(c.SessionMaxAgeSeconds, c.SessionSecrets...)
+		sessionStore := session.NewStore(int(c.SessionMaxAgeSeconds), c.SessionSecrets...)
 		c.sessionAuth = session.NewAuthenticator(sessionStore, c.SessionName)
 	}
 	return c.sessionAuth
