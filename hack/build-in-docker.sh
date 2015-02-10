@@ -19,5 +19,5 @@ if [ -d /sys/fs/selinux ]; then
     fi
 fi
 
-docker run --rm -v "${GOPATH}/${origin_path}:/go/${origin_path}" \
+docker run -e "OWNER_GROUP=$UID:$GROUPS" --rm -v "${GOPATH}/${origin_path}:/go/${origin_path}" \
   openshift/origin-release /usr/bin/openshift-origin-build.sh "$@"
