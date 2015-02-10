@@ -32,7 +32,7 @@ OpenShift helps you build, deploy, and manage your applications. To start an all
 OpenShift is built around Docker and the Kubernetes cluster container manager.  You must have
 Docker installed on this machine to start your server.
 
-Note: This is an alpha release of OpenShift and will change significantly.  See
+Note: This is a beta release of OpenShift and may change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
 `
 

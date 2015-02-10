@@ -38,7 +38,7 @@ and watch the build logs and build status with:
 You'll be able to view the deployed application on the IP and port of the service that new-app
 created for you.
 
-Note: This is an alpha release of OpenShift and will change significantly.  See
+Note: This is a beta release of OpenShift and may change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
 `
 const defaultClusterURL = "https://localhost:8443"
