@@ -57,9 +57,12 @@ Most of the v3 flows today assume you are running a docker registry pod.  You sh
 
 If it's not running, you can launch it via:
 
-    $ osc create -f examples/sample-app/docker-registry-config.json
+    $ sudo chmod +r ./openshift.local.certificates/master/key.key
+    $ pushd ../..
+    $ CERT_DIR=examples/sample-app/openshift.local.certificates/master hack/install-registry.sh
+    $ popd
 
-In addition, confirm the IP and Port reported in the services list matches the registry references in your configuration json (e.g. any image tags that contain a registry hostname).  
+In addition, confirm the IP and Port reported in the services list matches the registry references in your configuration json (e.g. any image tags that contain a registry hostname).
 
 Probing Containers
 ------------------

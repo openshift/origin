@@ -14,9 +14,12 @@ Steps
     
         $ sudo openshift start &> logs/openshift.log &
 
-2. Start the docker registry services
+2. Start the Docker registry services
 
-        $ osc create -f docker-registry-config.json
+        $ sudo chmod +r ./openshift.local.certificates/master/key.key
+        $ pushd ../..
+        $ CERT_DIR=examples/sample-app/openshift.local.certificates/master hack/install-registry.sh
+        $ popd
 
 3. Start the Jenkins services
 
