@@ -280,23 +280,17 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 
 		for _, key := range sortedKeys {
 			role := policy.Roles[key]
-			fmt.Fprint(out, key+"\tType\tVerbs\tResource Kinds\tExtension\n")
+			fmt.Fprint(out, key+"\tVerbs\tResources\tExtension\n")
 			for _, rule := range role.Rules {
-				allowString := "allow"
-				if rule.Deny {
-					allowString = "deny"
-				}
-
 				extensionString := ""
 				if rule.AttributeRestrictions != (kruntime.EmbeddedObject{}) {
 					extensionString = fmt.Sprintf("%v", rule.AttributeRestrictions)
 				}
 
-				fmt.Fprintf(out, "%v\t%v\t%v\t%v\t%v\n",
+				fmt.Fprintf(out, "%v\t%v\t%v\t%v\n",
 					"",
-					allowString,
 					rule.Verbs,
-					rule.ResourceKinds,
+					rule.Resources,
 					extensionString)
 
 			}

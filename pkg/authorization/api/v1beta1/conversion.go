@@ -27,6 +27,27 @@ import (
 
 func init() {
 	err := api.Scheme.AddConversionFuncs(
+		func(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+
+			if out.Resources == nil {
+				out.Resources = make([]string, 0)
+			}
+			if in.ResourceKinds != nil {
+				out.Resources = append(out.Resources, in.ResourceKinds...)
+			}
+
+			return nil
+		},
+		func(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+
+			return nil
+		},
 		func(in *Policy, out *newer.Policy, s conversion.Scope) error {
 			out.LastModified = in.LastModified
 			out.Roles = make(map[string]newer.Role)

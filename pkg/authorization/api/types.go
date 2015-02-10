@@ -20,18 +20,61 @@ const (
 	VerbAll     = "*"
 )
 
+const (
+	// ResourceGroupPrefix is the prefix for indicating that a resource entry is actually a group of resources.  The groups are defined in code and indicate resources that are commonly permissioned together
+	ResourceGroupPrefix = "resourcegroup"
+	BuildGroupName      = ResourceGroupPrefix + ":builds"
+	DeploymentGroupName = ResourceGroupPrefix + ":deployments"
+	ImageGroupName      = ResourceGroupPrefix + ":images"
+	OAuthGroupName      = ResourceGroupPrefix + ":oauth"
+	UserGroupName       = ResourceGroupPrefix + ":users"
+	// PolicyOwnerGroupName includes the physical resources behind the PermissionGrantingGroupName.  Unless these physical objects are created first, users with privileges to PermissionGrantingGroupName will
+	// only be able to bind to global roles
+	PolicyOwnerGroupName = ResourceGroupPrefix + ":policy"
+	// PermissionGrantingGroupName includes resources that are necessary to maintain authorization roles and bindings.  By itself, this group is insufficient to create anything except for bindings
+	// to master roles.  If a local Policy already exists, then privileges to this group will allow for modification of local roles.
+	PermissionGrantingGroupName = ResourceGroupPrefix + ":granter"
+	// OpenshiftExposedGroupName includes resources that are commonly viewed and modified by end users of the system.  It does not include any sensitive resources that control authentication or authorization
+	OpenshiftExposedGroupName = ResourceGroupPrefix + ":exposedopenshift"
+	OpenshiftAllGroupName     = ResourceGroupPrefix + ":allopenshift"
+
+	QuotaGroupName = ResourceGroupPrefix + ":quota"
+	// KubeInternalsGroupName includes those resources that should reasonably be viewable to end users, but that most users should probably not modify.  Kubernetes herself will maintain these resources
+	KubeInternalsGroupName = ResourceGroupPrefix + ":privatekube"
+	// KubeExposedGroupName includes resources that are commonly viewed and modified by end users of the system.
+	KubeExposedGroupName = ResourceGroupPrefix + ":exposedkube"
+	KubeAllGroupName     = ResourceGroupPrefix + ":allkube"
+)
+
+var (
+	GroupsToResources = map[string][]string{
+		BuildGroupName:              {"builds", "buildconfigs", "buildlogs"},
+		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags"},
+		DeploymentGroupName:         {"deployments", "deploymentsconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
+		UserGroupName:               {"users", "useridentitymappings"},
+		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
+		PolicyOwnerGroupName:        {"policies", "policybindings"},
+		PermissionGrantingGroupName: {"roles", "rolebindings"},
+		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, "templateconfigs", "routes", "projects"},
+		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, PermissionGrantingGroupName},
+
+		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
+		KubeInternalsGroupName: {"endpoints", "minions", "nodes", "bindings", "events"},
+		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services"},
+		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
+	}
+)
+
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
-	// Deny is true if any request matching this rule should be denied.  If false, any request matching this rule is allowed.
-	Deny bool `json:"deny"`
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
 	Verbs []string `json:"verbs"`
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
 	AttributeRestrictions kruntime.EmbeddedObject `json:"attributeRestrictions"`
-	// ResourceKinds is a list of kinds this rule applies to.  ResourceAll represents all kinds.
-	ResourceKinds []string `json:"resourceKinds"`
+	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
+	Resources []string `json:"resources"`
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
