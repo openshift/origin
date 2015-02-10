@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"code.google.com/p/go-uuid/uuid"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -502,8 +504,8 @@ func start(cfg *config, args []string) error {
 			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
 			// RequestHeader config
 			RequestHeaders: strings.Split(env("ORIGIN_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
-			// Session config
-			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
+			// Session config (default to unknowable secret)
+			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", uuid.NewUUID().String())},
 			SessionMaxAgeSeconds: envInt("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", 300, 1),
 			SessionName:          env("ORIGIN_OAUTH_SESSION_NAME", "ssn"),
 			// Password config
