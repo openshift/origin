@@ -89,7 +89,7 @@ type AuthRequestHandlerType string
 const (
 	// AuthRequestHandlerBearer validates a passed "Authorization: Bearer" token, using the specified TokenStore
 	AuthRequestHandlerBearer AuthRequestHandlerType = "bearer"
-	// AuthRequestHandlerRequestHeader treats any request with an X-Remote-User header as authenticated
+	// AuthRequestHandlerRequestHeader treats any request with a value in one of the RequestHeaders headers as authenticated
 	AuthRequestHandlerRequestHeader AuthRequestHandlerType = "requestheader"
 	// AuthRequestHandlerBasicAuth validates a passed "Authorization: Basic" header using the specified PasswordAuth
 	AuthRequestHandlerBasicAuth AuthRequestHandlerType = "basicauth"
@@ -181,6 +181,9 @@ type AuthConfig struct {
 	TokenStore TokenStoreType
 	// TokenFilePath is a path to a CSV file to load valid tokens from. Used by TokenStoreFile.
 	TokenFilePath string
+
+	// RequestHeaders lists the headers to check (in order) for a username. Used by AuthRequestHandlerRequestHeader
+	RequestHeaders []string
 
 	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
 	SessionSecrets []string
@@ -514,7 +517,10 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 	case AuthRequestHandlerRequestHeader:
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authRequestHandlerType) /*for now*/, userRegistry)
-		authRequestHandler = headerrequest.NewAuthenticator(headerrequest.NewDefaultConfig(), identityMapper)
+		authRequestConfig := &headerrequest.Config{
+			UserNameHeaders: c.RequestHeaders,
+		}
+		authRequestHandler = headerrequest.NewAuthenticator(authRequestConfig, identityMapper)
 	case AuthRequestHandlerBasicAuth:
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator)

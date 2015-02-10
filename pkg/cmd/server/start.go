@@ -504,6 +504,8 @@ func start(cfg *config, args []string) error {
 			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
 			AuthHandler:         origin.AuthHandlerType(env("ORIGIN_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
 			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
+			// RequestHeader config
+			RequestHeaders: strings.Split(env("ORIGIN_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
 			// Session config
 			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
 			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds),
