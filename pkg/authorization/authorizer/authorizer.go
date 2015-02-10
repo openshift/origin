@@ -264,19 +264,11 @@ func resolveResources(rule authorizationapi.PolicyRule) util.StringSet {
 }
 
 func (a openshiftAuthorizationAttributes) verbMatches(verbs util.StringSet) bool {
-	verbMatches := false
-	verbMatches = verbMatches || verbs.Has(strings.ToLower(a.GetVerb()))
-	verbMatches = verbMatches || verbs.Has(authorizationapi.VerbAll)
-
-	return verbMatches
+	return verbs.Has(authorizationapi.VerbAll) || verbs.Has(strings.ToLower(a.GetVerb()))
 }
 
 func (a openshiftAuthorizationAttributes) resourceMatches(resourceNames util.StringSet) bool {
-	kindMatches := false
-	kindMatches = kindMatches || resourceNames.Has(strings.ToLower(a.GetResource()))
-	kindMatches = kindMatches || resourceNames.Has(authorizationapi.ResourceAll)
-
-	return kindMatches
+	return resourceNames.Has(authorizationapi.ResourceAll) || resourceNames.Has(strings.ToLower(a.GetResource()))
 }
 
 func (a openshiftAuthorizationAttributes) GetUserInfo() authenticationapi.UserInfo {
@@ -300,7 +292,7 @@ func (a openshiftAuthorizationAttributes) GetRequestAttributes() interface{} {
 }
 
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
-	verb, kind, namespace, _, err := VerbAndKindAndNamespace(req)
+	verb, resource, namespace, _, err := VerbAndKindAndNamespace(req)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +309,7 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 	return openshiftAuthorizationAttributes{
 		user:              userInfo,
 		verb:              verb,
-		resource:          kind,
+		resource:          resource,
 		namespace:         namespace,
 		requestAttributes: nil,
 	}, nil
@@ -479,15 +471,39 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 					},
 				},
 			},
-			"ComponentRole": {
+			"system:deployer": {
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      "ComponentRole",
+					Name:      "system:deployer",
 					Namespace: masterNamespace,
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
 						Verbs:     []string{authorizationapi.VerbAll},
 						Resources: []string{authorizationapi.ResourceAll},
+					},
+				},
+			},
+			"system:component": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "system:component",
+					Namespace: masterNamespace,
+				},
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:     []string{authorizationapi.VerbAll},
+						Resources: []string{authorizationapi.ResourceAll},
+					},
+				},
+			},
+			"system:delete-tokens": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "system:delete-tokens",
+					Namespace: masterNamespace,
+				},
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:     []string{"delete"},
+						Resources: []string{"oauthaccesstoken", "oauthauthorizetoken"},
 					},
 				},
 			},
@@ -505,21 +521,42 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 		LastModified: util.Now(),
 		PolicyRef:    kapi.ObjectReference{Namespace: masterNamespace},
 		RoleBindings: map[string]authorizationapi.RoleBinding{
-			"Components": {
+			"system:component-binding": {
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      "Components",
+					Name:      "system:component-binding",
 					Namespace: masterNamespace,
 				},
 				RoleRef: kapi.ObjectReference{
-					Name:      "ComponentRole",
+					Name:      "system:component",
 					Namespace: masterNamespace,
 				},
-				// TODO until we get components added to their proper groups, enumerate them here
-				UserNames: []string{"openshift-client", "kube-client"},
+				UserNames: []string{"system:openshift-client", "system:kube-client"},
 			},
-			"Cluster-Admins": {
+			"system:deployer-binding": {
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      "Cluster-Admins",
+					Name:      "system:deployer",
+					Namespace: masterNamespace,
+				},
+				RoleRef: kapi.ObjectReference{
+					Name:      "system:deployer",
+					Namespace: masterNamespace,
+				},
+				UserNames: []string{"system:openshift-deployer"},
+			},
+			"cluster-admin-binding": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "cluster-admin-binding",
+					Namespace: masterNamespace,
+				},
+				RoleRef: kapi.ObjectReference{
+					Name:      "cluster-admin",
+					Namespace: masterNamespace,
+				},
+				UserNames: []string{"system:admin"},
+			},
+			"insecure-cluster-admin-binding": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "insecure-cluster-admin-binding",
 					Namespace: masterNamespace,
 				},
 				RoleRef: kapi.ObjectReference{
@@ -527,6 +564,17 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Namespace: masterNamespace,
 				},
 				// TODO until we decide to enforce policy, simply allow every one access
+				GroupNames: []string{"system:authenticated", "system:unauthenticated"},
+			},
+			"system:delete-tokens-binding": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "system:delete-tokens-binding",
+					Namespace: masterNamespace,
+				},
+				RoleRef: kapi.ObjectReference{
+					Name:      "system:delete-tokens",
+					Namespace: masterNamespace,
+				},
 				GroupNames: []string{"system:authenticated", "system:unauthenticated"},
 			},
 		},

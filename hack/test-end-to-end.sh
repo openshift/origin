@@ -4,16 +4,16 @@
 # as part of the examples/sample-app
 
 if [[ -z "$(which iptables)" ]]; then
-  echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
-  exit 1
+	echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
+	exit 1
 fi
 iptables --list > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-  sudo iptables --list > /dev/null 2>&1
-  if [ $? -ne 0 ]; then
-    echo "You do not have iptables or sudo privileges.  Kubernetes services will not work without iptables access.  See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.  Try 'sudo hack/test-end-to-end.sh'."
-    exit 1
-  fi
+	sudo iptables --list > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		echo "You do not have iptables or sudo privileges.	Kubernetes services will not work without iptables access.	See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.	Try 'sudo hack/test-end-to-end.sh'."
+		exit 1
+	fi
 fi
 
 set -o errexit
@@ -29,10 +29,10 @@ USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 
 if [[ -z "${BASETMPDIR-}" ]]; then
-  TMPDIR="${TMPDIR:-"/tmp"}"
-  BASETMPDIR="${TMPDIR}/openshift-e2e"
-  sudo rm -rf "${BASETMPDIR}"
-  mkdir -p "${BASETMPDIR}"
+	TMPDIR="${TMPDIR:-"/tmp"}"
+	BASETMPDIR="${TMPDIR}/openshift-e2e"
+	sudo rm -rf "${BASETMPDIR}"
+	mkdir -p "${BASETMPDIR}"
 fi
 ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 VOLUME_DIR="${BASETMPDIR}/volumes"
@@ -64,111 +64,113 @@ export PATH="${GO_OUT}:${PATH}"
 
 function cleanup()
 {
-  out=$?
-  echo
-  if [ $out -ne 0 ]; then
-    echo "[FAIL] !!!!! Test Failed !!!!"
-  else
-    echo "[INFO] Test Succeeded"
-  fi
-  echo
+	out=$?
+	echo
+	if [ $out -ne 0 ]; then
+		echo "[FAIL] !!!!! Test Failed !!!!"
+	else
+		echo "[INFO] Test Succeeded"
+	fi
+	echo
 
-  echo "[INFO] Dumping container logs to ${LOG_DIR}"
-  for container in $(docker ps -aq); do
-    docker logs "$container" >&"${LOG_DIR}/container-$container.log"
-  done
+	echo "[INFO] Dumping container logs to ${LOG_DIR}"
+	for container in $(docker ps -aq); do
+		docker logs "$container" >&"${LOG_DIR}/container-$container.log"
+	done
 
-  echo "[INFO] Dumping build log to ${LOG_DIR}"
+	echo "[INFO] Dumping build log to ${LOG_DIR}"
 
-  set +e
-  osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
-  osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
-  osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
-  curl -L http://localhost:4001/v2/keys/?recursive=true > "${ARTIFACT_DIR}/etcd_dump.json"
-  echo
+	set +e
+	osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
+	osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
+	osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
+	curl -L http://localhost:4001/v2/keys/?recursive=true > "${ARTIFACT_DIR}/etcd_dump.json"
+	echo
 
-  if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-    echo "[INFO] Tearing down test"
-    pids="$(jobs -pr)"
-    echo "[INFO] Children: ${pids}"
-    sudo kill ${pids}
-    sudo ps f
-    set +u
-    echo "[INFO] Stopping k8s docker containers"; docker ps | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'  | xargs -l -r docker stop
-    if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-      echo "[INFO] Removing k8s docker containers"; docker ps -a | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'  | xargs -l -r docker rm
-    fi
-    set -u
-  fi
-  set -e
+	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+		echo "[INFO] Tearing down test"
+		pids="$(jobs -pr)"
+		echo "[INFO] Children: ${pids}"
+		sudo kill ${pids}
+		sudo ps f
+		set +u
+		echo "[INFO] Stopping k8s docker containers"; docker ps | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'	| xargs -l -r docker stop
+		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'	| xargs -l -r docker rm
+		fi
+		set -u
+	fi
+	set -e
 
-  # clean up zero byte log files
-  # Clean up large log files so they don't end up on jenkins
-  find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-  find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-  find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+	# clean up zero byte log files
+	# Clean up large log files so they don't end up on jenkins
+	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
 
-  echo "[INFO] Exiting"
-  exit $out
+	echo "[INFO] Exiting"
+	exit $out
 }
 
 trap "exit" INT TERM
 trap "cleanup" EXIT
 
 function wait_for_app() {
-  echo "[INFO] Waiting for app in namespace $1"
-  echo "[INFO] Waiting for database pod to start"
-  wait_for_command "osc get -n $1 pods -l name=database | grep -i Running" $((30*TIME_SEC))
+	echo "[INFO] Waiting for app in namespace $1"
+	echo "[INFO] Waiting for database pod to start"
+	wait_for_command "osc get -n $1 pods -l name=database | grep -i Running" $((30*TIME_SEC))
 
-  echo "[INFO] Waiting for database service to start"
-  wait_for_command "osc get -n $1 services | grep database" $((20*TIME_SEC))
-  DB_IP=$(osc get -n $1 -o template --output-version=v1beta1 --template="{{ .portalIP }}" service database)
+	echo "[INFO] Waiting for database service to start"
+	wait_for_command "osc get -n $1 services | grep database" $((20*TIME_SEC))
+	DB_IP=$(osc get -n $1 -o template --output-version=v1beta1 --template="{{ .portalIP }}" service database)
 
-  echo "[INFO] Waiting for frontend pod to start"
-  wait_for_command "osc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
+	echo "[INFO] Waiting for frontend pod to start"
+	wait_for_command "osc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
-  echo "[INFO] Waiting for frontend service to start"
-  wait_for_command "osc get -n $1 services | grep frontend" $((20*TIME_SEC))
-  FRONTEND_IP=$(osc get -n $1 -o template --output-version=v1beta1 --template="{{ .portalIP }}" service frontend)
+	echo "[INFO] Waiting for frontend service to start"
+	wait_for_command "osc get -n $1 services | grep frontend" $((20*TIME_SEC))
+	FRONTEND_IP=$(osc get -n $1 -o template --output-version=v1beta1 --template="{{ .portalIP }}" service frontend)
 
-  echo "[INFO] Waiting for database to start..."
-  wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
+	echo "[INFO] Waiting for database to start..."
+	wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
 
-  echo "[INFO] Waiting for app to start..."
-  wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))  
+	echo "[INFO] Waiting for app to start..."
+	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))	
 }
 
 # Wait for builds to complete
 # $1 namespace
 function wait_for_build() {
-  echo "[INFO] Waiting for $1 namespace build to complete"
-  wait_for_command "osc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "osc get -n $1 builds | grep -i -e failed -e error"
-  BUILD_ID=`osc get -n $1 builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
-  echo "[INFO] Build ${BUILD_ID} finished"
-  osc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
+	echo "[INFO] Waiting for $1 namespace build to complete"
+	wait_for_command "osc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "osc get -n $1 builds | grep -i -e failed -e error"
+	BUILD_ID=`osc get -n $1 builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	echo "[INFO] Build ${BUILD_ID} finished"
+	osc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
 }
 
 # Setup
 stop_openshift_server
 echo "[INFO] `openshift version`"
-echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
+echo "[INFO] Server logs will be at:		${LOG_DIR}/openshift.log"
 echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
-echo "[INFO] Certs dir is:              ${CERT_DIR}"
+echo "[INFO] Volumes dir is:						${VOLUME_DIR}"
+echo "[INFO] Certs dir is:							${CERT_DIR}"
 
 # Start All-in-one server and wait for health
-# Specify the scheme and port for the listen address, but let the IP auto-discover.  Set --public-master to localhost, for a stable link to the console.
+# Specify the scheme and port for the listen address, but let the IP auto-discover.	Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 --latest-images &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CA_BUNDLE="${CERT_DIR}/master/root.crt"
+	export CURL_CERT="${CERT_DIR}/admin/cert.crt"
+	export CURL_KEY="${CERT_DIR}/admin/key.key"
 fi
 
 wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "[INFO] apiserver: " 0.5 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "[INFO] apiserver(minions): " 0.2 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80				
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
 # Set KUBERNETES_MASTER for osc
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
@@ -186,7 +188,7 @@ fi
 # create test project so that this shows up in the console
 osc create project -f examples/sample-app/project.json
 
-echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:$(($API_PORT + 1)).  You may need to visit ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT} first to accept the certificate."
+echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:$(($API_PORT + 1)).	You may need to visit ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT} first to accept the certificate."
 
 
 # install the registry
@@ -198,7 +200,7 @@ wait_for_command "osc get pods | grep registrypod | grep -i Running" $((5*TIME_M
 echo "[INFO] Waiting for Docker registry service to start"
 wait_for_command "osc get services | grep registrypod"
 
-# services can end up on any IP.  Make sure we get the IP we need for the docker registry
+# services can end up on any IP.	Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY_IP=$(osc get -o template --output-version=v1beta1 --template="{{ .portalIP }}" service docker-registry)
 
 echo "[INFO] Probing the docker-registry"
@@ -242,15 +244,15 @@ wait_for_app "test"
 #wait_for_app "custom"
 
 if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
-    echo "[INFO] Installing router with master url of ${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT} and starting pod..."
-    echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
-    "${OS_ROOT}/hack/install-router.sh" "router1" "${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT}"
-    wait_for_command "osc get pods | grep router1 | grep -i Running" $((5*TIME_MIN))
+	echo "[INFO] Installing router with master url of ${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT} and starting pod..."
+	echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
+	CERT_DIR="${CERT_DIR}/openshift-client" "${OS_ROOT}/hack/install-router.sh" "router1" "${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT}"
+	wait_for_command "osc get pods | grep router1 | grep -i Running" $((5*TIME_MIN))
 
-    echo "[INFO] Validating routed app response..."
-    validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
+	echo "[INFO] Validating routed app response..."
+	validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 else
-    echo "[INFO] Validating app response..."
-    validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
+	echo "[INFO] Validating app response..."
+	validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
 fi
 
