@@ -118,7 +118,7 @@ func main() {
 	} else if opts.master {
 		err := be.StartMaster(opts.sync)
 		if err != nil {
-			log.Errorf(err.Error())
+			log.Error(err)
 			return
 		}
 	}
