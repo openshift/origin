@@ -6,16 +6,16 @@ import (
 	"strings"
 	"testing"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 )
 
 type mockAuthRequestHandler struct {
-	returnUser      authapi.UserInfo
+	returnUser      user.Info
 	isAuthenticated bool
 	err             error
 }
 
-func (mock *mockAuthRequestHandler) AuthenticateRequest(req *http.Request) (authapi.UserInfo, bool, error) {
+func (mock *mockAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	return mock.returnUser, mock.isAuthenticated, mock.err
 }
 

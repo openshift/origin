@@ -1,13 +1,8 @@
 package api
 
-// TODO: Add display name to common meta?
-type UserInfo interface {
-	GetName() string
-	GetUID() string
-	GetGroups() []string
-	GetScope() string
-	GetExtra() map[string]string
-}
+import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+)
 
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of
 // some kind (like oauth for example) describes an identity.  Our system controls the users mapped to this identity.
@@ -20,11 +15,11 @@ type UserIdentityInfo interface {
 	GetExtra() map[string]string
 }
 
-// UserIdentityMapper maps UserIdentities into UserInfo objects to allow different user abstractions within auth code.
+// UserIdentityMapper maps UserIdentities into user.Info objects to allow different user abstractions within auth code.
 type UserIdentityMapper interface {
 	// UserFor takes an identity, ignores the passed identity.Provider, forces the provider value to some other value and then creates the mapping.
-	// It returns the corresponding UserInfo
-	UserFor(identityInfo UserIdentityInfo) (UserInfo, error)
+	// It returns the corresponding user.Info
+	UserFor(identityInfo UserIdentityInfo) (user.Info, error)
 }
 
 type Client interface {
@@ -39,34 +34,6 @@ type Grant struct {
 	Scope       string
 	Expiration  int64
 	RedirectURI string
-}
-
-type DefaultUserInfo struct {
-	Name   string
-	UID    string
-	Groups []string
-	Scope  string
-	Extra  map[string]string
-}
-
-func (i *DefaultUserInfo) GetName() string {
-	return i.Name
-}
-
-func (i *DefaultUserInfo) GetUID() string {
-	return i.UID
-}
-
-func (i *DefaultUserInfo) GetGroups() []string {
-	return i.Groups
-}
-
-func (i *DefaultUserInfo) GetScope() string {
-	return i.Scope
-}
-
-func (i *DefaultUserInfo) GetExtra() map[string]string {
-	return i.Extra
 }
 
 type DefaultUserIdentityInfo struct {

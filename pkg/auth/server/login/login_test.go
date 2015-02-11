@@ -9,27 +9,28 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
 
 type testAuth struct {
 	Username string
 	Password string
-	User     api.UserInfo
+	User     user.Info
 	Success  bool
 	Err      error
 	Then     string
 	Called   bool
 }
 
-func (t *testAuth) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
+func (t *testAuth) AuthenticatePassword(user, password string) (user.Info, bool, error) {
 	t.Username = user
 	t.Password = password
 	return t.User, t.Success, t.Err
 }
 
-func (t *testAuth) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (t *testAuth) AuthenticationSucceeded(user user.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	t.Called = true
 	t.User = user
 	t.Then = then
@@ -128,7 +129,7 @@ func TestLogin(t *testing.T) {
 		},
 		"login successful": {
 			CSRF: &csrf.FakeCSRF{Token: "test"},
-			Auth: &testAuth{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
+			Auth: &testAuth{Success: true, User: &user.DefaultInfo{Name: "user"}},
 			Path: "/login?then=done",
 			PostValues: url.Values{
 				"csrf":     []string{"test"},

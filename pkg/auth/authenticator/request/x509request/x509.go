@@ -4,20 +4,20 @@ import (
 	"crypto/x509"
 	"net/http"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
-	"github.com/openshift/origin/pkg/auth/api"
 )
 
 // UserConversion defines an interface for extracting user info from a client certificate chain
 type UserConversion interface {
-	User(chain []*x509.Certificate) (api.UserInfo, bool, error)
+	User(chain []*x509.Certificate) (user.Info, bool, error)
 }
 
 // UserConversionFunc is a function that implements the UserConversion interface.
-type UserConversionFunc func(chain []*x509.Certificate) (api.UserInfo, bool, error)
+type UserConversionFunc func(chain []*x509.Certificate) (user.Info, bool, error)
 
 // User implements x509.UserConversion
-func (f UserConversionFunc) User(chain []*x509.Certificate) (api.UserInfo, bool, error) {
+func (f UserConversionFunc) User(chain []*x509.Certificate) (user.Info, bool, error) {
 	return f(chain)
 }
 
@@ -28,13 +28,13 @@ type Authenticator struct {
 }
 
 // New returns a request.Authenticator that verifies client certificates using the provided
-// VerifyOptions, and converts valid certificate chains into api.UserInfo using the provided UserConversion
+// VerifyOptions, and converts valid certificate chains into user.Info using the provided UserConversion
 func New(opts x509.VerifyOptions, user UserConversion) *Authenticator {
 	return &Authenticator{opts, user}
 }
 
 // AuthenticateRequest authenticates the request using presented client certificates
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	if req.TLS == nil {
 		return nil, false, nil
 	}
@@ -71,25 +71,25 @@ func DefaultVerifyOptions() x509.VerifyOptions {
 }
 
 // CommonNameUserConversion builds user info from a certificate chain using the subject's CommonName
-var CommonNameUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (api.UserInfo, bool, error) {
+var CommonNameUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
 	if len(chain[0].Subject.CommonName) == 0 {
 		return nil, false, nil
 	}
-	return &api.DefaultUserInfo{Name: chain[0].Subject.CommonName}, true, nil
+	return &user.DefaultInfo{Name: chain[0].Subject.CommonName}, true, nil
 })
 
 // DNSNameUserConversion builds user info from a certificate chain using the first DNSName on the certificate
-var DNSNameUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (api.UserInfo, bool, error) {
+var DNSNameUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
 	if len(chain[0].DNSNames) == 0 {
 		return nil, false, nil
 	}
-	return &api.DefaultUserInfo{Name: chain[0].DNSNames[0]}, true, nil
+	return &user.DefaultInfo{Name: chain[0].DNSNames[0]}, true, nil
 })
 
 // EmailAddressUserConversion builds user info from a certificate chain using the first EmailAddress on the certificate
-var EmailAddressUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (api.UserInfo, bool, error) {
+var EmailAddressUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
 	if len(chain[0].EmailAddresses) == 0 {
 		return nil, false, nil
 	}
-	return &api.DefaultUserInfo{Name: chain[0].EmailAddresses[0]}, true, nil
+	return &user.DefaultInfo{Name: chain[0].EmailAddresses[0]}, true, nil
 })

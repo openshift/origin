@@ -1,6 +1,7 @@
 package identitymapper
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	uimap "github.com/openshift/origin/pkg/user/registry/useridentitymapping"
@@ -17,7 +18,7 @@ func NewAlwaysCreateUserIdentityToUserMapper(providerID string, userIdentityRegi
 }
 
 // UserFor returns info about the user for whom identity info have been provided
-func (p *alwaysCreateUserIdentityToUserMapper) UserFor(identityInfo authapi.UserIdentityInfo) (authapi.UserInfo, error) {
+func (p *alwaysCreateUserIdentityToUserMapper) UserFor(identityInfo authapi.UserIdentityInfo) (user.Info, error) {
 	userIdentityMapping := &userapi.UserIdentityMapping{
 		Identity: userapi.Identity{
 			Provider: p.providerID, // Provider id is imposed
@@ -30,9 +31,8 @@ func (p *alwaysCreateUserIdentityToUserMapper) UserFor(identityInfo authapi.User
 		return nil, err
 	}
 
-	return &authapi.DefaultUserInfo{
-		Name:  authoritativeMapping.User.Name,
-		UID:   string(authoritativeMapping.User.UID),
-		Extra: authoritativeMapping.Identity.Extra,
+	return &user.DefaultInfo{
+		Name: authoritativeMapping.User.Name,
+		UID:  string(authoritativeMapping.User.UID),
 	}, nil
 }

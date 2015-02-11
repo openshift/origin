@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osincli"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
@@ -21,7 +22,7 @@ import (
 )
 
 type testHandlers struct {
-	User         api.UserInfo
+	User         user.Info
 	Authenticate bool
 	Err          error
 	AuthNeed     bool
@@ -48,11 +49,11 @@ func (h *testHandlers) AuthenticationError(err error, w http.ResponseWriter, req
 	return true, nil
 }
 
-func (h *testHandlers) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (h *testHandlers) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	return h.User, h.Authenticate, h.Err
 }
 
-func (h *testHandlers) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (h *testHandlers) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
 	h.GrantNeed = true
 	return h.GrantNeedHandled, h.GrantNeedErr
 }
@@ -86,7 +87,7 @@ func TestRegistryAndServer(t *testing.T) {
 		Client      *oapi.OAuthClient
 		ClientAuth  *oapi.OAuthClientAuthorization
 		AuthSuccess bool
-		AuthUser    api.UserInfo
+		AuthUser    user.Info
 		Scope       string
 		Check       func(*testHandlers, *http.Request)
 	}{
@@ -101,7 +102,7 @@ func TestRegistryAndServer(t *testing.T) {
 		"needs grant": {
 			Client:      validClient,
 			AuthSuccess: true,
-			AuthUser: &api.DefaultUserInfo{
+			AuthUser: &user.DefaultInfo{
 				Name: "user",
 			},
 			Check: func(h *testHandlers, _ *http.Request) {
@@ -113,7 +114,7 @@ func TestRegistryAndServer(t *testing.T) {
 		"has non covered grant": {
 			Client:      validClient,
 			AuthSuccess: true,
-			AuthUser: &api.DefaultUserInfo{
+			AuthUser: &user.DefaultInfo{
 				Name: "user",
 			},
 			ClientAuth: &oapi.OAuthClientAuthorization{
@@ -131,7 +132,7 @@ func TestRegistryAndServer(t *testing.T) {
 		"has covered grant": {
 			Client:      validClient,
 			AuthSuccess: true,
-			AuthUser: &api.DefaultUserInfo{
+			AuthUser: &user.DefaultInfo{
 				Name: "user",
 			},
 			ClientAuth: &oapi.OAuthClientAuthorization{
@@ -149,7 +150,7 @@ func TestRegistryAndServer(t *testing.T) {
 		"has auth and grant": {
 			Client:      validClient,
 			AuthSuccess: true,
-			AuthUser: &api.DefaultUserInfo{
+			AuthUser: &user.DefaultInfo{
 				Name: "user",
 			},
 			ClientAuth: validClientAuth,

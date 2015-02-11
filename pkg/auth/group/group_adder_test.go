@@ -5,15 +5,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
 func TestGroupAdder(t *testing.T) {
 	adder := authenticator.Request(
 		NewGroupAdder(
-			authenticator.RequestFunc(func(req *http.Request) (api.UserInfo, bool, error) {
-				return &api.DefaultUserInfo{Name: "user", Groups: []string{"original"}}, true, nil
+			authenticator.RequestFunc(func(req *http.Request) (user.Info, bool, error) {
+				return &user.DefaultInfo{Name: "user", Groups: []string{"original"}}, true, nil
 			}),
 			[]string{"added"},
 		),

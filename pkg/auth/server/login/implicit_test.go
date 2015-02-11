@@ -9,25 +9,26 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
 
 type testImplicit struct {
 	Request *http.Request
-	User    api.UserInfo
+	User    user.Info
 	Success bool
 	Err     error
 	Then    string
 	Called  bool
 }
 
-func (t *testImplicit) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (t *testImplicit) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	t.Request = req
 	return t.User, t.Success, t.Err
 }
 
-func (t *testImplicit) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (t *testImplicit) AuthenticationSucceeded(user user.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	t.Called = true
 	t.User = user
 	t.Then = then
@@ -48,7 +49,7 @@ func TestImplicit(t *testing.T) {
 	}{
 		"display confirm form": {
 			CSRF:     &csrf.FakeCSRF{"test", nil},
-			Implicit: &testImplicit{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
+			Implicit: &testImplicit{Success: true, User: &user.DefaultInfo{Name: "user"}},
 			Path:     "/login",
 			ExpectContains: []string{
 				`action="/login"`,
@@ -57,14 +58,14 @@ func TestImplicit(t *testing.T) {
 		},
 		"successful POST redirects": {
 			CSRF:       &csrf.FakeCSRF{"test", nil},
-			Implicit:   &testImplicit{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
+			Implicit:   &testImplicit{Success: true, User: &user.DefaultInfo{Name: "user"}},
 			Path:       "/login?then=%2Ffoo",
 			PostValues: url.Values{"csrf": []string{"test"}},
 			ExpectThen: "/foo",
 		},
 		"redirect when POST fails CSRF": {
 			CSRF:           &csrf.FakeCSRF{"test", nil},
-			Implicit:       &testImplicit{Success: true, User: &api.DefaultUserInfo{Name: "user"}},
+			Implicit:       &testImplicit{Success: true, User: &user.DefaultInfo{Name: "user"}},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"wrong"}},
 			ExpectRedirect: "/login?reason=token+expired",
