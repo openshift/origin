@@ -30,6 +30,7 @@ type SubnetRegistry interface {
 	WatchSubnets(rev uint64, receiver chan *SubnetEvent, stop chan bool) error
 	GetMinions() (*[]string, error)
 	WatchMinions(rev uint64, receiver chan *MinionEvent, stop chan bool) error
+	CheckEtcdIsAlive(seconds uint64) bool
 }
 
 type EtcdConfig struct {
@@ -111,6 +112,22 @@ func newEtcdClient(c *EtcdConfig) (*etcd.Client, error) {
 	} else {
 		return etcd.NewClient(c.Endpoints), nil
 	}
+}
+
+func (sub *EtcdSubnetRegistry) CheckEtcdIsAlive(seconds uint64) bool {
+	for {
+		status := sub.client().SyncCluster()
+		log.Infof("Etcd cluster status: %v", status)
+		if status {
+			return status
+		}
+		if seconds <= 0 {
+			break
+		}
+		time.Sleep(5 * time.Second)
+		seconds -= 5
+	}
+	return false
 }
 
 func NewEtcdSubnetRegistry(config *EtcdConfig) (SubnetRegistry, error) {
@@ -241,8 +258,9 @@ func (sub *EtcdSubnetRegistry) CreateSubnet(minion string, subnet *Subnet) (*etc
 }
 
 func (sub *EtcdSubnetRegistry) WatchMinions(rev uint64, receiver chan *MinionEvent, stop chan bool) error {
+	key := sub.etcdCfg.MinionPath
+	log.Infof("Watching %s for new minions.", key)
 	for {
-		key := sub.etcdCfg.MinionPath
 		resp, err := sub.watch(key, rev, stop)
 		if resp == nil && err == nil {
 			continue
