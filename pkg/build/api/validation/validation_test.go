@@ -76,7 +76,9 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 				Type:           buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
-			Output: buildapi.BuildOutput{},
+			Output: buildapi.BuildOutput{
+				DockerImageReference: "repository/data",
+			},
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) > 0 {
@@ -275,7 +277,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.image",
+			string(errs.ValidationErrorTypeInvalid) + "strategy.type",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -283,14 +285,69 @@ func TestValidateBuildParameters(t *testing.T) {
 						URI: "http://github.com/my/repository",
 					},
 				},
+				Strategy: buildapi.BuildStrategy{Type: "classic-joke"},
 				Output: buildapi.BuildOutput{
 					DockerImageReference: "repository/data",
+				},
+			},
+		},
+		{
+			string(errs.ValidationErrorTypeRequired) + "strategy.type",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+		// invalid because both image and from are specified in the
+		// sti strategy definition
+		{
+			string(errs.ValidationErrorTypeInvalid) + "strategy.stiStrategy.image",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
 				},
 				Strategy: buildapi.BuildStrategy{
 					Type: buildapi.STIBuildStrategyType,
 					STIStrategy: &buildapi.STIBuildStrategy{
-						Image: "",
+						Image: "image",
+						From: &kapi.ObjectReference{
+							Name: "reponame",
+						},
 					},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+		// invalid because neither image nor from are specified in the
+		// sti strategy definition
+		{
+			string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.from",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:        buildapi.STIBuildStrategyType,
+					STIStrategy: &buildapi.STIBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
 				},
 			},
 		},
@@ -307,6 +364,61 @@ func TestValidateBuildParameters(t *testing.T) {
 			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, config.err, errDesc)
 		}
 	}
+}
+
+func TestValidateBuildParametersSuccess(t *testing.T) {
+	testCases := []struct {
+		*buildapi.BuildParameters
+	}{
+		{
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.STIBuildStrategyType,
+					STIStrategy: &buildapi.STIBuildStrategy{
+						Image: "repository/builder-image",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+		{
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.STIBuildStrategyType,
+					STIStrategy: &buildapi.STIBuildStrategy{
+						From: &kapi.ObjectReference{
+							Name: "reponame",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+	}
+
+	for _, config := range testCases {
+		errors := validateBuildParameters(config.BuildParameters)
+		if len(errors) != 0 {
+			t.Errorf("Unexpected validation error: %v", errors)
+		}
+	}
+
 }
 
 func TestValidateTrigger(t *testing.T) {

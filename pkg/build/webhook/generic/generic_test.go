@@ -8,8 +8,18 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 )
+
+var mockBuildStrategy api.BuildStrategy = api.BuildStrategy{
+	Type: "STI",
+	STIStrategy: &api.STIBuildStrategy{
+		From: &kapi.ObjectReference{
+			Name: "repository/image",
+		},
+	},
+}
 
 func GivenRequest(method string) *http.Request {
 	req, _ := http.NewRequest(method, "http://someurl.com", nil)
@@ -106,7 +116,7 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 					Ref: "master",
 				},
 			},
-			Strategy: api.BuildStrategy{},
+			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -140,7 +150,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 					Ref: "asdfkasdfasdfasdfadsfkjhkhkh",
 				},
 			},
-			Strategy: api.BuildStrategy{},
+			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -175,7 +185,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 					Ref: "master",
 				},
 			},
-			Strategy: api.BuildStrategy{},
+			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
