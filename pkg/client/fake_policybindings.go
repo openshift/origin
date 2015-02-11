@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -28,4 +29,9 @@ func (c *FakePolicyBindings) Create(policyBinding *authorizationapi.PolicyBindin
 func (c *FakePolicyBindings) Delete(name string) error {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-policyBinding", Value: name})
 	return nil
+}
+
+func (c *FakePolicyBindings) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-policyBinding"})
+	return nil, nil
 }

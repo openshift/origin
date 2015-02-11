@@ -3,6 +3,7 @@ package policy
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -19,4 +20,6 @@ type Registry interface {
 	UpdatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error
 	// DeletePolicy deletes a policy.
 	DeletePolicy(ctx kapi.Context, id string) error
+	// WatchPolicyBindings watches policyBindings.
+	WatchPolicies(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error)
 }
