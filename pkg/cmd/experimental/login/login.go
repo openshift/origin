@@ -57,12 +57,18 @@ prompt for user input if not provided.
 					glog.Fatalf("%v\n", err)
 				}
 
-				err = updateKubeconfigFile(usernameFlag, accessToken, f.OpenShiftClientConfig)
-				if err != nil {
+				clientCfg.BearerToken = accessToken
+
+				if userFullName, err := whoami(clientCfg); err == nil {
+					err = updateKubeconfigFile(userFullName, accessToken, f.OpenShiftClientConfig)
+					if err != nil {
+						glog.Fatalf("%v\n", err)
+					} else {
+						username = userFullName
+					}
+				} else {
 					glog.Fatalf("%v\n", err)
 				}
-
-				username = usernameFlag
 			}
 
 			fmt.Printf("Logged into %v as %v\n", clientCfg.Host, username)
