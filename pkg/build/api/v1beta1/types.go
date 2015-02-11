@@ -216,6 +216,12 @@ type STIBuildStrategy struct {
 	// Image is the image used to execute the build.
 	Image string `json:"image,omitempty"`
 
+	// Tag is the name of image repository tag to be used as the build image
+	Tag string `json:"tag,omitempty"`
+
+	// From is reference to an image repository from where the docker image should be pulled
+	From kapi.ObjectReference `json:"from,omitempty"`
+
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
 

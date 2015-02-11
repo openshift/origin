@@ -11,6 +11,11 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+const (
+	OutputDuplicateImageRef = "Using both 'to' and 'dockerImageReference' in output is not allowed"
+	OutputMissingImageRef   = "Field missing, must specify one of 'to' or 'dockerImageReference'"
+)
+
 // ValidateBuild tests required fields for a Build.
 func ValidateBuild(build *buildapi.Build) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -130,6 +135,7 @@ func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
 			allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
 		}
 	}
+
 	return allErrs
 }
 
@@ -138,29 +144,32 @@ func validateBuildConfigOutput(output *buildapi.BuildOutput) errs.ValidationErro
 	if len(output.DockerImageReference) != 0 && output.To != nil {
 		allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, "only one of 'dockerImageReference' and 'to' may be set"))
 	}
+	if len(output.DockerImageReference) == 0 && output.To == nil {
+		allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", "", OutputMissingImageRef))
+		allErrs = append(allErrs, errs.NewFieldInvalid("to", "", OutputMissingImageRef))
+	}
 	return allErrs
 }
 
 func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
-	if len(strategy.Type) == 0 {
+	switch {
+	case len(strategy.Type) == 0:
 		allErrs = append(allErrs, errs.NewFieldRequired("type", strategy.Type))
-	}
 
-	switch strategy.Type {
-	case buildapi.STIBuildStrategyType:
+	case strategy.Type == buildapi.STIBuildStrategyType:
 		if strategy.STIStrategy == nil {
 			allErrs = append(allErrs, errs.NewFieldRequired("stiStrategy", strategy.STIStrategy))
 		} else {
 			allErrs = append(allErrs, validateSTIStrategy(strategy.STIStrategy).Prefix("stiStrategy")...)
 		}
-	case buildapi.DockerBuildStrategyType:
+	case strategy.Type == buildapi.DockerBuildStrategyType:
 		// DockerStrategy is currently optional, initialize it to a default state if it's not set.
 		if strategy.DockerStrategy == nil {
 			strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 		}
-	case buildapi.CustomBuildStrategyType:
+	case strategy.Type == buildapi.CustomBuildStrategyType:
 		if strategy.CustomStrategy == nil {
 			allErrs = append(allErrs, errs.NewFieldRequired("customStrategy", strategy.CustomStrategy))
 		} else {
@@ -178,8 +187,8 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 
 func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if len(strategy.Image) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("image", strategy.Image))
+	if len(strategy.From.Name) == 0 && len(strategy.Image) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("from", strategy.From))
 	}
 	return allErrs
 }

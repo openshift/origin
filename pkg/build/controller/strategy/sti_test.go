@@ -84,8 +84,8 @@ func mockSTIBuild() *buildapi.Build {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.STIBuildStrategyType,
 				STIStrategy: &buildapi.STIBuildStrategy{
-					Image:   "repository/sti-builder",
 					Scripts: "http://my.build.com/the/sti/scripts",
+					Image:   "repository/sti-builder",
 					Env: []kapi.EnvVar{
 						{Name: "FOO", Value: "bar"},
 					},

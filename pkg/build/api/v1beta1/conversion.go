@@ -53,11 +53,17 @@ func init() {
 		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
 			out.BuilderImage = in.Image
 			out.Image = in.Image
+			out.From.Name = in.From.Name
+			out.From.Namespace = in.From.Namespace
+			out.Tag = in.Tag
 			out.Scripts = in.Scripts
 			out.Clean = !in.Incremental
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
+			out.From.Name = in.From.Name
+			out.From.Namespace = in.From.Namespace
+			out.Tag = in.Tag
 			out.Scripts = in.Scripts
 			out.Incremental = !in.Clean
 			if len(in.Image) != 0 {

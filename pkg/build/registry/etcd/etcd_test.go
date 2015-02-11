@@ -109,6 +109,63 @@ func TestEtcdCreateBuild(t *testing.T) {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
+					From: kapi.ObjectReference{
+						Name: "builder/image",
+					},
+				},
+			},
+			Output: api.BuildOutput{
+				DockerImageReference: "repository/dataBuild",
+			},
+		},
+		Status:  api.BuildStatusPending,
+		PodName: "-the-pod-id",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	resp, err := fakeClient.Get(makeTestDefaultBuildKey("foo"), false, false)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+	var build api.Build
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &build)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if build.Name != "foo" {
+		t.Errorf("Unexpected build: %#v %s", build, resp.Node.Value)
+	}
+}
+
+func TestEtcdCreateBuildUsingImage(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.TestIndex = true
+	fakeClient.Data[makeTestDefaultBuildKey("foo")] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: nil,
+		},
+		E: tools.EtcdErrorNotFound,
+	}
+	registry := NewTestEtcd(fakeClient)
+	err := registry.CreateBuild(kapi.NewDefaultContext(), &api.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"name": "dataBuild",
+			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
+			},
+			Strategy: api.BuildStrategy{
+				Type: api.STIBuildStrategyType,
+				STIStrategy: &api.STIBuildStrategy{
 					Image: "builder/image",
 				},
 			},
@@ -306,6 +363,61 @@ func TestEtcdGetBuildConfigNotFound(t *testing.T) {
 }
 
 func TestEtcdCreateBuildConfig(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.TestIndex = true
+	fakeClient.Data[makeTestDefaultBuildConfigKey("foo")] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: nil,
+		},
+		E: tools.EtcdErrorNotFound,
+	}
+	registry := NewTestEtcd(fakeClient)
+	err := registry.CreateBuildConfig(kapi.NewDefaultContext(), &api.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				"name": "dataBuildConfig",
+			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
+			},
+			Strategy: api.BuildStrategy{
+				Type: api.STIBuildStrategyType,
+				STIStrategy: &api.STIBuildStrategy{
+					From: kapi.ObjectReference{
+						Name: "builder/image",
+					},
+				},
+			},
+			Output: api.BuildOutput{
+				DockerImageReference: "repository/dataBuild",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	resp, err := fakeClient.Get(makeTestDefaultBuildConfigKey("foo"), false, false)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+	var buildConfig api.BuildConfig
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &buildConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if buildConfig.Name != "foo" {
+		t.Errorf("Unexpected buildConfig: %#v %s", buildConfig, resp.Node.Value)
+	}
+}
+
+func TestEtcdCreateBuildConfigUsingImage(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 	fakeClient.Data[makeTestDefaultBuildConfigKey("foo")] = tools.EtcdResponseWithError{

@@ -76,7 +76,9 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 				Type:           buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
-			Output: buildapi.BuildOutput{},
+			Output: buildapi.BuildOutput{
+				DockerImageReference: "repository/data",
+			},
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) > 0 {
@@ -275,7 +277,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.image",
+			string(errs.ValidationErrorTypeInvalid) + "strategy.type",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -283,14 +285,24 @@ func TestValidateBuildParameters(t *testing.T) {
 						URI: "http://github.com/my/repository",
 					},
 				},
+				Strategy: buildapi.BuildStrategy{Type: "classic-joke"},
 				Output: buildapi.BuildOutput{
 					DockerImageReference: "repository/data",
 				},
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.STIBuildStrategyType,
-					STIStrategy: &buildapi.STIBuildStrategy{
-						Image: "",
+			},
+		},
+		{
+			string(errs.ValidationErrorTypeRequired) + "strategy.type",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
 					},
+				},
+				Strategy: buildapi.BuildStrategy{},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
 				},
 			},
 		},
@@ -299,7 +311,7 @@ func TestValidateBuildParameters(t *testing.T) {
 	for _, config := range errorCases {
 		errors := validateBuildParameters(config.BuildParameters)
 		if len(errors) != 1 {
-			t.Errorf("%s: Unexpected validation result: %v", config.err, errors)
+			t.Errorf("%s: Unexpected validation result: %v", config.err, len(errors))
 		}
 		err := errors[0].(*errs.ValidationError)
 		errDesc := string(err.Type) + err.Field
@@ -307,6 +319,40 @@ func TestValidateBuildParameters(t *testing.T) {
 			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, config.err, errDesc)
 		}
 	}
+}
+
+func TestValidateBuildParametersSuccess(t *testing.T) {
+	errorCases := []struct {
+		*buildapi.BuildParameters
+	}{
+		{
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.STIBuildStrategyType,
+					STIStrategy: &buildapi.STIBuildStrategy{
+						Image: "repository/builder-image",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+	}
+
+	for _, config := range errorCases {
+		errors := validateBuildParameters(config.BuildParameters)
+		if len(errors) != 0 {
+			t.Errorf("Unexpected validation error: %v", errors)
+		}
+	}
+
 }
 
 func TestValidateTrigger(t *testing.T) {

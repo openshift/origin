@@ -236,11 +236,11 @@ echo "[INFO] Installing the registry"
 # TODO: add --images="${USE_IMAGES}" when the Docker registry is built alongside OpenShift
 openshift ex registry --create --credentials="${KUBECONFIG}" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
 
-echo "[INFO] Pre-pulling and pushing centos7"
-docker pull centos:centos7
+echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
+docker pull openshift/ruby-20-centos7:latest
 # TODO: remove after this becomes part of the build
 docker pull openshift/origin-docker-registry
-echo "[INFO] Pulled centos7"
+echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
 # TODO: simplify when #4702 is fixed upstream
@@ -254,8 +254,8 @@ wait_for_url_timed "http://${DOCKER_REGISTRY}" "[INFO] Docker registry says: " $
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
-docker tag -f centos:centos7 ${DOCKER_REGISTRY}/cached/centos:centos7
-docker push ${DOCKER_REGISTRY}/cached/centos:centos7
+docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
+docker push ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
 echo "[INFO] Pushed centos7"
 
 # Process template and create

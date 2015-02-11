@@ -83,7 +83,12 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
 		}
 	case buildapi.STIBuildStrategyType:
-		formatString(out, "Image", p.Strategy.STIStrategy.Image)
+		if p.Strategy.STIStrategy.Image != "" {
+			formatString(out, "Builder Image", p.Strategy.STIStrategy.Image)
+		}
+		if p.Strategy.STIStrategy.Scripts != "" {
+			formatString(out, "Scripts", p.Strategy.STIStrategy.Scripts)
+		}
 		if p.Strategy.STIStrategy.Incremental {
 			formatString(out, "Incremental Build", "yes")
 		}
@@ -167,6 +172,79 @@ type BuildConfigDescriber struct {
 	host string
 }
 
+func (d *BuildConfigDescriber) DescribeParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
+	formatString(out, "Strategy", p.Strategy.Type)
+	switch p.Strategy.Type {
+	case buildapi.DockerBuildStrategyType:
+		if p.Strategy.DockerStrategy != nil && p.Strategy.DockerStrategy.NoCache {
+			formatString(out, "No Cache", "yes")
+		}
+		if p.Strategy.DockerStrategy != nil {
+			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
+		}
+	case buildapi.STIBuildStrategyType:
+		d.DescribeSTIStrategy(p.Strategy.STIStrategy, out)
+	case buildapi.CustomBuildStrategyType:
+		formatString(out, "Image", p.Strategy.CustomStrategy.Image)
+		if p.Strategy.CustomStrategy.ExposeDockerSocket {
+			formatString(out, "Expose Docker Socket", "yes")
+		}
+		if len(p.Strategy.CustomStrategy.Env) != 0 {
+			formatString(out, "Environment", formatLabels(convertEnv(p.Strategy.CustomStrategy.Env)))
+		}
+	}
+	formatString(out, "Source Type", p.Source.Type)
+	if p.Source.Git != nil {
+		formatString(out, "URL", p.Source.Git.URI)
+		if len(p.Source.Git.Ref) > 0 {
+			formatString(out, "Ref", p.Source.Git.Ref)
+		}
+		if len(p.Source.ContextDir) > 0 {
+			formatString(out, "ContextDir", p.Source.ContextDir)
+		}
+	}
+	if p.Output.To != nil {
+		if p.Output.To.Namespace != "" {
+			formatString(out, "Output to", fmt.Sprintf("%s/%s", p.Output.To.Namespace, p.Output.To.Name))
+		} else {
+			formatString(out, "Output to", p.Output.To.Name)
+		}
+	}
+
+	formatString(out, "Output Spec", p.Output.DockerImageReference)
+	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
+		buildDescriber := &BuildDescriber{}
+
+		formatString(out, "Git Commit", p.Revision.Git.Commit)
+		buildDescriber.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
+		buildDescriber.DescribeUser(out, "Revision Committer", p.Revision.Git.Committer)
+		if len(p.Revision.Git.Message) > 0 {
+			formatString(out, "Revision Message", p.Revision.Git.Message)
+		}
+	}
+}
+
+func (d *BuildConfigDescriber) DescribeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
+	if s.From.Name != "" {
+		if s.From.Namespace != "" {
+			formatString(out, "Image Repository", fmt.Sprintf("%s/%s", s.From.Name, s.From.Namespace))
+		} else {
+			formatString(out, "Image Repository", s.From.Name)
+		}
+		if s.Tag != "" {
+			formatString(out, "Image Repository Tag", s.Tag)
+		}
+	} else {
+		formatString(out, "Builder Image", s.Image)
+	}
+	if s.Scripts != "" {
+		formatString(out, "Scripts", s.Scripts)
+	}
+	if s.Incremental {
+		formatString(out, "Incremental Build", "yes")
+	}
+}
+
 // DescribeTriggers generates information about the triggers associated with a buildconfig
 func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host string, out *tabwriter.Writer) {
 	webhooks := webhookURL(bc, host)
@@ -196,11 +274,9 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	buildDescriber := &BuildDescriber{}
-
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
-		buildDescriber.DescribeParameters(buildConfig.Parameters, out)
+		d.DescribeParameters(buildConfig.Parameters, out)
 		d.DescribeTriggers(buildConfig, d.host, out)
 		return nil
 	})
