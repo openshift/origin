@@ -151,7 +151,7 @@ func (c *NodeConfig) RunKubelet() {
 		5,
 		cfg.IsSourceSeen,
 		"",
-		net.IP(util.IP{}),
+		nil,
 		kapi.NamespaceDefault,
 		app.ProbeVolumePlugins())
 	if err != nil {
