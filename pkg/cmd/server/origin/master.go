@@ -488,18 +488,12 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 // TODO Have MasterConfig take a fully formed Authorizer
 func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(c.getRequestsToUsers())
+
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(c.getRequestsToUsers(), &authorizer.APIRequestInfoResolver{util.NewStringSet("api", "osapi"), latest.RESTMapper})
 	authz := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
-		// TODO: this significantly relaxes the authorization guarantees - however the unprotected resources need
-		// to be clearly split out upstream in a way that we can detect.
-		if err == authorizer.ErrNoStandardParts {
-			glog.V(4).Infof("Allowing %q because it is not a recognized form", req.RequestURI)
-			handler.ServeHTTP(w, req)
-			return
-		}
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)
