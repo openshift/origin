@@ -18,6 +18,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
@@ -31,7 +32,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
@@ -475,8 +475,8 @@ func start(cfg *config, args []string) error {
 			FailOnError: true,
 			Handlers: []authenticator.Request{
 				group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{authenticatedGroup}),
-				authenticator.RequestFunc(func(req *http.Request) (api.UserInfo, bool, error) {
-					return &api.DefaultUserInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
+				authenticator.RequestFunc(func(req *http.Request) (user.Info, bool, error) {
+					return &user.DefaultInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
 				}),
 			},
 		}

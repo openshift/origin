@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
@@ -46,7 +46,7 @@ func New(url string, mapper authapi.UserIdentityMapper) authenticator.Password {
 	return &Authenticator{url, mapper}
 }
 
-func (a *Authenticator) AuthenticatePassword(username, password string) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
 	req, err := http.NewRequest("GET", a.url, nil)
 	if err != nil {
 		return nil, false, err

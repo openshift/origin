@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	"github.com/openshift/origin/pkg/oauth/scope"
@@ -18,7 +19,7 @@ func NewClientAuthorizationGrantChecker(registry clientauthorization.Registry) *
 	return &ClientAuthorizationGrantChecker{registry}
 }
 
-func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user api.UserInfo, grant *api.Grant) (approved bool, err error) {
+func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user user.Info, grant *api.Grant) (approved bool, err error) {
 	id := c.registry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
 	authorization, err := c.registry.GetClientAuthorization(id)
 	if errors.IsNotFound(err) {

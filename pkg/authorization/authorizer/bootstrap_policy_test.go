@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
 func TestViewerGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Victor",
 			},
 			verb:      "get",
@@ -29,7 +29,7 @@ func TestViewerGetAllowedKindInMallet(t *testing.T) {
 func TestViewerGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Victor",
 			},
 			verb:      "get",
@@ -47,7 +47,7 @@ func TestViewerGetAllowedKindInAdze(t *testing.T) {
 func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Victor",
 			},
 			verb:      "get",
@@ -64,7 +64,7 @@ func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Victor",
 			},
 			verb:      "get",
@@ -82,7 +82,7 @@ func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Victor",
 			},
 			verb:      "create",
@@ -99,7 +99,7 @@ func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Victor",
 			},
 			verb:      "create",
@@ -117,7 +117,7 @@ func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Edgar",
 			},
 			verb:      "update",
@@ -134,7 +134,7 @@ func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Edgar",
 			},
 			verb:      "update",
@@ -152,7 +152,7 @@ func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Edgar",
 			},
 			verb:      "update",
@@ -169,7 +169,7 @@ func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Edgar",
 			},
 			verb:      "update",
@@ -187,7 +187,7 @@ func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 func TestEditorGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Edgar",
 			},
 			verb:      "get",
@@ -204,7 +204,7 @@ func TestEditorGetAllowedKindInMallet(t *testing.T) {
 func TestEditorGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Edgar",
 			},
 			verb:      "get",
@@ -222,7 +222,7 @@ func TestEditorGetAllowedKindInAdze(t *testing.T) {
 func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Matthew",
 			},
 			verb:      "update",
@@ -239,7 +239,7 @@ func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Matthew",
 			},
 			verb:      "update",
@@ -257,7 +257,7 @@ func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Matthew",
 			},
 			verb:      "update",
@@ -274,7 +274,7 @@ func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Matthew",
 			},
 			verb:      "update",
@@ -292,7 +292,7 @@ func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 func TestAdminGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Matthew",
 			},
 			verb:      "get",
@@ -309,7 +309,7 @@ func TestAdminGetAllowedKindInMallet(t *testing.T) {
 func TestAdminGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Matthew",
 			},
 			verb:      "get",

@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
@@ -18,7 +19,7 @@ func NewBasicAuthAuthentication(passwordAuthenticator authenticator.Password) au
 	return &basicAuthRequestHandler{passwordAuthenticator}
 }
 
-func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (authapi.UserInfo, bool, error) {
+func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	username, password, err := getBasicAuthInfo(req)
 	if err != nil {
 		return nil, false, err

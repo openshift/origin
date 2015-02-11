@@ -11,13 +11,13 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
@@ -598,7 +598,7 @@ type callbackPasswordAuthenticator struct {
 type redirectSuccessHandler struct{}
 
 // AuthenticationSuccess informs client when authentication was successful
-func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	if len(then) == 0 {
 		return false, fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)
 	}

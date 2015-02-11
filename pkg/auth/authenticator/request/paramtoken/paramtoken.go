@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
@@ -21,7 +21,7 @@ func New(param string, auth authenticator.Token) *Authenticator {
 	return &Authenticator{param, auth}
 }
 
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	token := strings.TrimSpace(req.FormValue(a.param))
 	if token == "" {
 		return nil, false, nil

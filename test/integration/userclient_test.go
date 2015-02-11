@@ -8,17 +8,17 @@ import (
 	"reflect"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
-	authapi "github.com/openshift/origin/pkg/auth/api"
 	oapauth "github.com/openshift/origin/pkg/auth/authenticator/password/oauthpassword/registry"
 	"github.com/openshift/origin/pkg/auth/context"
 	"github.com/openshift/origin/pkg/client"
@@ -151,13 +151,13 @@ func TestUserLookup(t *testing.T) {
 	etcdClient := newEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, user.NewDefaultUserInitStrategy())
-	userInfo := &authapi.DefaultUserInfo{
+	userInfo := &kuser.DefaultInfo{
 		Name: ":test",
 	}
 	userContext := context.NewRequestContextMap()
 	userContextFunc := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
 		obj, found := userContext.Get(req)
-		if user, ok := obj.(authapi.UserInfo); found && ok {
+		if user, ok := obj.(kuser.Info); found && ok {
 			return user, true
 		}
 		return nil, false

@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
@@ -20,7 +21,7 @@ func New(identityMapper authapi.UserIdentityMapper) authenticator.Password {
 }
 
 // AuthenticatePassword approves any login attempt with non-blank username and password
-func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, password string) (authapi.UserInfo, bool, error) {
+func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
 	if username == "" || password == "" {
 		return nil, false, nil
 	}

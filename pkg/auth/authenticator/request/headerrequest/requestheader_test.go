@@ -4,13 +4,14 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 )
 
 type TestUserIdentityMapper struct{}
 
-func (m *TestUserIdentityMapper) UserFor(identityInfo api.UserIdentityInfo) (api.UserInfo, error) {
-	return &api.DefaultUserInfo{Name: identityInfo.GetUserName()}, nil
+func (m *TestUserIdentityMapper) UserFor(identityInfo api.UserIdentityInfo) (user.Info, error) {
+	return &user.DefaultInfo{Name: identityInfo.GetUserName()}, nil
 }
 
 func TestRequestHeader(t *testing.T) {

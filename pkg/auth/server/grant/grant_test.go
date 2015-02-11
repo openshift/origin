@@ -11,25 +11,25 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 
-	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/test"
 )
 
 type testAuth struct {
-	User    api.UserInfo
+	User    user.Info
 	Success bool
 	Err     error
 }
 
-func (t *testAuth) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (t *testAuth) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	return t.User, t.Success, t.Err
 }
 
 func goodAuth(username string) *testAuth {
-	return &testAuth{Success: true, User: &api.DefaultUserInfo{Name: username}}
+	return &testAuth{Success: true, User: &user.DefaultInfo{Name: username}}
 }
 func badAuth(err error) *testAuth {
 	return &testAuth{Success: false, User: nil, Err: err}

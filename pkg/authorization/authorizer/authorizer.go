@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
@@ -26,7 +26,7 @@ type AuthorizationAttributeBuilder interface {
 }
 
 type AuthorizationAttributes interface {
-	GetUserInfo() authenticationapi.UserInfo
+	GetUserInfo() user.Info
 	GetVerb() string
 	GetResource() string
 	GetNamespace() string
@@ -45,7 +45,7 @@ func NewAuthorizer(masterAuthorizationNamespace string, policyRuleBindingRegistr
 }
 
 type openshiftAuthorizationAttributes struct {
-	user              authenticationapi.UserInfo
+	user              user.Info
 	verb              string
 	resource          string
 	namespace         string
@@ -60,7 +60,7 @@ func NewAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContex
 	return &openshiftAuthorizationAttributeBuilder{requestsToUsers}
 }
 
-func doesApplyToUser(ruleUsers, ruleGroups []string, user authenticationapi.UserInfo) bool {
+func doesApplyToUser(ruleUsers, ruleGroups []string, user user.Info) bool {
 	if contains(ruleUsers, user.GetName()) {
 		return true
 	}
@@ -138,7 +138,7 @@ func (a *openshiftAuthorizer) getRole(roleBinding authorizationapi.RoleBinding) 
 	return &role, nil
 }
 
-func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user authenticationapi.UserInfo) ([]authorizationapi.PolicyRule, error) {
+func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user user.Info) ([]authorizationapi.PolicyRule, error) {
 	roleBindings, err := a.getRoleBindings(namespace)
 	if err != nil {
 		return nil, err
@@ -271,7 +271,7 @@ func (a openshiftAuthorizationAttributes) resourceMatches(resourceNames util.Str
 	return resourceNames.Has(authorizationapi.ResourceAll) || resourceNames.Has(strings.ToLower(a.GetResource()))
 }
 
-func (a openshiftAuthorizationAttributes) GetUserInfo() authenticationapi.UserInfo {
+func (a openshiftAuthorizationAttributes) GetUserInfo() user.Info {
 	return a.user
 }
 
@@ -301,7 +301,7 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 	if !ok {
 		return nil, errors.New("could not get user")
 	}
-	userInfo, ok := userInterface.(authenticationapi.UserInfo)
+	userInfo, ok := userInterface.(user.Info)
 	if !ok {
 		return nil, errors.New("wrong type returned for user")
 	}

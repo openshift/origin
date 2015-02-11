@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 )
@@ -168,7 +168,7 @@ func (defaultState) Check(state string, w http.ResponseWriter, req *http.Request
 	return true, nil
 }
 
-func (defaultState) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (defaultState) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	values, err := url.ParseQuery(state)
 	if err != nil {
 		return false, err

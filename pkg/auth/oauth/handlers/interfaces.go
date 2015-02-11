@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 )
 
@@ -35,19 +36,19 @@ type AuthenticationErrorHandler interface {
 type AuthenticationSuccessHandler interface {
 	// AuthenticationSucceeded reacts to a user authenticating, returns true if the response was written,
 	// and returns false if the response was not written.
-	AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error)
+	AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error)
 }
 
 // GrantChecker is responsible for determining if a user has authorized a client for a requested grant
 type GrantChecker interface {
 	// HasAuthorizedClient returns true if the user has authorized the client for the requested grant
-	HasAuthorizedClient(user api.UserInfo, grant *api.Grant) (bool, error)
+	HasAuthorizedClient(user user.Info, grant *api.Grant) (bool, error)
 }
 
 // GrantHandler handles errors during the grant process, or the client requests an unauthorized grant
 type GrantHandler interface {
 	// GrantNeeded reacts when a client requests an unauthorized grant, and returns true if the response was written
-	GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (handled bool, err error)
+	GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (handled bool, err error)
 }
 
 // GrantErrorHandler reacts to grant errors
@@ -62,7 +63,7 @@ type GrantErrorHandler interface {
 // the chain is aborted.
 type AuthenticationSuccessHandlers []AuthenticationSuccessHandler
 
-func (all AuthenticationSuccessHandlers) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (all AuthenticationSuccessHandlers) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	for _, h := range all {
 		if handled, err := h.AuthenticationSucceeded(user, state, w, req); handled || err != nil {
 			return handled, err

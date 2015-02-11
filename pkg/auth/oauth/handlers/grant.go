@@ -8,6 +8,7 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
@@ -41,9 +42,9 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseW
 	// Reset request to unauthorized until we verify the grant
 	ar.Authorized = false
 
-	user, ok := ar.UserData.(api.UserInfo)
+	user, ok := ar.UserData.(user.Info)
 	if !ok || user == nil {
-		return h.errorHandler.GrantError(errors.New("the provided user data is not api.UserInfo"), w, ar.HttpRequest)
+		return h.errorHandler.GrantError(errors.New("the provided user data is not user.Info"), w, ar.HttpRequest)
 	}
 
 	grant := &api.Grant{
@@ -75,7 +76,7 @@ func NewEmptyGrant() GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (emptyGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (emptyGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
 	return false, nil
 }
 
@@ -90,7 +91,7 @@ func NewAutoGrant(authregistry clientauthorization.Registry) GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (g *autoGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (g *autoGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
 	clientAuthID := g.authregistry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
 	clientAuth, err := g.authregistry.GetClientAuthorization(clientAuthID)
 	if err == nil {
@@ -142,7 +143,7 @@ func NewRedirectGrant(url string) GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (g *redirectGrant) GrantNeeded(user api.UserInfo, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
 	// If the current request has an error=grant_denied parameter, the user denied the grant
 	if err := req.FormValue("error"); err == GrantDeniedError {
 		return false, nil

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 )
@@ -32,7 +32,7 @@ type authorizeTest struct {
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "ClusterAdmin",
 			},
 			verb:      "update",
@@ -49,7 +49,7 @@ func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "SomeYahoo",
 			},
 			verb:      "get",
@@ -66,7 +66,7 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 func TestProjectAdminEditPolicy(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Anna",
 			},
 			verb:      "update",
@@ -84,7 +84,7 @@ func TestProjectAdminEditPolicy(t *testing.T) {
 func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "ClusterAdmin",
 			},
 			verb:      "update",
@@ -102,7 +102,7 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 func TestResourceKindRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Rachel",
 			},
 			verb:      "get",
@@ -118,7 +118,7 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 
 	test2 := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Rachel",
 			},
 			verb:      "get",
@@ -136,7 +136,7 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 func TestResourceKindRestrictionsWithWeirdWork(t *testing.T) {
 	test1 := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Rachel",
 			},
 			verb:      "get",
@@ -152,7 +152,7 @@ func TestResourceKindRestrictionsWithWeirdWork(t *testing.T) {
 
 	test2 := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Rachel",
 			},
 			verb:      "get",
@@ -170,7 +170,7 @@ func TestResourceKindRestrictionsWithWeirdWork(t *testing.T) {
 func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Rachel",
 			},
 			verb:      "get",
@@ -188,7 +188,7 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 func TestVerbRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Valerie",
 			},
 			verb:      "get",
@@ -204,7 +204,7 @@ func TestVerbRestrictionsWork(t *testing.T) {
 
 	test2 := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+			user: &user.DefaultInfo{
 				Name: "Valerie",
 			},
 			verb:      "create",

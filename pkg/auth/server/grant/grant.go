@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/golang/glog"
-	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	ohandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
@@ -102,7 +102,7 @@ func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (l *Grant) handleForm(user authapi.UserInfo, w http.ResponseWriter, req *http.Request) {
+func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Request) {
 	q := req.URL.Query()
 	then := q.Get("then")
 	clientID := q.Get("client_id")
@@ -152,7 +152,7 @@ func (l *Grant) handleForm(user authapi.UserInfo, w http.ResponseWriter, req *ht
 	l.render.Render(form, w, req)
 }
 
-func (l *Grant) handleGrant(user authapi.UserInfo, w http.ResponseWriter, req *http.Request) {
+func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Request) {
 	if ok, err := l.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
 		glog.Errorf("Unable to check CSRF token: %v", err)
 		l.failed("Invalid CSRF token", w, req)

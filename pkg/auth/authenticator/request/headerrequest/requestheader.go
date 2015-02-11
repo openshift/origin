@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 )
 
@@ -30,7 +30,7 @@ func NewAuthenticator(config *Config, mapper authapi.UserIdentityMapper) *Authen
 	return &Authenticator{config, mapper}
 }
 
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	username := ""
 	for _, header := range a.config.UserNameHeaders {
 		header = strings.TrimSpace(header)

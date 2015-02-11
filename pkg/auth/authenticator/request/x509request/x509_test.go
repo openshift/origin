@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 )
 
 const (
@@ -452,7 +452,7 @@ func TestX509(t *testing.T) {
 		"custom conversion error": {
 			Opts:  getDefaultVerifyOptions(t),
 			Certs: getCerts(t, clientCNCert),
-			User: UserConversionFunc(func(chain []*x509.Certificate) (api.UserInfo, bool, error) {
+			User: UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
 				return nil, false, errors.New("custom error")
 			}),
 
@@ -462,8 +462,8 @@ func TestX509(t *testing.T) {
 		"custom conversion success": {
 			Opts:  getDefaultVerifyOptions(t),
 			Certs: getCerts(t, clientCNCert),
-			User: UserConversionFunc(func(chain []*x509.Certificate) (api.UserInfo, bool, error) {
-				return &api.DefaultUserInfo{Name: "custom"}, true, nil
+			User: UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
+				return &user.DefaultInfo{Name: "custom"}, true, nil
 			}),
 
 			ExpectUserName: "custom",
