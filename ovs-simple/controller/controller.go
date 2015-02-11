@@ -2,6 +2,7 @@ package controller
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	log "github.com/golang/glog"
 	"net"
@@ -56,6 +57,12 @@ func NewController(sub registry.SubnetRegistry, hostname string, selfip string) 
 }
 
 func (oc *OvsController) StartMaster(sync bool) error {
+	// wait a minute for etcd to come alive
+	status := oc.sm.CheckEtcdIsAlive(60)
+	if !status {
+		log.Errorf("Etcd not running?")
+		return errors.New("Etcd not reachable. Sync cluster check failed.")
+	}
 	// initialize the minion key
 	if sync {
 		err := oc.sm.InitMinions()
@@ -80,8 +87,8 @@ func (oc *OvsController) StartMaster(sync bool) error {
 	oc.sna, _ = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
 	err = oc.ServeExistingMinions()
 	if err != nil {
-		log.Errorf("Error initializing existing minions. %v.", err)
-		return err
+		log.Warningf("Error initializing existing minions. %v.", err)
+		// no worry, we can still keep watching it.
 	}
 	go oc.watchMinions()
 	return nil
