@@ -23,7 +23,7 @@ type PolicyRule struct {
 	AttributeRestrictions kruntime.RawExtension `json:"attributeRestrictions"`
 	// ResourceKinds is a list of resources this rule applies to.  ResourceAll represents all resources.
 	// DEPRECATED
-	ResourceKinds []string `json:"resourceKinds"`
+	ResourceKinds []string `json:"resourceKinds,omitempty"`
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
 	Resources []string `json:"resources"`
 }

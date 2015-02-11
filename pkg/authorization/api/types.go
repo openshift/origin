@@ -50,7 +50,7 @@ var (
 	GroupsToResources = map[string][]string{
 		BuildGroupName:              {"builds", "buildconfigs", "buildlogs"},
 		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags"},
-		DeploymentGroupName:         {"deployments", "deploymentsconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
+		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		UserGroupName:               {"users", "useridentitymappings"},
 		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
 		PolicyOwnerGroupName:        {"policies", "policybindings"},
