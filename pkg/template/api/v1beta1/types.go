@@ -17,6 +17,10 @@ type Template struct {
 	// Optional: Parameters is an array of Parameters used during the
 	// Template to Config transformation.
 	Parameters []Parameter `json:"parameters,omitempty"`
+
+	// Optional: Labels is a set of labels that are applied to every
+	// object during the Template to Config transformation
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // TemplateList is a list of Template objects.

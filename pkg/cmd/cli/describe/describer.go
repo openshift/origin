@@ -372,7 +372,7 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 	}
 }
 
-func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, out *tabwriter.Writer) {
+func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, labels map[string]string, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
 
 	indent := "    "
@@ -395,6 +395,10 @@ func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, out *tabwr
 		}
 		formatAnnotations(out, meta, indent)
 	}
+	if len(labels) > 0 {
+		out.Write([]byte("\n"))
+		formatString(out, indent+"Common Labels", formatLabels(labels))
+	}
 }
 
 func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
@@ -410,7 +414,7 @@ func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
 		out.Flush()
 		d.DescribeParameters(template.Parameters, out)
 		out.Write([]byte("\n"))
-		d.DescribeObjects(template.Objects, out)
+		d.DescribeObjects(template.Objects, template.ObjectLabels, out)
 		return nil
 	})
 }
