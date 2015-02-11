@@ -13,6 +13,8 @@ type ProjectsInterface interface {
 
 // UserInterface exposes methods on user resources.
 type ProjectInterface interface {
+	Create(p *projectapi.Project) (*projectapi.Project, error)
+	Delete(name string) error
 	Get(name string) (*projectapi.Project, error)
 	List(label, field labels.Selector) (*projectapi.ProjectList, error)
 }
