@@ -53,11 +53,27 @@ func init() {
 		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
 			out.BuilderImage = in.Image
 			out.Image = in.Image
+			if in.From != nil {
+				out.From = &kapi.ObjectReference{
+					Name:      in.From.Name,
+					Namespace: in.From.Namespace,
+					Kind:      "ImageRepository",
+				}
+			}
+			out.Tag = in.Tag
 			out.Scripts = in.Scripts
 			out.Clean = !in.Incremental
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
+			if in.From != nil {
+				out.From = &api.ObjectReference{
+					Name:      in.From.Name,
+					Namespace: in.From.Namespace,
+					Kind:      "ImageRepository",
+				}
+			}
+			out.Tag = in.Tag
 			out.Scripts = in.Scripts
 			out.Incremental = !in.Clean
 			if len(in.Image) != 0 {

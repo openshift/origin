@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -13,7 +14,8 @@ import (
 // GenerateBuildFromConfig creates a new build based on a given BuildConfig. Optionally a SourceRevision for the new
 // build can be specified.  Also optionally a list of image names to be substituted can be supplied.  Values in the BuildConfig
 // that have a substitution provided will be replaced in the resulting Build
-func GenerateBuildFromConfig(bc *buildapi.BuildConfig, r *buildapi.SourceRevision, imageSubstitutions map[string]string) (build *buildapi.Build) {
+func GenerateBuildFromConfig(bc *buildapi.BuildConfig, ref *buildapi.SourceRevision, imageSubstitutions map[string]string,
+	imageRepoSubstitutions map[kapi.ObjectReference]string) (build *buildapi.Build) {
 	// Need to copy the buildConfig here so that it doesn't share pointers with
 	// the build object which could be (will be) modified later.
 	obj, _ := kapi.Scheme.Copy(bc)
@@ -24,7 +26,7 @@ func GenerateBuildFromConfig(bc *buildapi.BuildConfig, r *buildapi.SourceRevisio
 			Source:   bcCopy.Parameters.Source,
 			Strategy: bcCopy.Parameters.Strategy,
 			Output:   bcCopy.Parameters.Output,
-			Revision: r,
+			Revision: ref,
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: bcCopy.Labels,
@@ -38,6 +40,14 @@ func GenerateBuildFromConfig(bc *buildapi.BuildConfig, r *buildapi.SourceRevisio
 	for originalImage, newImage := range imageSubstitutions {
 		glog.V(4).Infof("Substituting %s for %s", newImage, originalImage)
 		SubstituteImageReferences(b, originalImage, newImage)
+	}
+	for imageRepo, newImage := range imageRepoSubstitutions {
+		if len(imageRepo.Namespace) != 0 {
+			glog.V(4).Infof("Substituting repository %s for %s/%s", newImage, imageRepo.Namespace, imageRepo.Name)
+		} else {
+			glog.V(4).Infof("Substituting repository %s for %s", newImage, imageRepo.Name)
+		}
+		SubstituteImageRepoReferences(b, imageRepo, newImage)
 	}
 	return b
 }
@@ -62,10 +72,65 @@ func GenerateBuildFromBuild(build *buildapi.Build) *buildapi.Build {
 // the image tag from the corresponding image repo rather than the image field from the buildconfig
 // as the base image for the build.
 func GenerateBuildWithImageTag(config *buildapi.BuildConfig, revision *buildapi.SourceRevision, imageRepoGetter osclient.ImageRepositoryNamespaceGetter) (*buildapi.Build, error) {
-
-	imageSubstitutions := make(map[string]string)
+	var build *buildapi.Build
+	var err error
 	glog.V(4).Infof("Generating tagged build for config %s", config.Name)
 
+	switch {
+	case config.Parameters.Strategy.Type == buildapi.STIBuildStrategyType:
+		if config.Parameters.Strategy.STIStrategy.From != nil && config.Parameters.Strategy.STIStrategy.From.Name != "" {
+			build, err = GenerateBuildUsingObjectReference(config, revision, imageRepoGetter)
+		} else {
+			build, err = GenerateBuildUsingImageTriggerTag(config, revision, imageRepoGetter)
+		}
+	case config.Parameters.Strategy.Type == buildapi.DockerBuildStrategyType:
+		build, err = GenerateBuildUsingImageTriggerTag(config, revision, imageRepoGetter)
+	case config.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType:
+		build, err = GenerateBuildUsingImageTriggerTag(config, revision, imageRepoGetter)
+	default:
+		return nil, fmt.Errorf("Build strategy type must be set")
+	}
+	return build, err
+}
+
+// GenerateBuildUsingObjectReference examines the ImageRepo referenced by the BuildConfig and resolves it to
+// an imagespec, it then returns a Build object that uses that imagespec.
+func GenerateBuildUsingObjectReference(config *buildapi.BuildConfig, revision *buildapi.SourceRevision, imageRepoGetter osclient.ImageRepositoryNamespaceGetter) (*buildapi.Build, error) {
+	imageRepoSubstitutions := make(map[kapi.ObjectReference]string)
+	from := config.Parameters.Strategy.STIStrategy.From
+	namespace := from.Namespace
+	if len(namespace) == 0 {
+		namespace = config.Namespace
+	}
+	tag := config.Parameters.Strategy.STIStrategy.Tag
+	if len(tag) == 0 {
+		tag = buildapi.DefaultImageTag
+	}
+
+	imageRepo, err := imageRepoGetter.GetByNamespace(namespace, from.Name)
+	if err != nil {
+		return nil, err
+	}
+	if imageRepo == nil || imageRepo.Status.DockerImageRepository == "" {
+		return nil, fmt.Errorf("Docker Image Repository %s missing in namespace %s", from.Name, namespace)
+	}
+	glog.V(4).Infof("Found image repo %s", imageRepo.Name)
+	latest, err := imageapi.LatestTaggedImage(imageRepo, tag)
+	if err == nil {
+		glog.V(4).Infof("Using image %s for image repository %s in namespace %s", latest.DockerImageReference, from.Name, from.Namespace)
+		imageRepoSubstitutions[*from] = latest.DockerImageReference
+	} else {
+		return nil, fmt.Errorf("Docker Image Repository %s has no tag %s", from.Name, tag)
+	}
+	glog.V(4).Infof("Generating build from config for build config %s", config.Name)
+	return GenerateBuildFromConfig(config, revision, nil, imageRepoSubstitutions), nil
+}
+
+// GenerateBuildUsingTriggerTag examines the ImageChangeTriggers associated with the BuildConfig
+// and uses them to determine the current imagespec that should be used to run this build, it then
+// returns a Build object that uses that imagespec.
+func GenerateBuildUsingImageTriggerTag(config *buildapi.BuildConfig, revision *buildapi.SourceRevision, imageRepoGetter osclient.ImageRepositoryNamespaceGetter) (*buildapi.Build, error) {
+	imageSubstitutions := make(map[string]string)
 	for _, trigger := range config.Triggers {
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
@@ -111,7 +176,7 @@ func GenerateBuildWithImageTag(config *buildapi.BuildConfig, revision *buildapi.
 		imageSubstitutions[icTrigger.Image] = imageRef
 	}
 	glog.V(4).Infof("Generating build from config for build config %s", config.Name)
-	build := GenerateBuildFromConfig(config, revision, imageSubstitutions)
+	build := GenerateBuildFromConfig(config, revision, imageSubstitutions, nil)
 	return build, nil
 }
 
@@ -124,6 +189,7 @@ func SubstituteImageReferences(build *buildapi.Build, oldImage string, newImage 
 		build.Parameters.Strategy.DockerStrategy.Image = newImage
 	case build.Parameters.Strategy.Type == buildapi.STIBuildStrategyType &&
 		build.Parameters.Strategy.STIStrategy != nil &&
+		(build.Parameters.Strategy.STIStrategy.From == nil || build.Parameters.Strategy.STIStrategy.From.Name == "") &&
 		build.Parameters.Strategy.STIStrategy.Image == oldImage:
 		build.Parameters.Strategy.STIStrategy.Image = newImage
 	case build.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType:
@@ -153,5 +219,20 @@ func SubstituteImageReferences(build *buildapi.Build, oldImage string, newImage 
 		if strategy.Image == oldImage {
 			strategy.Image = newImage
 		}
+	}
+}
+
+// SubstituteImageRepoReferences uses references to an image repository to set an actual image name
+// It also clears the ImageRepo reference from the BuildStrategy, if one was set.  The imagereference
+// field will be used explicitly.
+func SubstituteImageRepoReferences(build *buildapi.Build, imageRepo kapi.ObjectReference, newImage string) {
+	switch {
+	case build.Parameters.Strategy.Type == buildapi.STIBuildStrategyType &&
+		build.Parameters.Strategy.STIStrategy != nil &&
+		build.Parameters.Strategy.STIStrategy.From != nil &&
+		build.Parameters.Strategy.STIStrategy.From.Name == imageRepo.Name &&
+		build.Parameters.Strategy.STIStrategy.From.Namespace == imageRepo.Namespace:
+		build.Parameters.Strategy.STIStrategy.Image = newImage
+		build.Parameters.Strategy.STIStrategy.From = nil
 	}
 }
