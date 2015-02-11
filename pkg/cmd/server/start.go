@@ -496,30 +496,30 @@ func start(cfg *config, args []string) error {
 			EtcdHelper:           etcdHelper,
 
 			// Max token ages
-			AuthorizeTokenMaxAgeSeconds: envInt("ORIGIN_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS", 300, 1),
-			AccessTokenMaxAgeSeconds:    envInt("ORIGIN_OAUTH_ACCESS_TOKEN_MAX_AGE_SECONDS", 3600, 1),
+			AuthorizeTokenMaxAgeSeconds: envInt("OPENSHIFT_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS", 300, 1),
+			AccessTokenMaxAgeSeconds:    envInt("OPENSHIFT_OAUTH_ACCESS_TOKEN_MAX_AGE_SECONDS", 3600, 1),
 			// Handlers
-			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
-			AuthHandler:         origin.AuthHandlerType(env("ORIGIN_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
-			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
+			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("OPENSHIFT_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
+			AuthHandler:         origin.AuthHandlerType(env("OPENSHIFT_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
+			GrantHandler:        origin.GrantHandlerType(env("OPENSHIFT_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
 			// RequestHeader config
-			RequestHeaders: strings.Split(env("ORIGIN_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
+			RequestHeaders: strings.Split(env("OPENSHIFT_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
 			// Session config (default to unknowable secret)
-			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", uuid.NewUUID().String())},
-			SessionMaxAgeSeconds: envInt("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", 300, 1),
-			SessionName:          env("ORIGIN_OAUTH_SESSION_NAME", "ssn"),
+			SessionSecrets:       []string{env("OPENSHIFT_OAUTH_SESSION_SECRET", uuid.NewUUID().String())},
+			SessionMaxAgeSeconds: envInt("OPENSHIFT_OAUTH_SESSION_MAX_AGE_SECONDS", 300, 1),
+			SessionName:          env("OPENSHIFT_OAUTH_SESSION_NAME", "ssn"),
 			// Password config
-			PasswordAuth: origin.PasswordAuthType(env("ORIGIN_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
-			BasicAuthURL: env("ORIGIN_OAUTH_BASIC_AUTH_URL", ""),
+			PasswordAuth: origin.PasswordAuthType(env("OPENSHIFT_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
+			BasicAuthURL: env("OPENSHIFT_OAUTH_BASIC_AUTH_URL", ""),
 			// Token config
-			TokenStore:    origin.TokenStoreType(env("ORIGIN_OAUTH_TOKEN_STORE", string(origin.TokenStoreEtcd))),
-			TokenFilePath: env("ORIGIN_OAUTH_TOKEN_FILE_PATH", ""),
+			TokenStore:    origin.TokenStoreType(env("OPENSHIFT_OAUTH_TOKEN_STORE", string(origin.TokenStoreOAuth))),
+			TokenFilePath: env("OPENSHIFT_OAUTH_TOKEN_FILE_PATH", ""),
 			// Google config
-			GoogleClientID:     env("ORIGIN_OAUTH_GOOGLE_CLIENT_ID", ""),
-			GoogleClientSecret: env("ORIGIN_OAUTH_GOOGLE_CLIENT_SECRET", ""),
+			GoogleClientID:     env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_ID", ""),
+			GoogleClientSecret: env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_SECRET", ""),
 			// Github config
-			GithubClientID:     env("ORIGIN_OAUTH_GITHUB_CLIENT_ID", ""),
-			GithubClientSecret: env("ORIGIN_OAUTH_GITHUB_CLIENT_SECRET", ""),
+			GithubClientID:     env("OPENSHIFT_OAUTH_GITHUB_CLIENT_ID", ""),
+			GithubClientSecret: env("OPENSHIFT_OAUTH_GITHUB_CLIENT_SECRET", ""),
 		}
 
 		// Allow privileged containers
