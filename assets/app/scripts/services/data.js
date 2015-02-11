@@ -3,19 +3,13 @@
 angular.module('openshiftConsole')
 .factory('DataService', function($http, $ws, $rootScope, $q) {
   function Data(array) {
-    // TODO just need to check for id until v1beta3
     this._data = {};
-    if (array.length > 0 && array[0].id) {
-      this._objectsByAttribute(array, "id", this._data);
-    }
-    else {
-      this._objectsByAttribute(array, "metadata.name", this._data);
-    }
+    this._objectsByAttribute(array, "metadata.name", this._data);
   }
 
   Data.prototype.by = function(attr, secondaryAttr) {
     // TODO store already generated indices
-    if (attr == "id" || attr == "metadata.name") {
+    if (attr == "metadata.name") {
       return this._data;
     }
     var map = {};
@@ -26,7 +20,7 @@ angular.module('openshiftConsole')
   };
 
   Data.prototype.update = function(object, action) {
-    _objectByAttribute(object, object.id ? "id" : "metadata.name", this._data, action);
+    _objectByAttribute(object, "metadata.name", this._data, action);
   };
 
   Data.prototype._objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
@@ -51,12 +45,6 @@ angular.module('openshiftConsole')
     // Split the secondary attribute by dot notation if there is one
     var secondaryAttrValue = obj;
     if (secondaryAttr) {
-      // TODO remove this when we don't have to special case id
-      if (secondaryAttr == "metadata.name") {
-        if (obj.id) {
-          secondaryAttr = "id";
-        }
-      }
       var subSecondaryAttrs = secondaryAttr.split(".");
       for (var i = 0; i < subSecondaryAttrs.length; i++) {
         secondaryAttrValue = secondaryAttrValue[subSecondaryAttrs[i]];
@@ -217,7 +205,6 @@ angular.module('openshiftConsole')
     var deferred = $q.defer();
 
     if (!force && this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
-      // TODO can take out the id bit once v1beta3 is there
       var obj = this._data(type, context).by('metadata.name')[name];
       if (obj) {
         $rootScope.$apply(function(){
@@ -589,7 +576,7 @@ angular.module('openshiftConsole')
 
   // Set the api version the console is currently able to talk to
   apicfg.openshift.version = "v1beta1";
-  apicfg.k8s.version = "v1beta1";
+  apicfg.k8s.version = "v1beta3";
   
   // TODO this is not the ideal, issue open to discuss adding
   // an introspection endpoint that would give us this mapping
@@ -603,7 +590,7 @@ angular.module('openshiftConsole')
     users:                  apicfg.openshift,
 
     pods:                   apicfg.k8s,
-    replicationControllers: apicfg.k8s,
+    replicationcontrollers: apicfg.k8s,
     services:               apicfg.k8s
   };
 

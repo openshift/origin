@@ -130,7 +130,7 @@ angular.module('openshiftConsole')
 
   LabelFilter.prototype.addLabelSuggestionsFromResources = function(items, map) {
     // check if we are extracting from a single item or a hash of items
-    if (items.id || (items.metadata && items.metadata.name)) {
+    if (items.metadata && items.metadata.name) {
       this._extractLabelsFromItem(items, map);
     }
     else {
@@ -146,12 +146,7 @@ angular.module('openshiftConsole')
   };
 
   LabelFilter.prototype._extractLabelsFromItem = function(item, map) {
-    // TODO temporary until we handle everything with item.metadata.labels
-    var labels = item.labels;
-    if (item.metadata) {
-      labels = item.metadata.labels;
-    }
-
+    var labels = item.metadata ? item.metadata.labels : {};
     var self = this;
     $each(labels, function(key, value) {
       if (!map[key]) {

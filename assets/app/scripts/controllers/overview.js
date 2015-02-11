@@ -30,7 +30,7 @@ angular.module('openshiftConsole')
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.pods = pods.by("metadata.name");
-      $scope.podsByLabel = pods.by("labels", "metadata.name");
+      $scope.podsByLabel = pods.by("metadata.labels", "metadata.name");
       podsByServiceByLabel();
       console.log("podsByLabel (list)", $scope.podsByLabel);      
     }, {poll: true}));
@@ -50,7 +50,7 @@ angular.module('openshiftConsole')
       $scope.podsByServiceByLabel = {};
       $each($scope.services, function(name, service) {
         var servicePods = [];
-        $each(service.selector, function(selectorKey, selectorValue) {
+        $each(service.spec.selector, function(selectorKey, selectorValue) {
           if ($scope.podsByLabel[selectorKey]) {
             var pods = $scope.podsByLabel[selectorKey][selectorValue] || {};
             $each(pods, function(name, pod) {
@@ -60,16 +60,16 @@ angular.module('openshiftConsole')
         });
         $scope.podsByServiceByLabel[name]  =  {};
         // TODO last remaining reference to this... 
-        DataService.objectsByAttribute(servicePods, "labels", $scope.podsByServiceByLabel[name], null, "metadata.name");
+        DataService.objectsByAttribute(servicePods, "metadata.labels", $scope.podsByServiceByLabel[name], null, "metadata.name");
       });
 
       console.log("podsByServiceByLabel", $scope.podsByServiceByLabel);      
     };
 
     function parseEncodedDeploymentConfig(deployment) {
-      if (deployment.annotations && deployment.annotations.encodedDeploymentConfig) {
+      if (deployment.metadata.annotations && deployment.metadata.annotations.encodedDeploymentConfig) {
         try {
-          var depConfig = $.parseJSON(deployment.annotations.encodedDeploymentConfig);
+          var depConfig = $.parseJSON(deployment.metadata.annotations.encodedDeploymentConfig);
           deployment.details = depConfig.details;
         }
         catch (e) {
@@ -79,9 +79,9 @@ angular.module('openshiftConsole')
     }
 
     // Sets up subscription for deployments and deploymentsByConfig
-    watches.push(DataService.watch("replicationControllers", $scope, function(deployments, action, deployment) {
+    watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {
       $scope.deployments = deployments.by("metadata.name");
-      $scope.deploymentsByConfig = deployments.by("annotations.deploymentConfig", "metadata.name");
+      $scope.deploymentsByConfig = deployments.by("metadata.annotations.deploymentConfig", "metadata.name");
       if (deployment) {
         if (action !== "DELETED") {
           parseEncodedDeploymentConfig(deployment);

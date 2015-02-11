@@ -9,7 +9,7 @@
         </div>
       </div>      
       <div style="margin-bottom: 10px;" ng-repeat="pod in pods">
-        <h3>{{pod.id}} ({{pod.currentState.status}})</h3>
+        <h3>{{pod.metadata.name}} ({{pod.status.phase}})</h3>
         <pod-template ng-init="podTemplate = pod"></pod-template>
       </div>      
     </div>
