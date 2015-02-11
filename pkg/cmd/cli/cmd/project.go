@@ -64,7 +64,12 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 			}
 
 			pathFromFlag := cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
-			configStore, err := config.Load(clientCfg, pathFromFlag)
+
+			configStore, err := config.LoadFrom(pathFromFlag)
+			if err != nil {
+				configStore, err = config.LoadWithLoadingRules()
+				checkErr(err)
+			}
 			checkErr(err)
 
 			config := configStore.Config

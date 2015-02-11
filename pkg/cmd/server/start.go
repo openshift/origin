@@ -14,7 +14,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
-
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
