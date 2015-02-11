@@ -591,7 +591,9 @@ angular.module('openshiftConsole')
 
     pods:                   apicfg.k8s,
     replicationcontrollers: apicfg.k8s,
-    services:               apicfg.k8s
+    services:               apicfg.k8s,
+    resourcequotas:         apicfg.k8s,
+    limitranges:            apicfg.k8s
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {

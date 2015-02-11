@@ -7,6 +7,11 @@ angular.module('openshiftConsole')
       return null;
     };
   })
+  .filter('description', function(annotationFilter) {
+    return function(resource) {
+      return annotationFilter(resource, "description");
+    };
+  })  
   .filter('label', function() {
     return function(resource, key) {
       if (resource && resource.metadata && resource.metadata.labels) {

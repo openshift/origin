@@ -39,13 +39,13 @@ angular.module('openshiftConsole')
   };
 
   LabelSelector.prototype.each = function(fn) {
-    $each(this._conjuncts, fn);
+    angular.forEach(this._conjuncts, fn);
   };
 
   LabelSelector.prototype.select = function(resources) {
     var selectedResources = {};
     var self = this;
-    $each(resources, function(resId, resource) {
+    angular.forEach(resources, function(resource, resId) {
       if (self.matches(resource)) {
         selectedResources[resId] = resource;
       }
@@ -135,7 +135,7 @@ angular.module('openshiftConsole')
     }
     else {
       var self = this;
-      $each(items, function(key, item) {
+      angular.forEach(items, function(item) {
         self._extractLabelsFromItem(item, map);
       });
     }
@@ -148,7 +148,7 @@ angular.module('openshiftConsole')
   LabelFilter.prototype._extractLabelsFromItem = function(item, map) {
     var labels = item.metadata ? item.metadata.labels : {};
     var self = this;
-    $each(labels, function(key, value) {
+    angular.forEach(labels, function(value, key) {
       if (!map[key]) {
         map[key] = [];
       }
@@ -169,6 +169,9 @@ angular.module('openshiftConsole')
   // filterInputElement and activeFiltersElement should be empty HTML nodes
   LabelFilter.prototype.setupFilterWidget = function(filterInputElement, activeFiltersElement) {
     var self = this;
+
+    this._labelFilterRootElement = filterInputElement;
+    this._labelFilterActiveFiltersRootElement = activeFiltersElement;
 
     // Render base select boxes and buttons for inputs of widget
     var labelFilterElem = $('<div>')
@@ -396,7 +399,7 @@ angular.module('openshiftConsole')
     // If we are transitioning scenes we may still have filters active but be re-creating the DOM for the widget
     if (!this._labelSelector.isEmpty()) {
       this._labelFilterActiveElement.show();
-      this._labelSelector.each(function(id, filter) {
+      this._labelSelector.each(function(filter) {
         self._renderActiveFilter(filter);
       });
     }      
@@ -445,6 +448,25 @@ angular.module('openshiftConsole')
   LabelFilter.prototype._clearActiveFilters = function() {
     this._labelSelector.clearConjuncts();
     this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
+  };
+
+  LabelFilter.prototype.toggleFilterWidget = function(show) {
+    if (this._labelFilterRootElement) {
+      if (show) {
+        this._labelFilterRootElement.show();
+      }
+      else {
+        this._labelFilterRootElement.hide();
+      }
+    }
+    if (this._labelFilterActiveFiltersRootElement) {
+      if (show) {
+        this._labelFilterActiveFiltersRootElement.show();
+      }
+      else {
+        this._labelFilterActiveFiltersRootElement.hide();
+      }
+    }
   };
 
   return new LabelFilter();
