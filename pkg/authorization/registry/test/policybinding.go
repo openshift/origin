@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -78,4 +79,8 @@ func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx kapi.Context, policyBind
 func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string) error {
 	r.DeletedPolicyBindingName = id
 	return r.Err
+}
+
+func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+	return nil, r.Err
 }

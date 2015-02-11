@@ -11,6 +11,7 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -103,6 +104,10 @@ func (r *Etcd) DeletePolicy(ctx kapi.Context, name string) error {
 	return r.policyRegistry.Delete(ctx, name)
 }
 
+func (r *Etcd) WatchPolicies(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.policyRegistry.Watch(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
+}
+
 func makePolicyBindingListKey(ctx kapi.Context) string {
 	return kubeetcd.MakeEtcdListKey(ctx, PolicyBindingPath)
 }
@@ -147,4 +152,8 @@ func (r *Etcd) UpdatePolicyBinding(ctx kapi.Context, newPolicyBinding *authoriza
 
 func (r *Etcd) DeletePolicyBinding(ctx kapi.Context, name string) error {
 	return r.policyBindingRegistry.Delete(ctx, name)
+}
+
+func (r *Etcd) WatchPolicyBindings(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.policyBindingRegistry.Watch(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
 }
