@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -15,6 +16,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	controller "github.com/openshift/origin/pkg/deploy/controller"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -28,11 +30,26 @@ type DeploymentConfigControllerFactory struct {
 }
 
 func (factory *DeploymentConfigControllerFactory) Create() *controller.DeploymentConfigController {
+	deploymentConfigLW := &deployutil.ListWatcherImpl{
+		ListFunc: func() (runtime.Object, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+		},
+	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
+	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
 
 	return &controller.DeploymentConfigController{
-		DeploymentInterface: &ClientDeploymentInterface{factory.KubeClient},
+		DeploymentClient: &controller.DeploymentConfigControllerDeploymentClientImpl{
+			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
+			},
+			CreateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				return factory.KubeClient.ReplicationControllers(namespace).Create(deployment)
+			},
+		},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			config := queue.Pop().(*deployapi.DeploymentConfig)
 			panicIfStopped(factory.Stop, "deployment config controller stopped")
@@ -61,17 +78,22 @@ type DeploymentControllerFactory struct {
 	Codec runtime.Codec
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
-
-	// deploymentStore is maintained on the factory to support narrowing of the pod polling scope.
-	deploymentStore cache.Store
 }
 
 func (factory *DeploymentControllerFactory) Create() *controller.DeploymentController {
+	deploymentLW := &deployutil.ListWatcherImpl{
+		ListFunc: func() (runtime.Object, error) {
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+		},
+	}
 	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, deploymentQueue).RunUntil(factory.Stop)
+	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue).RunUntil(factory.Stop)
 
-	factory.deploymentStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, factory.deploymentStore).RunUntil(factory.Stop)
+	deploymentStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
+	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentStore).RunUntil(factory.Stop)
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)
@@ -82,13 +104,44 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 	// TODO: Find a way to get watch events for Pod/container status updates. The polling
 	// strategy is horribly inefficient and should be addressed upstream somehow.
 	podQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).RunUntil(factory.Stop)
+	pollFunc := func() (cache.Enumerator, error) {
+		return pollPods(deploymentStore, factory.KubeClient)
+	}
+	cache.NewPoller(pollFunc, 10*time.Second, podQueue).RunUntil(factory.Stop)
 
 	return &controller.DeploymentController{
-		ContainerCreator:    factory,
-		DeploymentInterface: &ClientDeploymentInterface{factory.KubeClient},
-		PodInterface:        &DeploymentControllerPodInterface{factory.KubeClient},
-		Environment:         factory.Environment,
+		ContainerCreator: &defaultContainerCreator{factory.RecreateStrategyImage},
+		DeploymentClient: &controller.DeploymentControllerDeploymentClientImpl{
+			// Since we need to use a deployment cache to support the pod poller, go ahead and use
+			// it for other deployment lookups and maintain the usual REST API for not-found errors.
+			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				example := &kapi.ReplicationController{
+					ObjectMeta: kapi.ObjectMeta{
+						Namespace: namespace,
+						Name:      name,
+					}}
+				obj, exists, err := deploymentStore.Get(example)
+				if !exists {
+					return nil, kerrors.NewNotFound(example.Kind, name)
+				}
+				if err != nil {
+					return nil, err
+				}
+				return obj.(*kapi.ReplicationController), nil
+			},
+			UpdateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
+			},
+		},
+		PodClient: &controller.DeploymentControllerPodClientImpl{
+			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				return factory.KubeClient.Pods(namespace).Create(pod)
+			},
+			DeletePodFunc: func(namespace, name string) error {
+				return factory.KubeClient.Pods(namespace).Delete(name)
+			},
+		},
+		Environment: factory.Environment,
 		NextDeployment: func() *kapi.ReplicationController {
 			deployment := deploymentQueue.Pop().(*kapi.ReplicationController)
 			panicIfStopped(factory.Stop, "deployment controller stopped")
@@ -99,22 +152,25 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 			panicIfStopped(factory.Stop, "deployment controller stopped")
 			return pod
 		},
-		DeploymentStore: factory.deploymentStore,
-		UseLocalImages:  factory.UseLocalImages,
-		Codec:           factory.Codec,
-		Stop:            factory.Stop,
+		UseLocalImages: factory.UseLocalImages,
+		Codec:          factory.Codec,
+		Stop:           factory.Stop,
 	}
 }
 
-// CreateContainer lets DeploymentControllerFactory satisfy the DeploymentContainerCreator interface
-// and makes a container using the configuration of the factory.
-func (factory *DeploymentControllerFactory) CreateContainer(strategy *deployapi.DeploymentStrategy) *kapi.Container {
+// CreateContainer is the default DeploymentContainerCreator. It makes containers using only
+// the input strategy parameters and a user defined image for the Recreate strategy.
+type defaultContainerCreator struct {
+	recreateStrategyImage string
+}
+
+func (c *defaultContainerCreator) CreateContainer(strategy *deployapi.DeploymentStrategy) *kapi.Container {
 	// Every strategy type should be handled here.
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeRecreate:
 		// Use the factory-configured image.
 		return &kapi.Container{
-			Image: factory.RecreateStrategyImage,
+			Image: c.recreateStrategyImage,
 		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		// Use user-defined values from the strategy input.
@@ -131,10 +187,10 @@ func (factory *DeploymentControllerFactory) CreateContainer(strategy *deployapi.
 
 // pollPods lists all pods associated with pending or running deployments and returns
 // a cache.Enumerator suitable for use with a cache.Poller.
-func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error) {
+func pollPods(deploymentStore cache.Store, kClient kclient.PodsNamespacer) (cache.Enumerator, error) {
 	list := &kapi.PodList{}
 
-	for _, obj := range factory.deploymentStore.List() {
+	for _, obj := range deploymentStore.List() {
 		deployment := obj.(*kapi.ReplicationController)
 
 		switch deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation]) {
@@ -146,7 +202,7 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 				continue
 			}
 
-			pod, err := factory.KubeClient.Pods(deployment.Namespace).Get(podID)
+			pod, err := kClient.Pods(deployment.Namespace).Get(podID)
 			if err != nil {
 				glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", podID, deployment.Name, err)
 				continue
@@ -157,18 +213,6 @@ func (factory *DeploymentControllerFactory) pollPods() (cache.Enumerator, error)
 	}
 
 	return &podEnumerator{list}, nil
-}
-
-type DeploymentControllerPodInterface struct {
-	KubeClient kclient.Interface
-}
-
-func (i DeploymentControllerPodInterface) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-	return i.KubeClient.Pods(namespace).Create(pod)
-}
-
-func (i DeploymentControllerPodInterface) DeletePod(namespace, id string) error {
-	return i.KubeClient.Pods(namespace).Delete(id)
 }
 
 // podEnumerator allows a cache.Poller to enumerate items in an api.PodList
@@ -200,22 +244,36 @@ type DeploymentConfigChangeControllerFactory struct {
 }
 
 func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.DeploymentConfigChangeController {
+	deploymentConfigLW := &deployutil.ListWatcherImpl{
+		ListFunc: func() (runtime.Object, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+		},
+	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
-
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&deploymentLW{client: factory.KubeClient, field: labels.Everything()}, &kapi.ReplicationController{}, store).RunUntil(factory.Stop)
+	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
 
 	return &controller.DeploymentConfigChangeController{
-		ChangeStrategy: &ClientDeploymentConfigInterface{factory.Client},
+		ChangeStrategy: &controller.ChangeStrategyImpl{
+			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
+			},
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				return factory.Client.DeploymentConfigs(namespace).Generate(name)
+			},
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				return factory.Client.DeploymentConfigs(namespace).Update(config)
+			},
+		},
 		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
 			config := queue.Pop().(*deployapi.DeploymentConfig)
 			panicIfStopped(factory.Stop, "deployment config change controller stopped")
 			return config
 		},
-		DeploymentStore: store,
-		Codec:           factory.Codec,
-		Stop:            factory.Stop,
+		Codec: factory.Codec,
+		Stop:  factory.Stop,
 	}
 }
 
@@ -228,15 +286,45 @@ type ImageChangeControllerFactory struct {
 }
 
 func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
+	imageRepositoryLW := &deployutil.ListWatcherImpl{
+		ListFunc: func() (runtime.Object, error) {
+			return factory.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return factory.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+		},
+	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).RunUntil(factory.Stop)
+	cache.NewReflector(imageRepositoryLW, &imageapi.ImageRepository{}, queue).RunUntil(factory.Stop)
 
+	deploymentConfigLW := &deployutil.ListWatcherImpl{
+		ListFunc: func() (runtime.Object, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+		},
+	}
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, store).RunUntil(factory.Stop)
+	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, store).RunUntil(factory.Stop)
 
 	return &controller.ImageChangeController{
-		DeploymentConfigInterface: &ClientDeploymentConfigInterface{factory.Client},
-		DeploymentConfigStore:     store,
+		DeploymentConfigClient: &controller.ImageChangeControllerDeploymentConfigClientImpl{
+			ListDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
+				configs := []*deployapi.DeploymentConfig{}
+				objs := store.List()
+				for _, obj := range objs {
+					configs = append(configs, obj.(*deployapi.DeploymentConfig))
+				}
+				return configs, nil
+			},
+			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				return factory.Client.DeploymentConfigs(namespace).Generate(name)
+			},
+			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				return factory.Client.DeploymentConfigs(namespace).Update(config)
+			},
+		},
 		NextImageRepository: func() *imageapi.ImageRepository {
 			repo := queue.Pop().(*imageapi.ImageRepository)
 			panicIfStopped(factory.Stop, "deployment config change controller stopped")
@@ -253,85 +341,4 @@ func panicIfStopped(ch <-chan struct{}, message interface{}) {
 		panic(message)
 	default:
 	}
-}
-
-// deploymentLW is a ListWatcher implementation for Deployments.
-type deploymentLW struct {
-	client kclient.Interface
-	field  labels.Selector
-}
-
-// List lists all Deployments which match the given field selector.
-func (lw *deploymentLW) List() (runtime.Object, error) {
-	return lw.client.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
-}
-
-// Watch watches all Deployments matching the given field selector.
-func (lw *deploymentLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), lw.field, resourceVersion)
-}
-
-// deploymentConfigLW is a ListWatcher implementation for DeploymentConfigs.
-type deploymentConfigLW struct {
-	client osclient.Interface
-}
-
-// List lists all DeploymentConfigs.
-func (lw *deploymentConfigLW) List() (runtime.Object, error) {
-	return lw.client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
-}
-
-// Watch watches all DeploymentConfigs.
-func (lw *deploymentConfigLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
-}
-
-// imageRepositoryLW is a ListWatcher for ImageRepositories.
-type imageRepositoryLW struct {
-	client osclient.Interface
-}
-
-// List lists all ImageRepositories.
-func (lw *imageRepositoryLW) List() (runtime.Object, error) {
-	return lw.client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
-}
-
-// Watch watches all ImageRepositories.
-func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
-}
-
-// ClientDeploymentInterface is a dccDeploymentInterface and dcDeploymentInterface which delegates to the OpenShift client interfaces
-type ClientDeploymentInterface struct {
-	Client kclient.Interface
-}
-
-// GetDeployment returns deployment using OpenShift client.
-func (c ClientDeploymentInterface) GetDeployment(namespace, name string) (*kapi.ReplicationController, error) {
-	return c.Client.ReplicationControllers(namespace).Get(name)
-}
-
-// CreateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterface) CreateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return c.Client.ReplicationControllers(namespace).Create(deployment)
-}
-
-// UpdateDeployment creates deployment using OpenShift client.
-func (c ClientDeploymentInterface) UpdateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return c.Client.ReplicationControllers(namespace).Update(deployment)
-}
-
-// ClientDeploymentConfigInterface is a changeStrategy which delegates to the OpenShift client interfaces
-type ClientDeploymentConfigInterface struct {
-	Client osclient.Interface
-}
-
-// GenerateDeploymentConfig generates deploymentConfig using OpenShift client.
-func (c ClientDeploymentConfigInterface) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return c.Client.DeploymentConfigs(namespace).Generate(name)
-}
-
-// UpdateDeploymentConfig creates deploymentConfig using OpenShift client.
-func (c ClientDeploymentConfigInterface) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	return c.Client.DeploymentConfigs(namespace).Update(config)
 }
