@@ -133,8 +133,8 @@ const (
 type TokenStoreType string
 
 const (
-	// Validate bearer tokens by looking in etcd
-	TokenStoreEtcd TokenStoreType = "etcd"
+	// Validate bearer tokens by looking in the OAuth access token registry
+	TokenStoreOAuth TokenStoreType = "oauth"
 	// Validate bearer tokens by looking in a CSV file located at the specified TokenFilePath
 	TokenStoreFile TokenStoreType = "file"
 )
@@ -510,7 +510,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 	switch authRequestHandlerType {
 	case AuthRequestHandlerBearer:
 		switch c.TokenStore {
-		case TokenStoreEtcd:
+		case TokenStoreOAuth:
 			tokenAuthenticator, err := GetEtcdTokenAuthenticator(c.EtcdHelper)
 			if err != nil {
 				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
@@ -523,7 +523,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 			}
 			authRequestHandler = bearertoken.New(tokenAuthenticator)
 		default:
-			glog.Fatalf("Unknown TokenStore %s. Must be etcd or file.  The oauth server cannot start!", c.TokenStore)
+			glog.Fatalf("Unknown TokenStore %s. Must be oauth or file.  The oauth server cannot start!", c.TokenStore)
 		}
 	case AuthRequestHandlerRequestHeader:
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
