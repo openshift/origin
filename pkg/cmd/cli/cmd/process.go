@@ -39,7 +39,7 @@ func NewCmdProcess(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
 		Short: "Process template into list of resources",
-		Long: `Process template into a lis of resources specified in filename or stdin
+		Long: `Process template into a list of resources specified in filename or stdin
 
 JSON and YAML formats are accepted.
 
