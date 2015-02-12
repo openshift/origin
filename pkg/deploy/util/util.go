@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -141,4 +142,17 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	}
 
 	return deployment, nil
+}
+
+type ListWatcherImpl struct {
+	ListFunc  func() (runtime.Object, error)
+	WatchFunc func(resourceVersion string) (watch.Interface, error)
+}
+
+func (lw *ListWatcherImpl) List() (runtime.Object, error) {
+	return lw.ListFunc()
+}
+
+func (lw *ListWatcherImpl) Watch(resourceVersion string) (watch.Interface, error) {
+	return lw.WatchFunc(resourceVersion)
 }
