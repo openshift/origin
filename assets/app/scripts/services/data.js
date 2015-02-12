@@ -23,10 +23,14 @@ angular.module('openshiftConsole')
     _objectByAttribute(object, "metadata.name", this._data, action);
   };
 
+
+  // actions is whether the object was (ADDED|DELETED|MODIFIED).  ADDED is assumed if actions is not
+  // passed.  If objects is a hash then actions must be a hash with the same keys.  If objects is an array
+  // then actions must be an array of the same order and length.
   Data.prototype._objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
-    for (var i = 0; i < objects.length; i++) {
-      _objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
-    }
+    angular.forEach(objects, function(obj, key) {
+      _objectByAttribute(obj, attr, map, actions ? actions[key] : null, secondaryAttr);
+    });
   };
 
   // Handles attr with dot notation
@@ -559,11 +563,13 @@ angular.module('openshiftConsole')
     }
   };
 
-  // TODO Possibly remove these from DataService
+  // actions is whether the object was (ADDED|DELETED|MODIFIED).  ADDED is assumed if actions is not
+  // passed.  If objects is a hash then actions must be a hash with the same keys.  If objects is an array
+  // then actions must be an array of the same order and length.
   DataService.prototype.objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
-    for (var i = 0; i < objects.length; i++) {
-      _objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
-    }
+    angular.forEach(objects, function(obj, key) {
+      _objectByAttribute(obj, attr, map, actions ? actions[key] : null, secondaryAttr);
+    });
   };
 
   var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";

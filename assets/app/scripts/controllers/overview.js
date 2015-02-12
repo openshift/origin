@@ -49,17 +49,9 @@ angular.module('openshiftConsole')
     var podsByServiceByLabel = function() {
       $scope.podsByServiceByLabel = {};
       angular.forEach($scope.services, function(service, name) {
-        var servicePods = [];
-        angular.forEach(service.spec.selector, function(selectorValue, selectorKey) {
-          if ($scope.podsByLabel[selectorKey]) {
-            var pods = $scope.podsByLabel[selectorKey][selectorValue] || {};
-            angular.forEach(pods, function(pod) {
-              servicePods.push(pod);
-            });
-          }
-        });
+        var ls = new LabelSelector(service.spec.selector);
+        var servicePods = ls.select($scope.pods)
         $scope.podsByServiceByLabel[name]  =  {};
-        // TODO last remaining reference to this... 
         DataService.objectsByAttribute(servicePods, "metadata.labels", $scope.podsByServiceByLabel[name], null, "metadata.name");
       });
 
