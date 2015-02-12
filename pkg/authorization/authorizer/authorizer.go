@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -142,17 +143,22 @@ func (a *openshiftAuthorizer) getRole(roleBinding authorizationapi.RoleBinding) 
 	return &role, nil
 }
 
+// getEffectivePolicyRules returns the list of rules that apply to a given user in a given namespace and error.  If an error is returned, the slice of
+// PolicyRules may not be complete, but it contains all retrievable rules.  This is done because policy rules are purely additive and policy determinations
+// can be made on the basis of those rules that are found.
 func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user user.Info) ([]authorizationapi.PolicyRule, error) {
 	roleBindings, err := a.getRoleBindings(namespace)
 	if err != nil {
 		return nil, err
 	}
 
+	errs := []error{}
 	effectiveRules := make([]authorizationapi.PolicyRule, 0, len(roleBindings))
 	for _, roleBinding := range roleBindings {
 		role, err := a.getRole(roleBinding)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 
 		for _, curr := range role.Rules {
@@ -162,7 +168,7 @@ func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user use
 		}
 	}
 
-	return effectiveRules, nil
+	return effectiveRules, kerrors.NewAggregate(errs)
 }
 
 func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes) (bool, string, error) {
@@ -171,63 +177,58 @@ func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes
 		return false, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
 	}
 
-	globalAuthorizationResult, globalReason, err := a.authorizeWithNamespaceRules(a.masterAuthorizationNamespace, attributes)
-	if err != nil {
-		return false, "", err
-	}
-	switch globalAuthorizationResult {
-	case Allow:
+	// keep track of errors in case we are unable to authorize the action.
+	// It is entirely possible to get an error and be able to continue determine authorization status in spite of it.
+	// This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
+	errs := []error{}
+
+	globalAllowed, globalReason, err := a.authorizeWithNamespaceRules(a.masterAuthorizationNamespace, attributes)
+	if globalAllowed {
 		return true, globalReason, nil
-	case Deny:
-		return false, globalReason, nil
+	}
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	if len(attributes.GetNamespace()) != 0 {
-		namespaceAuthorizationResult, namespaceReason, err := a.authorizeWithNamespaceRules(attributes.GetNamespace(), attributes)
-		if err != nil {
-			return false, "", err
-		}
-		switch namespaceAuthorizationResult {
-		case Allow:
+		namespaceAllowed, namespaceReason, err := a.authorizeWithNamespaceRules(attributes.GetNamespace(), attributes)
+		if namespaceAllowed {
 			return true, namespaceReason, nil
-		case Deny:
-			return false, namespaceReason, nil
 		}
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return false, "", kerrors.NewAggregate(errs)
 	}
 
 	return false, "denied by default", nil
 }
 
-type authorizationResult string
-
-const (
-	Allow   = authorizationResult("allow")
-	Deny    = authorizationResult("deny")
-	Unknown = authorizationResult("unknown")
-)
-
-func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, passedAttributes AuthorizationAttributes) (authorizationResult, string, error) {
+// authorizeWithNamespaceRules returns isAllowed, reason, and error.  If an error is returned, isAllowed and reason are still valid.  This seems strange
+// but errors are not always fatal to the authorization process.  It is entirely possible to get an error and be able to continue determine authorization
+// status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
+func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, passedAttributes AuthorizationAttributes) (bool, string, error) {
 	attributes, ok := passedAttributes.(openshiftAuthorizationAttributes)
 	if !ok {
-		return Deny, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
+		return false, "", fmt.Errorf("attributes are not of expected type: %#v", attributes)
 	}
 
-	allRules, err := a.getEffectivePolicyRules(namespace, attributes.GetUserInfo())
-	if err != nil {
-		return Deny, "", err
-	}
+	allRules, ruleRetrievalError := a.getEffectivePolicyRules(namespace, attributes.GetUserInfo())
 
 	for _, rule := range allRules {
 		matches, err := attributes.ruleMatches(rule)
 		if err != nil {
-			return Allow, "", err
+			return false, "", err
 		}
 		if matches {
-			return Allow, fmt.Sprintf("allowed by rule in %v: %#v", namespace, rule), nil
+			return true, fmt.Sprintf("allowed by rule in %v: %#v", namespace, rule), nil
 		}
 	}
 
-	return Unknown, "", nil
+	return false, "", ruleRetrievalError
 }
 
 func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.PolicyRule) (bool, error) {
