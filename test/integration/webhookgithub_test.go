@@ -35,6 +35,7 @@ func TestWebhookGithubPush(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
+	defer watch.Stop()
 
 	// trigger build event sending push notification
 	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testNamespace, http.StatusOK, t)
@@ -72,6 +73,7 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
+	defer watch.Stop()
 
 	// trigger build event sending push notification
 	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testNamespace, http.StatusOK, t)
@@ -112,6 +114,7 @@ func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
+	defer watch.Stop()
 
 	// trigger build event sending push notification
 	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testNamespace, http.StatusOK, t)
@@ -153,6 +156,7 @@ func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
+	defer watch.Stop()
 
 	// trigger build event sending push notification
 	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testNamespace, http.StatusOK, t)
@@ -184,6 +188,7 @@ func TestWebhookGithubPing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
+	defer watch.Stop()
 
 	// trigger build event sending push notification
 	postFile("ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testNamespace, http.StatusOK, t)
