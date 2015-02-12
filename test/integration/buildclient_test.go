@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -231,6 +232,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 func (t *testBuildOpenshift) Close() {
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	time.Sleep(100 * time.Millisecond)
 	close(t.stop)
 	t.server.CloseClientConnections()
 	t.server.Close()
