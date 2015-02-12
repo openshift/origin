@@ -570,6 +570,9 @@ angular.module('openshiftConsole')
   var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
   var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
   var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
+  var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/ns/{namespace}/{type}{?q*}";
+  var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}{?q*}";
+  var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}/{id}{?q*}";  
 
 
   var apicfg = OPENSHIFT_CONFIG.api;
@@ -577,6 +580,10 @@ angular.module('openshiftConsole')
   // Set the api version the console is currently able to talk to
   apicfg.openshift.version = "v1beta1";
   apicfg.k8s.version = "v1beta3";
+
+  // Set whether namespace is a path or query parameter
+  apicfg.openshift.namespacePath = false;
+  apicfg.k8s.namespacePath = true;
   
   // TODO this is not the ideal, issue open to discuss adding
   // an introspection endpoint that would give us this mapping
@@ -597,6 +604,7 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
+    var params = params || {};
     var protocol;
     if (isWebsocket) {
       protocol = window.location.protocol === "http:" ? "ws" : "wss";
@@ -605,15 +613,22 @@ angular.module('openshiftConsole')
       protocol = window.location.protocol === "http:" ? "http" : "https"; 
     }
 
+    var namespaceInPath = params.namespace && SERVER_TYPE_MAP[type].namespacePath;
+    var namespace = null;
+    if (namespaceInPath) {
+      namespace = params.namespace;
+      params = angular.copy(params);
+      delete params.namespace;
+    }
     var template;
     if (isWebsocket) {
-      template = URL_WATCH_LIST;
+      template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
     }
     else if (id) {
-      template = URL_GET_OBJECT;
+      template = namespaceInPath ? URL_NAMESPACED_GET_OBJECT : URL_GET_OBJECT;
     }
     else {
-      template = URL_GET_LIST;
+      template = namespaceInPath ? URL_NAMESPACED_GET_LIST : URL_GET_LIST;
     }
 
     // TODO where do we specify what the server URL and api version should be
@@ -624,6 +639,7 @@ angular.module('openshiftConsole')
       apiVersion: SERVER_TYPE_MAP[type].version,
       type: type,
       id: id,
+      namespace: namespace,
       q: params
     });
   };
