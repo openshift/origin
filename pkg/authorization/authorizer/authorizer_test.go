@@ -1,6 +1,7 @@
 package authorizer
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -62,6 +63,67 @@ func TestResourceNameAllow(t *testing.T) {
 		expectedReason:  "allowed by rule in master",
 	}
 	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
+func TestDeniedWithError(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &openshiftAuthorizationAttributes{
+			user: &user.DefaultInfo{
+				Name: "Anna",
+			},
+			verb:      "update",
+			resource:  "roles",
+			namespace: "adze",
+		},
+		expectedAllowed: false,
+		expectedError:   "my special error",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.globalPolicyBinding[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "missing",
+			Namespace: testMasterNamespace,
+		},
+		RoleRef: kapi.ObjectReference{
+			Name:      "not-a-real-binding",
+			Namespace: testMasterNamespace,
+		},
+		UserNames: []string{"Anna"},
+	}
+	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
+	test.policyRetrievalError = errors.New("my special error")
+
+	test.test(t)
+}
+
+func TestAllowedWithMissingBinding(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &openshiftAuthorizationAttributes{
+			user: &user.DefaultInfo{
+				Name: "Anna",
+			},
+			verb:      "update",
+			resource:  "roles",
+			namespace: "adze",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in adze",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.globalPolicyBinding[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "missing",
+			Namespace: testMasterNamespace,
+		},
+		RoleRef: kapi.ObjectReference{
+			Name:      "not-a-real-binding",
+			Namespace: testMasterNamespace,
+		},
+		UserNames: []string{"Anna"},
+	}
+	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
+
 	test.test(t)
 }
 
@@ -318,15 +380,15 @@ func matchError(expected string, actual error, field string, t *testing.T) {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
 		return
 	}
-	if strings.Contains(actual.Error(), expected) {
+	if !strings.Contains(actual.Error(), expected) {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
 	}
 }
 
 func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBinding) {
-	return append(make([]authorizationapi.Policy, 0, 0), *GetBootstrapPolicy(testMasterNamespace)),
-		append(make([]authorizationapi.PolicyBinding, 0, 0),
-			authorizationapi.PolicyBinding{
+	return []authorizationapi.Policy{*GetBootstrapPolicy(testMasterNamespace)},
+		[]authorizationapi.PolicyBinding{
+			{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      testMasterNamespace,
 					Namespace: testMasterNamespace,
@@ -356,7 +418,7 @@ func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.Pol
 					},
 				},
 			},
-		)
+		}
 }
 
 func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBinding) {
