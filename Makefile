@@ -62,8 +62,8 @@ test: build check
 endif
 test:
 	hack/test-cmd.sh
-	hack/test-integration.sh $(GOFLAGS)
-	hack/test-integration-docker.sh $(GOFLAGS)
+	KUBE_RACE=" " hack/test-integration.sh $(GOFLAGS)
+	KUBE_RACE=" " hack/test-integration-docker.sh $(GOFLAGS)
 	hack/test-end-to-end.sh
 .PHONY: test
 
