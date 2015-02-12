@@ -122,7 +122,7 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 			glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 		} else {
 			if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
-				glog.Warning("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
+				glog.Warningf("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 			}
 		}
 	}
