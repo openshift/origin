@@ -31,21 +31,31 @@ find_test_dirs() {
 
 # -covermode=atomic becomes default with -race in Go >=1.3
 if [ -z ${KUBE_COVER+x} ]; then
-  KUBE_COVER="" #"-cover -covermode=atomic"
+  KUBE_COVER=""
 fi
-KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 45s}
+
+OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-""}
+
+if [ -n "${OUTPUT_COVERAGE}" ]; then
+  if [ -z "${KUBE_RACE}" ]; then
+    KUBE_RACE="-race"
+  fi
+  if [ -z "${KUBE_COVER}" ]; then
+    KUBE_COVER="-cover -covermode=atomic"
+  fi
+fi
 
 if [ -z ${KUBE_RACE+x} ]; then
-  KUBE_RACE="" #"-race"
+  KUBE_RACE=""
 fi
+
+KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 45s}
 
 if [ "${1-}" != "" ]; then
   test_packages="$OS_GO_PACKAGE/$1"
 else
   test_packages=`find_test_dirs`
 fi
-
-OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-""}
 
 export OPENSHIFT_ON_PANIC=crash
 

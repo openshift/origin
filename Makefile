@@ -59,7 +59,7 @@ $(info build is being skipped)
 test: check
 else
 test: build check
-endif 
+endif
 test:
 	hack/test-cmd.sh
 	hack/test-integration.sh $(GOFLAGS)
