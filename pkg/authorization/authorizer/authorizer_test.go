@@ -29,6 +29,42 @@ type authorizeTest struct {
 	expectedError   string
 }
 
+func TestResourceNameDeny(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &openshiftAuthorizationAttributes{
+			user: &user.DefaultInfo{
+				Name: "just-a-user",
+			},
+			verb:         "get",
+			resource:     "users",
+			resourceName: "just-a-user",
+			namespace:    testMasterNamespace,
+		},
+		expectedAllowed: false,
+		expectedReason:  "denied by default",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
+func TestResourceNameAllow(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &openshiftAuthorizationAttributes{
+			user: &user.DefaultInfo{
+				Name: "just-a-user",
+			},
+			verb:         "get",
+			resource:     "users",
+			resourceName: "~",
+			namespace:    testMasterNamespace,
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in master",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
 		attributes: &openshiftAuthorizationAttributes{
@@ -305,8 +341,18 @@ func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.Pol
 							Name:      "cluster-admin",
 							Namespace: testMasterNamespace,
 						},
-						// until we get components authenticating, mssing users will be given all rights.  Yay, security!
 						UserNames: []string{"ClusterAdmin"},
+					},
+					"user-only": {
+						ObjectMeta: kapi.ObjectMeta{
+							Name:      "user-only",
+							Namespace: testMasterNamespace,
+						},
+						RoleRef: kapi.ObjectReference{
+							Name:      "basic-user",
+							Namespace: testMasterNamespace,
+						},
+						UserNames: []string{"just-a-user"},
 					},
 				},
 			},

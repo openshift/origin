@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -30,6 +31,7 @@ type AuthorizationAttributes interface {
 	GetVerb() string
 	GetResource() string
 	GetNamespace() string
+	GetResourceName() string
 	// GetRequestAttributes is of type interface{} because different verbs and different Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements
 	GetRequestAttributes() interface{}
 }
@@ -49,15 +51,17 @@ type openshiftAuthorizationAttributes struct {
 	verb              string
 	resource          string
 	namespace         string
+	resourceName      string
 	requestAttributes interface{}
 }
 
 type openshiftAuthorizationAttributeBuilder struct {
 	requestsToUsers *authcontext.RequestContextMap
+	infoResolver    *APIRequestInfoResolver
 }
 
-func NewAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap) AuthorizationAttributeBuilder {
-	return &openshiftAuthorizationAttributeBuilder{requestsToUsers}
+func NewAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap, infoResolver *APIRequestInfoResolver) AuthorizationAttributeBuilder {
+	return &openshiftAuthorizationAttributeBuilder{requestsToUsers, infoResolver}
 }
 
 func doesApplyToUser(ruleUsers, ruleGroups []string, user user.Info) bool {
@@ -227,11 +231,13 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 }
 
 func (a openshiftAuthorizationAttributes) ruleMatches(rule authorizationapi.PolicyRule) (bool, error) {
-	resourceNames := resolveResources(rule)
+	allowedResourceTypes := resolveResources(rule)
 
 	if a.verbMatches(util.NewStringSet(rule.Verbs...)) {
-		if a.resourceMatches(resourceNames) {
-			return true, nil
+		if a.resourceMatches(allowedResourceTypes) {
+			if a.nameMatches(rule.ResourceNames) {
+				return true, nil
+			}
 		}
 	}
 
@@ -255,8 +261,8 @@ func resolveResources(rule authorizationapi.PolicyRule) util.StringSet {
 			continue
 		}
 
-		if resourceNames, exists := authorizationapi.GroupsToResources[currResource]; exists {
-			toVisit = append(toVisit, resourceNames...)
+		if resourceTypes, exists := authorizationapi.GroupsToResources[currResource]; exists {
+			toVisit = append(toVisit, resourceTypes...)
 		}
 	}
 
@@ -267,8 +273,20 @@ func (a openshiftAuthorizationAttributes) verbMatches(verbs util.StringSet) bool
 	return verbs.Has(authorizationapi.VerbAll) || verbs.Has(strings.ToLower(a.GetVerb()))
 }
 
-func (a openshiftAuthorizationAttributes) resourceMatches(resourceNames util.StringSet) bool {
-	return resourceNames.Has(authorizationapi.ResourceAll) || resourceNames.Has(strings.ToLower(a.GetResource()))
+func (a openshiftAuthorizationAttributes) resourceMatches(allowedResourceTypes util.StringSet) bool {
+	return allowedResourceTypes.Has(authorizationapi.ResourceAll) || allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
+}
+
+// nameMatches checks to see if the resourceName of the action is in a the specified whitelist.  An empty whitelist indicates that any name is allowed.
+// An empty string in the whitelist should only match the action's resourceName if the resourceName itself is empty string.  This behavior allows for the
+// combination of a whitelist for gets in the same rule as a list that won't have a resourceName.  I don't recommend writing such a rule, but we do
+// handle it like you'd expect: white list is respected for gets while not preventing the list you explicitly asked for.
+func (a openshiftAuthorizationAttributes) nameMatches(allowedResourceNames util.StringSet) bool {
+	if len(allowedResourceNames) == 0 {
+		return true
+	}
+
+	return allowedResourceNames.Has(a.GetResourceName())
 }
 
 func (a openshiftAuthorizationAttributes) GetUserInfo() user.Info {
@@ -283,6 +301,10 @@ func (a openshiftAuthorizationAttributes) GetResource() string {
 	return a.resource
 }
 
+func (a openshiftAuthorizationAttributes) GetResourceName() string {
+	return a.resourceName
+}
+
 func (a openshiftAuthorizationAttributes) GetNamespace() string {
 	return a.namespace
 }
@@ -292,7 +314,7 @@ func (a openshiftAuthorizationAttributes) GetRequestAttributes() interface{} {
 }
 
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
-	verb, resource, namespace, _, err := VerbAndKindAndNamespace(req)
+	requestInfo, err := a.infoResolver.GetAPIRequestInfo(req)
 	if err != nil {
 		return nil, err
 	}
@@ -308,92 +330,154 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 
 	return openshiftAuthorizationAttributes{
 		user:              userInfo,
-		verb:              verb,
-		resource:          resource,
-		namespace:         namespace,
+		verb:              requestInfo.Verb,
+		resource:          requestInfo.Resource,
+		namespace:         requestInfo.Namespace,
+		resourceName:      requestInfo.Name,
 		requestAttributes: nil,
 	}, nil
 }
 
-// TODO waiting on kube rebase
-// this section is copied from kube.  Need to modify kube to make this pluggable
+// TODO waiting on kube rebase to kill this
+
+// APIRequestInfo holds information parsed from the http.Request
+type APIRequestInfo struct {
+	// Verb is the kube verb associated with the request, not the http verb.  This includes things like list and watch.
+	Verb       string
+	APIVersion string
+	Namespace  string
+	// Resource is the name of the resource being requested.  This is not the kind.  For example: pods
+	Resource string
+	// Kind is the type of object being manipulated.  For example: Pod
+	Kind string
+	// Name is empty for some verbs, but if the request directly indicates a name (not in body content) then this field is filled in.
+	Name string
+	// Parts are the path parts for the request relative to /{resource}/{name}
+	Parts []string
+}
+
+type APIRequestInfoResolver struct {
+	ApiPrefixes util.StringSet
+	RestMapper  meta.RESTMapper
+}
+
 var specialVerbs = map[string]bool{
 	"proxy":    true,
 	"redirect": true,
 	"watch":    true,
 }
 
-var ErrNoStandardParts = errors.New("the provided URL does not match the standard API form")
+// GetAPIRequestInfo returns the information from the http request.  If error is not nil, APIRequestInfo holds the information as best it is known before the failure
+// Valid Inputs:
+// Storage paths
+// /ns/{namespace}/{resource}
+// /ns/{namespace}/{resource}/{resourceName}
+// /{resource}
+// /{resource}/{resourceName}
+// /{resource}/{resourceName}?namespace={namespace}
+// /{resource}?namespace={namespace}
+//
+// Special verbs:
+// /proxy/{resource}/{resourceName}
+// /proxy/ns/{namespace}/{resource}/{resourceName}
+// /redirect/ns/{namespace}/{resource}/{resourceName}
+// /redirect/{resource}/{resourceName}
+// /watch/{resource}
+// /watch/ns/{namespace}/{resource}
+//
+// Fully qualified paths for above:
+// /api/{version}/*
+// /api/{version}/*
+func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIRequestInfo, error) {
+	requestInfo := APIRequestInfo{}
 
-// VerbAndKindAndNamespace returns verb, kind, namespace, remaining parts, error
-func VerbAndKindAndNamespace(req *http.Request) (string, string, string, []string, error) {
-	parts := splitPath(req.URL.Path)
-	if len(parts) == 0 {
-		return "", "", "", nil, ErrNoStandardParts
+	currentParts := splitPath(req.URL.Path)
+	if len(currentParts) < 1 {
+		return requestInfo, fmt.Errorf("Unable to determine kind and namespace from an empty URL path")
 	}
 
-	verb := ""
-	switch req.Method {
-	case "POST":
-		verb = "create"
-	case "GET":
-		verb = "get"
-	case "PUT":
-		verb = "update"
-	case "DELETE":
-		verb = "delete"
-	}
+	for _, currPrefix := range r.ApiPrefixes.List() {
+		// handle input of form /api/{version}/* by adjusting special paths
+		if currentParts[0] == currPrefix {
+			if len(currentParts) > 1 {
+				requestInfo.APIVersion = currentParts[1]
+			}
 
-	if parts[0] == "osapi" {
-		if len(parts) > 2 {
-			parts = parts[2:]
-		} else {
-			return "", "", "", nil, ErrNoStandardParts
-		}
-	}
-
-	// TODO tweak upstream to eliminate this copy  kubernetes/pkg/apiserver/handlers.go
-	// handle input of form /api/{version}/* by adjusting special paths
-	if parts[0] == "api" {
-		if len(parts) > 2 {
-			parts = parts[2:]
-		} else {
-			return "", "", "", parts, ErrNoStandardParts
+			if len(currentParts) > 2 {
+				currentParts = currentParts[2:]
+			} else {
+				return requestInfo, fmt.Errorf("Unable to determine kind and namespace from url, %v", req.URL)
+			}
 		}
 	}
 
 	// handle input of form /{specialVerb}/*
-	if _, ok := specialVerbs[parts[0]]; ok {
-		verb = parts[0]
-		if len(parts) > 1 {
-			parts = parts[1:]
+	if _, ok := specialVerbs[currentParts[0]]; ok {
+		requestInfo.Verb = currentParts[0]
+
+		if len(currentParts) > 1 {
+			currentParts = currentParts[1:]
 		} else {
-			return "", "", "", parts, ErrNoStandardParts
+			return requestInfo, fmt.Errorf("Unable to determine kind and namespace from url, %v", req.URL)
+		}
+	} else {
+		switch req.Method {
+		case "POST":
+			requestInfo.Verb = "create"
+		case "GET":
+			requestInfo.Verb = "get"
+		case "PUT":
+			requestInfo.Verb = "update"
+		case "DELETE":
+			requestInfo.Verb = "delete"
+		}
+
+	}
+
+	// URL forms: /ns/{namespace}/{resource}/*, where parts are adjusted to be relative to kind
+	if currentParts[0] == "ns" {
+		if len(currentParts) < 3 {
+			return requestInfo, fmt.Errorf("ResourceTypeAndNamespace expects a path of form /ns/{namespace}/*")
+		}
+		requestInfo.Resource = currentParts[2]
+		requestInfo.Namespace = currentParts[1]
+		currentParts = currentParts[2:]
+
+	} else {
+		// URL forms: /{resource}/*
+		// URL forms: POST /{resource} is a legacy API convention to create in "default" namespace
+		// URL forms: /{resource}/{resourceName} use the "default" namespace if omitted from query param
+		// URL forms: /{resource} assume cross-namespace operation if omitted from query param
+		requestInfo.Resource = currentParts[0]
+		requestInfo.Namespace = req.URL.Query().Get("namespace")
+		if len(requestInfo.Namespace) == 0 {
+			if len(currentParts) > 1 || req.Method == "POST" {
+				requestInfo.Namespace = kapi.NamespaceDefault
+			} else {
+				requestInfo.Namespace = kapi.NamespaceAll
+			}
 		}
 	}
 
-	// URL forms: /ns/{namespace}/{kind}/*, where parts are adjusted to be relative to kind
-	if parts[0] == "ns" {
-		if len(parts) < 3 {
-			return "", "", "", parts, fmt.Errorf("ResourceTypeAndNamespace expects a path of form /ns/{namespace}/*")
-		}
-		return verb, parts[1], parts[2], parts[2:], ErrNoStandardParts
+	// parsing successful, so we now know the proper value for .Parts
+	requestInfo.Parts = currentParts
+
+	// if there's another part remaining after the kind, then that's the resource name
+	if len(requestInfo.Parts) >= 2 {
+		requestInfo.Name = requestInfo.Parts[1]
 	}
 
-	// URL forms: /{kind}/*
-	// URL forms: POST /{kind} is a legacy API convention to create in "default" namespace
-	// URL forms: /{kind}/{resourceName} use the "default" namespace if omitted from query param
-	// URL forms: /{kind} assume cross-namespace operation if omitted from query param
-	kind := parts[0]
-	namespace := req.URL.Query().Get("namespace")
-	if len(namespace) == 0 {
-		if len(parts) > 1 || req.Method == "POST" {
-			namespace = kapi.NamespaceDefault
-		} else {
-			namespace = kapi.NamespaceAll
-		}
+	// if there's no name on the request and we thought it was a get before, then the actual verb is a list
+	if len(requestInfo.Name) == 0 && requestInfo.Verb == "get" {
+		requestInfo.Verb = "list"
 	}
-	return verb, kind, namespace, parts, nil
+
+	// if we have a resource, we have a good shot at being able to determine kind
+	if len(requestInfo.Resource) > 0 {
+		_, requestInfo.Kind, _ = r.RestMapper.VersionAndKindForResource(requestInfo.Resource)
+	}
+
+	return requestInfo, nil
 }
 
 // splitPath returns the segments for a URL path.
@@ -469,6 +553,16 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 						Verbs:     []string{"get", "list", "watch"},
 						Resources: []string{authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName},
 					},
+				},
+			},
+			"basic-user": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "view-self",
+					Namespace: masterNamespace,
+				},
+				Rules: []authorizationapi.PolicyRule{
+					{Verbs: []string{"get"}, Resources: []string{"users"}, ResourceNames: util.NewStringSet("~")},
+					{Verbs: []string{"list"}, Resources: []string{"projects"}},
 				},
 			},
 			"system:deployer": {
@@ -553,6 +647,17 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Namespace: masterNamespace,
 				},
 				UserNames: []string{"system:admin"},
+			},
+			"basic-user-binding": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "basic-user-binding",
+					Namespace: masterNamespace,
+				},
+				RoleRef: kapi.ObjectReference{
+					Name:      "basic-user",
+					Namespace: masterNamespace,
+				},
+				GroupNames: []string{"system:authenticated"},
 			},
 			"insecure-cluster-admin-binding": {
 				ObjectMeta: kapi.ObjectMeta{

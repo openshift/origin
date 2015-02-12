@@ -69,78 +69,80 @@ var (
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
-	Verbs []string `json:"verbs"`
+	Verbs []string
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	AttributeRestrictions kruntime.EmbeddedObject `json:"attributeRestrictions"`
+	AttributeRestrictions kruntime.EmbeddedObject
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
-	Resources []string `json:"resources"`
+	Resources []string
+	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+	ResourceNames kutil.StringSet
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
 	// Rules holds all the PolicyRules for this Role
-	Rules []PolicyRule `json:"rules"`
+	Rules []PolicyRule
 }
 
 // RoleBinding references a Role, but not contain it.  It adds who and namespace information.
 // It can reference any Role in the same namespace or in the global namespace.
 type RoleBinding struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
 	// UserNames holds all the usernames directly bound to the role
-	UserNames []string `json:"userNames"`
+	UserNames []string
 	// GroupNames holds all the groups directly bound to the role
-	GroupNames []string `json:"groupNames"`
+	GroupNames []string
 
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	// RoleRefs can only reference the current namespace and the global namespace
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
-	RoleRef kapi.ObjectReference `json:"roleRef"`
+	RoleRef kapi.ObjectReference
 }
 
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
 // one Policy document per namespace.
 type Policy struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty" `
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the Policy was created, updated, or deleted
-	LastModified kutil.Time `json:"lastModified"`
+	LastModified kutil.Time
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
-	Roles map[string]Role `json:"roles"`
+	Roles map[string]Role
 }
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
 type PolicyBinding struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-	LastModified kutil.Time `json:"lastModified"`
+	LastModified kutil.Time
 
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
-	PolicyRef kapi.ObjectReference `json:"policyRef"`
+	PolicyRef kapi.ObjectReference
 	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
-	RoleBindings map[string]RoleBinding `json:"roleBindings"`
+	RoleBindings map[string]RoleBinding
 }
 
 // PolicyList is a collection of Policies
 type PolicyList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Policy `json:"items"`
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []Policy
 }
 
 // PolicyBindingList is a collection of PolicyBindings
 type PolicyBindingList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []PolicyBinding `json:"items"`
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []PolicyBinding
 }

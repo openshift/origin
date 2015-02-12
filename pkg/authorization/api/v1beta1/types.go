@@ -26,6 +26,8 @@ type PolicyRule struct {
 	ResourceKinds []string `json:"resourceKinds,omitempty"`
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
 	Resources []string `json:"resources"`
+	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+	ResourceNames []string `json:"resourceNames,omitempty"`
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.

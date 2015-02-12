@@ -6,29 +6,40 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	newer "github.com/openshift/origin/pkg/authorization/api"
 )
 
 func init() {
 	err := api.Scheme.AddConversionFuncs(
 		func(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+			if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
 				return err
 			}
 
-			if out.Resources == nil {
-				out.Resources = make([]string, 0)
-			}
-			if in.ResourceKinds != nil {
-				out.Resources = append(out.Resources, in.ResourceKinds...)
-			}
+			out.Verbs = []string{}
+			out.Verbs = append(out.Verbs, in.Verbs...)
+
+			out.Resources = []string{}
+			out.Resources = append(out.Resources, in.Resources...)
+			out.Resources = append(out.Resources, in.ResourceKinds...)
+
+			out.ResourceNames = util.NewStringSet(in.ResourceNames...)
 
 			return nil
 		},
 		func(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+			if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
 				return err
 			}
+
+			out.Verbs = []string{}
+			out.Verbs = append(out.Verbs, in.Verbs...)
+
+			out.Resources = []string{}
+			out.Resources = append(out.Resources, in.Resources...)
+
+			out.ResourceNames = in.ResourceNames.List()
 
 			return nil
 		},
