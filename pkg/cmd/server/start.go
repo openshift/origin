@@ -430,21 +430,35 @@ func start(cfg *config, args []string) error {
 			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
 
 			// Openshift client
-			if osmaster.OSClientConfig, err = ca.MakeClientConfig("system", "openshift-client", nil, osClientConfigTemplate); err != nil {
+			openshiftClientUser := &user.DefaultInfo{Name: "system:openshift-client"}
+			if osmaster.OSClientConfig, err = ca.MakeClientConfig("openshift-client", openshiftClientUser, osClientConfigTemplate); err != nil {
 				return err
 			}
 			// Openshift deployer client
-			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("system", "openshift-deployer", nil, osClientConfigTemplate); err != nil {
+			openshiftDeployerUser := &user.DefaultInfo{Name: "system:openshift-deployer", Groups: []string{"system:deployers"}}
+			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("openshift-deployer", openshiftDeployerUser, osClientConfigTemplate); err != nil {
 				return err
 			}
 			// Admin config (creates files on disk for osc)
-			if _, err = ca.MakeClientConfig("system", "admin", nil, osClientConfigTemplate); err != nil {
+			adminUser := &user.DefaultInfo{Name: "system:admin", Groups: []string{"system:cluster-admins"}}
+			if _, err = ca.MakeClientConfig("admin", adminUser, osClientConfigTemplate); err != nil {
 				return err
+			}
+
+			// One client config per node
+			for _, node := range cfg.NodeList {
+				nodeIdentityName := fmt.Sprintf("node-%s", node)
+				nodeUserName := fmt.Sprintf("system:%s", nodeIdentityName)
+				nodeUser := &user.DefaultInfo{Name: nodeUserName, Groups: []string{"system:nodes"}}
+				if _, err = ca.MakeClientConfig(nodeIdentityName, nodeUser, osClientConfigTemplate); err != nil {
+					return err
+				}
 			}
 
 			// If we're running our own Kubernetes, build client credentials
 			if startKube {
-				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("system", "kube-client", nil, osmaster.KubeClientConfig); err != nil {
+				kubeClientUser := &user.DefaultInfo{Name: "system:kube-client"}
+				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", kubeClientUser, osmaster.KubeClientConfig); err != nil {
 					return err
 				}
 			}
@@ -458,10 +472,9 @@ func start(cfg *config, args []string) error {
 
 			// build cert authenticator
 			// TODO: add cert users to etcd?
-			// TODO: provider-qualify cert users?
 			opts := x509request.DefaultVerifyOptions()
 			opts.Roots = roots
-			certauth := x509request.New(opts, x509request.CommonNameUserConversion)
+			certauth := x509request.New(opts, x509request.SubjectToUserConversion)
 			authenticators = append(authenticators, certauth)
 		} else {
 			// No security, use the same client config for all OpenShift clients
