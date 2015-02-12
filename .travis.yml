@@ -24,8 +24,9 @@ install:
 script:
   - KUBE_RACE="-race" KUBE_COVER="-cover -covermode=atomic" ./hack/test-go.sh "" -p=4
   - ./hack/test-cmd.sh
-  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH ./hack/test-integration.sh
+  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH ./hack/test-integration.sh -v
   - ./hack/test-assets.sh
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"
+
