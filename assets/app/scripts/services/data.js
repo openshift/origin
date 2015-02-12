@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q) {
+.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG) {
   function Data(array) {
     this._data = {};
     this._objectsByAttribute(array, "metadata.name", this._data);
@@ -580,33 +580,30 @@ angular.module('openshiftConsole')
   var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}{?q*}";
   var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}/{id}{?q*}";  
 
-
-  var apicfg = OPENSHIFT_CONFIG.api;
-
   // Set the api version the console is currently able to talk to
-  apicfg.openshift.version = "v1beta1";
-  apicfg.k8s.version = "v1beta3";
+  API_CFG.openshift.version = "v1beta1";
+  API_CFG.k8s.version = "v1beta3";
 
   // Set whether namespace is a path or query parameter
-  apicfg.openshift.namespacePath = false;
-  apicfg.k8s.namespacePath = true;
+  API_CFG.openshift.namespacePath = false;
+  API_CFG.k8s.namespacePath = true;
   
   // TODO this is not the ideal, issue open to discuss adding
   // an introspection endpoint that would give us this mapping
   // https://github.com/openshift/origin/issues/230
   var SERVER_TYPE_MAP = {
-    builds:                 apicfg.openshift,
-    deploymentConfigs:      apicfg.openshift,
-    images:                 apicfg.openshift,
-    oAuthAccessTokens:      apicfg.openshift,
-    projects:               apicfg.openshift,
-    users:                  apicfg.openshift,
+    builds:                 API_CFG.openshift,
+    deploymentConfigs:      API_CFG.openshift,
+    images:                 API_CFG.openshift,
+    oAuthAccessTokens:      API_CFG.openshift,
+    projects:               API_CFG.openshift,
+    users:                  API_CFG.openshift,
 
-    pods:                   apicfg.k8s,
-    replicationcontrollers: apicfg.k8s,
-    services:               apicfg.k8s,
-    resourcequotas:         apicfg.k8s,
-    limitranges:            apicfg.k8s
+    pods:                   API_CFG.k8s,
+    replicationcontrollers: API_CFG.k8s,
+    services:               API_CFG.k8s,
+    resourcequotas:         API_CFG.k8s,
+    limitranges:            API_CFG.k8s
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {

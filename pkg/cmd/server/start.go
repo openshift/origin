@@ -358,6 +358,8 @@ func start(cfg *config, args []string) error {
 			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
 			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
 
+			LogoutURI: env("OPENSHIFT_LOGOUT_URI", ""),
+
 			CORSAllowedOrigins: cfg.CORSAllowedOrigins,
 
 			EtcdHelper: etcdHelper,
