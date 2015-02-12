@@ -49,17 +49,44 @@ you know where you are:
 Inside the OpenShift Docker container, you'll need to fetch some of the code
 bits that are used in the sample app.
 
+    $ cd /var/lib/openshift
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-config.json
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-template.json
     $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json
+    $ wget \
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/project.json
+    $ wget \
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/cleanup.sh
+    $ wget \
+    https://raw.githubusercontent.com/openshift/origin/master/hack/install-registry.sh
+    $ chmod a+x install-registry.sh
+
+## Configure client security
+
+    $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
+    $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/admin/root.crt
+    $ sudo chmod +r `pwd`/openshift.local.certificates/admin/key.key
+
+For more information on this step, see [Application Build, Deploy, and Update
+Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
+step #3.
+
+## Deploy the private docker registry
+
+    $ chmod +r ./openshift.local.certificates/master/key.key
+    $ CERT_DIR=openshift.local.certificates/master ./install-registry.sh
+
+For more information on this step, see [Application Build, Deploy, and Update
+Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
+step #4.
 
 ## Continue With Sample Application
 At this point you can continue with the steps in the [Sample
 Application](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md),
 starting from [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
-step #3.
+step #5.
 
 You can watch the OpenShift logs by issuing the following on your **Docker
 host**:
