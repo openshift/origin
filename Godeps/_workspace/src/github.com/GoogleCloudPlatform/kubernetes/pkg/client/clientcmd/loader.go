@@ -31,32 +31,25 @@ import (
 )
 
 const (
-	RecommendedConfigPathFlag   = "kubeconfig"
-	RecommendedConfigPathEnvVar = "KUBECONFIG"
+	RecommendedConfigPathFlag         = "kubeconfig"
+	RecommendedConfigPathEnvVar       = "KUBECONFIG"
+	RecommendedConfigPathInCurrentDir = ".kubeconfig"
+	RecommendedConfigPathInHomeDir    = ".kube/.kubeconfig"
 )
 
-// ClientConfigLoadingRules is a struct that calls our specific locations that are used for merging together a Config
+// ClientConfigLoadingRules is a collection of file paths that are used for merging together a Config
 type ClientConfigLoadingRules struct {
-	CommandLinePath      string
-	EnvVarPath           string
-	CurrentDirectoryPath string
-	HomeDirectoryPath    string
+	CommandLinePath string
+	FilePriority    []string
 }
 
-// NewClientConfigLoadingRules returns a ClientConfigLoadingRules object with default fields filled in.  You are not required to
-// use this constructor
-func NewClientConfigLoadingRules() *ClientConfigLoadingRules {
-	return &ClientConfigLoadingRules{
-		CurrentDirectoryPath: ".kubeconfig",
-		HomeDirectoryPath:    os.Getenv("HOME") + "/.kube/.kubeconfig",
-	}
+// NewClientConfigLoadingRules returns a ClientConfigLoadingRules object with a list of paths in priority order.
+// You are not required to use this constructor
+func NewClientConfigLoadingRules(filepriority []string) *ClientConfigLoadingRules {
+	return &ClientConfigLoadingRules{"", filepriority}
 }
 
-// Load takes the loading rules and merges together a Config object based on following order.
-//   1.  CommandLinePath
-//   2.  EnvVarPath
-//   3.  CurrentDirectoryPath
-//   4.  HomeDirectoryPath
+// Load takes the loading rules and merges together a Config object based on the provided file priority.
 // A missing CommandLinePath file produces an error. Empty filenames or other missing files are ignored.
 // Read errors or files with non-deserializable content produce errors.
 // The first file to set a particular map key wins and map key's value is never changed.
@@ -77,7 +70,7 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 		}
 	}
 
-	kubeConfigFiles := []string{rules.CommandLinePath, rules.EnvVarPath, rules.CurrentDirectoryPath, rules.HomeDirectoryPath}
+	kubeConfigFiles := append([]string{rules.CommandLinePath}, rules.FilePriority...)
 
 	// first merge all of our maps
 	mapConfig := clientcmdapi.NewConfig()
