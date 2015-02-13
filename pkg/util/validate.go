@@ -44,8 +44,7 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 	case *imageapi.Image:
 		errors = imagev.ValidateImage(t)
 	case *imageapi.ImageRepository:
-		// TODO: validate image repository
-		// 	errors = imagev.ValidateImageRepository(t)
+		errors = imagev.ValidateImageRepository(t)
 	case *imageapi.ImageRepositoryMapping:
 		errors = imagev.ValidateImageRepositoryMapping(t)
 	case *deployapi.DeploymentConfig:
