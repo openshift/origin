@@ -38,11 +38,12 @@ func (f *Factory) NewCmdCreate(out io.Writer) *cobra.Command {
 JSON and YAML formats are accepted.
 
 Examples:
-  $ kubectl create -f pod.json
-  <create a pod using the data in pod.json>
 
-  $ cat pod.json | kubectl create -f -
-  <create a pod based on the json passed into stdin>`,
+    // Create a pod using the data in pod.json.
+    $ kubectl create -f pod.json
+
+    // Create a pod based on the JSON passed into stdin.
+    $ cat pod.json | kubectl create -f -`,
 		Run: func(cmd *cobra.Command, args []string) {
 			schema, err := f.Validator(cmd)
 			checkErr(err)
@@ -51,12 +52,13 @@ Examples:
 			checkErr(err)
 
 			mapper, typer := f.Object(cmd)
-			r := resource.NewBuilder(mapper, typer, ClientMapperForCommand(cmd, f)).
+			r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
 				ContinueOnError().
 				NamespaceParam(cmdNamespace).RequireNamespace().
 				FilenameParam(flags.Filenames...).
 				Flatten().
 				Do()
+			checkErr(r.Err())
 
 			count := 0
 			err = r.Visit(func(info *resource.Info) error {

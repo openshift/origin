@@ -17,7 +17,6 @@ limitations under the License.
 package etcd
 
 import (
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -28,7 +27,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
@@ -37,9 +35,7 @@ import (
 
 func NewTestEtcdRegistry(client tools.EtcdClient) *Registry {
 	registry := NewRegistry(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}},
-		&pod.BasicBoundPodFactory{
-			ServiceRegistry: &registrytest.ServiceRegistry{},
-		})
+		&pod.BasicBoundPodFactory{})
 	return registry
 }
 
@@ -441,6 +437,10 @@ func TestEtcdUpdatePodNotScheduled(t *testing.T) {
 				"foo": "bar",
 			},
 		},
+		Spec: api.PodSpec{
+			RestartPolicy: api.RestartPolicy{Always: &api.RestartPolicyAlways{}},
+			DNSPolicy:     api.DNSClusterFirst,
+		},
 	}
 	err := registry.UpdatePod(ctx, &podIn)
 	if err != nil {
@@ -464,7 +464,7 @@ func TestEtcdUpdatePodScheduled(t *testing.T) {
 
 	key, _ := makePodKey(ctx, "foo")
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Pod{
-		ObjectMeta: api.ObjectMeta{Name: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
 		Spec: api.PodSpec{
 			//			Host: "machine",
 			Containers: []api.Container{
@@ -482,7 +482,7 @@ func TestEtcdUpdatePodScheduled(t *testing.T) {
 	fakeClient.Set(contKey, runtime.EncodeOrDie(latest.Codec, &api.BoundPods{
 		Items: []api.BoundPod{
 			{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "other"},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{
@@ -491,7 +491,7 @@ func TestEtcdUpdatePodScheduled(t *testing.T) {
 					},
 				},
 			}, {
-				ObjectMeta: api.ObjectMeta{Name: "bar"},
+				ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{
@@ -507,6 +507,7 @@ func TestEtcdUpdatePodScheduled(t *testing.T) {
 	podIn := api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Name:            "foo",
+			Namespace:       api.NamespaceDefault,
 			ResourceVersion: "1",
 			Labels: map[string]string{
 				"foo": "bar",
@@ -515,9 +516,13 @@ func TestEtcdUpdatePodScheduled(t *testing.T) {
 		Spec: api.PodSpec{
 			Containers: []api.Container{
 				{
-					Image: "foo:v2",
+					Image:                  "foo:v2",
+					ImagePullPolicy:        api.PullIfNotPresent,
+					TerminationMessagePath: api.TerminationMessagePathDefault,
 				},
 			},
+			RestartPolicy: api.RestartPolicy{Always: &api.RestartPolicyAlways{}},
+			DNSPolicy:     api.DNSClusterFirst,
 		},
 		Status: api.PodStatus{
 			Host: "machine",
@@ -546,8 +551,8 @@ func TestEtcdUpdatePodScheduled(t *testing.T) {
 		t.Fatalf("unexpected error decoding response: %v", err)
 	}
 
-	if len(list.Items) != 2 || !api.Semantic.DeepEqual(list.Items[0].Spec, podIn.Spec) {
-		t.Errorf("unexpected container list: %d\n items[0] -   %#v\n podin.spec - %#v\n", len(list.Items), list.Items[0].Spec, podIn.Spec)
+	if len(list.Items) != 2 || !api.Semantic.DeepEqual(list.Items[1].Spec, podIn.Spec) {
+		t.Errorf("unexpected container list: %d\n items[0] -   %#v\n podin.spec - %#v\n", len(list.Items), list.Items[1].Spec, podIn.Spec)
 	}
 }
 
@@ -558,12 +563,12 @@ func TestEtcdDeletePod(t *testing.T) {
 
 	key, _ := makePodKey(ctx, "foo")
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Pod{
-		ObjectMeta: api.ObjectMeta{Name: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
 		Status:     api.PodStatus{Host: "machine"},
 	}), 0)
 	fakeClient.Set("/registry/nodes/machine/boundpods", runtime.EncodeOrDie(latest.Codec, &api.BoundPods{
 		Items: []api.BoundPod{
-			{ObjectMeta: api.ObjectMeta{Name: "foo"}},
+			{ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault}},
 		},
 	}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -594,13 +599,13 @@ func TestEtcdDeletePodMultipleContainers(t *testing.T) {
 	fakeClient.TestIndex = true
 	key, _ := makePodKey(ctx, "foo")
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Pod{
-		ObjectMeta: api.ObjectMeta{Name: "foo"},
+		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
 		Status:     api.PodStatus{Host: "machine"},
 	}), 0)
 	fakeClient.Set("/registry/nodes/machine/boundpods", runtime.EncodeOrDie(latest.Codec, &api.BoundPods{
 		Items: []api.BoundPod{
-			{ObjectMeta: api.ObjectMeta{Name: "foo"}},
-			{ObjectMeta: api.ObjectMeta{Name: "bar"}},
+			{ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "other"}},
+			{ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault}},
 		},
 	}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
@@ -624,7 +629,7 @@ func TestEtcdDeletePodMultipleContainers(t *testing.T) {
 	if len(boundPods.Items) != 1 {
 		t.Fatalf("Unexpected boundPod set: %#v, expected empty", boundPods)
 	}
-	if boundPods.Items[0].Name != "bar" {
+	if boundPods.Items[0].Namespace != "other" {
 		t.Errorf("Deleted wrong boundPod: %#v", boundPods)
 	}
 }
@@ -1338,6 +1343,8 @@ func TestEtcdUpdateService(t *testing.T) {
 			Selector: map[string]string{
 				"baz": "bar",
 			},
+			Protocol:        "TCP",
+			SessionAffinity: "None",
 		},
 	}
 	err := registry.UpdateService(ctx, &testService)
@@ -1352,7 +1359,7 @@ func TestEtcdUpdateService(t *testing.T) {
 	// Clear modified indices before the equality test.
 	svc.ResourceVersion = ""
 	testService.ResourceVersion = ""
-	if !reflect.DeepEqual(*svc, testService) {
+	if !api.Semantic.DeepEqual(*svc, testService) {
 		t.Errorf("Unexpected service: got\n %#v\n, wanted\n %#v", svc, testService)
 	}
 }
@@ -1404,7 +1411,7 @@ func TestEtcdGetEndpoints(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if e, a := endpoints, got; !reflect.DeepEqual(e, a) {
+	if e, a := endpoints, got; !api.Semantic.DeepEqual(e, a) {
 		t.Errorf("Unexpected endpoints: %#v, expected %#v", e, a)
 	}
 }
@@ -1433,7 +1440,7 @@ func TestEtcdUpdateEndpoints(t *testing.T) {
 	}
 	var endpointsOut api.Endpoints
 	err = latest.Codec.DecodeInto([]byte(response.Node.Value), &endpointsOut)
-	if !reflect.DeepEqual(endpoints, endpointsOut) {
+	if !api.Semantic.DeepEqual(endpoints, endpointsOut) {
 		t.Errorf("Unexpected endpoints: %#v, expected %#v", endpointsOut, endpoints)
 	}
 }

@@ -25,6 +25,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -40,6 +41,7 @@ import (
 
 const (
 	PodInfraContainerName = leaky.PodInfraContainerName
+	DockerPrefix          = "docker://"
 )
 
 // DockerInterface is an abstract interface for testability.  It abstracts the interface of docker.Client.
@@ -104,7 +106,7 @@ type dockerContainerCommandRunner struct {
 var dockerAPIVersionWithExec = []uint{1, 15}
 
 // Returns the major and minor version numbers of docker server.
-func (d *dockerContainerCommandRunner) getDockerServerVersion() ([]uint, error) {
+func (d *dockerContainerCommandRunner) GetDockerServerVersion() ([]uint, error) {
 	env, err := d.client.Version()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get docker server version - %v", err)
@@ -127,7 +129,7 @@ func (d *dockerContainerCommandRunner) getDockerServerVersion() ([]uint, error) 
 }
 
 func (d *dockerContainerCommandRunner) nativeExecSupportExists() (bool, error) {
-	version, err := d.getDockerServerVersion()
+	version, err := d.GetDockerServerVersion()
 	if err != nil {
 		return false, err
 	}
@@ -220,7 +222,21 @@ func (p dockerPuller) Pull(image string) error {
 		glog.V(1).Infof("Pulling image %s without credentials", image)
 	}
 
-	return p.client.PullImage(opts, creds)
+	err := p.client.PullImage(opts, creds)
+	// If there was no error, or we had credentials, just return the error.
+	if err == nil || ok {
+		return err
+	}
+	// Image spec: [<registry>/]<repository>/<image>[:<version] so we count '/'
+	explicitRegistry := (strings.Count(image, "/") == 2)
+	glog.Errorf("Foo: %s", explicitRegistry)
+	// Hack, look for a private registry, and decorate the error with the lack of
+	// credentials.  This is heuristic, and really probably could be done better
+	// by talking to the registry API directly from the kubelet here.
+	if explicitRegistry {
+		return fmt.Errorf("image pull failed for %s, this may be because there are no credentials on this request.  details: (%v)", image, err)
+	}
+	return err
 }
 
 func (p throttledDockerPuller) Pull(image string) error {
@@ -245,7 +261,11 @@ func (p dockerPuller) IsImagePresent(image string) (bool, error) {
 
 // RequireLatestImage returns if the user wants the latest image
 func RequireLatestImage(name string) bool {
-	// REVERTED: Change behavior from upstream
+	_, tag := parseImageName(name)
+
+	if tag == "latest" {
+		return true
+	}
 	return false
 }
 
@@ -394,7 +414,8 @@ func inspectContainer(client DockerInterface, dockerID, containerName, tPath str
 	glog.V(3).Infof("Container inspect result: %+v", *inspectResult)
 	containerStatus := api.ContainerStatus{
 		Image:       inspectResult.Config.Image,
-		ContainerID: "docker://" + dockerID,
+		ImageID:     DockerPrefix + inspectResult.Image,
+		ContainerID: DockerPrefix + dockerID,
 	}
 
 	waiting := true
@@ -506,7 +527,7 @@ func GetDockerPodInfo(client DockerInterface, manifest api.PodSpec, podFullName 
 
 	if len(info) < (len(manifest.Containers) + 1) {
 		var containerStatus api.ContainerStatus
-		// Not all containers expected are created, verify if there are
+		// Not all containers expected are created, check if there are
 		// image related issues
 		for _, container := range manifest.Containers {
 			if _, found := info[container.Name]; found {
@@ -597,6 +618,23 @@ func ParseDockerName(name string) (podFullName string, podUID types.UID, contain
 	return
 }
 
+func GetRunningContainers(client DockerInterface, ids []string) ([]*docker.Container, error) {
+	result := []*docker.Container{}
+	if client == nil {
+		return nil, fmt.Errorf("unexpected nil docker client.")
+	}
+	for ix := range ids {
+		status, err := client.InspectContainer(ids[ix])
+		if err != nil {
+			return nil, err
+		}
+		if status != nil && status.State.Running {
+			result = append(result, status)
+		}
+	}
+	return result, nil
+}
+
 // Parses image name including a tag and returns image name and tag.
 // TODO: Future Docker versions can parse the tag on daemon side, see
 // https://github.com/dotcloud/docker/issues/6876
@@ -620,6 +658,35 @@ func parseImageName(image string) (string, string) {
 	return image, tag
 }
 
+// Get a docker endpoint, either from the string passed in, or $DOCKER_HOST environment variables
+func getDockerEndpoint(dockerEndpoint string) string {
+	var endpoint string
+	if len(dockerEndpoint) > 0 {
+		endpoint = dockerEndpoint
+	} else if len(os.Getenv("DOCKER_HOST")) > 0 {
+		endpoint = os.Getenv("DOCKER_HOST")
+	} else {
+		endpoint = "unix:///var/run/docker.sock"
+	}
+	glog.Infof("Connecting to docker on %s", endpoint)
+
+	return endpoint
+}
+
+func ConnectToDockerOrDie(dockerEndpoint string) DockerInterface {
+	if dockerEndpoint == "fake://" {
+		return &FakeDockerClient{
+			VersionInfo: []string{"apiVersion=1.16"},
+		}
+	}
+	client, err := docker.NewClient(getDockerEndpoint(dockerEndpoint))
+	if err != nil {
+		glog.Fatal("Couldn't connect to docker.")
+	}
+	return client
+}
+
 type ContainerCommandRunner interface {
 	RunInContainer(containerID string, cmd []string) ([]byte, error)
+	GetDockerServerVersion() ([]uint, error)
 }

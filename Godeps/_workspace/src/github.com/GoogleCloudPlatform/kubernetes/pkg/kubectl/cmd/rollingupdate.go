@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 )
 
@@ -34,27 +35,28 @@ const (
 func (f *Factory) NewCmdRollingUpdate(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollingupdate <old-controller-name> -f <new-controller.json>",
-		Short: "Perform a rolling update of the given ReplicationController",
+		Short: "Perform a rolling update of the given ReplicationController.",
 		Long: `Perform a rolling update of the given ReplicationController.
 
-Replaces named controller with new controller, updating one pod at a time to use the
+Replaces the specified controller with new controller, updating one pod at a time to use the
 new PodTemplate. The new-controller.json must specify the same namespace as the
 existing controller and overwrite at least one (common) label in its replicaSelector.
 
 Examples:
-$ kubectl rollingupdate frontend-v1 -f frontend-v2.json
-  <update pods of frontend-v1 using new controller data in frontend-v2.json>
 
-$ cat frontend-v2.json | kubectl rollingupdate frontend-v1 -f -
-  <update pods of frontend-v1 using json data passed into stdin>`,
+    // Update pods of frontend-v1 using new controller data in frontend-v2.json.
+    $ kubectl rollingupdate frontend-v1 -f frontend-v2.json
+
+    // Update pods of frontend-v1 using JSON data passed into stdin.
+    $ cat frontend-v2.json | kubectl rollingupdate frontend-v1 -f -`,
 		Run: func(cmd *cobra.Command, args []string) {
-			filename := GetFlagString(cmd, "filename")
+			filename := util.GetFlagString(cmd, "filename")
 			if len(filename) == 0 {
 				usageError(cmd, "Must specify filename for new controller")
 			}
-			period := GetFlagDuration(cmd, "update-period")
-			interval := GetFlagDuration(cmd, "poll-interval")
-			timeout := GetFlagDuration(cmd, "timeout")
+			period := util.GetFlagDuration(cmd, "update-period")
+			interval := util.GetFlagDuration(cmd, "poll-interval")
+			timeout := util.GetFlagDuration(cmd, "timeout")
 			if len(args) != 1 {
 				usageError(cmd, "Must specify the controller to update")
 			}
@@ -67,7 +69,7 @@ $ cat frontend-v2.json | kubectl rollingupdate frontend-v1 -f -
 			cmdApiVersion := clientConfig.Version
 
 			mapper, typer := f.Object(cmd)
-			mapping, namespace, newName, data := ResourceFromFile(filename, typer, mapper, schema, cmdApiVersion)
+			mapping, namespace, newName, data := util.ResourceFromFile(filename, typer, mapper, schema, cmdApiVersion)
 			if mapping.Kind != "ReplicationController" {
 				usageError(cmd, "%s does not specify a valid ReplicationController", filename)
 			}
@@ -78,7 +80,7 @@ $ cat frontend-v2.json | kubectl rollingupdate frontend-v1 -f -
 
 			cmdNamespace, err := f.DefaultNamespace(cmd)
 			checkErr(err)
-			err = CompareNamespace(cmdNamespace, namespace)
+			err = util.CompareNamespace(cmdNamespace, namespace)
 			checkErr(err)
 
 			client, err := f.Client(cmd)
@@ -118,6 +120,6 @@ $ cat frontend-v2.json | kubectl rollingupdate frontend-v1 -f -
 	cmd.Flags().String("update-period", updatePeriod, `Time to wait between updating pods. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
 	cmd.Flags().String("poll-interval", pollInterval, `Time delay between polling controller status after update. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
 	cmd.Flags().String("timeout", timeout, `Max time to wait for a controller to update before giving up. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
-	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to create the new controller")
+	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to create the new controller.")
 	return cmd
 }
