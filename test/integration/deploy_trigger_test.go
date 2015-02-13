@@ -374,8 +374,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		"buildConfigs":              buildconfigregistry.NewREST(buildEtcd),
 	}
 
-	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
 		Client:     osClient,
@@ -423,7 +422,7 @@ type clientDeploymentInterface struct {
 }
 
 func (c *clientDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (*kapi.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(kapi.Namespace(ctx)).Get(id)
+	return c.KubeClient.ReplicationControllers(kapi.NamespaceValue(ctx)).Get(id)
 }
 
 func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {

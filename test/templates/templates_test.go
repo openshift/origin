@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -57,9 +58,8 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	}
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	osPrefix := "/osapi/v1beta1"
 	handlerContainer := master.NewHandlerContainer(osMux)
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	walkJSONFiles("fixtures", func(name, path string, _ []byte) {
 		config := &config.Config{}

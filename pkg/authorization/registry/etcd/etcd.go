@@ -93,15 +93,16 @@ func (r *Etcd) ListPolicies(ctx kapi.Context, label, field klabels.Selector) (*a
 }
 
 func (r *Etcd) CreatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error {
-	return r.policyRegistry.Create(ctx, policy.Name, policy)
+	return r.policyRegistry.CreateWithName(ctx, policy.Name, policy)
 }
 
 func (r *Etcd) UpdatePolicy(ctx kapi.Context, newPolicy *authorizationapi.Policy) error {
-	return r.policyRegistry.Update(ctx, newPolicy.Name, newPolicy)
+	return r.policyRegistry.UpdateWithName(ctx, newPolicy.Name, newPolicy)
 }
 
 func (r *Etcd) DeletePolicy(ctx kapi.Context, name string) error {
-	return r.policyRegistry.Delete(ctx, name)
+	_, err := r.policyRegistry.Delete(ctx, name)
+	return err
 }
 
 func (r *Etcd) WatchPolicies(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
@@ -143,15 +144,16 @@ func (r *Etcd) ListPolicyBindings(ctx kapi.Context, label, field klabels.Selecto
 }
 
 func (r *Etcd) CreatePolicyBinding(ctx kapi.Context, binding *authorizationapi.PolicyBinding) error {
-	return r.policyBindingRegistry.Create(ctx, binding.Name, binding)
+	return r.policyBindingRegistry.CreateWithName(ctx, binding.Name, binding)
 }
 
 func (r *Etcd) UpdatePolicyBinding(ctx kapi.Context, newPolicyBinding *authorizationapi.PolicyBinding) error {
-	return r.policyBindingRegistry.Update(ctx, newPolicyBinding.Name, newPolicyBinding)
+	return r.policyBindingRegistry.UpdateWithName(ctx, newPolicyBinding.Name, newPolicyBinding)
 }
 
 func (r *Etcd) DeletePolicyBinding(ctx kapi.Context, name string) error {
-	return r.policyBindingRegistry.Delete(ctx, name)
+	_, err := r.policyBindingRegistry.Delete(ctx, name)
+	return err
 }
 
 func (r *Etcd) WatchPolicyBindings(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {

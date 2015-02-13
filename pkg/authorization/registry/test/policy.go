@@ -24,7 +24,7 @@ func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, labels, fields klabels.S
 		return nil, r.Err
 	}
 
-	namespace := kapi.Namespace(ctx)
+	namespace := kapi.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, errors.New("invalid request.  Namespace parameter required.")
 	}
@@ -48,7 +48,7 @@ func (r *PolicyRegistry) GetPolicy(ctx kapi.Context, id string) (*authorizationa
 		return nil, r.Err
 	}
 
-	namespace := kapi.Namespace(ctx)
+	namespace := kapi.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, errors.New("invalid request.  Namespace parameter required.")
 	}

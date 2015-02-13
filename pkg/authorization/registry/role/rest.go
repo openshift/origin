@@ -138,7 +138,7 @@ func (r *REST) EnsurePolicy(ctx kapi.Context) (*authorizationapi.Policy, error) 
 		}
 
 		// if we have no policy, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
-		policy = NewEmptyPolicy(kapi.Namespace(ctx))
+		policy = NewEmptyPolicy(kapi.NamespaceValue(ctx))
 		if err := r.registry.CreatePolicy(ctx, policy); err != nil {
 			return nil, err
 		}

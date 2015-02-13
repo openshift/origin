@@ -86,7 +86,8 @@ import (
 
 const (
 	OpenShiftAPIPrefix        = "/osapi"
-	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/v1beta1"
+	OpenShiftAPIV1Beta1       = "v1beta1"
+	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
@@ -310,7 +311,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	admissionControl := admit.NewAlwaysAdmit()
 
-	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefixV1Beta1, latest.SelfLinker, admissionControl, latest.RESTMapper).InstallREST(container, OpenShiftAPIPrefix, "v1beta1"); err != nil {
+	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefix, OpenShiftAPIV1Beta1, latest.SelfLinker, admissionControl, kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(container, OpenShiftAPIPrefix, "v1beta1"); err != nil {
 		glog.Fatalf("Unable to initialize API: %v", err)
 	}
 
@@ -744,5 +745,5 @@ type clientDeploymentInterface struct {
 }
 
 func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(api.Namespace(ctx)).Get(name)
+	return c.KubeClient.ReplicationControllers(api.NamespaceValue(ctx)).Get(name)
 }

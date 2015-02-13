@@ -58,11 +58,11 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 	var found *api.UserIdentityMapping
 	var created bool
 
-	err := r.AtomicUpdate(key, &api.UserIdentityMapping{}, func(in runtime.Object) (runtime.Object, error) {
+	err := r.AtomicUpdate(key, &api.UserIdentityMapping{}, true, func(in runtime.Object) (runtime.Object, error) {
 		existing := *in.(*api.UserIdentityMapping)
 
 		// did not previously exist
-		if existing.Name == "" {
+		if existing.ResourceVersion == "" {
 			now := util.Now()
 
 			// TODO: move these initializations the rest layer once we stop using the registry directly

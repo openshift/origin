@@ -64,12 +64,16 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 							Value: "VAL1",
 						},
 					},
+					ImagePullPolicy: kapi.PullIfNotPresent,
 				},
 				{
-					Name:  "container2",
-					Image: "registry:8080/repo1:ref2",
+					Name:            "container2",
+					Image:           "registry:8080/repo1:ref2",
+					ImagePullPolicy: kapi.PullIfNotPresent,
 				},
 			},
+			RestartPolicy: kapi.RestartPolicy{Always: &kapi.RestartPolicyAlways{}},
+			DNSPolicy:     kapi.DNSClusterFirst,
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: OkSelector(),

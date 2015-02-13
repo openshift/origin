@@ -11,7 +11,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -49,8 +49,8 @@ prompt for user input if not provided.
 				username = userFullName
 
 			} else {
-				usernameFlag := kubecmd.GetFlagString(cmd, "username")
-				passwordFlag := kubecmd.GetFlagString(cmd, "password")
+				usernameFlag := cmdutil.GetFlagString(cmd, "username")
+				passwordFlag := cmdutil.GetFlagString(cmd, "password")
 
 				accessToken, err := tokencmd.RequestToken(clientCfg, os.Stdin, usernameFlag, passwordFlag)
 				if err != nil {

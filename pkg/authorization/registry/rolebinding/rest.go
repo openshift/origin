@@ -193,7 +193,7 @@ func (r *REST) EnsurePolicyBindingToMaster(ctx kapi.Context) (*authorizationapi.
 		}
 
 		// if we have no policyBinding, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
-		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.Namespace(ctx), r.masterAuthorizationNamespace)
+		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), r.masterAuthorizationNamespace)
 		if err := r.bindingRegistry.CreatePolicyBinding(ctx, policyBinding); err != nil {
 			return nil, err
 		}

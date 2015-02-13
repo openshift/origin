@@ -111,7 +111,7 @@ func (r *Etcd) UpdateBuild(ctx kapi.Context, build *api.Build) error {
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, build)
+	err = r.SetObj(key, build, 0)
 	return etcderr.InterpretUpdateError(err, "build", build.Name)
 }
 
@@ -180,7 +180,7 @@ func (r *Etcd) UpdateBuildConfig(ctx kapi.Context, config *api.BuildConfig) erro
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, config)
+	err = r.SetObj(key, config, 0)
 	return etcderr.InterpretUpdateError(err, "buildConfig", config.Name)
 }
 

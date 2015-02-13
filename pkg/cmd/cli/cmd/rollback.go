@@ -5,7 +5,7 @@ import (
 	"io"
 
 	kubectl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 
 	describe "github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -59,9 +59,9 @@ func NewCmdRollback(parentName string, name string, f *Factory, out io.Writer) *
 
 			rollback.Spec.From.Name = args[0]
 
-			outputFormat := kcmd.GetFlagString(cmd, "output")
-			outputTemplate := kcmd.GetFlagString(cmd, "template")
-			dryRun := kcmd.GetFlagBool(cmd, "dry-run")
+			outputFormat := cmdutil.GetFlagString(cmd, "output")
+			outputTemplate := cmdutil.GetFlagString(cmd, "template")
+			dryRun := cmdutil.GetFlagBool(cmd, "dry-run")
 
 			osClient, _, err := f.Clients(cmd)
 			checkErr(err)

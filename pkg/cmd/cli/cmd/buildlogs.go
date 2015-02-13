@@ -3,7 +3,7 @@ package cmd
 import (
 	"io"
 
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ $ osc build-logs 566bed879d2d
 			checkErr(err)
 
 			mapper, _ := f.Object(cmd)
-			mapping, err := mapper.RESTMapping("BuildLog", kubecmd.GetFlagString(cmd, "api-version"))
+			mapping, err := mapper.RESTMapping("BuildLog", util.GetFlagString(cmd, "api-version"))
 			checkErr(err)
 			c, _, err := f.Clients(cmd)
 			checkErr(err)
