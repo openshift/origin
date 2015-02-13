@@ -102,6 +102,9 @@ type MasterConfig struct {
 	MasterPublicAddr     string
 	KubernetesPublicAddr string
 	AssetPublicAddr      string
+	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
+	// If not specified, the built-in logout page is shown.
+	LogoutURI string
 
 	CORSAllowedOrigins []string
 	Authenticator      authenticator.Request
@@ -547,9 +550,10 @@ func (c *MasterConfig) RunAssetServer() {
 		MasterPrefix:      OpenShiftAPIPrefix,
 		KubernetesAddr:    k8sURL.Host,
 		KubernetesPrefix:  "/api",
-		OAuthAuthorizeURL: OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
 		OAuthRedirectBase: c.AssetPublicAddr,
 		OAuthClientID:     OpenShiftWebConsoleClientID,
+		LogoutURI:         c.LogoutURI,
 	}
 
 	assets.RegisterMimeTypes()

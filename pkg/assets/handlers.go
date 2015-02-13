@@ -105,9 +105,10 @@ window.OPENSHIFT_CONFIG = {
     }
   },
   auth: {
-  	oauth_authorize_uri: "{{ .OAuthAuthorizeURL | js}}",
+  	oauth_authorize_uri: "{{ .OAuthAuthorizeURI | js}}",
   	oauth_redirect_base: "{{ .OAuthRedirectBase | js}}",
-  	oauth_client_id: "{{ .OAuthClientID | js}}"
+  	oauth_client_id: "{{ .OAuthClientID | js}}",
+  	logout_uri: "{{ .LogoutURI | js}}",
   }
 };
 `))
@@ -122,11 +123,13 @@ type WebConsoleConfig struct {
 	// KubernetesPrefix is the Kubernetes API context root
 	KubernetesPrefix string
 	// OAuthAuthorizeURL is the OAuth2 endpoint to use to request an API token. It must support request_type=token.
-	OAuthAuthorizeURL string
+	OAuthAuthorizeURI string
 	// OAuthRedirectBase is the base URI of the web console. It must be a valid redirect_uri for the OAuthClientID
 	OAuthRedirectBase string
 	// OAuthClientID is the OAuth2 client_id to use to request an API token. It must be authorized to redirect to the web console URL.
 	OAuthClientID string
+	// LogoutURI is an optional (absolute) URI to redirect to after completing a logout. If not specified, the built-in logout page is shown.
+	LogoutURI string
 }
 
 func GeneratedConfigHandler(config WebConsoleConfig, h http.Handler) http.Handler {

@@ -5,7 +5,7 @@
       <div ng-bind-html="emptyMessage"></div>
     </div>
     <div class="tile tile-click" ng-click="tileClickHandler($event)" style="margin-bottom: 10px;" ng-repeat="project in projects">
-      <h3><a class="tile-target" href="/project/{{project.metadata.name}}">{{project.displayName || project.metadata.name}}</a></h3>
+      <h2><a class="tile-target" href="/project/{{project.metadata.name}}">{{project.displayName || project.metadata.name}}</a></h2>
       <div class="muted" style="margin-top: -5px;" ng-if="project | annotation : 'description'">{{project | annotation : 'description'}}</div>
     </div>
   </div>
