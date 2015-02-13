@@ -50,14 +50,16 @@ Inside the OpenShift Docker container, you'll need to fetch some of the code
 bits that are used in the sample app.
 
     $ cd /var/lib/openshift
+    $ mkdir -p examples/sample-app
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-template.json
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-template.json \
+    -O examples/sample-app/docker-registry-template.json
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
+    -O examples/sample-app/application-template-stibuild.json
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/project.json
-    $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/cleanup.sh
+    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/project.json \
+    -O examples/sample-app/project.json
     $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/hack/install-registry.sh
     $ chmod a+x install-registry.sh
@@ -66,7 +68,7 @@ bits that are used in the sample app.
 
     $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
     $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/admin/root.crt
-    $ sudo chmod +r `pwd`/openshift.local.certificates/admin/key.key
+    $ chmod +r `pwd`/openshift.local.certificates/admin/key.key
 
 For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
@@ -76,6 +78,7 @@ step #3.
 
     $ chmod +r ./openshift.local.certificates/master/key.key
     $ CERT_DIR=openshift.local.certificates/master ./install-registry.sh
+    $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
