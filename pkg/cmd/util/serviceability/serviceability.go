@@ -39,7 +39,10 @@ func profileOnExit(s Stop) Stop {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-
+		// Programs with more sophisticated signal handling
+		// should ensure the Stop() function returned from
+		// Start() is called during shutdown.
+		// See http://godoc.org/github.com/pkg/profile
 		s.Stop()
 
 		os.Exit(1)
