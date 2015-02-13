@@ -103,7 +103,9 @@ install -m 0644 rel-eng/openshift-node.sysconfig %{buildroot}%{_sysconfdir}/sysc
 
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
+%if 0%{?rhel}
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
+%endif
 
 mkdir -p %{buildroot}/usr/lib/tuned/openshift-node
 install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-node/tuned.conf
@@ -112,7 +114,9 @@ install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-nod
 %defattr(-,root,root,-)
 %doc README.md LICENSE
 %{_bindir}/openshift
+%if 0%{?rhel}
 %{_bindir}/osc
+%endif
 %{_sharedstatedir}/openshift
 
 %files master
