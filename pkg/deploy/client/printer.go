@@ -5,7 +5,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubecfg"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/deploy/api"
 )
@@ -14,7 +13,7 @@ var deploymentColumns = []string{"Name", "Status", "Cause"}
 var deploymentConfigColumns = []string{"Name", "Triggers", "LatestVersion"}
 
 // RegisterPrintHandlers registers human-readable printers for deploy types.
-func RegisterPrintHandlers(printer *kubecfg.HumanReadablePrinter) {
+func RegisterPrintHandlers(printer *kubectl.HumanReadablePrinter) {
 	printer.Handler(deploymentColumns, printDeployment)
 	printer.Handler(deploymentColumns, printDeploymentList)
 	printer.Handler(deploymentConfigColumns, printDeploymentConfig)
