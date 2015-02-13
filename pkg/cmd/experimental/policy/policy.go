@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -60,23 +62,36 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 	return string(util.NewUUID())
 }
 
-func getExistingRoleBindingsForRole(roleNamespace, role, bindingNamespace string, client client.Interface) ([]*authorizationapi.RoleBinding, *util.StringSet, error) {
-	existingBindings, err := client.PolicyBindings(bindingNamespace).Get(roleNamespace)
+func getExistingRoleBindingsForRole(roleNamespace, role string, bindingInterface client.PolicyBindingInterface) ([]*authorizationapi.RoleBinding, error) {
+	existingBindings, err := bindingInterface.Get(roleNamespace)
 	if err != nil && !strings.Contains(err.Error(), " not found") {
-		return nil, &util.StringSet{}, err
+		return nil, err
 	}
 
 	ret := make([]*authorizationapi.RoleBinding, 0)
-	roleBindingNames := &util.StringSet{}
 	// see if we can find an existing binding that points to the role in question.
 	for _, currBinding := range existingBindings.RoleBindings {
-		roleBindingNames.Insert(currBinding.Name)
-
 		if currBinding.RoleRef.Name == role {
 			t := currBinding
 			ret = append(ret, &t)
 		}
 	}
 
-	return ret, roleBindingNames, nil
+	return ret, nil
+}
+
+func getExistingRoleBindingNames(bindingInterface client.PolicyBindingInterface) (*util.StringSet, error) {
+	policyBindings, err := bindingInterface.List(klabels.Everything(), klabels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &util.StringSet{}
+	for _, existingBindings := range policyBindings.Items {
+		for _, currBinding := range existingBindings.RoleBindings {
+			ret.Insert(currBinding.Name)
+		}
+	}
+
+	return ret, nil
 }

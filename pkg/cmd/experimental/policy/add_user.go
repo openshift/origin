@@ -62,10 +62,15 @@ func (o *addUserOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *addUserOptions) run() error {
-	roleBindings, roleBindingNames, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, o.bindingNamespace, o.client)
+	roleBindings, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, o.client.PolicyBindings(o.bindingNamespace))
 	if err != nil {
 		return err
 	}
+	roleBindingNames, err := getExistingRoleBindingNames(o.client.PolicyBindings(o.bindingNamespace))
+	if err != nil {
+		return err
+	}
+
 	roleBinding := (*authorizationapi.RoleBinding)(nil)
 	isUpdate := true
 	if len(roleBindings) == 0 {

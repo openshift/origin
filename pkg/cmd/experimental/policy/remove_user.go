@@ -63,7 +63,7 @@ func (o *removeUserOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *removeUserOptions) run() error {
-	roleBindings, _, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, o.bindingNamespace, o.client)
+	roleBindings, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, o.client.PolicyBindings(o.bindingNamespace))
 	if err != nil {
 		return err
 	}
