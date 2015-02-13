@@ -7,14 +7,14 @@ angular.module('openshiftConsole')
     this._objectsByAttribute(array, "metadata.name", this._data);
   }
 
-  Data.prototype.by = function(attr, secondaryAttr) {
+  Data.prototype.by = function(attr) {
     // TODO store already generated indices
     if (attr == "metadata.name") {
       return this._data;
     }
     var map = {};
     for (var key in this._data) {
-      _objectByAttribute(this._data[key], attr, map, null, secondaryAttr);
+      _objectByAttribute(this._data[key], attr, map, null);
     }
     return map;
   };
@@ -27,31 +27,22 @@ angular.module('openshiftConsole')
   // actions is whether the object was (ADDED|DELETED|MODIFIED).  ADDED is assumed if actions is not
   // passed.  If objects is a hash then actions must be a hash with the same keys.  If objects is an array
   // then actions must be an array of the same order and length.
-  Data.prototype._objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
+  Data.prototype._objectsByAttribute = function(objects, attr, map, actions) {
     angular.forEach(objects, function(obj, key) {
-      _objectByAttribute(obj, attr, map, actions ? actions[key] : null, secondaryAttr);
+      _objectByAttribute(obj, attr, map, actions ? actions[key] : null);
     });
   };
 
   // Handles attr with dot notation
   // TODO write lots of tests for this helper
   // Note: this lives outside the Data prototype for now so it can be used by the helper in DataService as well
-  var _objectByAttribute = function(obj, attr, map, action, secondaryAttr) {
+  var _objectByAttribute = function(obj, attr, map, action) {
     var subAttrs = attr.split(".");
     var attrValue = obj;
     for (var i = 0; i < subAttrs.length; i++) {
       attrValue = attrValue[subAttrs[i]];
-      if (!attrValue) {
+      if (attrValue === undefined) {
         return;
-      }
-    }
-
-    // Split the secondary attribute by dot notation if there is one
-    var secondaryAttrValue = obj;
-    if (secondaryAttr) {
-      var subSecondaryAttrs = secondaryAttr.split(".");
-      for (var i = 0; i < subSecondaryAttrs.length; i++) {
-        secondaryAttrValue = secondaryAttrValue[subSecondaryAttrs[i]];
       }
     }
 
@@ -64,46 +55,20 @@ angular.module('openshiftConsole')
         if (!map[key]) {
           map[key] = {};
         }
-        if (secondaryAttr) {
-          if (action == "DELETED") {
-            delete map[key][val][secondaryAttrValue];
-          }
-          else {
-            if (!map[key][val]) {
-              map[key][val] = {};
-            }
-            map[key][val][secondaryAttrValue] = obj;
-          }
+        if (action == "DELETED") {
+          delete map[key][val];
         }
         else {
-          if (action == "DELETED") {
-            delete map[key][val];
-          }
-          else {
-            map[key][val] = obj;
-          }
+          map[key][val] = obj;
         }
       }
     }
     else {
       if (action == "DELETED") {
-        if (secondaryAttr) {
-          delete map[attrValue][secondaryAttrValue];
-        }
-        else {
-          delete map[attrValue];
-        }
+        delete map[attrValue];
       }
       else {
-        if (secondaryAttr) {
-          if (!map[attrValue]) {
-            map[attrValue] = {};
-          }
-          map[attrValue][secondaryAttrValue] = obj;
-        }
-        else {
-          map[attrValue] = obj;
-        }
+        map[attrValue] = obj;
       }
     }
   };
@@ -561,15 +526,6 @@ angular.module('openshiftConsole')
     if (!event.wasClean && this._watchCallbacks(type, context).has()) {
       this._startWatchOp(type, context, this._resourceVersion(type, context));
     }
-  };
-
-  // actions is whether the object was (ADDED|DELETED|MODIFIED).  ADDED is assumed if actions is not
-  // passed.  If objects is a hash then actions must be a hash with the same keys.  If objects is an array
-  // then actions must be an array of the same order and length.
-  DataService.prototype.objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
-    angular.forEach(objects, function(obj, key) {
-      _objectByAttribute(obj, attr, map, actions ? actions[key] : null, secondaryAttr);
-    });
   };
 
   var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";

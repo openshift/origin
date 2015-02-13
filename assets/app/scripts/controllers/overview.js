@@ -12,16 +12,30 @@ angular.module('openshiftConsole')
     $scope.pods = {};
     $scope.services = {};
     $scope.unfilteredServices = {};
-    $scope.podsByLabel = {};
     $scope.deployments = {};
-    $scope.deploymentsByConfig = {};
-    $scope.deploymentConfigs = {"": null}; // when we have deployments that were not created from a deploymentConfig
-                                           // the explicit assignment of the "" key is needed so that the null depConfig is
-                                           // iterated over during the ng-repeat in the template
+    $scope.deploymentConfigs = {};
     $scope.builds = {};
     $scope.images = {};
     $scope.imagesByDockerReference = {};
-    $scope.podsByServiceByLabel = {};
+
+    // All pods under a service (no "" service key)
+    $scope.podsByService = {};
+    // All pods under a deployment (no "" deployment key)
+    $scope.podsByDeployment = {};
+    // Pods not in a deployment
+    // "" service key for pods not under any service
+    $scope.monopodsByService = {};
+    // All deployments
+    // "" service key for deployments not under any service
+    // "" deployment config for deployments not created from a deployment config
+    $scope.deploymentsByServiceByDeploymentConfig = {};
+    // All deployments
+    // "" service key for deployments not under any service
+    // Only being built to improve efficiency in the podRelationships method, not used by the view
+    $scope.deploymentsByService = {};    
+    // All deployment configs
+    // "" service key for deployment configs not under any service
+    $scope.deploymentConfigsByService = {};
 
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};    
@@ -30,9 +44,8 @@ angular.module('openshiftConsole')
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.pods = pods.by("metadata.name");
-      $scope.podsByLabel = pods.by("metadata.labels", "metadata.name");
-      podsByServiceByLabel();
-      console.log("podsByLabel (list)", $scope.podsByLabel);      
+      podRelationships();
+      console.log("pods", $scope.pods);
     }, {poll: true}));
 
     watches.push(DataService.watch("services", $scope, function(services) {
@@ -40,22 +53,150 @@ angular.module('openshiftConsole')
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
-      podsByServiceByLabel();
+
+      // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
+      deploymentsByService();
+      deploymentConfigsByService();
+      podRelationships();
+
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
       console.log("services (list)", $scope.services);
     }));
 
-    var podsByServiceByLabel = function() {
-      $scope.podsByServiceByLabel = {};
-      angular.forEach($scope.services, function(service, name) {
-        var ls = new LabelSelector(service.spec.selector);
-        var servicePods = ls.select($scope.pods)
-        $scope.podsByServiceByLabel[name]  =  {};
-        DataService.objectsByAttribute(servicePods, "metadata.labels", $scope.podsByServiceByLabel[name], null, "metadata.name");
+    // Expects deploymentsByServiceByDeploymentConfig to be up to date
+    var podRelationships = function() {
+      $scope.monopodsByService = {"": {}};
+      $scope.podsByService = {};
+      $scope.podsByDeployment = {};
+
+      // Initialize all the label selectors upfront
+      var depSelectors = {};
+      angular.forEach($scope.deployments, function(deployment, depName){
+        depSelectors[depName] = new LabelSelector(deployment.spec.selector);
+        $scope.podsByDeployment[depName] = {};
+      });
+      var svcSelectors = {};
+      angular.forEach($scope.unfilteredServices, function(service, svcName){
+        svcSelectors[svcName] = new LabelSelector(service.spec.selector);
+        $scope.podsByService[svcName] = {};
+      });      
+
+
+      angular.forEach($scope.pods, function(pod, name){
+        var deployments = [];
+        var services = [];
+        angular.forEach($scope.deployments, function(deployment, depName){
+          var ls = depSelectors[depName];
+          if (ls.matches(pod)) {            
+            deployments.push(depName);
+            $scope.podsByDeployment[depName][name] = pod;
+          }
+        });
+        angular.forEach($scope.unfilteredServices, function(service, svcName){
+          var ls = svcSelectors[svcName];
+          if (ls.matches(pod)) {
+            services.push(svcName);
+            $scope.podsByService[svcName][name] = pod;
+
+            var isInDepInSvc = false;
+            angular.forEach(deployments, function(depName) {
+              isInDepInSvc = isInDepInSvc || ($scope.deploymentsByService[svcName] && $scope.deploymentsByService[svcName][depName]);
+            });
+
+            if (!isInDepInSvc) {
+              $scope.monopodsByService[svcName] = $scope.monopodsByService[svcName] || {};
+              $scope.monopodsByService[svcName][name] = pod;
+            }
+          }
+        });
+        if (deployments.length == 0 && services.length == 0 && showMonopod(pod)) {
+          $scope.monopodsByService[""][name] = pod;
+        }
       });
 
-      console.log("podsByServiceByLabel", $scope.podsByServiceByLabel);      
+      console.log("podsByDeployment", $scope.podsByDeployment);      
+      console.log("podsByService", $scope.podsByService); 
+      console.log("monopodsByService", $scope.monopodsByService); 
+    };
+
+    // Filter out monopods we know we don't want to see
+    var showMonopod = function(pod) {
+      // Hide pods in the Succeeded or Terminated phase since these are run once pods
+      // that are done
+      if (pod.status.phase == 'Succeeded' || pod.status.phase == 'Terminated') {
+        // TODO we may want to show pods for X amount of time after they have completed
+        return false;
+      }
+      // Hide our deployer pods since it is obvious the deployment is happening when the new deployment
+      // appears.
+      if (pod.metadata.annotations && pod.metadata.annotations.deployment) {
+        return false;
+      }      
+      // Hide our build pods since we are already showing details for currently running or recently
+      // run builds under the appropriate areas
+      for (var id in $scope.builds) {
+        if ($scope.builds[id].podName == pod.metadata.name) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    var deploymentConfigsByService = function() {
+      $scope.deploymentConfigsByService = {"": {}};
+      angular.forEach($scope.deploymentConfigs, function(deploymentConfig, depName){
+        var foundMatch = false;
+        // TODO this is using the k8s v1beta1 ReplicationControllerState schema, replicaSelector will change to selector eventually
+        var depConfigSelector = new LabelSelector(deploymentConfig.template.controllerTemplate.replicaSelector);
+        angular.forEach($scope.services, function(service, name){
+          $scope.deploymentConfigsByService[name] = $scope.deploymentConfigsByService[name] || {};
+
+          var serviceSelector = new LabelSelector(service.spec.selector);
+          if (serviceSelector.covers(depConfigSelector)) {
+            $scope.deploymentConfigsByService[name][depName] = deploymentConfig;
+            foundMatch = true;
+          }
+        });
+        if (!foundMatch) {
+          $scope.deploymentConfigsByService[""][depName] = deploymentConfig;
+        }
+      });
+    };
+
+    var deploymentsByService = function() {
+      var bySvc = $scope.deploymentsByService = {"": {}};
+      var bySvcByDepCfg = $scope.deploymentsByServiceByDeploymentConfig = {"": {}};
+
+      angular.forEach($scope.deployments, function(deployment, depName){
+        var foundMatch = false;
+        var deploymentSelector = new LabelSelector(deployment.spec.selector);
+        var depConfigName = "";
+        if (deployment.metadata.annotations) {
+          depConfigName = deployment.metadata.annotations.deploymentConfig || "";
+        }
+
+        angular.forEach($scope.services, function(service, name){
+          bySvc[name] = bySvc[name] || {};
+          bySvcByDepCfg[name] = bySvcByDepCfg[name] || {};
+
+          var serviceSelector = new LabelSelector(service.spec.selector);
+          if (serviceSelector.covers(deploymentSelector)) {
+            bySvc[name][depName] = deployment;
+
+            bySvcByDepCfg[name][depConfigName] = bySvcByDepCfg[name][depConfigName] || {};
+            bySvcByDepCfg[name][depConfigName][depName] = deployment;
+            foundMatch = true;
+          }
+        });
+        if (!foundMatch) {
+          bySvc[""][depName] = deployment;
+
+          bySvcByDepCfg[""][depConfigName] = bySvcByDepCfg[""][depConfigName] || {};
+          bySvcByDepCfg[""][depConfigName][depName] = deployment;
+        }
+      });
     };
 
     function parseEncodedDeploymentConfig(deployment) {
@@ -70,10 +211,9 @@ angular.module('openshiftConsole')
       }
     }
 
-    // Sets up subscription for deployments and deploymentsByConfig
+    // Sets up subscription for deployments
     watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {
       $scope.deployments = deployments.by("metadata.name");
-      $scope.deploymentsByConfig = deployments.by("metadata.annotations.deploymentConfig", "metadata.name");
       if (deployment) {
         if (action !== "DELETED") {
           parseEncodedDeploymentConfig(deployment);
@@ -84,8 +224,11 @@ angular.module('openshiftConsole')
           parseEncodedDeploymentConfig(dep);
         });
       }
+
+      // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
+      deploymentsByService();
+      podRelationships();
       console.log("deployments (subscribe)", $scope.deployments);
-      console.log("deploymentsByConfig (subscribe)", $scope.deploymentsByConfig);
     }));
 
     // Sets up subscription for images and imagesByDockerReference
@@ -131,6 +274,9 @@ angular.module('openshiftConsole')
           associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
         });
       }
+
+      deploymentConfigsByService();      
+
       console.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
     }));
 
@@ -171,7 +317,6 @@ angular.module('openshiftConsole')
       // trigger a digest loop
       $scope.$apply(function() {
         $scope.services = labelSelector.select($scope.unfilteredServices);
-        podsByServiceByLabel();
         updateFilterWarning();
       });
     });
