@@ -18,31 +18,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// DeploymentConfigControllerFactory can create a DeploymentConfigController which obtains
-// DeploymentConfigs from a queue populated from a watch of all DeploymentConfigs.
-type DeploymentConfigControllerFactory struct {
-	Client     *osclient.Client
-	KubeClient kclient.Interface
-	Codec      runtime.Codec
-	Stop       <-chan struct{}
-}
-
-func (factory *DeploymentConfigControllerFactory) Create() *controller.DeploymentConfigController {
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&deploymentConfigLW{factory.Client}, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
-
-	return &controller.DeploymentConfigController{
-		DeploymentInterface: &ClientDeploymentInterface{factory.KubeClient},
-		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			config := queue.Pop().(*deployapi.DeploymentConfig)
-			panicIfStopped(factory.Stop, "deployment config controller stopped")
-			return config
-		},
-		Codec: factory.Codec,
-		Stop:  factory.Stop,
-	}
-}
-
 // DeploymentControllerFactory can create a DeploymentController which obtains Deployments
 // from a queue populated from a watch of Deployments.
 // Pods are obtained from a queue populated from a watch of all pods.

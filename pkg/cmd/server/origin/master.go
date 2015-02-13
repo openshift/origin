@@ -45,6 +45,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	deploycontroller "github.com/openshift/origin/pkg/deploy/controller"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -677,12 +678,8 @@ func (c *MasterConfig) RunDeploymentController() {
 
 func (c *MasterConfig) RunDeploymentConfigController() {
 	osclient, kclient := c.DeploymentConfigControllerClients()
-	factory := deploycontrollerfactory.DeploymentConfigControllerFactory{
-		Client:     osclient,
-		KubeClient: kclient,
-		Codec:      latest.Codec,
-	}
-	controller := factory.Create()
+	controller := deploycontroller.NewDeploymentConfigController(osclient, kclient, latest.Codec,
+		make(chan struct{}), 30*time.Second)
 	controller.Run()
 }
 
