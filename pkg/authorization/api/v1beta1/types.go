@@ -84,6 +84,33 @@ type PolicyBinding struct {
 	RoleBindings []NamedRoleBinding `json:"roleBindings"`
 }
 
+// ResourceAccessReviewResponse describes who can perform the action
+type ResourceAccessReviewResponse struct {
+	kapi.TypeMeta `json:",inline"`
+
+	// Namespace is the namespace used for the access review
+	Namespace string `json:"namespace,omitempty"`
+	// Users is the list of users who can perform the action
+	Users []string `json:"users"`
+	// Groups is the list of groups who can perform the action
+	Groups []string `json:"groups"`
+}
+
+// ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
+// action specified by spec
+type ResourceAccessReview struct {
+	kapi.TypeMeta `json:",inline"`
+
+	// Verb is one of: get, list, watch, create, update, delete
+	Verb string `json:"verb"`
+	// Resource is one of the existing resource types
+	Resource string `json:"resource"`
+	// Content is the actual content of the request for create and update
+	Content kruntime.RawExtension `json:"content,omitempty"`
+	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
+	ResourceName string `json:"resourceName,omitempty"`
+}
+
 type NamedRole struct {
 	Name string `json:"name"`
 	Role Role   `json:"role"`
@@ -92,6 +119,36 @@ type NamedRole struct {
 type NamedRoleBinding struct {
 	Name        string      `json:"name"`
 	RoleBinding RoleBinding `json:"roleBinding"`
+}
+
+// SubjectAccessReviewResponse describes whether or not a user or group can perform an action
+type SubjectAccessReviewResponse struct {
+	kapi.TypeMeta `json:",inline"`
+
+	// Namespace is the namespace used for the access review
+	Namespace string `json:"namespace,omitempty"`
+	// Allowed is required.  True if the action would be allowed, false otherwise.
+	Allowed bool `json:"allowed"`
+	// Reason is optional.  It indicates why a request was allowed or denied.
+	Reason string `json:"reason,omitempty"`
+}
+
+// SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
+type SubjectAccessReview struct {
+	kapi.TypeMeta `json:",inline"`
+
+	// Verb is one of: get, list, watch, create, update, delete
+	Verb string `json:"verb"`
+	// Resource is one of the existing resource types
+	Resource string `json:"resource"`
+	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
+	User string `json:"user"`
+	// Groups is optional.  Groups is the list of groups to which the User belongs.
+	Groups []string `json:"groups"`
+	// Content is the actual content of the request for create and update
+	Content kruntime.RawExtension `json:"content,omitempty"`
+	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
+	ResourceName string `json:"resourceName"`
 }
 
 // PolicyList is a collection of Policies

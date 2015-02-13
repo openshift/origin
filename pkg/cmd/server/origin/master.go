@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -75,11 +74,14 @@ import (
 	"github.com/openshift/origin/pkg/version"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
+	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 )
 
 const (
@@ -106,9 +108,12 @@ type MasterConfig struct {
 	// If not specified, the built-in logout page is shown.
 	LogoutURI string
 
-	CORSAllowedOrigins []string
-	Authenticator      authenticator.Request
-	// TODO Have MasterConfig take a fully formed Authorizer
+	CORSAllowedOrigins            []string
+	Authenticator                 authenticator.Request
+	Authorizer                    authorizer.Authorizer
+	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
+	// RequestsToUsers is used by both authentication and authorization.  This is a shared, in-memory map, so they must use exactly the same instance
+	RequestsToUsers              *authcontext.RequestContextMap
 	MasterAuthorizationNamespace string
 
 	EtcdHelper tools.EtcdHelper
@@ -150,9 +155,6 @@ type MasterConfig struct {
 
 	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
 	DeployerOSClientConfig kclient.Config
-
-	// requestsToUsers is a shared auth context map
-	requestsToUsers *authcontext.RequestContextMap
 }
 
 // APIInstaller installs additional API components into this server
@@ -298,10 +300,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientregistry.NewREST(oauthEtcd),
 		"oAuthClientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 
-		"policies":       policyregistry.NewREST(authorizationEtcd),
-		"policyBindings": policybindingregistry.NewREST(authorizationEtcd),
-		"roles":          roleregistry.NewREST(authorizationEtcd),
-		"roleBindings":   rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"policies":              policyregistry.NewREST(authorizationEtcd),
+		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
+		"roles":                 roleregistry.NewREST(authorizationEtcd),
+		"roleBindings":          rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
+		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
 	}
 
 	admissionControl := admit.NewAlwaysAdmit()
@@ -448,10 +452,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 // getRequestsToUsers returns the shared user context
 func (c *MasterConfig) getRequestsToUsers() *authcontext.RequestContextMap {
-	if c.requestsToUsers == nil {
-		c.requestsToUsers = authcontext.NewRequestContextMap()
+	if c.RequestsToUsers == nil {
+		c.RequestsToUsers = authcontext.NewRequestContextMap()
 	}
-	return c.requestsToUsers
+	return c.RequestsToUsers
 }
 
 // ensureComponentAuthorizationRules initializes the global policies
@@ -488,15 +492,9 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	}
 }
 
-// TODO Have MasterConfig take a fully formed Authorizer
 func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
-	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
-
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(c.getRequestsToUsers(), &authorizer.APIRequestInfoResolver{util.NewStringSet("api", "osapi"), latest.RESTMapper})
-	authz := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
-
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
+		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)
@@ -508,7 +506,7 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 			return
 		}
 
-		allowed, reason, err := authz.Authorize(attributes)
+		allowed, reason, err := c.Authorizer.Authorize(attributes)
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)

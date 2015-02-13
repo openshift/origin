@@ -2,6 +2,7 @@ package authorizer
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ type authorizeTest struct {
 	namespacedPolicyBinding     []authorizationapi.PolicyBinding
 	policyBindingRetrievalError error
 
-	attributes *openshiftAuthorizationAttributes
+	attributes *DefaultAuthorizationAttributes
 
 	expectedAllowed bool
 	expectedReason  string
@@ -32,14 +33,14 @@ type authorizeTest struct {
 
 func TestResourceNameDeny(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "just-a-user",
 			},
-			verb:         "get",
-			resource:     "users",
-			resourceName: "just-a-user",
-			namespace:    testMasterNamespace,
+			Verb:         "get",
+			Resource:     "users",
+			ResourceName: "just-a-user",
+			Namespace:    testMasterNamespace,
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -50,14 +51,14 @@ func TestResourceNameDeny(t *testing.T) {
 
 func TestResourceNameAllow(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "just-a-user",
 			},
-			verb:         "get",
-			resource:     "users",
-			resourceName: "~",
-			namespace:    testMasterNamespace,
+			Verb:         "get",
+			Resource:     "users",
+			ResourceName: "~",
+			Namespace:    testMasterNamespace,
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in master",
@@ -68,13 +69,13 @@ func TestResourceNameAllow(t *testing.T) {
 
 func TestDeniedWithError(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Anna",
 			},
-			verb:      "update",
-			resource:  "roles",
-			namespace: "adze",
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedError:   "my special error",
@@ -99,13 +100,13 @@ func TestDeniedWithError(t *testing.T) {
 
 func TestAllowedWithMissingBinding(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Anna",
 			},
-			verb:      "update",
-			resource:  "roles",
-			namespace: "adze",
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -129,13 +130,13 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "ClusterAdmin",
 			},
-			verb:      "update",
-			resource:  "deploymentConfigs",
-			namespace: testMasterNamespace,
+			Verb:      "update",
+			Resource:  "deploymentConfigs",
+			Namespace: testMasterNamespace,
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in master",
@@ -146,13 +147,13 @@ func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "SomeYahoo",
 			},
-			verb:      "get",
-			resource:  "pods",
-			namespace: testMasterNamespace,
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: testMasterNamespace,
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -163,13 +164,13 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 
 func TestProjectAdminEditPolicy(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Anna",
 			},
-			verb:      "update",
-			resource:  "roles",
-			namespace: "adze",
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -181,13 +182,13 @@ func TestProjectAdminEditPolicy(t *testing.T) {
 
 func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "ClusterAdmin",
 			},
-			verb:      "update",
-			resource:  "roles",
-			namespace: "adze",
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in master",
@@ -197,15 +198,15 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test.test(t)
 }
 
-func TestResourceKindRestrictionsWork(t *testing.T) {
+func TestResourceRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:      "get",
-			resource:  "buildConfigs",
-			namespace: "adze",
+			Verb:      "get",
+			Resource:  "buildConfigs",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -215,13 +216,13 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:      "get",
-			resource:  "pods",
-			namespace: "adze",
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -231,15 +232,15 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 	test2.test(t)
 }
 
-func TestResourceKindRestrictionsWithWeirdWork(t *testing.T) {
+func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 	test1 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:      "get",
-			resource:  "BUILDCONFIGS",
-			namespace: "adze",
+			Verb:      "get",
+			Resource:  "BUILDCONFIGS",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -249,13 +250,13 @@ func TestResourceKindRestrictionsWithWeirdWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:      "get",
-			resource:  "buildconfigs",
-			namespace: "adze",
+			Verb:      "get",
+			Resource:  "buildconfigs",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -267,13 +268,13 @@ func TestResourceKindRestrictionsWithWeirdWork(t *testing.T) {
 
 func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:      "get",
-			resource:  "buildConfigs",
-			namespace: "backsaw",
+			Verb:      "get",
+			Resource:  "buildConfigs",
+			Namespace: "backsaw",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -285,13 +286,13 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 
 func TestVerbRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Valerie",
 			},
-			verb:      "get",
-			resource:  "buildConfigs",
-			namespace: "adze",
+			Verb:      "get",
+			Resource:  "buildConfigs",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -301,13 +302,13 @@ func TestVerbRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &user.DefaultInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Valerie",
 			},
-			verb:      "create",
-			resource:  "buildConfigs",
-			namespace: "adze",
+			Verb:      "create",
+			Resource:  "buildConfigs",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -350,6 +351,11 @@ func (test *authorizeTest) test(t *testing.T) {
 
 func matchString(expected, actual string, field string, t *testing.T) {
 	if expected != actual {
+		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
+	}
+}
+func matchStringSlice(expected, actual []string, field string, t *testing.T) {
+	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
 	}
 }
@@ -403,7 +409,8 @@ func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.Pol
 							Name:      "cluster-admin",
 							Namespace: testMasterNamespace,
 						},
-						UserNames: []string{"ClusterAdmin"},
+						UserNames:  []string{"ClusterAdmin"},
+						GroupNames: []string{"RootUsers"},
 					},
 					"user-only": {
 						ObjectMeta: kapi.ObjectMeta{
@@ -458,7 +465,7 @@ func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBindin
 							Name:      "admin",
 							Namespace: testMasterNamespace,
 						},
-						UserNames: []string{"Anna", "TeasedAdmin"},
+						UserNames: []string{"Anna"},
 					},
 					"viewers": {
 						ObjectMeta: kapi.ObjectMeta{

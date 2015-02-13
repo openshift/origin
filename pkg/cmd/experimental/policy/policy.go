@@ -34,6 +34,7 @@ func NewCommandPolicy(name string) *cobra.Command {
 	cmds.AddCommand(NewCmdAddGroup(clientConfig))
 	cmds.AddCommand(NewCmdRemoveGroup(clientConfig))
 	cmds.AddCommand(NewCmdRemoveGroupFromProject(clientConfig))
+	cmds.AddCommand(NewCmdWhoCan(clientConfig))
 
 	return cmds
 }
