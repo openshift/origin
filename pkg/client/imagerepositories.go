@@ -41,7 +41,7 @@ func newImageRepositories(c *Client, namespace string) *imageRepositories {
 	}
 }
 
-// List returns a list of imagerepositories that match the label and fiels selectors.
+// List returns a list of imagerepositories that match the label and field selectors.
 func (c *imageRepositories) List(label, field labels.Selector) (result *imageapi.ImageRepositoryList, err error) {
 	result = &imageapi.ImageRepositoryList{}
 	err = c.r.Get().

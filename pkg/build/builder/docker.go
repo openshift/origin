@@ -18,7 +18,7 @@ import (
 )
 
 // urlCheckTimeout is the timeout used to check the source URL
-// If fetching the URL exceeeds the timeout, then the build will
+// If fetching the URL exceeds the timeout, then the build will
 // not proceed further and stop
 const urlCheckTimeout = 16 * time.Second
 

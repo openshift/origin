@@ -442,12 +442,12 @@ func start(cfg *config, args []string) error {
 			// Bootstrap clients
 			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
 
-			// Openshift client
+			// OpenShift client
 			openshiftClientUser := &user.DefaultInfo{Name: "system:openshift-client"}
 			if osmaster.OSClientConfig, err = ca.MakeClientConfig("openshift-client", openshiftClientUser, osClientConfigTemplate); err != nil {
 				return err
 			}
-			// Openshift deployer client
+			// OpenShift deployer client
 			openshiftDeployerUser := &user.DefaultInfo{Name: "system:openshift-deployer", Groups: []string{"system:deployers"}}
 			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("openshift-deployer", openshiftDeployerUser, osClientConfigTemplate); err != nil {
 				return err
@@ -543,7 +543,7 @@ func start(cfg *config, args []string) error {
 			// Google config
 			GoogleClientID:     env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_ID", ""),
 			GoogleClientSecret: env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_SECRET", ""),
-			// Github config
+			// GitHub config
 			GithubClientID:     env("OPENSHIFT_OAUTH_GITHUB_CLIENT_ID", ""),
 			GithubClientSecret: env("OPENSHIFT_OAUTH_GITHUB_CLIENT_SECRET", ""),
 		}

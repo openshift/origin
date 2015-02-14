@@ -20,7 +20,7 @@ type TemplatePlugin struct {
 
 // router controls the interaction of the plugin with the underlying router implementation
 type router interface {
-	// Mutative operations in this interfance do not return errors.
+	// Mutative operations in this interface do not return errors.
 	// The only error state for these methods is when an unknown
 	// frontend key is used; all call sites make certain the frontend
 	// is created.

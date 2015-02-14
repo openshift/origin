@@ -1,3 +1,3 @@
-// Package builder contains builders for STI and Docker in Openshift Origin
+// Package builder contains builders for STI and Docker in OpenShift Origin
 
 package builder

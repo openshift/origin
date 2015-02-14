@@ -110,7 +110,7 @@ func TestEtcdUpdateUserIdentityMappingWithConflictingUser(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{Name: "yankee:xray"},
 		},
 	}
-	// this key is intentionally wrong so that we can have an internally consistend UserIdentityMapping
+	// this key is intentionally wrong so that we can have an internally consistent UserIdentityMapping
 	// that was placed in a bad key location
 	key := makeTestUserIdentityMapping("zulu", "alfa")
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, startingMapping), 0)

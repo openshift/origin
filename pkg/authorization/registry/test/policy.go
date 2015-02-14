@@ -18,7 +18,7 @@ type PolicyRegistry struct {
 	DeletedPolicyName string
 }
 
-// ListPolicies obtains list of policys that match a selector.
+// ListPolicies obtains list of policies that match a selector.
 func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.PolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err

@@ -137,7 +137,7 @@ type WeightedResolver struct {
 // PerfectMatchWeightedResolver returns only matches from resolvers that are identified as exact
 // (weight 0.0), and only matches from those resolvers that qualify as exact (score = 0.0). If no
 // perfect matches exist, an ErrMultipleMatches is returned indicating the remaining candidate(s).
-// Note that this metchod may resolve ErrMultipleMatches with a single match, indicating an error
+// Note that this method may resolve ErrMultipleMatches with a single match, indicating an error
 // (no perfect match) but with only one candidate.
 type PerfectMatchWeightedResolver []WeightedResolver
 

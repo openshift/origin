@@ -28,7 +28,7 @@ type Deployment struct {
 	Details *DeploymentDetails `json:"details,omitempty"`
 }
 
-// DeploymentStatus decribes the possible states a deployment can be in.
+// DeploymentStatus describes the possible states a deployment can be in.
 type DeploymentStatus string
 
 const (

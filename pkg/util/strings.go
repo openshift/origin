@@ -2,7 +2,7 @@ package util
 
 import "sort"
 
-// UniqueStrings returns a sorted, uniqified slice of the specified strings
+// UniqueStrings returns a sorted, uniquified slice of the specified strings
 func UniqueStrings(strings []string) []string {
 	m := make(map[string]bool, len(strings))
 	for _, s := range strings {

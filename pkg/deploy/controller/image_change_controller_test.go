@@ -212,7 +212,7 @@ func TestImageChangeMatchScenarios(t *testing.T) {
 		t.Logf("running scenario: %v", s)
 		controller.HandleImageRepo()
 
-		// assert updates/generations occured
+		// assert updates/generations occurred
 		if s.matches && !updated {
 			t.Fatalf("expected update for scenario: %v", s)
 		}

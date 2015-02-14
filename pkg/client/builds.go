@@ -76,7 +76,7 @@ func (c *builds) Delete(name string) (err error) {
 	return
 }
 
-// Watch returns a watch.Interfac that watches the requested builds
+// Watch returns a watch.Interface that watches the requested builds
 func (c *builds) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").

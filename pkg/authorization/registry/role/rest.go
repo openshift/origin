@@ -128,7 +128,7 @@ func doesRoleExist(name string, policy *authorizationapi.Policy) bool {
 	return exists
 }
 
-// EnsurePOlicy returns the policy object for the specified namespace.  If one does not exist, it is created for you.  Permission to
+// EnsurePolicy returns the policy object for the specified namespace.  If one does not exist, it is created for you.  Permission to
 // create, update, or delete roles in a namespace implies the ability to create a Policy object itself.
 func (r *REST) EnsurePolicy(ctx kapi.Context) (*authorizationapi.Policy, error) {
 	policy, err := r.registry.GetPolicy(ctx, authorizationapi.PolicyName)
