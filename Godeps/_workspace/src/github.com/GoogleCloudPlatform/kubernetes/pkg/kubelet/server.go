@@ -42,12 +42,14 @@ import (
 type Server struct {
 	host HostInterface
 	mux  *http.ServeMux
+
+	allowDisabledDocker bool
 }
 
 // ListenAndServeKubeletServer initializes a server to respond to HTTP network requests on the Kubelet.
 func ListenAndServeKubeletServer(host HostInterface, address net.IP, port uint, enableDebuggingHandlers bool) {
 	glog.V(1).Infof("Starting to listen on %s:%d", address, port)
-	handler := NewServer(host, enableDebuggingHandlers)
+	handler := NewServer(host, enableDebuggingHandlers, false)
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
 		Handler:        &handler,
@@ -74,10 +76,12 @@ type HostInterface interface {
 }
 
 // NewServer initializes and configures a kubelet.Server object to handle HTTP requests.
-func NewServer(host HostInterface, enableDebuggingHandlers bool) Server {
+func NewServer(host HostInterface, enableDebuggingHandlers, allowDisabledDocker bool) Server {
 	server := Server{
 		host: host,
 		mux:  http.NewServeMux(),
+
+		allowDisabledDocker: allowDisabledDocker,
 	}
 	server.InstallDefaultHandlers()
 	if enableDebuggingHandlers {
@@ -128,15 +132,19 @@ func isValidDockerVersion(ver []uint) (bool, string) {
 
 // handleHealthz handles /healthz request and checks Docker version
 func (s *Server) handleHealthz(w http.ResponseWriter, req *http.Request) {
+	errorCode := http.StatusInternalServerError
+	if s.allowDisabledDocker {
+		errorCode = http.StatusOK
+	}
 	versions, err := s.host.GetDockerVersion()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(errorCode)
 		w.Write([]byte("unknown Docker version"))
 		return
 	}
 	valid, version := isValidDockerVersion(versions)
 	if !valid {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(errorCode)
 		msg := "Docker version is too old (" + version + ")"
 		w.Write([]byte(msg))
 		return
