@@ -53,7 +53,7 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 }
 
 // Create registers the given Client.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	client, ok := obj.(*api.OAuthClient)
 	if !ok {
 		return nil, fmt.Errorf("not an client: %#v", obj)
@@ -65,17 +65,13 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, kerrors.NewInvalid("oauthClient", client.Name, errs)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.CreateClient(client); err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, client.Name)
-	}), nil
+	if err := s.registry.CreateClient(client); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, client.Name)
 }
 
 // Delete asynchronously deletes an Client specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteClient(id)
-	}), nil
+func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteClient(id)
 }

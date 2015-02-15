@@ -40,25 +40,23 @@ func (r *REST) New() runtime.Object {
 }
 
 // Delete asynchronously deletes the Policy specified by its id.
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		owningPolicyBinding, err := r.LocatePolicyBinding(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		if owningPolicyBinding == nil {
-			return nil, fmt.Errorf("roleBinding %v does not exist", id)
-		}
+func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	owningPolicyBinding, err := r.LocatePolicyBinding(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if owningPolicyBinding == nil {
+		return nil, fmt.Errorf("roleBinding %v does not exist", id)
+	}
 
-		delete(owningPolicyBinding.RoleBindings, id)
-		owningPolicyBinding.LastModified = util.Now()
+	delete(owningPolicyBinding.RoleBindings, id)
+	owningPolicyBinding.LastModified = util.Now()
 
-		return &kapi.Status{Status: kapi.StatusSuccess}, r.bindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding)
-	}), nil
+	return &kapi.Status{Status: kapi.StatusSuccess}, r.bindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding)
 }
 
 // Create registers a given new RoleBinding inside the Policy instance to r.bindingRegistry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	roleBinding, ok := obj.(*authorizationapi.RoleBinding)
 	if !ok {
 		return nil, fmt.Errorf("not a roleBinding: %#v", obj)
@@ -76,75 +74,71 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, err
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		policyBinding, err := r.GetPolicyBinding(ctx, roleBinding.RoleRef.Namespace)
-		if err != nil {
-			return nil, err
-		}
+	policyBinding, err := r.GetPolicyBinding(ctx, roleBinding.RoleRef.Namespace)
+	if err != nil {
+		return nil, err
+	}
 
-		_, exists := policyBinding.RoleBindings[roleBinding.Name]
-		if exists {
-			return nil, fmt.Errorf("roleBinding %v already exists", roleBinding.Name)
-		}
+	_, exists := policyBinding.RoleBindings[roleBinding.Name]
+	if exists {
+		return nil, fmt.Errorf("roleBinding %v already exists", roleBinding.Name)
+	}
 
-		policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
-		policyBinding.LastModified = util.Now()
+	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
+	policyBinding.LastModified = util.Now()
 
-		if err := r.bindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
-			return nil, err
-		}
-		return roleBinding, nil
-	}), nil
+	if err := r.bindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
+		return nil, err
+	}
+	return roleBinding, nil
 }
 
 // Update replaces a given RoleBinding inside the Policy instance with an existing instance in r.bindingRegistry.
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	roleBinding, ok := obj.(*authorizationapi.RoleBinding)
 	if !ok {
-		return nil, fmt.Errorf("not a roleBinding: %#v", obj)
+		return nil, false, fmt.Errorf("not a roleBinding: %#v", obj)
 	}
 	if !kapi.ValidNamespace(ctx, &roleBinding.ObjectMeta) {
-		return nil, kerrors.NewConflict("roleBinding", roleBinding.Namespace, fmt.Errorf("RoleBinding.Namespace does not match the provided context"))
+		return nil, false, kerrors.NewConflict("roleBinding", roleBinding.Namespace, fmt.Errorf("RoleBinding.Namespace does not match the provided context"))
 	}
 
 	if errs := validation.ValidateRoleBinding(roleBinding); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("roleBinding", roleBinding.Name, errs)
+		return nil, false, kerrors.NewInvalid("roleBinding", roleBinding.Name, errs)
 	}
 
 	if err := r.validateReferentialIntegrity(ctx, roleBinding); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	existingRoleBinding, err := r.GetRoleBinding(ctx, roleBinding.Name)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if existingRoleBinding == nil {
-		return nil, fmt.Errorf("roleBinding %v does not exist", roleBinding.Name)
+		return nil, false, fmt.Errorf("roleBinding %v does not exist", roleBinding.Name)
 	}
 	if existingRoleBinding.RoleRef.Namespace != roleBinding.RoleRef.Namespace {
-		return nil, fmt.Errorf("cannot change roleBinding.RoleRef.Namespace from %v to %v", existingRoleBinding.RoleRef.Namespace, roleBinding.RoleRef.Namespace)
+		return nil, false, fmt.Errorf("cannot change roleBinding.RoleRef.Namespace from %v to %v", existingRoleBinding.RoleRef.Namespace, roleBinding.RoleRef.Namespace)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		policyBinding, err := r.GetPolicyBinding(ctx, roleBinding.RoleRef.Namespace)
-		if err != nil {
-			return nil, err
-		}
+	policyBinding, err := r.GetPolicyBinding(ctx, roleBinding.RoleRef.Namespace)
+	if err != nil {
+		return nil, false, err
+	}
 
-		_, exists := policyBinding.RoleBindings[roleBinding.Name]
-		if !exists {
-			return nil, fmt.Errorf("roleBinding %v does not exist", roleBinding.Name)
-		}
+	_, exists := policyBinding.RoleBindings[roleBinding.Name]
+	if !exists {
+		return nil, false, fmt.Errorf("roleBinding %v does not exist", roleBinding.Name)
+	}
 
-		policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
-		policyBinding.LastModified = util.Now()
+	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
+	policyBinding.LastModified = util.Now()
 
-		if err := r.bindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
-			return nil, err
-		}
-		return roleBinding, nil
-	}), nil
+	if err := r.bindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
+		return nil, false, err
+	}
+	return roleBinding, false, nil
 }
 
 func (r *REST) validateReferentialIntegrity(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {

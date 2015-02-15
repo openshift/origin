@@ -3,7 +3,6 @@ package clientauthorization
 import (
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -45,25 +44,9 @@ func TestCreateStorageError(t *testing.T) {
 	}
 
 	ctx := api.NewContext()
-	channel, err := storage.Create(ctx, clientAuth)
-	if err != nil {
+	_, err := storage.Create(ctx, clientAuth)
+	if err != registry.Err {
 		t.Errorf("unexpected error: %v", err)
-	}
-
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *api.Status:
-			if r.Message == registry.Err.Error() {
-				// expected case
-			} else {
-				t.Errorf("Got back unexpected error: %#v", r)
-			}
-		default:
-			t.Errorf("Got back non-status result: %v", r)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
 	}
 }
 
@@ -80,23 +63,18 @@ func TestCreateValid(t *testing.T) {
 	}
 
 	ctx := api.NewContext()
-	channel, err := storage.Create(ctx, clientAuth)
+	obj, err := storage.Create(ctx, clientAuth)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *api.Status:
-			t.Errorf("Got back unexpected status: %#v", r)
-		case *oapi.OAuthClientAuthorization:
-			// expected case
-		default:
-			t.Errorf("Got unexpected type: %#v", r)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	switch r := obj.(type) {
+	case *api.Status:
+		t.Errorf("Got back unexpected status: %#v", r)
+	case *oapi.OAuthClientAuthorization:
+		// expected case
+	default:
+		t.Errorf("Got unexpected type: %#v", r)
 	}
 }
 
@@ -218,16 +196,15 @@ func TestUpdateNotSupported(t *testing.T) {
 	}
 	client := &oapi.OAuthClientAuthorization{
 		ObjectMeta: api.ObjectMeta{Name: "clientName"},
+		ClientName: "test",
+		UserName:   "test",
+		UserUID:    "test",
 	}
 
 	ctx := api.NewContext()
-	_, err := storage.Update(ctx, client)
-	if err == nil {
-		t.Errorf("expected unsupported error, but update succeeded")
-		return
-	}
-	if err == registry.Err {
-		t.Errorf("expected unsupported error, but registry was called")
+	_, created, err := storage.Update(ctx, client)
+	if err != registry.Err || created {
+		t.Errorf("unexpected err: %v", err)
 		return
 	}
 }
@@ -241,25 +218,9 @@ func TestDeleteError(t *testing.T) {
 	}
 
 	ctx := api.NewContext()
-	channel, err := storage.Delete(ctx, "foo")
-	if err != nil {
+	_, err := storage.Delete(ctx, "foo")
+	if err != registry.Err {
 		t.Errorf("unexpected error: %v", err)
-	}
-
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *api.Status:
-			if r.Message == registry.Err.Error() {
-				// expected case
-			} else {
-				t.Errorf("Got back unexpected error: %#v", r)
-			}
-		default:
-			t.Errorf("Got back non-status result: %v", r)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
 	}
 }
 
@@ -272,22 +233,17 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	ctx := api.NewContext()
-	channel, err := storage.Delete(ctx, "foo")
+	obj, err := storage.Delete(ctx, "foo")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *api.Status:
-			if r.Status != "Success" {
-				t.Fatalf("Got back non-success status: %#v", r)
-			}
-		default:
-			t.Fatalf("Got back non-status result: %v", r)
+	switch r := obj.(type) {
+	case *api.Status:
+		if r.Status != "Success" {
+			t.Fatalf("Got back non-success status: %#v", obj)
 		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	default:
+		t.Fatalf("Got back non-status result: %v", obj)
 	}
 }

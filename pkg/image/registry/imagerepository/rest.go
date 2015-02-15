@@ -51,7 +51,7 @@ func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVer
 }
 
 // Create registers the given ImageRepository.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	repo := obj.(*api.ImageRepository)
 	if !kapi.ValidNamespace(ctx, &repo.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
@@ -63,38 +63,32 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 
 	repo.Status = api.ImageRepositoryStatus{}
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.CreateImageRepository(ctx, repo); err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, repo.Name)
-	}), nil
+	if err := s.registry.CreateImageRepository(ctx, repo); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, repo.Name)
 }
 
 // Update replaces an existing ImageRepository in the registry with the given ImageRepository.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	repo := obj.(*api.ImageRepository)
 	if !kapi.ValidNamespace(ctx, &repo.ObjectMeta) {
-		return nil, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
+		return nil, false, errors.NewConflict("imageRepository", repo.Namespace, fmt.Errorf("ImageRepository.Namespace does not match the provided context"))
 	}
 	if errs := validation.ValidateImageRepository(repo); len(errs) > 0 {
-		return nil, errors.NewInvalid("imageRepository", repo.Name, errs)
+		return nil, false, errors.NewInvalid("imageRepository", repo.Name, errs)
 	}
 
 	repo.Status = api.ImageRepositoryStatus{}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := s.registry.UpdateImageRepository(ctx, repo)
-		if err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, repo.Name)
-	}), nil
+	if err := s.registry.UpdateImageRepository(ctx, repo); err != nil {
+		return nil, false, err
+	}
+	out, err := s.Get(ctx, repo.Name)
+	return out, false, err
 }
 
 // Delete asynchronously deletes an ImageRepository specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImageRepository(ctx, id)
-	}), nil
+func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImageRepository(ctx, id)
 }

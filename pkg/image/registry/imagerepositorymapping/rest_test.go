@@ -32,9 +32,9 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 		Tag: "latest",
 	}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &mapping)
-	if channel != nil {
-		t.Fatalf("Unexpected non-nil channel %#v", channel)
+	obj, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	if obj != nil {
+		t.Fatalf("Unexpected non-nil obj %#v", obj)
 	}
 	if err == nil {
 		t.Fatal("Unexpected nil err")
@@ -70,9 +70,9 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 		Tag: "latest",
 	}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &mapping)
-	if channel != nil {
-		t.Errorf("Unexpected non-nil channel %#v", channel)
+	obj, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	if obj != nil {
+		t.Errorf("Unexpected non-nil obj %#v", obj)
 	}
 	if err == nil {
 		t.Fatal("Unexpected nil err")
@@ -117,13 +117,10 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 		},
 		Tag: "latest",
 	}
-	ch, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
 	if err != nil {
 		t.Errorf("Unexpected error creating mapping: %#v", err)
 	}
-
-	out := <-ch
-	t.Logf("out = '%#v'", out)
 
 	image, err := imageRegistry.GetImage(kapi.NewDefaultContext(), "imageID1")
 	if err != nil {
@@ -186,7 +183,7 @@ func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 
 	ch, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &mapping)
 	if ch != nil {
-		t.Error("Expected a nil channel, but we got a value")
+		t.Error("Expected a nil obj, but we got a value")
 	}
 	checkExpectedNamespaceError(t, err)
 }

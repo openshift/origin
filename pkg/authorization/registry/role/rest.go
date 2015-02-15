@@ -34,26 +34,24 @@ func (r *REST) New() runtime.Object {
 }
 
 // Delete asynchronously deletes the Policy specified by its id.
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		policy, err := r.EnsurePolicy(ctx)
-		if err != nil {
-			return nil, err
-		}
+func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	policy, err := r.EnsurePolicy(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-		if !doesRoleExist(id, policy) {
-			return nil, fmt.Errorf("role %v does not exist", id)
-		}
+	if !doesRoleExist(id, policy) {
+		return nil, fmt.Errorf("role %v does not exist", id)
+	}
 
-		delete(policy.Roles, id)
-		policy.LastModified = util.Now()
+	delete(policy.Roles, id)
+	policy.LastModified = util.Now()
 
-		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.UpdatePolicy(ctx, policy)
-	}), nil
+	return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.UpdatePolicy(ctx, policy)
 }
 
 // Create registers a given new Role inside the Policy instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	role, ok := obj.(*authorizationapi.Role)
 	if !ok {
 		return nil, fmt.Errorf("not a role: %#v", obj)
@@ -75,51 +73,47 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, fmt.Errorf("role %v already exists", role.Name)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		policy.Roles[role.Name] = *role
-		policy.LastModified = util.Now()
+	policy.Roles[role.Name] = *role
+	policy.LastModified = util.Now()
 
-		if err := r.registry.UpdatePolicy(ctx, policy); err != nil {
-			return nil, err
-		}
-		return role, nil
-	}), nil
+	if err := r.registry.UpdatePolicy(ctx, policy); err != nil {
+		return nil, err
+	}
+	return role, nil
 }
 
 // Update replaces a given Role inside the Policy instance with an existing instance in r.registry.
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	role, ok := obj.(*authorizationapi.Role)
 	if !ok {
-		return nil, fmt.Errorf("not a role: %#v", obj)
+		return nil, false, fmt.Errorf("not a role: %#v", obj)
 	}
 	if !kapi.ValidNamespace(ctx, &role.ObjectMeta) {
-		return nil, kerrors.NewConflict("role", role.Namespace, fmt.Errorf("Role.Namespace does not match the provided context"))
+		return nil, false, kerrors.NewConflict("role", role.Namespace, fmt.Errorf("Role.Namespace does not match the provided context"))
 	}
 
 	if errs := validation.ValidateRole(role); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("role", role.Name, errs)
+		return nil, false, kerrors.NewInvalid("role", role.Name, errs)
 	}
 
 	policy, err := r.EnsurePolicy(ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if !doesRoleExist(role.Name, policy) {
-		return nil, fmt.Errorf("role %v does not exist", role.Name)
+		return nil, false, fmt.Errorf("role %v does not exist", role.Name)
 	}
 
 	// set defaults
 	role.CreationTimestamp = util.Now()
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		policy.Roles[role.Name] = *role
-		policy.LastModified = util.Now()
+	policy.Roles[role.Name] = *role
+	policy.LastModified = util.Now()
 
-		if err := r.registry.UpdatePolicy(ctx, policy); err != nil {
-			return nil, err
-		}
-		return role, nil
-	}), nil
+	if err := r.registry.UpdatePolicy(ctx, policy); err != nil {
+		return nil, false, err
+	}
+	return role, false, nil
 }
 
 func doesRoleExist(name string, policy *authorizationapi.Policy) bool {

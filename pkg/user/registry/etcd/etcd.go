@@ -62,7 +62,7 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 		existing := *in.(*api.UserIdentityMapping)
 
 		// did not previously exist
-		if existing.ResourceVersion == "" {
+		if existing.Name == "" {
 			now := util.Now()
 
 			// TODO: move these initializations the rest layer once we stop using the registry directly

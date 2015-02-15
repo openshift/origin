@@ -19,7 +19,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 
 func TestNewRESTDefaultsName(t *testing.T) {
 	storage := NewREST()
-	ch, err := storage.Create(nil, &template.Template{
+	obj, err := storage.Create(nil, &template.Template{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test",
 		},
@@ -27,8 +27,7 @@ func TestNewRESTDefaultsName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	obj := <-ch
-	_, ok := obj.Object.(*config.Config)
+	_, ok := obj.(*config.Config)
 	if !ok {
 		t.Fatalf("unexpected return object: %#v", obj)
 	}

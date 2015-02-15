@@ -27,13 +27,13 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	resourceAccessReview, ok := obj.(*authorizationapi.ResourceAccessReview)
 	if !ok {
 		return nil, fmt.Errorf("not a resourceAccessReview: %#v", obj)
 	}
 
-	namespace := kapi.Namespace(ctx)
+	namespace := kapi.NamespaceValue(ctx)
 
 	attributes := &authorizer.DefaultAuthorizationAttributes{
 		Verb:      resourceAccessReview.Verb,
@@ -41,19 +41,16 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		Namespace: namespace,
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		users, groups, err := r.authorizer.GetAllowedSubjects(attributes)
-		if err != nil {
-			return nil, err
-		}
+	users, groups, err := r.authorizer.GetAllowedSubjects(attributes)
+	if err != nil {
+		return nil, err
+	}
 
-		response := &authorizationapi.ResourceAccessReviewResponse{
-			Namespace: namespace,
-			Users:     users,
-			Groups:    groups,
-		}
+	response := &authorizationapi.ResourceAccessReviewResponse{
+		Namespace: namespace,
+		Users:     users,
+		Groups:    groups,
+	}
 
-		return response, nil
-	}), nil
-
+	return response, nil
 }

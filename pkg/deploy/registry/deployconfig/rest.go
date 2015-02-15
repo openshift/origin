@@ -63,14 +63,12 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the DeploymentConfig specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteDeploymentConfig(ctx, id)
-	}), nil
+func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteDeploymentConfig(ctx, id)
 }
 
 // Create registers a given new DeploymentConfig instance to s.registry.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a deploymentConfig: %#v", obj)
@@ -91,33 +89,30 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, kerrors.NewInvalid("deploymentConfig", deploymentConfig.Name, errs)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := s.registry.CreateDeploymentConfig(ctx, deploymentConfig)
-		if err != nil {
-			return nil, err
-		}
-		return deploymentConfig, nil
-	}), nil
+	err := s.registry.CreateDeploymentConfig(ctx, deploymentConfig)
+	if err != nil {
+		return nil, err
+	}
+	return deploymentConfig, nil
 }
 
 // Update replaces a given DeploymentConfig instance with an existing instance in s.registry.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
-		return nil, fmt.Errorf("not a deploymentConfig: %#v", obj)
+		return nil, false, fmt.Errorf("not a deploymentConfig: %#v", obj)
 	}
 	if len(deploymentConfig.Name) == 0 {
-		return nil, fmt.Errorf("id is unspecified: %#v", deploymentConfig)
+		return nil, false, fmt.Errorf("id is unspecified: %#v", deploymentConfig)
 	}
 	if !kapi.ValidNamespace(ctx, &deploymentConfig.ObjectMeta) {
-		return nil, kerrors.NewConflict("deploymentConfig", deploymentConfig.Namespace, fmt.Errorf("DeploymentConfig.Namespace does not match the provided context"))
+		return nil, false, kerrors.NewConflict("deploymentConfig", deploymentConfig.Namespace, fmt.Errorf("DeploymentConfig.Namespace does not match the provided context"))
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := s.registry.UpdateDeploymentConfig(ctx, deploymentConfig)
-		if err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, deploymentConfig.Name)
-	}), nil
+	err := s.registry.UpdateDeploymentConfig(ctx, deploymentConfig)
+	if err != nil {
+		return nil, false, err
+	}
+	out, err := s.Get(ctx, deploymentConfig.Name)
+	return out, false, err
 }

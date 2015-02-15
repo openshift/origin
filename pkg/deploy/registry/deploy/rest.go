@@ -57,14 +57,12 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the Deployment specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteDeployment(ctx, id)
-	}), nil
+func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteDeployment(ctx, id)
 }
 
 // Create registers a given new Deployment instance to s.registry.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	deployment, ok := obj.(*deployapi.Deployment)
 	if !ok {
 		return nil, fmt.Errorf("not a deployment: %#v", obj)
@@ -86,35 +84,31 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, kerrors.NewInvalid("deployment", deployment.Name, errs)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := s.registry.CreateDeployment(ctx, deployment)
-		if err != nil {
-			return nil, err
-		}
-		return deployment, nil
-	}), nil
+	err := s.registry.CreateDeployment(ctx, deployment)
+	if err != nil {
+		return nil, err
+	}
+	return deployment, nil
 }
 
 // Update replaces a given Deployment instance with an existing instance in s.registry.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	deployment, ok := obj.(*deployapi.Deployment)
 	if !ok {
-		return nil, fmt.Errorf("not a deployment: %#v", obj)
+		return nil, false, fmt.Errorf("not a deployment: %#v", obj)
 	}
 	if len(deployment.Name) == 0 {
-		return nil, fmt.Errorf("name is unspecified: %#v", deployment)
+		return nil, false, fmt.Errorf("name is unspecified: %#v", deployment)
 	}
 	if !kapi.ValidNamespace(ctx, &deployment.ObjectMeta) {
-		return nil, kerrors.NewConflict("deployment", deployment.Namespace, fmt.Errorf("Deployment.Namespace does not match the provided context"))
+		return nil, false, kerrors.NewConflict("deployment", deployment.Namespace, fmt.Errorf("Deployment.Namespace does not match the provided context"))
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := s.registry.UpdateDeployment(ctx, deployment)
-		if err != nil {
-			return nil, err
-		}
-		return deployment, nil
-	}), nil
+	err := s.registry.UpdateDeployment(ctx, deployment)
+	if err != nil {
+		return nil, false, err
+	}
+	return deployment, false, nil
 }
 
 func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
