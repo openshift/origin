@@ -69,6 +69,9 @@ type NodeConfig struct {
 	// The image used as the Kubelet network namespace and volume container.
 	NetworkContainerImage string
 
+	// If true, the Kubelet will ignore errors from Docker
+	AllowDisabledDocker bool
+
 	// Whether to enable TLS serving
 	TLS bool
 
@@ -159,7 +162,7 @@ func (c *NodeConfig) RunKubelet() {
 	}
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
-	handler := kubelet.NewServer(k, true)
+	handler := kubelet.NewServer(k, true, c.AllowDisabledDocker)
 
 	server := &http.Server{
 		Addr:           net.JoinHostPort(c.BindHost, strconv.Itoa(NodePort)),
