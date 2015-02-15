@@ -151,10 +151,10 @@ function wait_for_build() {
 # Setup
 stop_openshift_server
 echo "[INFO] `openshift version`"
-echo "[INFO] Server logs will be at:		${LOG_DIR}/openshift.log"
+echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-echo "[INFO] Volumes dir is:						${VOLUME_DIR}"
-echo "[INFO] Certs dir is:							${CERT_DIR}"
+echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
+echo "[INFO] Certs dir is:              ${CERT_DIR}"
 
 # Start All-in-one server and wait for health
 # Specify the scheme and port for the listen address, but let the IP auto-discover.	Set --public-master to localhost, for a stable link to the console.
@@ -166,15 +166,10 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CA_BUNDLE="${CERT_DIR}/master/root.crt"
 	export CURL_CERT="${CERT_DIR}/admin/cert.crt"
 	export CURL_KEY="${CERT_DIR}/admin/key.key"
-fi
 
-wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80				
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
+	# Generate the certs first
+	wait_for_file "${CURL_CERT}" 0.5 80
 
-# Set KUBERNETES_MASTER for osc
-export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
-if [[ "${API_SCHEME}" == "https" ]]; then
 	# Read client cert data in to send to containerized components
 	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
 
@@ -184,6 +179,13 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
 	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 fi
+
+wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
+
+# Set KUBERNETES_MASTER for osc
+export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
 # create test project so that this shows up in the console
 osc create project -f examples/sample-app/project.json
