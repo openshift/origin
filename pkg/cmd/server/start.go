@@ -15,6 +15,7 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -26,7 +27,6 @@ import (
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -52,6 +52,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	pkgutil "github.com/openshift/origin/pkg/util"
+
+	// Admission policies
+
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 )
 
 const longCommandDesc = `
@@ -372,7 +376,6 @@ func start(cfg *config, args []string) error {
 
 			EtcdHelper: etcdHelper,
 
-			AdmissionControl:              admit.NewAlwaysAdmit(),
 			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
 			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestsToUsers),
 			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
@@ -509,6 +512,12 @@ func start(cfg *config, args []string) error {
 
 		osmaster.BuildClients()
 
+		// in-order list of plug-ins that should intercept admission decisions
+		// TODO: add LimitRanger,ResourceQuota,NamespaceExists
+		admissionControlPluginNames := []string{"AlwaysAdmit"}
+		admissionController := admission.NewFromPlugins(osmaster.KubeClient(), admissionControlPluginNames, "")
+		osmaster.AdmissionControl = admissionController
+
 		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
 		defaultAuthRequestHandlers := strings.Join([]string{
 			string(origin.AuthRequestHandlerSession),
@@ -576,7 +585,7 @@ func start(cfg *config, args []string) error {
 				EtcdHelper:       ketcdHelper,
 				KubeClient:       osmaster.KubeClient(),
 				Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
-				AdmissionControl: admit.NewAlwaysAdmit(),
+				AdmissionControl: admissionController,
 			}
 			kmaster.EnsurePortalFlags()
 
