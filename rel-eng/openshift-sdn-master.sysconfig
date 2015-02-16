@@ -37,8 +37,3 @@
 # Example:
 #   OPTIONS="-etcd-keyfile=/path/to/keyfile"
 OPTIONS=
-
-# The $DOCKER_OPTIONS variable is used to overwrite the $OPTIONS
-# variable in the /etc/sysconfig/docker file. This is a pretty ugly
-# hack, but whatevs
-DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'
