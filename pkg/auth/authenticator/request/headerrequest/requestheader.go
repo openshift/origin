@@ -2,20 +2,22 @@ package headerrequest
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 )
 
 type Config struct {
-	UserNameHeader string
+	// UserNameHeaders lists the headers to check (in order, case-insensitively) for a username. The first header with a value wins.
+	UserNameHeaders []string
 }
 
 func NewDefaultConfig() *Config {
 	return &Config{
-		UserNameHeader: "X-Remote-User",
+		UserNameHeaders: []string{"X-Remote-User"},
 	}
 }
 
@@ -28,8 +30,18 @@ func NewAuthenticator(config *Config, mapper authapi.UserIdentityMapper) *Authen
 	return &Authenticator{config, mapper}
 }
 
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
-	username := req.Header.Get(a.config.UserNameHeader)
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+	username := ""
+	for _, header := range a.config.UserNameHeaders {
+		header = strings.TrimSpace(header)
+		if len(header) == 0 {
+			continue
+		}
+		username = req.Header.Get(header)
+		if len(username) != 0 {
+			break
+		}
+	}
 	if len(username) == 0 {
 		return nil, false, nil
 	}

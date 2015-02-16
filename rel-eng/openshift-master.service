@@ -1,6 +1,8 @@
 [Unit]
 Description=OpenShift Master
 Documentation=https://github.com/openshift/origin
+After=network.target
+Requires=network.target
 
 [Service]
 Type=simple

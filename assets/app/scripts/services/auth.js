@@ -145,9 +145,9 @@ angular.module('openshiftConsole')
           return _loginPromise;
         }
         var self = this;
-        _loginPromise = loginService.login().then(function(user, token) {
-          self.setUser(user, token);
-          _loginCallbacks.fire(user);
+        _loginPromise = loginService.login().then(function(result) {
+          self.setUser(result.user, result.token);
+          _loginCallbacks.fire(result.user);
         }).catch(function(err) {
           console.log(err);
         }).finally(function() {
@@ -253,8 +253,13 @@ angular.module('openshiftConsole')
       // detect if this is an auth error (401) or other error we should trigger a login flow for
       var status = rejection.status;
       switch (status) {
-        case 401:
         case 0:
+      	  // TODO: this can be caused by many things, some of which probably shouldn't redirect to login:
+      	  // 1. A cert error. Redirecting will visibly prompt acceptance and make people stop asking why the web console isn't working
+      	  // 2. A CORS error. This would also prevent the initial user load from working, so we'll end up on an error page, not a login loop.
+      	  // 3. A timeout. Redirecting might be unecessary if we just retried or waited longer.
+      	  // 4. An unreachable API server. Redirecting might send them to a dead API server.
+        case 401:
           // console.log('responseError', status);
           // 1. Set up a deferred and remember this config, so we can add auth info and retry once login is complete
           var deferred = $q.defer();

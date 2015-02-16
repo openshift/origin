@@ -40,7 +40,7 @@ func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 	}
 }
 
-// this works for getting a token in your browser and seeing what your token is
+// requestToken works for getting a token in your browser and seeing what your token is
 func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
 	authReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	oauthURL := authReq.GetAuthorizeUrlWithParams("")
@@ -96,9 +96,10 @@ type tokenData struct {
 	RequestURL  string
 }
 
+// TODO: allow template to be read from an external file
 var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 <style>
-	body    { font-family: sans-serif; font-size: 12pt; margin: 2em 5%; }
+	body    { font-family: sans-serif; font-size: 12pt; margin: 2em 5%; background-color: #F9F9F9; }
 	pre     { padding-left: 1em; border-left: .25em solid #eee; }
 	a       { color: #00f; text-decoration: none; }
 	a:hover { text-decoration: underline; }

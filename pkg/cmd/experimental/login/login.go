@@ -4,17 +4,20 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 func NewCmdLogin(name string, parent *cobra.Command) *cobra.Command {
@@ -36,26 +39,59 @@ prompt for user input if not provided.
 				glog.Fatalf("%v\n", err)
 			}
 
-			usernameFlag := kubecmd.GetFlagString(cmd, "username")
-			passwordFlag := kubecmd.GetFlagString(cmd, "password")
+			username := ""
 
-			accessToken, err := tokencmd.RequestToken(clientCfg, os.Stdin, usernameFlag, passwordFlag)
-			if err != nil {
-				glog.Fatalf("%v\n", err)
+			// check to see if we're already signed in.  If so, simply make sure that .kubeconfig has that information
+			if userFullName, err := whoami(clientCfg); err == nil {
+				if err := updateKubeconfigFile(userFullName, clientCfg.BearerToken, f.OpenShiftClientConfig); err != nil {
+					glog.Fatalf("%v\n", err)
+				}
+				username = userFullName
+
+			} else {
+				usernameFlag := kubecmd.GetFlagString(cmd, "username")
+				passwordFlag := kubecmd.GetFlagString(cmd, "password")
+
+				accessToken, err := tokencmd.RequestToken(clientCfg, os.Stdin, usernameFlag, passwordFlag)
+				if err != nil {
+					glog.Fatalf("%v\n", err)
+				}
+
+				clientCfg.BearerToken = accessToken
+
+				if userFullName, err := whoami(clientCfg); err == nil {
+					err = updateKubeconfigFile(userFullName, accessToken, f.OpenShiftClientConfig)
+					if err != nil {
+						glog.Fatalf("%v\n", err)
+					} else {
+						username = userFullName
+					}
+				} else {
+					glog.Fatalf("%v\n", err)
+				}
 			}
 
-			err = updateKubeconfigFile(usernameFlag, accessToken, clientCfg)
-			if err != nil {
-				glog.Fatalf("%v\n", err)
-			}
-
-			fmt.Printf("Auth token: %v\n", string(accessToken))
+			fmt.Printf("Logged into %v as %v\n", clientCfg.Host, username)
 		},
 	}
 
 	cmds.Flags().StringP("username", "u", "", "Username, will prompt if not provided")
 	cmds.Flags().StringP("password", "p", "", "Password, will prompt if not provided")
 	return cmds
+}
+
+func whoami(clientCfg *kclient.Config) (string, error) {
+	osClient, err := client.New(clientCfg)
+	if err != nil {
+		return "", err
+	}
+
+	me, err := osClient.Users().Get("~")
+	if err != nil {
+		return "", err
+	}
+
+	return me.FullName, nil
 }
 
 // Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
@@ -74,70 +110,63 @@ func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	return clientConfig
 }
 
-func updateKubeconfigFile(username, token string, clientConfig *kclient.Config) error {
-	config, err := getConfigFromFile(".kubeconfig")
+func updateKubeconfigFile(username, token string, clientCfg clientcmd.ClientConfig) error {
+	rawMergedConfig, err := clientCfg.RawConfig()
 	if err != nil {
 		return err
 	}
+	clientConfig, err := clientCfg.ClientConfig()
+	if err != nil {
+		return err
+	}
+	namespace, err := clientCfg.Namespace()
+	if err != nil {
+		return err
+	}
+
+	config := clientcmdapi.NewConfig()
 
 	credentialsName := username
 	if len(credentialsName) == 0 {
 		credentialsName = "osc-login"
 	}
-	credentialsName = getUniqueName(credentialsName, getAuthInfoNames(config))
 	credentials := clientcmdapi.NewAuthInfo()
 	credentials.Token = token
 	config.AuthInfos[credentialsName] = *credentials
 
-	clusterName := getUniqueName("osc-login-cluster", getClusterNames(config))
+	serverAddr := flagtypes.Addr{Value: clientConfig.Host}.Default()
+	clusterName := fmt.Sprintf("%v:%v", serverAddr.Host, serverAddr.Port)
 	cluster := clientcmdapi.NewCluster()
 	cluster.Server = clientConfig.Host
 	cluster.InsecureSkipTLSVerify = clientConfig.Insecure
 	cluster.CertificateAuthority = clientConfig.CAFile
 	config.Clusters[clusterName] = *cluster
 
-	contextName := getUniqueName(clusterName+"-"+credentialsName, getContextNames(config))
+	contextName := clusterName + "-" + credentialsName
 	context := clientcmdapi.NewContext()
 	context.Cluster = clusterName
 	context.AuthInfo = credentialsName
+	context.Namespace = namespace
 	config.Contexts[contextName] = *context
 
 	config.CurrentContext = contextName
 
-	err = clientcmd.WriteToFile(*config, ".kubeconfig")
+	configToModify, err := getConfigFromFile(".kubeconfig")
+	if err != nil {
+		return err
+	}
+
+	configToWrite, err := MergeConfig(rawMergedConfig, *configToModify, *config)
+	if err != nil {
+		return err
+	}
+	err = clientcmd.WriteToFile(*configToWrite, ".kubeconfig")
 	if err != nil {
 		return err
 	}
 
 	return nil
 
-}
-
-func getAuthInfoNames(config *clientcmdapi.Config) *util.StringSet {
-	ret := &util.StringSet{}
-	for key := range config.AuthInfos {
-		ret.Insert(key)
-	}
-
-	return ret
-}
-
-func getContextNames(config *clientcmdapi.Config) *util.StringSet {
-	ret := &util.StringSet{}
-	for key := range config.Contexts {
-		ret.Insert(key)
-	}
-
-	return ret
-}
-
-func getClusterNames(config *clientcmdapi.Config) *util.StringSet {
-	ret := &util.StringSet{}
-	for key := range config.Clusters {
-		ret.Insert(key)
-	}
-
-	return ret
 }
 
 func getConfigFromFile(filename string) (*clientcmdapi.Config, error) {

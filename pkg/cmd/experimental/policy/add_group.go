@@ -3,10 +3,9 @@ package policy
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/spf13/cobra"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -70,14 +69,18 @@ func (o *addGroupOptions) run() error {
 		return err
 	}
 
-	roleBinding, roleBindingNames, err := getExistingRoleBindingForRole(o.roleNamespace, o.roleName, namespace, client)
+	roleBindings, roleBindingNames, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, namespace, client)
 	if err != nil {
 		return err
 	}
+	roleBinding := (*authorizationapi.RoleBinding)(nil)
 	isUpdate := true
-	if roleBinding == nil {
+	if len(roleBindings) == 0 {
 		roleBinding = &authorizationapi.RoleBinding{}
 		isUpdate = false
+	} else {
+		// only need to add the user or group to a single roleBinding on the role.  Just choose the first one
+		roleBinding = roleBindings[0]
 	}
 
 	roleBinding.RoleRef.Namespace = o.roleNamespace

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 )
 
 const (
@@ -14,14 +14,14 @@ const (
 )
 
 type mockPasswordAuthenticator struct {
-	returnUser      authapi.UserInfo
+	returnUser      user.Info
 	isAuthenticated bool
 	err             error
 	passedUser      string
 	passedPassword  string
 }
 
-func (mock *mockPasswordAuthenticator) AuthenticatePassword(username, password string) (authapi.UserInfo, bool, error) {
+func (mock *mockPasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
 	mock.passedUser = username
 	mock.passedPassword = password
 

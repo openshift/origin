@@ -4,20 +4,20 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
 func TestViewerGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Victor",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    "mallet",
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: "mallet",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
@@ -28,13 +28,13 @@ func TestViewerGetAllowedKindInMallet(t *testing.T) {
 }
 func TestViewerGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Victor",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    "adze",
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -46,13 +46,13 @@ func TestViewerGetAllowedKindInAdze(t *testing.T) {
 
 func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Victor",
 			},
-			verb:         "get",
-			resourceKind: "policies",
-			namespace:    "mallet",
+			Verb:      "get",
+			Resource:  "policies",
+			Namespace: "mallet",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -63,13 +63,13 @@ func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 }
 func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Victor",
 			},
-			verb:         "get",
-			resourceKind: "policies",
-			namespace:    "adze",
+			Verb:      "get",
+			Resource:  "policies",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -81,13 +81,13 @@ func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 
 func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Victor",
 			},
-			verb:         "create",
-			resourceKind: "pods",
-			namespace:    "mallet",
+			Verb:      "create",
+			Resource:  "pods",
+			Namespace: "mallet",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -98,13 +98,13 @@ func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 }
 func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Victor",
 			},
-			verb:         "create",
-			resourceKind: "pods",
-			namespace:    "adze",
+			Verb:      "create",
+			Resource:  "pods",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -116,13 +116,13 @@ func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 
 func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Edgar",
 			},
-			verb:         "update",
-			resourceKind: "pods",
-			namespace:    "mallet",
+			Verb:      "update",
+			Resource:  "pods",
+			Namespace: "mallet",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
@@ -133,13 +133,13 @@ func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 }
 func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Edgar",
 			},
-			verb:         "update",
-			resourceKind: "pods",
-			namespace:    "adze",
+			Verb:      "update",
+			Resource:  "pods",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -151,13 +151,13 @@ func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 
 func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Edgar",
 			},
-			verb:         "update",
-			resourceKind: "roleBindings",
-			namespace:    "mallet",
+			Verb:      "update",
+			Resource:  "roleBindings",
+			Namespace: "mallet",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -168,13 +168,13 @@ func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 }
 func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Edgar",
 			},
-			verb:         "update",
-			resourceKind: "roleBindings",
-			namespace:    "adze",
+			Verb:      "update",
+			Resource:  "roleBindings",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -186,13 +186,13 @@ func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 
 func TestEditorGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Edgar",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    "mallet",
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: "mallet",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
@@ -203,13 +203,13 @@ func TestEditorGetAllowedKindInMallet(t *testing.T) {
 }
 func TestEditorGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Edgar",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    "adze",
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -221,13 +221,13 @@ func TestEditorGetAllowedKindInAdze(t *testing.T) {
 
 func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Matthew",
 			},
-			verb:         "update",
-			resourceKind: "roleBindings",
-			namespace:    "mallet",
+			Verb:      "update",
+			Resource:  "roleBindings",
+			Namespace: "mallet",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
@@ -238,13 +238,13 @@ func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 }
 func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Matthew",
 			},
-			verb:         "update",
-			resourceKind: "roleBindings",
-			namespace:    "adze",
+			Verb:      "update",
+			Resource:  "roleBindings",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -256,13 +256,13 @@ func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 
 func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Matthew",
 			},
-			verb:         "update",
-			resourceKind: "policies",
-			namespace:    "mallet",
+			Verb:      "update",
+			Resource:  "policies",
+			Namespace: "mallet",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -273,13 +273,13 @@ func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 }
 func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Matthew",
 			},
-			verb:         "update",
-			resourceKind: "roles",
-			namespace:    "adze",
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -291,13 +291,13 @@ func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 
 func TestAdminGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Matthew",
 			},
-			verb:         "get",
-			resourceKind: "policies",
-			namespace:    "mallet",
+			Verb:      "get",
+			Resource:  "policies",
+			Namespace: "mallet",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
@@ -308,13 +308,13 @@ func TestAdminGetAllowedKindInMallet(t *testing.T) {
 }
 func TestAdminGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Matthew",
 			},
-			verb:         "get",
-			resourceKind: "policies",
-			namespace:    "adze",
+			Verb:      "get",
+			Resource:  "policies",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",

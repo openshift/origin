@@ -1,0 +1,101 @@
+{
+    "apiVersion": "v1beta1",
+    "items": [
+        {
+            "apiVersion": "v1beta1",
+            "dockerImageRepository": "openshift/ruby-20-centos",
+            "kind": "ImageRepository",
+            "metadata": {
+                "name": "ruby-20-centos-buildcli"
+            },
+            "tags": {
+                "valid": "success"
+            }
+        },
+        {
+            "apiVersion": "v1beta1",
+            "kind": "BuildConfig",
+            "labels": {
+                "name": "ruby-sample-build"
+            },
+            "metadata": {
+                "name": "ruby-sample-build-validtag"
+            },
+            "parameters": {
+                "output": {
+                    "to": {
+                        "name": "origin-ruby-sample"
+                    }
+                },
+                "source": {
+                    "git": {
+                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                    },
+                    "type": "Git"
+                },
+                "strategy": {
+                    "stiStrategy": {
+                        "image": "openshift/ruby-20-centos",
+                        "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
+                    },
+                    "type": "STI"
+                }
+            },
+            "triggers": [
+                {
+                    "imageChange": {
+                        "from": {
+                            "name": "ruby-20-centos-buildcli"
+                        },
+                        "image": "openshift/ruby-20-centos",
+                        "tag": "valid"
+                    },
+                    "type": "imageChange"
+                }
+            ]
+        },
+        {
+            "apiVersion": "v1beta1",
+            "kind": "BuildConfig",
+            "labels": {
+                "name": "ruby-sample-build"
+            },
+            "metadata": {
+                "name": "ruby-sample-build-invalidtag"
+            },
+            "parameters": {
+                "output": {
+                    "to": {
+                        "name": "origin-ruby-sample"
+                    }
+                },
+                "source": {
+                    "git": {
+                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                    },
+                    "type": "Git"
+                },
+                "strategy": {
+                    "stiStrategy": {
+                        "image": "openshift/ruby-20-centos",
+                        "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
+                    },
+                    "type": "STI"
+                }
+            },
+            "triggers": [
+                {
+                    "imageChange": {
+                        "from": {
+                            "name": "ruby-20-centos-buildcli"
+                        },
+                        "image": "openshift/ruby-20-centos",
+                        "tag": "invalid"
+                    },
+                    "type": "imageChange"
+                }
+            ]
+        }
+    ],
+    "kind": "List"
+}

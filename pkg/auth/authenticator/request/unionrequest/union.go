@@ -5,7 +5,7 @@ import (
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
@@ -23,7 +23,7 @@ func NewUnionAuthentication(authRequestHandlers ...authenticator.Request) authen
 
 // AuthenticateRequest authenticates the request using a chain of authenticator.Request objects.  The first
 // success returns that identity.  Errors are only returned if no matches are found.
-func (authHandler *Authenticator) AuthenticateRequest(req *http.Request) (authapi.UserInfo, bool, error) {
+func (authHandler *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	errors := []error{}
 	for _, currAuthRequestHandler := range authHandler.Handlers {
 		info, ok, err := currAuthRequestHandler.AuthenticateRequest(req)

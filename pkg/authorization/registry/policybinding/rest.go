@@ -9,6 +9,7 @@ import (
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/api/validation"
@@ -82,6 +83,11 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		}
 		return r.Get(ctx, policyBinding.Name)
 	}), nil
+}
+
+// Watch begins watching for new, changed, or deleted PolicyBindings.
+func (r *REST) Watch(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.registry.WatchPolicyBindings(ctx, label, field, resourceVersion)
 }
 
 func NewEmptyPolicyBinding(namespace, policyNamespace string) *authorizationapi.PolicyBinding {

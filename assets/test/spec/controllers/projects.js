@@ -25,9 +25,12 @@ describe('Controller: ProjectsController', function () {
     });
   }));
 
+  // Make sure a base location exists in the generated test html
+  if (!$('head base').length) {
+    $('head').append($('<base href="/">'))
+  }
+
   angular.module('openshiftConsole').config(function(AuthServiceProvider) {
-    AuthServiceProvider.LoginService('RedirectLoginService');
-    AuthServiceProvider.LogoutService('DeleteTokenLogoutService');
     AuthServiceProvider.UserStore('MemoryUserStore');
   });
 

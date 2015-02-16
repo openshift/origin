@@ -3,8 +3,8 @@ package registry
 import (
 	"net/http"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/client"
 	oclient "github.com/openshift/origin/pkg/oauth/client"
 )
@@ -26,7 +26,7 @@ func New(token OAuthAccessTokenSource, host string, rt http.RoundTripper) *Authe
 	return &Authenticator{token, host, rt}
 }
 
-func (a *Authenticator) AuthenticatePassword(username, password string) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
 	token, ok, err := a.token.AuthenticatePassword(username, password)
 	if !ok || err != nil {
 		return nil, false, err
@@ -38,14 +38,14 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (api.Use
 	if err != nil {
 		return nil, false, err
 	}
-	user, err := client.Users().Get("~")
+	u, err := client.Users().Get("~")
 	if err != nil {
 		return nil, false, err
 	}
 
-	info := &api.DefaultUserInfo{
-		Name: user.Name,
-		UID:  string(user.UID),
+	info := &user.DefaultInfo{
+		Name: u.Name,
+		UID:  string(u.UID),
 	}
 
 	return info, true, nil

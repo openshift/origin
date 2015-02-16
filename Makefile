@@ -54,10 +54,16 @@ check:
 #   make test GOFLAGS=-v
 test: export KUBE_COVER= -cover -covermode=atomic
 test: export KUBE_RACE=  -race
+ifeq ($(SKIP_BUILD), true)
+$(info build is being skipped)
+test: check
+else
 test: build check
+endif
+test:
 	hack/test-cmd.sh
-	hack/test-integration.sh $(GOFLAGS)
-	hack/test-integration-docker.sh $(GOFLAGS)
+	KUBE_RACE=" " hack/test-integration.sh $(GOFLAGS)
+	KUBE_RACE=" " hack/test-integration-docker.sh $(GOFLAGS)
 	hack/test-end-to-end.sh
 .PHONY: test
 

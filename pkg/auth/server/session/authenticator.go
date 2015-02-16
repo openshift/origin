@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 )
 
 const UserNameKey = "user.name"
@@ -22,7 +22,7 @@ func NewAuthenticator(store Store, name string) *Authenticator {
 	}
 }
 
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
 		return nil, false, err
@@ -50,13 +50,13 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bo
 	}
 	// Tolerate empty string UIDs in the session
 
-	return &api.DefaultUserInfo{
+	return &user.DefaultInfo{
 		Name: name,
 		UID:  uid,
 	}, true, nil
 }
 
-func (a *Authenticator) AuthenticationSucceeded(user api.UserInfo, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (a *Authenticator) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	session, err := a.store.Get(req, a.name)
 	if err != nil {
 		return false, err

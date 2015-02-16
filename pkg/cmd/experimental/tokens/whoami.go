@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"

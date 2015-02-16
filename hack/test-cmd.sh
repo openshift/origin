@@ -75,9 +75,12 @@ OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${CERT_DIR}/admin/root.crt"
+    export CURL_CERT="${CERT_DIR}/admin/cert.crt"
+    export CURL_KEY="${CERT_DIR}/admin/key.key"
 fi
+
 wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80        
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
 # Set KUBERNETES_MASTER for osc
@@ -208,11 +211,22 @@ osc get bc
 osc get builds
 echo "buildConfig: ok"
 
-started=$(osc start-build ruby-sample-build)
+osc create -f test/integration/fixtures/test-buildcli.json
+# a build for which there is not an upstream tag in the corresponding imagerepo, so
+# the build should use the image field as defined in the buildconfig
+started=$(osc start-build ruby-sample-build-invalidtag)
 echo "start-build: ok"
+osc describe build ${started} | grep openshift/ruby-20-centos$
 
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
+
+# a build for which there is an upstream tag in the corresponding imagerepo, so
+# the build should use that specific tag of the image instead of the image field
+# as defined in the buildconfig
+started=$(osc start-build ruby-sample-build-validtag)
+osc describe build ${started} | grep openshift/ruby-20-centos:success$
+osc cancel-build "${started}" --dump-logs --restart
 
 osc get minions,pods
 

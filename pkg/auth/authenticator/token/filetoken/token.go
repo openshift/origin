@@ -6,12 +6,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 )
 
 type TokenAuthenticator struct {
 	path   string
-	tokens map[string]*api.DefaultUserInfo
+	tokens map[string]*user.DefaultInfo
 }
 
 func NewTokenAuthenticator(path string) (*TokenAuthenticator, error) {
@@ -21,7 +21,7 @@ func NewTokenAuthenticator(path string) (*TokenAuthenticator, error) {
 	}
 	defer file.Close()
 
-	tokens := make(map[string]*api.DefaultUserInfo)
+	tokens := make(map[string]*user.DefaultInfo)
 	reader := csv.NewReader(file)
 	for {
 		record, err := reader.Read()
@@ -31,15 +31,14 @@ func NewTokenAuthenticator(path string) (*TokenAuthenticator, error) {
 		if err != nil {
 			return nil, err
 		}
-		if len(record) < 3 {
+		if len(record) < 2 {
 			continue
 		}
-		obj := &api.DefaultUserInfo{
-			Name:  record[1],
-			Scope: record[2],
+		obj := &user.DefaultInfo{
+			Name: record[1],
 		}
-		if len(record) > 3 {
-			obj.UID = record[3]
+		if len(record) > 2 {
+			obj.UID = record[2]
 		}
 		tokens[record[0]] = obj
 	}
@@ -50,7 +49,7 @@ func NewTokenAuthenticator(path string) (*TokenAuthenticator, error) {
 	}, nil
 }
 
-func (a *TokenAuthenticator) AuthenticateToken(value string) (api.UserInfo, bool, error) {
+func (a *TokenAuthenticator) AuthenticateToken(value string) (user.Info, bool, error) {
 	user, ok := a.tokens[value]
 	if !ok {
 		return nil, false, errors.New("Invalid token")

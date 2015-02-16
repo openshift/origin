@@ -20,10 +20,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	clientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 )
 
 func filenamesFromDir(dir string) (string, string, string) {
@@ -342,22 +344,25 @@ func (ca *CA) MakeServerCert(name string, hostnames []string) (*TLSCertificateCo
 }
 
 // MakeClientConfig creates a folder containing certificates for the given client:
-//	<CA.dir>/
-//	 <username>/
-//	root.crt	- Root certificate bundle.
-//	cert.crt	- Client certificate
-//	key.key	 - Private key
+//   <CA.dir>/
+//     <id>/
+//       root.crt - Root certificate bundle.
+//       cert.crt - Client certificate
+//       key.key  - Private key
 // The generated certificate has the following attributes:
-//	CommonName: username
-//	ExtKeyUsage: ExtKeyUsageClientAuth
-func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclient.Config, error) {
-	clientDir := filepath.Join(ca.Dir, username)
+//   Subject:
+//     SerialNumber: user.GetUID()
+//     CommonName:   user.GetName()
+//     Organization: user.GetGroups()
+//   ExtKeyUsage: ExtKeyUsageClientAuth
+func (ca *CA) MakeClientConfig(clientId string, u user.Info, defaults kclient.Config) (kclient.Config, error) {
+	clientDir := filepath.Join(ca.Dir, clientId)
 	kubeConfig := filepath.Join(clientDir, ".kubeconfig")
 
 	client, err := readClientConfigFromDir(clientDir, defaults)
 	if err == nil {
 		// Always write .kubeconfig to pick up hostname changes
-		if err := writeKubeConfigToDir(&client, username, clientDir); err != nil {
+		if err := writeKubeConfigToDir(&client, clientId, clientDir); err != nil {
 			return client, err
 		}
 		glog.Infof("Using existing client config in %s", kubeConfig)
@@ -371,7 +376,7 @@ func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclien
 
 	// Create cert for system components to use to talk to the API
 	clientPublicKey, clientPrivateKey, _ := NewKeyPair()
-	clientTemplate, _ := newClientCertificateTemplate(pkix.Name{CommonName: username})
+	clientTemplate, _ := newClientCertificateTemplate(x509request.UserToSubject(u))
 	clientCrt, _ := ca.signCertificate(clientTemplate, clientPublicKey)
 
 	caData, err := encodeCertificates(ca.Config.Roots...)
@@ -394,7 +399,7 @@ func (ca *CA) MakeClientConfig(username string, defaults kclient.Config) (kclien
 	if err := writeClientCertsToDir(&client, clientDir); err != nil {
 		return client, err
 	}
-	if err := writeKubeConfigToDir(&client, username, clientDir); err != nil {
+	if err := writeKubeConfigToDir(&client, clientId, clientDir); err != nil {
 		return client, err
 	}
 

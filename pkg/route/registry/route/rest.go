@@ -2,6 +2,7 @@ package route
 
 import (
 	"fmt"
+	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/route/api/validation"
-	"strings"
 )
 
 // REST is an implementation of RESTStorage for the api server.

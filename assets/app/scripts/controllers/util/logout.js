@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('LogoutController', function ($scope, $log, AuthService) {
+  .controller('LogoutController', function ($scope, $log, AuthService, AUTH_CFG) {
     $log.debug("LogoutController");
 
     if (AuthService.isLoggedIn()) {
@@ -21,11 +21,19 @@ angular.module('openshiftConsole')
           $log.debug("LogoutController, logout failed, still logged in");
           $scope.logoutMessage = 'You could not be logged out. Return to the <a href="/">console</a>.';
         } else {
-          // TODO: redirect to configurable logout destination
-          $log.debug("LogoutController, logout completed, reloading the page");
-          window.location.reload(false);
+          if (AUTH_CFG.logout_uri) {
+            $log.debug("LogoutController, logout completed, redirecting to AUTH_CFG.logout_uri", AUTH_CFG.logout_uri);
+            window.location.href = AUTH_CFG.logout_uri;
+          } else {
+            $log.debug("LogoutController, logout completed, reloading the page");
+            window.location.reload(false);
+          }
         }
       });
+    } else if (AUTH_CFG.logout_uri) {
+      $log.debug("LogoutController, logout completed, redirecting to AUTH_CFG.logout_uri", AUTH_CFG.logout_uri);
+      $scope.logoutMessage = "Logging out...";
+      window.location.href = AUTH_CFG.logout_uri;
     } else {
       // TODO: redirect to configurable logout destination
       $log.debug("LogoutController, not logged in, logout complete");

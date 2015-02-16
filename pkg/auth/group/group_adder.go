@@ -3,7 +3,7 @@ package group
 import (
 	"net/http"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
@@ -13,17 +13,15 @@ type GroupAdder struct {
 	Groups        []string
 }
 
-func (g *GroupAdder) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
-	user, ok, err := g.Authenticator.AuthenticateRequest(req)
+func (g *GroupAdder) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+	u, ok, err := g.Authenticator.AuthenticateRequest(req)
 	if err != nil || !ok {
 		return nil, ok, err
 	}
-	return &api.DefaultUserInfo{
-		Name:   user.GetName(),
-		UID:    user.GetUID(),
-		Groups: append(user.GetGroups(), g.Groups...),
-		Scope:  user.GetScope(),
-		Extra:  user.GetExtra(),
+	return &user.DefaultInfo{
+		Name:   u.GetName(),
+		UID:    u.GetUID(),
+		Groups: append(u.GetGroups(), g.Groups...),
 	}, true, nil
 }
 

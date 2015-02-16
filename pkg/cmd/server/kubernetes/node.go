@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -21,13 +22,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
-
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-
 	"github.com/openshift/origin/pkg/kubelet/app"
 	"github.com/openshift/origin/pkg/service"
 )
@@ -76,6 +75,10 @@ type NodeConfig struct {
 	KubeletCertFile string
 	KubeletKeyFile  string
 
+	// ClientCAs will be used to request client certificates in connections to the node.
+	// This CertPool should contain all the CAs that will be used for client certificate verification.
+	ClientCAs *x509.CertPool
+
 	// A client to connect to the master.
 	Client *client.Client
 	// A client to connect to Docker
@@ -119,7 +122,7 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 			glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 		} else {
 			if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
-				glog.Warning("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
+				glog.Warningf("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 			}
 		}
 	}
@@ -148,7 +151,7 @@ func (c *NodeConfig) RunKubelet() {
 		5,
 		cfg.IsSourceSeen,
 		"",
-		net.IP(util.IP{}),
+		nil,
 		kapi.NamespaceDefault,
 		app.ProbeVolumePlugins())
 	if err != nil {
@@ -176,6 +179,7 @@ func (c *NodeConfig) RunKubelet() {
 				// Populate PeerCertificates in requests, but don't reject connections without certificates
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
+				ClientCAs:  c.ClientCAs,
 			}
 			glog.Fatal(server.ListenAndServeTLS(c.KubeletCertFile, c.KubeletKeyFile))
 		} else {

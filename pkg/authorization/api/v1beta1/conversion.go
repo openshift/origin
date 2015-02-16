@@ -1,19 +1,3 @@
-/*
-Copyright 2014 Google Inc. All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package v1beta1
 
 import (
@@ -22,11 +6,43 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	newer "github.com/openshift/origin/pkg/authorization/api"
 )
 
 func init() {
 	err := api.Scheme.AddConversionFuncs(
+		func(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
+			if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+				return err
+			}
+
+			out.Verbs = []string{}
+			out.Verbs = append(out.Verbs, in.Verbs...)
+
+			out.Resources = []string{}
+			out.Resources = append(out.Resources, in.Resources...)
+			out.Resources = append(out.Resources, in.ResourceKinds...)
+
+			out.ResourceNames = util.NewStringSet(in.ResourceNames...)
+
+			return nil
+		},
+		func(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
+			if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+				return err
+			}
+
+			out.Verbs = []string{}
+			out.Verbs = append(out.Verbs, in.Verbs...)
+
+			out.Resources = []string{}
+			out.Resources = append(out.Resources, in.Resources...)
+
+			out.ResourceNames = in.ResourceNames.List()
+
+			return nil
+		},
 		func(in *Policy, out *newer.Policy, s conversion.Scope) error {
 			out.LastModified = in.LastModified
 			out.Roles = make(map[string]newer.Role)

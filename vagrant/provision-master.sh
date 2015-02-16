@@ -33,12 +33,12 @@ popd
 # Start docker
 systemctl enable docker.service
 systemctl start docker.service
-usermod -a -G docker vagrant
 
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-master.service
 [Unit]
 Description=openshift master
+Requires=docker.service
 After=network.service
 
 [Service]

@@ -5,6 +5,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -51,4 +52,9 @@ func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult,
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeletePolicy(ctx, id)
 	}), nil
+}
+
+// Watch begins watching for new, changed, or deleted PolicyBindings.
+func (r *REST) Watch(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.registry.WatchPolicies(ctx, label, field, resourceVersion)
 }

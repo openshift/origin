@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
@@ -24,7 +24,7 @@ type ConfirmFormRenderer interface {
 type ConfirmForm struct {
 	Action string
 	Error  string
-	User   api.UserInfo
+	User   user.Info
 	Values ConfirmFormValues
 }
 

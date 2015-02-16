@@ -1,0 +1,80 @@
+<div ng-controller="ProjectController">
+  <project-page>
+    <div ng-controller="SettingsController">
+      <h1>Project Settings</h1>
+      <alerts alerts="alerts"></alerts>
+      <h2>General information</h2>
+      <!-- TODO make these fields editable - probably with a cog icon that flips into inline-editing -->
+      <dl class="dl-horizontal left">
+        <dt>Display name:</dt>
+        <dd ng-if="project.displayName">{{project.displayName}}</dd>
+        <dd ng-if="!project.displayName"><em>No display name</em></dd>
+        <dt>Description:</dt>
+        <dd ng-if="project | description">{{project | description}}</dd>
+        <dd ng-if="!(project | description)"><em>No description</em></dd>
+      </dl>
+      <h2>
+        <span>Quota</span>
+        <a href="javascript:;" style="margin-left: 5px; cursor: pointer;" class="small pficon pficon-help" data-container="body" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="Quota is enforced at the project level.  Once the maximum for the project has been reached no more of that resource can be allocated within the project."></a>
+      </h2>
+      <div ng-if="(quotas | hashSize) == 0"><em>{{emptyMessageQuotas}}</em></div>
+      <table ng-if="(quotas | hashSize) > 0" class="table">
+        <thead>
+          <th>Resource type</th>
+          <th>Used</th>
+          <th>Max</th>
+        </thead>
+        <tbody ng-repeat="quota in quotas">
+          <tr ng-if='!quota.status.used' class="danger">
+            <td colspan="5">
+              <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Missing quota status" style="cursor: help;">
+                <span class="pficon pficon-error-octagon"></span>
+                <span class="pficon pficon-error-exclamation"></span>
+              </span>
+              Status has not been reported on this quota usage record.  Any resources limited by this quota record can not be allocated.
+            </td>
+          </tr>
+          <tr ng-class="{warning: quota.status.used && quota.status.used[resourceType] >= quota.status.hard[resourceType]}" ng-repeat="(resourceType, specMax) in quota.spec.hard">
+            <!-- TODO prettify resourceType? -->
+            <td>
+              <span ng-if="quota.status.used && quota.status.used[resourceType] >= quota.status.hard[resourceType]" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Quota limit reached" style="cursor: help;">
+                <span class="pficon pficon-warning-triangle"></span>
+                <span class="pficon pficon-warning-exclamation"></span>
+              </span>
+              {{resourceType}}
+            </td>
+            <td>
+              <span ng-if="!quota.status.used">&mdash;</span>
+              <span ng-if="quota.status.used">{{quota.status.used[resourceType] | usageWithUnits : resourceType}}</span>
+            </td>
+            <td>
+              <span ng-if="!quota.status.hard">{{specMax  | usageWithUnits : resourceType}}</span>
+              <span ng-if="quota.status.hard">{{quota.status.hard[resourceType]  | usageWithUnits : resourceType}}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <h2>
+        <span>Resource limits</span>
+        <a href="javascript:;" style="margin-left: 5px; cursor: pointer;" class="small pficon pficon-help" data-container="body" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="Resource limits define minimum and maximum values that can be created for each resource type."></a>
+      </h2>      
+      <div ng-if="(limitRanges | hashSize) == 0"><em>{{emptyMessageLimitRanges}}</em></div>
+      <table ng-if="(limitRanges | hashSize) > 0" class="table">
+        <thead>
+          <th>Resource type</th>
+          <th>Min</th>
+          <th>Max</th>
+        </thead>
+        <tbody ng-repeat="limitRange in limitRanges">
+          <tr ng-repeat-start="limit in limitRange.spec.limits"></tr>
+          <tr ng-repeat="(type, min) in limit.min">
+            <!-- TODO prettify type -->
+            <td>{{limit.type}} {{type}}</td>
+            <td>{{(min | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(limit.max[type] | usageWithUnits : type) || "&mdash;"}}</td>
+          </tr>
+          <tr ng-repeat-end></tr>
+        </tbody>
+      </table>      
+  </project-page>
+</div>

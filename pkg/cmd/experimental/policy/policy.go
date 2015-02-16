@@ -5,12 +5,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -35,6 +34,7 @@ func NewCommandPolicy(name string) *cobra.Command {
 	cmds.AddCommand(NewCmdAddGroup(clientConfig))
 	cmds.AddCommand(NewCmdRemoveGroup(clientConfig))
 	cmds.AddCommand(NewCmdRemoveGroupFromProject(clientConfig))
+	cmds.AddCommand(NewCmdWhoCan(clientConfig))
 
 	return cmds
 }
@@ -79,23 +79,23 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 	return string(util.NewUUID())
 }
 
-func getExistingRoleBindingForRole(roleNamespace, role, bindingNamespace string, client *client.Client) (*authorizationapi.RoleBinding, *util.StringSet, error) {
+func getExistingRoleBindingsForRole(roleNamespace, role, bindingNamespace string, client *client.Client) ([]*authorizationapi.RoleBinding, *util.StringSet, error) {
 	existingBindings, err := client.PolicyBindings(bindingNamespace).Get(roleNamespace)
 	if err != nil && !strings.Contains(err.Error(), " not found") {
 		return nil, &util.StringSet{}, err
 	}
 
+	ret := make([]*authorizationapi.RoleBinding, 0)
 	roleBindingNames := &util.StringSet{}
-	roleBinding := (*authorizationapi.RoleBinding)(nil)
 	// see if we can find an existing binding that points to the role in question.
 	for _, currBinding := range existingBindings.RoleBindings {
 		roleBindingNames.Insert(currBinding.Name)
 
 		if currBinding.RoleRef.Name == role {
 			t := currBinding
-			roleBinding = &t
+			ret = append(ret, &t)
 		}
 	}
 
-	return roleBinding, roleBindingNames, nil
+	return ret, roleBindingNames, nil
 }

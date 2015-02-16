@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -16,6 +17,7 @@ type PolicyInterface interface {
 	List(label, field labels.Selector) (*authorizationapi.PolicyList, error)
 	Get(name string) (*authorizationapi.Policy, error)
 	Delete(name string) error
+	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // policies implements PoliciesNamespacer interface
@@ -50,4 +52,9 @@ func (c *policies) Get(name string) (result *authorizationapi.Policy, err error)
 func (c *policies) Delete(name string) (err error) {
 	err = c.r.Delete().Namespace(c.ns).Resource("policies").Name(name).Do().Error()
 	return
+}
+
+// Watch returns a watch.Interface that watches the requested policies
+func (c *policies) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policies").Param("resourceVersion", resourceVersion).SelectorParam("labels", label).SelectorParam("fields", field).Watch()
 }

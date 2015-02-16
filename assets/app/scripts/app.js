@@ -56,7 +56,7 @@ angular
      .title(function () { return "Overview"; })
      .template(template)
      .href(projectHref("overview"))
-      .page(function () { return builder.join(templatePath, 'project.html'); })                     
+     .page(function () { return builder.join(templatePath, 'project.html'); })                     
      .build();
     tab.icon = "dashboard";
     tabs.push(tab);
@@ -76,6 +76,16 @@ angular
     tab.icon = "sitemap";
     tabs.push(tab);
 
+    tab = builder.create()
+     .id(builder.join(pluginName, "settings"))
+     .title(function () { return "Settings"; })
+     .template(template)
+     .href(projectHref("settings"))
+     .page(function () { return builder.join(templatePath, 'settings.html'); })                     
+     .build();
+    tab.icon = "sliders";
+    tabs.push(tab);
+
   }])
   .config(function ($routeProvider) {
     $routeProvider
@@ -91,6 +101,9 @@ angular
       .when('/project/:project/overview', {
         templateUrl: 'views/project.html'
       })
+      .when('/project/:project/settings', {
+        templateUrl: 'views/settings.html'
+      })      
       .when('/project/:project/browse', {
         redirectTo: function(params) {
           return '/project/' + encodeURIComponent(params.project) + "/browse/pods";  // TODO decide what subtab to default to here
@@ -129,21 +142,19 @@ angular
         redirectTo: '/'
       });
   })
-  .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider) {
-    if (window.OPENSHIFT_CONFIG) {
+  .constant("API_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).api))
+  .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
+  .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG) {
+    $httpProvider.interceptors.push('AuthInterceptor');
 
-   	  $httpProvider.interceptors.push('AuthInterceptor');
+    AuthServiceProvider.LoginService('RedirectLoginService');
+    AuthServiceProvider.LogoutService('DeleteTokenLogoutService');
+    // TODO: fall back to cookie store when localStorage is unavailable (see known issues at http://caniuse.com/#feat=namevalue-storage)
+    AuthServiceProvider.UserStore('LocalStorageUserStore');
 
-      AuthServiceProvider.LoginService('RedirectLoginService');
-      AuthServiceProvider.LogoutService('DeleteTokenLogoutService');
-      // TODO: fall back to cookie store when localStorage is unavailable (see known issues at http://caniuse.com/#feat=namevalue-storage)
-      AuthServiceProvider.UserStore('LocalStorageUserStore');
-
-      var authcfg = window.OPENSHIFT_CONFIG.auth;
-      RedirectLoginServiceProvider.OAuthClientID(authcfg.oauth_client_id);
-      RedirectLoginServiceProvider.OAuthAuthorizeURI(authcfg.oauth_authorize_uri);
-      RedirectLoginServiceProvider.OAuthRedirectURI(authcfg.oauth_redirect_base + "/oauth");
-    }
+    RedirectLoginServiceProvider.OAuthClientID(AUTH_CFG.oauth_client_id);
+    RedirectLoginServiceProvider.OAuthAuthorizeURI(AUTH_CFG.oauth_authorize_uri);
+    RedirectLoginServiceProvider.OAuthRedirectURI(AUTH_CFG.oauth_redirect_base + "/oauth");
   })
   .run(['mainNavTabs', "HawtioNav", function (tabs, HawtioNav) {
     for (var i = 0; i < tabs.length; i++) {

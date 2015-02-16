@@ -79,6 +79,25 @@ function wait_for_url_timed {
   return 1
 }
 
+# wait_for_file returns 0 if a file exists, 1 if it does not exist
+#
+# $1 - The file to check for existence
+# $2 - Optional time to sleep between attempts (Default: 0.2s)
+# $3 - Optional number of attemps to make (Default: 10)
+function wait_for_file {
+  file=$1
+  wait=${2:-0.2}
+  times=${3:-10}
+  for i in $(seq 1 $times); do
+    if [ -f "${file}" ]; then
+      return 0
+    fi
+    sleep $wait
+  done
+  echo "ERROR: gave up waiting for file ${file}"
+  return 1
+}
+
 # wait_for_url attempts to access a url in order to
 # determine if it is available to service requests.
 #
@@ -92,9 +111,32 @@ function wait_for_url {
   wait=${3:-0.2}
   times=${4:-10}
 
+  CURL_CERT=${CURL_CERT:-}
+  CURL_KEY=${CURL_KEY:-}
+  clientcert_args=""
+
+  if [ -n "${CURL_CERT}" ]; then
+   if [ -n "${CURL_KEY}" ]; then
+     if [[ `curl -V` == *"SecureTransport"* ]]; then
+       # Convert to a p12 cert for SecureTransport
+       CURL_CERT_DIR=$(dirname "${CURL_CERT}")
+       CURL_CERT_P12=${CURL_CERT_P12:-${CURL_CERT_DIR}/cert.p12}
+       CURL_CERT_P12_PASSWORD=${CURL_CERT_P12_PASSWORD:-password}
+       if [ ! -f "${CURL_CERT_P12}" ]; then
+         wait_for_file "${CURL_CERT}" $wait $times
+         wait_for_file "${CURL_KEY}" $wait $times
+         openssl pkcs12 -export -inkey "${CURL_KEY}" -in "${CURL_CERT}" -out "${CURL_CERT_P12}" -password "pass:${CURL_CERT_P12_PASSWORD}"
+       fi
+       clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD}"
+     else
+       clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY}"
+     fi
+   fi
+  fi
+
   set +e
   for i in $(seq 1 $times); do
-    out=$(curl -fs $url 2>/dev/null)
+    out=$(curl ${clientcert_args} -fs $url 2>/dev/null)
     if [ $? -eq 0 ]; then
       set -e
       echo ${prefix}${out}
@@ -103,7 +145,7 @@ function wait_for_url {
     sleep $wait
   done
   echo "ERROR: gave up waiting for $url"
-  curl $url
+  curl ${clientcert_args} $url
   set -e
   return 1
 }

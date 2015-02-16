@@ -22,6 +22,11 @@ type ImageRepositoryInterface interface {
 	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
+// ImageRepositoryNamespaceGetter exposes methods to get ImageRepositories by Namespace
+type ImageRepositoryNamespaceGetter interface {
+	GetByNamespace(namespace, name string) (*imageapi.ImageRepository, error)
+}
+
 // imageRepositories implements ImageRepositoriesNamespacer interface
 type imageRepositories struct {
 	r  *Client
@@ -53,6 +58,13 @@ func (c *imageRepositories) List(label, field labels.Selector) (result *imageapi
 func (c *imageRepositories) Get(name string) (result *imageapi.ImageRepository, err error) {
 	result = &imageapi.ImageRepository{}
 	err = c.r.Get().Namespace(c.ns).Resource("imageRepositories").Name(name).Do().Into(result)
+	return
+}
+
+// GetByNamespace returns information about a particular imagerepository in a particular namespace and error if one occurs.
+func (c *imageRepositories) GetByNamespace(namespace, name string) (result *imageapi.ImageRepository, err error) {
+	result = &imageapi.ImageRepository{}
+	c.r.Get().Namespace(namespace).Resource("imageRepositories").Name(name).Do().Into(result)
 	return
 }
 

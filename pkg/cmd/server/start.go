@@ -13,15 +13,19 @@ import (
 	"strings"
 	"time"
 
+	"code.google.com/p/go-uuid/uuid"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
@@ -29,12 +33,15 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
+	authcontext "github.com/openshift/origin/pkg/auth/context"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
+	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+
 	"github.com/openshift/origin/pkg/auth/group"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -315,6 +322,9 @@ func start(cfg *config, args []string) error {
 			return fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 
+		requestsToUsers := authcontext.NewRequestContextMap()
+		masterAuthorizationNamespace := "master"
+
 		// determine whether public API addresses were specified
 		masterPublicAddr := cfg.MasterAddr
 		if cfg.MasterPublicAddr.Provided {
@@ -356,12 +366,17 @@ func start(cfg *config, args []string) error {
 			KubernetesAddr:       cfg.KubernetesAddr.URL.String(),
 			KubernetesPublicAddr: k8sPublicAddr.URL.String(),
 
+			LogoutURI: env("OPENSHIFT_LOGOUT_URI", ""),
+
 			CORSAllowedOrigins: cfg.CORSAllowedOrigins,
 
 			EtcdHelper: etcdHelper,
 
-			AdmissionControl:             admit.NewAlwaysAdmit(),
-			MasterAuthorizationNamespace: "master",
+			AdmissionControl:              admit.NewAlwaysAdmit(),
+			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
+			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestsToUsers),
+			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
+			RequestsToUsers:               requestsToUsers,
 
 			UseLocalImages: useLocalImages,
 			ImageFor:       imageResolverFn,
@@ -428,21 +443,35 @@ func start(cfg *config, args []string) error {
 			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
 
 			// Openshift client
-			if osmaster.OSClientConfig, err = ca.MakeClientConfig("openshift-client", osClientConfigTemplate); err != nil {
+			openshiftClientUser := &user.DefaultInfo{Name: "system:openshift-client"}
+			if osmaster.OSClientConfig, err = ca.MakeClientConfig("openshift-client", openshiftClientUser, osClientConfigTemplate); err != nil {
 				return err
 			}
 			// Openshift deployer client
-			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("openshift-deployer", osClientConfigTemplate); err != nil {
+			openshiftDeployerUser := &user.DefaultInfo{Name: "system:openshift-deployer", Groups: []string{"system:deployers"}}
+			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("openshift-deployer", openshiftDeployerUser, osClientConfigTemplate); err != nil {
 				return err
 			}
 			// Admin config (creates files on disk for osc)
-			if _, err = ca.MakeClientConfig("admin", osClientConfigTemplate); err != nil {
+			adminUser := &user.DefaultInfo{Name: "system:admin", Groups: []string{"system:cluster-admins"}}
+			if _, err = ca.MakeClientConfig("admin", adminUser, osClientConfigTemplate); err != nil {
 				return err
+			}
+
+			// One client config per node
+			for _, node := range cfg.NodeList {
+				nodeIdentityName := fmt.Sprintf("node-%s", node)
+				nodeUserName := fmt.Sprintf("system:%s", nodeIdentityName)
+				nodeUser := &user.DefaultInfo{Name: nodeUserName, Groups: []string{"system:nodes"}}
+				if _, err = ca.MakeClientConfig(nodeIdentityName, nodeUser, osClientConfigTemplate); err != nil {
+					return err
+				}
 			}
 
 			// If we're running our own Kubernetes, build client credentials
 			if startKube {
-				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", osmaster.KubeClientConfig); err != nil {
+				kubeClientUser := &user.DefaultInfo{Name: "system:kube-client"}
+				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", kubeClientUser, osmaster.KubeClientConfig); err != nil {
 					return err
 				}
 			}
@@ -452,13 +481,13 @@ func start(cfg *config, args []string) error {
 			for _, root := range ca.Config.Roots {
 				roots.AddCert(root)
 			}
+			osmaster.ClientCAs = roots
 
 			// build cert authenticator
 			// TODO: add cert users to etcd?
-			// TODO: provider-qualify cert users?
 			opts := x509request.DefaultVerifyOptions()
 			opts.Roots = roots
-			certauth := x509request.New(opts, x509request.CommonNameUserConversion)
+			certauth := x509request.New(opts, x509request.SubjectToUserConversion)
 			authenticators = append(authenticators, certauth)
 		} else {
 			// No security, use the same client config for all OpenShift clients
@@ -472,21 +501,13 @@ func start(cfg *config, args []string) error {
 			FailOnError: true,
 			Handlers: []authenticator.Request{
 				group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{authenticatedGroup}),
-				authenticator.RequestFunc(func(req *http.Request) (api.UserInfo, bool, error) {
-					return &api.DefaultUserInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
+				authenticator.RequestFunc(func(req *http.Request) (user.Info, bool, error) {
+					return &user.DefaultInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
 				}),
 			},
 		}
 
 		osmaster.BuildClients()
-
-		// Sessions need to last as long as we expect the grant flow to take
-		// Session auth is invalidated at the end of an authorize flow, so it can only be used once
-		sessionMaxAgeSeconds, err := strconv.ParseInt(env("ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS", "300"), 10, 0)
-		if err != nil || sessionMaxAgeSeconds <= 0 {
-			glog.Warningf("Invalid ORIGIN_OAUTH_SESSION_MAX_AGE_SECONDS. Defaulting to 5 minutes.")
-			sessionMaxAgeSeconds = 300
-		}
 
 		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
 		defaultAuthRequestHandlers := strings.Join([]string{
@@ -500,25 +521,31 @@ func start(cfg *config, args []string) error {
 			MasterRoots:          roots,
 			EtcdHelper:           etcdHelper,
 
-			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("ORIGIN_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
-			AuthHandler:         origin.AuthHandlerType(env("ORIGIN_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
-			GrantHandler:        origin.GrantHandlerType(env("ORIGIN_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
-			// Session config
-			SessionSecrets:       []string{env("ORIGIN_OAUTH_SESSION_SECRET", "secret12345")},
-			SessionMaxAgeSeconds: int(sessionMaxAgeSeconds),
-			SessionName:          env("ORIGIN_OAUTH_SESSION_NAME", "ssn"),
+			// Max token ages
+			AuthorizeTokenMaxAgeSeconds: envInt("OPENSHIFT_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS", 300, 1),
+			AccessTokenMaxAgeSeconds:    envInt("OPENSHIFT_OAUTH_ACCESS_TOKEN_MAX_AGE_SECONDS", 3600, 1),
+			// Handlers
+			AuthRequestHandlers: origin.ParseAuthRequestHandlerTypes(env("OPENSHIFT_OAUTH_REQUEST_HANDLERS", defaultAuthRequestHandlers)),
+			AuthHandler:         origin.AuthHandlerType(env("OPENSHIFT_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
+			GrantHandler:        origin.GrantHandlerType(env("OPENSHIFT_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
+			// RequestHeader config
+			RequestHeaders: strings.Split(env("OPENSHIFT_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
+			// Session config (default to unknowable secret)
+			SessionSecrets:       []string{env("OPENSHIFT_OAUTH_SESSION_SECRET", uuid.NewUUID().String())},
+			SessionMaxAgeSeconds: envInt("OPENSHIFT_OAUTH_SESSION_MAX_AGE_SECONDS", 300, 1),
+			SessionName:          env("OPENSHIFT_OAUTH_SESSION_NAME", "ssn"),
 			// Password config
-			PasswordAuth: origin.PasswordAuthType(env("ORIGIN_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
-			BasicAuthURL: env("ORIGIN_OAUTH_BASIC_AUTH_URL", ""),
+			PasswordAuth: origin.PasswordAuthType(env("OPENSHIFT_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
+			BasicAuthURL: env("OPENSHIFT_OAUTH_BASIC_AUTH_URL", ""),
 			// Token config
-			TokenStore:    origin.TokenStoreType(env("ORIGIN_OAUTH_TOKEN_STORE", string(origin.TokenStoreEtcd))),
-			TokenFilePath: env("ORIGIN_OAUTH_TOKEN_FILE_PATH", ""),
+			TokenStore:    origin.TokenStoreType(env("OPENSHIFT_OAUTH_TOKEN_STORE", string(origin.TokenStoreOAuth))),
+			TokenFilePath: env("OPENSHIFT_OAUTH_TOKEN_FILE_PATH", ""),
 			// Google config
-			GoogleClientID:     env("ORIGIN_OAUTH_GOOGLE_CLIENT_ID", ""),
-			GoogleClientSecret: env("ORIGIN_OAUTH_GOOGLE_CLIENT_SECRET", ""),
+			GoogleClientID:     env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_ID", ""),
+			GoogleClientSecret: env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_SECRET", ""),
 			// Github config
-			GithubClientID:     env("ORIGIN_OAUTH_GITHUB_CLIENT_ID", ""),
-			GithubClientSecret: env("ORIGIN_OAUTH_GITHUB_CLIENT_SECRET", ""),
+			GithubClientID:     env("OPENSHIFT_OAUTH_GITHUB_CLIENT_ID", ""),
+			GithubClientSecret: env("OPENSHIFT_OAUTH_GITHUB_CLIENT_SECRET", ""),
 		}
 
 		// Allow privileged containers
@@ -621,6 +648,17 @@ func start(cfg *config, args []string) error {
 	return nil
 }
 
+func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace string) authorizer.Authorizer {
+	authorizationEtcd := authorizationetcd.New(etcdHelper)
+	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+	return authorizer
+}
+
+func newAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap) authorizer.AuthorizationAttributeBuilder {
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers, &authorizer.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
+	return authorizationAttributeBuilder
+}
+
 // getEtcdClient creates an etcd client based on the provided config and waits
 // until etcd server is reachable. It errors out and exits if the server cannot
 // be reached for a certain amount of time.
@@ -714,6 +752,15 @@ func clientConfigFromKubeConfig(cfg *config) *kclient.Config {
 		config.Host = cfg.KubernetesAddr.URL.String()
 	}
 	return config
+}
+
+func envInt(key string, defaultValue int32, minValue int32) int32 {
+	value, err := strconv.ParseInt(env(key, fmt.Sprintf("%d", defaultValue)), 10, 32)
+	if err != nil || int32(value) < minValue {
+		glog.Warningf("Invalid %s. Defaulting to %d.", key, defaultValue)
+		return defaultValue
+	}
+	return int32(value)
 }
 
 // env returns an environment variable or a default value if not specified.

@@ -1,24 +1,23 @@
 package origin
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 
-	"crypto/tls"
-	"crypto/x509"
-
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
@@ -40,8 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/auth/server/session"
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -53,6 +50,7 @@ import (
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
 
 const (
@@ -60,8 +58,7 @@ const (
 	OpenShiftLoginPrefix         = "/login"
 	OpenShiftApprovePrefix       = "/oauth/approve"
 	OpenShiftOAuthCallbackPrefix = "/oauth2callback"
-
-	OpenShiftWebConsoleClientID = "openshift-web-console"
+	OpenShiftWebConsoleClientID  = "openshift-web-console"
 )
 
 var (
@@ -92,7 +89,7 @@ type AuthRequestHandlerType string
 const (
 	// AuthRequestHandlerBearer validates a passed "Authorization: Bearer" token, using the specified TokenStore
 	AuthRequestHandlerBearer AuthRequestHandlerType = "bearer"
-	// AuthRequestHandlerRequestHeader treats any request with an X-Remote-User header as authenticated
+	// AuthRequestHandlerRequestHeader treats any request with a value in one of the RequestHeaders headers as authenticated
 	AuthRequestHandlerRequestHeader AuthRequestHandlerType = "requestheader"
 	// AuthRequestHandlerBasicAuth validates a passed "Authorization: Basic" header using the specified PasswordAuth
 	AuthRequestHandlerBasicAuth AuthRequestHandlerType = "basicauth"
@@ -136,8 +133,8 @@ const (
 type TokenStoreType string
 
 const (
-	// Validate bearer tokens by looking in etcd
-	TokenStoreEtcd TokenStoreType = "etcd"
+	// Validate bearer tokens by looking in the OAuth access token registry
+	TokenStoreOAuth TokenStoreType = "oauth"
 	// Validate bearer tokens by looking in a CSV file located at the specified TokenFilePath
 	TokenStoreFile TokenStoreType = "file"
 )
@@ -166,6 +163,11 @@ type AuthConfig struct {
 	MasterRoots          *x509.CertPool
 	EtcdHelper           tools.EtcdHelper
 
+	// Max age of authorize tokens
+	AuthorizeTokenMaxAgeSeconds int32
+	// Max age of access tokens
+	AccessTokenMaxAgeSeconds int32
+
 	// AuthRequestHandlers contains an ordered list of authenticators that decide if a request is authenticated
 	AuthRequestHandlers []AuthRequestHandlerType
 
@@ -185,10 +187,13 @@ type AuthConfig struct {
 	// TokenFilePath is a path to a CSV file to load valid tokens from. Used by TokenStoreFile.
 	TokenFilePath string
 
+	// RequestHeaders lists the headers to check (in order) for a username. Used by AuthRequestHandlerRequestHeader
+	RequestHeaders []string
+
 	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
 	SessionSecrets []string
 	// SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
-	SessionMaxAgeSeconds int
+	SessionMaxAgeSeconds int32
 	// SessionName is the cookie name used to store the session
 	SessionName string
 	// sessionAuth holds the Authenticator built from the exported Session* options. It should only be accessed via getSessionAuth(), since it is lazily built.
@@ -222,6 +227,12 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
+	if c.AuthorizeTokenMaxAgeSeconds > 0 {
+		config.AuthorizationExpiration = c.AuthorizeTokenMaxAgeSeconds
+	}
+	if c.AccessTokenMaxAgeSeconds > 0 {
+		config.AccessExpiration = c.AccessTokenMaxAgeSeconds
+	}
 
 	grantChecker := registry.NewClientAuthorizationGrantChecker(oauthEtcd)
 	grantHandler := c.getGrantHandler(mux, authRequestHandler, oauthEtcd, oauthEtcd)
@@ -348,7 +359,7 @@ func getCSRF() csrf.CSRF {
 
 func (c *AuthConfig) getSessionAuth() *session.Authenticator {
 	if c.sessionAuth == nil {
-		sessionStore := session.NewStore(c.SessionMaxAgeSeconds, c.SessionSecrets...)
+		sessionStore := session.NewStore(int(c.SessionMaxAgeSeconds), c.SessionSecrets...)
 		c.sessionAuth = session.NewAuthenticator(sessionStore, c.SessionName)
 	}
 	return c.sessionAuth
@@ -499,7 +510,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 	switch authRequestHandlerType {
 	case AuthRequestHandlerBearer:
 		switch c.TokenStore {
-		case TokenStoreEtcd:
+		case TokenStoreOAuth:
 			tokenAuthenticator, err := GetEtcdTokenAuthenticator(c.EtcdHelper)
 			if err != nil {
 				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
@@ -512,12 +523,15 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 			}
 			authRequestHandler = bearertoken.New(tokenAuthenticator)
 		default:
-			glog.Fatalf("Unknown TokenStore %s. Must be etcd or file.  The oauth server cannot start!", c.TokenStore)
+			glog.Fatalf("Unknown TokenStore %s. Must be oauth or file.  The oauth server cannot start!", c.TokenStore)
 		}
 	case AuthRequestHandlerRequestHeader:
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authRequestHandlerType) /*for now*/, userRegistry)
-		authRequestHandler = headerrequest.NewAuthenticator(headerrequest.NewDefaultConfig(), identityMapper)
+		authRequestConfig := &headerrequest.Config{
+			UserNameHeaders: c.RequestHeaders,
+		}
+		authRequestHandler = headerrequest.NewAuthenticator(authRequestConfig, identityMapper)
 	case AuthRequestHandlerBasicAuth:
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator)
@@ -584,7 +598,7 @@ type callbackPasswordAuthenticator struct {
 type redirectSuccessHandler struct{}
 
 // AuthenticationSuccess informs client when authentication was successful
-func (redirectSuccessHandler) AuthenticationSucceeded(user api.UserInfo, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	if len(then) == 0 {
 		return false, fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)
 	}

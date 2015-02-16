@@ -6,6 +6,7 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 )
@@ -53,7 +54,7 @@ func NewAccessAuthenticator(password authenticator.Password, assertion authentic
 // HandleAccess implements osinserver.AccessHandler
 func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error {
 	var (
-		info api.UserInfo
+		info user.Info
 		ok   bool
 		err  error
 	)
@@ -86,7 +87,7 @@ func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 	return nil
 }
 
-// NewDenyAuthenticator returns an Authenticator which rejects all non-token access requests
+// NewDenyAccessAuthenticator returns an AccessAuthenticator which rejects all non-token access requests
 func NewDenyAccessAuthenticator() *AccessAuthenticator {
 	return &AccessAuthenticator{Deny, Deny, Deny}
 }
@@ -103,16 +104,16 @@ type fixedAuthenticator struct {
 }
 
 // AuthenticatePassword implements authenticator.Password
-func (f *fixedAuthenticator) AuthenticatePassword(user, password string) (api.UserInfo, bool, error) {
+func (f *fixedAuthenticator) AuthenticatePassword(user, password string) (user.Info, bool, error) {
 	return nil, f.allow, nil
 }
 
 // AuthenticateAssertion implements authenticator.Assertion
-func (f *fixedAuthenticator) AuthenticateAssertion(assertionType, data string) (api.UserInfo, bool, error) {
+func (f *fixedAuthenticator) AuthenticateAssertion(assertionType, data string) (user.Info, bool, error) {
 	return nil, f.allow, nil
 }
 
 // AuthenticateClient implements authenticator.Client
-func (f *fixedAuthenticator) AuthenticateClient(client api.Client) (api.UserInfo, bool, error) {
+func (f *fixedAuthenticator) AuthenticateClient(client api.Client) (user.Info, bool, error) {
 	return nil, f.allow, nil
 }

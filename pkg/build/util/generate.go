@@ -4,7 +4,10 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	osclient "github.com/openshift/origin/pkg/client"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // GenerateBuildFromConfig creates a new build based on a given BuildConfig. Optionally a SourceRevision for the new
@@ -28,6 +31,7 @@ func GenerateBuildFromConfig(bc *buildapi.BuildConfig, r *buildapi.SourceRevisio
 		},
 	}
 	for originalImage, newImage := range imageSubstitutions {
+		glog.V(4).Infof("Substituting %s for %s", newImage, originalImage)
 		SubstituteImageReferences(b, originalImage, newImage)
 	}
 	return b
@@ -43,6 +47,66 @@ func GenerateBuildFromBuild(build *buildapi.Build) *buildapi.Build {
 			Labels: buildCopy.ObjectMeta.Labels,
 		},
 	}
+}
+
+// GenerateBuildWithImageTag generates a build definition based on the current imageid
+// from any ImageRepository that is associated to the BuildConfig by an ImageChangeTrigger.
+// Takes a BuildConfig to base the build on, an optional SourceRevision to build, and an optional
+// Client to use to get ImageRepositories to check for affiliation to this BuildConfig (by way of
+// an ImageChangeTrigger).  If there is a match in the image repo list, the resulting build will use
+// the image tag from the corresponding image repo rather than the image field from the buildconfig
+// as the base image for the build.
+func GenerateBuildWithImageTag(config *buildapi.BuildConfig, revision *buildapi.SourceRevision, imageRepoGetter osclient.ImageRepositoryNamespaceGetter) (*buildapi.Build, error) {
+
+	imageSubstitutions := make(map[string]string)
+	glog.V(4).Infof("Generating tagged build for config %s", config.Name)
+
+	for _, trigger := range config.Triggers {
+		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
+			continue
+		}
+		icTrigger := trigger.ImageChange
+		glog.V(4).Infof("Found image change trigger with reference to repo %s", icTrigger.From.Name)
+
+		var imageRepo *imageapi.ImageRepository
+		var namespace string
+		if len(icTrigger.From.Namespace) != 0 {
+			namespace = icTrigger.From.Namespace
+		} else {
+			namespace = config.Namespace
+		}
+
+		var err error
+		imageRepo, err = imageRepoGetter.GetByNamespace(namespace, icTrigger.From.Name)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return nil, err
+		}
+
+		if imageRepo == nil || imageRepo.Status.DockerImageRepository == "" {
+			continue
+		}
+		glog.V(4).Infof("Found image repo %s", imageRepo.Name)
+
+		// for the ImageChange trigger, record the image it substitutes for and get the latest
+		// image id from the imagerepository.  We will substitute all images in the buildconfig
+		// with the latest values from the imagerepositories.
+		tag := icTrigger.Tag
+		if len(tag) == 0 {
+			tag = buildapi.DefaultImageTag
+		}
+		imageID, hasTag := imageRepo.Tags[tag]
+		if !hasTag {
+			continue
+		}
+		glog.V(4).Infof("Adding substitution %s with %s:%s", icTrigger.Image, imageRepo.Status.DockerImageRepository, imageID)
+		imageSubstitutions[icTrigger.Image] = imageRepo.Status.DockerImageRepository + ":" + imageID
+	}
+	glog.V(4).Infof("Generating build from config for build config %s", config.Name)
+	build := GenerateBuildFromConfig(config, revision, imageSubstitutions)
+	return build, nil
 }
 
 // SubstituteImageReferences replaces references to an image with a new value

@@ -30,7 +30,7 @@ angular.module('openshiftConsole')
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.pods = pods.by("metadata.name");
-      $scope.podsByLabel = pods.by("labels", "metadata.name");
+      $scope.podsByLabel = pods.by("metadata.labels", "metadata.name");
       podsByServiceByLabel();
       console.log("podsByLabel (list)", $scope.podsByLabel);      
     }, {poll: true}));
@@ -48,28 +48,20 @@ angular.module('openshiftConsole')
 
     var podsByServiceByLabel = function() {
       $scope.podsByServiceByLabel = {};
-      $each($scope.services, function(name, service) {
-        var servicePods = [];
-        $each(service.selector, function(selectorKey, selectorValue) {
-          if ($scope.podsByLabel[selectorKey]) {
-            var pods = $scope.podsByLabel[selectorKey][selectorValue] || {};
-            $each(pods, function(name, pod) {
-              servicePods.push(pod);
-            });
-          }
-        });
+      angular.forEach($scope.services, function(service, name) {
+        var ls = new LabelSelector(service.spec.selector);
+        var servicePods = ls.select($scope.pods)
         $scope.podsByServiceByLabel[name]  =  {};
-        // TODO last remaining reference to this... 
-        DataService.objectsByAttribute(servicePods, "labels", $scope.podsByServiceByLabel[name], null, "metadata.name");
+        DataService.objectsByAttribute(servicePods, "metadata.labels", $scope.podsByServiceByLabel[name], null, "metadata.name");
       });
 
       console.log("podsByServiceByLabel", $scope.podsByServiceByLabel);      
     };
 
     function parseEncodedDeploymentConfig(deployment) {
-      if (deployment.annotations && deployment.annotations.encodedDeploymentConfig) {
+      if (deployment.metadata.annotations && deployment.metadata.annotations.encodedDeploymentConfig) {
         try {
-          var depConfig = $.parseJSON(deployment.annotations.encodedDeploymentConfig);
+          var depConfig = $.parseJSON(deployment.metadata.annotations.encodedDeploymentConfig);
           deployment.details = depConfig.details;
         }
         catch (e) {
@@ -79,16 +71,16 @@ angular.module('openshiftConsole')
     }
 
     // Sets up subscription for deployments and deploymentsByConfig
-    watches.push(DataService.watch("replicationControllers", $scope, function(deployments, action, deployment) {
+    watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {
       $scope.deployments = deployments.by("metadata.name");
-      $scope.deploymentsByConfig = deployments.by("annotations.deploymentConfig", "metadata.name");
+      $scope.deploymentsByConfig = deployments.by("metadata.annotations.deploymentConfig", "metadata.name");
       if (deployment) {
         if (action !== "DELETED") {
           parseEncodedDeploymentConfig(deployment);
         }
       }
       else {
-        $each($scope.deployments, function(name, dep) {
+        angular.forEach($scope.deployments, function(dep) {
           parseEncodedDeploymentConfig(dep);
         });
       }
@@ -128,14 +120,14 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("deploymentConfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
       $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
       if (!action) {
-        $each($scope.deploymentConfigs, function(name, depConfig) {
-          $each($scope.builds, function(name, build) {
+        angular.forEach($scope.deploymentConfigs, function(depConfig) {
+          angular.forEach($scope.builds, function(build) {
             associateDeploymentConfigTriggersToBuild(depConfig, build);
           });   
         });
       }
       else if (action !== 'DELETED') {
-        $each($scope.builds, function(name, build) {
+        angular.forEach($scope.builds, function(build) {
           associateDeploymentConfigTriggersToBuild(deploymentConfig, build);
         });
       }
@@ -146,14 +138,14 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
       $scope.builds = builds.by("metadata.name");
       if (!action) {
-        $each($scope.builds, function(name, bld) {
-          $each($scope.deploymentConfigs, function(name, depConfig) {
+        angular.forEach($scope.builds, function(bld) {
+          angular.forEach($scope.deploymentConfigs, function(depConfig) {
             associateDeploymentConfigTriggersToBuild(depConfig, bld);
           });
         });
       }        
       else if (action === 'ADDED' || action === 'MODIFIED') {
-        $each($scope.deploymentConfigs, function(name, depConfig) {
+        angular.forEach($scope.deploymentConfigs, function(depConfig) {
           associateDeploymentConfigTriggersToBuild(depConfig, build);
         });
       }

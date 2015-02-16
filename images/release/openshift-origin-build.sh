@@ -5,8 +5,15 @@ build_script_path=`mktemp /tmp/build.XXX.sh`
 
 cat <<EOF > ${build_script_path}
 #!/bin/bash -e
+
+function chown_output {
+    if [ ! -z "$OWNER_GROUP" ]; then
+        chown -R "$OWNER_GROUP" Godeps/_workspace/pkg _output
+    fi
+}
+
 cd ${os_dir}
-OS_VERSION_FILE="" ./hack/build-go.sh && chmod -R go+rw {Godeps/_workspace/pkg,_output}
+OS_VERSION_FILE="" ./hack/build-go.sh && chown_output
 EOF
 
 echo "++ Checking for gofmt errors"

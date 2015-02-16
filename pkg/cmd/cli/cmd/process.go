@@ -8,9 +8,10 @@ import (
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
-	"github.com/spf13/cobra"
 )
 
 // injectUserVars injects user specified variables into the Template
@@ -38,7 +39,7 @@ func NewCmdProcess(f *Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
 		Short: "Process template into list of resources",
-		Long: `Process template into a lis of resources specified in filename or stdin
+		Long: `Process template into a list of resources specified in filename or stdin
 
 JSON and YAML formats are accepted.
 

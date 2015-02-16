@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildv "github.com/openshift/origin/pkg/build/api/validation"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -43,8 +44,7 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 	case *imageapi.Image:
 		errors = imagev.ValidateImage(t)
 	case *imageapi.ImageRepository:
-		// TODO: validate image repository
-		// 	errors = imagev.ValidateImageRepository(t)
+		errors = imagev.ValidateImageRepository(t)
 	case *imageapi.ImageRepositoryMapping:
 		errors = imagev.ValidateImageRepositoryMapping(t)
 	case *deployapi.DeploymentConfig:

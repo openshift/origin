@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/auth/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 )
 
 type Context interface {
@@ -19,14 +19,14 @@ func NewAuthenticator(context Context) *Authenticator {
 	return &Authenticator{context}
 }
 
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (api.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	obj, ok := a.context.Get(req)
 	if !ok {
 		return nil, false, nil
 	}
-	user, ok := obj.(api.UserInfo)
+	user, ok := obj.(user.Info)
 	if !ok {
-		return nil, false, errors.New("the context object is not an api.UserInfo")
+		return nil, false, errors.New("the context object is not a user.Info")
 	}
 	return user, true, nil
 }

@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -17,6 +18,7 @@ type PolicyBindingInterface interface {
 	Get(name string) (*authorizationapi.PolicyBinding, error)
 	Create(policyBinding *authorizationapi.PolicyBinding) (*authorizationapi.PolicyBinding, error)
 	Delete(name string) error
+	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // policyBindings implements PolicyBindingsNamespacer interface
@@ -58,4 +60,9 @@ func (c *policyBindings) Create(policyBinding *authorizationapi.PolicyBinding) (
 func (c *policyBindings) Delete(name string) (err error) {
 	err = c.r.Delete().Namespace(c.ns).Resource("policyBindings").Name(name).Do().Error()
 	return
+}
+
+// Watch returns a watch.Interface that watches the requested policyBindings
+func (c *policyBindings) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policyBindings").Param("resourceVersion", resourceVersion).SelectorParam("labels", label).SelectorParam("fields", field).Watch()
 }

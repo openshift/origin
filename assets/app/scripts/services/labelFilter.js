@@ -2,126 +2,6 @@
 
 angular.module('openshiftConsole')
 .factory('LabelFilter', [function() {
-  function LabelSelector() {
-    this._conjuncts = {};
-  }
-
-  LabelSelector.prototype.addConjunct = function(key, operator, values) {
-    var conjunct = {
-      key: key,
-      operator: operator,
-      values: values
-    };
-    var id = this._getIdForConjunct(conjunct);
-    this._conjuncts[id] = conjunct;
-    conjunct.id = id;
-    conjunct.string = this._getStringForConjunct(conjunct);
-    return conjunct;
-  };
-
-  // Can accept either the id of the conjunct to remove, or the conjunct
-  // object that was returned from a call to addConjunct
-  LabelSelector.prototype.removeConjunct = function(conjunct) {
-    if (conjunct.id) {
-      delete this._conjuncts[conjunct.id];  
-    }
-    else {
-      delete this._conjuncts[conjunct];
-    }
-  };
-
-  LabelSelector.prototype.clearConjuncts = function() {
-    this._conjuncts = {};
-  };
-
-  LabelSelector.prototype.isEmpty = function() {
-    return $.isEmptyObject(this._conjuncts);
-  };
-
-  LabelSelector.prototype.each = function(fn) {
-    $each(this._conjuncts, fn);
-  };
-
-  LabelSelector.prototype.select = function(resources) {
-    var selectedResources = {};
-    var self = this;
-    $each(resources, function(resId, resource) {
-      if (self.matches(resource)) {
-        selectedResources[resId] = resource;
-      }
-    });
-    return selectedResources;
-  };
-
-  LabelSelector.prototype.matches = function(resource) {
-    if (!resource) {
-      return false;
-    }
-    var labels = resource.labels || {};
-    if (resource.metadata) {
-      labels = resource.metadata.labels || {};
-    }
-    for (var id in this._conjuncts) {
-      var conjunct = this._conjuncts[id];
-      switch(conjunct.operator) {
-        case "exists":
-          if (!labels[conjunct.key]) {
-            return false;
-          }
-          break;
-        case "in":
-          var found = false;
-          if (labels[conjunct.key]) {
-            for (var i = 0; !found && i < conjunct.values.length; i++) {
-              if (labels[conjunct.key] == conjunct.values[i]) {
-                found = true;
-              }
-            }
-          }
-          if (!found) {
-            return false;
-          }
-          break;
-        case "not in":
-          var keep = true;
-          if (labels[conjunct.key]) {
-            for (var i = 0; keep && i < conjunct.values.length; i++) {
-              keep = labels[conjunct.key] != conjunct.values[i];
-            }
-          }
-          if (!keep) {
-            return false;
-          }
-      }
-    }
-    return true;
-  };  
-
-  // We assume label values have no whitespace, commas, parens, etc. based
-  // on k8s def for label values
-  LabelSelector.prototype._getStringForConjunct = function(conjunct) {
-    var conjunctString = conjunct.key;
-    if (conjunct.operator != "exists") {
-      if (conjunct.operator == "not in") {
-        conjunctString += " not";
-      }
-      conjunctString += " in (";
-      for (var i = 0; i < conjunct.values.length; i++) {
-        conjunctString += conjunct.values[i];
-        if (i != conjunct.values.length - 1) {
-          conjunctString += ", ";
-        }
-      }
-      conjunctString += ")";
-    }
-    return conjunctString;
-  };
-
-  LabelSelector.prototype._getIdForConjunct = function(conjunct) {
-    return conjunct.key + "-" + conjunct.operator + "-" + conjunct.values.join(",");
-  };
-
-
   function LabelFilter() {
     this._existingLabels = {};
     this._labelSelector = new LabelSelector();
@@ -130,12 +10,12 @@ angular.module('openshiftConsole')
 
   LabelFilter.prototype.addLabelSuggestionsFromResources = function(items, map) {
     // check if we are extracting from a single item or a hash of items
-    if (items.id || (items.metadata && items.metadata.name)) {
+    if (items.metadata && items.metadata.name) {
       this._extractLabelsFromItem(items, map);
     }
     else {
       var self = this;
-      $each(items, function(key, item) {
+      angular.forEach(items, function(item) {
         self._extractLabelsFromItem(item, map);
       });
     }
@@ -146,14 +26,9 @@ angular.module('openshiftConsole')
   };
 
   LabelFilter.prototype._extractLabelsFromItem = function(item, map) {
-    // TODO temporary until we handle everything with item.metadata.labels
-    var labels = item.labels;
-    if (item.metadata) {
-      labels = item.metadata.labels;
-    }
-
+    var labels = item.metadata ? item.metadata.labels : {};
     var self = this;
-    $each(labels, function(key, value) {
+    angular.forEach(labels, function(value, key) {
       if (!map[key]) {
         map[key] = [];
       }
@@ -174,6 +49,9 @@ angular.module('openshiftConsole')
   // filterInputElement and activeFiltersElement should be empty HTML nodes
   LabelFilter.prototype.setupFilterWidget = function(filterInputElement, activeFiltersElement) {
     var self = this;
+
+    this._labelFilterRootElement = filterInputElement;
+    this._labelFilterActiveFiltersRootElement = activeFiltersElement;
 
     // Render base select boxes and buttons for inputs of widget
     var labelFilterElem = $('<div>')
@@ -401,7 +279,7 @@ angular.module('openshiftConsole')
     // If we are transitioning scenes we may still have filters active but be re-creating the DOM for the widget
     if (!this._labelSelector.isEmpty()) {
       this._labelFilterActiveElement.show();
-      this._labelSelector.each(function(id, filter) {
+      this._labelSelector.each(function(filter) {
         self._renderActiveFilter(filter);
       });
     }      
@@ -450,6 +328,25 @@ angular.module('openshiftConsole')
   LabelFilter.prototype._clearActiveFilters = function() {
     this._labelSelector.clearConjuncts();
     this._onActiveFiltersChangedCallbacks.fire(this._labelSelector);
+  };
+
+  LabelFilter.prototype.toggleFilterWidget = function(show) {
+    if (this._labelFilterRootElement) {
+      if (show) {
+        this._labelFilterRootElement.show();
+      }
+      else {
+        this._labelFilterRootElement.hide();
+      }
+    }
+    if (this._labelFilterActiveFiltersRootElement) {
+      if (show) {
+        this._labelFilterActiveFiltersRootElement.show();
+      }
+      else {
+        this._labelFilterActiveFiltersRootElement.hide();
+      }
+    }
   };
 
   return new LabelFilter();

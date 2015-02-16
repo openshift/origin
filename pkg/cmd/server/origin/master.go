@@ -2,6 +2,7 @@ package origin
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -31,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	authcontext "github.com/openshift/origin/pkg/auth/context"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -74,11 +74,14 @@ import (
 	"github.com/openshift/origin/pkg/version"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
+	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 )
 
 const (
@@ -101,10 +104,16 @@ type MasterConfig struct {
 	MasterPublicAddr     string
 	KubernetesPublicAddr string
 	AssetPublicAddr      string
+	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
+	// If not specified, the built-in logout page is shown.
+	LogoutURI string
 
-	CORSAllowedOrigins []string
-	Authenticator      authenticator.Request
-	// TODO Have MasterConfig take a fully formed Authorizer
+	CORSAllowedOrigins            []string
+	Authenticator                 authenticator.Request
+	Authorizer                    authorizer.Authorizer
+	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
+	// RequestsToUsers is used by both authentication and authorization.  This is a shared, in-memory map, so they must use exactly the same instance
+	RequestsToUsers              *authcontext.RequestContextMap
 	MasterAuthorizationNamespace string
 
 	EtcdHelper tools.EtcdHelper
@@ -124,6 +133,10 @@ type MasterConfig struct {
 	AssetCertFile  string
 	AssetKeyFile   string
 
+	// ClientCAs will be used to request client certificates in connections to the API.
+	// This CertPool should contain all the CAs that will be used for client certificate verification.
+	ClientCAs *x509.CertPool
+
 	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
 	// It should only be accessed via the *Client() helper methods.
 	// To apply different access control to a system component, create a separate client/config specifically for that component.
@@ -142,9 +155,6 @@ type MasterConfig struct {
 
 	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
 	DeployerOSClientConfig kclient.Config
-
-	// requestsToUsers is a shared auth context map
-	requestsToUsers *authcontext.RequestContextMap
 }
 
 // APIInstaller installs additional API components into this server
@@ -290,10 +300,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientregistry.NewREST(oauthEtcd),
 		"oAuthClientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
 
-		"policies":       policyregistry.NewREST(authorizationEtcd),
-		"policyBindings": policybindingregistry.NewREST(authorizationEtcd),
-		"roles":          roleregistry.NewREST(authorizationEtcd),
-		"roleBindings":   rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"policies":              policyregistry.NewREST(authorizationEtcd),
+		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
+		"roles":                 roleregistry.NewREST(authorizationEtcd),
+		"roleBindings":          rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
+		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
 	}
 
 	admissionControl := admit.NewAlwaysAdmit()
@@ -343,6 +355,7 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 	handler := webhook.NewController(
 		buildclient.NewOSClientBuildConfigClient(bcClient),
 		buildclient.NewOSClientBuildClient(bcClient),
+		bcClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
@@ -425,6 +438,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 				// Populate PeerCertificates in requests, but don't reject connections without certificates
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
+				ClientCAs:  c.ClientCAs,
 			}
 			glog.Fatal(server.ListenAndServeTLS(c.MasterCertFile, c.MasterKeyFile))
 		} else {
@@ -438,10 +452,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 // getRequestsToUsers returns the shared user context
 func (c *MasterConfig) getRequestsToUsers() *authcontext.RequestContextMap {
-	if c.requestsToUsers == nil {
-		c.requestsToUsers = authcontext.NewRequestContextMap()
+	if c.RequestsToUsers == nil {
+		c.RequestsToUsers = authcontext.NewRequestContextMap()
 	}
-	return c.requestsToUsers
+	return c.RequestsToUsers
 }
 
 // ensureComponentAuthorizationRules initializes the global policies
@@ -478,21 +492,9 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	}
 }
 
-// TODO Have MasterConfig take a fully formed Authorizer
 func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
-	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(c.getRequestsToUsers())
-	authz := authorizer.NewAuthorizer(c.MasterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
-
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		attributes, err := authorizationAttributeBuilder.GetAttributes(req)
-		// TODO: this significantly relaxes the authorization guarantees - however the unprotected resources need
-		// to be clearly split out upstream in a way that we can detect.
-		if err == authorizer.ErrNoStandardParts {
-			glog.V(4).Infof("Allowing %q because it is not a recognized form", req.RequestURI)
-			handler.ServeHTTP(w, req)
-			return
-		}
+		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)
@@ -504,7 +506,7 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 			return
 		}
 
-		allowed, reason, err := authz.Authorize(attributes)
+		allowed, reason, err := c.Authorizer.Authorize(attributes)
 		if err != nil {
 			// fail
 			forbidden(err.Error(), w, req)
@@ -546,10 +548,13 @@ func (c *MasterConfig) RunAssetServer() {
 		MasterPrefix:      OpenShiftAPIPrefix,
 		KubernetesAddr:    k8sURL.Host,
 		KubernetesPrefix:  "/api",
-		OAuthAuthorizeURL: OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
 		OAuthRedirectBase: c.AssetPublicAddr,
 		OAuthClientID:     OpenShiftWebConsoleClientID,
+		LogoutURI:         c.LogoutURI,
 	}
+
+	assets.RegisterMimeTypes()
 
 	mux.Handle("/",
 		// Gzip first so that inner handlers can react to the addition of the Vary header
@@ -588,9 +593,6 @@ func (c *MasterConfig) RunAssetServer() {
 			server.TLSConfig = &tls.Config{
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 				MinVersion: tls.VersionTLS10,
-				// Populate PeerCertificates in requests, but don't reject connections without certificates
-				// This allows certificates to be validated by authenticators, while still allowing other auth types
-				ClientAuth: tls.RequestClientCert,
 			}
 			glog.Infof("OpenShift UI listening at https://%s", c.AssetBindAddr)
 			glog.Fatal(server.ListenAndServeTLS(c.AssetCertFile, c.AssetKeyFile))

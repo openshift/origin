@@ -1,21 +1,15 @@
 'use strict';
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q) {
+.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG) {
   function Data(array) {
-    // TODO just need to check for id until v1beta3
     this._data = {};
-    if (array.length > 0 && array[0].id) {
-      this._objectsByAttribute(array, "id", this._data);
-    }
-    else {
-      this._objectsByAttribute(array, "metadata.name", this._data);
-    }
+    this._objectsByAttribute(array, "metadata.name", this._data);
   }
 
   Data.prototype.by = function(attr, secondaryAttr) {
     // TODO store already generated indices
-    if (attr == "id" || attr == "metadata.name") {
+    if (attr == "metadata.name") {
       return this._data;
     }
     var map = {};
@@ -26,13 +20,17 @@ angular.module('openshiftConsole')
   };
 
   Data.prototype.update = function(object, action) {
-    _objectByAttribute(object, object.id ? "id" : "metadata.name", this._data, action);
+    _objectByAttribute(object, "metadata.name", this._data, action);
   };
 
+
+  // actions is whether the object was (ADDED|DELETED|MODIFIED).  ADDED is assumed if actions is not
+  // passed.  If objects is a hash then actions must be a hash with the same keys.  If objects is an array
+  // then actions must be an array of the same order and length.
   Data.prototype._objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
-    for (var i = 0; i < objects.length; i++) {
-      _objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
-    }
+    angular.forEach(objects, function(obj, key) {
+      _objectByAttribute(obj, attr, map, actions ? actions[key] : null, secondaryAttr);
+    });
   };
 
   // Handles attr with dot notation
@@ -51,12 +49,6 @@ angular.module('openshiftConsole')
     // Split the secondary attribute by dot notation if there is one
     var secondaryAttrValue = obj;
     if (secondaryAttr) {
-      // TODO remove this when we don't have to special case id
-      if (secondaryAttr == "metadata.name") {
-        if (obj.id) {
-          secondaryAttr = "id";
-        }
-      }
       var subSecondaryAttrs = secondaryAttr.split(".");
       for (var i = 0; i < subSecondaryAttrs.length; i++) {
         secondaryAttrValue = secondaryAttrValue[subSecondaryAttrs[i]];
@@ -217,7 +209,6 @@ angular.module('openshiftConsole')
     var deferred = $q.defer();
 
     if (!force && this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
-      // TODO can take out the id bit once v1beta3 is there
       var obj = this._data(type, context).by('metadata.name')[name];
       if (obj) {
         $rootScope.$apply(function(){
@@ -572,42 +563,51 @@ angular.module('openshiftConsole')
     }
   };
 
-  // TODO Possibly remove these from DataService
+  // actions is whether the object was (ADDED|DELETED|MODIFIED).  ADDED is assumed if actions is not
+  // passed.  If objects is a hash then actions must be a hash with the same keys.  If objects is an array
+  // then actions must be an array of the same order and length.
   DataService.prototype.objectsByAttribute = function(objects, attr, map, actions, secondaryAttr) {
-    for (var i = 0; i < objects.length; i++) {
-      _objectByAttribute(objects[i], attr, map, actions ? actions[i] : null, secondaryAttr);
-    }
+    angular.forEach(objects, function(obj, key) {
+      _objectByAttribute(obj, attr, map, actions ? actions[key] : null, secondaryAttr);
+    });
   };
 
   var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";
   var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
   var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
   var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
-
-
-  var apicfg = OPENSHIFT_CONFIG.api;
+  var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/ns/{namespace}/{type}{?q*}";
+  var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}{?q*}";
+  var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}/{id}{?q*}";  
 
   // Set the api version the console is currently able to talk to
-  apicfg.openshift.version = "v1beta1";
-  apicfg.k8s.version = "v1beta1";
+  API_CFG.openshift.version = "v1beta1";
+  API_CFG.k8s.version = "v1beta3";
+
+  // Set whether namespace is a path or query parameter
+  API_CFG.openshift.namespacePath = false;
+  API_CFG.k8s.namespacePath = true;
   
   // TODO this is not the ideal, issue open to discuss adding
   // an introspection endpoint that would give us this mapping
   // https://github.com/openshift/origin/issues/230
   var SERVER_TYPE_MAP = {
-    builds:                 apicfg.openshift,
-    deploymentConfigs:      apicfg.openshift,
-    images:                 apicfg.openshift,
-    oAuthAccessTokens:      apicfg.openshift,
-    projects:               apicfg.openshift,
-    users:                  apicfg.openshift,
+    builds:                 API_CFG.openshift,
+    deploymentConfigs:      API_CFG.openshift,
+    images:                 API_CFG.openshift,
+    oAuthAccessTokens:      API_CFG.openshift,
+    projects:               API_CFG.openshift,
+    users:                  API_CFG.openshift,
 
-    pods:                   apicfg.k8s,
-    replicationControllers: apicfg.k8s,
-    services:               apicfg.k8s
+    pods:                   API_CFG.k8s,
+    replicationcontrollers: API_CFG.k8s,
+    services:               API_CFG.k8s,
+    resourcequotas:         API_CFG.k8s,
+    limitranges:            API_CFG.k8s
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
+    var params = params || {};
     var protocol;
     if (isWebsocket) {
       protocol = window.location.protocol === "http:" ? "ws" : "wss";
@@ -616,15 +616,22 @@ angular.module('openshiftConsole')
       protocol = window.location.protocol === "http:" ? "http" : "https"; 
     }
 
+    var namespaceInPath = params.namespace && SERVER_TYPE_MAP[type].namespacePath;
+    var namespace = null;
+    if (namespaceInPath) {
+      namespace = params.namespace;
+      params = angular.copy(params);
+      delete params.namespace;
+    }
     var template;
     if (isWebsocket) {
-      template = URL_WATCH_LIST;
+      template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
     }
     else if (id) {
-      template = URL_GET_OBJECT;
+      template = namespaceInPath ? URL_NAMESPACED_GET_OBJECT : URL_GET_OBJECT;
     }
     else {
-      template = URL_GET_LIST;
+      template = namespaceInPath ? URL_NAMESPACED_GET_LIST : URL_GET_LIST;
     }
 
     // TODO where do we specify what the server URL and api version should be
@@ -635,6 +642,7 @@ angular.module('openshiftConsole')
       apiVersion: SERVER_TYPE_MAP[type].version,
       type: type,
       id: id,
+      namespace: namespace,
       q: params
     });
   };

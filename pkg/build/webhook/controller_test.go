@@ -9,7 +9,14 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
+
+type okImageRepositoryNamespaceGetter struct{}
+
+func (m *okImageRepositoryNamespaceGetter) GetByNamespace(namespace, name string) (*imageapi.ImageRepository, error) {
+	return nil, nil
+}
 
 type okBuildConfigGetter struct{}
 
@@ -60,7 +67,7 @@ func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 }
 
 func TestParseUrlError(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL, "application/json", nil)
@@ -75,7 +82,7 @@ func TestParseUrlError(t *testing.T) {
 }
 
 func TestParseUrlOK(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
 		"pathplugin": &pathPlugin{},
 	}))
 	defer server.Close()
@@ -94,7 +101,7 @@ func TestParseUrlOK(t *testing.T) {
 
 func TestParseUrlLong(t *testing.T) {
 	plugin := &pathPlugin{}
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
 		"pathplugin": plugin,
 	}))
 	defer server.Close()
@@ -115,7 +122,7 @@ func TestParseUrlLong(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorSecret(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/wrongsecret/somePlugin",
@@ -131,7 +138,7 @@ func TestInvokeWebhookErrorSecret(t *testing.T) {
 }
 
 func TestInvokeWebhookMissingPlugin(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/missingplugin",
@@ -148,7 +155,7 @@ func TestInvokeWebhookMissingPlugin(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorBuildConfig(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &errorBuildCreator{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &errorBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
 		"okPlugin": &pathPlugin{},
 	}))
 	defer server.Close()
@@ -167,7 +174,7 @@ func TestInvokeWebhookErrorBuildConfig(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorGetConfig(t *testing.T) {
-	server := httptest.NewServer(NewController(&errorBuildConfigGetter{}, &okBuildCreator{}, nil))
+	server := httptest.NewServer(NewController(&errorBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/errPlugin",
@@ -184,7 +191,7 @@ func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, map[string]Plugin{
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
 		"errPlugin": &errPlugin{},
 	}))
 	defer server.Close()
@@ -247,7 +254,7 @@ func TestInvokeWebhookOk(t *testing.T) {
 				},
 			},
 		},
-
+		&okImageRepositoryNamespaceGetter{},
 		map[string]Plugin{
 			"okPlugin": &pathPlugin{},
 		}))

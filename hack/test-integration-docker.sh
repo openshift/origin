@@ -22,4 +22,4 @@ trap cleanup EXIT SIGINT
 echo
 echo Docker integration test cases ...
 echo
-KUBE_RACE="${KUBE_RACE:--race}" KUBE_COVER=" " "${OS_ROOT}/hack/test-go.sh" test/integration -tags 'integration docker' "${@:1}"
+KUBE_RACE="${KUBE_RACE:-}" KUBE_COVER=" " "${OS_ROOT}/hack/test-go.sh" test/integration -tags 'integration docker' "${@:1}"

@@ -3,6 +3,7 @@ package oauthpassword
 import (
 	"fmt"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -18,7 +19,7 @@ func New(client *osincli.Client, identityMapper authapi.UserIdentityMapper) auth
 	return &Authenticator{identityMapper, client}
 }
 
-func (a *Authenticator) AuthenticatePassword(username, password string) (authapi.UserInfo, bool, error) {
+func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
 	areq := a.client.NewAccessRequest(osincli.PASSWORD, nil)
 	areq.CustomParameters["username"] = username
 	areq.CustomParameters["password"] = password

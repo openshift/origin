@@ -19,7 +19,7 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    watches.push(DataService.watch("replicationControllers", $scope, function(deployments) {
+    watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments) {
       $scope.unfilteredDeployments = deployments.by("metadata.name");
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);

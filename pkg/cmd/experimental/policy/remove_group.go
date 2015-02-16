@@ -3,10 +3,9 @@ package policy
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -69,22 +68,24 @@ func (o *removeGroupOptions) run() error {
 		return err
 	}
 
-	roleBinding, _, err := getExistingRoleBindingForRole(o.roleNamespace, o.roleName, namespace, client)
+	roleBindings, _, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, namespace, client)
 	if err != nil {
 		return err
 	}
-	if roleBinding == nil {
+	if len(roleBindings) == 0 {
 		return fmt.Errorf("unable to locate RoleBinding for %v::%v in %v", o.roleNamespace, o.roleName, namespace)
 	}
 
-	groups := util.StringSet{}
-	groups.Insert(roleBinding.GroupNames...)
-	groups.Delete(o.groupNames...)
-	roleBinding.GroupNames = groups.List()
+	for _, roleBinding := range roleBindings {
+		groups := util.StringSet{}
+		groups.Insert(roleBinding.GroupNames...)
+		groups.Delete(o.groupNames...)
+		roleBinding.GroupNames = groups.List()
 
-	_, err = client.RoleBindings(namespace).Update(roleBinding)
-	if err != nil {
-		return err
+		_, err = client.RoleBindings(namespace).Update(roleBinding)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

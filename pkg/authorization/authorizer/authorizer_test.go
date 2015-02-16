@@ -1,12 +1,14 @@
 package authorizer
 
 import (
+	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 )
@@ -22,22 +24,119 @@ type authorizeTest struct {
 	namespacedPolicyBinding     []authorizationapi.PolicyBinding
 	policyBindingRetrievalError error
 
-	attributes *openshiftAuthorizationAttributes
+	attributes *DefaultAuthorizationAttributes
 
 	expectedAllowed bool
 	expectedReason  string
 	expectedError   string
 }
 
+func TestResourceNameDeny(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "just-a-user",
+			},
+			Verb:         "get",
+			Resource:     "users",
+			ResourceName: "just-a-user",
+			Namespace:    testMasterNamespace,
+		},
+		expectedAllowed: false,
+		expectedReason:  "denied by default",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
+func TestResourceNameAllow(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "just-a-user",
+			},
+			Verb:         "get",
+			Resource:     "users",
+			ResourceName: "~",
+			Namespace:    testMasterNamespace,
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in master",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
+func TestDeniedWithError(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "Anna",
+			},
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
+		},
+		expectedAllowed: false,
+		expectedError:   "my special error",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.globalPolicyBinding[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "missing",
+			Namespace: testMasterNamespace,
+		},
+		RoleRef: kapi.ObjectReference{
+			Name:      "not-a-real-binding",
+			Namespace: testMasterNamespace,
+		},
+		UserNames: []string{"Anna"},
+	}
+	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
+	test.policyRetrievalError = errors.New("my special error")
+
+	test.test(t)
+}
+
+func TestAllowedWithMissingBinding(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "Anna",
+			},
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in adze",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.globalPolicyBinding[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "missing",
+			Namespace: testMasterNamespace,
+		},
+		RoleRef: kapi.ObjectReference{
+			Name:      "not-a-real-binding",
+			Namespace: testMasterNamespace,
+		},
+		UserNames: []string{"Anna"},
+	}
+	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
+
+	test.test(t)
+}
+
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "ClusterAdmin",
 			},
-			verb:         "update",
-			resourceKind: "deploymentConfigs",
-			namespace:    testMasterNamespace,
+			Verb:      "update",
+			Resource:  "deploymentConfigs",
+			Namespace: testMasterNamespace,
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in master",
@@ -48,66 +147,30 @@ func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "SomeYahoo",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    testMasterNamespace,
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: testMasterNamespace,
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
 	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.test(t)
-}
-
-func TestNegationKinds(t *testing.T) {
-	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
-				Name: "Valerie",
-			},
-			verb:         "get",
-			resourceKind: "policyBindings",
-			namespace:    "adze",
-		},
-		expectedAllowed: false,
-		expectedReason:  "denied by default",
-	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
-	test.test(t)
-}
-
-func TestNegationVerbs(t *testing.T) {
-	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
-				Name: "Ellen",
-			},
-			verb:         "update",
-			resourceKind: "roleBindings",
-			namespace:    "adze",
-		},
-		expectedAllowed: false,
-		expectedReason:  "denied by default",
-	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
 	test.test(t)
 }
 
 func TestProjectAdminEditPolicy(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Anna",
 			},
-			verb:         "update",
-			resourceKind: "roles",
-			namespace:    "adze",
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -119,13 +182,13 @@ func TestProjectAdminEditPolicy(t *testing.T) {
 
 func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "ClusterAdmin",
 			},
-			verb:         "update",
-			resourceKind: "roles",
-			namespace:    "adze",
+			Verb:      "update",
+			Resource:  "roles",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in master",
@@ -135,51 +198,15 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test.test(t)
 }
 
-func TestAntiAdminDenyLocalPolicy(t *testing.T) {
-	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
-				Name: "PowerlessUser",
-			},
-			verb:         "update",
-			resourceKind: "policies",
-			namespace:    "adze",
-		},
-		expectedAllowed: false,
-		expectedReason:  "denied by rule in adze",
-	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
-	test.test(t)
-}
-
-func TestDeniesOutrankAllows(t *testing.T) {
-	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
-				Name: "TeasedAdmin",
-			},
-			verb:         "update",
-			resourceKind: "policies",
-			namespace:    "adze",
-		},
-		expectedAllowed: false,
-		expectedReason:  "denied by rule in adze",
-	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
-	test.test(t)
-}
-
-func TestResourceKindRestrictionsWork(t *testing.T) {
+func TestResourceRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:         "get",
-			resourceKind: "buildConfigs",
-			namespace:    "adze",
+			Verb:      "get",
+			Resource:  "buildConfigs",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -189,13 +216,13 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:         "get",
-			resourceKind: "pods",
-			namespace:    "adze",
+			Verb:      "get",
+			Resource:  "pods",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -205,15 +232,49 @@ func TestResourceKindRestrictionsWork(t *testing.T) {
 	test2.test(t)
 }
 
-func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
-	test := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
+	test1 := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Rachel",
 			},
-			verb:         "get",
-			resourceKind: "buildConfigs",
-			namespace:    "backsaw",
+			Verb:      "get",
+			Resource:  "BUILDCONFIGS",
+			Namespace: "adze",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in adze",
+	}
+	test1.globalPolicy, test1.globalPolicyBinding = newDefaultGlobalPolicy()
+	test1.namespacedPolicy, test1.namespacedPolicyBinding = newAdzePolicy()
+	test1.test(t)
+
+	test2 := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "Rachel",
+			},
+			Verb:      "get",
+			Resource:  "buildconfigs",
+			Namespace: "adze",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in adze",
+	}
+	test2.globalPolicy, test2.globalPolicyBinding = newDefaultGlobalPolicy()
+	test2.namespacedPolicy, test2.namespacedPolicyBinding = newAdzePolicy()
+	test2.test(t)
+}
+
+func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "Rachel",
+			},
+			Verb:      "get",
+			Resource:  "buildConfigs",
+			Namespace: "backsaw",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -225,13 +286,13 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 
 func TestVerbRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Valerie",
 			},
-			verb:         "get",
-			resourceKind: "buildConfigs",
-			namespace:    "adze",
+			Verb:      "get",
+			Resource:  "buildConfigs",
+			Namespace: "adze",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -241,13 +302,13 @@ func TestVerbRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		attributes: &openshiftAuthorizationAttributes{
-			user: &authenticationapi.DefaultUserInfo{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
 				Name: "Valerie",
 			},
-			verb:         "create",
-			resourceKind: "buildConfigs",
-			namespace:    "adze",
+			Verb:      "create",
+			Resource:  "buildConfigs",
+			Namespace: "adze",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
@@ -293,6 +354,11 @@ func matchString(expected, actual string, field string, t *testing.T) {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
 	}
 }
+func matchStringSlice(expected, actual []string, field string, t *testing.T) {
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
+	}
+}
 func containsString(expected, actual string, field string, t *testing.T) {
 	if len(expected) == 0 && len(actual) != 0 {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
@@ -320,15 +386,15 @@ func matchError(expected string, actual error, field string, t *testing.T) {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
 		return
 	}
-	if strings.Contains(actual.Error(), expected) {
+	if !strings.Contains(actual.Error(), expected) {
 		t.Errorf("%v: Expected %v, got %v", field, expected, actual)
 	}
 }
 
 func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBinding) {
-	return append(make([]authorizationapi.Policy, 0, 0), *GetBootstrapPolicy(testMasterNamespace)),
-		append(make([]authorizationapi.PolicyBinding, 0, 0),
-			authorizationapi.PolicyBinding{
+	return []authorizationapi.Policy{*GetBootstrapPolicy(testMasterNamespace)},
+		[]authorizationapi.PolicyBinding{
+			{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      testMasterNamespace,
 					Namespace: testMasterNamespace,
@@ -343,12 +409,23 @@ func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.Pol
 							Name:      "cluster-admin",
 							Namespace: testMasterNamespace,
 						},
-						// until we get components authenticating, mssing users will be given all rights.  Yay, security!
-						UserNames: []string{"ClusterAdmin"},
+						UserNames:  []string{"ClusterAdmin"},
+						GroupNames: []string{"RootUsers"},
+					},
+					"user-only": {
+						ObjectMeta: kapi.ObjectMeta{
+							Name:      "user-only",
+							Namespace: testMasterNamespace,
+						},
+						RoleRef: kapi.ObjectReference{
+							Name:      "basic-user",
+							Namespace: testMasterNamespace,
+						},
+						UserNames: []string{"just-a-user"},
 					},
 				},
 			},
-		)
+		}
 }
 
 func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBinding) {
@@ -366,20 +443,8 @@ func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBindin
 						},
 						Rules: append(make([]authorizationapi.PolicyRule, 0),
 							authorizationapi.PolicyRule{
-								Verbs:         []string{"watch", "list", "get"},
-								ResourceKinds: []string{"buildConfigs"},
-							}),
-					},
-					"anti-admin": {
-						ObjectMeta: kapi.ObjectMeta{
-							Name:      "anti-admin",
-							Namespace: testMasterNamespace,
-						},
-						Rules: append(make([]authorizationapi.PolicyRule, 0),
-							authorizationapi.PolicyRule{
-								Deny:          true,
-								Verbs:         []string{authorizationapi.VerbAll},
-								ResourceKinds: []string{authorizationapi.ResourceAll},
+								Verbs:     []string{"watch", "list", "get"},
+								Resources: []string{"buildConfigs"},
 							}),
 					},
 				},
@@ -400,7 +465,7 @@ func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBindin
 							Name:      "admin",
 							Namespace: testMasterNamespace,
 						},
-						UserNames: []string{"Anna", "TeasedAdmin"},
+						UserNames: []string{"Anna"},
 					},
 					"viewers": {
 						ObjectMeta: kapi.ObjectMeta{
@@ -432,17 +497,6 @@ func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBindin
 					Namespace: "adze",
 				},
 				RoleBindings: map[string]authorizationapi.RoleBinding{
-					"anti-admins": {
-						ObjectMeta: kapi.ObjectMeta{
-							Name:      "anti-admins",
-							Namespace: "adze",
-						},
-						RoleRef: kapi.ObjectReference{
-							Name:      "anti-admin",
-							Namespace: "adze",
-						},
-						UserNames: []string{"ClusterAdmin", "PowerlessUser", "TeasedAdmin"},
-					},
 					"restrictedViewers": {
 						ObjectMeta: kapi.ObjectMeta{
 							Name:      "restrictedViewers",
