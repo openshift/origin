@@ -13,8 +13,8 @@ func ValidateProject(project *api.Project) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
 	if len(project.Name) == 0 {
 		result = append(result, errors.NewFieldRequired("Name", project.Name))
-	} else if !util.IsDNS952Label(project.Name) {
-		result = append(result, errors.NewFieldInvalid("Name", project.Name, "does not conform to lower-cased dns952"))
+	} else if !util.IsDNSSubdomain(project.Name) {
+		result = append(result, errors.NewFieldInvalid("Name", project.Name, "does not conform to dns subdomain"))
 	}
 	if len(project.Namespace) > 0 {
 		result = append(result, errors.NewFieldInvalid("Namespace", project.Namespace, "must be the empty-string"))
