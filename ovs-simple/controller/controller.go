@@ -294,7 +294,7 @@ func (oc *OvsController) DelOFRules(minion string) {
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
 		log.Infof("Output of deleting local ip rules %s (%v)", o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
-		log.Infof("Output of deleting local ip rules %s (%v)", o, e)
+		log.Infof("Output of deleting local arp rules %s (%v)", o, e)
 	} else {
 		iprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,ip,in_port=9", cookie)
 		arprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,arp,in_port=9", cookie)
