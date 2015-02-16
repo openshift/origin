@@ -382,6 +382,10 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		return nil, err
 	}
 
+	if (requestInfo.Resource == "projects") && (len(requestInfo.Name) > 0) {
+		requestInfo.Namespace = requestInfo.Name
+	}
+
 	userInterface, ok := a.requestsToUsers.Get(req)
 	if !ok {
 		return nil, errors.New("could not get user")
@@ -691,7 +695,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 			},
 			"system:deployer-binding": {
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      "system:deployer",
+					Name:      "system:deployer-binding",
 					Namespace: masterNamespace,
 				},
 				RoleRef: kapi.ObjectReference{

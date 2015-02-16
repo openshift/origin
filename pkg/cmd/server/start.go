@@ -30,7 +30,6 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -49,6 +48,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	pkgutil "github.com/openshift/origin/pkg/util"
@@ -184,25 +184,11 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
-	cfg.ClientConfig = defaultClientConfig(flag)
+	cfg.ClientConfig = cmdutil.DefaultClientConfig(flag)
 
 	cfg.Docker.InstallFlags(flag)
 
 	return cmd
-}
-
-// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
-// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
-	clientcmd.DefaultCluster.Server = "https://localhost:8443"
-	loadingRules := clientcmd.NewClientConfigLoadingRules()
-	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for connecting to the master.")
-
-	overrides := &clientcmd.ConfigOverrides{}
-	//clientcmd.BindOverrideFlags(overrides, flags, clientcmd.RecommendedConfigOverrideFlags(""))
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-	return clientConfig
 }
 
 // run launches the appropriate startup modes or returns an error.

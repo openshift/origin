@@ -2,17 +2,16 @@ package policy
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 func NewCommandPolicy(name string) *cobra.Command {
@@ -26,7 +25,7 @@ func NewCommandPolicy(name string) *cobra.Command {
 
 	// Override global default to https and port 8443
 	clientcmd.DefaultCluster.Server = "https://localhost:8443"
-	clientConfig := defaultClientConfig(cmds.PersistentFlags())
+	clientConfig := cmdutil.DefaultClientConfig(cmds.PersistentFlags())
 
 	cmds.AddCommand(NewCmdAddUser(clientConfig))
 	cmds.AddCommand(NewCmdRemoveUser(clientConfig))
@@ -49,19 +48,6 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
 	}
 	return f.Value.String()
-}
-
-// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
-func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewClientConfigLoadingRules()
-	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
-
-	overrides := &clientcmd.ConfigOverrides{}
-	clientcmd.BindOverrideFlags(overrides, flags, clientcmd.RecommendedConfigOverrideFlags(""))
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-
-	return clientConfig
 }
 
 func getUniqueName(basename string, existingNames *util.StringSet) string {
