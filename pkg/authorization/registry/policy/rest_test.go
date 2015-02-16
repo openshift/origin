@@ -31,22 +31,17 @@ func TestGetError(t *testing.T) {
 }
 
 func TestGetValid(t *testing.T) {
-	registry := test.PolicyRegistry{
-		Policies: append(make([]authorizationapi.Policy, 0),
-			authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-			}),
-	}
-	storage := REST{
-		registry: &registry,
-	}
+	testPolicy := authorizationapi.Policy{ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"}}
+	registry := test.NewPolicyRegistry([]authorizationapi.Policy{testPolicy}, nil)
+	storage := REST{registry: registry}
+
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	policy, err := storage.Get(ctx, authorizationapi.PolicyName)
 	if err != nil {
 		t.Errorf("got unexpected error: %v", err)
 		return
 	}
-	if reflect.DeepEqual(policy, registry.Policies[0]) {
+	if reflect.DeepEqual(policy, testPolicy) {
 		t.Errorf("got unexpected policy: %v", policy)
 		return
 	}
@@ -56,9 +51,8 @@ func TestListError(t *testing.T) {
 	registry := test.PolicyRegistry{
 		Err: errors.New("Sample Error"),
 	}
-	storage := REST{
-		registry: &registry,
-	}
+	storage := REST{registry: &registry}
+
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	_, err := storage.List(ctx, labels.Everything(), labels.Everything())
 	if err == nil {
@@ -72,12 +66,9 @@ func TestListError(t *testing.T) {
 }
 
 func TestListEmpty(t *testing.T) {
-	registry := test.PolicyRegistry{
-		Policies: make([]authorizationapi.Policy, 0),
-	}
-	storage := REST{
-		registry: &registry,
-	}
+	registry := test.NewPolicyRegistry([]authorizationapi.Policy{}, nil)
+	storage := REST{registry: registry}
+
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	policies, err := storage.List(ctx, labels.Everything(), labels.Everything())
 	if err != registry.Err {
@@ -96,15 +87,10 @@ func TestListEmpty(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	registry := test.PolicyRegistry{
-		Policies: append(make([]authorizationapi.Policy, 0),
-			authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-			}),
-	}
-	storage := REST{
-		registry: &registry,
-	}
+	testPolicy := authorizationapi.Policy{ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"}}
+	registry := test.NewPolicyRegistry([]authorizationapi.Policy{testPolicy}, nil)
+	storage := REST{registry: registry}
+
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	policies, err := storage.List(ctx, labels.Everything(), labels.Everything())
 	if err != registry.Err {
@@ -138,13 +124,12 @@ func TestDeleteError(t *testing.T) {
 }
 
 func TestDeleteValid(t *testing.T) {
-	registry := test.PolicyRegistry{}
-	storage := REST{
-		registry: &registry,
-	}
+	testPolicy := authorizationapi.Policy{ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"}}
+	registry := test.NewPolicyRegistry([]authorizationapi.Policy{testPolicy}, nil)
+	storage := REST{registry: registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	obj, err := storage.Delete(ctx, "foo")
+	obj, err := storage.Delete(ctx, authorizationapi.PolicyName)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -158,7 +143,7 @@ func TestDeleteValid(t *testing.T) {
 		t.Errorf("Got back non-status result: %v", r)
 	}
 
-	if registry.DeletedPolicyName != "foo" {
-		t.Error("Unexpected policy deleted: %s", registry.DeletedPolicyName)
+	if policy, _ := registry.GetPolicy(ctx, authorizationapi.PolicyName); policy != nil {
+		t.Error("Unexpected policy found: %v", policy)
 	}
 }

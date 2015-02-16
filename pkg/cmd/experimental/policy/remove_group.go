@@ -3,7 +3,6 @@ package policy
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -17,7 +16,7 @@ type removeGroupOptions struct {
 	bindingNamespace string
 	client           client.Interface
 
-	groupNames []string
+	groups []string
 }
 
 func NewCmdRemoveGroup(f *clientcmd.Factory) *cobra.Command {
@@ -58,7 +57,7 @@ func (o *removeGroupOptions) complete(cmd *cobra.Command) bool {
 	}
 
 	o.roleName = args[0]
-	o.groupNames = args[1:]
+	o.groups = args[1:]
 	return true
 }
 
@@ -72,10 +71,7 @@ func (o *removeGroupOptions) run() error {
 	}
 
 	for _, roleBinding := range roleBindings {
-		groups := util.StringSet{}
-		groups.Insert(roleBinding.GroupNames...)
-		groups.Delete(o.groupNames...)
-		roleBinding.GroupNames = groups.List()
+		roleBinding.Groups.Delete(o.groups...)
 
 		_, err = o.client.RoleBindings(o.bindingNamespace).Update(roleBinding)
 		if err != nil {

@@ -1,7 +1,6 @@
 package authorizer
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"path"
@@ -10,18 +9,16 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapiserver "github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
-	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 type Authorizer interface {
-	Authorize(a AuthorizationAttributes) (allowed bool, reason string, err error)
-	GetAllowedSubjects(attributes AuthorizationAttributes) ([]string, []string, error)
+	Authorize(ctx kapi.Context, a AuthorizationAttributes) (allowed bool, reason string, err error)
+	GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) ([]string, []string, error)
 }
 
 type AuthorizationAttributeBuilder interface {
@@ -29,15 +26,9 @@ type AuthorizationAttributeBuilder interface {
 }
 
 type AuthorizationAttributes interface {
-	// GetUserInfo returns the user requesting the action
-	GetUserInfo() user.Info
-	// GetVerb returns the verb associated with the action.  For resource requests, this verb is the logical kube verb.  For non-resource requests it is the http method tolowered.
 	GetVerb() string
 	// GetResource returns the resource type.  If IsNonResourceURL() is true, then GetResource() is "".
 	GetResource() string
-	// GetNamespace returns the namespace of a resource request.  If IsNonResourceURL() is true, then GetNamespace() is "".
-	GetNamespace() string
-	// GetResourceName returns the name of the resource being acted upon.  Not all resource actions have one (list as a for instance).  If IsNonResourceURL() is true, then GetResourceName() is "".
 	GetResourceName() string
 	// GetRequestAttributes is of type interface{} because different verbs and different Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements.
 	GetRequestAttributes() interface{}
@@ -49,20 +40,17 @@ type AuthorizationAttributes interface {
 
 type openshiftAuthorizer struct {
 	masterAuthorizationNamespace string
-	policyRegistry               policyregistry.Registry
-	policyBindingRegistry        policybindingregistry.Registry
+	ruleResolver                 rulevalidation.AuthorizationRuleResolver
 }
 
-func NewAuthorizer(masterAuthorizationNamespace string, policyRuleBindingRegistry policyregistry.Registry, policyBindingRegistry policybindingregistry.Registry) Authorizer {
-	return &openshiftAuthorizer{masterAuthorizationNamespace, policyRuleBindingRegistry, policyBindingRegistry}
+func NewAuthorizer(masterAuthorizationNamespace string, ruleResolver rulevalidation.AuthorizationRuleResolver) Authorizer {
+	return &openshiftAuthorizer{masterAuthorizationNamespace, ruleResolver}
 }
 
 type DefaultAuthorizationAttributes struct {
-	User              user.Info
 	Verb              string
 	Resource          string
 	ResourceName      string
-	Namespace         string
 	RequestAttributes interface{}
 	NonResourceURL    bool
 	URL               string
@@ -77,13 +65,13 @@ func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, i
 	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoResolver}
 }
 
-func doesApplyToUser(ruleUsers, ruleGroups []string, user user.Info) bool {
-	if contains(ruleUsers, user.GetName()) {
+func doesApplyToUser(ruleUsers, ruleGroups util.StringSet, user user.Info) bool {
+	if ruleUsers.Has(user.GetName()) {
 		return true
 	}
 
 	for _, currGroup := range user.GetGroups() {
-		if contains(ruleGroups, currGroup) {
+		if ruleGroups.Has(currGroup) {
 			return true
 		}
 	}
@@ -98,94 +86,10 @@ func contains(list []string, token string) bool {
 	}
 	return false
 }
-
-// getPolicy provides a point for easy caching
-func (a *openshiftAuthorizer) getPolicy(namespace string) (*authorizationapi.Policy, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
-	policy, err := a.policyRegistry.GetPolicy(ctx, authorizationapi.PolicyName)
-	if err != nil && !strings.Contains(err.Error(), "not found") {
-		return nil, err
-	}
-
-	return policy, nil
-}
-
-// getPolicyBindings provides a point for easy caching
-func (a *openshiftAuthorizer) getPolicyBindings(namespace string) ([]authorizationapi.PolicyBinding, error) {
-	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
-	policyBindingList, err := a.policyBindingRegistry.ListPolicyBindings(ctx, klabels.Everything(), klabels.Everything())
-	if err != nil {
-		return nil, err
-	}
-
-	return policyBindingList.Items, nil
-}
-
-// getRoleBindings provides a point for easy caching
-func (a *openshiftAuthorizer) getRoleBindings(namespace string) ([]authorizationapi.RoleBinding, error) {
-	policyBindings, err := a.getPolicyBindings(namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make([]authorizationapi.RoleBinding, 0, len(policyBindings))
-	for _, policyBinding := range policyBindings {
-		for _, value := range policyBinding.RoleBindings {
-			ret = append(ret, value)
-		}
-	}
-
-	return ret, nil
-}
-
-func (a *openshiftAuthorizer) getRole(roleBinding authorizationapi.RoleBinding) (*authorizationapi.Role, error) {
-	roleNamespace := roleBinding.RoleRef.Namespace
-	roleName := roleBinding.RoleRef.Name
-
-	rolePolicy, err := a.getPolicy(roleNamespace)
-	if err != nil {
-		return nil, err
-	}
-
-	role, exists := rolePolicy.Roles[roleName]
-	if !exists {
-		return nil, fmt.Errorf("role %#v not found", roleBinding.RoleRef)
-	}
-
-	return &role, nil
-}
-
-// getEffectivePolicyRules returns the list of rules that apply to a given user in a given namespace and error.  If an error is returned, the slice of
-// PolicyRules may not be complete, but it contains all retrievable rules.  This is done because policy rules are purely additive and policy determinations
-// can be made on the basis of those rules that are found.
-func (a *openshiftAuthorizer) getEffectivePolicyRules(namespace string, user user.Info) ([]authorizationapi.PolicyRule, error) {
-	roleBindings, err := a.getRoleBindings(namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	errs := []error{}
-	effectiveRules := make([]authorizationapi.PolicyRule, 0, len(roleBindings))
-	for _, roleBinding := range roleBindings {
-		role, err := a.getRole(roleBinding)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		for _, curr := range role.Rules {
-			if doesApplyToUser(roleBinding.UserNames, roleBinding.GroupNames, user) {
-				effectiveRules = append(effectiveRules, curr)
-			}
-		}
-	}
-
-	return effectiveRules, kerrors.NewAggregate(errs)
-}
-func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace string, passedAttributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
 	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
 
-	roleBindings, err := a.getRoleBindings(namespace)
+	roleBindings, err := a.ruleResolver.GetRoleBindings(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -193,7 +97,7 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace 
 	users := util.StringSet{}
 	groups := util.StringSet{}
 	for _, roleBinding := range roleBindings {
-		role, err := a.getRole(roleBinding)
+		role, err := a.ruleResolver.GetRole(roleBinding)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -205,8 +109,8 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace 
 			}
 
 			if matches {
-				users.Insert(roleBinding.UserNames...)
-				groups.Insert(roleBinding.GroupNames...)
+				users.Insert(roleBinding.Users.List()...)
+				groups.Insert(roleBinding.Groups.List()...)
 			}
 		}
 	}
@@ -214,12 +118,13 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(namespace 
 	return users, groups, nil
 }
 
-func (a *openshiftAuthorizer) GetAllowedSubjects(attributes AuthorizationAttributes) ([]string, []string, error) {
-	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(a.masterAuthorizationNamespace, attributes)
+func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) ([]string, []string, error) {
+	masterContext := kapi.WithNamespace(ctx, a.masterAuthorizationNamespace)
+	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(masterContext, attributes)
 	if err != nil {
 		return nil, nil, err
 	}
-	localUsers, localGroups, err := a.getAllowedSubjectsFromNamespaceBindings(attributes.GetNamespace(), attributes)
+	localUsers, localGroups, err := a.getAllowedSubjectsFromNamespaceBindings(ctx, attributes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -235,7 +140,7 @@ func (a *openshiftAuthorizer) GetAllowedSubjects(attributes AuthorizationAttribu
 	return users.List(), groups.List(), nil
 }
 
-func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes) (bool, string, error) {
+func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
 	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	// keep track of errors in case we are unable to authorize the action.
@@ -243,7 +148,8 @@ func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes
 	// This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
 	errs := []error{}
 
-	globalAllowed, globalReason, err := a.authorizeWithNamespaceRules(a.masterAuthorizationNamespace, attributes)
+	masterContext := kapi.WithNamespace(ctx, a.masterAuthorizationNamespace)
+	globalAllowed, globalReason, err := a.authorizeWithNamespaceRules(masterContext, attributes)
 	if globalAllowed {
 		return true, globalReason, nil
 	}
@@ -251,8 +157,9 @@ func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes
 		errs = append(errs, err)
 	}
 
-	if len(attributes.GetNamespace()) != 0 {
-		namespaceAllowed, namespaceReason, err := a.authorizeWithNamespaceRules(attributes.GetNamespace(), attributes)
+	namespace, _ := kapi.NamespaceFrom(ctx)
+	if len(namespace) != 0 {
+		namespaceAllowed, namespaceReason, err := a.authorizeWithNamespaceRules(ctx, attributes)
 		if namespaceAllowed {
 			return true, namespaceReason, nil
 		}
@@ -271,10 +178,10 @@ func (a *openshiftAuthorizer) Authorize(passedAttributes AuthorizationAttributes
 // authorizeWithNamespaceRules returns isAllowed, reason, and error.  If an error is returned, isAllowed and reason are still valid.  This seems strange
 // but errors are not always fatal to the authorization process.  It is entirely possible to get an error and be able to continue determine authorization
 // status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
-func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, passedAttributes AuthorizationAttributes) (bool, string, error) {
+func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
 	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
 
-	allRules, ruleRetrievalError := a.getEffectivePolicyRules(namespace, attributes.GetUserInfo())
+	allRules, ruleRetrievalError := a.ruleResolver.GetEffectivePolicyRules(ctx)
 
 	for _, rule := range allRules {
 		matches, err := attributes.RuleMatches(rule)
@@ -282,7 +189,7 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(namespace string, pass
 			return false, "", err
 		}
 		if matches {
-			return true, fmt.Sprintf("allowed by rule in %v: %#v", namespace, rule), nil
+			return true, fmt.Sprintf("allowed by rule in %v: %#v", kapi.NamespaceValue(ctx), rule), nil
 		}
 	}
 
@@ -295,12 +202,10 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 	attributes, ok := passedAttributes.(*DefaultAuthorizationAttributes)
 	if !ok {
 		attributes = &DefaultAuthorizationAttributes{
-			Namespace:         passedAttributes.GetNamespace(),
 			Verb:              passedAttributes.GetVerb(),
 			RequestAttributes: passedAttributes.GetRequestAttributes(),
 			Resource:          passedAttributes.GetResource(),
 			ResourceName:      passedAttributes.GetResourceName(),
-			User:              passedAttributes.GetUserInfo(),
 			NonResourceURL:    passedAttributes.IsNonResourceURL(),
 			URL:               passedAttributes.GetURL(),
 		}
@@ -312,7 +217,7 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.PolicyRule) (bool, error) {
 	if a.IsNonResourceURL() {
 		if a.nonResourceMatches(rule) {
-			if a.verbMatches(util.NewStringSet(rule.Verbs...)) {
+			if a.verbMatches(rule.Verbs) {
 				return true, nil
 			}
 		}
@@ -320,8 +225,8 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 		return false, nil
 	}
 
-	if a.verbMatches(util.NewStringSet(rule.Verbs...)) {
-		allowedResourceTypes := resolveResources(rule)
+	if a.verbMatches(rule.Verbs) {
+		allowedResourceTypes := authorizationapi.ExpandResources(rule.Resources)
 
 		if a.resourceMatches(allowedResourceTypes) {
 			if a.nameMatches(rule.ResourceNames) {
@@ -331,31 +236,6 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 	}
 
 	return false, nil
-}
-
-func resolveResources(rule authorizationapi.PolicyRule) util.StringSet {
-	ret := util.StringSet{}
-	toVisit := rule.Resources
-	visited := util.StringSet{}
-
-	for i := 0; i < len(toVisit); i++ {
-		currResource := toVisit[i]
-		if visited.Has(currResource) {
-			continue
-		}
-		visited.Insert(currResource)
-
-		if strings.Index(currResource, authorizationapi.ResourceGroupPrefix+":") != 0 {
-			ret.Insert(strings.ToLower(currResource))
-			continue
-		}
-
-		if resourceTypes, exists := authorizationapi.GroupsToResources[currResource]; exists {
-			toVisit = append(toVisit, resourceTypes...)
-		}
-	}
-
-	return ret
 }
 
 func (a DefaultAuthorizationAttributes) verbMatches(verbs util.StringSet) bool {
@@ -378,9 +258,6 @@ func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames util.St
 	return allowedResourceNames.Has(a.GetResourceName())
 }
 
-func (a DefaultAuthorizationAttributes) GetUserInfo() user.Info {
-	return a.User
-}
 func (a DefaultAuthorizationAttributes) GetVerb() string {
 	return a.Verb
 }
@@ -421,9 +298,6 @@ func (a DefaultAuthorizationAttributes) GetResourceName() string {
 	return a.ResourceName
 }
 
-func (a DefaultAuthorizationAttributes) GetNamespace() string {
-	return a.Namespace
-}
 func (a DefaultAuthorizationAttributes) GetRequestAttributes() interface{} {
 	return a.RequestAttributes
 }
@@ -437,15 +311,6 @@ func (a DefaultAuthorizationAttributes) GetURL() string {
 }
 
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
-	ctx, ok := a.contextMapper.Get(req)
-	if !ok {
-		return nil, errors.New("could not get request context")
-	}
-	userInfo, ok := kapi.UserFrom(ctx)
-	if !ok {
-		return nil, errors.New("could not get user")
-	}
-
 	// any url that starts with an API prefix and is more than one step long is considered to be a resource URL.
 	// That means that /api is non-resource, /api/v1beta1 is resource, /healthz is non-resource, and /swagger/anything is non-resource
 	urlSegments := splitPath(req.URL.Path)
@@ -453,7 +318,6 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 
 	if !isResourceURL {
 		return DefaultAuthorizationAttributes{
-			User:           userInfo,
 			Verb:           strings.ToLower(req.Method),
 			NonResourceURL: true,
 			URL:            req.URL.Path,
@@ -472,11 +336,9 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 	}
 
 	return DefaultAuthorizationAttributes{
-		User:              userInfo,
 		Verb:              requestInfo.Verb,
 		Resource:          requestInfo.Resource,
 		ResourceName:      requestInfo.Name,
-		Namespace:         requestInfo.Namespace,
 		RequestAttributes: nil,
 		NonResourceURL:    false,
 		URL:               req.URL.Path,
@@ -499,11 +361,11 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     []string{authorizationapi.VerbAll},
-						Resources: []string{authorizationapi.ResourceAll},
+						Verbs:     util.NewStringSet(authorizationapi.VerbAll),
+						Resources: util.NewStringSet(authorizationapi.ResourceAll),
 					},
 					{
-						Verbs:           []string{authorizationapi.VerbAll},
+						Verbs:           util.NewStringSet(authorizationapi.VerbAll),
 						NonResourceURLs: util.NewStringSet(authorizationapi.NonResourceAll),
 					},
 				},
@@ -515,12 +377,12 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
-						Resources: []string{authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName},
+						Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
+						Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName),
 					},
 					{
-						Verbs:     []string{"get", "list", "watch"},
-						Resources: []string{authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName},
+						Verbs:     util.NewStringSet("get", "list", "watch"),
+						Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName),
 					},
 				},
 			},
@@ -531,12 +393,12 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
-						Resources: []string{authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName},
+						Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
+						Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName),
 					},
 					{
-						Verbs:     []string{"get", "list", "watch"},
-						Resources: []string{authorizationapi.KubeAllGroupName},
+						Verbs:     util.NewStringSet("get", "list", "watch"),
+						Resources: util.NewStringSet(authorizationapi.KubeAllGroupName),
 					},
 				},
 			},
@@ -547,8 +409,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     []string{"get", "list", "watch"},
-						Resources: []string{authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName},
+						Verbs:     util.NewStringSet("get", "list", "watch"),
+						Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName),
 					},
 				},
 			},
@@ -558,8 +420,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 					Namespace: masterNamespace,
 				},
 				Rules: []authorizationapi.PolicyRule{
-					{Verbs: []string{"get"}, Resources: []string{"users"}, ResourceNames: util.NewStringSet("~")},
-					{Verbs: []string{"list"}, Resources: []string{"projects"}},
+					{Verbs: util.NewStringSet("get"), Resources: util.NewStringSet("users"), ResourceNames: util.NewStringSet("~")},
+					{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projects")},
 				},
 			},
 			"cluster-status": {
@@ -569,7 +431,7 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:           []string{"get"},
+						Verbs:           util.NewStringSet("get"),
 						NonResourceURLs: util.NewStringSet("/healthz", "/version", "/api", "/osapi"),
 					},
 				},
@@ -581,8 +443,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     []string{authorizationapi.VerbAll},
-						Resources: []string{authorizationapi.ResourceAll},
+						Verbs:     util.NewStringSet(authorizationapi.VerbAll),
+						Resources: util.NewStringSet(authorizationapi.ResourceAll),
 					},
 				},
 			},
@@ -593,8 +455,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     []string{authorizationapi.VerbAll},
-						Resources: []string{authorizationapi.ResourceAll},
+						Verbs:     util.NewStringSet(authorizationapi.VerbAll),
+						Resources: util.NewStringSet(authorizationapi.ResourceAll),
 					},
 				},
 			},
@@ -605,8 +467,8 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     []string{"delete"},
-						Resources: []string{"oauthaccesstoken", "oauthauthorizetoken"},
+						Verbs:     util.NewStringSet("delete"),
+						Resources: util.NewStringSet("oauthaccesstoken", "oauthauthorizetoken"),
 					},
 				},
 			},
@@ -633,7 +495,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "system:component",
 					Namespace: masterNamespace,
 				},
-				UserNames: []string{"system:openshift-client", "system:kube-client"},
+				Users: util.NewStringSet("system:openshift-client", "system:kube-client"),
 			},
 			"system:deployer-binding": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -644,7 +506,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "system:deployer",
 					Namespace: masterNamespace,
 				},
-				UserNames: []string{"system:openshift-deployer"},
+				Users: util.NewStringSet("system:openshift-deployer"),
 			},
 			"cluster-admin-binding": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -655,7 +517,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "cluster-admin",
 					Namespace: masterNamespace,
 				},
-				UserNames: []string{"system:admin"},
+				Users: util.NewStringSet("system:admin"),
 			},
 			"basic-user-binding": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -666,7 +528,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "basic-user",
 					Namespace: masterNamespace,
 				},
-				GroupNames: []string{"system:authenticated"},
+				Groups: util.NewStringSet("system:authenticated"),
 			},
 			"insecure-cluster-admin-binding": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -678,7 +540,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Namespace: masterNamespace,
 				},
 				// TODO until we decide to enforce policy, simply allow every one access
-				GroupNames: []string{"system:authenticated", "system:unauthenticated"},
+				Groups: util.NewStringSet("system:authenticated", "system:unauthenticated"),
 			},
 			"system:delete-tokens-binding": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -689,7 +551,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "system:delete-tokens",
 					Namespace: masterNamespace,
 				},
-				GroupNames: []string{"system:authenticated", "system:unauthenticated"},
+				Groups: util.NewStringSet("system:authenticated", "system:unauthenticated"),
 			},
 			"cluster-status-binding": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -700,7 +562,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "cluster-status",
 					Namespace: masterNamespace,
 				},
-				GroupNames: []string{"system:authenticated", "system:unauthenticated"},
+				Groups: util.NewStringSet("system:authenticated", "system:unauthenticated"),
 			},
 		},
 	}

@@ -1,10 +1,10 @@
 package policy
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -14,7 +14,7 @@ type removeUserFromProjectOptions struct {
 	bindingNamespace string
 	client           client.Interface
 
-	userNames []string
+	users []string
 }
 
 func NewCmdRemoveUserFromProject(f *clientcmd.Factory) *cobra.Command {
@@ -52,7 +52,7 @@ func (o *removeUserFromProjectOptions) complete(cmd *cobra.Command) bool {
 		return false
 	}
 
-	o.userNames = args
+	o.users = args
 	return true
 }
 
@@ -64,11 +64,7 @@ func (o *removeUserFromProjectOptions) run() error {
 
 	for _, currBindings := range bindingList.Items {
 		for _, currBinding := range currBindings.RoleBindings {
-			usersForBinding := util.StringSet{}
-			usersForBinding.Insert(currBinding.UserNames...)
-			usersForBinding.Delete(o.userNames...)
-
-			currBinding.UserNames = usersForBinding.List()
+			currBinding.Users.Delete(o.users...)
 
 			_, err = o.client.RoleBindings(o.bindingNamespace).Update(&currBinding)
 			if err != nil {

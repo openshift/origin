@@ -16,6 +16,7 @@ func init() {
 		&SubjectAccessReviewResponse{},
 		&PolicyList{},
 		&PolicyBindingList{},
+		&RoleBindingList{},
 	)
 }
 
@@ -29,3 +30,4 @@ func (*ResourceAccessReviewResponse) IsAnAPIObject() {}
 func (*SubjectAccessReviewResponse) IsAnAPIObject()  {}
 func (*PolicyList) IsAnAPIObject()                   {}
 func (*PolicyBindingList) IsAnAPIObject()            {}
+func (*RoleBindingList) IsAnAPIObject()              {}

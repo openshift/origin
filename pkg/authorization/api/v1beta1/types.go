@@ -168,3 +168,10 @@ type PolicyBindingList struct {
 	kapi.ListMeta `json:"metadata,omitempty"`
 	Items         []PolicyBinding `json:"items"`
 }
+
+// RoleBindingList is a collection of PolicyBindings
+type RoleBindingList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []RoleBinding
+}

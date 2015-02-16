@@ -301,7 +301,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"policies":              policyregistry.NewREST(authorizationEtcd),
 		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
 		"roles":                 roleregistry.NewREST(authorizationEtcd),
-		"roleBindings":          rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
 	}
@@ -485,19 +485,22 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
-			// fail
 			forbidden(err.Error(), w, req)
 			return
 		}
 		if attributes == nil {
-			// fail
 			forbidden("No attributes", w, req)
 			return
 		}
 
-		allowed, reason, err := c.Authorizer.Authorize(attributes)
+		ctx, exists := c.RequestContextMapper.Get(req)
+		if !exists {
+			forbidden("context not found", w, req)
+			return
+		}
+
+		allowed, reason, err := c.Authorizer.Authorize(ctx, attributes)
 		if err != nil {
-			// fail
 			forbidden(err.Error(), w, req)
 			return
 		}
@@ -512,7 +515,6 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 
 // forbidden renders a simple forbidden error
 func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
-	glog.V(1).Infof("!!!!!!!!!!!! FORBIDDING because %v!\n", reason)
 	w.WriteHeader(http.StatusForbidden)
 	fmt.Fprintf(w, "Forbidden: %q %s", req.RequestURI, reason)
 }

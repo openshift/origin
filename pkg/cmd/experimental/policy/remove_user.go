@@ -3,7 +3,6 @@ package policy
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -17,7 +16,7 @@ type removeUserOptions struct {
 	bindingNamespace string
 	client           client.Interface
 
-	userNames []string
+	users []string
 }
 
 func NewCmdRemoveUser(f *clientcmd.Factory) *cobra.Command {
@@ -58,7 +57,7 @@ func (o *removeUserOptions) complete(cmd *cobra.Command) bool {
 	}
 
 	o.roleName = args[0]
-	o.userNames = args[1:]
+	o.users = args[1:]
 	return true
 }
 
@@ -72,10 +71,7 @@ func (o *removeUserOptions) run() error {
 	}
 
 	for _, roleBinding := range roleBindings {
-		users := util.StringSet{}
-		users.Insert(roleBinding.UserNames...)
-		users.Delete(o.userNames...)
-		roleBinding.UserNames = users.List()
+		roleBinding.Users.Delete(o.users...)
 
 		_, err = o.client.RoleBindings(o.bindingNamespace).Update(roleBinding)
 		if err != nil {
