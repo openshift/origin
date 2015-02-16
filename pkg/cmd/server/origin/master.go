@@ -82,6 +82,13 @@ import (
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+
+	// Admission control plugins
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/exists"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcedefaults"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota"
 )
 
 const (
