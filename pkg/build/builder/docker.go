@@ -13,8 +13,8 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/source-to-image/pkg/sti/git"
-	"github.com/openshift/source-to-image/pkg/sti/tar"
+	"github.com/openshift/source-to-image/pkg/git"
+	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 // urlCheckTimeout is the timeout used to check the source URL
@@ -43,8 +43,8 @@ func NewDockerBuilder(dockerClient DockerClient, authCfg docker.AuthConfiguratio
 		authPresent:  authPresent,
 		auth:         authCfg,
 		build:        build,
-		git:          git.NewGit(),
-		tar:          tar.NewTar(),
+		git:          git.New(),
+		tar:          tar.New(),
 		urlTimeout:   urlCheckTimeout,
 	}
 }
