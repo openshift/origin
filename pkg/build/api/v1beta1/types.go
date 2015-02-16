@@ -83,6 +83,8 @@ const (
 type BuildSource struct {
 	Type BuildSourceType `json:"type,omitempty"`
 	Git  *GitBuildSource `json:"git,omitempty"`
+	// Context directory where the application sources exists
+	ContextDir string `json:"contextDir,omitempty"`
 }
 
 // SourceRevision is the revision or commit information from the source for the build

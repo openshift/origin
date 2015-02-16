@@ -36,6 +36,7 @@ func (s *STIBuilder) Build() error {
 		BaseImage:    s.build.Parameters.Strategy.STIStrategy.Image,
 		DockerSocket: s.dockerSocket,
 		Source:       s.build.Parameters.Source.Git.URI,
+		ContextDir:   s.build.Parameters.Source.ContextDir,
 		Tag:          tag,
 		ScriptsURL:   s.build.Parameters.Strategy.STIStrategy.Scripts,
 		Environment:  getBuildEnvVars(s.build),
