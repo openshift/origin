@@ -576,9 +576,9 @@ angular.module('openshiftConsole')
   var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
   var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
   var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
-  var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/ns/{namespace}/{type}{?q*}";
-  var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}{?q*}";
-  var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "ns/{namespace}/{type}/{id}{?q*}";  
+  var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/namespaces/{namespace}/{type}{?q*}";
+  var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}{?q*}";
+  var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}{?q*}";  
 
   // Set the api version the console is currently able to talk to
   API_CFG.openshift.version = "v1beta1";
