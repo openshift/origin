@@ -85,7 +85,7 @@ https://cloud.google.com/appengine/docs/go/search/query_strings
 Note that in Go, field names come from the struct field definition and begin
 with an upper case letter.
 */
-package search
+package search // import "google.golang.org/appengine/search"
 
 // TODO: let Put specify the document language: "en", "fr", etc. Also: order_id?? storage??
 // TODO: Index.GetAll (or Iterator.GetAll)?
