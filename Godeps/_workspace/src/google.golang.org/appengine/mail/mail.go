@@ -17,7 +17,7 @@ Example:
 		c.Errorf("Alas, my user, the email failed to sendeth: %v", err)
 	}
 */
-package mail
+package mail // import "google.golang.org/appengine/mail"
 
 import (
 	"net/mail"
