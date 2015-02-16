@@ -28,54 +28,54 @@ type Controller interface {
 }
 
 type OvsController struct {
-	sm       registry.SubnetRegistry
-	localIP  string
-	localSub *registry.Subnet
-	hostName string
-	sna      *netutils.SubnetAllocator
-	sig      chan struct{}
+	subnetRegistry  registry.SubnetRegistry
+	localIP         string
+	localSubnet     *registry.Subnet
+	hostName        string
+	subnetAllocator *netutils.SubnetAllocator
+	sig             chan struct{}
 }
 
-func NewController(sub registry.SubnetRegistry, hostname string, selfip string) Controller {
-	if selfip == "" {
+func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) Controller {
+	if selfIP == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
 			log.Errorf("Failed to lookup IP Address for %s", hostname)
 			return nil
 		}
-		selfip = addrs[0].String()
+		selfIP = addrs[0].String()
 	}
-	log.Infof("Self IP : %s", selfip)
+	log.Infof("Self IP : %s", selfIP)
 	return &OvsController{
-		sm:       sub,
-		localIP:  selfip,
-		hostName: hostname,
-		localSub: nil,
-		sna:      nil,
-		sig:      make(chan struct{}),
+		subnetRegistry:  sub,
+		localIP:         selfIP,
+		hostName:        hostname,
+		localSubnet:     nil,
+		subnetAllocator: nil,
+		sig:             make(chan struct{}),
 	}
 }
 
 func (oc *OvsController) StartMaster(sync bool) error {
 	// wait a minute for etcd to come alive
-	status := oc.sm.CheckEtcdIsAlive(60)
+	status := oc.subnetRegistry.CheckEtcdIsAlive(60)
 	if !status {
 		log.Errorf("Etcd not running?")
 		return errors.New("Etcd not reachable. Sync cluster check failed.")
 	}
 	// initialize the minion key
 	if sync {
-		err := oc.sm.InitMinions()
+		err := oc.subnetRegistry.InitMinions()
 		if err != nil {
 			log.Infof("Minion path already initialized.")
 		}
 	}
 
 	// initialize the subnet key?
-	err := oc.sm.InitSubnets()
+	err := oc.subnetRegistry.InitSubnets()
 	subrange := make([]string, 0)
 	if err != nil {
-		subnets, err := oc.sm.GetSubnets()
+		subnets, err := oc.subnetRegistry.GetSubnets()
 		if err != nil {
 			log.Errorf("Error in initializing/fetching subnets - %v\n", err)
 			return err
@@ -84,7 +84,7 @@ func (oc *OvsController) StartMaster(sync bool) error {
 			subrange = append(subrange, sub.Sub)
 		}
 	}
-	oc.sna, _ = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
+	oc.subnetAllocator, _ = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
 	err = oc.ServeExistingMinions()
 	if err != nil {
 		log.Warningf("Error initializing existing minions. %v.", err)
@@ -95,13 +95,13 @@ func (oc *OvsController) StartMaster(sync bool) error {
 }
 
 func (oc *OvsController) ServeExistingMinions() error {
-	minions, err := oc.sm.GetMinions()
+	minions, err := oc.subnetRegistry.GetMinions()
 	if err != nil {
 		return err
 	}
 
 	for _, minion := range *minions {
-		_, err := oc.sm.GetSubnet(minion)
+		_, err := oc.subnetRegistry.GetSubnet(minion)
 		if err == nil {
 			// subnet already exists, continue
 			continue
@@ -115,7 +115,7 @@ func (oc *OvsController) ServeExistingMinions() error {
 }
 
 func (oc *OvsController) AddNode(minion string) error {
-	sn, err := oc.sna.GetNetwork()
+	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
 		log.Errorf("Error creating network for minion - %s\n", minion)
 		return err
@@ -134,7 +134,7 @@ func (oc *OvsController) AddNode(minion string) error {
 		Minion: minionIP,
 		Sub:    sn.String(),
 	}
-	oc.sm.CreateSubnet(minion, sub)
+	oc.subnetRegistry.CreateSubnet(minion, sub)
 	if err != nil {
 		log.Errorf("Error writing subnet to etcd for minion %s - %v\n", minion, sn)
 		return err
@@ -143,7 +143,7 @@ func (oc *OvsController) AddNode(minion string) error {
 }
 
 func (oc *OvsController) DeleteNode(minion string) error {
-	sub, err := oc.sm.GetSubnet(minion)
+	sub, err := oc.subnetRegistry.GetSubnet(minion)
 	if err != nil {
 		log.Errorf("Error fetching minion subnet for %s for delete operation.", minion)
 		return err
@@ -153,12 +153,12 @@ func (oc *OvsController) DeleteNode(minion string) error {
 		log.Errorf("Error parsing subnet for minion %s, for deletion.", sub.Sub)
 		return err
 	}
-	oc.sna.ReleaseNetwork(ipnet)
-	return oc.sm.DeleteSubnet(minion)
+	oc.subnetAllocator.ReleaseNetwork(ipnet)
+	return oc.subnetRegistry.DeleteSubnet(minion)
 }
 
 func (oc *OvsController) syncWithMaster() error {
-	return oc.sm.CreateMinion(oc.hostName, oc.localIP)
+	return oc.subnetRegistry.CreateMinion(oc.hostName, oc.localIP)
 }
 
 func (oc *OvsController) StartNode(sync, skipsetup bool) error {
@@ -175,7 +175,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		return err
 	}
 	// restart docker daemon
-	_, ipnet, err := net.ParseCIDR(oc.localSub.Sub)
+	_, ipnet, err := net.ParseCIDR(oc.localSubnet.Sub)
 	if err == nil {
 		if !skipsetup {
 			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), ContainerNetwork).CombinedOutput()
@@ -186,7 +186,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 			}
 		}
 		exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0").CombinedOutput()
-		subnets, err := oc.sm.GetSubnets()
+		subnets, err := oc.subnetRegistry.GetSubnets()
 		if err != nil {
 			log.Errorf("Could not fetch existing subnets. %v", err)
 		}
@@ -201,13 +201,13 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 func (oc *OvsController) initSelfSubnet() error {
 	// get subnet for self
 	for {
-		sub, err := oc.sm.GetSubnet(oc.hostName)
+		sub, err := oc.subnetRegistry.GetSubnet(oc.hostName)
 		if err != nil {
 			log.Errorf("Could not find an allocated subnet for this minion (%s)(%s). Waiting..\n", oc.hostName, err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		oc.localSub = sub
+		oc.localSubnet = sub
 		return nil
 	}
 }
@@ -216,13 +216,13 @@ func (oc *OvsController) watchMinions() {
 	// watch latest?
 	stop := make(chan bool)
 	minevent := make(chan *registry.MinionEvent)
-	go oc.sm.WatchMinions(0, minevent, stop)
+	go oc.subnetRegistry.WatchMinions(0, minevent, stop)
 	for {
 		select {
 		case ev := <-minevent:
 			switch ev.Type {
 			case registry.Added:
-				_, err := oc.sm.GetSubnet(ev.Minion)
+				_, err := oc.subnetRegistry.GetSubnet(ev.Minion)
 				if err != nil {
 					// subnet does not exist already
 					oc.AddNode(ev.Minion)
@@ -241,7 +241,7 @@ func (oc *OvsController) watchMinions() {
 func (oc *OvsController) watchCluster() {
 	stop := make(chan bool)
 	clusterEvent := make(chan *registry.SubnetEvent)
-	go oc.sm.WatchSubnets(0, clusterEvent, stop)
+	go oc.subnetRegistry.WatchSubnets(0, clusterEvent, stop)
 	for {
 		select {
 		case ev := <-clusterEvent:
@@ -265,9 +265,9 @@ func (oc *OvsController) Stop() {
 	//oc.sig <- struct{}{}
 }
 
-func (oc *OvsController) AddOFRules(minionip, subnet string) {
-	cookie := generateCookie(minionip)
-	if minionip == oc.localIP {
+func (oc *OvsController) AddOFRules(minionIP, subnet string) {
+	cookie := generateCookie(minionIP)
+	if minionIP == oc.localIP {
 		// self, so add the input rules
 		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
 		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
@@ -276,8 +276,8 @@ func (oc *OvsController) AddOFRules(minionip, subnet string) {
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
 		log.Infof("Output of adding %s: %s (%v)", arprule, o, e)
 	} else {
-		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionip)
-		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionip)
+		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionIP)
+		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionIP)
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
 		log.Infof("Output of adding %s: %s (%v)", iprule, o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
