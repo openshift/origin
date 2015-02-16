@@ -4,7 +4,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -62,23 +61,18 @@ func TestCreateValid(t *testing.T) {
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	channel, err := storage.Create(ctx, role)
+	obj, err := storage.Create(ctx, role)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *kapi.Status:
-			t.Errorf("Got back unexpected status: %#v", r)
-		case *authorizationapi.Role:
-			// expected case
-		default:
-			t.Errorf("Got unexpected type: %#v", r)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	switch r := obj.(type) {
+	case *kapi.Status:
+		t.Errorf("Got back unexpected status: %#v", r)
+	case *authorizationapi.Role:
+		// expected case
+	default:
+		t.Errorf("Got unexpected type: %#v", r)
 	}
 }
 
@@ -100,27 +94,22 @@ func TestUpdate(t *testing.T) {
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	channel, err := storage.Update(ctx, role)
-	if err != nil {
+	obj, created, err := storage.Update(ctx, role)
+	if err != nil || created {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	select {
-	case result := <-channel:
-		switch obj := result.Object.(type) {
-		case *kapi.Status:
-			t.Errorf("Unexpected operation error: %v", obj)
+	switch obj.(type) {
+	case *kapi.Status:
+		t.Errorf("Unexpected operation error: %v", obj)
 
-		case *authorizationapi.Role:
-			if !reflect.DeepEqual(role, obj) {
-				t.Errorf("Updated role does not match input role."+
-					" Expected: %v, Got: %v", role, obj)
-			}
-		default:
-			t.Errorf("Unexpected result type: %v", result)
+	case *authorizationapi.Role:
+		if !reflect.DeepEqual(role, obj) {
+			t.Errorf("Updated role does not match input role."+
+				" Expected: %v, Got: %v", role, obj)
 		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	default:
+		t.Errorf("Unexpected result type: %v", obj)
 	}
 }
 
@@ -139,7 +128,7 @@ func TestUpdateError(t *testing.T) {
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	_, err := storage.Update(ctx, role)
+	_, _, err := storage.Update(ctx, role)
 	if err == nil {
 		t.Errorf("Missing expected error")
 		return
@@ -159,25 +148,9 @@ func TestDeleteError(t *testing.T) {
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	channel, err := storage.Delete(ctx, "foo")
-	if err != nil {
+	_, err := storage.Delete(ctx, "foo")
+	if err != registry.Err {
 		t.Errorf("unexpected error: %v", err)
-	}
-
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *kapi.Status:
-			if r.Message == registry.Err.Error() {
-				// expected case
-			} else {
-				t.Errorf("Got back unexpected error: %#v", r)
-			}
-		default:
-			t.Errorf("Got back non-status result: %v", r)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
 	}
 }
 
@@ -195,22 +168,17 @@ func TestDeleteValid(t *testing.T) {
 		})
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	channel, err := storage.Delete(ctx, "foo")
+	obj, err := storage.Delete(ctx, "foo")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *kapi.Status:
-			if r.Status != "Success" {
-				t.Fatalf("Got back non-success status: %#v", r)
-			}
-		default:
-			t.Fatalf("Got back non-status result: %v", r)
+	switch r := obj.(type) {
+	case *kapi.Status:
+		if r.Status != "Success" {
+			t.Fatalf("Got back non-success status: %#v", r)
 		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	default:
+		t.Fatalf("Got back non-status result: %v", r)
 	}
 }

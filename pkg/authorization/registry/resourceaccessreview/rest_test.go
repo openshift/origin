@@ -4,7 +4,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -106,29 +105,25 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
-	channel, err := storage.Create(ctx, r.reviewRequest)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+	obj, err := storage.Create(ctx, r.reviewRequest)
+	if err != nil && len(r.authorizer.err) == 0 {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err == nil && len(r.authorizer.err) != 0 {
+		t.Fatalf("unexpected non-error: %v", err)
 	}
 
-	select {
-	case result := <-channel:
-		switch obj := result.Object.(type) {
-		case *kapi.Status:
-			if len(r.authorizer.err) == 0 {
-				t.Errorf("Unexpected operation error: %v", obj)
-			}
-
-		case *authorizationapi.ResourceAccessReviewResponse:
-			if !reflect.DeepEqual(expectedResponse, obj) {
-				t.Errorf("diff %v", util.ObjectGoPrintDiff(expectedResponse, obj))
-			}
-
-		default:
-			t.Errorf("Unexpected result type: %v", result)
+	switch obj.(type) {
+	case *authorizationapi.ResourceAccessReviewResponse:
+		if !reflect.DeepEqual(expectedResponse, obj) {
+			t.Errorf("diff %v", util.ObjectGoPrintDiff(expectedResponse, obj))
 		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	case nil:
+		if len(r.authorizer.err) == 0 {
+			t.Fatal("unexpected nil object")
+		}
+	default:
+		t.Errorf("Unexpected obj type: %v", obj)
 	}
 
 	if !reflect.DeepEqual(expectedAttributes, r.authorizer.actualAttributes) {

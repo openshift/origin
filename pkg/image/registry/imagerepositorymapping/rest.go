@@ -33,7 +33,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	mapping := obj.(*api.ImageRepositoryMapping)
 	if !kapi.ValidNamespace(ctx, &mapping.ObjectMeta) {
 		return nil, errors.NewConflict("imageRepositoryMapping", mapping.Namespace, fmt.Errorf("ImageRepositoryMapping.Namespace does not match the provided context"))
@@ -59,16 +59,14 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	}
 	repo.Tags[mapping.Tag] = image.Name
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.imageRegistry.CreateImage(ctx, &image); err != nil {
-			return nil, err
-		}
-		if err := s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo); err != nil {
-			return nil, err
-		}
+	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil {
+		return nil, err
+	}
+	if err := s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo); err != nil {
+		return nil, err
+	}
 
-		return &kapi.Status{Status: kapi.StatusSuccess}, nil
-	}), nil
+	return &kapi.Status{Status: kapi.StatusSuccess}, nil
 }
 
 // findRepositoryForMapping retrieves an ImageRepository whose DockerImageRepository matches dockerRepo.

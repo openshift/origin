@@ -54,14 +54,12 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the Build specified by its id.
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuild(ctx, id)
-	}), nil
+func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuild(ctx, id)
 }
 
 // Create registers a given new Build instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	build, ok := obj.(*api.Build)
 	if !ok {
 		return nil, fmt.Errorf("not a build: %#v", obj)
@@ -80,35 +78,31 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	if errs := validation.ValidateBuild(build); len(errs) > 0 {
 		return nil, errors.NewInvalid("build", build.Name, errs)
 	}
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.CreateBuild(ctx, build)
-		if err != nil {
-			return nil, err
-		}
-		return build, nil
-	}), nil
+	err := r.registry.CreateBuild(ctx, build)
+	if err != nil {
+		return nil, err
+	}
+	return build, nil
 }
 
 // Update replaces a given Build instance with an existing instance in r.registry.
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	build, ok := obj.(*api.Build)
 	if !ok {
-		return nil, fmt.Errorf("not a build: %#v", obj)
+		return nil, false, fmt.Errorf("not a build: %#v", obj)
 	}
 	if errs := validation.ValidateBuild(build); len(errs) > 0 {
-		return nil, errors.NewInvalid("build", build.Name, errs)
+		return nil, false, errors.NewInvalid("build", build.Name, errs)
 	}
 	if !kapi.ValidNamespace(ctx, &build.ObjectMeta) {
-		return nil, errors.NewConflict("build", build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
+		return nil, false, errors.NewConflict("build", build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.UpdateBuild(ctx, build)
-		if err != nil {
-			return nil, err
-		}
-		return build, nil
-	}), nil
+	err := r.registry.UpdateBuild(ctx, build)
+	if err != nil {
+		return nil, false, err
+	}
+	return build, false, nil
 }
 
 // Watch begins watching for new, changed, or deleted Builds.

@@ -181,6 +181,9 @@ func init() {
 			if err := s.Convert(&in.Phase, &out.Status, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.Conditions, &out.Conditions, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Info, &out.Info, 0); err != nil {
 				return err
 			}
@@ -192,6 +195,9 @@ func init() {
 		},
 		func(in *PodState, out *newer.PodStatus, s conversion.Scope) error {
 			if err := s.Convert(&in.Status, &out.Phase, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Conditions, &out.Conditions, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.Info, &out.Info, 0); err != nil {
@@ -489,6 +495,9 @@ func init() {
 			if err := s.Convert(&in.LivenessProbe, &out.LivenessProbe, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.ReadinessProbe, &out.ReadinessProbe, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Lifecycle, &out.Lifecycle, 0); err != nil {
 				return err
 			}
@@ -569,6 +578,9 @@ func init() {
 			if err := s.Convert(&in.LivenessProbe, &out.LivenessProbe, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.ReadinessProbe, &out.ReadinessProbe, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Lifecycle, &out.Lifecycle, 0); err != nil {
 				return err
 			}
@@ -634,7 +646,6 @@ func init() {
 			out.PublicIPs = in.Spec.PublicIPs
 			out.ContainerPort = in.Spec.ContainerPort
 			out.PortalIP = in.Spec.PortalIP
-			out.ProxyPort = in.Spec.ProxyPort
 			if err := s.Convert(&in.Spec.SessionAffinity, &out.SessionAffinity, 0); err != nil {
 				return err
 			}
@@ -661,7 +672,6 @@ func init() {
 			out.Spec.PublicIPs = in.PublicIPs
 			out.Spec.ContainerPort = in.ContainerPort
 			out.Spec.PortalIP = in.PortalIP
-			out.Spec.ProxyPort = in.ProxyPort
 			if err := s.Convert(&in.SessionAffinity, &out.Spec.SessionAffinity, 0); err != nil {
 				return err
 			}
@@ -729,6 +739,21 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *Namespace, out *newer.Namespace, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Labels, &out.ObjectMeta.Labels, 0); err != nil {
 				return err
 			}
 			return nil
@@ -900,7 +925,11 @@ func init() {
 			out.Message = in.Message
 			out.Source = in.Source.Component
 			out.Host = in.Source.Host
-			out.Timestamp = in.Timestamp
+			out.Timestamp = in.FirstTimestamp
+			out.FirstTimestamp = in.FirstTimestamp
+			out.LastTimestamp = in.LastTimestamp
+			out.Count = in.Count
+
 			return s.Convert(&in.InvolvedObject, &out.InvolvedObject, 0)
 		},
 		func(in *Event, out *newer.Event, s conversion.Scope) error {
@@ -914,7 +943,16 @@ func init() {
 			out.Message = in.Message
 			out.Source.Component = in.Source
 			out.Source.Host = in.Host
-			out.Timestamp = in.Timestamp
+			if in.FirstTimestamp.IsZero() {
+				// Assume this is an old event that does not specify FirstTimestamp/LastTimestamp/Count
+				out.FirstTimestamp = in.Timestamp
+				out.LastTimestamp = in.Timestamp
+				out.Count = 1
+			} else {
+				out.FirstTimestamp = in.FirstTimestamp
+				out.LastTimestamp = in.LastTimestamp
+				out.Count = in.Count
+			}
 			return s.Convert(&in.InvolvedObject, &out.InvolvedObject, 0)
 		},
 
@@ -1052,6 +1090,7 @@ func init() {
 				return err
 			}
 			out.InitialDelaySeconds = in.InitialDelaySeconds
+			out.TimeoutSeconds = in.TimeoutSeconds
 			return nil
 		},
 		func(in *LivenessProbe, out *newer.Probe, s conversion.Scope) error {
@@ -1065,6 +1104,7 @@ func init() {
 				return err
 			}
 			out.InitialDelaySeconds = in.InitialDelaySeconds
+			out.TimeoutSeconds = in.TimeoutSeconds
 			return nil
 		},
 	)

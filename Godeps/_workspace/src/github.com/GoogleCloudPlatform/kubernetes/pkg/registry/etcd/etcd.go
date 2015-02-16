@@ -184,7 +184,7 @@ func (r *Registry) setPodHostTo(ctx api.Context, podID, oldMachine, machine stri
 	if err != nil {
 		return nil, err
 	}
-	err = r.AtomicUpdate(podKey, &api.Pod{}, func(obj runtime.Object) (runtime.Object, error) {
+	err = r.AtomicUpdate(podKey, &api.Pod{}, false, func(obj runtime.Object) (runtime.Object, error) {
 		pod, ok := obj.(*api.Pod)
 		if !ok {
 			return nil, fmt.Errorf("unexpected object: %#v", obj)
@@ -211,11 +211,11 @@ func (r *Registry) assignPod(ctx api.Context, podID string, machine string) erro
 	}
 	// Doing the constraint check this way provides atomicity guarantees.
 	contKey := makeBoundPodsKey(machine)
-	err = r.AtomicUpdate(contKey, &api.BoundPods{}, func(in runtime.Object) (runtime.Object, error) {
+	err = r.AtomicUpdate(contKey, &api.BoundPods{}, true, func(in runtime.Object) (runtime.Object, error) {
 		boundPodList := in.(*api.BoundPods)
 		boundPodList.Items = append(boundPodList.Items, *boundPod)
-		if !constraint.Allowed(boundPodList.Items) {
-			return nil, fmt.Errorf("the assignment would cause a constraint violation")
+		if errors := constraint.Allowed(boundPodList.Items); len(errors) > 0 {
+			return nil, fmt.Errorf("the assignment would cause the following constraints violation: %v", errors)
 		}
 		return boundPodList, nil
 	})
@@ -251,7 +251,7 @@ func (r *Registry) UpdatePod(ctx api.Context, pod *api.Pod) error {
 	}
 	// There's no race with the scheduler, because either this write will fail because the host
 	// has been updated, or the host update will fail because this pod has been updated.
-	err = r.EtcdHelper.SetObj(podKey, pod)
+	err = r.EtcdHelper.SetObj(podKey, pod, 0 /* ttl */)
 	if err != nil {
 		return err
 	}
@@ -261,11 +261,12 @@ func (r *Registry) UpdatePod(ctx api.Context, pod *api.Pod) error {
 	}
 
 	containerKey := makeBoundPodsKey(podOut.Status.Host)
-	return r.AtomicUpdate(containerKey, &api.BoundPods{}, func(in runtime.Object) (runtime.Object, error) {
+	return r.AtomicUpdate(containerKey, &api.BoundPods{}, true, func(in runtime.Object) (runtime.Object, error) {
 		boundPods := in.(*api.BoundPods)
 		for ix := range boundPods.Items {
-			if boundPods.Items[ix].Name == pod.Name {
-				boundPods.Items[ix].Spec = pod.Spec
+			item := &boundPods.Items[ix]
+			if item.Name == pod.Name && item.Namespace == pod.Namespace {
+				item.Spec = pod.Spec
 				return boundPods, nil
 			}
 		}
@@ -299,13 +300,13 @@ func (r *Registry) DeletePod(ctx api.Context, podID string) error {
 	}
 	// Next, remove the pod from the machine atomically.
 	contKey := makeBoundPodsKey(machine)
-	return r.AtomicUpdate(contKey, &api.BoundPods{}, func(in runtime.Object) (runtime.Object, error) {
+	return r.AtomicUpdate(contKey, &api.BoundPods{}, true, func(in runtime.Object) (runtime.Object, error) {
 		pods := in.(*api.BoundPods)
 		newPods := make([]api.BoundPod, 0, len(pods.Items))
 		found := false
-		for _, pod := range pods.Items {
-			if pod.Name != podID {
-				newPods = append(newPods, pod)
+		for _, item := range pods.Items {
+			if item.Name != pod.Name || item.Namespace != pod.Namespace {
+				newPods = append(newPods, item)
 			} else {
 				found = true
 			}
@@ -404,7 +405,7 @@ func (r *Registry) UpdateController(ctx api.Context, controller *api.Replication
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, controller)
+	err = r.SetObj(key, controller, 0 /* ttl */)
 	return etcderr.InterpretUpdateError(err, "replicationController", controller.Name)
 }
 
@@ -512,7 +513,7 @@ func (r *Registry) UpdateService(ctx api.Context, svc *api.Service) error {
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, svc)
+	err = r.SetObj(key, svc, 0 /* ttl */)
 	return etcderr.InterpretUpdateError(err, "service", svc.Name)
 }
 
@@ -553,7 +554,7 @@ func (r *Registry) UpdateEndpoints(ctx api.Context, endpoints *api.Endpoints) er
 		return err
 	}
 	// TODO: this is a really bad misuse of AtomicUpdate, need to compute a diff inside the loop.
-	err = r.AtomicUpdate(key, &api.Endpoints{},
+	err = r.AtomicUpdate(key, &api.Endpoints{}, true,
 		func(input runtime.Object) (runtime.Object, error) {
 			// TODO: racy - label query is returning different results for two simultaneous updaters
 			return endpoints, nil
@@ -605,7 +606,7 @@ func (r *Registry) CreateMinion(ctx api.Context, minion *api.Node) error {
 
 func (r *Registry) UpdateMinion(ctx api.Context, minion *api.Node) error {
 	// TODO: Add some validations.
-	err := r.SetObj(makeNodeKey(minion.Name), minion)
+	err := r.SetObj(makeNodeKey(minion.Name), minion, 0 /* ttl */)
 	return etcderr.InterpretUpdateError(err, "minion", minion.Name)
 }
 

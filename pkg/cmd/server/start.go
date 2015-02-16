@@ -633,6 +633,8 @@ func start(cfg *config, args []string) error {
 
 			NetworkContainerImage: imageResolverFn("pod"),
 
+			AllowDisabledDocker: startNode && startMaster,
+
 			Client: existingKubeClient,
 		}
 

@@ -99,7 +99,8 @@ func (i *Info) Get() error {
 }
 
 // Refresh updates the object with another object. If ignoreError is set
-// the object will be updated directly
+// the Object will be updated even if name, namespace, or resourceVersion
+// attributes cannot be loaded from the object.
 func (i *Info) Refresh(obj runtime.Object, ignoreError bool) error {
 	name, err := i.Mapping.MetadataAccessor.Name(obj)
 	if err != nil {

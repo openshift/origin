@@ -50,6 +50,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/limitrange"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequotausage"
@@ -88,6 +89,9 @@ type Config struct {
 	AdmissionControl       admission.Interface
 	MasterServiceNamespace string
 
+	// Map requests to contexts. Exported so downstream consumers can provider their own mappers
+	RequestContextMapper api.RequestContextMapper
+
 	// If specified, all web services will be registered into this container
 	RestfulContainer *restful.Container
 
@@ -99,7 +103,7 @@ type Config struct {
 	// Defaults to 7080 if not set.
 	ReadOnlyPort int
 	// The port on PublicAddress where a read-write server will be installed.
-	// Defaults to 443 if not set.
+	// Defaults to 6443 if not set.
 	ReadWritePort int
 
 	// If nil, the first result from net.InterfaceAddrs will be used.
@@ -122,6 +126,7 @@ type Master struct {
 	eventRegistry         generic.Registry
 	limitRangeRegistry    generic.Registry
 	resourceQuotaRegistry resourcequota.Registry
+	namespaceRegistry     generic.Registry
 	storage               map[string]apiserver.RESTStorage
 	client                *client.Client
 	portalNet             *net.IPNet
@@ -141,6 +146,7 @@ type Master struct {
 	admissionControl      admission.Interface
 	masterCount           int
 	v1beta3               bool
+	requestContextMapper  api.RequestContextMapper
 
 	publicIP             net.IP
 	publicReadOnlyPort   int
@@ -187,11 +193,11 @@ func setDefaults(c *Config) {
 	if c.ReadOnlyPort == 0 {
 		c.ReadOnlyPort = 7080
 	}
+	if c.ReadWritePort == 0 {
+		c.ReadWritePort = 6443
+	}
 	if c.CacheTimeout == 0 {
 		c.CacheTimeout = 5 * time.Second
-	}
-	if c.ReadWritePort == 0 {
-		c.ReadWritePort = 443
 	}
 	for c.PublicAddress == nil {
 		// Find and use the first non-loopback address.
@@ -223,6 +229,9 @@ func setDefaults(c *Config) {
 			time.Sleep(5 * time.Second)
 		}
 	}
+	if c.RequestContextMapper == nil {
+		c.RequestContextMapper = api.NewRequestContextMapper()
+	}
 }
 
 // New returns a new instance of Master from the given config.
@@ -251,12 +260,7 @@ func setDefaults(c *Config) {
 //   any unhandled paths to "Handler".
 func New(c *Config) *Master {
 	setDefaults(c)
-	minionRegistry := etcd.NewRegistry(c.EtcdHelper, nil)
-	serviceRegistry := etcd.NewRegistry(c.EtcdHelper, nil)
-	boundPodFactory := &pod.BasicBoundPodFactory{
-		ServiceRegistry:        serviceRegistry,
-		MasterServiceNamespace: c.MasterServiceNamespace,
-	}
+	boundPodFactory := &pod.BasicBoundPodFactory{}
 	if c.KubeletClient == nil {
 		glog.Fatalf("master.New() called with config.KubeletClient == nil")
 	}
@@ -275,11 +279,12 @@ func New(c *Config) *Master {
 	m := &Master{
 		podRegistry:           etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
 		controllerRegistry:    etcd.NewRegistry(c.EtcdHelper, nil),
-		serviceRegistry:       serviceRegistry,
+		serviceRegistry:       etcd.NewRegistry(c.EtcdHelper, nil),
 		endpointRegistry:      etcd.NewRegistry(c.EtcdHelper, nil),
 		bindingRegistry:       etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
 		eventRegistry:         event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds())),
-		minionRegistry:        minionRegistry,
+		namespaceRegistry:     namespace.NewEtcdRegistry(c.EtcdHelper),
+		minionRegistry:        etcd.NewRegistry(c.EtcdHelper, nil),
 		limitRangeRegistry:    limitrange.NewEtcdRegistry(c.EtcdHelper),
 		resourceQuotaRegistry: resourcequota.NewEtcdRegistry(c.EtcdHelper),
 		client:                c.Client,
@@ -294,6 +299,7 @@ func New(c *Config) *Master {
 		authorizer:            c.Authorizer,
 		admissionControl:      c.AdmissionControl,
 		v1beta3:               c.EnableV1Beta3,
+		requestContextMapper:  c.RequestContextMapper,
 
 		cacheTimeout: c.CacheTimeout,
 
@@ -369,8 +375,6 @@ func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) 
 
 // init initializes master.
 func (m *Master) init(c *Config) {
-	var userContexts = handlers.NewUserRequestContext()
-	var authenticator = c.Authenticator
 
 	nodeRESTStorage := minion.NewREST(m.minionRegistry)
 	podCache := NewPodCache(
@@ -400,6 +404,7 @@ func (m *Master) init(c *Config) {
 		"limitRanges":         limitrange.NewREST(m.limitRangeRegistry),
 		"resourceQuotas":      resourcequota.NewREST(m.resourceQuotaRegistry),
 		"resourceQuotaUsages": resourcequotausage.NewREST(m.resourceQuotaRegistry),
+		"namespaces":          namespace.NewREST(m.namespaceRegistry),
 	}
 
 	apiVersions := []string{"v1beta1", "v1beta2"}
@@ -454,12 +459,16 @@ func (m *Master) init(c *Config) {
 
 	m.InsecureHandler = handler
 
-	attributeGetter := apiserver.NewRequestAttributeGetter(userContexts)
+	attributeGetter := apiserver.NewRequestAttributeGetter(m.requestContextMapper, latest.RESTMapper, "api")
 	handler = apiserver.WithAuthorizationCheck(handler, attributeGetter, m.authorizer)
 
 	// Install Authenticator
-	if authenticator != nil {
-		handler = handlers.NewRequestAuthenticator(userContexts, authenticator, handlers.Unauthorized, handler)
+	if c.Authenticator != nil {
+		authenticatedHandler, err := handlers.NewRequestAuthenticator(m.requestContextMapper, c.Authenticator, handlers.Unauthorized, handler)
+		if err != nil {
+			glog.Fatalf("Could not initialize authenticator: %v", err)
+		}
+		handler = authenticatedHandler
 	}
 
 	// Install root web services
@@ -470,6 +479,19 @@ func (m *Master) init(c *Config) {
 
 	if m.enableSwaggerSupport {
 		m.InstallSwaggerAPI()
+	}
+
+	// After all wrapping is done, put a context filter around both handlers
+	if handler, err := api.NewRequestContextFilter(m.requestContextMapper, m.Handler); err != nil {
+		glog.Fatalf("Could not initialize request context filter: %v", err)
+	} else {
+		m.Handler = handler
+	}
+
+	if handler, err := api.NewRequestContextFilter(m.requestContextMapper, m.InsecureHandler); err != nil {
+		glog.Fatalf("Could not initialize request context filter: %v", err)
+	} else {
+		m.InsecureHandler = handler
 	}
 
 	// TODO: Attempt clean shutdown?
@@ -483,7 +505,7 @@ func (m *Master) init(c *Config) {
 func (m *Master) InstallSwaggerAPI() {
 	// Enable swagger UI and discovery API
 	swaggerConfig := swagger.Config{
-		WebServicesUrl: net.JoinHostPort(m.publicIP.String(), strconv.Itoa(int(m.publicReadWritePort))),
+		WebServicesUrl: net.JoinHostPort(m.publicIP.String(), strconv.Itoa(m.publicReadWritePort)),
 		WebServices:    m.handlerContainer.RegisteredWebServices(),
 		// TODO: Parameterize the path?
 		ApiPath:         "/swaggerapi/",
@@ -531,25 +553,25 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 }
 
 // api_v1beta1 returns the resources and codec for API version v1beta1.
-func (m *Master) api_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface, meta.RESTMapper) {
+func (m *Master) api_v1beta1() (map[string]apiserver.RESTStorage, runtime.Codec, string, string, runtime.SelfLinker, admission.Interface, api.RequestContextMapper, meta.RESTMapper) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		storage[k] = v
 	}
-	return storage, v1beta1.Codec, "/api/v1beta1", latest.SelfLinker, m.admissionControl, latest.RESTMapper
+	return storage, v1beta1.Codec, "api", "/api/v1beta1", latest.SelfLinker, m.admissionControl, m.requestContextMapper, latest.RESTMapper
 }
 
 // api_v1beta2 returns the resources and codec for API version v1beta2.
-func (m *Master) api_v1beta2() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface, meta.RESTMapper) {
+func (m *Master) api_v1beta2() (map[string]apiserver.RESTStorage, runtime.Codec, string, string, runtime.SelfLinker, admission.Interface, api.RequestContextMapper, meta.RESTMapper) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		storage[k] = v
 	}
-	return storage, v1beta2.Codec, "/api/v1beta2", latest.SelfLinker, m.admissionControl, latest.RESTMapper
+	return storage, v1beta2.Codec, "api", "/api/v1beta2", latest.SelfLinker, m.admissionControl, m.requestContextMapper, latest.RESTMapper
 }
 
 // api_v1beta3 returns the resources and codec for API version v1beta3.
-func (m *Master) api_v1beta3() (map[string]apiserver.RESTStorage, runtime.Codec, string, runtime.SelfLinker, admission.Interface, meta.RESTMapper) {
+func (m *Master) api_v1beta3() (map[string]apiserver.RESTStorage, runtime.Codec, string, string, runtime.SelfLinker, admission.Interface, api.RequestContextMapper, meta.RESTMapper) {
 	storage := make(map[string]apiserver.RESTStorage)
 	for k, v := range m.storage {
 		if k == "minions" {
@@ -557,5 +579,5 @@ func (m *Master) api_v1beta3() (map[string]apiserver.RESTStorage, runtime.Codec,
 		}
 		storage[strings.ToLower(k)] = v
 	}
-	return storage, v1beta3.Codec, "/api/v1beta3", latest.SelfLinker, m.admissionControl, latest.RESTMapper
+	return storage, v1beta3.Codec, "api", "/api/v1beta3", latest.SelfLinker, m.admissionControl, m.requestContextMapper, latest.RESTMapper
 }

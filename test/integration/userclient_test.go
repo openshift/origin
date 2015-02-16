@@ -44,7 +44,7 @@ func TestUserInitialization(t *testing.T) {
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper))
+	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper))
 	defer server.Close()
 
 	mapping := api.UserIdentityMapping{
@@ -68,7 +68,7 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !created {
-		// TODO: t.Errorf("expected created to be true")
+		t.Errorf("expected created to be true")
 	}
 
 	expectedUser := api.User{
@@ -168,7 +168,7 @@ func TestUserLookup(t *testing.T) {
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper)
+	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper)
 	apihandler = userregistry.NewCurrentContextFilter("/osapi/v1beta1/users/~", userContextFunc, apihandler)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		userContext.Set(req, userInfo)

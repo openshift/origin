@@ -87,7 +87,7 @@ func (util *GCEDiskUtil) AttachDisk(pd *gcePersistentDisk) error {
 		}
 	}
 	if !mountpoint {
-		err = pd.mounter.Mount(devicePath, globalPDPath, pd.fsType, flags, "")
+		err = pd.diskMounter.Mount(devicePath, globalPDPath, pd.fsType, flags, "")
 		if err != nil {
 			os.Remove(globalPDPath)
 			return err
@@ -147,7 +147,7 @@ func (util *GCEDiskUtil) DetachDisk(pd *gcePersistentDisk, devicePath string) er
 // This eliminates the necesisty to format a PD before it is used with a Pod on GCE.
 // TODO: port this script into Go and use it for all Linux platforms
 type gceSafeFormatAndMount struct {
-	mount.Mounter
+	mount.Interface
 	runner exec.Interface
 }
 

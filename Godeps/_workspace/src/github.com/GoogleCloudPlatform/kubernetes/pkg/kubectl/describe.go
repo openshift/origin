@@ -193,6 +193,14 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(pod.Labels))
 		fmt.Fprintf(out, "Status:\t%s\n", string(pod.Status.Phase))
 		fmt.Fprintf(out, "Replication Controllers:\t%s\n", getReplicationControllersForLabels(rc, labels.Set(pod.Labels)))
+		if len(pod.Status.Conditions) > 0 {
+			fmt.Fprint(out, "Conditions:\n  Kind\tStatus\n")
+			for _, c := range pod.Status.Conditions {
+				fmt.Fprintf(out, "  %v \t%v \n",
+					c.Kind,
+					c.Status)
+			}
+		}
 		if events != nil {
 			describeEvents(events, out)
 		}
@@ -249,6 +257,11 @@ func (d *ServiceDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
+	endpoints, err := d.Endpoints(namespace).Get(name)
+	if err != nil {
+		endpoints = &api.Endpoints{}
+	}
+
 	events, _ := d.Events(namespace).Search(service)
 
 	return tabbedString(func(out io.Writer) error {
@@ -256,6 +269,7 @@ func (d *ServiceDescriber) Describe(namespace, name string) (string, error) {
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(service.Labels))
 		fmt.Fprintf(out, "Selector:\t%s\n", formatLabels(service.Spec.Selector))
 		fmt.Fprintf(out, "Port:\t%d\n", service.Spec.Port)
+		fmt.Fprintf(out, "Endpoints:\t%s\n", stringList(endpoints.Endpoints))
 		if events != nil {
 			describeEvents(events, out)
 		}
@@ -279,6 +293,18 @@ func (d *MinionDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", minion.Name)
+		if len(minion.Status.Conditions) > 0 {
+			fmt.Fprint(out, "Conditions:\n  Kind\tStatus\tLastProbeTime\tLastTransitionTime\tReason\tMessage\n")
+			for _, c := range minion.Status.Conditions {
+				fmt.Fprintf(out, "  %v \t%v \t%s \t%s \t%v \t%v\n",
+					c.Kind,
+					c.Status,
+					c.LastProbeTime.Time.Format(time.RFC1123Z),
+					c.LastTransitionTime.Time.Format(time.RFC1123Z),
+					c.Reason,
+					c.Message)
+			}
+		}
 		if events != nil {
 			describeEvents(events, out)
 		}
@@ -292,10 +318,12 @@ func describeEvents(el *api.EventList, w io.Writer) {
 		return
 	}
 	sort.Sort(SortableEvents(el.Items))
-	fmt.Fprint(w, "Events:\nTime\tFrom\tSubobjectPath\tReason\tMessage\n")
+	fmt.Fprint(w, "Events:\nFirstSeen\tLastSeen\tCount\tFrom\tSubobjectPath\tReason\tMessage\n")
 	for _, e := range el.Items {
-		fmt.Fprintf(w, "%s\t%v\t%v\t%v\t%v\n",
-			e.Timestamp.Time.Format(time.RFC1123Z),
+		fmt.Fprintf(w, "%s\t%s\t%d\t%v\t%v\t%v\t%v\n",
+			e.FirstTimestamp.Time.Format(time.RFC1123Z),
+			e.LastTimestamp.Time.Format(time.RFC1123Z),
+			e.Count,
 			e.Source,
 			e.InvolvedObject.FieldPath,
 			e.Reason,

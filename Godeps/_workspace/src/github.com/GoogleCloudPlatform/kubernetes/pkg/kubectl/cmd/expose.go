@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 )
 
@@ -31,16 +32,16 @@ func (f *Factory) NewCmdExposeService(out io.Writer) *cobra.Command {
 		Short: "Take a replicated application and expose it as Kubernetes Service",
 		Long: `Take a replicated application and expose it as Kubernetes Service.
 		
-Looks up a ReplicationController named <name>, and uses the selector for that replication controller
-as the selector for a new Service which services on <port>
+Looks up a ReplicationController by name, and uses the selector for that replication controller
+as the selector for a new Service on the specified port.
 
 Examples:
-$ kubectl expose nginx --port=80 --container-port=8000
-<creates a service for a replicated nginx, which serves on port 80 and connects to the containers on port 8000>
 
-$ kubectl expose streamer --port=4100 --protocol=udp --service-name=video-stream
-<create a service for a replicated streaming application on port 4100 balancing UDP traffic and is named 'video-stream'>
-`,
+    // Creates a service for a replicated nginx, which serves on port 80 and connects to the containers on port 8000.
+    $ kubectl expose nginx --port=80 --container-port=8000
+
+    // Create a service for a replicated streaming application on port 4100 balancing UDP traffic and named 'video-stream'.
+    $ kubectl expose streamer --port=4100 --protocol=udp --service-name=video-stream`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
 				usageError(cmd, "<name> is required for expose")
@@ -51,28 +52,28 @@ $ kubectl expose streamer --port=4100 --protocol=udp --service-name=video-stream
 			client, err := f.Client(cmd)
 			checkErr(err)
 
-			rc, err := client.ReplicationControllers(namespace).Get(args[0])
-			checkErr(err)
+			generatorName := util.GetFlagString(cmd, "generator")
 
-			generatorName := GetFlagString(cmd, "generator")
 			generator, found := kubectl.Generators[generatorName]
 			if !found {
 				usageError(cmd, fmt.Sprintf("Generator: %s not found.", generator))
 			}
-			if GetFlagInt(cmd, "port") < 1 {
+			if util.GetFlagInt(cmd, "port") < 1 {
 				usageError(cmd, "--port is required and must be a positive integer.")
 			}
 			names := generator.ParamNames()
 			params := kubectl.MakeParams(cmd, names)
-			if len(GetFlagString(cmd, "service-name")) == 0 {
+			if len(util.GetFlagString(cmd, "service-name")) == 0 {
 				params["name"] = args[0]
 			} else {
-				params["name"] = GetFlagString(cmd, "service-name")
+				params["name"] = util.GetFlagString(cmd, "service-name")
 			}
 			if _, found := params["selector"]; !found {
+				rc, err := client.ReplicationControllers(namespace).Get(args[0])
+				checkErr(err)
 				params["selector"] = kubectl.MakeLabels(rc.Spec.Selector)
 			}
-			if GetFlagBool(cmd, "create-external-load-balancer") {
+			if util.GetFlagBool(cmd, "create-external-load-balancer") {
 				params["create-external-load-balancer"] = "true"
 			}
 
@@ -82,31 +83,31 @@ $ kubectl expose streamer --port=4100 --protocol=udp --service-name=video-stream
 			service, err := generator.Generate(params)
 			checkErr(err)
 
-			inline := GetFlagString(cmd, "overrides")
+			inline := util.GetFlagString(cmd, "overrides")
 			if len(inline) > 0 {
-				Merge(service, inline, "Service")
+				util.Merge(service, inline, "Service")
 			}
 
 			// TODO: extract this flag to a central location, when such a location exists.
-			if !GetFlagBool(cmd, "dry-run") {
+			if !util.GetFlagBool(cmd, "dry-run") {
 				service, err = client.Services(namespace).Create(service.(*api.Service))
 				checkErr(err)
 			}
 
-			err = PrintObject(cmd, service, f, out)
+			err = f.PrintObject(cmd, service, out)
 			checkErr(err)
 		},
 	}
-	AddPrinterFlags(cmd)
-	cmd.Flags().String("generator", "service/v1", "The name of the api generator that you want to use.  Default 'service/v1'")
-	cmd.Flags().String("protocol", "TCP", "The network protocol for the service you want to be created. Default 'tcp'")
+	util.AddPrinterFlags(cmd)
+	cmd.Flags().String("generator", "service/v1", "The name of the API generator to use.  Default is 'service/v1'.")
+	cmd.Flags().String("protocol", "TCP", "The network protocol for the service to be created. Default is 'tcp'.")
 	cmd.Flags().Int("port", -1, "The port that the service should serve on. Required.")
-	cmd.Flags().Bool("create-external-load-balancer", false, "If true, create an external load balancer for this service. Implementation is cloud provider dependent. Default false")
-	cmd.Flags().String("selector", "", "A label selector to use for this service.  If empty (the default) infer the selector from the replication controller")
-	cmd.Flags().Bool("dry-run", false, "If true, only print the object that would be sent, don't actually do anything")
+	cmd.Flags().Bool("create-external-load-balancer", false, "If true, create an external load balancer for this service. Implementation is cloud provider dependent. Default is 'false'.")
+	cmd.Flags().String("selector", "", "A label selector to use for this service. If empty (the default) infer the selector from the replication controller.")
+	cmd.Flags().Bool("dry-run", false, "If true, only print the object that would be sent, without creating it.")
 	cmd.Flags().String("container-port", "", "Name or number for the port on the container that the service should direct traffic to. Optional.")
-	cmd.Flags().String("public-ip", "", "Name of a public ip address to set for the service.  The service will be assigned this IP in addition to its generated service IP.")
-	cmd.Flags().String("overrides", "", "An inline JSON override for the generated object.  If this is non-empty, it is parsed used to override the generated object.  Requires that the object supply a valid apiVersion field.")
+	cmd.Flags().String("public-ip", "", "Name of a public IP address to set for the service. The service will be assigned this IP in addition to its generated service IP.")
+	cmd.Flags().String("overrides", "", "An inline JSON override for the generated object. If this is non-empty, it is used to override the generated object. Requires that the object supply a valid apiVersion field.")
 	cmd.Flags().String("service-name", "", "The name for the newly created service.")
 	return cmd
 }

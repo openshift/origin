@@ -101,7 +101,7 @@ func (r *Etcd) CreateImage(ctx kapi.Context, image *api.Image) error {
 		return err
 	}
 
-	err = r.AtomicUpdate(key, &api.Image{}, func(obj runtime.Object) (runtime.Object, error) {
+	err = r.AtomicUpdate(key, &api.Image{}, true, func(obj runtime.Object) (runtime.Object, error) {
 		existing := obj.(*api.Image)
 		if isNewObject(existing.ResourceVersion) {
 			return image, nil
@@ -247,7 +247,7 @@ func (r *Etcd) UpdateImageRepository(ctx kapi.Context, repo *api.ImageRepository
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, repo)
+	err = r.SetObj(key, repo, 0)
 	return etcderr.InterpretUpdateError(err, "imageRepository", repo.Name)
 }
 

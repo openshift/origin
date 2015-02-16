@@ -18,8 +18,8 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"net"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -28,6 +28,7 @@ import (
 	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/probe"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
@@ -40,12 +41,14 @@ var (
 )
 
 type NodeController struct {
-	cloud           cloudprovider.Interface
-	matchRE         string
-	staticResources *api.NodeResources
-	nodes           []string
-	kubeClient      client.Interface
-	kubeletClient   client.KubeletHealthChecker
+	cloud              cloudprovider.Interface
+	matchRE            string
+	staticResources    *api.NodeResources
+	nodes              []string
+	kubeClient         client.Interface
+	kubeletClient      client.KubeletHealthChecker
+	registerRetryCount int
+	podEvictionTimeout time.Duration
 }
 
 // NewNodeController returns a new node controller to sync instances from cloudprovider.
@@ -57,27 +60,35 @@ func NewNodeController(
 	nodes []string,
 	staticResources *api.NodeResources,
 	kubeClient client.Interface,
-	kubeletClient client.KubeletHealthChecker) *NodeController {
+	kubeletClient client.KubeletHealthChecker,
+	registerRetryCount int,
+	podEvictionTimeout time.Duration) *NodeController {
 	return &NodeController{
-		cloud:           cloud,
-		matchRE:         matchRE,
-		nodes:           nodes,
-		staticResources: staticResources,
-		kubeClient:      kubeClient,
-		kubeletClient:   kubeletClient,
+		cloud:              cloud,
+		matchRE:            matchRE,
+		nodes:              nodes,
+		staticResources:    staticResources,
+		kubeClient:         kubeClient,
+		kubeletClient:      kubeletClient,
+		registerRetryCount: registerRetryCount,
+		podEvictionTimeout: podEvictionTimeout,
 	}
 }
 
 // Run creates initial node list and start syncing instances from cloudprovider if any.
 // It also starts syncing cluster node status.
-func (s *NodeController) Run(period time.Duration, retryCount int) {
+func (s *NodeController) Run(period time.Duration, syncNodeList bool) {
 	// Register intial set of nodes with their status set.
 	var nodes *api.NodeList
 	var err error
 	if s.isRunningCloudProvider() {
-		nodes, err = s.CloudNodes()
-		if err != nil {
-			glog.Errorf("Error loading initial node from cloudprovider: %v", err)
+		if syncNodeList {
+			nodes, err = s.CloudNodes()
+			if err != nil {
+				glog.Errorf("Error loading initial node from cloudprovider: %v", err)
+			}
+		} else {
+			nodes = &api.NodeList{}
 		}
 	} else {
 		nodes, err = s.StaticNodes()
@@ -90,12 +101,12 @@ func (s *NodeController) Run(period time.Duration, retryCount int) {
 	if err != nil {
 		glog.Errorf("Error getting nodes ips: %v", err)
 	}
-	if err = s.RegisterNodes(nodes, retryCount, period); err != nil {
+	if err = s.RegisterNodes(nodes, s.registerRetryCount, period); err != nil {
 		glog.Errorf("Error registrying node list %+v: %v", nodes, err)
 	}
 
 	// Start syncing node list from cloudprovider.
-	if s.isRunningCloudProvider() {
+	if syncNodeList && s.isRunningCloudProvider() {
 		go util.Forever(func() {
 			if err = s.SyncCloud(); err != nil {
 				glog.Errorf("Error syncing cloud: %v", err)
@@ -125,10 +136,10 @@ func (s *NodeController) RegisterNodes(nodes *api.NodeList, retryCount int, retr
 				registered.Insert(node.Name)
 				glog.Infof("Registered node in registry: %s", node.Name)
 			} else {
-				glog.Errorf("Error registrying node %s, retrying: %s", node.Name, err)
+				glog.Errorf("Error registering node %s, retrying: %s", node.Name, err)
 			}
 			if registered.Len() == len(nodes.Items) {
-				glog.Infof("Successfully Registered all nodes")
+				glog.Infof("Successfully registered all nodes")
 				return nil
 			}
 		}
@@ -175,6 +186,7 @@ func (s *NodeController) SyncCloud() error {
 		if err != nil {
 			glog.Errorf("Delete node error: %s", nodeID)
 		}
+		s.deletePods(nodeID)
 	}
 
 	return nil
@@ -186,20 +198,15 @@ func (s *NodeController) SyncNodeStatus() error {
 	if err != nil {
 		return err
 	}
-	oldNodes := make(map[string]api.Node)
-	for _, node := range nodes.Items {
-		oldNodes[node.Name] = node
-	}
 	nodes = s.DoChecks(nodes)
 	nodes, err = s.PopulateIPs(nodes)
 	if err != nil {
 		return err
 	}
 	for _, node := range nodes.Items {
-		if reflect.DeepEqual(node, oldNodes[node.Name]) {
-			glog.V(2).Infof("skip updating node %v", node.Name)
-			continue
-		}
+		// We used to skip updating node when node status doesn't change, this is no longer
+		// useful after we introduce per-probe status field, e.g. 'LastProbeTime', which will
+		// differ in every call of the sync loop.
 		glog.V(2).Infof("updating node %v", node.Name)
 		_, err = s.kubeClient.Nodes().Update(&node)
 		if err != nil {
@@ -263,26 +270,81 @@ func (s *NodeController) DoChecks(nodes *api.NodeList) *api.NodeList {
 // DoCheck performs health checking for given node.
 func (s *NodeController) DoCheck(node *api.Node) []api.NodeCondition {
 	var conditions []api.NodeCondition
+
+	// Check Condition: NodeReady. TODO: More node conditions.
+	oldReadyCondition := s.getCondition(node, api.NodeReady)
+	newReadyCondition := s.checkNodeReady(node)
+	if oldReadyCondition != nil && oldReadyCondition.Status == newReadyCondition.Status {
+		// If node status doesn't change, transition time is same as last time.
+		newReadyCondition.LastTransitionTime = oldReadyCondition.LastTransitionTime
+	} else {
+		// Set transition time to Now() if node status changes or `oldReadyCondition` is nil, which
+		// happens only when the node is checked for the first time.
+		newReadyCondition.LastTransitionTime = util.Now()
+	}
+
+	if newReadyCondition.Status != api.ConditionFull {
+		// Node is not ready for this probe, we need to check if pods need to be deleted.
+		if newReadyCondition.LastProbeTime.After(newReadyCondition.LastTransitionTime.Add(s.podEvictionTimeout)) {
+			// As long as the node fails, we call delete pods to delete all pods. Node controller sync
+			// is not a closed loop process, there is no feedback from other components regarding pod
+			// status. Keep listing pods to sanity check if pods are all deleted makes more sense.
+			s.deletePods(node.Name)
+		}
+	}
+
+	conditions = append(conditions, *newReadyCondition)
+
+	return conditions
+}
+
+// checkNodeReady checks raw node ready condition, without transition timestamp set.
+func (s *NodeController) checkNodeReady(node *api.Node) *api.NodeCondition {
 	switch status, err := s.kubeletClient.HealthCheck(node.Name); {
 	case err != nil:
 		glog.V(2).Infof("NodeController: node %s health check error: %v", node.Name, err)
-		conditions = append(conditions, api.NodeCondition{
-			Kind:   api.NodeReady,
-			Status: api.ConditionUnknown,
-		})
+		return &api.NodeCondition{
+			Kind:          api.NodeReady,
+			Status:        api.ConditionUnknown,
+			Reason:        fmt.Sprintf("Node health check error: %v", err),
+			LastProbeTime: util.Now(),
+		}
 	case status == probe.Failure:
-		conditions = append(conditions, api.NodeCondition{
-			Kind:   api.NodeReady,
-			Status: api.ConditionNone,
-		})
+		return &api.NodeCondition{
+			Kind:          api.NodeReady,
+			Status:        api.ConditionNone,
+			Reason:        fmt.Sprintf("Node health check failed: kubelet /healthz endpoint returns not ok"),
+			LastProbeTime: util.Now(),
+		}
 	default:
-		conditions = append(conditions, api.NodeCondition{
-			Kind:   api.NodeReady,
-			Status: api.ConditionFull,
-		})
+		return &api.NodeCondition{
+			Kind:          api.NodeReady,
+			Status:        api.ConditionFull,
+			Reason:        fmt.Sprintf("Node health check succeeded: kubelet /healthz endpoint returns ok"),
+			LastProbeTime: util.Now(),
+		}
 	}
-	glog.V(5).Infof("NodeController: node %q status was %+v", node.Name, conditions)
-	return conditions
+}
+
+// deletePods will delete all pods from master running on given node.
+func (s *NodeController) deletePods(nodeID string) error {
+	glog.V(2).Infof("Delete all pods from %v", nodeID)
+	// TODO: We don't yet have field selectors from client, see issue #1362.
+	pods, err := s.kubeClient.Pods(api.NamespaceAll).List(labels.Everything())
+	if err != nil {
+		return err
+	}
+	for _, pod := range pods.Items {
+		if pod.Status.Host != nodeID {
+			continue
+		}
+		glog.V(2).Infof("Delete pod %v", pod.Name)
+		if err := s.kubeClient.Pods(api.NamespaceAll).Delete(pod.Name); err != nil {
+			glog.Errorf("Error deleting pod %v", pod.Name)
+		}
+	}
+
+	return nil
 }
 
 // StaticNodes constructs and returns api.NodeList for static nodes. If error
@@ -340,4 +402,15 @@ func (s *NodeController) canonicalizeName(nodes *api.NodeList) *api.NodeList {
 		nodes.Items[i].Name = strings.ToLower(nodes.Items[i].Name)
 	}
 	return nodes
+}
+
+// getCondition returns a condition object for the specific condition
+// kind, nil if the condition is not set.
+func (s *NodeController) getCondition(node *api.Node, kind api.NodeConditionKind) *api.NodeCondition {
+	for i := range node.Status.Conditions {
+		if node.Status.Conditions[i].Kind == kind {
+			return &node.Status.Conditions[i]
+		}
+	}
+	return nil
 }

@@ -162,11 +162,17 @@ func TestHelperCreate(t *testing.T) {
 			Req:          expectPost,
 		},
 		{
-			Modify:       true,
-			Object:       &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
-			ExpectObject: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
-			Resp:         &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Status{Status: api.StatusSuccess})},
-			Req:          expectPost,
+			Modify: true,
+			Object: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
+			ExpectObject: &api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Spec: api.PodSpec{
+					RestartPolicy: api.RestartPolicy{Always: &api.RestartPolicyAlways{}},
+					DNSPolicy:     api.DNSClusterFirst,
+				},
+			},
+			Resp: &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Status{Status: api.StatusSuccess})},
+			Req:  expectPost,
 		},
 	}
 	for i, test := range tests {
@@ -312,7 +318,7 @@ func TestHelperList(t *testing.T) {
 					t.Errorf("unexpected method: %#v", req)
 					return false
 				}
-				if req.URL.Path != "/ns/bar" {
+				if req.URL.Path != "/namespaces/bar" {
 					t.Errorf("url doesn't contain name: %#v", req.URL)
 					return false
 				}
@@ -400,9 +406,14 @@ func TestHelperUpdate(t *testing.T) {
 			Req: expectPut,
 		},
 		{
-			Object:       &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
-			ExpectObject: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
-
+			Object: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
+			ExpectObject: &api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"},
+				Spec: api.PodSpec{
+					RestartPolicy: api.RestartPolicy{Always: &api.RestartPolicyAlways{}},
+					DNSPolicy:     api.DNSClusterFirst,
+				},
+			},
 			Overwrite: true,
 			RespFunc: func(req *http.Request) (*http.Response, error) {
 				if req.Method == "PUT" {

@@ -218,11 +218,13 @@ func (h *HumanReadablePrinter) validatePrintHandlerFunc(printFunc reflect.Value)
 var podColumns = []string{"POD", "IP", "CONTAINER(S)", "IMAGE(S)", "HOST", "LABELS", "STATUS"}
 var replicationControllerColumns = []string{"CONTROLLER", "CONTAINER(S)", "IMAGE(S)", "SELECTOR", "REPLICAS"}
 var serviceColumns = []string{"NAME", "LABELS", "SELECTOR", "IP", "PORT"}
+var endpointColumns = []string{"NAME", "ENDPOINTS"}
 var minionColumns = []string{"NAME", "LABELS", "STATUS"}
 var statusColumns = []string{"STATUS"}
-var eventColumns = []string{"TIME", "NAME", "KIND", "SUBOBJECT", "REASON", "SOURCE", "MESSAGE"}
+var eventColumns = []string{"FIRSTSEEN", "LASTSEEN", "COUNT", "NAME", "KIND", "SUBOBJECT", "REASON", "SOURCE", "MESSAGE"}
 var limitRangeColumns = []string{"NAME"}
 var resourceQuotaColumns = []string{"NAME"}
+var namespaceColumns = []string{"NAME", "LABELS"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -232,6 +234,7 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(replicationControllerColumns, printReplicationControllerList)
 	h.Handler(serviceColumns, printService)
 	h.Handler(serviceColumns, printServiceList)
+	h.Handler(endpointColumns, printEndpoints)
 	h.Handler(minionColumns, printMinion)
 	h.Handler(minionColumns, printMinionList)
 	h.Handler(statusColumns, printStatus)
@@ -241,6 +244,8 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(limitRangeColumns, printLimitRangeList)
 	h.Handler(resourceQuotaColumns, printResourceQuota)
 	h.Handler(resourceQuotaColumns, printResourceQuotaList)
+	h.Handler(namespaceColumns, printNamespace)
+	h.Handler(namespaceColumns, printNamespaceList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -253,6 +258,13 @@ func (h *HumanReadablePrinter) printHeader(columnNames []string, w io.Writer) er
 		return err
 	}
 	return nil
+}
+
+func stringList(list []string) string {
+	if len(list) == 0 {
+		return "<empty>"
+	}
+	return strings.Join(list, ",")
 }
 
 func podHostString(host, ip string) string {
@@ -352,6 +364,25 @@ func printServiceList(list *api.ServiceList, w io.Writer) error {
 	return nil
 }
 
+func printEndpoints(endpoint *api.Endpoints, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\n", endpoint.Name, stringList(endpoint.Endpoints))
+	return err
+}
+
+func printNamespace(item *api.Namespace, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\n", item.Name, formatLabels(item.Labels))
+	return err
+}
+
+func printNamespaceList(list *api.NamespaceList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printNamespace(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func printMinion(minion *api.Node, w io.Writer) error {
 	conditionMap := make(map[api.NodeConditionKind]*api.NodeCondition)
 	NodeAllConditions := []api.NodeConditionKind{api.NodeReady, api.NodeReachable}
@@ -392,8 +423,10 @@ func printStatus(status *api.Status, w io.Writer) error {
 
 func printEvent(event *api.Event, w io.Writer) error {
 	_, err := fmt.Fprintf(
-		w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-		event.Timestamp.Time.Format(time.RFC1123Z),
+		w, "%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		event.FirstTimestamp.Time.Format(time.RFC1123Z),
+		event.LastTimestamp.Time.Format(time.RFC1123Z),
+		event.Count,
 		event.InvolvedObject.Name,
 		event.InvolvedObject.Kind,
 		event.InvolvedObject.FieldPath,

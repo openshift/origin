@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -64,25 +63,19 @@ func TestDeleteBuild(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	configID := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, err := storage.Delete(kapi.NewDefaultContext(), configID)
+	obj, err := storage.Delete(kapi.NewDefaultContext(), configID)
 	if err != nil {
 		t.Errorf("Unexpected error when deleting: %v", err)
 	}
-	select {
-	case result := <-channel:
-		status, ok := result.Object.(*kapi.Status)
-		if !ok {
-			t.Errorf("Unexpected operation result: %v", result)
-		}
-		if status.Status != kapi.StatusSuccess {
-			t.Errorf("Unexpected failure status: %v", status)
-		}
-		if mockRegistry.DeletedConfigID != configID {
-			t.Errorf("Unexpected build id was deleted: %v", mockRegistry.DeletedConfigID)
-		}
-		// expected case
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	status, ok := obj.(*kapi.Status)
+	if !ok {
+		t.Errorf("Unexpected operation result: %v", obj)
+	}
+	if status.Status != kapi.StatusSuccess {
+		t.Errorf("Unexpected failure status: %v", status)
+	}
+	if mockRegistry.DeletedConfigID != configID {
+		t.Errorf("Unexpected build id was deleted: %v", mockRegistry.DeletedConfigID)
 	}
 }
 
@@ -90,18 +83,9 @@ func TestDeleteBuildError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Delete error")}
 	configID := "test-config-id"
 	storage := REST{&mockRegistry}
-	channel, _ := storage.Delete(kapi.NewDefaultContext(), configID)
-	select {
-	case result := <-channel:
-		status, ok := result.Object.(*kapi.Status)
-		if !ok {
-			t.Errorf("Unexpected operation result: %#v", channel)
-		}
-		if status.Message != mockRegistry.Err.Error() {
-			t.Errorf("Unexpected status returned: %#v", status)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	_, err := storage.Delete(kapi.NewDefaultContext(), configID)
+	if err != mockRegistry.Err {
+		t.Errorf("Unexpected error returned: %#v", err)
 	}
 }
 
@@ -235,19 +219,9 @@ func TestCreateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Create(kapi.NewDefaultContext(), buildConfig)
+	_, err := storage.Create(kapi.NewDefaultContext(), buildConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
-	}
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	select {
-	case <-channel:
-		// expected case
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
 	}
 }
 
@@ -284,26 +258,21 @@ func TestUpdateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Update(kapi.NewDefaultContext(), buildConfig)
-	if err != nil {
+	obj, created, err := storage.Update(kapi.NewDefaultContext(), buildConfig)
+	if err != nil || created {
 		t.Errorf("unexpected error: %v", err)
 	}
-	select {
-	case result := <-channel:
-		switch obj := result.Object.(type) {
-		case *kapi.Status:
-			t.Errorf("Unexpected operation error: %v", obj)
+	switch obj.(type) {
+	case *kapi.Status:
+		t.Errorf("Unexpected operation error: %v", obj)
 
-		case *api.BuildConfig:
-			if !reflect.DeepEqual(buildConfig, obj) {
-				t.Errorf("Updated build does not match input build."+
-					" Expected: %v, Got: %v", buildConfig, obj)
-			}
-		default:
-			t.Errorf("Unexpected result type: %v", result)
+	case *api.BuildConfig:
+		if !reflect.DeepEqual(buildConfig, obj) {
+			t.Errorf("Updated build does not match input build."+
+				" Expected: %v, Got: %v", buildConfig, obj)
 		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	default:
+		t.Errorf("Unexpected result type: %v", obj)
 	}
 }
 
@@ -311,22 +280,9 @@ func TestUpdateBuildConfigError(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{Err: fmt.Errorf("Update error")}
 	storage := REST{&mockRegistry}
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Update(kapi.NewDefaultContext(), buildConfig)
-	if err != nil {
+	_, _, err := storage.Update(kapi.NewDefaultContext(), buildConfig)
+	if err != mockRegistry.Err {
 		t.Errorf("unexpected error: %v", err)
-	}
-	select {
-	case result := <-channel:
-		switch obj := result.Object.(type) {
-		case *kapi.Status:
-			if obj.Message != mockRegistry.Err.Error() {
-				t.Errorf("Unexpected error result: %v", obj)
-			}
-		default:
-			t.Errorf("Unexpected result type: %v", result)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
 	}
 }
 
@@ -392,7 +348,7 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 	for desc, failureCase := range failureCases {
 		c, err := storage.Create(kapi.NewDefaultContext(), &failureCase)
 		if c != nil {
-			t.Errorf("%s: Expected nil channel", desc)
+			t.Errorf("%s: Expected nil object", desc)
 		}
 		if !errors.IsInvalid(err) {
 			t.Errorf("%s: Expected to get an invalid resource error, got %v", desc, err)
@@ -474,9 +430,9 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 		},
 	}
 	for desc, failureCase := range failureCases {
-		c, err := storage.Update(kapi.NewDefaultContext(), &failureCase)
-		if c != nil {
-			t.Errorf("%s: Expected nil channel", desc)
+		c, created, err := storage.Update(kapi.NewDefaultContext(), &failureCase)
+		if c != nil || created {
+			t.Errorf("%s: Expected nil object", desc)
 		}
 		if !errors.IsInvalid(err) {
 			t.Errorf("%s: Expected to get an invalid resource error, got %v", desc, err)
@@ -487,12 +443,12 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 func TestCreateBuildConfigConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.BuildConfig{
+	obj, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "some-value"},
 	})
 
-	if channel != nil {
-		t.Error("Expected a nil channel, but we got a value")
+	if obj != nil {
+		t.Error("Expected a nil object, but we got a value")
 	}
 
 	checkExpectedNamespaceError(t, err)
@@ -503,10 +459,10 @@ func TestUpdateBuildConfigConflictingNamespace(t *testing.T) {
 	storage := REST{&mockRegistry}
 
 	buildConfig := mockBuildConfig()
-	channel, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), buildConfig)
+	obj, created, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), buildConfig)
 
-	if channel != nil {
-		t.Error("Expected a nil channel, but we got a value")
+	if obj != nil || created {
+		t.Error("Expected a nil object, but we got a value")
 	}
 
 	checkExpectedNamespaceError(t, err)

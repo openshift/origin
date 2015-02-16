@@ -246,8 +246,7 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
 	}
 
-	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
 	return openshift
 }

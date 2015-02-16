@@ -4,7 +4,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -132,25 +131,9 @@ func TestDeleteError(t *testing.T) {
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	channel, err := storage.Delete(ctx, "foo")
-	if err != nil {
+	_, err := storage.Delete(ctx, "foo")
+	if err != registry.Err {
 		t.Errorf("unexpected error: %v", err)
-	}
-
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *kapi.Status:
-			if r.Message == registry.Err.Error() {
-				// expected case
-			} else {
-				t.Errorf("Got back unexpected error: %#v", r)
-			}
-		default:
-			t.Errorf("Got back non-status result: %v", r)
-		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
 	}
 }
 
@@ -161,23 +144,18 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	channel, err := storage.Delete(ctx, "foo")
+	obj, err := storage.Delete(ctx, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	select {
-	case r := <-channel:
-		switch r := r.Object.(type) {
-		case *kapi.Status:
-			if r.Status != "Success" {
-				t.Errorf("Got back non-success status: %#v", r)
-			}
-		default:
-			t.Errorf("Got back non-status result: %v", r)
+	switch r := obj.(type) {
+	case *kapi.Status:
+		if r.Status != "Success" {
+			t.Errorf("Got back non-success status: %#v", r)
 		}
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Unexpected timeout from async channel")
+	default:
+		t.Errorf("Got back non-status result: %v", r)
 	}
 
 	if registry.DeletedPolicyName != "foo" {

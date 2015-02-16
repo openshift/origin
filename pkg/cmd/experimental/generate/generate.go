@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -108,7 +108,7 @@ func NewCmdGenerate(name string) *cobra.Command {
 					exitWithError(err)
 				}
 			}
-			if envParam := kubecmd.GetFlagString(c, "environment"); len(envParam) > 0 {
+			if envParam := kcmdutil.GetFlagString(c, "environment"); len(envParam) > 0 {
 				envVars := strings.Split(envParam, ",")
 				env, _, errs := cmdutil.ParseEnvironmentArguments(envVars)
 				if len(errs) > 0 {
