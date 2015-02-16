@@ -1,0 +1,44 @@
+{
+    "kind": "List",
+    "apiVersion": "v1beta1",
+    "items": [
+        {
+            "kind": "Service",
+            "id": "hello-openshift",
+            "apiVersion": "v1beta1",
+            "namespace": "example",
+            "port": 5432,
+            "protocol": "TCP",
+            "labels": {
+                "template": "hello-openshift"
+            },
+            "selector": {
+                "name": "hello-openshift"
+            },
+            "containerPort": 8080,
+            "sessionAffinity": "None"
+        },
+        {
+          "id": "hello-openshift",
+          "kind": "Pod",
+          "apiVersion":"v1beta2",
+          "namespace": "example",          
+          "labels": {
+            "name": "hello-openshift"
+          },
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "hello-openshift",
+              "containers": [{
+                "name": "hello-openshift",
+                "image": "openshift/hello-openshift",
+                "ports": [{
+                  "containerPort": 8080
+                }]
+              }]
+            }
+          },
+        }        
+    ]
+}
