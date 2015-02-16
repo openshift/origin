@@ -320,7 +320,7 @@ func (r *Request) finalURL() string {
 		query.Add(key, value)
 	}
 
-	if r.namespaceSet && r.namespaceInQuery && len(r.namespace) > 0 {
+	if r.namespaceSet && r.namespaceInQuery {
 		query.Add("namespace", r.namespace)
 	}
 
