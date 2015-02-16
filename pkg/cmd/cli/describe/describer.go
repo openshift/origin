@@ -8,7 +8,7 @@ import (
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -283,7 +283,7 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 			fmt.Fprint(out, key+"\tVerbs\tResources\tExtension\n")
 			for _, rule := range role.Rules {
 				extensionString := ""
-				if rule.AttributeRestrictions != (kruntime.EmbeddedObject{}) {
+				if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
 					extensionString = fmt.Sprintf("%v", rule.AttributeRestrictions)
 				}
 
