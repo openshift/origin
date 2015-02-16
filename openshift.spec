@@ -23,7 +23,7 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.3.0
+Version:        0.3.1
 #Release:        1git%{shortcommit}%{?dist}
 Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
