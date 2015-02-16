@@ -2,7 +2,7 @@ package v1beta1
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
-	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -20,7 +20,7 @@ type PolicyRule struct {
 	Verbs []string `json:"verbs"`
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	AttributeRestrictions kruntime.RawExtension `json:"attributeRestrictions"`
+	AttributeRestrictions runtime.RawExtension `json:"attributeRestrictions"`
 	// ResourceKinds is a list of resources this rule applies to.  ResourceAll represents all resources.
 	// DEPRECATED
 	ResourceKinds []string `json:"resourceKinds,omitempty"`
@@ -106,7 +106,7 @@ type ResourceAccessReview struct {
 	// Resource is one of the existing resource types
 	Resource string `json:"resource"`
 	// Content is the actual content of the request for create and update
-	Content kruntime.RawExtension `json:"content,omitempty"`
+	Content runtime.RawExtension `json:"content,omitempty"`
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string `json:"resourceName,omitempty"`
 }
@@ -146,7 +146,7 @@ type SubjectAccessReview struct {
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
 	Groups []string `json:"groups"`
 	// Content is the actual content of the request for create and update
-	Content kruntime.RawExtension `json:"content,omitempty"`
+	Content runtime.RawExtension `json:"content,omitempty"`
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string `json:"resourceName"`
 }
