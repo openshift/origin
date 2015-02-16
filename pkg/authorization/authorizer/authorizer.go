@@ -13,7 +13,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
-	authcontext "github.com/openshift/origin/pkg/auth/context"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -58,12 +57,12 @@ type DefaultAuthorizationAttributes struct {
 }
 
 type openshiftAuthorizationAttributeBuilder struct {
-	requestsToUsers *authcontext.RequestContextMap
-	infoResolver    *APIRequestInfoResolver
+	contextMapper kapi.RequestContextMapper
+	infoResolver  *APIRequestInfoResolver
 }
 
-func NewAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap, infoResolver *APIRequestInfoResolver) AuthorizationAttributeBuilder {
-	return &openshiftAuthorizationAttributeBuilder{requestsToUsers, infoResolver}
+func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoResolver *APIRequestInfoResolver) AuthorizationAttributeBuilder {
+	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoResolver}
 }
 
 func doesApplyToUser(ruleUsers, ruleGroups []string, user user.Info) bool {
@@ -386,13 +385,13 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		requestInfo.Namespace = requestInfo.Name
 	}
 
-	userInterface, ok := a.requestsToUsers.Get(req)
+	ctx, ok := a.contextMapper.Get(req)
+	if !ok {
+		return nil, errors.New("could not get request context")
+	}
+	userInfo, ok := kapi.UserFrom(ctx)
 	if !ok {
 		return nil, errors.New("could not get user")
-	}
-	userInfo, ok := userInterface.(user.Info)
-	if !ok {
-		return nil, errors.New("wrong type returned for user")
 	}
 
 	return DefaultAuthorizationAttributes{
