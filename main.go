@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path"
 	"strings"
@@ -51,14 +50,18 @@ func init() {
 	flag.BoolVar(&opts.help, "help", false, "print this message")
 }
 
-func newNetworkManager() controller.Controller {
+func newNetworkManager() (controller.Controller, error) {
 	sub := newSubnetRegistry()
-	fqdn := opts.hostname
-	if fqdn == "" {
-		fqdn_bytes, _ := exec.Command("hostname", "-f").CombinedOutput()
-		fqdn = strings.TrimSpace(string(fqdn_bytes))
+	host := opts.hostname
+	var err error
+	if host == "" {
+		host, err = os.Hostname()
+		if err != nil {
+			return nil, err
+		}
 	}
-	return controller.NewController(sub, string(fqdn), opts.ip)
+
+	return controller.NewController(sub, string(host), opts.ip), nil
 }
 
 func newSubnetRegistry() registry.SubnetRegistry {
@@ -109,17 +112,19 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
-	be := newNetworkManager()
+	be, err := newNetworkManager()
+	if err != nil {
+		log.Fatalf("Failed to create new network manager: %v", err)
+	}
 	if opts.minion {
 		err := be.StartNode(opts.sync, opts.skipsetup)
 		if err != nil {
-			return
+			log.Fatalf("Failed to start openshift sdn in node mode: %v", err)
 		}
 	} else if opts.master {
 		err := be.StartMaster(opts.sync)
 		if err != nil {
-			log.Error(err)
-			return
+			log.Fatalf("Failed to start openshift sdn in master mode: %v", err)
 		}
 	}
 
