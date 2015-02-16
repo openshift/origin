@@ -529,7 +529,7 @@
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Comment": "0.2.1-357-gd197177",
-			"Rev": "d19717788084716e4adff0515be6289aa04bec46"
+			"Rev": "e1e2cc5b83662b894c6871db875c37eb3725a045"
 		},
 		{
 			"ImportPath": "github.com/getsentry/raven-go",
