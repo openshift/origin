@@ -43,7 +43,7 @@ func (r *TestRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
 	return
 }
 
-// AddEndpoints adds the endpoints to the serivce unit identified by id
+// AddEndpoints adds the endpoints to the service unit identified by id
 func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	r.Committed = false //expect any call to this method to subsequently call commit
 	su, _ := r.FindServiceUnit(id)
@@ -82,7 +82,7 @@ func (r *TestRouter) AddRoute(id string, route *routeapi.Route) {
 	r.State[id] = su
 }
 
-// RemoveRoute removes the serivce alias config for Route from the ServiceUnit
+// RemoveRoute removes the service alias config for Route from the ServiceUnit
 func (r *TestRouter) RemoveRoute(id string, route *routeapi.Route) {
 	r.Committed = false //expect any call to this method to subsequently call commit
 	if _, ok := r.State[id]; !ok {

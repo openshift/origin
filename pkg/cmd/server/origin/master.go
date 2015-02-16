@@ -369,7 +369,7 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 	return []string{}
 }
 
-//initAPIVersionRoute initializes the osapi endpoint to behave similiar to the upstream api endpoint
+//initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, version string) {
 	versionHandler := apiserver.APIVersionHandler(version)
 	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).

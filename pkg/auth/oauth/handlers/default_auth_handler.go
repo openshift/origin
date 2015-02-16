@@ -10,14 +10,14 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
 
-// unionAuthenticationHandler is an oauth.AuthenticationHandler that muxes multiple challange handlers and redirect handlers
+// unionAuthenticationHandler is an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
 type unionAuthenticationHandler struct {
 	challengers  map[string]AuthenticationChallenger
 	redirectors  map[string]AuthenticationRedirector
 	errorHandler AuthenticationErrorHandler
 }
 
-// NewUnionAuthenticationHandler returns an oauth.AuthenticationHandler that muxes multiple challange handlers and redirect handlers
+// NewUnionAuthenticationHandler returns an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
 func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors map[string]AuthenticationRedirector, errorHandler AuthenticationErrorHandler) AuthenticationHandler {
 	challengers := passedChallengers
 	if challengers == nil {

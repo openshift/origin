@@ -10,7 +10,7 @@ import (
 
 // Registry is an interface for things that know how to store Policies.
 type Registry interface {
-	// ListPolicies obtains list of policys that match a selector.
+	// ListPolicies obtains list of policies that match a selector.
 	ListPolicies(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.PolicyList, error)
 	// GetPolicy retrieves a specific policy.
 	GetPolicy(ctx kapi.Context, id string) (*authorizationapi.Policy, error)

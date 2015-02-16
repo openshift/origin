@@ -206,11 +206,11 @@ type AuthConfig struct {
 	// GoogleClientID is the client_secret of a client registered with the Google OAuth provider.
 	GoogleClientSecret string
 
-	// GithubClientID is the client_id of a client registered with the Github OAuth provider.
+	// GithubClientID is the client_id of a client registered with the GitHub OAuth provider.
 	// It must be authorized to redirect to {MasterPublicAddr}/oauth2callback/github
 	// Used by AuthHandlerGithub
 	GithubClientID string
-	// GithubClientID is the client_secret of a client registered with the Github OAuth provider.
+	// GithubClientID is the client_secret of a client registered with the GitHub OAuth provider.
 	GithubClientSecret string
 }
 
@@ -414,7 +414,7 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
 	successHandler := c.getAuthenticationSuccessHandler()
 
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authHandler handlers.AuthenticationHandler
 	authHandlerType := c.AuthHandler
@@ -458,7 +458,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 }
 
 func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	passwordAuthType := c.PasswordAuth
 	userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
@@ -504,7 +504,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 }
 
 func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType AuthRequestHandlerType) authenticator.Request {
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandler authenticator.Request
 	switch authRequestHandlerType {
@@ -545,7 +545,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 }
 
 func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandlers []authenticator.Request
 	for _, requestHandler := range c.AuthRequestHandlers {

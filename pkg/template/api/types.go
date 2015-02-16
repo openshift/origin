@@ -38,7 +38,7 @@ type Parameter struct {
 	From string `json:"from,omitempty"`
 
 	// Optional: Value holds the Parameter data. The Value data can be
-	// overwritten by the generator. The value replaces all occurances
+	// overwritten by the generator. The value replaces all occurrences
 	// of the Parameter ${Name} expression during the Template to Config
 	// transformation.
 	Value string `json:"value,omitempty"`
