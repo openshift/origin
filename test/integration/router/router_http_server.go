@@ -8,6 +8,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+
+	"golang.org/x/net/websocket"
 )
 
 // NewTestHttpServer creates a new TestHttpService using default locations for listening address
@@ -18,14 +20,15 @@ func NewTestHttpService() *TestHttpService {
 	routeChannel := make(chan string)
 
 	return &TestHttpService{
-		MasterHttpAddr:  "0.0.0.0:8080",
-		PodHttpAddr:     "0.0.0.0:8888",
-		PodHttpsAddr:    "0.0.0.0:8443",
-		PodHttpsCert:    []byte(Example2Cert),
-		PodHttpsKey:     []byte(Example2Key),
-		PodHttpsCaCert:  []byte(ExampleCACert),
-		EndpointChannel: endpointChannel,
-		RouteChannel:    routeChannel,
+		MasterHttpAddr:   "0.0.0.0:8080",
+		PodHttpAddr:      "0.0.0.0:8888",
+		PodHttpsAddr:     "0.0.0.0:8443",
+		PodWebSocketPath: "echo",
+		PodHttpsCert:     []byte(Example2Cert),
+		PodHttpsKey:      []byte(Example2Key),
+		PodHttpsCaCert:   []byte(ExampleCACert),
+		EndpointChannel:  endpointChannel,
+		RouteChannel:     routeChannel,
 	}
 }
 
@@ -38,14 +41,15 @@ func NewTestHttpService() *TestHttpService {
 //
 // List events will return empty data for all calls.
 type TestHttpService struct {
-	MasterHttpAddr  string
-	PodHttpAddr     string
-	PodHttpsAddr    string
-	PodHttpsCert    []byte
-	PodHttpsKey     []byte
-	PodHttpsCaCert  []byte
-	EndpointChannel chan string
-	RouteChannel    chan string
+	MasterHttpAddr   string
+	PodHttpAddr      string
+	PodHttpsAddr     string
+	PodHttpsCert     []byte
+	PodHttpsKey      []byte
+	PodHttpsCaCert   []byte
+	PodWebSocketPath string
+	EndpointChannel  chan string
+	RouteChannel     chan string
 
 	listeners []net.Listener
 }
@@ -94,6 +98,15 @@ func (s *TestHttpService) handleEndpointList(w http.ResponseWriter, r *http.Requ
 	fmt.Fprintln(w, "{}")
 }
 
+// handleWebSocket copies whatever is written to the web socket back to the socket
+func (s *TestHttpService) handleWebSocket(ws *websocket.Conn) {
+	_, err := io.Copy(ws, ws)
+
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Stop stops the service by closing any registered listeners
 func (s *TestHttpService) Stop() {
 	if s.listeners != nil && len(s.listeners) > 0 {
@@ -111,6 +124,18 @@ func (s *TestHttpService) Stop() {
 func (s *TestHttpService) Start() error {
 	s.listeners = make([]net.Listener, 3)
 
+	if err := s.startMaster(); err != nil {
+		return err
+	}
+
+	if err := s.startPod(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *TestHttpService) startMaster() error {
 	masterServer := http.NewServeMux()
 	masterServer.HandleFunc("/api/v1beta1/endpoints", s.handleEndpointList)
 	masterServer.HandleFunc("/api/v1beta1/watch/endpoints", s.handleEndpointWatch)
@@ -124,14 +149,21 @@ func (s *TestHttpService) Start() error {
 		return err
 	}
 
+	return nil
+}
+
+func (s *TestHttpService) startPod() error {
 	unsecurePodServer := http.NewServeMux()
 	unsecurePodServer.HandleFunc("/", s.handleHelloPod)
+	unsecurePodServer.Handle("/"+s.PodWebSocketPath, websocket.Handler(s.handleWebSocket))
+
 	if err := s.startServing(s.PodHttpAddr, unsecurePodServer); err != nil {
 		return err
 	}
 
 	securePodServer := http.NewServeMux()
 	securePodServer.HandleFunc("/", s.handleHelloPodSecure)
+	securePodServer.Handle("/"+s.PodWebSocketPath, websocket.Handler(s.handleWebSocket))
 	if err := s.startServingTLS(s.PodHttpsAddr, s.PodHttpsCert, s.PodHttpsKey, s.PodHttpsCaCert, securePodServer); err != nil {
 		return err
 	}

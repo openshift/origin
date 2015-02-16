@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/websocket"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	dockerClient "github.com/fsouza/go-dockerclient"
@@ -18,7 +20,15 @@ import (
 	tr "github.com/openshift/origin/test/integration/router"
 )
 
-const defaultRouterImage = "openshift/origin-haproxy-router"
+const (
+	defaultRouterImage = "openshift/origin-haproxy-router"
+
+	tcWaitSeconds = 1
+	tcRetries     = 3
+
+	dockerWaitSeconds = 1
+	dockerRetries     = 3
+)
 
 // init ensures docker exists for this test
 func init() {
@@ -67,6 +77,7 @@ func TestRouter(t *testing.T) {
 		protocol          string
 		expectedResponse  string
 		routeTLS          *routeapi.TLSConfig
+		routerUrl         string
 	}{
 		{
 			name:              "non-secure",
@@ -78,6 +89,7 @@ func TestRouter(t *testing.T) {
 			protocol:          "http",
 			expectedResponse:  tr.HelloPod,
 			routeTLS:          nil,
+			routerUrl:         "0.0.0.0",
 		},
 		{
 			name:              "edge termination",
@@ -94,6 +106,7 @@ func TestRouter(t *testing.T) {
 				Key:           tr.ExampleKey,
 				CACertificate: tr.ExampleCACert,
 			},
+			routerUrl: "0.0.0.0",
 		},
 		{
 			name:              "passthrough termination",
@@ -107,10 +120,51 @@ func TestRouter(t *testing.T) {
 			routeTLS: &routeapi.TLSConfig{
 				Termination: routeapi.TLSTerminationPassthrough,
 			},
+			routerUrl: "0.0.0.0",
+		},
+		{
+			name:              "websocket unsecure",
+			serviceName:       "websocket-unsecure",
+			endpoints:         []string{fakeMasterAndPod.PodHttpAddr},
+			routeAlias:        "0.0.0.0:80",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "ws",
+			expectedResponse:  "hello-websocket-unsecure",
+			routerUrl:         "0.0.0.0:80/echo",
+		},
+		{
+			name:              "ws edge termination",
+			serviceName:       "websocket-edge",
+			endpoints:         []string{fakeMasterAndPod.PodHttpAddr},
+			routeAlias:        "0.0.0.0:443",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "wss",
+			expectedResponse:  "hello-websocket-edge",
+			routeTLS: &routeapi.TLSConfig{
+				Termination:   routeapi.TLSTerminationEdge,
+				Certificate:   tr.ExampleCert,
+				Key:           tr.ExampleKey,
+				CACertificate: tr.ExampleCACert,
+			},
+			routerUrl: "0.0.0.0:443/echo",
+		},
+		{
+			name:              "ws passthrough termination",
+			serviceName:       "websocket-passthrough",
+			endpoints:         []string{fakeMasterAndPod.PodHttpsAddr},
+			routeAlias:        "0.0.0.0:443",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "wss",
+			expectedResponse:  "hello-websocket-passthrough",
+			routeTLS: &routeapi.TLSConfig{
+				Termination: routeapi.TLSTerminationPassthrough,
+			},
+			routerUrl: "0.0.0.0:443/echo",
 		},
 	}
-
-	routerUrl := "0.0.0.0"
 
 	for _, tc := range testCases {
 		//simulate the events
@@ -145,59 +199,102 @@ func TestRouter(t *testing.T) {
 		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 
-		//allow the router time to pick up and process the watches
-		time.Sleep(time.Second * 5)
+		for i := 0; i < tcRetries; i++ {
+			//wait for router to pick up configs
+			time.Sleep(time.Second * tcWaitSeconds)
+			//now verify the route with an http client
+			resp, err := getRoute(tc.routerUrl, tc.routeAlias, tc.protocol, tc.expectedResponse)
 
-		//now verify the route with an http client
-		resp, err := getRoute(routerUrl, tc.routeAlias, tc.protocol)
+			if err != nil {
+				if i != 2 {
+					continue
+				}
+				t.Errorf("Unable to verify response: %v", err)
+			}
 
-		if err != nil {
-			t.Errorf("Unable to verify response: %v", err)
+			if resp != tc.expectedResponse {
+				t.Errorf("TC %s failed! Response body %v did not match expected %v", tc.name, resp, tc.expectedResponse)
+			} else {
+				//good to go, stop trying
+				break
+			}
 		}
 
-		var respBody = make([]byte, len([]byte(tc.expectedResponse)))
-		resp.Body.Read(respBody)
+		//clean up
+		routeEvent.Type = watch.Deleted
+		endpointEvent.Type = watch.Deleted
 
-		if string(respBody) != tc.expectedResponse {
-			t.Errorf("TC %s failed! Response body %v did not match expected %v", tc.name, string(respBody), tc.expectedResponse)
-		}
+		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
+		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 	}
 }
 
 // getRoute is a utility function for making the web request to a route.  Protocol is either http or https.  If the
 // protocol is https then getRoute will make a secure transport client with InsecureSkipVerify: true.  Http does a plain
 // http client request.
-func getRoute(routerUrl string, hostName string, protocol string) (response *http.Response, err error) {
+func getRoute(routerUrl string, hostName string, protocol string, expectedResponse string) (response string, err error) {
 	url := protocol + "://" + routerUrl
-	var httpClient *http.Client
+	var tlsConfig *tls.Config
 
-	if protocol == "https" {
-		secureTransport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-				ServerName:         hostName,
-			},
+	if protocol == "https" || protocol == "wss" {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+			ServerName:         hostName,
 		}
-		httpClient = &http.Client{Transport: secureTransport}
-
-	} else {
-		httpClient = &http.Client{}
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	switch protocol {
+	case "http", "https":
+		httpClient := &http.Client{Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+		}
+		req, err := http.NewRequest("GET", url, nil)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return "", err
+		}
+
+		req.Host = hostName
+		resp, err := httpClient.Do(req)
+
+		if err != nil {
+			return "", err
+		}
+
+		var respBody = make([]byte, len([]byte(expectedResponse)))
+		resp.Body.Read(respBody)
+
+		return string(respBody), nil
+	case "ws", "wss":
+		wsConfig, err := websocket.NewConfig(url, "http://localhost/")
+		if err != nil {
+			return "", err
+		}
+
+		wsConfig.Header.Set("Host", hostName)
+		wsConfig.TlsConfig = tlsConfig
+
+		ws, err := websocket.DialConfig(wsConfig)
+		if err != nil {
+			return "", err
+		}
+
+		_, err = ws.Write([]byte(expectedResponse))
+		if err != nil {
+			return "", err
+		}
+
+		var msg = make([]byte, len(expectedResponse))
+		_, err = ws.Read(msg)
+		if err != nil {
+			return "", err
+		}
+
+		return string(msg), nil
 	}
 
-	req.Host = hostName
-	resp, err := httpClient.Do(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return "", errors.New("Unrecognized protocol in getRoute")
 }
 
 // eventString marshals the event into a string
@@ -249,7 +346,7 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 	running := false
 
 	//wait for it to start
-	for i := 0; i < 3; i++ {
+	for i := 0; i < dockerRetries; i++ {
 		c, err := dockerCli.InspectContainer(container.ID)
 
 		if err != nil {
@@ -260,7 +357,7 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 			running = true
 			break
 		}
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second * dockerWaitSeconds)
 	}
 
 	if !running {

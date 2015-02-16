@@ -119,7 +119,7 @@ backend openshift_default
   option http-pretend-keepalive
   server openshift_backend 127.0.0.1:8080
 
-##-------------- app level unencrypted backends ----------------
+##-------------- app level backends ----------------
 {{/*
     Create backends as follows:
         1. if the config is terminated at the edge or termination is not set create a be_http_<service> backend,
@@ -151,6 +151,7 @@ backend be_tcp_{{$id}}
 
             {{ if eq $cfg.TLSTermination "reencrypt" }}
 backend be_secure_{{$id}}
+  mode http
   balance leastconn
   timeout check 5000ms
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
