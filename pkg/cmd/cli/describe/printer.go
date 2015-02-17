@@ -25,7 +25,7 @@ var (
 	buildConfigColumns      = []string{"NAME", "TYPE", "SOURCE"}
 	imageColumns            = []string{"NAME", "DOCKER REF"}
 	imageRepositoryColumns  = []string{"NAME", "DOCKER REPO", "TAGS"}
-	projectColumns          = []string{"NAME", "DISPLAY NAME", "NAMESPACE"}
+	projectColumns          = []string{"NAME", "DISPLAY NAME"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST VERSION"}
@@ -163,7 +163,7 @@ func printImageRepositoryList(repos *imageapi.ImageRepositoryList, w io.Writer) 
 }
 
 func printProject(project *projectapi.Project, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.DisplayName, project.Namespace)
+	_, err := fmt.Fprintf(w, "%s\t%s\n", project.Name, project.DisplayName)
 	return err
 }
 
