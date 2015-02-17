@@ -12,7 +12,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -117,6 +116,10 @@ func BuildMasterConfig(configParams MasterConfigParameters) (*MasterConfig, erro
 	policyCache := configParams.newPolicyCache()
 	requestContextMapper := kapi.NewRequestContextMapper()
 
+	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
+	admissionControlPluginNames := []string{"AlwaysAdmit"}
+	admissionController := admission.NewFromPlugins(configParams.KubeClient, admissionControlPluginNames, "")
+
 	config := &MasterConfig{
 		MasterConfigParameters: configParams,
 
@@ -129,7 +132,7 @@ func BuildMasterConfig(configParams MasterConfigParameters) (*MasterConfig, erro
 
 		RequestContextMapper: requestContextMapper,
 
-		AdmissionControl: admit.NewAlwaysAdmit(),
+		AdmissionControl: admissionController,
 
 		TLS: strings.HasPrefix(configParams.MasterAddr, "https://"),
 	}

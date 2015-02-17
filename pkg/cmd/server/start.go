@@ -18,13 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-
-	// Admission control plugins from upstream Kubernetes
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/exists"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcedefaults"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota"
 )
 
 const (

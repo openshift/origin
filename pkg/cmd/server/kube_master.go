@@ -10,9 +10,16 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+
+	// Admission control plugins from upstream Kubernetes
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/exists"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcedefaults"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota"
 )
 
 func (cfg Config) BuildKubernetesMasterConfig(requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client) (*kubernetes.MasterConfig, error) {
@@ -44,6 +51,11 @@ func (cfg Config) BuildKubernetesMasterConfig(requestContextMapper kapi.RequestC
 		masterIP = addrs[0]
 	}
 
+	// in-order list of plug-ins that should intercept admission decisions
+	// TODO: add NamespaceExists
+	admissionControlPluginNames := []string{"LimitRanger", "ResourceQuota"}
+	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
+
 	kmaster := &kubernetes.MasterConfig{
 		MasterIP:             masterIP,
 		MasterPort:           cfg.MasterAddr.Port,
@@ -53,7 +65,7 @@ func (cfg Config) BuildKubernetesMasterConfig(requestContextMapper kapi.RequestC
 		EtcdHelper:           ketcdHelper,
 		KubeClient:           kubeClient,
 		Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
-		AdmissionControl:     admit.NewAlwaysAdmit(),
+		AdmissionControl:     admissionController,
 	}
 
 	return kmaster, nil
