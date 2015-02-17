@@ -136,8 +136,8 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 // Also append the environment variables in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
 	dockerfilePath := filepath.Join(dir, "Dockerfile")
-	if d.build.Parameters.Strategy.DockerStrategy != nil && len(d.build.Parameters.Strategy.DockerStrategy.ContextDir) > 0 {
-		dockerfilePath = filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir, "Dockerfile")
+	if d.build.Parameters.Strategy.DockerStrategy != nil && len(d.build.Parameters.Source.ContextDir) > 0 {
+		dockerfilePath = filepath.Join(dir, d.build.Parameters.Source.ContextDir, "Dockerfile")
 	}
 
 	fileStat, err := os.Lstat(dockerfilePath)
@@ -175,8 +175,8 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
 	if d.build.Parameters.Strategy.DockerStrategy != nil {
-		if d.build.Parameters.Strategy.DockerStrategy.ContextDir != "" {
-			dir = filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir)
+		if d.build.Parameters.Source.ContextDir != "" {
+			dir = filepath.Join(dir, d.build.Parameters.Source.ContextDir)
 		}
 		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
 	}

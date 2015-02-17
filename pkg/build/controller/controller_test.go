@@ -108,12 +108,11 @@ func mockBuildAndController(status buildapi.BuildStatus, output buildapi.BuildOu
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/build/Dockerfile",
 				},
+				ContextDir: "contextimage",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "contextimage",
-				},
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: output,
 		},

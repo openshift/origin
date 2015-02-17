@@ -178,11 +178,11 @@ func StrategyAndSourceForRepository(repo *SourceRepository) (*BuildStrategyRef, 
 	}
 	strategy := &BuildStrategyRef{
 		IsDockerBuild: repo.IsDockerBuild(),
-		DockerContext: "",
 	}
 	source := &SourceRef{
-		URL: &repo.url,
-		Ref: repo.url.Fragment,
+		URL:        &repo.url,
+		Ref:        repo.url.Fragment,
+		ContextDir: "",
 	}
 	return strategy, source, nil
 }

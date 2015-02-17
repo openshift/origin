@@ -484,8 +484,7 @@ func mockDockerStrategy() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.DockerBuildStrategyType,
 		DockerStrategy: &buildapi.DockerBuildStrategy{
-			ContextDir: "/test/dir",
-			NoCache:    true,
+			NoCache: true,
 		},
 	}
 }

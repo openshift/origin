@@ -92,10 +92,11 @@ func nameFromGitURL(url *url.URL) (string, bool) {
 
 // SourceRef is a reference to a build source
 type SourceRef struct {
-	URL  *url.URL
-	Ref  string
-	Dir  string
-	Name string
+	URL        *url.URL
+	Ref        string
+	Dir        string
+	Name       string
+	ContextDir string
 }
 
 // SuggestName returns a name derived from the source URL
@@ -114,6 +115,7 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 				URI: r.URL.String(),
 				Ref: r.Ref,
 			},
+			ContextDir: r.ContextDir,
 		}, []buildapi.BuildTriggerPolicy{
 			{
 				Type: buildapi.GithubWebHookBuildTriggerType,
@@ -134,7 +136,6 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 type BuildStrategyRef struct {
 	IsDockerBuild bool
 	Base          *ImageRef
-	DockerContext string
 }
 
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
@@ -142,11 +143,6 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 	if s.IsDockerBuild {
 		strategy := &buildapi.BuildStrategy{
 			Type: buildapi.DockerBuildStrategyType,
-		}
-		if len(s.DockerContext) > 0 {
-			strategy.DockerStrategy = &buildapi.DockerBuildStrategy{
-				ContextDir: s.DockerContext,
-			}
 		}
 		return strategy, s.Base.BuildTriggers()
 	}

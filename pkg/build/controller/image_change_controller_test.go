@@ -39,8 +39,7 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "contextimage",
-					BaseImage:  baseImage,
+					BaseImage: baseImage,
 				},
 			},
 		},

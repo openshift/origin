@@ -68,9 +68,6 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 	formatString(out, "Strategy", p.Strategy.Type)
 	switch p.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
-		if p.Strategy.DockerStrategy != nil && len(p.Strategy.DockerStrategy.ContextDir) == 0 {
-			formatString(out, "Context Directory", p.Strategy.DockerStrategy.ContextDir)
-		}
 		if p.Strategy.DockerStrategy != nil && p.Strategy.DockerStrategy.NoCache {
 			formatString(out, "No Cache", "yes")
 		}
@@ -96,6 +93,9 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 		formatString(out, "URL", p.Source.Git.URI)
 		if len(p.Source.Git.Ref) > 0 {
 			formatString(out, "Ref", p.Source.Git.Ref)
+		}
+		if len(p.Source.ContextDir) > 0 {
+			formatString(out, "ContextDir", p.Source.ContextDir)
 		}
 	}
 	if p.Output.To != nil {

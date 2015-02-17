@@ -10,6 +10,27 @@ import (
 
 func init() {
 	api.Scheme.AddConversionFuncs(
+		// Move ContextDir in DockerBuildStrategy to BuildSource
+		func(in *newer.BuildParameters, out *BuildParameters, s conversion.Scope) error {
+			s.Convert(&in.Strategy, &out.Strategy, 0)
+			if out.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
+				out.Strategy.DockerStrategy.ContextDir = in.Source.ContextDir
+			}
+			s.Convert(&in.Source, &out.Source, 0)
+			s.Convert(&in.Output, &out.Output, 0)
+			s.Convert(&in.Revision, &out.Revision, 0)
+			return nil
+		},
+		func(in *BuildParameters, out *newer.BuildParameters, s conversion.Scope) error {
+			s.Convert(&in.Strategy, &out.Strategy, 0)
+			if in.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
+				out.Source.ContextDir = in.Strategy.DockerStrategy.ContextDir
+			}
+			s.Convert(&in.Source, &out.Source, 0)
+			s.Convert(&in.Output, &out.Output, 0)
+			s.Convert(&in.Revision, &out.Revision, 0)
+			return nil
+		},
 		// Rename STIBuildStrategy.BuildImage to STIBuildStrategy.Image
 		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
 			out.BuilderImage = in.Image

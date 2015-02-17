@@ -54,7 +54,7 @@ func TestFromDockerContextAndParent(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	strategy, err := g.FromDockerContextAndParent("docker/context", imgRef)
+	strategy, err := g.FromDockerContextAndParent(imgRef)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
