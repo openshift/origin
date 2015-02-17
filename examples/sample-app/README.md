@@ -42,6 +42,8 @@ To do this, you need to add "--insecure-registry 172.30.17.0/24" to the docker d
 
     $ docker -d --insecure-registry 172.30.17.0/24
 
+Note that you need to have installed Docker 1.3.2 or higher in order to use the `--insecure-registry` flag.
+
 If you are running docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
 
 This will instruct the docker daemon to trust any docker registry on the 172.30.17.0/24 subnet,
