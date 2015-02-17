@@ -323,30 +323,30 @@ os::build::make_openshift_binary_symlinks() {
   fi
 }
 
-# os::build::detect_local_release_tars verifies there is only one core and one
+# os::build::detect_local_release_tars verifies there is only one primary and one
 # image binaries release tar in OS_LOCAL_RELEASEPATH for the given platform specified by
 # argument 1, exiting if more than one of either is found.
 #
 # If the tars are discovered, their full paths are exported to the following env vars:
 #
-#   OS_CORE_RELEASE_TAR
+#   OS_PRIMARY_RELEASE_TAR
 #   OS_IMAGE_RELEASE_TAR
 os::build::detect_local_release_tars() {
   local platform="$1"
 
-  local core=$(find ${OS_LOCAL_RELEASEPATH} -type f -maxdepth 1 -name openshift-origin-core*-${platform}-*)
-  if [[ $(echo "${core}" | wc -l) -ne 1 ]]; then
-    echo "There should be exactly one ${platform} core tar in $OS_LOCAL_RELEASEPATH"
+  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}-* | grep -v image)
+  if [[ $(echo "${primary}" | wc -l) -ne 1 ]]; then
+    echo "There should be exactly one ${platform} primary tar in $OS_LOCAL_RELEASEPATH"
     exit 2
   fi
 
-  local image=$(find ${OS_LOCAL_RELEASEPATH} -type f -maxdepth 1 -name openshift-origin-image*-${platform}-*)
+  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}-*)
   if [[ $(echo "${image}" | wc -l) -ne 1 ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
     exit 3
   fi
 
-  export OS_CORE_RELEASE_TAR="${core}"
+  export OS_PRIMARY_RELEASE_TAR="${primary}"
   export OS_IMAGE_RELEASE_TAR="${image}"
 }
 

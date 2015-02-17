@@ -9,7 +9,7 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 
-# Build the core client/server for all platforms
+# Build the primary client/server for all platforms
 OS_BUILD_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
 os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 
@@ -19,8 +19,8 @@ os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
 CGO_ENABLED=0 OS_GOFLAGS="-a" os::build::build_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}"
 
-# Make the core client/server release.
-OS_RELEASE_ARCHIVE="openshift-origin-core"
+# Make the primary client/server release.
+OS_RELEASE_ARCHIVE="openshift-origin"
 OS_RELEASE_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
 OS_RELEASE_BINARIES=("${OS_CROSS_COMPILE_BINARIES[@]}")
 os::build::place_bins

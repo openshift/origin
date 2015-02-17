@@ -23,16 +23,16 @@ fi
 os::build::detect_local_release_tars "linux"
 
 echo "Building images from release tars:"
-echo " core:   $(basename ${OS_CORE_RELEASE_TAR})"
-echo " image:  $(basename ${OS_IMAGE_RELEASE_TAR})"
+echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
+echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
 
 imagedir="_output/imagecontext"
 rm -rf "${imagedir}"
 mkdir -p "${imagedir}"
-tar xzf "${OS_CORE_RELEASE_TAR}" -C "${imagedir}"
+tar xzf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
 tar xzf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 
-# Copy core binaries to the appropriate locations.
+# Copy primary binaries to the appropriate locations.
 cp -f "${imagedir}/openshift" images/origin/bin
 cp -f "${imagedir}/openshift" images/router/haproxy/bin
 
