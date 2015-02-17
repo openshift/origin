@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	oapauth "github.com/openshift/origin/pkg/auth/authenticator/password/oauthpassword/registry"
-	"github.com/openshift/origin/pkg/auth/context"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/user"
 	"github.com/openshift/origin/pkg/user/api"
@@ -44,7 +43,7 @@ func TestUserInitialization(t *testing.T) {
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper))
+	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper))
 	defer server.Close()
 
 	mapping := api.UserIdentityMapping{
@@ -68,7 +67,7 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !created {
-		// TODO: t.Errorf("expected created to be true")
+		t.Errorf("expected created to be true")
 	}
 
 	expectedUser := api.User{
@@ -154,26 +153,36 @@ func TestUserLookup(t *testing.T) {
 	userInfo := &kuser.DefaultInfo{
 		Name: ":test",
 	}
-	userContext := context.NewRequestContextMap()
-	userContextFunc := userregistry.ContextFunc(func(req *http.Request) (userregistry.Info, bool) {
-		obj, found := userContext.Get(req)
-		if user, ok := obj.(kuser.Info); found && ok {
-			return user, true
-		}
-		return nil, false
-	})
+	contextMapper := kapi.NewRequestContextMapper()
 
 	storage := map[string]apiserver.RESTStorage{
 		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper)
-	apihandler = userregistry.NewCurrentContextFilter("/osapi/v1beta1/users/~", userContextFunc, apihandler)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		userContext.Set(req, userInfo)
+	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), contextMapper, latest.RESTMapper)
+
+	// Wrap with authenticator
+	authenticatedHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx, ok := contextMapper.Get(req)
+		if !ok {
+			t.Fatalf("No context on request")
+			return
+		}
+		if err := contextMapper.Update(req, kapi.WithUser(ctx, userInfo)); err != nil {
+			t.Fatalf("Could not set user on request")
+			return
+		}
 		apihandler.ServeHTTP(w, req)
-	}))
+	})
+
+	// Wrap with contextmapper
+	contextHandler, err := kapi.NewRequestContextFilter(contextMapper, authenticatedHandler)
+	if err != nil {
+		t.Fatalf("Could not create context filter")
+	}
+
+	server := httptest.NewServer(contextHandler)
 
 	mapping := api.UserIdentityMapping{
 		Identity: api.Identity{

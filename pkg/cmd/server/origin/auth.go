@@ -27,7 +27,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/token/filetoken"
-	authcontext "github.com/openshift/origin/pkg/auth/context"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
@@ -50,7 +49,6 @@ import (
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
 
 const (
@@ -206,11 +204,11 @@ type AuthConfig struct {
 	// GoogleClientID is the client_secret of a client registered with the Google OAuth provider.
 	GoogleClientSecret string
 
-	// GithubClientID is the client_id of a client registered with the Github OAuth provider.
+	// GithubClientID is the client_id of a client registered with the GitHub OAuth provider.
 	// It must be authorized to redirect to {MasterPublicAddr}/oauth2callback/github
 	// Used by AuthHandlerGithub
 	GithubClientID string
-	// GithubClientID is the client_secret of a client registered with the Github OAuth provider.
+	// GithubClientID is the client_secret of a client registered with the GitHub OAuth provider.
 	GithubClientSecret string
 }
 
@@ -414,7 +412,7 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
 	successHandler := c.getAuthenticationSuccessHandler()
 
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authHandler handlers.AuthenticationHandler
 	authHandlerType := c.AuthHandler
@@ -458,7 +456,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 }
 
 func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	passwordAuthType := c.PasswordAuth
 	userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
@@ -504,7 +502,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 }
 
 func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType AuthRequestHandlerType) authenticator.Request {
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandler authenticator.Request
 	switch authRequestHandlerType {
@@ -545,7 +543,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 }
 
 func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
-	// TODO presumeably we'll want either a list of what we've got or a way to describe a registry of these
+	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandlers []authenticator.Request
 	for _, requestHandler := range c.AuthRequestHandlers {
@@ -607,46 +605,26 @@ func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then stri
 	return true, nil
 }
 
-// currentUserContextFilter replaces the the last segment of the provided URL with the current user's name
-func currentUserContextFilter(requestsToUsers *authcontext.RequestContextMap) restful.FilterFunction {
-	return func(req *restful.Request, res *restful.Response, chain *restful.FilterChain) {
-		name := path.Base(req.Request.URL.Path)
-		if name != "~" {
-			chain.ProcessFilter(req, res)
-			return
-		}
-
-		val, found := requestsToUsers.Get(req.Request)
-		if !found {
-			http.Error(res.ResponseWriter, "Need to be authenticated to access this method", http.StatusUnauthorized)
-			return
-		}
-		user, ok := val.(userregistry.Info)
-		if !ok {
-			http.Error(res.ResponseWriter, "Unable to convert internal object", http.StatusInternalServerError)
-			return
-		}
-
-		base := path.Dir(req.Request.URL.Path)
-		req.Request.URL.Path = path.Join(base, user.GetName())
-
-		chain.ProcessFilter(req, res)
-	}
-}
-
 // authenticationHandlerFilter creates a filter object that will enforce authentication directly
-func authenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, requestsToUsers *authcontext.RequestContextMap) http.Handler {
+func authenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, contextMapper kapi.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		user, ok, err := authenticator.AuthenticateRequest(req)
 		if err != nil || !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Unauthorized"))
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		glog.V(4).Infof("user %v -> %v", user, req.URL)
 
-		requestsToUsers.Set(req, user)
-		defer requestsToUsers.Remove(req)
+		ctx, ok := contextMapper.Get(req)
+		if !ok {
+			http.Error(w, "Unable to find request context", http.StatusInternalServerError)
+			return
+		}
+		if err := contextMapper.Update(req, kapi.WithUser(ctx, user)); err != nil {
+			glog.V(4).Infof("Error setting authenticated context: %v", err)
+			http.Error(w, "Unable to set authenticated request context", http.StatusInternalServerError)
+			return
+		}
 
 		handler.ServeHTTP(w, req)
 	})

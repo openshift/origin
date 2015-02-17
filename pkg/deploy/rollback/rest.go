@@ -56,7 +56,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create generates a new DeploymentConfig representing a rollback.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	rollback, ok := obj.(*deployapi.DeploymentConfigRollback)
 	if !ok {
 		return nil, fmt.Errorf("not a rollback spec: %#v", obj)
@@ -94,9 +94,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 			fmt.Sprintf("Error finding current deploymentConfig %s/%s: %v", targetDeployment.Namespace, to.Name, err))
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return s.generator.GenerateRollback(from, to, &rollback.Spec)
-	}), nil
+	return s.generator.GenerateRollback(from, to, &rollback.Spec)
 }
 
 func newInvalidDeploymentError(rollback *deployapi.DeploymentConfigRollback, reason string) error {

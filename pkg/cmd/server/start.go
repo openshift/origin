@@ -30,7 +30,6 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -38,7 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
-	authcontext "github.com/openshift/origin/pkg/auth/context"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 
@@ -49,9 +47,17 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	pkgutil "github.com/openshift/origin/pkg/util"
+
+	// Admission control plugins from upstream Kubernetes
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/exists"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcedefaults"
+	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota"
 )
 
 const longCommandDesc = `
@@ -184,25 +190,11 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
-	cfg.ClientConfig = defaultClientConfig(flag)
+	cfg.ClientConfig = cmdutil.DefaultClientConfig(flag)
 
 	cfg.Docker.InstallFlags(flag)
 
 	return cmd
-}
-
-// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
-// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
-	clientcmd.DefaultCluster.Server = "https://localhost:8443"
-	loadingRules := clientcmd.NewClientConfigLoadingRules()
-	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for connecting to the master.")
-
-	overrides := &clientcmd.ConfigOverrides{}
-	//clientcmd.BindOverrideFlags(overrides, flags, clientcmd.RecommendedConfigOverrideFlags(""))
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-	return clientConfig
 }
 
 // run launches the appropriate startup modes or returns an error.
@@ -322,7 +314,7 @@ func start(cfg *config, args []string) error {
 			return fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 
-		requestsToUsers := authcontext.NewRequestContextMap()
+		requestContextMapper := kapi.NewRequestContextMapper()
 		masterAuthorizationNamespace := "master"
 
 		// determine whether public API addresses were specified
@@ -374,9 +366,9 @@ func start(cfg *config, args []string) error {
 
 			AdmissionControl:              admit.NewAlwaysAdmit(),
 			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
-			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestsToUsers),
+			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
-			RequestsToUsers:               requestsToUsers,
+			RequestContextMapper:          requestContextMapper,
 
 			UseLocalImages: useLocalImages,
 			ImageFor:       imageResolverFn,
@@ -442,12 +434,12 @@ func start(cfg *config, args []string) error {
 			// Bootstrap clients
 			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
 
-			// Openshift client
+			// OpenShift client
 			openshiftClientUser := &user.DefaultInfo{Name: "system:openshift-client"}
 			if osmaster.OSClientConfig, err = ca.MakeClientConfig("openshift-client", openshiftClientUser, osClientConfigTemplate); err != nil {
 				return err
 			}
-			// Openshift deployer client
+			// OpenShift deployer client
 			openshiftDeployerUser := &user.DefaultInfo{Name: "system:openshift-deployer", Groups: []string{"system:deployers"}}
 			if osmaster.DeployerOSClientConfig, err = ca.MakeClientConfig("openshift-deployer", openshiftDeployerUser, osClientConfigTemplate); err != nil {
 				return err
@@ -543,7 +535,7 @@ func start(cfg *config, args []string) error {
 			// Google config
 			GoogleClientID:     env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_ID", ""),
 			GoogleClientSecret: env("OPENSHIFT_OAUTH_GOOGLE_CLIENT_SECRET", ""),
-			// Github config
+			// GitHub config
 			GithubClientID:     env("OPENSHIFT_OAUTH_GITHUB_CLIENT_ID", ""),
 			GithubClientSecret: env("OPENSHIFT_OAUTH_GITHUB_CLIENT_SECRET", ""),
 		}
@@ -569,14 +561,15 @@ func start(cfg *config, args []string) error {
 			}
 
 			kmaster := &kubernetes.MasterConfig{
-				MasterIP:         masterIP,
-				MasterPort:       cfg.MasterAddr.Port,
-				NodeHosts:        cfg.NodeList,
-				PortalNet:        &portalNet,
-				EtcdHelper:       ketcdHelper,
-				KubeClient:       osmaster.KubeClient(),
-				Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
-				AdmissionControl: admit.NewAlwaysAdmit(),
+				MasterIP:             masterIP,
+				MasterPort:           cfg.MasterAddr.Port,
+				NodeHosts:            cfg.NodeList,
+				PortalNet:            &portalNet,
+				RequestContextMapper: requestContextMapper,
+				EtcdHelper:           ketcdHelper,
+				KubeClient:           osmaster.KubeClient(),
+				Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
+				AdmissionControl:     admit.NewAlwaysAdmit(),
 			}
 			kmaster.EnsurePortalFlags()
 
@@ -633,6 +626,8 @@ func start(cfg *config, args []string) error {
 
 			NetworkContainerImage: imageResolverFn("pod"),
 
+			AllowDisabledDocker: startNode && startMaster,
+
 			Client: existingKubeClient,
 		}
 
@@ -654,8 +649,8 @@ func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace str
 	return authorizer
 }
 
-func newAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers, &authorizer.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
+func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
 	return authorizationAttributeBuilder
 }
 

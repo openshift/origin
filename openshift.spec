@@ -42,6 +42,9 @@ BuildRequires:  golang >= 1.2-7
 %package master
 Summary:        Openshift Master
 Requires:       openshift = %{version}-%{release}
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
 
 %description master
 %{summary}
@@ -51,6 +54,9 @@ Summary:        Openshift Node
 Requires:       openshift = %{version}-%{release}
 Requires:       docker-io >= 1.3.2
 Requires:       tuned-profiles-openshift-node
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
 
 %description node
 %{summary}

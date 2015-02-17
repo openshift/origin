@@ -9,7 +9,7 @@ import (
 
 func init() {
 	err := kapi.Scheme.AddConversionFuncs(
-		// The docker metadat must be cast to a version
+		// The docker metadata must be cast to a version
 		func(in *newer.Image, out *Image, s conversion.Scope) error {
 			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 				return err

@@ -96,7 +96,7 @@ func (r *Etcd) UpdateDeployment(ctx kapi.Context, deployment *api.Deployment) er
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, deployment)
+	err = r.SetObj(key, deployment, 0)
 	return etcderr.InterpretUpdateError(err, "deployment", deployment.Name)
 }
 
@@ -213,7 +213,7 @@ func (r *Etcd) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.De
 		return err
 	}
 
-	err = r.SetObj(key, deploymentConfig)
+	err = r.SetObj(key, deploymentConfig, 0)
 	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.Name)
 }
 

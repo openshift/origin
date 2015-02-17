@@ -3,8 +3,8 @@ package rollback
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -58,7 +58,7 @@ func TestCreateOk(t *testing.T) {
 		codec: api.Codec,
 	}
 
-	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -71,17 +71,12 @@ func TestCreateOk(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if channel == nil {
-		t.Errorf("Expected a result channel")
+	if obj == nil {
+		t.Errorf("Expected a result obj")
 	}
 
-	select {
-	case result := <-channel:
-		if _, ok := result.Object.(*deployapi.DeploymentConfig); !ok {
-			t.Errorf("expected a DeploymentConfig, got a %#v", result.Object)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Errorf("Timed out waiting for result")
+	if _, ok := obj.(*deployapi.DeploymentConfig); !ok {
+		t.Errorf("expected a DeploymentConfig, got a %#v", obj)
 	}
 }
 
@@ -102,7 +97,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		codec: api.Codec,
 	}
 
-	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -111,25 +106,8 @@ func TestCreateGeneratorError(t *testing.T) {
 		},
 	})
 
-	if err != nil {
+	if err == nil || !strings.Contains(err.Error(), "something terrible happened") {
 		t.Errorf("Unexpected error: %v", err)
-	}
-
-	if channel == nil {
-		t.Errorf("Expected a result channel")
-	}
-
-	select {
-	case result := <-channel:
-		status, ok := result.Object.(*kapi.Status)
-		if !ok {
-			t.Errorf("Expected status, got %#v", result)
-		}
-		if status.Status != kapi.StatusFailure {
-			t.Errorf("Expected status=failure, message=foo, got %#v", status)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Errorf("Timed out waiting for result")
 	}
 }
 
@@ -152,7 +130,7 @@ func TestCreateMissingDeployment(t *testing.T) {
 		codec: api.Codec,
 	}
 
-	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -165,8 +143,8 @@ func TestCreateMissingDeployment(t *testing.T) {
 		t.Errorf("Expected an error")
 	}
 
-	if channel != nil {
-		t.Error("Unexpected result channel")
+	if obj != nil {
+		t.Error("Unexpected result obj")
 	}
 }
 
@@ -192,7 +170,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 		codec: api.Codec,
 	}
 
-	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -205,8 +183,8 @@ func TestCreateInvalidDeployment(t *testing.T) {
 		t.Errorf("Expected an error")
 	}
 
-	if channel != nil {
-		t.Error("Unexpected result channel")
+	if obj != nil {
+		t.Error("Unexpected result obj")
 	}
 }
 
@@ -228,7 +206,7 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 		codec: api.Codec,
 	}
 
-	channel, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -241,8 +219,8 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 		t.Errorf("Expected an error")
 	}
 
-	if channel != nil {
-		t.Error("Unexpected result channel")
+	if obj != nil {
+		t.Error("Unexpected result obj")
 	}
 }
 

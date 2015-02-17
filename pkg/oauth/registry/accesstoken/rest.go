@@ -52,7 +52,7 @@ func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime
 }
 
 // Create registers the given AccessToken.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	token, ok := obj.(*api.OAuthAccessToken)
 	if !ok {
 		return nil, fmt.Errorf("not an token: %#v", obj)
@@ -64,17 +64,13 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, kerrors.NewInvalid("token", token.Name, errs)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.CreateAccessToken(token); err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, token.Name)
-	}), nil
+	if err := s.registry.CreateAccessToken(token); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, token.Name)
 }
 
 // Delete asynchronously deletes an AccessToken specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteAccessToken(id)
-	}), nil
+func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteAccessToken(id)
 }

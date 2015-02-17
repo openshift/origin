@@ -48,10 +48,8 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the Policy specified by its id.
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeletePolicy(ctx, id)
-	}), nil
+func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeletePolicy(ctx, id)
 }
 
 // Watch begins watching for new, changed, or deleted PolicyBindings.

@@ -36,7 +36,7 @@ func NewProcessor(generators map[string]Generator) *Processor {
 
 // Process transforms Template object into List object. It generates
 // Parameter values using the defined set of generators first, and then it
-// substitutes all Parameter expression occurances with their corresponding
+// substitutes all Parameter expression occurrences with their corresponding
 // values (currently in the containers' Environment variables only).
 func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.ValidationErrorList) {
 	templateErrors := errs.ValidationErrorList{}
@@ -85,7 +85,7 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 
 // SubstituteParameters loops over all Environment variables defined for
 // all ReplicationController and Pod containers and substitutes all
-// Parameter expression occurances with their corresponding values.
+// Parameter expression occurrences with their corresponding values.
 //
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}
@@ -119,7 +119,7 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 
 // substituteParametersInManifest is a helper function that iterates
 // over the given manifest and substitutes all Parameter expression
-// occurances with their corresponding values.
+// occurrences with their corresponding values.
 func (p *Processor) substituteParametersInManifest(containers []kapi.Container, paramMap map[string]string) {
 	for i := range containers {
 		for e := range containers[i].Env {

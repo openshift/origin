@@ -48,7 +48,7 @@ func (s *REST) List(ctx kapi.Context, label, fields labels.Selector) (runtime.Ob
 }
 
 // Create registers the given ClientAuthorization.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	authorization, ok := obj.(*api.OAuthClientAuthorization)
 	if !ok {
 		return nil, fmt.Errorf("not an authorization: %#v", obj)
@@ -65,44 +65,39 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.CreateClientAuthorization(authorization); err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, authorization.Name)
-	}), nil
+	if err := s.registry.CreateClientAuthorization(authorization); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, authorization.Name)
 }
 
 // Update modifies an existing client authorization
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	authorization, ok := obj.(*api.OAuthClientAuthorization)
 	if !ok {
-		return nil, fmt.Errorf("not an authorization: %#v", obj)
+		return nil, false, fmt.Errorf("not an authorization: %#v", obj)
 	}
 
 	if errs := validation.ValidateClientAuthorization(authorization); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
+		return nil, false, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
 	}
 
 	oldauth, err := s.registry.GetClientAuthorization(authorization.Name)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if errs := validation.ValidateClientAuthorizationUpdate(authorization, oldauth); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
+		return nil, false, kerrors.NewInvalid("oauthClientAuthorization", authorization.Name, errs)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.UpdateClientAuthorization(authorization); err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, authorization.Name)
-	}), nil
+	if err := s.registry.UpdateClientAuthorization(authorization); err != nil {
+		return nil, false, err
+	}
+	out, err := s.Get(ctx, authorization.Name)
+	return out, false, err
 }
 
 // Delete asynchronously deletes an ClientAuthorization specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteClientAuthorization(id)
-	}), nil
+func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteClientAuthorization(id)
 }

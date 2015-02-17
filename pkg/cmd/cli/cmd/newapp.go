@@ -6,7 +6,7 @@ import (
 	"os"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
@@ -100,15 +100,15 @@ func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
 				glog.Fatalf("Error: %v", err)
 			}
 
-			if len(kcmd.GetFlagString(c, "output")) != 0 {
-				if err := kcmd.PrintObject(c, result.List, f.Factory, out); err != nil {
+			if len(cmdutil.GetFlagString(c, "output")) != 0 {
+				if err := f.Factory.PrintObject(c, result.List, out); err != nil {
 					glog.Fatalf("Error: %v", err)
 				}
 				return
 			}
 
 			mapper, typer := f.Object(c)
-			resourceMapper := &resource.Mapper{typer, mapper, kcmd.ClientMapperForCommand(c, f.Factory)}
+			resourceMapper := &resource.Mapper{typer, mapper, f.Factory.ClientMapperForCommand(c)}
 			errs := []error{}
 			for i, item := range result.List.Items {
 				info, err := resourceMapper.InfoForObject(item)
@@ -163,7 +163,7 @@ func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
 	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source)")
 
-	kcmd.AddPrinterFlags(cmd)
+	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }

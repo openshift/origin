@@ -5,7 +5,7 @@ import (
 	"io"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -29,7 +29,7 @@ Examples:
   $ osc start-build --from-build=3bd2ug53b
   <Starts build from build matching the name "3bd2ug53b">`,
 		Run: func(cmd *cobra.Command, args []string) {
-			buildName := kubecmd.GetFlagString(cmd, "from-build")
+			buildName := cmdutil.GetFlagString(cmd, "from-build")
 			if len(args) != 1 && len(buildName) == 0 {
 				usageError(cmd, "Must pass a name of buildConfig or specify build name with '--from-build' flag")
 			}

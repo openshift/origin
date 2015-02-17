@@ -180,7 +180,7 @@ func (r *Etcd) CreateClientAuthorization(client *api.OAuthClientAuthorization) e
 }
 
 func (r *Etcd) UpdateClientAuthorization(client *api.OAuthClientAuthorization) error {
-	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.Name), client), OAuthClientAuthorizationType, client.Name)
+	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.Name), client, 0), OAuthClientAuthorizationType, client.Name)
 	return err
 }
 

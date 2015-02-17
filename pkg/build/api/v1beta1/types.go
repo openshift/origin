@@ -99,7 +99,7 @@ type GitSourceRevision struct {
 	// Author is the author of a specific commit
 	Author SourceControlUser `json:"author,omitempty"`
 
-	// Committer is the commiter of a specific commit
+	// Committer is the committer of a specific commit
 	Committer SourceControlUser `json:"committer,omitempty"`
 
 	// Message is the description of a specific commit
@@ -285,7 +285,7 @@ type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
 	Type BuildTriggerType `json:"type,omitempty"`
 
-	// GithubWebHook contains the parameters for a Github webhook type of trigger
+	// GithubWebHook contains the parameters for a GitHub webhook type of trigger
 	GithubWebHook *WebHookTrigger `json:"github,omitempty"`
 
 	// GenericWebHook contains the parameters for a Generic webhook type of trigger
@@ -300,7 +300,7 @@ type BuildTriggerType string
 
 const (
 	// GithubWebHookBuildTriggerType represents a trigger that launches builds on
-	// Github webhook invocations
+	// GitHub webhook invocations
 	GithubWebHookBuildTriggerType BuildTriggerType = "github"
 
 	// GenericWebHookBuildTriggerType represents a trigger that launches builds on

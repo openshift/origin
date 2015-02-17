@@ -129,15 +129,14 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
+	obj, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}
 
-	result := <-channel
-	repo, ok := result.Object.(*api.ImageRepository)
+	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
-		t.Fatalf("Unexpected result: %#v", result)
+		t.Fatalf("Unexpected obj: %#v", obj)
 	}
 	if len(repo.Name) == 0 {
 		t.Errorf("Expected repo's ID to be set: %#v", repo)
@@ -157,26 +156,18 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
-	if err != nil {
+	_, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
+	if err != mockRepositoryRegistry.Err {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
-	}
-	result := <-channel
-	status, ok := result.Object.(*kapi.Status)
-	if !ok {
-		t.Fatalf("Expected status, got %#v", result)
-	}
-	if status.Status != kapi.StatusFailure || status.Message != "foo" {
-		t.Errorf("Expected status=failure, message=foo, got %#v", status)
 	}
 }
 
 func TestUpdateImageRepositoryMissingID(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{})
-	if channel != nil {
-		t.Fatalf("Expected nil, got %v", channel)
+	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{})
+	if obj != nil || created {
+		t.Fatalf("Expected nil, got %v", obj)
 	}
 	if strings.Index(err.Error(), "name: required value") == -1 {
 		t.Errorf("Expected 'id is unspecified' error, got %v", err)
@@ -190,19 +181,11 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	channel, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{
+	_, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
 	})
-	if err != nil {
+	if err != mockRepositoryRegistry.Err || created {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
-	}
-	result := <-channel
-	status, ok := result.Object.(*kapi.Status)
-	if !ok {
-		t.Errorf("Expected status, got %#v", result)
-	}
-	if status.Status != kapi.StatusFailure || status.Message != "foo" {
-		t.Errorf("Expected status=failure, message=foo, got %#v", status)
 	}
 }
 
@@ -212,16 +195,15 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	channel, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{
+	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
 	})
-	if err != nil {
+	if err != nil || created {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}
-	result := <-channel
-	repo, ok := result.Object.(*api.ImageRepository)
+	repo, ok := obj.(*api.ImageRepository)
 	if !ok {
-		t.Errorf("Expected image repository, got %#v", result)
+		t.Errorf("Expected image repository, got %#v", obj)
 	}
 	if repo.Name != "bar" {
 		t.Errorf("Unexpected repo returned: %#v", repo)
@@ -234,14 +216,13 @@ func TestDeleteImageRepository(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	channel, err := storage.Delete(kapi.NewDefaultContext(), "foo")
+	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}
-	result := <-channel
-	status, ok := result.Object.(*kapi.Status)
+	status, ok := obj.(*kapi.Status)
 	if !ok {
-		t.Errorf("Expected status, got %#v", result)
+		t.Errorf("Expected status, got %#v", obj)
 	}
 	if status.Status != kapi.StatusSuccess {
 		t.Errorf("Expected status=success, got %#v", status)
@@ -251,12 +232,12 @@ func TestDeleteImageRepository(t *testing.T) {
 func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.ImageRepository{
+	obj, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "some-value"},
 	})
 
-	if channel != nil {
-		t.Error("Expected a nil channel, but we got a value")
+	if obj != nil {
+		t.Error("Expected a nil obj, but we got a value")
 	}
 
 	checkExpectedNamespaceError(t, err)
@@ -268,12 +249,12 @@ func TestUpdateImageRepositoryConflictingNamespace(t *testing.T) {
 		registry: mockRepositoryRegistry,
 	}
 
-	channel, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.ImageRepository{
+	obj, created, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "some-value"},
 	})
 
-	if channel != nil {
-		t.Error("Expected a nil channel, but we got a value")
+	if obj != nil || created {
+		t.Error("Expected a nil obj, but we got a value")
 	}
 
 	checkExpectedNamespaceError(t, err)

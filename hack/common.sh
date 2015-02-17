@@ -19,16 +19,19 @@ OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
 OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
 OS_LOCAL_BINPATH="${OS_ROOT}/_output/local/go/bin"
+OS_LOCAL_RELEASEPATH="${OS_ROOT}/_output/local/releases"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 readonly OS_GOPATH="${OS_OUTPUT}/go"
 
-readonly OS_COMPILE_PLATFORMS=(
+readonly OS_IMAGE_COMPILE_PLATFORMS=(
   linux/amd64
 )
-readonly OS_COMPILE_TARGETS=(
+readonly OS_IMAGE_COMPILE_TARGETS=(
+  images/pod
+  examples/hello-openshift
 )
-readonly OS_COMPILE_BINARIES=("${OS_COMPILE_TARGETS[@]-##*/}")
+readonly OS_IMAGE_COMPILE_BINARIES=("${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
@@ -41,7 +44,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_ALL_TARGETS=(
-  "${OS_COMPILE_TARGETS[@]-}"
+  "${OS_IMAGE_COMPILE_TARGETS[@]-}"
   "${OS_CROSS_COMPILE_TARGETS[@]}"
 )
 readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
@@ -220,11 +223,11 @@ EOF
   unset GOBIN
 }
 
-# This will take binaries from $GOPATH/bin and copy them to the appropriate
+# This will take OS_RELEASE_BINARIES from $GOPATH/bin and copy them to the appropriate
 # place in ${OS_OUTPUT_BINDIR}
 #
-# If OS_RELEASE_ARCHIVES is set to a directory, it will have tar archives of
-# each CROSS_COMPILE_PLATFORM created
+# If OS_RELEASE_ARCHIVE is set, tar archives prefixed with OS_RELEASE_ARCHIVE for
+# each OS_RELEASE_PLATFORMS are created.
 #
 # Ideally this wouldn't be necessary and we could just set GOBIN to
 # OS_OUTPUT_BINDIR but that won't work in the face of cross compilation.  'go
@@ -238,41 +241,74 @@ os::build::place_bins() {
 
     echo "++ Placing binaries"
 
-    if [[ "${OS_RELEASE_ARCHIVES-}" != "" ]]; then
+    if [[ "${OS_RELEASE_ARCHIVE-}" != "" ]]; then
       os::build::get_version_vars
-      rm -rf "${OS_RELEASE_ARCHIVES}"
-      mkdir -p "${OS_RELEASE_ARCHIVES}"
+      mkdir -p "${OS_LOCAL_RELEASEPATH}"
     fi
 
-    local platform
-    for platform in "${OS_CROSS_COMPILE_PLATFORMS[@]}"; do
+    for platform in "${OS_RELEASE_PLATFORMS[@]-(host_platform)}"; do
       # The substitution on platform_src below will replace all slashes with
       # underscores.  It'll transform darwin/amd64 -> darwin_amd64.
       local platform_src="/${platform//\//_}"
       if [[ $platform == $host_platform ]]; then
         platform_src=""
       fi
+
+      # Skip this directory if the platform has no binaries.
+      local full_binpath_src="${OS_GOPATH}/bin${platform_src}"
+      if [[ ! -d "${full_binpath_src}" ]]; then
+        continue
+      fi
+
+      mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
+
+      # Create an array of binaries to release. Append .exe variants if the platform is windows.
+      local -a binaries=()
+      local binary
+      for binary in "${OS_RELEASE_BINARIES[@]}"; do
+        binaries+=("${binary}")
+        if [[ $platform == "windows/amd64" ]]; then
+          binaries+=("${binary}.exe")
+        fi
+      done
+
+      # Copy the only the specified release binaries to the shared OS_OUTPUT_BINPATH.
+      local -a includes=()
+      for binary in "${binaries[@]}"; do
+        includes+=("--include=${binary}")
+      done
+      find "${full_binpath_src}" -maxdepth 1 -type f -exec \
+        rsync "${includes[@]}" --exclude="*" -pt {} "${OS_OUTPUT_BINPATH}/${platform}" \;
+
+      # If no release archive was requested, we're done.
+      if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
+        continue
+      fi
+      
+      # Create a temporary bin directory containing only the binaries marked for release.
+      local release_binpath=$(mktemp -d openshift.release.${OS_RELEASE_ARCHIVE}.XXX)
+      find "${full_binpath_src}" -maxdepth 1 -type f -exec \
+        rsync "${includes[@]}" --exclude="*" -pt {} "${release_binpath}" \;
+
+      # Create binary copies where specified.
       local suffix=""
       if [[ $platform == "windows/amd64" ]]; then
         suffix=".exe"
       fi
-
-      local full_binpath_src="${OS_GOPATH}/bin${platform_src}"
-      if [[ -d "${full_binpath_src}" ]]; then
-        mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
-        find "${full_binpath_src}" -maxdepth 1 -type f -exec \
-          rsync -pt {} "${OS_OUTPUT_BINPATH}/${platform}" \;
-
-        if [[ "${OS_RELEASE_ARCHIVES-}" != "" ]]; then
-          local platform_segment="${platform//\//-}"
-          local archive_name="openshift-origin-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
-          for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
-            cp "${OS_OUTPUT_BINPATH}/${platform}/openshift${suffix}" "${OS_OUTPUT_BINPATH}/${platform}/${linkname}${suffix}"
-          done
-          echo "++ Creating ${archive_name}"
-          tar -czf "${OS_RELEASE_ARCHIVES}/${archive_name}" -C "${OS_OUTPUT_BINPATH}/${platform}" .
+      for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
+        local src="${release_binpath}/openshift${suffix}"
+        if [[ -f "${src}" ]]; then
+          cp "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
         fi
-      fi
+      done
+
+      # Create the release archive.
+      local platform_segment="${platform//\//-}"
+      local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
+
+      echo "++ Creating ${archive_name}"
+      tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -C "${release_binpath}" .
+      rm -rf "${release_binpath}"
     done
   )
 }
@@ -285,6 +321,33 @@ os::build::make_openshift_binary_symlinks() {
       ln -sf "${OS_LOCAL_BINPATH}/openshift" "${OS_LOCAL_BINPATH}/${linkname}"
     done
   fi
+}
+
+# os::build::detect_local_release_tars verifies there is only one primary and one
+# image binaries release tar in OS_LOCAL_RELEASEPATH for the given platform specified by
+# argument 1, exiting if more than one of either is found.
+#
+# If the tars are discovered, their full paths are exported to the following env vars:
+#
+#   OS_PRIMARY_RELEASE_TAR
+#   OS_IMAGE_RELEASE_TAR
+os::build::detect_local_release_tars() {
+  local platform="$1"
+
+  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}-* | grep -v image)
+  if [[ $(echo "${primary}" | wc -l) -ne 1 ]]; then
+    echo "There should be exactly one ${platform} primary tar in $OS_LOCAL_RELEASEPATH"
+    exit 2
+  fi
+
+  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}-*)
+  if [[ $(echo "${image}" | wc -l) -ne 1 ]]; then
+    echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
+    exit 3
+  fi
+
+  export OS_PRIMARY_RELEASE_TAR="${primary}"
+  export OS_IMAGE_RELEASE_TAR="${image}"
 }
 
 # os::build::get_version_vars loads the standard version variables as

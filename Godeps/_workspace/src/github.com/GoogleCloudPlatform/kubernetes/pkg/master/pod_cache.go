@@ -21,7 +21,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/leaky"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 
@@ -135,6 +134,12 @@ func (p *PodCache) getNodeStatus(name string) (*api.NodeStatus, error) {
 	return &node.Status, nil
 }
 
+func (p *PodCache) clearNodeStatus() {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.currentNodes = map[objKey]api.NodeStatus{}
+}
+
 // TODO: once Host gets moved to spec, this can take a podSpec + metadata instead of an
 // entire pod?
 func (p *PodCache) updatePodStatus(pod *api.Pod) error {
@@ -143,7 +148,9 @@ func (p *PodCache) updatePodStatus(pod *api.Pod) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	// Map accesses must be locked.
-	p.podStatus[objKey{pod.Namespace, pod.Name}] = newStatus
+	if err == nil {
+		p.podStatus[objKey{pod.Namespace, pod.Name}] = newStatus
+	}
 
 	return err
 }
@@ -157,6 +164,7 @@ func (p *PodCache) computePodStatus(pod *api.Pod) (api.PodStatus, error) {
 	if pod.Status.Host == "" {
 		// Not assigned.
 		newStatus.Phase = api.PodPending
+		newStatus.Conditions = append(newStatus.Conditions, pod.Status.Conditions...)
 		return newStatus, nil
 	}
 
@@ -164,34 +172,39 @@ func (p *PodCache) computePodStatus(pod *api.Pod) (api.PodStatus, error) {
 
 	// Assigned to non-existing node.
 	if err != nil || len(nodeStatus.Conditions) == 0 {
+		glog.V(5).Infof("node doesn't exist: %v %v, setting pod status to unknown", err, nodeStatus)
 		newStatus.Phase = api.PodUnknown
+		newStatus.Conditions = append(newStatus.Conditions, pod.Status.Conditions...)
 		return newStatus, nil
 	}
 
 	// Assigned to an unhealthy node.
 	for _, condition := range nodeStatus.Conditions {
-		if condition.Kind == api.NodeReady && condition.Status == api.ConditionNone {
+		if (condition.Kind == api.NodeReady || condition.Kind == api.NodeReachable) && condition.Status == api.ConditionNone {
+			glog.V(5).Infof("node status: %v, setting pod status to unknown", condition)
 			newStatus.Phase = api.PodUnknown
-			return newStatus, nil
-		}
-		if condition.Kind == api.NodeReachable && condition.Status == api.ConditionNone {
-			newStatus.Phase = api.PodUnknown
+			newStatus.Conditions = append(newStatus.Conditions, pod.Status.Conditions...)
 			return newStatus, nil
 		}
 	}
 
 	result, err := p.containerInfo.GetPodStatus(pod.Status.Host, pod.Namespace, pod.Name)
-	newStatus.HostIP = nodeStatus.HostIP
 
 	if err != nil {
-		newStatus.Phase = api.PodUnknown
+		glog.Infof("error getting pod %s status: %v, retry later", pod.Name, err)
 	} else {
+		newStatus.HostIP = nodeStatus.HostIP
 		newStatus.Info = result.Status.Info
-		newStatus.Phase = getPhase(&pod.Spec, newStatus.Info)
-		if netContainerInfo, ok := newStatus.Info[leaky.PodInfraContainerName]; ok {
-			if netContainerInfo.PodIP != "" {
-				newStatus.PodIP = netContainerInfo.PodIP
-			}
+		newStatus.PodIP = result.Status.PodIP
+		if newStatus.Info == nil {
+			// There is a small race window that kubelet couldn't
+			// propulated the status yet. This should go away once
+			// we removed boundPods
+			newStatus.Phase = api.PodPending
+			newStatus.Conditions = append(newStatus.Conditions, pod.Status.Conditions...)
+		} else {
+			newStatus.Phase = result.Status.Phase
+			newStatus.Conditions = result.Status.Conditions
 		}
 	}
 	return newStatus, err
@@ -221,6 +234,10 @@ func (p *PodCache) GarbageCollectPodStatus() {
 // calling again, or risk having new info getting clobbered by delayed
 // old info.
 func (p *PodCache) UpdateAllContainers() {
+	// TODO: this is silly, we should pro-actively update the pod status when
+	// the API server makes changes.
+	p.clearNodeStatus()
+
 	ctx := api.NewContext()
 	pods, err := p.pods.ListPods(ctx, labels.Everything())
 	if err != nil {
@@ -245,68 +262,4 @@ func (p *PodCache) UpdateAllContainers() {
 		}()
 	}
 	wg.Wait()
-}
-
-// getPhase returns the phase of a pod given its container info.
-// TODO(dchen1107): push this all the way down into kubelet.
-func getPhase(spec *api.PodSpec, info api.PodInfo) api.PodPhase {
-	if info == nil {
-		return api.PodPending
-	}
-	running := 0
-	waiting := 0
-	stopped := 0
-	failed := 0
-	succeeded := 0
-	unknown := 0
-	for _, container := range spec.Containers {
-		if containerStatus, ok := info[container.Name]; ok {
-			if containerStatus.State.Running != nil {
-				running++
-			} else if containerStatus.State.Termination != nil {
-				stopped++
-				if containerStatus.State.Termination.ExitCode == 0 {
-					succeeded++
-				} else {
-					failed++
-				}
-			} else if containerStatus.State.Waiting != nil {
-				waiting++
-			} else {
-				unknown++
-			}
-		} else {
-			unknown++
-		}
-	}
-	switch {
-	case waiting > 0:
-		// One or more containers has not been started
-		return api.PodPending
-	case running > 0 && unknown == 0:
-		// All containers have been started, and at least
-		// one container is running
-		return api.PodRunning
-	case running == 0 && stopped > 0 && unknown == 0:
-		// All containers are terminated
-		if spec.RestartPolicy.Always != nil {
-			// All containers are in the process of restarting
-			return api.PodRunning
-		}
-		if stopped == succeeded {
-			// RestartPolicy is not Always, and all
-			// containers are terminated in success
-			return api.PodSucceeded
-		}
-		if spec.RestartPolicy.Never != nil {
-			// RestartPolicy is Never, and all containers are
-			// terminated with at least one in failure
-			return api.PodFailed
-		}
-		// RestartPolicy is OnFailure, and at least one in failure
-		// and in the process of restarting
-		return api.PodRunning
-	default:
-		return api.PodPending
-	}
 }

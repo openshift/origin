@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -54,7 +54,7 @@ Examples:
 			}
 
 			// Print build logs before cancelling build.
-			if kubecmd.GetFlagBool(cmd, "dump-logs") {
+			if cmdutil.GetFlagBool(cmd, "dump-logs") {
 				// in order to dump logs, you must have a pod assigned to the build.  Since build pod creation is asynchronous, it is possible to cancel a build without a pod being assigned.
 				if len(build.PodName) == 0 {
 					glog.V(2).Infof("Build %v has not yet generated any logs.", buildName)
@@ -84,7 +84,7 @@ Examples:
 			glog.V(2).Infof("Build %s was cancelled.", buildName)
 
 			// Create a new build with the same configuration.
-			if kubecmd.GetFlagBool(cmd, "restart") {
+			if cmdutil.GetFlagBool(cmd, "restart") {
 				newBuild := util.GenerateBuildFromBuild(build)
 				newBuild, err = buildClient.Create(newBuild)
 				checkErr(err)

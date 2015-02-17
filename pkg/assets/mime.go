@@ -15,7 +15,7 @@ func RegisterMimeTypes() {
 	registerIfNeeded(".png", "image/png")
 	registerIfNeeded(".svg", "image/svg+xml")
 
-	// Javascript types
+	// JavaScript types
 	registerIfNeeded(".js", "application/javascript; charset=utf-8")
 	registerIfNeeded(".json", "application/json; charset=utf-8")
 

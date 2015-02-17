@@ -26,7 +26,7 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 func HashPodSpec(t api.PodSpec) uint64 {
 	// Ignore resources by making them uniformly empty
 	for i := range t.Containers {
-		t.Containers[i].Resources = api.ResourceRequirementSpec{}
+		t.Containers[i].Resources = api.ResourceRequirements{}
 	}
 
 	jsonString, err := json.Marshal(t)

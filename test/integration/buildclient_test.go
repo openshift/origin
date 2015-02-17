@@ -196,10 +196,9 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		"imageRepositories": imagerepository.NewREST(imageEtcd),
 	}
 
-	osPrefix := "/osapi/v1beta1"
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, osPrefix, interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
-	openshift.whPrefix = osPrefix + "/buildConfigHooks/"
+	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
 		webhook.NewController(buildclient.NewOSClientBuildConfigClient(osClient), buildclient.NewOSClientBuildClient(osClient), osClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter), map[string]webhook.Plugin{
 			"github": github.New(),

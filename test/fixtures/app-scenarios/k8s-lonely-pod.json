@@ -1,0 +1,28 @@
+{
+    "kind": "List",
+    "apiVersion": "v1beta1",
+    "items": [
+        {
+          "id": "lonely-pod",
+          "kind": "Pod",
+          "apiVersion":"v1beta2",
+          "namespace": "example",          
+          "labels": {
+            "name": "lonely-pod"
+          },
+          "desiredState": {
+            "manifest": {
+              "version": "v1beta1",
+              "id": "lonely-pod",
+              "containers": [{
+                "name": "lonely-pod",
+                "image": "openshift/hello-openshift",
+                "ports": [{
+                  "containerPort": 8080
+                }]
+              }]
+            }
+          },
+        }
+    ]
+}

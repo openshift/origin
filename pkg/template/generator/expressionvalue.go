@@ -82,7 +82,7 @@ func alphabetSlice(from, to byte) (string, error) {
 	return ASCII[leftPos:rightPos], nil
 }
 
-// replaceWithGenerated replaces all occurences of the given expression
+// replaceWithGenerated replaces all occurrences of the given expression
 // in the string with random characters of the specified range and length.
 func replaceWithGenerated(s *string, expression string, ranges [][]byte, length int, seed *rand.Rand) error {
 	var alphabet string

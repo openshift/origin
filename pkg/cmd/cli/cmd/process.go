@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -17,7 +17,7 @@ import (
 // injectUserVars injects user specified variables into the Template
 func injectUserVars(cmd *cobra.Command, t *api.Template) {
 	values := util.StringList{}
-	values.Set(kubecmd.GetFlagString(cmd, "value"))
+	values.Set(cmdutil.GetFlagString(cmd, "value"))
 	for _, keypair := range values {
 		p := strings.SplitN(keypair, "=", 2)
 		if len(p) != 2 {
@@ -50,7 +50,7 @@ Examples:
   $ cat template.json | osc process -f -
   <convert template.json into resource list>`,
 		Run: func(cmd *cobra.Command, args []string) {
-			filename := kubecmd.GetFlagString(cmd, "filename")
+			filename := cmdutil.GetFlagString(cmd, "filename")
 			if len(filename) == 0 {
 				usageError(cmd, "Must pass a filename to update")
 			}
@@ -64,7 +64,7 @@ Examples:
 			checkErr(err)
 			mapper, typer := f.Object(cmd)
 
-			mapping, _, _, data := kubecmd.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
+			mapping, _, _, data := cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
 			obj, err := mapping.Codec.Decode(data)
 			checkErr(err)
 
@@ -80,12 +80,12 @@ Examples:
 				injectUserVars(cmd, templateObj)
 			}
 
-			printer, err := kubecmd.PrinterForMapping(f.Factory, cmd, mapping)
+			printer, err := f.Factory.PrinterForMapping(cmd, mapping)
 			checkErr(err)
 
 			// If 'parameters' flag is set it does not do processing but only print
 			// the template parameters to console for inspection.
-			if kubecmd.GetFlagBool(cmd, "parameters") == true {
+			if cmdutil.GetFlagBool(cmd, "parameters") == true {
 				err = printer.PrintObj(templateObj, out)
 				checkErr(err)
 				return
@@ -99,13 +99,13 @@ Examples:
 			// format using the 'output' flag.
 			if !cmd.Flag("output").Changed {
 				cmd.Flags().Set("output", "json")
-				printer, _ = kubecmd.PrinterForMapping(f.Factory, cmd, mapping)
+				printer, _ = f.PrinterForMapping(cmd, mapping)
 			}
 			printer.PrintObj(result, out)
 		},
 	}
 
-	kubecmd.AddPrinterFlags(cmd)
+	cmdutil.AddPrinterFlags(cmd)
 
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to update the resource")
 	cmd.Flags().StringP("value", "v", "", "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")

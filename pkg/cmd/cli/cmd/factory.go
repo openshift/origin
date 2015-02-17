@@ -31,8 +31,7 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 	w := &Factory{kubecmd.NewFactory(clientConfig), clientConfig}
 
 	w.Object = func(cmd *cobra.Command) (meta.RESTMapper, runtime.ObjectTyper) {
-		version := kubecmd.GetFlagString(cmd, "api-version")
-		return kubectl.OutputVersionMapper{mapper, version}, api.Scheme
+		return mapper, api.Scheme
 	}
 
 	// Save original RESTClient function

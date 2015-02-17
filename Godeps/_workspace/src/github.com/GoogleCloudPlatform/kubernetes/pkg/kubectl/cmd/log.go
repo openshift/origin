@@ -20,6 +20,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 )
 
@@ -27,13 +28,15 @@ func (f *Factory) NewCmdLog(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "log [-f] <pod> [<container>]",
 		Short: "Print the logs for a container in a pod.",
-		Long: `Print the logs for a container in a pod. If the pod has only one container, the container name is optional
-Examples:
-  $ kubectl log 123456-7890 ruby-container
-  <returns snapshot of ruby-container logs from pod 123456-7890>
+		Long: `Print the logs for a container in a pod. If the pod has only one container, the container name is optional.
 
-  $ kubectl log -f 123456-7890 ruby-container
-  <starts streaming of ruby-container logs from pod 123456-7890>`,
+Examples:
+
+    // Returns snapshot of ruby-container logs from pod 123456-7890.
+    $ kubectl log 123456-7890 ruby-container
+
+    // Starts streaming of ruby-container logs from pod 123456-7890.
+    $ kubectl log -f 123456-7890 ruby-container`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				usageError(cmd, "<pod> is required for log")
@@ -66,7 +69,7 @@ Examples:
 			}
 
 			follow := false
-			if GetFlagBool(cmd, "follow") {
+			if util.GetFlagBool(cmd, "follow") {
 				follow = true
 			}
 

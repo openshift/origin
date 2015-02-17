@@ -31,16 +31,10 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Update will create or update a UserIdentityMapping
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
-		return nil, fmt.Errorf("not a user identity mapping: %#v", obj)
+		return nil, false, fmt.Errorf("not a user identity mapping: %#v", obj)
 	}
-
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		obj, _, err := s.registry.CreateOrUpdateUserIdentityMapping(mapping)
-		// TODO: return created status
-		// return &apiserver.CreateOrUpdate{Created: created, Object: obj}, err
-		return obj, err
-	}), nil
+	return s.registry.CreateOrUpdateUserIdentityMapping(mapping)
 }

@@ -24,7 +24,7 @@ func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, labels, fie
 		return nil, r.Err
 	}
 
-	namespace := kapi.Namespace(ctx)
+	namespace := kapi.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, errors.New("invalid request.  Namespace parameter required.")
 	}
@@ -48,7 +48,7 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*
 		return nil, r.Err
 	}
 
-	namespace := kapi.Namespace(ctx)
+	namespace := kapi.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, errors.New("invalid request.  Namespace parameter required.")
 	}

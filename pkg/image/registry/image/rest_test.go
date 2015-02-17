@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -89,9 +88,9 @@ func TestListImagesPopulatedList(t *testing.T) {
 func TestCreateImageBadObject(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.ImageList{})
-	if channel != nil {
-		t.Errorf("Expected nil, got %v", channel)
+	obj, err := storage.Create(kapi.NewDefaultContext(), &api.ImageList{})
+	if obj != nil {
+		t.Errorf("Expected nil, got %v", obj)
 	}
 	if strings.Index(err.Error(), "not an image:") == -1 {
 		t.Errorf("Expected 'not an image' error, got %v", err)
@@ -101,9 +100,9 @@ func TestCreateImageBadObject(t *testing.T) {
 func TestCreateImageMissingID(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Image{})
-	if channel != nil {
-		t.Errorf("Expected nil channel, got %v", channel)
+	obj, err := storage.Create(kapi.NewDefaultContext(), &api.Image{})
+	if obj != nil {
+		t.Errorf("Expected nil obj, got %v", obj)
 	}
 	if !errors.IsInvalid(err) {
 		t.Errorf("Expected 'invalid' error, got %v", err)
@@ -115,28 +114,12 @@ func TestCreateRegistrySaveError(t *testing.T) {
 	mockRegistry.Err = fmt.Errorf("test error")
 	storage := REST{registry: mockRegistry}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Image{
+	_, err := storage.Create(kapi.NewDefaultContext(), &api.Image{
 		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
-	if channel == nil {
-		t.Errorf("Expected nil channel, got %v", channel)
-	}
-	if err != nil {
+	if err != mockRegistry.Err {
 		t.Errorf("Unexpected non-nil error: %#v", err)
-	}
-
-	select {
-	case result := <-channel:
-		status, ok := result.Object.(*kapi.Status)
-		if !ok {
-			t.Errorf("Expected status type, got: %#v", result)
-		}
-		if status.Status != kapi.StatusFailure || status.Message != "test error" {
-			t.Errorf("Expected failure status, got %#v", status)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Errorf("Timed out waiting for result")
 	}
 }
 
@@ -144,28 +127,23 @@ func TestCreateImageOK(t *testing.T) {
 	mockRegistry := test.NewImageRegistry()
 	storage := REST{registry: mockRegistry}
 
-	channel, err := storage.Create(kapi.NewDefaultContext(), &api.Image{
+	obj, err := storage.Create(kapi.NewDefaultContext(), &api.Image{
 		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
-	if channel == nil {
-		t.Errorf("Expected nil channel, got %v", channel)
+	if obj == nil {
+		t.Errorf("Expected nil obj, got %v", obj)
 	}
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 
-	select {
-	case result := <-channel:
-		image, ok := result.Object.(*api.Image)
-		if !ok {
-			t.Errorf("Expected image type, got: %#v", result)
-		}
-		if image.Name != "foo" {
-			t.Errorf("Unexpected image: %#v", image)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Errorf("Timed out waiting for result")
+	image, ok := obj.(*api.Image)
+	if !ok {
+		t.Errorf("Expected image type, got: %#v", obj)
+	}
+	if image.Name != "foo" {
+		t.Errorf("Unexpected image: %#v", image)
 	}
 }
 
@@ -206,38 +184,33 @@ func TestGetImageOK(t *testing.T) {
 func TestDeleteImage(t *testing.T) {
 	mockRegistry := test.NewImageRegistry()
 	storage := REST{registry: mockRegistry}
-	channel, err := storage.Delete(kapi.NewDefaultContext(), "foo")
-	if channel == nil {
-		t.Error("Unexpected nil channel")
+	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo")
+	if obj == nil {
+		t.Error("Unexpected nil obj")
 	}
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
 
-	select {
-	case result := <-channel:
-		status, ok := result.Object.(*kapi.Status)
-		if !ok {
-			t.Errorf("Expected status type, got: %#v", result)
-		}
-		if status.Status != kapi.StatusSuccess {
-			t.Errorf("Expected status=success, got: %#v", status)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Errorf("Timed out waiting for result")
+	status, ok := obj.(*kapi.Status)
+	if !ok {
+		t.Errorf("Expected status type, got: %#v", obj)
+	}
+	if status.Status != kapi.StatusSuccess {
+		t.Errorf("Expected status=success, got: %#v", status)
 	}
 }
 
 func TestCreateImageConflictingNamespace(t *testing.T) {
 	storage := REST{}
 
-	channel, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Image{
+	obj, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Image{
 		ObjectMeta:           kapi.ObjectMeta{Name: "foo", Namespace: "some-value"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 
-	if channel != nil {
-		t.Error("Expected a nil channel, but we got a value")
+	if obj != nil {
+		t.Error("Expected a nil obj, but we got a value")
 	}
 
 	checkExpectedNamespaceError(t, err)

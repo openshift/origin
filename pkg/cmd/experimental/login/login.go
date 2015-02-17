@@ -6,22 +6,22 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 )
 
 func NewCmdLogin(name string, parent *cobra.Command) *cobra.Command {
-	clientConfig := defaultClientConfig(parent.PersistentFlags())
+	clientConfig := cmdutil.DefaultClientConfig(parent.PersistentFlags())
 	f := cmd.NewFactory(clientConfig)
 	f.BindFlags(parent.PersistentFlags())
 
@@ -49,8 +49,8 @@ prompt for user input if not provided.
 				username = userFullName
 
 			} else {
-				usernameFlag := kubecmd.GetFlagString(cmd, "username")
-				passwordFlag := kubecmd.GetFlagString(cmd, "password")
+				usernameFlag := kcmdutil.GetFlagString(cmd, "username")
+				passwordFlag := kcmdutil.GetFlagString(cmd, "password")
 
 				accessToken, err := tokencmd.RequestToken(clientCfg, os.Stdin, usernameFlag, passwordFlag)
 				if err != nil {
@@ -92,22 +92,6 @@ func whoami(clientCfg *kclient.Config) (string, error) {
 	}
 
 	return me.FullName, nil
-}
-
-// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
-// TODO find and merge duplicates, this is also in other places
-func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewClientConfigLoadingRules()
-	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
-
-	overrides := &clientcmd.ConfigOverrides{}
-	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
-	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
-	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-
-	return clientConfig
 }
 
 func updateKubeconfigFile(username, token string, clientCfg clientcmd.ClientConfig) error {

@@ -184,17 +184,17 @@ func unmarshalDockerImage(body []byte) (*docker.Image, error) {
 		return nil, err
 	}
 
-	image := &docker.Image{}
-	image.ID = imagePre012.ID
-	image.Parent = imagePre012.Parent
-	image.Comment = imagePre012.Comment
-	image.Created = imagePre012.Created
-	image.Container = imagePre012.Container
-	image.ContainerConfig = imagePre012.ContainerConfig
-	image.DockerVersion = imagePre012.DockerVersion
-	image.Author = imagePre012.Author
-	image.Config = imagePre012.Config
-	image.Architecture = imagePre012.Architecture
-	image.Size = imagePre012.Size
-	return image, nil
+	return &docker.Image{
+		ID:              imagePre012.ID,
+		Parent:          imagePre012.Parent,
+		Comment:         imagePre012.Comment,
+		Created:         imagePre012.Created,
+		Container:       imagePre012.Container,
+		ContainerConfig: imagePre012.ContainerConfig,
+		DockerVersion:   imagePre012.DockerVersion,
+		Author:          imagePre012.Author,
+		Config:          imagePre012.Config,
+		Architecture:    imagePre012.Architecture,
+		Size:            imagePre012.Size,
+	}, nil
 }

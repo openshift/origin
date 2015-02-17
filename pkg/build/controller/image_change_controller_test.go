@@ -263,7 +263,7 @@ func TestNoImageIDChange(t *testing.T) {
 }
 
 func TestBuildCreateError(t *testing.T) {
-	// valid configuration, but build creation failes, in that situation the buildconfig should not be updated
+	// valid configuration, but build creation fails, in that situation the buildconfig should not be updated
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	controller := mockImageChangeController(buildcfg, "testImageRepo", "registry.com/namespace/imagename", map[string]string{"testTag": "newImageID123"})
 	buildCreator := controller.BuildCreator.(*mockBuildCreator)

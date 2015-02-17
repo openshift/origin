@@ -37,6 +37,8 @@ type MasterConfig struct {
 	NodeHosts  []string
 	PortalNet  *net.IPNet
 
+	RequestContextMapper kapi.RequestContextMapper
+
 	EtcdHelper tools.EtcdHelper
 	KubeClient *kclient.Client
 
@@ -78,6 +80,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		EnableV1Beta3: true,
 
 		PortalNet: c.PortalNet,
+
+		RequestContextMapper: c.RequestContextMapper,
 
 		RestfulContainer: container,
 		KubeletClient:    kubeletClient,
@@ -138,8 +142,8 @@ func (c *MasterConfig) RunMinionController() {
 	if err != nil {
 		glog.Fatalf("Failure to create kubelet client: %v", err)
 	}
-	minionController := minionControllerPkg.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient)
-	minionController.Run(10*time.Second, 10)
+	minionController := minionControllerPkg.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient, 10, 5*time.Minute)
+	minionController.Run(10*time.Second, true)
 
 	glog.Infof("Started Kubernetes Minion Controller")
 }

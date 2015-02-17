@@ -53,7 +53,7 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Create registers the given Image.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	image, ok := obj.(*api.Image)
 	if !ok {
 		return nil, fmt.Errorf("not an image: %#v", obj)
@@ -68,19 +68,15 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 		return nil, errors.NewInvalid("image", image.Name, errs)
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := s.registry.CreateImage(ctx, image); err != nil {
-			return nil, err
-		}
-		return s.Get(ctx, image.Name)
-	}), nil
+	if err := s.registry.CreateImage(ctx, image); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, image.Name)
 }
 
 // Delete asynchronously deletes an Image specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImage(ctx, id)
-	}), nil
+func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteImage(ctx, id)
 }
 
 // Watch begins watching for new or deleted Images.

@@ -53,14 +53,12 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // Delete asynchronously deletes the BuildConfig specified by its id.
-func (r *REST) Delete(ctx kapi.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuildConfig(ctx, id)
-	}), nil
+func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuildConfig(ctx, id)
 }
 
 // Create registers a given new BuildConfig instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	buildConfig, ok := obj.(*api.BuildConfig)
 	if !ok {
 		return nil, fmt.Errorf("not a buildConfig: %#v", obj)
@@ -76,35 +74,31 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RE
 	if errs := validation.ValidateBuildConfig(buildConfig); len(errs) > 0 {
 		return nil, errors.NewInvalid("buildConfig", buildConfig.Name, errs)
 	}
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.CreateBuildConfig(ctx, buildConfig)
-		if err != nil {
-			return nil, err
-		}
-		return buildConfig, nil
-	}), nil
+	err := r.registry.CreateBuildConfig(ctx, buildConfig)
+	if err != nil {
+		return nil, err
+	}
+	return buildConfig, nil
 }
 
 // Update replaces a given BuildConfig instance with an existing instance in r.registry.
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	buildConfig, ok := obj.(*api.BuildConfig)
 	if !ok {
-		return nil, fmt.Errorf("not a buildConfig: %#v", obj)
+		return nil, false, fmt.Errorf("not a buildConfig: %#v", obj)
 	}
 	if errs := validation.ValidateBuildConfig(buildConfig); len(errs) > 0 {
-		return nil, errors.NewInvalid("buildConfig", buildConfig.Name, errs)
+		return nil, false, errors.NewInvalid("buildConfig", buildConfig.Name, errs)
 	}
 	if !kapi.ValidNamespace(ctx, &buildConfig.ObjectMeta) {
-		return nil, errors.NewConflict("buildConfig", buildConfig.Namespace, fmt.Errorf("BuildConfig.Namespace does not match the provided context"))
+		return nil, false, errors.NewConflict("buildConfig", buildConfig.Namespace, fmt.Errorf("BuildConfig.Namespace does not match the provided context"))
 	}
 
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		err := r.registry.UpdateBuildConfig(ctx, buildConfig)
-		if err != nil {
-			return nil, err
-		}
-		return buildConfig, nil
-	}), nil
+	err := r.registry.UpdateBuildConfig(ctx, buildConfig)
+	if err != nil {
+		return nil, false, err
+	}
+	return buildConfig, false, nil
 }
 
 // Watch begins watching for new, changed, or deleted BuildConfigs.
