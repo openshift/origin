@@ -6,11 +6,26 @@
 %global commit 21fb40637c4e3507cca1fcab6c4d56b06950a149
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
+# Openshift specific ldflags from hack/common.sh os::build:ldflags
+%{!?ldflags:
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.2.2-134-gc9e7c25aaf0e61-dirty -X github.com/openshift/origin/pkg/version.commitFromGit c9e7c25 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 72ad4f1 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.10.0-46-g72ad4f1
+}
+# String used for --images flag
+# If you're setting docker_registry make sure it ends in a trailing /
+%if "%{dist}" == ".el7ose"
+  %global docker_registry registry.access.redhat.com/
+  %global docker_namespace openshift3_beta
+  %global docker_prefix ose
+%else
+  %global docker_namespace openshift
+  %global docker_prefix origin
+%endif
+%global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.2
+Version:        0.2.2
 #Release:        1git%{shortcommit}%{?dist}
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -83,12 +98,10 @@ export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopa
 for cmd in openshift
 do
     #go build %{import_path}/cmd/${cmd}
-    go build -ldflags \
-        "-X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 
-            %{shortcommit}
-        -X github.com/openshift/origin/pkg/version.commitFromGit 
-            %{shortcommit}" %{import_path}/cmd/${cmd}
+    go build -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
+# set the IMAGES
+sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
 
 %install
 
@@ -167,6 +180,9 @@ fi
 
 
 %changelog
+* Fri Feb 06 2015 Scott Dodson <sdodson@redhat.com>
+- new package built with tito
+
 * Mon Jan 26 2015 Scott Dodson <sdodson@redhat.com> 0.2-3
 - Update to 21fb40637c4e3507cca1fcab6c4d56b06950a149
 - Split packaging of openshift-master and openshift-node
