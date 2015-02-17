@@ -58,10 +58,36 @@ func formatLabels(labelMap map[string]string) string {
 	return labels.Set(labelMap).String()
 }
 
+func extractAnnotations(annotations map[string]string, keys ...string) ([]string, map[string]string) {
+	extracted := make([]string, len(keys))
+	remaining := make(map[string]string)
+	for k, v := range annotations {
+		remaining[k] = v
+	}
+	for i, key := range keys {
+		extracted[i] = remaining[key]
+		delete(remaining, key)
+	}
+	return extracted, remaining
+}
+
+func formatAnnotations(out *tabwriter.Writer, m api.ObjectMeta, prefix string) {
+	values, annotations := extractAnnotations(m.Annotations, "description")
+	if len(values[0]) > 0 {
+		formatString(out, prefix+"Description", values[0])
+	}
+	if len(annotations) > 0 {
+		formatString(out, prefix+"Annotations", formatLabels(annotations))
+	}
+}
+
 func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatString(out, "Name", m.Name)
-	formatString(out, "Annotations", formatLabels(m.Annotations))
-	formatString(out, "Created", m.CreationTimestamp)
+	if !m.CreationTimestamp.IsZero() {
+		formatString(out, "Created", m.CreationTimestamp)
+	}
+	formatString(out, "Labels", formatLabels(m.Labels))
+	formatAnnotations(out, m, "")
 }
 
 // webhookURL assembles map with of webhook type as key and webhook url and value

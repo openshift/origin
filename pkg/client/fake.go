@@ -48,6 +48,10 @@ func (c *Fake) Routes(namespace string) RouteInterface {
 	return &FakeRoutes{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) Templates(namespace string) TemplateInterface {
+	return &FakeTemplates{Fake: c}
+}
+
 func (c *Fake) Users() UserInterface {
 	return &FakeUsers{Fake: c}
 }

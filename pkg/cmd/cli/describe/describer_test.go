@@ -50,6 +50,7 @@ func TestDescribers(t *testing.T) {
 		&ProjectDescriber{c},
 		&PolicyDescriber{c},
 		&PolicyBindingDescriber{c},
+		&TemplateDescriber{c, nil, nil, nil},
 	}
 
 	for _, d := range testDescriberList {
@@ -57,7 +58,7 @@ func TestDescribers(t *testing.T) {
 		if err != nil {
 			t.Errorf("unexpected error for %v: %v", d, err)
 		}
-		if !strings.Contains(out, "Name:") || !strings.Contains(out, "Annotations") {
+		if !strings.Contains(out, "Name:") || !strings.Contains(out, "Labels:") {
 			t.Errorf("unexpected out: %s", out)
 		}
 	}

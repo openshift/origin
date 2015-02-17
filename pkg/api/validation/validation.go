@@ -1,4 +1,4 @@
-package util
+package validation
 
 import (
 	"fmt"
@@ -18,15 +18,11 @@ import (
 	projectv "github.com/openshift/origin/pkg/project/api/validation"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	routev "github.com/openshift/origin/pkg/route/api/validation"
+	templateapi "github.com/openshift/origin/pkg/template/api"
+	templatev "github.com/openshift/origin/pkg/template/api/validation"
 )
 
-type fakeServiceLister struct{}
-
-func (f *fakeServiceLister) ListServices(kapi.Context) (*kapi.ServiceList, error) {
-	return &kapi.ServiceList{}, nil
-}
-
-// ValidateObject validates the runtime.Object and returns the validation errors
+// ValidateObject runs all known validations and returns the validation errors
 func ValidateObject(obj runtime.Object) (errors []error) {
 	if m, err := meta.Accessor(obj); err == nil {
 		if len(m.Namespace()) == 0 {
@@ -41,6 +37,11 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 		errors = validation.ValidateService(t)
 	case *kapi.Pod:
 		errors = validation.ValidatePod(t)
+	case *kapi.Namespace:
+		errors = validation.ValidateNamespace(t)
+	case *kapi.Node:
+		errors = validation.ValidateMinion(t)
+
 	case *imageapi.Image:
 		errors = imagev.ValidateImage(t)
 	case *imageapi.ImageRepository:
@@ -61,6 +62,8 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 		errors = buildv.ValidateBuildConfig(t)
 	case *buildapi.Build:
 		errors = buildv.ValidateBuild(t)
+	case *templateapi.Template:
+		errors = templatev.ValidateTemplate(t)
 	default:
 		if list, err := runtime.ExtractList(obj); err == nil {
 			for i := range list {
@@ -73,5 +76,4 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 		return []error{fmt.Errorf("no validation defined for %#v", obj)}
 	}
 	return errors
-
 }

@@ -6,12 +6,15 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
@@ -32,6 +35,8 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &RouteDescriber{c}, true
 	case "Project":
 		return &ProjectDescriber{c}, true
+	case "Template":
+		return &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil}, true
 	case "Policy":
 		return &PolicyDescriber{c}, true
 	case "PolicyBinding":
@@ -283,7 +288,7 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 			fmt.Fprint(out, key+"\tVerbs\tResources\tExtension\n")
 			for _, rule := range role.Rules {
 				extensionString := ""
-				if rule.AttributeRestrictions != (kruntime.EmbeddedObject{}) {
+				if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
 					extensionString = fmt.Sprintf("%v", rule.AttributeRestrictions)
 				}
 
@@ -333,6 +338,79 @@ func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error
 			formatString(out, "\tGroups", roleBinding.GroupNames)
 		}
 
+		return nil
+	})
+}
+
+// TemplateDescriber generates information about a template
+type TemplateDescriber struct {
+	client.Interface
+	meta.MetadataAccessor
+	runtime.ObjectTyper
+	DescribeObject func(obj runtime.Object, out *tabwriter.Writer) (bool, error)
+}
+
+func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, out *tabwriter.Writer) {
+	formatString(out, "Parameters", " ")
+	indent := "    "
+	for _, p := range params {
+		formatString(out, indent+"Name", p.Name)
+		formatString(out, indent+"Description", p.Description)
+		if len(p.Generate) == 0 {
+			formatString(out, indent+"Value", p.Value)
+			continue
+		}
+		if len(p.Value) > 0 {
+			formatString(out, indent+"Value", p.Value)
+			formatString(out, indent+"Generated (ignored)", p.Generate)
+			formatString(out, indent+"From", p.From)
+		} else {
+			formatString(out, indent+"Generated", p.Generate)
+			formatString(out, indent+"From", p.From)
+		}
+		out.Write([]byte("\n"))
+	}
+}
+
+func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, out *tabwriter.Writer) {
+	formatString(out, "Objects", " ")
+
+	indent := "    "
+	for _, obj := range objects {
+		if d.DescribeObject != nil {
+			if ok, _ := d.DescribeObject(obj, out); ok {
+				out.Write([]byte("\n"))
+				continue
+			}
+		}
+
+		_, kind, _ := d.ObjectTyper.ObjectVersionAndKind(obj)
+		meta := kapi.ObjectMeta{}
+		meta.Name, _ = d.MetadataAccessor.Name(obj)
+		meta.Annotations, _ = d.MetadataAccessor.Annotations(obj)
+		meta.Labels, _ = d.MetadataAccessor.Labels(obj)
+		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, kind, meta.Name))
+		if len(meta.Labels) > 0 {
+			formatString(out, indent+"Labels", formatLabels(meta.Labels))
+		}
+		formatAnnotations(out, meta, indent)
+	}
+}
+
+func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Templates(namespace)
+	template, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, template.ObjectMeta)
+		out.Write([]byte("\n"))
+		out.Flush()
+		d.DescribeParameters(template.Parameters, out)
+		out.Write([]byte("\n"))
+		d.DescribeObjects(template.Objects, out)
 		return nil
 	})
 }
