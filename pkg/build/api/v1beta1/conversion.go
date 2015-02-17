@@ -15,6 +15,8 @@ func init() {
 			s.Convert(&in.Strategy, &out.Strategy, 0)
 			if out.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
 				out.Strategy.DockerStrategy.ContextDir = in.Source.ContextDir
+				out.Strategy.DockerStrategy.BaseImage = in.Strategy.DockerStrategy.BaseImage
+				out.Strategy.DockerStrategy.NoCache = in.Strategy.DockerStrategy.NoCache
 			}
 			s.Convert(&in.Source, &out.Source, 0)
 			s.Convert(&in.Output, &out.Output, 0)
@@ -25,6 +27,8 @@ func init() {
 			s.Convert(&in.Strategy, &out.Strategy, 0)
 			if in.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
 				out.Source.ContextDir = in.Strategy.DockerStrategy.ContextDir
+				out.Strategy.DockerStrategy.BaseImage = in.Strategy.DockerStrategy.BaseImage
+				out.Strategy.DockerStrategy.NoCache = in.Strategy.DockerStrategy.NoCache
 			}
 			s.Convert(&in.Source, &out.Source, 0)
 			s.Convert(&in.Output, &out.Output, 0)
