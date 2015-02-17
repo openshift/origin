@@ -1,85 +1,42 @@
 package project
 
 import (
-	"fmt"
+	//	"fmt"
 	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	//"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/project/api"
-	"github.com/openshift/origin/pkg/project/registry/test"
 )
 
-func TestListProjectsError(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	mockRegistry.Err = fmt.Errorf("test error")
-
-	storage := REST{
-		registry: mockRegistry,
-	}
-
-	projects, err := storage.List(nil, nil, nil)
-	if err != mockRegistry.Err {
-		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
-	}
-
-	if projects != nil {
-		t.Errorf("Unexpected non-nil projects list: %#v", projects)
-	}
-}
-
-func TestListProjectsEmptyList(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	mockRegistry.Projects = &api.ProjectList{
-		Items: []api.Project{},
-	}
-
-	storage := REST{
-		registry: mockRegistry,
-	}
-
-	projects, err := storage.List(nil, labels.Everything(), labels.Everything())
-	if err != nil {
-		t.Errorf("Unexpected non-nil error: %#v", err)
-	}
-
-	if len(projects.(*api.ProjectList).Items) != 0 {
-		t.Errorf("Unexpected non-zero projects list: %#v", projects)
-	}
-}
-
-func TestListProjectsPopulatedList(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	mockRegistry.Projects = &api.ProjectList{
-		Items: []api.Project{
+func TestListProjects(t *testing.T) {
+	namespaceList := kapi.NamespaceList{
+		Items: []kapi.Namespace{
 			{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "foo",
-				},
-			},
-			{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "bar",
-				},
+				ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 			},
 		},
 	}
-
+	mockClient := &kclient.Fake{
+		NamespacesList: namespaceList,
+	}
 	storage := REST{
-		registry: mockRegistry,
+		client: mockClient.Namespaces(),
 	}
-
-	list, err := storage.List(nil, labels.Everything(), labels.Everything())
+	response, err := storage.List(nil, nil, nil)
 	if err != nil {
-		t.Errorf("Unexpected non-nil error: %#v", err)
+		t.Errorf("%#v should be nil.", err)
 	}
-
-	projects := list.(*api.ProjectList)
-
-	if e, a := 2, len(projects.Items); e != a {
-		t.Errorf("Expected %v, got %v", e, a)
+	projects := response.(*api.ProjectList)
+	if len(projects.Items) != 1 {
+		t.Errorf("%#v projects.Items should have len 1.", projects.Items)
+	}
+	responseProject := projects.Items[0]
+	if e, r := responseProject.Name, "foo"; e != r {
+		t.Errorf("%#v != %#v.", e, r)
 	}
 }
 
@@ -107,63 +64,54 @@ func TestCreateProjectMissingID(t *testing.T) {
 	}
 }
 
-func TestCreateRegistrySaveError(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	mockRegistry.Err = fmt.Errorf("test error")
-	storage := REST{registry: mockRegistry}
-
+func TestCreateProjectOK(t *testing.T) {
+	mockClient := &kclient.Fake{}
+	storage := REST{
+		client: mockClient.Namespaces(),
+	}
 	_, err := storage.Create(nil, &api.Project{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	})
-	if err != mockRegistry.Err {
-		t.Errorf("Unexpected non-nil error: %#v", err)
-	}
-}
-
-func TestCreateProjectOK(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	storage := REST{registry: mockRegistry}
-
-	obj, err := storage.Create(nil, &api.Project{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
-	})
-	if obj == nil {
-		t.Errorf("Expected nil obj, got %v", obj)
-	}
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
+	if len(mockClient.Actions) != 1 {
+		t.Errorf("Expected client action for create")
+	}
+	if mockClient.Actions[0].Action != "create-namespace" {
+		t.Errorf("Expected call to create-namespace")
+	}
 
-	project, ok := obj.(*api.Project)
-	if !ok {
-		t.Errorf("Expected project type, got: %#v", obj)
-	}
-	if project.Name != "foo" {
-		t.Errorf("Unexpected project: %#v", project)
-	}
+	/*
+		TODO: Need upstream change to fake_namespaces so create returns the object passed in on client and not nil object
+		project, ok := obj.(*api.Project)
+		if !ok {
+			t.Errorf("Expected project type, got: %#v", obj)
+		}
+		if project.Name != "foo" {
+			t.Errorf("Unexpected project: %#v", project)
+		}*/
 }
 
 func TestGetProjectError(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	mockRegistry.Err = fmt.Errorf("bad")
-	storage := REST{registry: mockRegistry}
+	// TODO: Need upstream change to fake_namespaces so get returns the error on Fake
+	/*
+		mockRegistry := test.NewProjectRegistry()
+		mockRegistry.Err = fmt.Errorf("bad")
+		storage := REST{registry: mockRegistry}
 
-	project, err := storage.Get(nil, "foo")
-	if project != nil {
-		t.Errorf("Unexpected non-nil project: %#v", project)
-	}
-	if err != mockRegistry.Err {
-		t.Errorf("Expected %#v, got %#v", mockRegistry.Err, err)
-	}
+		project, err := storage.Get(nil, "foo")
+		if project != nil {
+			t.Errorf("Unexpected non-nil project: %#v", project)
+		}
+		if err != mockRegistry.Err {
+			t.Errorf("Expected %#v, got %#v", mockRegistry.Err, err)
+		}*/
 }
 
 func TestGetProjectOK(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	mockRegistry.Project = &api.Project{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
-	}
-	storage := REST{registry: mockRegistry}
-
+	mockClient := &kclient.Fake{}
+	storage := REST{client: mockClient.Namespaces()}
 	project, err := storage.Get(nil, "foo")
 	if project == nil {
 		t.Error("Unexpected nil project")
@@ -177,8 +125,10 @@ func TestGetProjectOK(t *testing.T) {
 }
 
 func TestDeleteProject(t *testing.T) {
-	mockRegistry := test.NewProjectRegistry()
-	storage := REST{registry: mockRegistry}
+	mockClient := &kclient.Fake{}
+	storage := REST{
+		client: mockClient.Namespaces(),
+	}
 	obj, err := storage.Delete(nil, "foo")
 	if obj == nil {
 		t.Error("Unexpected nil obj")
@@ -186,12 +136,17 @@ func TestDeleteProject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
-
 	status, ok := obj.(*kapi.Status)
 	if !ok {
 		t.Errorf("Expected status type, got: %#v", obj)
 	}
 	if status.Status != kapi.StatusSuccess {
 		t.Errorf("Expected status=success, got: %#v", status)
+	}
+	if len(mockClient.Actions) != 1 {
+		t.Errorf("Expected client action for delete")
+	}
+	if mockClient.Actions[0].Action != "delete-namespace" {
+		t.Errorf("Expected call to delete-namespace")
 	}
 }
