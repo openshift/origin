@@ -5,9 +5,11 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
+
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-func NewCmdBuildLogs(f *Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildLogs(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build-logs <build>",
 		Short: "Show container logs from the build container",

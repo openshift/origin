@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 )
 
-func NewCmdWhoAmI(f *cmd.Factory) *cobra.Command {
+func NewCmdWhoAmI(f *clientcmd.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "whoami",
 		Short: "checks the identity associated with an access token",

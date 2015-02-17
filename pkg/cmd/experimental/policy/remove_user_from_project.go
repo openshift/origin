@@ -1,24 +1,24 @@
 package policy
 
 import (
-	"fmt"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type removeUserFromProjectOptions struct {
-	clientConfig clientcmd.ClientConfig
+	bindingNamespace string
+	client           client.Interface
 
 	userNames []string
 }
 
-func NewCmdRemoveUserFromProject(clientConfig clientcmd.ClientConfig) *cobra.Command {
-	options := &removeUserFromProjectOptions{clientConfig: clientConfig}
+func NewCmdRemoveUserFromProject(f *clientcmd.Factory) *cobra.Command {
+	options := &removeUserFromProjectOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "remove-user-from-project  <user> [user]...",
@@ -29,9 +29,15 @@ func NewCmdRemoveUserFromProject(clientConfig clientcmd.ClientConfig) *cobra.Com
 				return
 			}
 
-			err := options.run()
-			if err != nil {
-				fmt.Printf("%v\n", err)
+			var err error
+			if options.client, _, err = f.Clients(cmd); err != nil {
+				glog.Fatalf("Error getting client: %v", err)
+			}
+			if options.bindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+				glog.Fatalf("Error getting client: %v", err)
+			}
+			if err := options.run(); err != nil {
+				glog.Fatal(err)
 			}
 		},
 	}
@@ -51,20 +57,7 @@ func (o *removeUserFromProjectOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *removeUserFromProjectOptions) run() error {
-	clientConfig, err := o.clientConfig.ClientConfig()
-	if err != nil {
-		return err
-	}
-	client, err := client.New(clientConfig)
-	if err != nil {
-		return err
-	}
-	namespace, err := o.clientConfig.Namespace()
-	if err != nil {
-		return err
-	}
-
-	bindingList, err := client.PolicyBindings(namespace).List(klabels.Everything(), klabels.Everything())
+	bindingList, err := o.client.PolicyBindings(o.bindingNamespace).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		return err
 	}
@@ -77,7 +70,7 @@ func (o *removeUserFromProjectOptions) run() error {
 
 			currBinding.UserNames = usersForBinding.List()
 
-			_, err = client.RoleBindings(namespace).Update(&currBinding)
+			_, err = o.client.RoleBindings(o.bindingNamespace).Update(&currBinding)
 			if err != nil {
 				return err
 			}

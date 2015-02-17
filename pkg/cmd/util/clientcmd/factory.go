@@ -1,7 +1,8 @@
-package cmd
+package clientcmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -12,11 +13,42 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 )
+
+const defaultClusterURL = "https://localhost:8443"
+
+// NewFactory creates a default Factory for commands that should share identical server
+// connection behavior. Most commands should use this method to get a factory.
+func New(flags *pflag.FlagSet) *Factory {
+	// Override global default to https and port 8443
+	clientcmd.DefaultCluster.Server = defaultClusterURL
+
+	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
+	clientConfig := DefaultClientConfig(flags)
+	f := NewFactory(clientConfig)
+	f.BindFlags(flags)
+	return f
+}
+
+// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
+func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
+	loadingRules := clientcmd.NewClientConfigLoadingRules()
+	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
+
+	overrides := &clientcmd.ConfigOverrides{}
+	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
+	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
+	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+
+	return clientConfig
+}
 
 // Factory provides common options for OpenShift commands
 type Factory struct {

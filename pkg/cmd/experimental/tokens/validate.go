@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oauth/osintypes"
 )
 
-func NewCmdValidateToken(f *cmd.Factory) *cobra.Command {
+func NewCmdValidateToken(f *clientcmd.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate-token",
 		Short: "validate an access token",
