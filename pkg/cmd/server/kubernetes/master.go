@@ -13,6 +13,7 @@ import (
 	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -124,6 +125,11 @@ func (c *MasterConfig) RunScheduler() {
 	s := scheduler.New(config)
 	s.Run()
 	glog.Infof("Started Kubernetes Scheduler")
+}
+
+func (c *MasterConfig) RunResourceQuotaManager() {
+	resourceQuotaManager := resourcequota.NewResourceQuotaManager(c.KubeClient)
+	resourceQuotaManager.Run(10 * time.Second)
 }
 
 func (c *MasterConfig) RunMinionController() {
