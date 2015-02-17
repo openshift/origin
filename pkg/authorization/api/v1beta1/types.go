@@ -39,8 +39,9 @@ type Role struct {
 	Rules []PolicyRule `json:"rules"`
 }
 
-// RoleBinding references a Role, but not contain it.  It adds who and namespace information.
-// It can reference any Role in the same namespace or in the global namespace.
+// RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
+// It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
+// namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type RoleBinding struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
