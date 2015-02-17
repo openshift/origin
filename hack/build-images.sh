@@ -42,24 +42,25 @@ cp -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
 
 # images that depend on scratch
 echo "--- openshift/origin-pod ---"
-docker build -t openshift/origin-pod            images/pod
+docker build -t openshift/origin-pod:latest            images/pod
 
 # images that depend on openshift/origin-base
 echo "--- openshift/origin ---"
-docker build -t openshift/origin                images/origin
+docker build -t openshift/origin:latest                images/origin
 echo "--- openshift/origin-haproxy-router ---"
-docker build -t openshift/origin-haproxy-router images/router/haproxy
+docker build -t openshift/origin-haproxy-router:latest images/router/haproxy
 echo "--- openshift/hello-openshift ---"
-docker build -t openshift/hello-openshift       examples/hello-openshift
+docker build -t openshift/hello-openshift:latest       examples/hello-openshift
 
 # images that depend on openshift/origin
 echo "--- openshift/origin-deployer ---"
-docker build -t openshift/origin-deployer       images/deployer
+docker build -t openshift/origin-deployer:latest       images/deployer
 echo "--- openshift/origin-docker-builder ---"
-docker build -t openshift/origin-docker-builder images/builder/docker/docker-builder
-echo "--- openshift/origin-custom-docker-builder ---"
-docker build -t openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
+docker build -t openshift/origin-docker-builder:latest images/builder/docker/docker-builder
 echo "--- openshift/origin-sti-builder ---"
-docker build -t openshift/origin-sti-builder    images/builder/docker/sti-builder
+docker build -t openshift/origin-sti-builder:latest    images/builder/docker/sti-builder
+# unpublished images
+echo "--- openshift/origin-custom-docker-builder ---"
+docker build -t openshift/origin-custom-docker-builder:latest images/builder/docker/custom-docker-builder
 echo "--- openshift/sti-image-builder ---"
-docker build -t openshift/sti-image-builder     images/builder/docker/sti-image-builder
+docker build -t openshift/sti-image-builder:latest     images/builder/docker/sti-image-builder
