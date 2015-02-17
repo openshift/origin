@@ -650,7 +650,7 @@ func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace str
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &authorizer.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
 	return authorizationAttributeBuilder
 }
 
