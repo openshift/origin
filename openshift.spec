@@ -103,7 +103,9 @@ install -m 0644 rel-eng/openshift-node.sysconfig %{buildroot}%{_sysconfdir}/sysc
 
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
-%if 0%{?rhel}
+%if 0%{?fedora}
+ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/oosc
+%else
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
 %endif
 
@@ -114,7 +116,9 @@ install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-nod
 %defattr(-,root,root,-)
 %doc README.md LICENSE
 %{_bindir}/openshift
-%if 0%{?rhel}
+%if 0%{?fedora}
+%{_bindir}/oosc
+%else
 %{_bindir}/osc
 %endif
 %{_sharedstatedir}/openshift
