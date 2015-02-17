@@ -37,7 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
-	authcontext "github.com/openshift/origin/pkg/auth/context"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 
@@ -308,7 +307,7 @@ func start(cfg *config, args []string) error {
 			return fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
 
-		requestsToUsers := authcontext.NewRequestContextMap()
+		requestContextMapper := kapi.NewRequestContextMapper()
 		masterAuthorizationNamespace := "master"
 
 		// determine whether public API addresses were specified
@@ -360,9 +359,9 @@ func start(cfg *config, args []string) error {
 
 			AdmissionControl:              admit.NewAlwaysAdmit(),
 			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
-			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestsToUsers),
+			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
-			RequestsToUsers:               requestsToUsers,
+			RequestContextMapper:          requestContextMapper,
 
 			UseLocalImages: useLocalImages,
 			ImageFor:       imageResolverFn,
@@ -555,14 +554,15 @@ func start(cfg *config, args []string) error {
 			}
 
 			kmaster := &kubernetes.MasterConfig{
-				MasterIP:         masterIP,
-				MasterPort:       cfg.MasterAddr.Port,
-				NodeHosts:        cfg.NodeList,
-				PortalNet:        &portalNet,
-				EtcdHelper:       ketcdHelper,
-				KubeClient:       osmaster.KubeClient(),
-				Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
-				AdmissionControl: admit.NewAlwaysAdmit(),
+				MasterIP:             masterIP,
+				MasterPort:           cfg.MasterAddr.Port,
+				NodeHosts:            cfg.NodeList,
+				PortalNet:            &portalNet,
+				RequestContextMapper: requestContextMapper,
+				EtcdHelper:           ketcdHelper,
+				KubeClient:           osmaster.KubeClient(),
+				Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
+				AdmissionControl:     admit.NewAlwaysAdmit(),
 			}
 			kmaster.EnsurePortalFlags()
 
@@ -642,8 +642,8 @@ func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace str
 	return authorizer
 }
 
-func newAuthorizationAttributeBuilder(requestsToUsers *authcontext.RequestContextMap) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestsToUsers, &authorizer.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
+func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &authorizer.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
 	return authorizationAttributeBuilder
 }
 

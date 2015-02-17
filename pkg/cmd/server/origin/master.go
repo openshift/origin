@@ -31,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	authcontext "github.com/openshift/origin/pkg/auth/context"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -113,9 +112,10 @@ type MasterConfig struct {
 	Authenticator                 authenticator.Request
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
-	// RequestsToUsers is used by both authentication and authorization.  This is a shared, in-memory map, so they must use exactly the same instance
-	RequestsToUsers              *authcontext.RequestContextMap
-	MasterAuthorizationNamespace string
+	MasterAuthorizationNamespace  string
+
+	// Map requests to contexts
+	RequestContextMapper kapi.RequestContextMapper
 
 	EtcdHelper tools.EtcdHelper
 
@@ -311,34 +311,18 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	admissionControl := admit.NewAlwaysAdmit()
 
-	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefix, OpenShiftAPIV1Beta1, latest.SelfLinker, admissionControl, kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(container, OpenShiftAPIPrefix, "v1beta1"); err != nil {
+	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefix, OpenShiftAPIV1Beta1, latest.SelfLinker, admissionControl, c.getRequestContextMapper(), latest.RESTMapper).InstallREST(container, OpenShiftAPIPrefix, "v1beta1"); err != nil {
 		glog.Fatalf("Unable to initialize API: %v", err)
 	}
 
 	var root *restful.WebService
-	userRoutesChanged := 0
 	for _, svc := range container.RegisteredWebServices() {
 		switch svc.RootPath() {
 		case "/":
 			root = svc
 		case OpenShiftAPIPrefixV1Beta1:
 			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
-
-			// add the current user filter
-			// TODO: factor this better
-			filter := currentUserContextFilter(c.getRequestsToUsers())
-			routes := svc.Routes()
-			for i := range routes {
-				route := &routes[i]
-				if route.Method == "GET" && (route.Path == OpenShiftAPIPrefixV1Beta1+"/users/{name}") {
-					route.Filters = append(route.Filters, filter)
-					userRoutesChanged++
-				}
-			}
 		}
-	}
-	if userRoutesChanged != 1 {
-		glog.Fatalf("Could not find user route to install the current user filter.")
 	}
 	if root == nil {
 		root = new(restful.WebService)
@@ -396,7 +380,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		extra = append(extra, i.InstallAPI(safe)...)
 	}
 	handler := c.authorizationFilter(safe)
-	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestsToUsers())
+	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 
 	// unprotected resources
 	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
@@ -418,6 +402,13 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// add CORS support
 	if origins := c.ensureCORSAllowedOrigins(); len(origins) != 0 {
 		handler = apiserver.CORS(handler, origins, nil, nil, "true")
+	}
+
+	// Make the outermost filter the requestContextMapper to ensure all components share the same context
+	if contextHandler, err := kapi.NewRequestContextFilter(c.getRequestContextMapper(), handler); err != nil {
+		glog.Fatalf("Error setting up request context filter: %v", err)
+	} else {
+		handler = contextHandler
 	}
 
 	server := &http.Server{
@@ -451,12 +442,12 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	cmdutil.WaitForSuccessfulDial("tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
-// getRequestsToUsers returns the shared user context
-func (c *MasterConfig) getRequestsToUsers() *authcontext.RequestContextMap {
-	if c.RequestsToUsers == nil {
-		c.RequestsToUsers = authcontext.NewRequestContextMap()
+// getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
+func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
+	if c.RequestContextMapper == nil {
+		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
-	return c.RequestsToUsers
+	return c.RequestContextMapper
 }
 
 // ensureComponentAuthorizationRules initializes the global policies

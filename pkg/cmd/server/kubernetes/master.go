@@ -37,6 +37,8 @@ type MasterConfig struct {
 	NodeHosts  []string
 	PortalNet  *net.IPNet
 
+	RequestContextMapper kapi.RequestContextMapper
+
 	EtcdHelper tools.EtcdHelper
 	KubeClient *kclient.Client
 
@@ -78,6 +80,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		EnableV1Beta3: true,
 
 		PortalNet: c.PortalNet,
+
+		RequestContextMapper: c.RequestContextMapper,
 
 		RestfulContainer: container,
 		KubeletClient:    kubeletClient,
