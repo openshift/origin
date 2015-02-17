@@ -25,24 +25,30 @@ Requires:       bridge-utils
 %{summary}
 
 %package master
-Summary:        Openshift SDN Master
-Requires:       openshift-sdn = %{version}-%{release}
-Requires:       openshift-master
+Summary:          Openshift SDN Master
+Requires:         openshift-sdn = %{version}-%{release}
+Requires:         openshift-master
+Requires(post):   systemd
+Requires(preun):  systemd
+Requires(postun): systemd
 
 %description master
 %{summary}
 
 %package node
-Summary:        Openshift SDN Node
-Requires:       openshift-sdn = %{version}-%{release}
-Requires:       openshift-node
-Requires:       docker-io >= 1.3.2
+Summary:          Openshift SDN Node
+Requires:         openshift-sdn = %{version}-%{release}
+Requires:         openshift-node
+Requires:         docker-io >= 1.3.2
+Requires(post):   systemd
+Requires(preun):  systemd
+Requires(postun): systemd
 
 %description node
 %{summary}
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{commit}
 
 %build
 
