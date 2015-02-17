@@ -39,7 +39,7 @@ docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/loca
 os::build::detect_local_release_tars "linux"
 
 mkdir -p "${OS_LOCAL_BINPATH}"
-tar mxzf "${OS_CORE_RELEASE_TAR}" -C "${OS_LOCAL_BINPATH}"
+tar mxzf "${OS_PRIMARY_RELEASE_TAR}" -C "${OS_LOCAL_BINPATH}"
 tar mxzf "${OS_IMAGE_RELEASE_TAR}" -C "${OS_LOCAL_BINPATH}"
 
 os::build::make_openshift_binary_symlinks
