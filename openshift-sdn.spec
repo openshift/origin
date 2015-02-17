@@ -4,7 +4,7 @@
 %global osdn_gopath _output/local/go
 %global gopkg_base  github.com/openshift
 %global import_path %{gopkg_base}/openshift-sdn
-%global commit      1d03a6c75a44a638b9f2590b1475a6c980ce829d
+%global commit      2d06ba8340dc3e6543a762294f97935220f52cc0
 
 Name:           openshift-sdn
 Version:        0.4
