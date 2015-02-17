@@ -216,6 +216,11 @@
 			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota",
+			"Comment": "v0.10.0-503-gc977a45",
+			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime",
 			"Comment": "v0.10.0-503-gc977a45",
 			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
@@ -262,6 +267,26 @@
 		},
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit",
+			"Comment": "v0.10.0-503-gc977a45",
+			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger",
+			"Comment": "v0.10.0-503-gc977a45",
+			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/exists",
+			"Comment": "v0.10.0-503-gc977a45",
+			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcedefaults",
+			"Comment": "v0.10.0-503-gc977a45",
+			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota",
 			"Comment": "v0.10.0-503-gc977a45",
 			"Rev": "c977a458642b4dbd8c3ad9cfc9eecafc85fb6183"
 		},
