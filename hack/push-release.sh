@@ -20,6 +20,8 @@ cd "${OS_ROOT}"
 tag="${OS_PUSH_TAG:-}"
 if [[ -n "${tag}" ]]; then
   tag=":${tag}"
+else
+  tag=":latest"
 fi
 
 base_images=(
@@ -36,31 +38,36 @@ images=(
   openshift/hello-openshift
 )
 
-if [[ -z "${tag}" ]]; then
-  # Push the base images to a registry
+# Push the base images to a registry
+if [[ "${tag}" == ":latest" ]]; then
   if [[ "${OS_PUSH_BASE_IMAGES-}" != "" ]]; then
     for image in "${base_images[@]}"; do
       if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
-        docker tag "${image}" "${OS_PUSH_BASE_REGISTRY}${image}"
+        docker tag -f "${image}:latest" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
       fi
-      docker push "${OS_PUSH_BASE_REGISTRY-}${image}"
+      docker push "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
     done
   fi
 fi
 
 # Pull latest in preparation for tagging
-if [[ -n "${tag}" ]]; then
-  set -e
-  for image in "${images[@]}"; do
-    docker pull "${OS_PUSH_BASE_REGISTRY-}${image}"
-  done
-  set +e
+if [[ "${tag}" != ":latest" ]]; then
+  if [[ -z "${OS_PUSH_LOCAL-}" ]]; then
+    set -e
+    for image in "${images[@]}"; do
+      docker pull "${OS_PUSH_BASE_REGISTRY-}${image}:latest"
+    done
+    set +e
+  else
+    echo "Pushing local :latest images to ${OS_PUSH_BASE_REGISTRY-}*${tag} - CTRL+C to cancel"
+    read
+  fi
 fi
 
 if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
   set -e
   for image in "${images[@]}"; do
-    docker tag "${image}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+    docker tag -f "${image}:latest" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
   done
   set +e
 fi
