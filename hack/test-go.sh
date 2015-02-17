@@ -37,7 +37,7 @@ fi
 OUTPUT_COVERAGE=${OUTPUT_COVERAGE:-""}
 
 if [ -n "${OUTPUT_COVERAGE}" ]; then
-  if [ -z "${KUBE_RACE}" ]; then
+  if [ -z ${KUBE_RACE+x} ]; then
     KUBE_RACE="-race"
   fi
   if [ -z "${KUBE_COVER}" ]; then
@@ -49,7 +49,7 @@ if [ -z ${KUBE_RACE+x} ]; then
   KUBE_RACE=""
 fi
 
-KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 45s}
+KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 60s}
 
 if [ "${1-}" != "" ]; then
   test_packages="$OS_GO_PACKAGE/$1"
@@ -68,7 +68,10 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
     KUBE_COVER_PROFILE="-coverprofile=$OUTPUT_COVERAGE/$test_package/profile.out"
 
     go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
+  done
 
+  for test_package in "${test_packages[@]}"
+  do
     if [ -f "${OUTPUT_COVERAGE}/$test_package/profile.out" ]; then
       go tool cover "-html=${OUTPUT_COVERAGE}/$test_package/profile.out" -o "${OUTPUT_COVERAGE}/$test_package/coverage.html"
       echo "coverage: ${OUTPUT_COVERAGE}/$test_package/coverage.html"
