@@ -18,29 +18,27 @@ if [[ ! -d _output/local/releases ]]; then
   echo "No release has been built. Run hack/build-release.sh"
   exit 1
 fi
-releases=$(find _output/local/releases/ -print | grep 'openshift-origin-.*-linux-' --color=never)
-if [[ $(echo $releases | wc -l) -ne 1 ]]; then
-  echo "There must be exactly one Linux release tar in _output/local/releases"
-  exit 1
-fi
-echo "Building images from ${releases}"
+
+# Extract the release achives to a staging area.
+os::build::detect_local_release_tars "linux"
+
+echo "Building images from release tars:"
+echo " core:   $(basename ${OS_CORE_RELEASE_TAR})"
+echo " image:  $(basename ${OS_IMAGE_RELEASE_TAR})"
 
 imagedir="_output/imagecontext"
 rm -rf "${imagedir}"
 mkdir -p "${imagedir}"
-tar xzf "${releases}" -C "${imagedir}"
+tar xzf "${OS_CORE_RELEASE_TAR}" -C "${imagedir}"
+tar xzf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 
-# copy build artifacts to the appropriate locations
+# Copy core binaries to the appropriate locations.
 cp -f "${imagedir}/openshift" images/origin/bin
 cp -f "${imagedir}/openshift" images/router/haproxy/bin
 
-# build hello-openshift binary
-"${OS_ROOT}/hack/build-go.sh" examples/hello-openshift
-
-# build pod binary
-# TODO: move me to build release
-"${OS_ROOT}/hack/build-go.sh" images/pod
-cp -f "_output/local/go/bin/pod" images/pod/bin
+# Copy image binaries to the appropriate locations.
+cp -f "${imagedir}/pod" images/pod/bin
+cp -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
 
 # images that depend on scratch
 echo "--- openshift/origin-pod ---"
