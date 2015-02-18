@@ -94,9 +94,9 @@ module.exports = function (grunt) {
       },
       test: {
         options: {
-          port: 9001,
           middleware: function (connect) {
             return [
+              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
               connect.static('test'),
               connect().use(
@@ -416,11 +416,11 @@ module.exports = function (grunt) {
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
-        'less',
+        'less:development',
         'copy:styles'
       ],
       test: [
-        'less'
+        'less:development'
       ],
       dist: [
         'less:production',
@@ -436,6 +436,24 @@ module.exports = function (grunt) {
         singleRun: true
       }
     },
+
+    protractor: {
+      options: {
+        configFile: "test/protractor.conf.js", // Default config file 
+        keepAlive: false, // If false, the grunt process stops when the test fails. 
+        noColor: false, // If true, protractor will not use colors in its output. 
+        args: {
+          // Arguments passed to the command 
+        }
+      },
+      phantomjs: {},
+      chrome: {
+        options: {
+          configFile: "test/protractor-chrome.conf.js", // Target-specific config file 
+          args: {} // Target-specific arguments 
+        }
+      }
+    },    
 
     // Settings for grunt-istanbul-coverage
     // NOTE: coverage task is currently not in use
@@ -486,6 +504,24 @@ module.exports = function (grunt) {
     'karma'
     // 'coverage' - add back if we want to enforce coverage percentages
   ]);
+
+  grunt.registerTask('test-e2e', [
+    'clean:server',
+    'concurrent:server',
+    'autoprefixer',
+    'connect:test',
+    'protractor:phantomjs',
+    'clean:server'
+  ]);  
+
+  grunt.registerTask('test-e2e-chrome', [
+    'clean:server',
+    'concurrent:server',
+    'autoprefixer',
+    'connect:test',
+    'protractor:chrome',
+    'clean:server'
+  ]);  
 
   grunt.registerTask('build', [
     'clean:dist',
