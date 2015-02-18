@@ -156,6 +156,9 @@ angular
     RedirectLoginServiceProvider.OAuthAuthorizeURI(AUTH_CFG.oauth_authorize_uri);
     RedirectLoginServiceProvider.OAuthRedirectURI(AUTH_CFG.oauth_redirect_base + "/oauth");
   })
+  .config(function($compileProvider){
+    $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|mailto|git):/i);
+  })
   .run(['mainNavTabs', "HawtioNav", function (tabs, HawtioNav) {
     for (var i = 0; i < tabs.length; i++) {
       HawtioNav.add(tabs[i]);

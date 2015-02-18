@@ -25,11 +25,25 @@
                   </div>
                   <div ng-if="build.parameters.source">
                     <span class="fa fa-code" aria-hidden="true"></span>
-                    <span>Source: 
-                      <span ng-if="build.parameters.source.type == 'Git'">{{build.parameters.revision.git.message}}
-                        <span ng-if="build.parameters.revision">
-                          <span ng-if="build.parameters.revision.git.commit"> (<a href="#" title="{{build.parameters.revision.git.commit}}" class="small">{{build.parameters.revision.git.commit.substr(0, 10)}}</a>)
-                        </span> authored by {{build.parameters.revision.git.author.name}}
+                    <span>Source:
+                      <span ng-switch="build.parameters.source.type">
+                        <span ng-switch-when="Git">
+                          <span ng-if="build.parameters.revision">
+                            {{build.parameters.revision.git.message}}
+                            <span ng-if="build.parameters.revision.git.commit">
+                              (<a href="#" title="{{build.parameters.revision.git.commit}}" class="small">{{build.parameters.revision.git.commit.substr(0, 10)}}</a>)
+                            </span>
+                            <span ng-if="build.parameters.revision.git.author">
+                              authored by {{build.parameters.revision.git.author.name}}
+                            </span>
+                          </span>
+                          <span ng-if="!build.parameters.revision">
+                            <a href="{{build.parameters.source.git.uri}}" target="_blank" data-toggle="tooltip" data-placement="right" title="This is a Git URL that can be used with `git clone`">Git</a>
+                          </span>
+                        </span>
+                        <span ng-switch-default>
+                          {{build.parameters.source.type || 'Unknown'}}
+                        </span>
                       </span>
                     </span>
                   </div>

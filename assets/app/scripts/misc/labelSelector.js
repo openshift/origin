@@ -101,6 +101,23 @@ LabelSelector.prototype.matches = function(resource) {
   return true;
 };  
 
+LabelSelector.prototype.hasConjunct = function(conjunct) {
+  return this._conjuncts[this._getIdForConjunct(conjunct)] ? true : false;
+};
+
+// Test whether this label selector covers the given selector
+LabelSelector.prototype.covers = function(selector) {
+  // TODO - currently k8s only returns key: value
+  // which represents 'key in (value)'  So we only handle
+  // the IN operator with single values for now
+  for (var id in this._conjuncts) {
+    if (!selector.hasConjunct(this._conjuncts[id])) {
+      return false;
+    }
+  }
+  return true;
+};
+
 // We assume label values have no whitespace, commas, parens, etc. based
 // on k8s def for label values
 LabelSelector.prototype._getStringForConjunct = function(conjunct) {

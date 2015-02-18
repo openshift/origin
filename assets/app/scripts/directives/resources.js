@@ -13,4 +13,24 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/_pods.html'
     };
+  })
+  .directive('triggers', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        triggers: '='
+      },      
+      templateUrl: 'views/_triggers.html'
+    };
+  })
+  .directive('deploymentConfigMetadata', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        deploymentConfigId: '=',
+        exists: '=',
+        differentService: '='
+      },
+      templateUrl: 'views/_deployment-config-metadata.html'
+    };
   });
