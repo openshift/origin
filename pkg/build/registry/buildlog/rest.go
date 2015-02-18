@@ -62,7 +62,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	}
 
 	buildPodID := build.PodName
-	buildPodHost := pod.Status.Host
+	buildPodHost := pod.Status.HostIP
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
 	buildContainerName := pod.Spec.Containers[0].Name
