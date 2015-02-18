@@ -25,7 +25,17 @@ source "${OS_ROOT}/hack/util.sh"
 
 echo "[INFO] Starting end-to-end test"
 
+# Use either the latest release built images, or latest.
+if [[ -z "${USE_IMAGES-}" ]]; then
+	USE_IMAGES='openshift/origin-${component}:latest'
+	if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
+		COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
+		USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
+	fi
+fi
+# TODO: remove the need for this by making all OpenShift components pullIfPresent
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
+
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 
 if [[ -z "${BASETMPDIR-}" ]]; then
@@ -155,11 +165,17 @@ echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
 echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
 echo "[INFO] Certs dir is:              ${CERT_DIR}"
+echo "[INFO] Using images:              ${USE_IMAGES}"
 
 # Start All-in-one server and wait for health
 # Specify the scheme and port for the listen address, but let the IP auto-discover.	Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Starting OpenShift server"
-sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 --latest-images &> "${LOG_DIR}/openshift.log" &
+sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start \
+     --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
+     --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" \
+     --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 --latest-images \
+     --images="${USE_IMAGES}" \
+     &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
