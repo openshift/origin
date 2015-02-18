@@ -30,7 +30,7 @@ func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
 // Create attempts to create each item generically, gathering all errors in the
 // event a failure occurs. The contents of list will be updated to include the
 // version from the server.
-func (b *Bulk) Create(list *kapi.List, namespace string) []error {
+func (b *Bulk) Create(list *kapi.List, namespace string) bool {
 	mapper, typer := b.Factory.Object(b.Command)
 	resourceMapper := &resource.Mapper{typer, mapper, b.Factory.ClientMapperForCommand(b.Command)}
 	after := b.After
@@ -38,23 +38,23 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 		after = func(*resource.Info, error) {}
 	}
 
-	errs := []error{}
+	errored := false
 	for i, item := range list.Items {
 		info, err := resourceMapper.InfoForObject(item)
 		if err != nil {
-			errs = append(errs, err)
+			errored = true
 			after(info, err)
 			continue
 		}
 		data, err := info.Mapping.Codec.Encode(item)
 		if err != nil {
-			errs = append(errs, err)
+			errored = true
 			after(info, err)
 			continue
 		}
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
 		if err != nil {
-			errs = append(errs, err)
+			errored = true
 			after(info, err)
 			continue
 		}
@@ -62,5 +62,5 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 		list.Items[i] = obj
 		after(info, nil)
 	}
-	return errs
+	return errored
 }
