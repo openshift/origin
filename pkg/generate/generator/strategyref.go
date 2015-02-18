@@ -132,7 +132,7 @@ func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*app.Ima
 	case "JEE":
 		imageName = "openshift/wildfly-8-centos"
 	case "NodeJS":
-		imageName = "openshift/nodejs-0-10-centos"
+		imageName = "openshift/nodejs-010-centos7"
 	default:
 		return nil, errors.NoBuilderFound
 	}

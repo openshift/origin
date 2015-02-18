@@ -179,13 +179,13 @@ osc delete imageRepositories test
 [ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-repositories/image-repositories.json
 [ -n "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories nodejs-0-10-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
 osc delete imageRepositories ruby-20-centos
-osc delete imageRepositories nodejs-0-10-centos
+osc delete imageRepositories nodejs-010-centos7
 osc delete imageRepositories wildfly-8-centos
 [ -z "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories nodejs-0-10-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
 echo "imageRepositories: ok"
 
