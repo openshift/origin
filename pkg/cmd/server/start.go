@@ -40,6 +40,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	projectauth "github.com/openshift/origin/pkg/project/auth"
 
 	"github.com/openshift/origin/pkg/auth/group"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -501,6 +502,13 @@ func start(cfg *config, args []string) error {
 
 		osmaster.BuildClients()
 
+		osmaster.ProjectAuthorizationCache = projectauth.NewAuthorizationCache(
+			projectauth.NewReviewer(osmaster.PolicyClient()),
+			osmaster.KubeClient().Namespaces(),
+			osmaster.PolicyClient(),
+			osmaster.PolicyClient(),
+			osmaster.MasterAuthorizationNamespace)
+
 		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
 		defaultAuthRequestHandlers := strings.Join([]string{
 			string(origin.AuthRequestHandlerSession),
@@ -599,6 +607,7 @@ func start(cfg *config, args []string) error {
 		osmaster.RunDeploymentConfigController()
 		osmaster.RunDeploymentConfigChangeController()
 		osmaster.RunDeploymentImageChangeTriggerController()
+		osmaster.RunProjectAuthorizationCache()
 
 		existingKubeClient = osmaster.KubeClient()
 	}

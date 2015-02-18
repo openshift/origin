@@ -351,6 +351,7 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 			Name:              authorizationapi.PolicyName,
 			Namespace:         masterNamespace,
 			CreationTimestamp: util.Now(),
+			UID:               util.NewUUID(),
 		},
 		LastModified: util.Now(),
 		Roles: map[string]authorizationapi.Role{
@@ -482,6 +483,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 			Name:              masterNamespace,
 			Namespace:         masterNamespace,
 			CreationTimestamp: util.Now(),
+			UID:               util.NewUUID(),
 		},
 		LastModified: util.Now(),
 		PolicyRef:    kapi.ObjectReference{Namespace: masterNamespace},

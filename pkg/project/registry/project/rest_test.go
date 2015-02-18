@@ -7,10 +7,20 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	//"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/project/api"
 )
+
+// mockLister returns the namespaces in the list
+type mockLister struct {
+	namespaceList *kapi.NamespaceList
+}
+
+func (ml *mockLister) List(user user.Info) (*kapi.NamespaceList, error) {
+	return ml.namespaceList, nil
+}
 
 func TestListProjects(t *testing.T) {
 	namespaceList := kapi.NamespaceList{
@@ -25,8 +35,15 @@ func TestListProjects(t *testing.T) {
 	}
 	storage := REST{
 		client: mockClient.Namespaces(),
+		lister: &mockLister{&namespaceList},
 	}
-	response, err := storage.List(nil, nil, nil)
+	user := &user.DefaultInfo{
+		Name:   "test-user",
+		UID:    "test-uid",
+		Groups: []string{"test-groups"},
+	}
+	ctx := kapi.WithUser(kapi.NewContext(), user)
+	response, err := storage.List(ctx, labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Errorf("%#v should be nil.", err)
 	}
