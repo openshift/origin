@@ -24,6 +24,16 @@ else
   tag=":latest"
 fi
 
+# Source tag
+source_tag="${OS_TAG:-}"
+if [[ -z "${source_tag}" ]]; then
+  source_tag="latest"
+  file="${OS_ROOT}/_output/local/releases/.commit"
+  if [[ -e ${file} ]]; then
+    source_tag="$(cat $file)"
+  fi
+fi
+
 base_images=(
   openshift/origin-base
   openshift/origin-release
@@ -43,7 +53,7 @@ if [[ "${tag}" == ":latest" ]]; then
   if [[ "${OS_PUSH_BASE_IMAGES-}" != "" ]]; then
     for image in "${base_images[@]}"; do
       if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
-        docker tag -f "${image}:latest" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
+        docker tag -f "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
       fi
       docker push "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
     done
@@ -55,11 +65,11 @@ if [[ "${tag}" != ":latest" ]]; then
   if [[ -z "${OS_PUSH_LOCAL-}" ]]; then
     set -e
     for image in "${images[@]}"; do
-      docker pull "${OS_PUSH_BASE_REGISTRY-}${image}:latest"
+      docker pull "${OS_PUSH_BASE_REGISTRY-}${image}:${source_tag}"
     done
     set +e
   else
-    echo "Pushing local :latest images to ${OS_PUSH_BASE_REGISTRY-}*${tag} - CTRL+C to cancel"
+    echo "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag} - CTRL+C to cancel"
     read
   fi
 fi
@@ -67,7 +77,7 @@ fi
 if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
   set -e
   for image in "${images[@]}"; do
-    docker tag -f "${image}:latest" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+    docker tag -f "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
   done
   set +e
 fi

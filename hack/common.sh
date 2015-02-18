@@ -348,6 +348,7 @@ os::build::detect_local_release_tars() {
 
   export OS_PRIMARY_RELEASE_TAR="${primary}"
   export OS_IMAGE_RELEASE_TAR="${image}"
+  export OS_RELEASE_COMMIT="$(cat ${OS_LOCAL_RELEASEPATH}/.commit)"
 }
 
 # os::build::get_version_vars loads the standard version variables as
