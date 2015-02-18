@@ -73,6 +73,9 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err := r.validateReferentialIntegrity(ctx, roleBinding); err != nil {
 		return nil, err
 	}
+	if err := r.confirmRoleBindingNameUnique(ctx, roleBinding.Name); err != nil {
+		return nil, err
+	}
 
 	policyBinding, err := r.GetPolicyBinding(ctx, roleBinding.RoleRef.Namespace)
 	if err != nil {
@@ -142,12 +145,21 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 }
 
 func (r *REST) validateReferentialIntegrity(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
-	// TODO decide we need to validate referential integrity for users
-	// if err := r.confirmUsersExist(roleBinding.UserNames); err != nil {
-	// 	return err
-	// }
 	if err := r.confirmRoleExists(roleBinding.RoleRef); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *REST) confirmRoleBindingNameUnique(ctx kapi.Context, bindingName string) error {
+	policyBinding, err := r.LocatePolicyBinding(ctx, bindingName)
+	if err != nil {
+		return err
+	}
+
+	if policyBinding != nil {
+		return fmt.Errorf("%v already exists", bindingName)
 	}
 
 	return nil
@@ -224,14 +236,14 @@ func (r *REST) GetPolicyBinding(ctx kapi.Context, policyNamespace string) (*auth
 	return policyBinding, nil
 }
 
-func (r *REST) LocatePolicyBinding(ctx kapi.Context, roleName string) (*authorizationapi.PolicyBinding, error) {
+func (r *REST) LocatePolicyBinding(ctx kapi.Context, roleBindingName string) (*authorizationapi.PolicyBinding, error) {
 	policyBindingList, err := r.bindingRegistry.ListPolicyBindings(ctx, klabels.Everything(), klabels.Everything())
 	if err != nil {
 		return nil, err
 	}
 
 	for _, policyBinding := range policyBindingList.Items {
-		_, exists := policyBinding.RoleBindings[roleName]
+		_, exists := policyBinding.RoleBindings[roleBindingName]
 		if exists {
 			return &policyBinding, nil
 		}
