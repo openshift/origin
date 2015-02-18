@@ -113,7 +113,7 @@ func NewCmdNewApplication(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 				Command: c,
 				After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 			}
-			if errs := bulk.Create(result.List, namespace); len(errs) != 0 {
+			if errored := bulk.Create(result.List, namespace); errored {
 				os.Exit(1)
 			}
 
