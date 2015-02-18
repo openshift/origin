@@ -121,9 +121,6 @@ type MasterConfig struct {
 
 	AdmissionControl admission.Interface
 
-	// true if the system should use pullIfNotPresent for images (which means updates will not be fetched aggressively)
-	UseLocalImages bool
-
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
 
@@ -605,7 +602,6 @@ func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
 	dockerImage := c.ImageFor("docker-builder")
 	stiImage := c.ImageFor("sti-builder")
-	useLocalImages := c.UseLocalImages
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
@@ -613,20 +609,17 @@ func (c *MasterConfig) RunBuildController() {
 		KubeClient:   kclient,
 		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image:          dockerImage,
-			UseLocalImages: useLocalImages,
+			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
-			UseLocalImages:       useLocalImages,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
-			UseLocalImages: useLocalImages,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
@@ -656,7 +649,6 @@ func (c *MasterConfig) RunDeploymentController() {
 			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 			{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
 		},
-		UseLocalImages:        c.UseLocalImages,
 		RecreateStrategyImage: c.ImageFor("deployer"),
 	}
 

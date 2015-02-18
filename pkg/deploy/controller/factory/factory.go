@@ -70,8 +70,6 @@ type DeploymentControllerFactory struct {
 	KubeClient *kclient.Client
 	// Environment is a set of environment which should be injected into all deployment pod containers.
 	Environment []kapi.EnvVar
-	// UseLocalImages configures the ImagePullPolicy for containers deployment pods.
-	UseLocalImages bool
 	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
 	RecreateStrategyImage string
 	// Codec is used to decode DeploymentConfigs.
@@ -152,9 +150,8 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 			panicIfStopped(factory.Stop, "deployment controller stopped")
 			return pod
 		},
-		UseLocalImages: factory.UseLocalImages,
-		Codec:          factory.Codec,
-		Stop:           factory.Stop,
+		Codec: factory.Codec,
+		Stop:  factory.Stop,
 	}
 }
 
