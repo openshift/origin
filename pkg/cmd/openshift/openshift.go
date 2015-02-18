@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -110,12 +111,17 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 			c.Help()
 		},
 	}
-	experimental.AddCommand(config.NewCmdConfig(fmt.Sprintf("%s %s", parentName, name), "config"))
-	experimental.AddCommand(tokens.NewCmdTokens("tokens"))
-	experimental.AddCommand(policy.NewCommandPolicy("policy"))
-	experimental.AddCommand(generate.NewCmdGenerate("generate"))
-	experimental.AddCommand(login.NewCmdLogin("login", experimental))
-	experimental.AddCommand(project.NewCmdNewProject("new-project"))
+
+	f := clientcmd.New(experimental.PersistentFlags())
+
+	subName := fmt.Sprintf("%s %s", parentName, name)
+	experimental.AddCommand(project.NewCmdNewProject(f, subName, "new-project"))
+	experimental.AddCommand(config.NewCmdConfig(subName, "config"))
+	experimental.AddCommand(tokens.NewCmdTokens(f, subName, "tokens"))
+	experimental.AddCommand(policy.NewCommandPolicy(f, subName, "policy"))
+	experimental.AddCommand(generate.NewCmdGenerate(f, subName, "generate"))
+	experimental.AddCommand(login.NewCmdLogin(f, subName, "login"))
+	//experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
 	return experimental
 }
 

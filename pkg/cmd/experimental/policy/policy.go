@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-func NewCommandPolicy(name string) *cobra.Command {
+func NewCommandPolicy(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
@@ -23,17 +22,13 @@ func NewCommandPolicy(name string) *cobra.Command {
 		Run:   runHelp,
 	}
 
-	// Override global default to https and port 8443
-	clientcmd.DefaultCluster.Server = "https://localhost:8443"
-	clientConfig := cmdutil.DefaultClientConfig(cmds.PersistentFlags())
-
-	cmds.AddCommand(NewCmdAddUser(clientConfig))
-	cmds.AddCommand(NewCmdRemoveUser(clientConfig))
-	cmds.AddCommand(NewCmdRemoveUserFromProject(clientConfig))
-	cmds.AddCommand(NewCmdAddGroup(clientConfig))
-	cmds.AddCommand(NewCmdRemoveGroup(clientConfig))
-	cmds.AddCommand(NewCmdRemoveGroupFromProject(clientConfig))
-	cmds.AddCommand(NewCmdWhoCan(clientConfig))
+	cmds.AddCommand(NewCmdAddUser(f))
+	cmds.AddCommand(NewCmdRemoveUser(f))
+	cmds.AddCommand(NewCmdRemoveUserFromProject(f))
+	cmds.AddCommand(NewCmdAddGroup(f))
+	cmds.AddCommand(NewCmdRemoveGroup(f))
+	cmds.AddCommand(NewCmdRemoveGroupFromProject(f))
+	cmds.AddCommand(NewCmdWhoCan(f))
 
 	return cmds
 }
@@ -65,7 +60,7 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 	return string(util.NewUUID())
 }
 
-func getExistingRoleBindingsForRole(roleNamespace, role, bindingNamespace string, client *client.Client) ([]*authorizationapi.RoleBinding, *util.StringSet, error) {
+func getExistingRoleBindingsForRole(roleNamespace, role, bindingNamespace string, client client.Interface) ([]*authorizationapi.RoleBinding, *util.StringSet, error) {
 	existingBindings, err := client.PolicyBindings(bindingNamespace).Get(roleNamespace)
 	if err != nil && !strings.Contains(err.Error(), " not found") {
 		return nil, &util.StringSet{}, err

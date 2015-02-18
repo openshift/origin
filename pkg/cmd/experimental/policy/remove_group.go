@@ -3,23 +3,25 @@ package policy
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type removeGroupOptions struct {
-	roleNamespace string
-	roleName      string
-	clientConfig  clientcmd.ClientConfig
+	roleNamespace    string
+	roleName         string
+	bindingNamespace string
+	client           client.Interface
 
 	groupNames []string
 }
 
-func NewCmdRemoveGroup(clientConfig clientcmd.ClientConfig) *cobra.Command {
-	options := &removeGroupOptions{clientConfig: clientConfig}
+func NewCmdRemoveGroup(f *clientcmd.Factory) *cobra.Command {
+	options := &removeGroupOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "remove-group <role> <group> [group]...",
@@ -30,9 +32,15 @@ func NewCmdRemoveGroup(clientConfig clientcmd.ClientConfig) *cobra.Command {
 				return
 			}
 
-			err := options.run()
-			if err != nil {
-				fmt.Printf("%v\n", err)
+			var err error
+			if options.client, _, err = f.Clients(cmd); err != nil {
+				glog.Fatalf("Error getting client: %v", err)
+			}
+			if options.bindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+				glog.Fatalf("Error getting client: %v", err)
+			}
+			if err := options.run(); err != nil {
+				glog.Fatal(err)
 			}
 		},
 	}
@@ -55,25 +63,12 @@ func (o *removeGroupOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *removeGroupOptions) run() error {
-	clientConfig, err := o.clientConfig.ClientConfig()
-	if err != nil {
-		return err
-	}
-	client, err := client.New(clientConfig)
-	if err != nil {
-		return err
-	}
-	namespace, err := o.clientConfig.Namespace()
-	if err != nil {
-		return err
-	}
-
-	roleBindings, _, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, namespace, client)
+	roleBindings, _, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, o.bindingNamespace, o.client)
 	if err != nil {
 		return err
 	}
 	if len(roleBindings) == 0 {
-		return fmt.Errorf("unable to locate RoleBinding for %v::%v in %v", o.roleNamespace, o.roleName, namespace)
+		return fmt.Errorf("unable to locate RoleBinding for %v::%v in %v", o.roleNamespace, o.roleName, o.bindingNamespace)
 	}
 
 	for _, roleBinding := range roleBindings {
@@ -82,7 +77,7 @@ func (o *removeGroupOptions) run() error {
 		groups.Delete(o.groupNames...)
 		roleBinding.GroupNames = groups.List()
 
-		_, err = client.RoleBindings(namespace).Update(roleBinding)
+		_, err = o.client.RoleBindings(o.bindingNamespace).Update(roleBinding)
 		if err != nil {
 			return err
 		}

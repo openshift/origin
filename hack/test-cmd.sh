@@ -104,24 +104,24 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 [ "$(openshift ex config 2>&1)" ]
 [ "$(openshift ex tokens)" ]
 [ "$(openshift ex policy  2>&1)" ]
-[ "$(openshift kubectl)" ]
+[ "$(openshift kubectl 2>&1)" ]
 [ "$(openshift kube 2>&1)" ]
 
 # help for root commands must be consistent
 [ "$(openshift | grep 'OpenShift for Admins')" ]
 [ "$(osc | grep 'OpenShift Client')" ]
 [ "$(openshift cli | grep 'OpenShift Client')" ]
-[ "$(openshift kubectl | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift for Admins')" ]
 [ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
-[ "$(openshift kubectl --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
 
 # help for root commands through help command must be consistent
 [ "$(openshift help cli 2>&1 | grep 'OpenShift Client')" ]
-[ "$(openshift help kubectl 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift help kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 
 # help for given command with --help flag must be consistent
 [ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
@@ -184,6 +184,10 @@ osc get images
 osc get imageRepositories
 osc delete imageRepositories test
 echo "imageRepositoryMappings: ok"
+
+[ "$(osc new-app php mysql -o yaml | grep 3306)" ]
+osc new-app php mysql
+echo "new-app: ok"
 
 osc get routes
 osc create -f test/integration/fixtures/test-route.json create routes

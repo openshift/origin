@@ -116,6 +116,8 @@ type config struct {
 	ImageFormat         string
 	LatestReleaseImages bool
 
+	ImageTemplate variable.ImageTemplate
+
 	Hostname  string
 	VolumeDir string
 
@@ -154,6 +156,8 @@ func NewCommandStartServer(name string) *cobra.Command {
 		MasterPublicAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 
+		ImageTemplate: variable.NewDefaultImageTemplate(),
+
 		Hostname: hostname,
 		NodeList: flagtypes.StringList{"127.0.0.1"},
 	}
@@ -179,8 +183,8 @@ func NewCommandStartServer(name string) *cobra.Command {
 	flag.Var(&cfg.KubernetesPublicAddr, "public-kubernetes", "The Kubernetes server address for use by public clients, if different. (host, host:port, or URL). Defaults to same as --kubernetes.")
 	flag.Var(&cfg.PortalNet, "portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
-	flag.StringVar(&cfg.ImageFormat, "images", "openshift/origin-${component}:${version}", "When fetching images used by the cluster for important components, use this format on both master and nodes. The latest release will be used by default.")
-	flag.BoolVar(&cfg.LatestReleaseImages, "latest-images", false, "If true, attempt to use the latest images for the cluster instead of the latest release.")
+	flag.StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "When fetching images used by the cluster for important components, use this format on both master and nodes. The latest release will be used by default.")
+	flag.BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the cluster instead of the latest release.")
 
 	flag.StringVar(&cfg.VolumeDir, "volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	flag.StringVar(&cfg.EtcdDir, "etcd-dir", "openshift.local.etcd", "The etcd data directory.")
@@ -270,9 +274,7 @@ func start(cfg *config, args []string) error {
 	}
 
 	// define a function for resolving components to names
-	imageResolverFn := func(component string) string {
-		return expandImage(component, cfg.ImageFormat, cfg.LatestReleaseImages)
-	}
+	imageResolverFn := cfg.ImageTemplate.ExpandOrDie
 	useLocalImages := env("USE_LOCAL_IMAGES", "false") == "true"
 
 	// the node can reuse an existing client

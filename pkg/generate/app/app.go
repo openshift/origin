@@ -414,3 +414,67 @@ func generateSecret(n int) string {
 	}
 	return base64.URLEncoding.EncodeToString(b)
 }
+
+// ContainerPortsFromString extracts sets of port specifications from a comma-delimited string. Each segment
+// must be a single port number (container port) or a colon delimited pair of ports (container port and host port).
+func ContainerPortsFromString(portString string) ([]kapi.Port, error) {
+	ports := []kapi.Port{}
+	for _, s := range strings.Split(portString, ",") {
+		port, ok := checkPortSpecSegment(s)
+		if !ok {
+			return nil, fmt.Errorf("%q is not valid: you must specify one (container) or two (container:host) port numbers", s)
+		}
+		ports = append(ports, port)
+	}
+	return ports, nil
+}
+
+func checkPortSpecSegment(s string) (port kapi.Port, ok bool) {
+	if strings.Contains(s, ":") {
+		pair := strings.Split(s, ":")
+		if len(pair) != 2 {
+			return
+		}
+		container, err := strconv.Atoi(pair[0])
+		if err != nil {
+			return
+		}
+		host, err := strconv.Atoi(pair[1])
+		if err != nil {
+			return
+		}
+		return kapi.Port{ContainerPort: container, HostPort: host}, true
+	}
+
+	container, err := strconv.Atoi(s)
+	if err != nil {
+		return
+	}
+	return kapi.Port{ContainerPort: container}, true
+}
+
+// LabelsFromSpec turns a set of specs NAME=VALUE or NAME- into a map of labels,
+// a remove label list, or an error.
+func LabelsFromSpec(spec []string) (map[string]string, []string, error) {
+	labels := map[string]string{}
+	var remove []string
+	for _, labelSpec := range spec {
+		if strings.Index(labelSpec, "=") != -1 {
+			parts := strings.Split(labelSpec, "=")
+			if len(parts) != 2 {
+				return nil, nil, fmt.Errorf("invalid label spec: %v", labelSpec)
+			}
+			labels[parts[0]] = parts[1]
+		} else if strings.HasSuffix(labelSpec, "-") {
+			remove = append(remove, labelSpec[:len(labelSpec)-1])
+		} else {
+			return nil, nil, fmt.Errorf("unknown label spec: %v")
+		}
+	}
+	for _, removeLabel := range remove {
+		if _, found := labels[removeLabel]; found {
+			return nil, nil, fmt.Errorf("can not both modify and remove a label in the same command")
+		}
+	}
+	return labels, remove, nil
+}
