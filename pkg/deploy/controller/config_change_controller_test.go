@@ -8,43 +8,31 @@ import (
 	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
-	deploytest "github.com/openshift/origin/pkg/deploy/controller/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // Test the controller's response to a new DeploymentConfig with a config change trigger.
 func TestNewConfigWithoutTrigger(t *testing.T) {
-	generated := false
-	updated := false
-
 	controller := &DeploymentConfigChangeController{
 		Codec: api.Codec,
-		ChangeStrategy: &testChangeStrategy{
+		ChangeStrategy: &ChangeStrategyImpl{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
-				generated = true
+				t.Fatalf("unexpected generation of deploymentConfig")
 				return nil, nil
 			},
 			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				updated = true
+				t.Fatalf("unexpected update of deploymentConfig")
 				return config, nil
 			},
 		},
-		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			config := deployapitest.OkDeploymentConfig(1)
-			config.Triggers = []deployapi.DeploymentTriggerPolicy{}
-			return config
-		},
-		DeploymentStore: deploytest.NewFakeDeploymentStore(nil),
 	}
 
-	controller.HandleDeploymentConfig()
+	config := deployapitest.OkDeploymentConfig(1)
+	config.Triggers = []deployapi.DeploymentTriggerPolicy{}
+	err := controller.HandleDeploymentConfig(config)
 
-	if generated {
-		t.Error("Unexpected generation of deploymentConfig")
-	}
-
-	if updated {
-		t.Error("Unexpected update of deploymentConfig")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -53,7 +41,7 @@ func TestNewConfigWithTrigger(t *testing.T) {
 
 	controller := &DeploymentConfigChangeController{
 		Codec: api.Codec,
-		ChangeStrategy: &testChangeStrategy{
+		ChangeStrategy: &ChangeStrategyImpl{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				return deployapitest.OkDeploymentConfig(1), nil
 			},
@@ -62,15 +50,15 @@ func TestNewConfigWithTrigger(t *testing.T) {
 				return config, nil
 			},
 		},
-		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			config := deployapitest.OkDeploymentConfig(0)
-			config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
-			return config
-		},
-		DeploymentStore: deploytest.NewFakeDeploymentStore(nil),
 	}
 
-	controller.HandleDeploymentConfig()
+	config := deployapitest.OkDeploymentConfig(0)
+	config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
+	err := controller.HandleDeploymentConfig(config)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if updated == nil {
 		t.Fatalf("expected config to be updated")
@@ -92,11 +80,10 @@ func TestNewConfigWithTrigger(t *testing.T) {
 // Test the controller's response when the pod template is changed
 func TestChangeWithTemplateDiff(t *testing.T) {
 	var updated *deployapi.DeploymentConfig
-	deployment, _ := deployutil.MakeDeployment(deployapitest.OkDeploymentConfig(1), kapi.Codec)
 
 	controller := &DeploymentConfigChangeController{
 		Codec: api.Codec,
-		ChangeStrategy: &testChangeStrategy{
+		ChangeStrategy: &ChangeStrategyImpl{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				return deployapitest.OkDeploymentConfig(2), nil
 			},
@@ -104,17 +91,21 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 				updated = config
 				return config, nil
 			},
+			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				deployment, _ := deployutil.MakeDeployment(deployapitest.OkDeploymentConfig(1), kapi.Codec)
+				return deployment, nil
+			},
 		},
-		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			config := deployapitest.OkDeploymentConfig(1)
-			config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
-			config.Template.ControllerTemplate.Template.Spec.Containers[1].Name = "modified"
-			return config
-		},
-		DeploymentStore: deploytest.NewFakeDeploymentStore(deployment),
 	}
 
-	controller.HandleDeploymentConfig()
+	config := deployapitest.OkDeploymentConfig(1)
+	config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
+	config.Template.ControllerTemplate.Template.Spec.Containers[1].Name = "modified"
+	err := controller.HandleDeploymentConfig(config)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if updated == nil {
 		t.Fatalf("expected config to be updated")
@@ -137,14 +128,12 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 	config := deployapitest.OkDeploymentConfig(1)
 	config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
 
-	deployment, _ := deployutil.MakeDeployment(deployapitest.OkDeploymentConfig(1), kapi.Codec)
-
 	generated := false
 	updated := false
 
 	controller := &DeploymentConfigChangeController{
 		Codec: api.Codec,
-		ChangeStrategy: &testChangeStrategy{
+		ChangeStrategy: &ChangeStrategyImpl{
 			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generated = true
 				return config, nil
@@ -153,14 +142,18 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 				updated = true
 				return config, nil
 			},
+			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				deployment, _ := deployutil.MakeDeployment(deployapitest.OkDeploymentConfig(1), kapi.Codec)
+				return deployment, nil
+			},
 		},
-		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			return config
-		},
-		DeploymentStore: deploytest.NewFakeDeploymentStore(deployment),
 	}
 
-	controller.HandleDeploymentConfig()
+	err := controller.HandleDeploymentConfig(config)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if generated {
 		t.Error("Unexpected generation of deploymentConfig")
@@ -169,17 +162,4 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 	if updated {
 		t.Error("Unexpected update of deploymentConfig")
 	}
-}
-
-type testChangeStrategy struct {
-	GenerateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
-	UpdateDeploymentConfigFunc   func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
-}
-
-func (i *testChangeStrategy) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return i.GenerateDeploymentConfigFunc(namespace, name)
-}
-
-func (i *testChangeStrategy) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	return i.UpdateDeploymentConfigFunc(namespace, config)
 }

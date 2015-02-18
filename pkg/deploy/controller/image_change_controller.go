@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -16,32 +15,34 @@ import (
 // DeploymentConfigs when a new version of a tag referenced by a DeploymentConfig
 // is available.
 type ImageChangeController struct {
-	DeploymentConfigInterface icDeploymentConfigInterface
-	NextImageRepository       func() *imageapi.ImageRepository
-	DeploymentConfigStore     cache.Store
+	DeploymentConfigClient ImageChangeControllerDeploymentConfigClient
+	NextImageRepository    func() *imageapi.ImageRepository
 	// Stop is an optional channel that controls when the controller exits
 	Stop <-chan struct{}
 }
 
-type icDeploymentConfigInterface interface {
-	UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
-	GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
-}
-
 // Run processes ImageRepository events one by one.
 func (c *ImageChangeController) Run() {
-	go util.Until(c.HandleImageRepo, 0, c.Stop)
+	go util.Until(func() {
+		err := c.HandleImageRepo(c.NextImageRepository())
+		if err != nil {
+			glog.Errorf("%v", err)
+		}
+	}, 0, c.Stop)
 }
 
 // HandleImageRepo processes the next ImageRepository event.
-func (c *ImageChangeController) HandleImageRepo() {
-	imageRepo := c.NextImageRepository()
+func (c *ImageChangeController) HandleImageRepo(imageRepo *imageapi.ImageRepository) error {
 	configsToGenerate := []*deployapi.DeploymentConfig{}
 	firedTriggersForConfig := make(map[string][]deployapi.DeploymentTriggerImageChangeParams)
 
-	for _, c := range c.DeploymentConfigStore.List() {
-		config := c.(*deployapi.DeploymentConfig)
-		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", config.Name)
+	configs, err := c.DeploymentConfigClient.ListDeploymentConfigs()
+	if err != nil {
+		return fmt.Errorf("couldn't get list of deploymentConfigs while handling imageRepo %s: %v", labelForRepo(imageRepo), err)
+	}
+
+	for _, config := range configs {
+		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", labelFor(config))
 
 		// Extract relevant triggers for this imageRepo for this config
 		triggersForConfig := []deployapi.DeploymentTriggerImageChangeParams{}
@@ -51,13 +52,13 @@ func (c *ImageChangeController) HandleImageRepo() {
 				continue
 			}
 			if triggerMatchesImage(config, trigger.ImageChangeParams, imageRepo) {
-				glog.V(4).Infof("Found matching %s trigger for deploymentConfig %s: %#v", trigger.Type, config.Name, trigger.ImageChangeParams)
+				glog.V(4).Infof("Found matching %s trigger for deploymentConfig %s: %#v", trigger.Type, labelFor(config), trigger.ImageChangeParams)
 				triggersForConfig = append(triggersForConfig, *trigger.ImageChangeParams)
 			}
 		}
 
 		for _, params := range triggersForConfig {
-			glog.V(4).Infof("Processing image triggers for deploymentConfig %s", config.Name)
+			glog.V(4).Infof("Processing image triggers for deploymentConfig %s", labelFor(config))
 			containerNames := util.NewStringSet(params.ContainerNames...)
 			for _, container := range config.Template.ControllerTemplate.Template.Spec.Containers {
 				if !containerNames.Has(container.Name) {
@@ -67,7 +68,7 @@ func (c *ImageChangeController) HandleImageRepo() {
 				// The container image's tag name is by convention the same as the image ID it references
 				_, _, _, containerImageID, err := imageapi.SplitDockerPullSpec(container.Image)
 				if err != nil {
-					glog.V(4).Infof("Skipping container %s; container's image is invalid: %v", container.Name, err)
+					glog.V(4).Infof("Skipping container %s for config %s; container's image is invalid: %v", container.Name, labelFor(config), err)
 					continue
 				}
 
@@ -79,13 +80,22 @@ func (c *ImageChangeController) HandleImageRepo() {
 		}
 	}
 
+	anyFailed := false
 	for _, config := range configsToGenerate {
-		glog.V(4).Infof("Regenerating deploymentConfig %s/%s", config.Namespace, config.Name)
 		err := c.regenerate(imageRepo, config, firedTriggersForConfig[config.Name])
 		if err != nil {
-			glog.V(2).Infof("Error regenerating deploymentConfig %s/%s: %v", config.Namespace, config.Name, err)
+			anyFailed = true
+			continue
 		}
+		glog.V(4).Infof("Updated deploymentConfig %s in response to image change trigger", labelFor(config))
 	}
+
+	if anyFailed {
+		return fmt.Errorf("couldn't update some deploymentConfigs for trigger on imageRepo %s", labelForRepo(imageRepo))
+	}
+
+	glog.V(4).Infof("Updated all configs for trigger on imageRepo %s", labelForRepo(imageRepo))
+	return nil
 }
 
 // triggerMatchesImages decides whether a given trigger for config matches the provided image repo.
@@ -115,10 +125,9 @@ func triggerMatchesImage(config *deployapi.DeploymentConfig, trigger *deployapi.
 
 func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, config *deployapi.DeploymentConfig, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
 	// Get a regenerated config which includes the new image repo references
-	newConfig, err := c.DeploymentConfigInterface.GenerateDeploymentConfig(config.Namespace, config.Name)
+	newConfig, err := c.DeploymentConfigClient.GenerateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
-		glog.V(2).Infof("Error generating new version of deploymentConfig %v", config.Name)
-		return err
+		return fmt.Errorf("error generating new version of deploymentConfig %s: %v", labelFor(config), err)
 	}
 
 	// Update the deployment config with the trigger that resulted in the new config
@@ -154,11 +163,40 @@ func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, 
 	}
 
 	// Persist the new config
-	_, err = c.DeploymentConfigInterface.UpdateDeploymentConfig(newConfig.Namespace, newConfig)
+	_, err = c.DeploymentConfigClient.UpdateDeploymentConfig(newConfig.Namespace, newConfig)
 	if err != nil {
-		glog.V(2).Infof("Error updating deploymentConfig %v", newConfig.Name)
-		return err
+		return fmt.Errorf("couldn't update deploymentConfig %s: %v", labelFor(config), err)
 	}
 
 	return nil
+}
+
+func labelForRepo(imageRepo *imageapi.ImageRepository) string {
+	return fmt.Sprintf("%s/%s", imageRepo.Namespace, imageRepo.Name)
+}
+
+// ImageChangeControllerDeploymentConfigClient abstracts access to DeploymentConfigs.
+type ImageChangeControllerDeploymentConfigClient interface {
+	ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
+}
+
+// ImageChangeControllerDeploymentConfigClientImpl is a pluggable ChangeStrategy.
+type ImageChangeControllerDeploymentConfigClientImpl struct {
+	ListDeploymentConfigsFunc    func() ([]*deployapi.DeploymentConfig, error)
+	GenerateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentConfigFunc   func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+}
+
+func (i *ImageChangeControllerDeploymentConfigClientImpl) ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error) {
+	return i.ListDeploymentConfigsFunc()
+}
+
+func (i *ImageChangeControllerDeploymentConfigClientImpl) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
+	return i.GenerateDeploymentConfigFunc(namespace, name)
+}
+
+func (i *ImageChangeControllerDeploymentConfigClientImpl) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	return i.UpdateDeploymentConfigFunc(namespace, config)
 }
