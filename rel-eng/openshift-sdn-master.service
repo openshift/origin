@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenShift SDN Master
+Documentation=https://github.com/openshift/openshift-sdn
+After=openshift-master.service
+Requires=openshift-master.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/openshift-sdn-master
+ExecStart=/usr/bin/openshift-sdn $OPTIONS
+
+[Install]
+WantedBy=multi-user.target

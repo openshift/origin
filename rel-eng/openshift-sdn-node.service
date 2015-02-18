@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenShift SDN Node
+Before=openshift-node.service
+After=openvswitch.service
+Requires=openvswitch.service
+Documentation=https://github.com/openshift/origin
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/openshift-sdn-node
+ExecStart=/usr/bin/openshift-sdn -minion -etcd-endpoints=${MASTER_URL} -public-ip=${MINION_IP} $OPTIONS
+
+[Install]
+WantedBy=multi-user.target
