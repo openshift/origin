@@ -581,6 +581,7 @@ func start(cfg *config, args []string) error {
 			kmaster.RunReplicationController()
 			kmaster.RunEndpointController()
 			kmaster.RunMinionController()
+			kmaster.RunResourceQuotaManager()
 
 		} else {
 			proxy := &kubernetes.ProxyConfig{
