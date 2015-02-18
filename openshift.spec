@@ -40,7 +40,7 @@ BuildRequires:  golang >= 1.2-7
 %{summary}
 
 %package master
-Summary:        Openshift Master
+Summary:        OpenShift Master
 Requires:       openshift = %{version}-%{release}
 Requires(post): systemd
 Requires(preun): systemd
@@ -50,7 +50,7 @@ Requires(postun): systemd
 %{summary}
 
 %package node
-Summary:        Openshift Node
+Summary:        OpenShift Node
 Requires:       openshift = %{version}-%{release}
 Requires:       docker-io >= 1.3.2
 Requires:       tuned-profiles-openshift-node
@@ -62,7 +62,7 @@ Requires(postun): systemd
 %{summary}
 
 %package -n tuned-profiles-openshift-node
-Summary:        Tuned profiles for Openshift Node hosts
+Summary:        Tuned profiles for OpenShift Node hosts
 Requires:       tuned >= 2.3
 
 %description -n tuned-profiles-openshift-node
