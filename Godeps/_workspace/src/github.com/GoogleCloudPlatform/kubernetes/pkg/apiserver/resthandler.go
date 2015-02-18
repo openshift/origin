@@ -348,7 +348,7 @@ func setSelfLink(obj runtime.Object, req *restful.Request, namer ScopeNamer) err
 		return nil
 	}
 	if err != nil {
-		glog.Errorf("error generating link: %v", err)
+		glog.V(5).Infof("error generating link: %v", err)
 		return nil
 	}
 
