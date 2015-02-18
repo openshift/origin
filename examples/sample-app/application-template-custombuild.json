@@ -1,10 +1,12 @@
 {
   "metadata":{
     "name": "ruby-helloworld-sample",
+    "annotations": {
+      "description": "This example shows how to create a simple ruby application in openshift origin v3"
+    }
   },
   "kind": "Template",
   "apiVersion": "v1beta1",
-  "description": "This example shows how to create a simple ruby application in openshift origin v3",
   "parameters": [
     {
       "name": "ADMIN_USERNAME",

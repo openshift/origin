@@ -29,6 +29,7 @@ var (
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST VERSION"}
+	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	parameterColumns        = []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
@@ -60,7 +61,8 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(deploymentColumns, printDeploymentList)
 	p.Handler(deploymentConfigColumns, printDeploymentConfig)
 	p.Handler(deploymentConfigColumns, printDeploymentConfigList)
-	p.Handler(parameterColumns, printParameters)
+	p.Handler(templateColumns, printTemplate)
+	p.Handler(templateColumns, printTemplateList)
 	p.Handler(policyColumns, printPolicy)
 	p.Handler(policyColumns, printPolicyList)
 	p.Handler(policyBindingColumns, printPolicyBinding)
@@ -80,7 +82,41 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	return p
 }
 
-func printParameters(t *templateapi.Template, w io.Writer) error {
+const templateDescriptionLen = 80
+
+func printTemplate(t *templateapi.Template, w io.Writer) error {
+	description := ""
+	if t.Annotations != nil {
+		description = t.Annotations["description"]
+	}
+	if len(description) > templateDescriptionLen {
+		description = strings.TrimSpace(description[:templateDescriptionLen-3]) + "..."
+	}
+	empty, generated, total := 0, 0, len(t.Parameters)
+	for _, p := range t.Parameters {
+		if len(p.Value) > 0 {
+			continue
+		}
+		if len(p.Generate) > 0 {
+			generated++
+			continue
+		}
+		empty++
+	}
+	params := ""
+	switch {
+	case empty > 0:
+		params = fmt.Sprintf("%d (%d blank)", total, empty)
+	case generated > 0:
+		params = fmt.Sprintf("%d (%d generated)", total, generated)
+	default:
+		params = fmt.Sprintf("%d (all set)", total)
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", t.Name, description, params, len(t.Objects))
+	return err
+}
+
+func printTemplateParameters(t *templateapi.Template, w io.Writer) error {
 	for _, p := range t.Parameters {
 		value := p.Value
 		if len(p.Generate) != 0 {
@@ -88,6 +124,15 @@ func printParameters(t *templateapi.Template, w io.Writer) error {
 		}
 		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", p.Name, p.Description, p.Generate, value)
 		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printTemplateList(list *templateapi.TemplateList, w io.Writer) error {
+	for _, t := range list.Items {
+		if err := printTemplate(&t, w); err != nil {
 			return err
 		}
 	}

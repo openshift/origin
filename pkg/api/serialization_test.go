@@ -37,7 +37,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.Fuzz(&j.ObjectMeta)
 			c.Fuzz(&j.Parameters)
 			// TODO: replace with structured type definition
-			j.Items = []runtime.Object{}
+			j.Objects = []runtime.Object{}
 		},
 		func(j *image.Image, c fuzz.Continue) {
 			c.Fuzz(&j.ObjectMeta)

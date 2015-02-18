@@ -65,6 +65,7 @@ import (
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
+	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
@@ -286,6 +287,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
 		"templateConfigs": templateregistry.NewREST(),
+		"templates":       templateetcd.NewREST(c.EtcdHelper),
 
 		"routes": routeregistry.NewREST(routeEtcd),
 

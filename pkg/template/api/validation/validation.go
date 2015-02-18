@@ -3,11 +3,11 @@ package validation
 import (
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+
 	"github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/util"
 )
 
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
@@ -24,32 +24,29 @@ func ValidateParameter(param *api.Parameter) (errs errors.ValidationErrorList) {
 	return
 }
 
+// ValidateProcessedTemplate tests if required fields in the Template are set for processing
+func ValidateProcessedTemplate(template *api.Template) errors.ValidationErrorList {
+	return validateTemplateBody(template)
+}
+
 // ValidateTemplate tests if required fields in the Template are set.
 func ValidateTemplate(template *api.Template) (errs errors.ValidationErrorList) {
-	if len(template.Name) == 0 {
-		errs = append(errs, errors.NewFieldRequired("name", template.Name))
-	}
+	errs = validation.ValidateObjectMeta(&template.ObjectMeta, true, validation.ValidatePodName).Prefix("metadata")
+	errs = append(errs, validateTemplateBody(template)...)
+	return
+}
+
+// ValidateTemplateUpdate tests if required fields in the template are set during an update
+func ValidateTemplateUpdate(oldTemplate, template *api.Template) errors.ValidationErrorList {
+	errs := validation.ValidateObjectMetaUpdate(&oldTemplate.ObjectMeta, &template.ObjectMeta).Prefix("metadata")
+	return errs
+}
+
+// validateTemplateBody checks the body of a template.
+func validateTemplateBody(template *api.Template) (errs errors.ValidationErrorList) {
 	for i := range template.Parameters {
 		paramErr := ValidateParameter(&template.Parameters[i])
 		errs = append(errs, paramErr.PrefixIndex(i).Prefix("parameters")...)
 	}
-	for _, obj := range template.Items {
-		errs = append(errs, util.ValidateObject(obj)...)
-	}
 	return
-}
-
-func filter(errs errors.ValidationErrorList, prefix string) errors.ValidationErrorList {
-	if errs == nil {
-		return errs
-	}
-	next := errors.ValidationErrorList{}
-	for _, err := range errs {
-		ve, ok := err.(*errors.ValidationError)
-		if ok && strings.HasPrefix(ve.Field, prefix) {
-			continue
-		}
-		next = append(next, err)
-	}
-	return next
 }

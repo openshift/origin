@@ -45,7 +45,7 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.Val
 		return nil, append(templateErrors.Prefix("Template"), errs.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
 	}
 
-	for i, item := range template.Items {
+	for i, item := range template.Objects {
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
 			reportError(&templateErrors, i, *errs.NewFieldNotSupported("parameters", err))
@@ -56,10 +56,10 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, errs.Val
 			reportError(&templateErrors, i, *errs.NewFieldInvalid("namespace", err, "failed to remove the item namespace"))
 		}
 		itemMeta.SetNamespace("")
-		template.Items[i] = newItem
+		template.Objects[i] = newItem
 	}
 
-	return &configapi.Config{Items: template.Items}, templateErrors.Prefix("Template")
+	return &configapi.Config{Items: template.Objects}, templateErrors.Prefix("Template")
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides
@@ -138,7 +138,8 @@ func (p *Processor) substituteParametersInManifest(containers []kapi.Container, 
 }
 
 // GenerateParameterValues generates Value for each Parameter of the given
-// Template that has Generate field specified.
+// Template that has Generate field specified where Value is not already
+// supplied.
 //
 // Examples:
 //
@@ -151,6 +152,9 @@ func (p *Processor) substituteParametersInManifest(containers []kapi.Container, 
 func (p *Processor) GenerateParameterValues(t *api.Template) error {
 	for i := range t.Parameters {
 		param := &t.Parameters[i]
+		if len(param.Value) > 0 {
+			continue
+		}
 		if param.Generate != "" {
 			generator, ok := p.Generators[param.Generate]
 			if !ok {

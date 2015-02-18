@@ -33,6 +33,7 @@ type Interface interface {
 	PolicyBindingsNamespacer
 	ResourceAccessReviewsNamespacer
 	SubjectAccessReviewsNamespacer
+	TemplatesNamespacer
 }
 
 func (c *Client) Builds(namespace string) BuildInterface {
@@ -95,6 +96,11 @@ func (c *Client) Projects() ProjectInterface {
 // TemplateConfigs provides a REST client for TemplateConfig
 func (c *Client) TemplateConfigs(namespace string) TemplateConfigInterface {
 	return newTemplateConfigs(c, namespace)
+}
+
+// TemplateConfigs provides a REST client for TemplateConfig
+func (c *Client) Templates(namespace string) TemplateInterface {
+	return newTemplates(c, namespace)
 }
 
 func (c *Client) Policies(namespace string) PolicyInterface {

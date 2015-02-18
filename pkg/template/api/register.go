@@ -7,7 +7,9 @@ import (
 func init() {
 	api.Scheme.AddKnownTypes("",
 		&Template{},
+		&TemplateList{},
 	)
 }
 
-func (*Template) IsAnAPIObject() {}
+func (*Template) IsAnAPIObject()     {}
+func (*TemplateList) IsAnAPIObject() {}

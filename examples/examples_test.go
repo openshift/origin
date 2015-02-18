@@ -10,17 +10,16 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	//"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/validation"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/util"
 )
 
 type mockService struct{}
@@ -114,7 +113,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 				t.Errorf("%s did not decode correctly: %v\n%s", path, err, string(data))
 				return
 			}
-			if errors := util.ValidateObject(expectedType); len(errors) > 0 {
+			if errors := validation.ValidateObject(expectedType); len(errors) > 0 {
 				t.Errorf("%s did not validate correctly: %v", path, errors)
 			}
 		})
