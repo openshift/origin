@@ -3,10 +3,10 @@ package v1beta1
 import (
 	"sort"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	newer "github.com/openshift/origin/pkg/authorization/api"
 )
 
@@ -26,6 +26,8 @@ func init() {
 
 			out.ResourceNames = util.NewStringSet(in.ResourceNames...)
 
+			out.NonResourceURLs = util.NewStringSet(in.NonResourceURLsSlice...)
+
 			return nil
 		},
 		func(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
@@ -40,6 +42,8 @@ func init() {
 			out.Resources = append(out.Resources, in.Resources...)
 
 			out.ResourceNames = in.ResourceNames.List()
+
+			out.NonResourceURLsSlice = in.NonResourceURLs.List()
 
 			return nil
 		},
