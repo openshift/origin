@@ -12,27 +12,41 @@ func init() {
 	api.Scheme.AddConversionFuncs(
 		// Move ContextDir in DockerBuildStrategy to BuildSource
 		func(in *newer.BuildParameters, out *BuildParameters, s conversion.Scope) error {
-			s.Convert(&in.Strategy, &out.Strategy, 0)
+			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
+			if err != nil {
+				return err
+			}
 			if out.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
 				out.Strategy.DockerStrategy.ContextDir = in.Source.ContextDir
-				out.Strategy.DockerStrategy.BaseImage = in.Strategy.DockerStrategy.BaseImage
-				out.Strategy.DockerStrategy.NoCache = in.Strategy.DockerStrategy.NoCache
 			}
-			s.Convert(&in.Source, &out.Source, 0)
-			s.Convert(&in.Output, &out.Output, 0)
-			s.Convert(&in.Revision, &out.Revision, 0)
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *BuildParameters, out *newer.BuildParameters, s conversion.Scope) error {
-			s.Convert(&in.Strategy, &out.Strategy, 0)
+			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
+			if err != nil {
+				return err
+			}
 			if in.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
 				out.Source.ContextDir = in.Strategy.DockerStrategy.ContextDir
-				out.Strategy.DockerStrategy.BaseImage = in.Strategy.DockerStrategy.BaseImage
-				out.Strategy.DockerStrategy.NoCache = in.Strategy.DockerStrategy.NoCache
 			}
-			s.Convert(&in.Source, &out.Source, 0)
-			s.Convert(&in.Output, &out.Output, 0)
-			s.Convert(&in.Revision, &out.Revision, 0)
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		// Rename STIBuildStrategy.BuildImage to STIBuildStrategy.Image
