@@ -150,7 +150,7 @@ angular.module('openshiftConsole')
         var foundMatch = false;
         // TODO this is using the k8s v1beta1 ReplicationControllerState schema, replicaSelector will change to selector eventually
         var depConfigSelector = new LabelSelector(deploymentConfig.template.controllerTemplate.replicaSelector);
-        angular.forEach($scope.services, function(service, name){
+        angular.forEach($scope.unfilteredServices, function(service, name){
           $scope.deploymentConfigsByService[name] = $scope.deploymentConfigsByService[name] || {};
 
           var serviceSelector = new LabelSelector(service.spec.selector);
@@ -177,7 +177,7 @@ angular.module('openshiftConsole')
           depConfigName = deployment.metadata.annotations.deploymentConfig || "";
         }
 
-        angular.forEach($scope.services, function(service, name){
+        angular.forEach($scope.unfilteredServices, function(service, name){
           bySvc[name] = bySvc[name] || {};
           bySvcByDepCfg[name] = bySvcByDepCfg[name] || {};
 
