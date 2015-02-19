@@ -57,7 +57,7 @@ The simplest way to run OpenShift Origin is in a Docker container:
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ docker exec -it openshift-origin bash
-    $ ln -s /var/lib/openshift/openshift.local.certificates/admin/.kubernetes_auth $HOME/.kubernetes_auth
+    $ export KUBECONFIG=/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig
     $ osc --help
 
 
