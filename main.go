@@ -67,10 +67,10 @@ func newNetworkManager() (controller.Controller, error) {
 func newSubnetRegistry() registry.SubnetRegistry {
 	peers := strings.Split(opts.etcdEndpoints, ",")
 
-	subnetPath := path.Join(opts.etcdPath + "subnets")
+	subnetPath := path.Join(opts.etcdPath, "subnets")
 	minionPath := "/registry/minions/"
 	if opts.sync {
-		minionPath = path.Join(opts.etcdPath + "minions")
+		minionPath = path.Join(opts.etcdPath, "minions")
 	}
 
 	cfg := &registry.EtcdConfig{
