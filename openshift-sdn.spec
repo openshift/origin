@@ -18,14 +18,12 @@ Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.2-7
 
-Requires:       openvswitch >= 2.3.1
-Requires:       bridge-utils
 
 %description
 %{summary}
 
 %package master
-Summary:          Openshift SDN Master
+Summary:          OpenShift SDN Master
 Requires:         openshift-sdn = %{version}-%{release}
 Requires:         openshift-master
 Requires(post):   systemd
@@ -36,10 +34,12 @@ Requires(postun): systemd
 %{summary}
 
 %package node
-Summary:          Openshift SDN Node
+Summary:          OpenShift SDN Node
 Requires:         openshift-sdn = %{version}-%{release}
 Requires:         openshift-node
 Requires:         docker-io >= 1.3.2
+Requires:         openvswitch >= 2.3.1
+Requires:         bridge-utils
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
