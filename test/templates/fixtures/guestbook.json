@@ -30,6 +30,9 @@
   "items": [
     {
       "id": "frontend-route",
+      "metadata": {
+        "name": "frontend-route"
+      },
       "kind": "Route",
       "apiVersion": "v1beta1",
       "host": "guestbook.example.com",

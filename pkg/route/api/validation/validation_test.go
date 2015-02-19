@@ -3,8 +3,96 @@ package validation
 import (
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/route/api"
 )
+
+// TestValidateRouteBad ensures not specifying a required field results in error and a fully specified
+// route passes successfully
+func TestValidateRoute(t *testing.T) {
+	tests := []struct {
+		name           string
+		route          *api.Route
+		expectedErrors int
+	}{
+		{
+			name: "No Name",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "foo",
+				},
+				Host:        "host",
+				ServiceName: "serviceName",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "No namespace",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "name",
+				},
+				Host:        "host",
+				ServiceName: "serviceName",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "No host",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				ServiceName: "serviceName",
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Invalid DNS 952 host",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Host:        "**",
+				ServiceName: "serviceName",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "No service name",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Host: "host",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Valid route",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Host:        "www.example.com",
+				ServiceName: "serviceName",
+			},
+			expectedErrors: 0,
+		},
+	}
+
+	for _, tc := range tests {
+		errs := ValidateRoute(tc.route)
+
+		if len(errs) != tc.expectedErrors {
+			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
+		}
+	}
+}
 
 func TestValidateTLSNoTLSTermOk(t *testing.T) {
 	errs := validateTLS(&api.TLSConfig{

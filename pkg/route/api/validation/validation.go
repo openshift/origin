@@ -2,6 +2,8 @@ package validation
 
 import (
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kval "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -10,9 +12,16 @@ import (
 func ValidateRoute(route *routeapi.Route) errs.ValidationErrorList {
 	result := errs.ValidationErrorList{}
 
-	if len(route.Host) == 0 {
-		result = append(result, errs.NewFieldRequired("host", ""))
+	//ensure meta is set properly
+	result = append(result, kval.ValidateObjectMeta(&route.ObjectMeta, true, kval.ValidatePodName)...)
+
+	//host is not required but if it is set ensure it meets DNS requirements
+	if len(route.Host) > 0 {
+		if !util.IsDNSSubdomain(route.Host) {
+			result = append(result, errs.NewFieldInvalid("host", route.Host, "Host must conform to DNS 952 subdomain conventions"))
+		}
 	}
+
 	if len(route.ServiceName) == 0 {
 		result = append(result, errs.NewFieldRequired("serviceName", ""))
 	}
