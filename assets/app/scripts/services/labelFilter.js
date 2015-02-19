@@ -4,7 +4,7 @@ angular.module('openshiftConsole')
 .factory('LabelFilter', [function() {
   function LabelFilter() {
     this._existingLabels = {};
-    this._labelSelector = new LabelSelector();
+    this._labelSelector = new LabelSelector(null, true);
     this._onActiveFiltersChangedCallbacks = $.Callbacks();
   }
 

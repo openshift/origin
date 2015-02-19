@@ -1,5 +1,11 @@
-function LabelSelector(selector) {
+// selector (optional) - the JSON format as returned by k8s API
+// emptySelectsAll (optional) - whether a label selector with no conjuncts
+//      selects objects.  Typical behavior is false.  Example of an
+//      exceptional case is when filtering by labels, no label selectors
+//      means no filters.
+function LabelSelector(selector, emptySelectsAll) {
   this._conjuncts = {};
+  this._emptySelectsAll = !!emptySelectsAll;
   // expects the JSON format as returned by k8s API
   // TODO - currently k8s only returns key: value
   // which represents 'key in (value)'
@@ -61,6 +67,9 @@ LabelSelector.prototype.matches = function(resource) {
   if (!resource) {
     return false;
   }
+  if (this.isEmpty()) {
+    return this._emptySelectsAll;
+  }
   var labels = resource.labels || {};
   if (resource.metadata) {
     labels = resource.metadata.labels || {};
@@ -107,6 +116,12 @@ LabelSelector.prototype.hasConjunct = function(conjunct) {
 
 // Test whether this label selector covers the given selector
 LabelSelector.prototype.covers = function(selector) {
+  if (this.isEmpty()) {
+    // TODO don't think we ever want to consider an empty
+    // label selector as covering any other label selector
+    return false;
+  }
+
   // TODO - currently k8s only returns key: value
   // which represents 'key in (value)'  So we only handle
   // the IN operator with single values for now
