@@ -31,17 +31,15 @@ executing the rollback. This is useful if you're not quite sure what the outcome
 will be.
 
 Examples:
-  Perform a rollback:
 
-  $ %[1]s %[2]s deployment-1
+	# Perform a rollback
+	$ %[1]s %[2]s deployment-1
 
-  See what the rollback will look like, but don't perform the rollback:
+	# See what the rollback will look like, but don't perform the rollback
+	$ %[1]s %[2]s deployment-1 --dry-run
 
-  $ %[1]s %[2]s deployment-1 --dry-run
-
-  Perform the rollback manually by piping the JSON of the new config back to %[1]s:
-
-  $ %[1]s %[2]s deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
+	# Perform the rollback manually by piping the JSON of the new config back to %[1]s
+	$ %[1]s %[2]s deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
 `
 
 func NewCmdRollback(parentName string, name string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

@@ -34,17 +34,15 @@ image that can run inside of a pod. The images will be deployed via a deployment
 configuration, and a service will be hookup up to the first public port of the app.
 
 Examples:
-  $ osc new-app .
-  <try to create an application based on the source code in the current directory>
 
-  $ osc new-app mysql
-  <use the public Docker Hub MySQL image to create an app>
+	# Try to create an application based on the source code in the current directory
+	$ osc new-app .
 
-  $ osc new-app myregistry.com/mycompany/mysql
-  <use a MySQL image in a private registry to create an app>
+	$ Use the public Docker Hub MySQL image to create an app
+	$ osc new-app mysql
 
-  $ osc new-app openshift/ruby-20-centos~git@github.com/mfojtik/sinatra-app-example
-  <build an application using the OpenShift Ruby Docker Hub image and an example repo>
+	# Use a MySQL image in a private registry to create an app
+	$ osc new-app myregistry.com/mycompany/mysql
 
 If you specify source code, you may need to run a build with 'start-build' after the
 application is created.
