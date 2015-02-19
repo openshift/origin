@@ -18,12 +18,11 @@ func TestBuildValdationSuccess(t *testing.T) {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
+				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
-				},
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "repository/data",
@@ -45,12 +44,11 @@ func TestBuildValidationFailure(t *testing.T) {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
+				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
-				},
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "repository/data",
@@ -72,12 +70,11 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
+				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
-				},
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{},
 		},
@@ -96,12 +93,11 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
+				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
-				},
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "repository/data",
@@ -122,12 +118,11 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://github.com/my/repository",
 				},
+				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
-				},
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "repository/data",
@@ -183,12 +178,11 @@ func TestValidateBuildParameters(t *testing.T) {
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
+					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						ContextDir: "context",
-					},
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
 					DockerImageReference: "some/long/value/with/no/meaning",
@@ -203,12 +197,11 @@ func TestValidateBuildParameters(t *testing.T) {
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
+					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						ContextDir: "context",
-					},
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
@@ -226,12 +219,11 @@ func TestValidateBuildParameters(t *testing.T) {
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
+					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						ContextDir: "context",
-					},
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{},
@@ -246,12 +238,11 @@ func TestValidateBuildParameters(t *testing.T) {
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
+					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						ContextDir: "context",
-					},
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
@@ -269,12 +260,11 @@ func TestValidateBuildParameters(t *testing.T) {
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
+					ContextDir: "context",
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						ContextDir: "context",
-					},
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{

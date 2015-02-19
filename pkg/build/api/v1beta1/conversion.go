@@ -10,6 +10,45 @@ import (
 
 func init() {
 	api.Scheme.AddConversionFuncs(
+		// Move ContextDir in DockerBuildStrategy to BuildSource
+		func(in *newer.BuildParameters, out *BuildParameters, s conversion.Scope) error {
+			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
+			if err != nil {
+				return err
+			}
+			if out.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
+				out.Strategy.DockerStrategy.ContextDir = in.Source.ContextDir
+			}
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *BuildParameters, out *newer.BuildParameters, s conversion.Scope) error {
+			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
+			if err != nil {
+				return err
+			}
+			if in.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
+				out.Source.ContextDir = in.Strategy.DockerStrategy.ContextDir
+			}
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
+				return err
+			}
+			return nil
+		},
 		// Rename STIBuildStrategy.BuildImage to STIBuildStrategy.Image
 		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
 			out.BuilderImage = in.Image

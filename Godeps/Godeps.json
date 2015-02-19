@@ -529,7 +529,7 @@
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Comment": "0.2.1-357-gd197177",
-			"Rev": "d19717788084716e4adff0515be6289aa04bec46"
+			"Rev": "e1e2cc5b83662b894c6871db875c37eb3725a045"
 		},
 		{
 			"ImportPath": "github.com/getsentry/raven-go",
@@ -592,9 +592,24 @@
 			"Rev": "7a864a042e844af638df17ebbabf8183dace556a"
 		},
 		{
-			"ImportPath": "github.com/openshift/source-to-image/pkg/sti",
+			"ImportPath": "github.com/openshift/source-to-image/pkg/build/strategies",
 			"Comment": "v0.1-4-g3e41ad5",
-			"Rev": "3e41ad598db9e676a09862d0e89bab5063afa926"
+			"Rev": "1338bff33b5c46acc02840f88a9b576a1b1fa404"
+		},
+		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/git",
+			"Comment": "v0.1-4-g3e41ad5",
+			"Rev": "1338bff33b5c46acc02840f88a9b576a1b1fa404"
+		},
+		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
+			"Comment": "v0.1-4-g3e41ad5",
+			"Rev": "1338bff33b5c46acc02840f88a9b576a1b1fa404"
+		},
+		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
+			"Comment": "v0.1-4-g3e41ad5",
+			"Rev": "1338bff33b5c46acc02840f88a9b576a1b1fa404"
 		},
 		{
 			"ImportPath": "github.com/pkg/profile",

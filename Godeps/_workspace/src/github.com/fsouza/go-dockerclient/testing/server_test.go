@@ -277,6 +277,27 @@ func TestCommitContainerComplete(t *testing.T) {
 	}
 }
 
+func TestCommitContainerWithTag(t *testing.T) {
+	server := DockerServer{}
+	server.imgIDs = make(map[string]string)
+	addContainers(&server, 2)
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	queryString := "container=" + server.containers[0].ID + "&repo=tsuru/python&tag=v1"
+	request, _ := http.NewRequest("POST", "/commit?"+queryString, nil)
+	server.ServeHTTP(recorder, request)
+	image := server.images[0]
+	if image.Parent != server.containers[0].Image {
+		t.Errorf("CommitContainer: wrong parent image. Want %q. Got %q.", server.containers[0].Image, image.Parent)
+	}
+	if image.Container != server.containers[0].ID {
+		t.Errorf("CommitContainer: wrong container. Want %q. Got %q.", server.containers[0].ID, image.Container)
+	}
+	if id := server.imgIDs["tsuru/python:v1"]; id != image.ID {
+		t.Errorf("CommitContainer: wrong ID saved for repository. Want %q. Got %q.", image.ID, id)
+	}
+}
+
 func TestCommitContainerInvalidRun(t *testing.T) {
 	server := DockerServer{}
 	addContainers(&server, 1)
@@ -778,6 +799,17 @@ func TestPushImage(t *testing.T) {
 	}
 }
 
+func TestPushImageWithTag(t *testing.T) {
+	server := DockerServer{imgIDs: map[string]string{"tsuru/python:v1": "a123"}}
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/images/tsuru/python/push?tag=v1", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Errorf("PushImage: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
+	}
+}
+
 func TestPushImageNotFound(t *testing.T) {
 	server := DockerServer{}
 	server.buildMuxer()
@@ -799,6 +831,20 @@ func TestTagImage(t *testing.T) {
 		t.Errorf("TagImage: wrong status. Want %d. Got %d.", http.StatusCreated, recorder.Code)
 	}
 	if server.imgIDs["tsuru/python"] != server.imgIDs["tsuru/new-python"] {
+		t.Errorf("TagImage: did not tag the image")
+	}
+}
+
+func TestTagImageWithRepoAndTag(t *testing.T) {
+	server := DockerServer{imgIDs: map[string]string{"tsuru/python": "a123"}}
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/images/tsuru/python/tag?repo=tsuru/new-python&tag=v1", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusCreated {
+		t.Errorf("TagImage: wrong status. Want %d. Got %d.", http.StatusCreated, recorder.Code)
+	}
+	if server.imgIDs["tsuru/python"] != server.imgIDs["tsuru/new-python:v1"] {
 		t.Errorf("TagImage: did not tag the image")
 	}
 }

@@ -83,6 +83,11 @@ const (
 type BuildSource struct {
 	Type BuildSourceType `json:"type,omitempty"`
 	Git  *GitBuildSource `json:"git,omitempty"`
+
+	// Specify the sub-directory where the source code for the application exists.
+	// This allows to have buildable sources in directory other than root of
+	// repository.
+	ContextDir string `json:"contextDir,omitempty"`
 }
 
 // SourceRevision is the revision or commit information from the source for the build
@@ -170,9 +175,8 @@ type CustomBuildStrategy struct {
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
-	// ContextDir is used as the Docker build context. It is a path for a directory within the
-	// application source directory structure (as referenced in the BuildSource. See GitBuildSource
-	// for an example.)
+
+	// DEPRECATED: See the BuildSource type
 	ContextDir string `json:"contextDir,omitempty"`
 
 	// NoCache if set to true indicates that the docker build must be executed with the

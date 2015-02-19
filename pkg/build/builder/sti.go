@@ -3,8 +3,8 @@ package builder
 import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"github.com/openshift/source-to-image/pkg/sti"
-	stiapi "github.com/openshift/source-to-image/pkg/sti/api"
+	stiapi "github.com/openshift/source-to-image/pkg/api"
+	sti "github.com/openshift/source-to-image/pkg/build/strategies"
 
 	"github.com/openshift/origin/pkg/build/api"
 )
@@ -36,6 +36,7 @@ func (s *STIBuilder) Build() error {
 		BaseImage:    s.build.Parameters.Strategy.STIStrategy.Image,
 		DockerSocket: s.dockerSocket,
 		Source:       s.build.Parameters.Source.Git.URI,
+		ContextDir:   s.build.Parameters.Source.ContextDir,
 		Tag:          tag,
 		ScriptsURL:   s.build.Parameters.Strategy.STIStrategy.Scripts,
 		Environment:  getBuildEnvVars(s.build),
@@ -48,12 +49,12 @@ func (s *STIBuilder) Build() error {
 		request.Ref = s.build.Parameters.Source.Git.Ref
 	}
 	glog.V(2).Infof("Creating a new STI builder with build request: %#v\n", request)
-	builder, err := sti.NewBuilder(request)
+	builder, err := sti.GetStrategy(request)
 	if err != nil {
 		return err
 	}
 	defer removeImage(s.dockerClient, tag)
-	if _, err = builder.Build(); err != nil {
+	if _, err = builder.Build(request); err != nil {
 		return err
 	}
 	if len(s.build.Parameters.Output.DockerImageReference) != 0 {
