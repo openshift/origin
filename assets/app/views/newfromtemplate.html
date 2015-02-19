@@ -1,0 +1,45 @@
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <div ng-controller="NewFromTemplateController" class="create-from-template">
+        <div class="row">
+          <div class="col-md-3 template-name">
+            <span class="fa fa-cubes hidden-xs hidden-sm"></span>
+          </div>
+          <div class="col-md-7">
+            <h1><span class="fa fa-cubes visible-xs-inline visible-sm-inline"></span>{{ template.metadata.name }}</h1>
+            <div class="metadata">
+              <span ng-if="template | annotation: 'version'">Version {{ template | annotation:'version' }}</span>
+              <span ng-if="template | provider">Provided By: {{ template | provider }}</span>
+            </div>
+            <div class="description gutter-bottom">{{ template | description }}</div>
+            <div class="source gutter-bottom" ng-show="templateUrl">
+              <h2>Source</h2><span>{{ templateUrl }}</span>
+            </div>
+            <div class="images gutter-bottom">
+              <h2>Images</h2>
+              <ul class="list-unstyled" ng-repeat="image in templateImages">
+                <li>
+                  <i class="fa fa-cube"></i>
+                  <span class="name">{{ image.name }}</span>
+                </li>
+              </ul>
+            </div>
+            <labels labels="template.labels"></labels>
+            <template-options></template-options>
+            <div class="project gutter-bottom">
+            Items will be created in the <b>{{ projectDisplayName() }}</b> project.
+            </div>
+            <div class="buttons gutter-top-bottom">
+              <button class="btn btn-primary" ng-click="createFromTemplate()">Create</button>
+              <a class="btn btn-default" href="javascript:;" back>Cancel</a>
+            </div>
+          </div>
+        </div>
+        <div ng-hide="template">
+          {{ emptyMessage }}
+        </div>
+      </div><!-- /create-from-template -->
+    </div>
+  </div>
+</div>

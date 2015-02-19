@@ -1,7 +1,9 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .directive('sidebar', function(HawtioNav) {
     return {
-      restrict: 'E', 
+      restrict: 'E',
       templateUrl: 'views/_sidebar.html',
       link: function($scope, element, attrs) {
         var selectedTab = HawtioNav.selected();
@@ -33,9 +35,9 @@ angular.module('openshiftConsole')
               .text(project.displayName || project.metadata.name)
               .appendTo(select);
           });
-          // TODO add back in when we support create project 
+          // TODO add back in when we support create project
           // <option data-divider="true"></option>
-          // <option>Create new</option>          
+          // <option>Create new</option>
         };
 
         updateOptions($scope.projects);
@@ -65,13 +67,23 @@ angular.module('openshiftConsole')
         $scope.$watch("renderOptions", function(renderOptions) {
           LabelFilter.toggleFilterWidget(!renderOptions || !renderOptions.hideFilterWidget);
         });
-      }      
+      }
     };
   })
   .directive('projectPage', function() {
     return {
-      restrict: 'E', 
+      restrict: 'E',
       transclude: true,
       templateUrl: 'views/_project-page.html'
     };
-  });
+  })
+  .directive('back', ['$window', function($window) {
+    return {
+      restrict: 'A',
+      link: function (scope, elem) {
+        elem.bind('click', function () {
+          $window.history.back();
+        });
+      }
+    };
+  }]);

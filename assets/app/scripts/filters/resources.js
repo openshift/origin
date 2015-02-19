@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .filter('annotation', function() {
     return function(resource, key) {
@@ -11,7 +13,16 @@ angular.module('openshiftConsole')
     return function(resource) {
       return annotationFilter(resource, "description");
     };
-  })  
+  })
+  .filter('tags', function(annotationFilter) {
+    return function(resource) {
+      var tags = annotationFilter(resource, "tags");
+      if (!tags) {
+        return [];
+      }
+      return tags.split(/\s*,\s*/);
+    };
+  })
   .filter('label', function() {
     return function(resource, key) {
       if (resource && resource.metadata && resource.metadata.labels) {
@@ -19,7 +30,34 @@ angular.module('openshiftConsole')
       }
       return null;
     };
-  })  
+  })
+  .filter('icon', function(annotationFilter) {
+    return function(resource) {
+      var icon = annotationFilter(resource, "icon");
+      if (!icon) {
+        //FIXME: Return default icon for resource.kind
+        return "";
+      } else {
+        return icon;
+      }
+    };
+  })
+  .filter('iconClass', function(annotationFilter) {
+    return function(resource, kind) {
+      var icon = annotationFilter(resource, "iconClass");
+      if (!icon) {
+        if (kind === "template") {
+          return "fa fa-bolt";
+        }
+        else {
+          return "";
+        }
+      }
+      else {
+        return icon;
+      }
+    };
+  })
   .filter('imageName', function() {
     return function(image) {
       if (!image) {
@@ -39,7 +77,7 @@ angular.module('openshiftConsole')
       }
       else if (slashSplit.length === 1) {
         semiColonSplit = image.split(":");
-        return semiColonSplit[0];         
+        return semiColonSplit[0];
       }
     };
   })
@@ -75,11 +113,35 @@ angular.module('openshiftConsole')
   })
   .filter('routeWebURL', function(){
     return function(route){
-        var scheme = (route.tls && route.tls.tlsTerminationType != "") ? "https" : "http";
+        var scheme = (route.tls && route.tls.tlsTerminationType !== "") ? "https" : "http";
         var url = scheme + "://" + route.host;
         if (route.path) {
             url += route.path;
         }
         return url;
+    };
+  })
+  .filter('parameterPlaceholder', function() {
+    return function(parameter) {
+      if (parameter.generate) {
+        return "(generated if empty)";
+      } else {
+        return "";
+      }
+    };
+  })
+ .filter('parameterValue', function() {
+    return function(parameter) {
+      if (!parameter.value && parameter.generate) {
+        return "(generated)";
+      } else {
+        return parameter.value;
+      }
+    };
+  })
+  .filter('provider', function() {
+    return function(resource) {
+      return (resource && resource.annotations && resource.annotations.provider) ||
+        (resource && resource.metadata && resource.metadata.namespace);
     };
   });
