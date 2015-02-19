@@ -93,22 +93,22 @@ the present working directory is the same directory as this README.
     need to accept the server certificates and present its own client
     certificate. These are generated as part of the `openshift start`
     command in whatever the current directory is at the time. You will
-    need to point osc and curl at the appropriate CA bundle and client
-    key/cert in order to connect to OpenShift. Assuming you are running as
-    a user other than root, you will also need to make the private client
-    key readable by that user. (Note: this is just for example purposes;
-    in a real installation, users would generate their own keys and not
-    have access to the system keys.)
+    need to point osc and curl at the appropriate .kubeconfig in order 
+    to connect to OpenShift. Assuming you are running as a user other 
+    than root, you will also need to make the .kubeconfig readable by 
+    that user. (Note: this is just for example purposes; in a real 
+    installation, users would generate their own keys and not have access
+    to the system keys.)
 
         $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/admin/root.crt
-        $ sudo chmod +r `pwd`/openshift.local.certificates/admin/key.key
+        $ sudo chmod +r "$KUBECONFIG"
 
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
-        $ sudo chmod +r ./openshift.local.certificates/master/key.key
+        $ sudo chmod +r ./openshift.local.certificates/openshift-client/key.key
         $ pushd ../..
-        $ CERT_DIR=examples/sample-app/openshift.local.certificates/master hack/install-registry.sh
+        $ CERT_DIR=examples/sample-app/openshift.local.certificates/openshift-client hack/install-registry.sh
         $ popd
 
     Note that the private docker registry is using ephemeral storage,
@@ -303,9 +303,9 @@ the ip address shown below with the correct one for your environment.
             # take some time.  Your pod will stay in Pending state while the pull is completed 
             $ docker pull openshift/origin-haproxy-router
             
-            $ export OPENSHIFT_CA_DATA=$(<openshift.local.certificates/master/root.crt)
             $ pushd ../..
-            $ hack/install-router.sh router https://10.0.2.15:8443
+            $ sudo chmod +r ./openshift.local.certificates/openshift-client/key.key
+            $ CERT_DIR=openshift.local.certificates/openshift-client hack/install-router.sh router https://10.0.2.15:8443
               Creating router file and starting pod...
               router
             $ popd

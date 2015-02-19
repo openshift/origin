@@ -5,16 +5,16 @@
 # for connecting securely to the OpenShift master's.
 #
 # To use key/certs generated automatically by "openshift start", look for the
-# openshift.local.certificates/master/ directory underneath where it was started.
+# openshift.local.certificates/openshift-client/ directory underneath where it was started.
 # For instance, if the openshift home directory is /var/lib/openshift, then run:
-# CERT_DIR=/var/lib/openshift/openshift.local.certificates/master hack/install-registry.sh
+# CERT_DIR=/var/lib/openshift/openshift.local.certificates/openshift-client hack/install-registry.sh
 #
 # You may also need to set KUBERNETES_MASTER if the master is not listening at https://localhost:8443/
 
 if [ -z "${CERT_DIR}" ]; then
   echo "You have to set the CERT_DIR environment variable to point into master certificate"
   echo "Example:"
-  echo "$ CERT_DIR='/var/lib/openshift/openshift.local.certificates/master' hack/install-registry.sh"
+  echo "$ CERT_DIR='/var/lib/openshift/openshift.local.certificates/openshift-client' hack/install-registry.sh"
   exit 1
 fi
 

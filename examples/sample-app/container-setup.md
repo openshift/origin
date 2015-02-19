@@ -68,7 +68,7 @@ bits that are used in the sample app.
 
     $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
     $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/admin/root.crt
-    $ chmod +r `pwd`/openshift.local.certificates/admin/key.key
+    $ chmod +r "$KUBECONFIG"
 
 For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
@@ -76,8 +76,8 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ chmod +r ./openshift.local.certificates/master/key.key
-    $ CERT_DIR=openshift.local.certificates/master ./install-registry.sh
+    $ chmod +r ./openshift.local.certificates/openshift-client/key.key
+    $ CERT_DIR=openshift.local.certificates/openshift-client ./install-registry.sh
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update
