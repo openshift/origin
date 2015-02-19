@@ -23,7 +23,7 @@ import (
 const urlCheckTimeout = 16 * time.Second
 
 // imageRegex is used to substitute image names in buildconfigs with immutable image ids at build time.
-var imageRegex = regexp.MustCompile(`^FROM\s+\w+.+`)
+var imageRegex = regexp.MustCompile(`(?mi)^\s*FROM\s+\w+.+`)
 
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
