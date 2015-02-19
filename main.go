@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path"
 	"strings"
@@ -53,12 +54,12 @@ func init() {
 func newNetworkManager() (controller.Controller, error) {
 	sub := newSubnetRegistry()
 	host := opts.hostname
-	var err error
 	if host == "" {
-		host, err = os.Hostname()
+		output, err := exec.Command("hostname", "-f").CombinedOutput()
 		if err != nil {
 			return nil, err
 		}
+		host = strings.TrimSpace(string(output))
 	}
 
 	return controller.NewController(sub, string(host), opts.ip), nil
