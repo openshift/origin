@@ -275,7 +275,6 @@ func start(cfg *config, args []string) error {
 
 	// define a function for resolving components to names
 	imageResolverFn := cfg.ImageTemplate.ExpandOrDie
-	useLocalImages := env("USE_LOCAL_IMAGES", "false") == "true"
 
 	// the node can reuse an existing client
 	var existingKubeClient *kclient.Client
@@ -372,8 +371,7 @@ func start(cfg *config, args []string) error {
 			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
 			RequestContextMapper:          requestContextMapper,
 
-			UseLocalImages: useLocalImages,
-			ImageFor:       imageResolverFn,
+			ImageFor: imageResolverFn,
 		}
 
 		if startKube {

@@ -9,8 +9,7 @@ import (
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
 type DockerBuildStrategy struct {
-	Image          string
-	UseLocalImages bool
+	Image string
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -47,9 +46,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		},
 	}
 
-	if bs.UseLocalImages {
-		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	}
+	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	setupDockerSocket(pod)
 	setupDockerConfig(pod)

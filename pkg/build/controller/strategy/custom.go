@@ -12,7 +12,6 @@ import (
 
 // CustomBuildStrategy creates a build using a custom builder image.
 type CustomBuildStrategy struct {
-	UseLocalImages bool
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -69,10 +68,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		return nil, err
 	}
 
-	if bs.UseLocalImages {
-		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	}
-
+	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 	if strategy.ExposeDockerSocket {
 		setupDockerSocket(pod)
 		setupDockerConfig(pod)

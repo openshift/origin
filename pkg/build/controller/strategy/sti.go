@@ -13,7 +13,6 @@ import (
 type STIBuildStrategy struct {
 	Image                string
 	TempDirectoryCreator TempDirectoryCreator
-	UseLocalImages       bool
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
@@ -69,9 +68,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 		},
 	}
 
-	if bs.UseLocalImages {
-		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	}
+	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	setupDockerSocket(pod)
 	setupDockerConfig(pod)

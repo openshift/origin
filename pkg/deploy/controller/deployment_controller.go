@@ -32,8 +32,6 @@ type DeploymentController struct {
 	// Environment is a set of environment which should be injected into all deployment pod
 	// containers, in addition to whatever environment is specified by the ContainerCreator.
 	Environment []kapi.EnvVar
-	// UseLocalImages configures the ImagePullPolicy for containers in the deployment pod.
-	UseLocalImages bool
 	// Codec is used to decode DeploymentConfigs.
 	Codec runtime.Codec
 	// Stop is an optional channel that controls when the controller exits.
@@ -197,9 +195,7 @@ func (dc *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationCont
 		},
 	}
 
-	if dc.UseLocalImages {
-		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	}
+	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	return pod, nil
 }
