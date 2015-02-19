@@ -22,6 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -432,7 +433,17 @@ func start(cfg *config, args []string) error {
 			osmaster.AssetKeyFile = serverCert.KeyFile
 
 			// Bootstrap clients
-			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
+			osClientConfigTemplate := clientcmdapi.Config{
+				Clusters: map[string]clientcmdapi.Cluster{
+					"master":        {Server: cfg.MasterAddr.URL.String()},
+					"public-master": {Server: masterPublicAddr.URL.String()},
+				},
+				Contexts: map[string]clientcmdapi.Context{
+					"master":        {Cluster: "master"},
+					"public-master": {Cluster: "public-master"},
+				},
+				CurrentContext: "master",
+			}
 
 			// OpenShift client
 			openshiftClientUser := &user.DefaultInfo{Name: "system:openshift-client"}
@@ -463,7 +474,7 @@ func start(cfg *config, args []string) error {
 			// If we're running our own Kubernetes, build client credentials
 			if startKube {
 				kubeClientUser := &user.DefaultInfo{Name: "system:kube-client"}
-				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", kubeClientUser, osmaster.KubeClientConfig); err != nil {
+				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", kubeClientUser, osClientConfigTemplate); err != nil {
 					return err
 				}
 			}

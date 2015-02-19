@@ -108,93 +108,6 @@ func newTLSCertificateConfig(dir string) (*TLSCertificateConfig, error) {
 	return config, nil
 }
 
-func readClientConfigFromDir(dir string, defaults kclient.Config) (kclient.Config, error) {
-	// Make a copy of the default config
-	client := defaults
-
-	var err error
-
-	// read files
-	client.CAFile, client.CertFile, client.KeyFile = filenamesFromDir(dir)
-	if client.CAData, err = ioutil.ReadFile(client.CAFile); err != nil {
-		return client, err
-	}
-	if client.CertData, err = ioutil.ReadFile(client.CertFile); err != nil {
-		return client, err
-	}
-	if client.KeyData, err = ioutil.ReadFile(client.KeyFile); err != nil {
-		return client, err
-	}
-
-	return client, nil
-}
-
-func writeClientCertsToDir(client *kclient.Config, dir string) error {
-	// mkdir
-	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
-		return err
-	}
-
-	// write files
-	client.CAFile, client.CertFile, client.KeyFile = filenamesFromDir(dir)
-	if err := ioutil.WriteFile(client.CAFile, client.CAData, os.FileMode(0644)); err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(client.CertFile, client.CertData, os.FileMode(0644)); err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(client.KeyFile, client.KeyData, os.FileMode(0600)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func writeKubeConfigToDir(client *kclient.Config, username string, dir string) error {
-	// mkdir
-	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
-		return err
-	}
-
-	clusterName := "master"
-	contextName := clusterName + "-" + username
-	config := &clientcmdapi.Config{
-		Clusters: map[string]clientcmdapi.Cluster{
-			clusterName: {
-				Server: client.Host,
-				CertificateAuthorityData: client.CAData,
-				InsecureSkipTLSVerify:    client.Insecure,
-			},
-		},
-		AuthInfos: map[string]clientcmdapi.AuthInfo{
-			username: {
-				Username: client.Username,
-				Password: client.Password,
-				Token:    client.BearerToken,
-				ClientCertificateData: client.CertData,
-				ClientKeyData:         client.KeyData,
-			},
-		},
-		Contexts: map[string]clientcmdapi.Context{
-			contextName: {
-				Cluster:  clusterName,
-				AuthInfo: username,
-			},
-		},
-		CurrentContext: contextName,
-	}
-
-	bytes, err := clientcmd.Write(*config)
-	if err != nil {
-		return err
-	}
-	// Make file readable only to owner, since it contains secrets
-	if err := ioutil.WriteFile(filepath.Join(dir, ".kubeconfig"), bytes, os.FileMode(0600)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func certsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 	ok := false
 	certs := []*x509.Certificate{}
@@ -339,61 +252,105 @@ func (ca *CA) MakeServerCert(name string, hostnames []string) (*TLSCertificateCo
 
 // MakeClientConfig creates a folder containing certificates for the given client:
 //   <CA.dir>/
-//     <id>/
+//     <clientId>/
 //       root.crt - Root certificate bundle.
 //       cert.crt - Client certificate
 //       key.key  - Private key
+//       .kubeconfig - baseKubeconfig with root.crt added to all clusters, and client user added to all contexts
 // The generated certificate has the following attributes:
 //   Subject:
 //     SerialNumber: user.GetUID()
 //     CommonName:   user.GetName()
 //     Organization: user.GetGroups()
 //   ExtKeyUsage: ExtKeyUsageClientAuth
-func (ca *CA) MakeClientConfig(clientId string, u user.Info, defaults kclient.Config) (kclient.Config, error) {
-	clientDir := filepath.Join(ca.Dir, clientId)
-	kubeConfig := filepath.Join(clientDir, ".kubeconfig")
+func (ca *CA) MakeClientConfig(clientId string, u user.Info, baseKubeconfig clientcmdapi.Config) (kclient.Config, error) {
+	var (
+		client                    kclient.Config
+		err                       error
+		caFile, certFile, keyFile string
+		caData, certData, keyData []byte
+	)
 
-	client, err := readClientConfigFromDir(clientDir, defaults)
+	// Ensure the folder exists
+	clientDir := filepath.Join(ca.Dir, clientId)
+	if err := os.MkdirAll(clientDir, os.FileMode(0755)); err != nil {
+		return client, err
+	}
+
+	caFile, certFile, keyFile = filenamesFromDir(clientDir)
 	if err == nil {
-		// Always write .kubeconfig to pick up hostname changes
-		if err := writeKubeConfigToDir(&client, clientId, clientDir); err != nil {
+		caData, err = ioutil.ReadFile(caFile)
+	}
+	if err == nil {
+		certData, err = ioutil.ReadFile(certFile)
+	}
+	if err == nil {
+		keyData, err = ioutil.ReadFile(keyFile)
+	}
+
+	if err == nil {
+		glog.V(4).Infof("Using existing client certificates in %s", clientDir)
+	} else {
+		glog.V(4).Infof("Generating client certificates in %s", clientDir)
+
+		clientPublicKey, clientPrivateKey, _ := NewKeyPair()
+		clientTemplate, _ := newClientCertificateTemplate(x509request.UserToSubject(u))
+		clientCrt, _ := ca.signCertificate(clientTemplate, clientPublicKey)
+
+		caData, err = encodeCertificates(ca.Config.Roots...)
+		if err != nil {
 			return client, err
 		}
-		glog.Infof("Using existing client config in %s", kubeConfig)
-		return client, nil
+		certData, err = encodeCertificates(clientCrt)
+		if err != nil {
+			return client, err
+		}
+		keyData, err = encodeKey(clientPrivateKey)
+		if err != nil {
+			return client, err
+		}
+
+		// write files
+		if err = ioutil.WriteFile(caFile, caData, os.FileMode(0644)); err != nil {
+			return client, err
+		}
+		if err = ioutil.WriteFile(certFile, certData, os.FileMode(0644)); err != nil {
+			return client, err
+		}
+		if err = ioutil.WriteFile(keyFile, keyData, os.FileMode(0600)); err != nil {
+			return client, err
+		}
 	}
 
-	glog.Infof("Generating client config in %s", kubeConfig)
+	// Set the generated certs on a user
+	baseKubeconfig.AuthInfos = map[string]clientcmdapi.AuthInfo{
+		clientId: {
+			ClientCertificateData: certData,
+			ClientKeyData:         keyData,
+		},
+	}
 
-	// Make a copy of the default config
-	client = defaults
+	// Set the ca certs on all clusters
+	for clusterName, cluster := range baseKubeconfig.Clusters {
+		cluster.CertificateAuthorityData = caData
+		baseKubeconfig.Clusters[clusterName] = cluster
+	}
 
-	// Create cert for system components to use to talk to the API
-	clientPublicKey, clientPrivateKey, _ := NewKeyPair()
-	clientTemplate, _ := newClientCertificateTemplate(x509request.UserToSubject(u))
-	clientCrt, _ := ca.signCertificate(clientTemplate, clientPublicKey)
+	// Use the new user in all contexts
+	for contextName, context := range baseKubeconfig.Contexts {
+		context.AuthInfo = clientId
+		baseKubeconfig.Contexts[contextName] = context
+	}
 
-	caData, err := encodeCertificates(ca.Config.Roots...)
-	if err != nil {
+	if builtClient, err := clientcmd.NewDefaultClientConfig(baseKubeconfig, &clientcmd.ConfigOverrides{}).ClientConfig(); err != nil {
 		return client, err
-	}
-	certData, err := encodeCertificates(clientCrt)
-	if err != nil {
-		return client, err
-	}
-	keyData, err := encodeKey(clientPrivateKey)
-	if err != nil {
-		return client, err
+	} else {
+		client = *builtClient
 	}
 
-	client.CAData = caData
-	client.CertData = certData
-	client.KeyData = keyData
-
-	if err := writeClientCertsToDir(&client, clientDir); err != nil {
-		return client, err
-	}
-	if err := writeKubeConfigToDir(&client, clientId, clientDir); err != nil {
+	kubeConfigFile := filepath.Join(clientDir, ".kubeconfig")
+	glog.Infof("Writing client config in %s", kubeConfigFile)
+	if err := clientcmd.WriteToFile(baseKubeconfig, kubeConfigFile); err != nil {
 		return client, err
 	}
 
