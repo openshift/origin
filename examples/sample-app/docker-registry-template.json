@@ -14,15 +14,15 @@
       },
       {
           "name": "OPENSHIFT_CA_DATA",
-          "description": "OpenShift root certificates",
+          "description": "OpenShift root certificates"
       },
       {
           "name": "OPENSHIFT_CERT_DATA",
-          "description": "OpenShift client certificate",
+          "description": "OpenShift client certificate"
       },
       {
           "name": "OPENSHIFT_KEY_DATA",
-          "description": "OpenShift client certificate key",
+          "description": "OpenShift client certificate key"
       }
   ],
   "apiVersion":"v1beta1",
@@ -41,13 +41,13 @@
     },
     {
       "metadata":{
-        "name":"docker-registry",
+        "name":"docker-registry"
       },
       "kind":"DeploymentConfig",
       "apiVersion":"v1beta1",
       "triggers":[
         {
-          "type":"ConfigChange",
+          "type":"ConfigChange"
         }
       ],
       "template":{
