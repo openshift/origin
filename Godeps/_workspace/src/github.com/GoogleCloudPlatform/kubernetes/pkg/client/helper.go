@@ -18,7 +18,6 @@ package client
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -264,19 +263,6 @@ func HTTPWrappersForConfig(config *Config, rt http.RoundTripper) (http.RoundTrip
 		rt = NewUserAgentRoundTripper(config.UserAgent, rt)
 	}
 	return rt, nil
-}
-
-// dataFromSliceOrFile returns data from the slice (if non-empty), or from the file,
-// or an error if an error occurred reading the file
-func dataFromSliceOrFile(data []byte, file string) ([]byte, error) {
-	if len(data) > 0 {
-		return data, nil
-	}
-	fileData, err := ioutil.ReadFile(file)
-	if err != nil {
-		return []byte{}, err
-	}
-	return fileData, nil
 }
 
 // DefaultServerURL converts a host, host:port, or URL string to the default base server API path
