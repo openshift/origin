@@ -50,12 +50,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) RoundTrip(req *http.Request) (*http
 		return resp, err
 	}
 
-	// strip off CORS headers sent from the backend
-	resp.Header.Del("Access-Control-Allow-Credentials")
-	resp.Header.Del("Access-Control-Allow-Headers")
-	resp.Header.Del("Access-Control-Allow-Methods")
-	resp.Header.Del("Access-Control-Allow-Origin")
-
+	removeCORSHeaders(resp)
 	removeChallengeHeaders(resp)
 	if resp.StatusCode == http.StatusUnauthorized {
 		glog.Errorf("Got unauthorized error from backend for: %s %s", req.Method, req.URL)
@@ -206,6 +201,8 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	// NOTE: from this point forward, we own the connection and we can't use
 	// w.Header(), w.Write(), or w.WriteHeader any more
 
+	removeCORSHeaders(resp)
+	removeChallengeHeaders(resp)
 	err = resp.Write(requestHijackedConn)
 	if err != nil {
 		glog.Errorf("Error writing backend response to client: %s", err)
@@ -243,6 +240,15 @@ func removeAuthHeaders(req *http.Request) {
 // This should be called on all responses before returning
 func removeChallengeHeaders(resp *http.Response) {
 	resp.Header.Del("WWW-Authenticate")
+}
+
+// removeCORSHeaders strip CORS headers sent from the backend
+// This should be called on all responses before returning
+func removeCORSHeaders(resp *http.Response) {
+	resp.Header.Del("Access-Control-Allow-Credentials")
+	resp.Header.Del("Access-Control-Allow-Headers")
+	resp.Header.Del("Access-Control-Allow-Methods")
+	resp.Header.Del("Access-Control-Allow-Origin")
 }
 
 // addAuthHeaders adds basic/bearer auth from the given config (if specified)
