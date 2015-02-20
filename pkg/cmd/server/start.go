@@ -392,7 +392,7 @@ func start(cfg *config, args []string) error {
 		if err != nil {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
-		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator))
+		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
 		// Allow token as access_token param for WebSockets
 		// TODO: make the param name configurable
 		// TODO: limit this authenticator to watch methods, if possible
