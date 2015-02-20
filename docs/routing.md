@@ -32,12 +32,10 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
 
     If running in https mode, ensure osc can authenticate to the master
-    [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.certificates/admin/.kubeconfig
+    [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.certificates/openshift-client/.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
-
-    If running in https mode, ensure install-router.sh can authenticate to the master
     [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.certificates/openshift-client/key.key
-    [vagrant@openshiftdev origin]$ CERT_DIR=openshift.local.certificates/openshift-client hack/install-router.sh {router_id} {master_url}
+    [vagrant@openshiftdev origin]$ openshift ex router --create --credentials="${KUBECONFIG}"
     [vagrant@openshiftdev origin]$ osc get pods
 
 #### Clustered vagrant environment
@@ -46,7 +44,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ hack/install-router.sh {router_id} {master_url}
+    [vagrant@openshift-master ~]$ openshift ex router --create --credentials="${KUBECONFIG}"
 
 
 
@@ -58,12 +56,14 @@ In order to run the router in a deployed environment the following conditions mu
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
 * The machine must not have services running on it that bind to host port 80 since this is what the router uses for traffic
 
-To install the router pod you use the `hack/install-router.sh` script, passing it the router id, master url, and, optionally,
-the OpenShift executable.  If the executable is not passed the script will try to find it via the `PATH`.  If the
-script is still unable to find the OpenShift executable then it will simply create the `/tmp/router.json` file and stop.
-It is then up to the user to issue the `osc create` command manually.
+To install the router pod you use the `openshift ex router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
+The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
+environments you can use the `${CERTS_DIR}/openshift-client/.kubeconfig` file. Once you run this command you can check the configuration
+of the router by running `osc get dc router` to check the deployment status.
 
-### Manually   
+`openshift ex router` offers other options for deploying routers - run `openshift help ex router` for more details.
+
+### Manually
 
 To run the router manually (outside of a pod) you should first build the images with instructions found below.  Then you
 can run the router anywhere that it can access both the pods and the master.  The router exposes port 80 so the host 
