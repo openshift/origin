@@ -25,7 +25,7 @@
       "apiVersion":"v1beta1",
       "triggers":[
         {
-          "type":"ConfigChange",
+          "type":"ConfigChange"
         }
       ],
       "template":{
@@ -49,7 +49,7 @@
                         "containerPort":8080,
                         "protocol":"TCP"
                       }
-                    ],
+                    ]
                   }
                 ],
                 "version":"v1beta1"

@@ -25,7 +25,7 @@
       "apiVersion":"v1beta1",
       "triggers":[
         {
-          "type":"ConfigChange",
+          "type":"ConfigChange"
         }
       ],
       "template":{
