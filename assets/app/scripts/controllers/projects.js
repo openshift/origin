@@ -16,7 +16,7 @@ angular.module('openshiftConsole')
     AuthService.withUser().then(function() {
       DataService.list("projects", $scope, function(projects) {
         $scope.projects = projects.by("metadata.name");
-        $scope.emptyMessage = "You have no projects. For an <a href='https://github.com/openshift/origin/tree/master/examples/sample-app'>example</a>, run <code>openshift cli create -f https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/project.json</code>";
+        $scope.emptyMessage = "No projects to show.";
       });
     });
   

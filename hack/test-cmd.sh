@@ -252,3 +252,11 @@ openshift ex policy add-user cluster-admin system:no-user
 openshift ex policy remove-user cluster-admin system:no-user
 openshift ex policy remove-user-from-project system:no-user
 echo "ex policy: ok"
+
+# Test the commands the UI projects page tells users to run
+# These should match what is described in projects.html
+openshift ex new-project ui-test-project --admin="anypassword:createuser"
+openshift ex policy add-user admin anypassword:adduser -n ui-test-project
+osc describe policybinding master -n ui-test-project | grep createuser
+osc describe policybinding master -n ui-test-project | grep adduser
+echo "UI project commands: ok"
