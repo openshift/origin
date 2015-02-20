@@ -209,8 +209,12 @@ openshift ex new-project test --description="This is an example project to demon
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:$(($API_PORT + 1)).	You may need to visit ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT} first to accept the certificate."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
+# install the router
+echo "[INFO] Installing the router"
+openshift ex router --create --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 
 # install the registry
+echo "[INFO] Installing the registry"
 CERT_DIR="${CERT_DIR}/openshift-client" hack/install-registry.sh
 
 echo "[INFO] Waiting for Docker registry pod to start"
@@ -262,16 +266,8 @@ wait_for_app "test"
 #wait_for_build "custom"
 #wait_for_app "custom"
 
-if [[ "$ROUTER_TESTS_ENABLED" == "true" ]]; then
-	echo "[INFO] Installing router with master url of ${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT} and starting pod..."
-	echo "[INFO] To disable router testing set ROUTER_TESTS_ENABLED=false..."
-	CERT_DIR="${CERT_DIR}/openshift-client" "${OS_ROOT}/hack/install-router.sh" "router1" "${API_SCHEME}://${CONTAINER_ACCESSIBLE_API_HOST}:${API_PORT}"
-	wait_for_command "osc get pods | grep router1 | grep -i Running" $((5*TIME_MIN))
+# ensure the router is started
+wait_for_command "osc get pods | grep router-1 | grep -i Running" $((5*TIME_MIN))
 
-	echo "[INFO] Validating routed app response..."
-	validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
-else
-	echo "[INFO] Validating app response..."
-	validate_response "http://${FRONTEND_IP}:5432" "Hello from OpenShift"
-fi
-
+echo "[INFO] Validating routed app response..."
+validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
