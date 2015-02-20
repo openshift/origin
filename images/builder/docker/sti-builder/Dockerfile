@@ -8,9 +8,9 @@
 # If "/root/.dockercfg" is bind mounted in, it will use that as authorization to a
 # Docker registry.
 #
-# The standard name for this image is openshift/origin-sti-builder
+# The standard name for this image is openshift3_beta/ose-sti-builder
 #
-FROM openshift/origin
+FROM openshift3_beta/ose
 
 ENV HOME /root
 ENTRYPOINT ["/usr/bin/openshift-sti-build", "--loglevel=5"]

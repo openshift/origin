@@ -1,6 +1,6 @@
-FROM centos:centos7
+FROM registry.access.redhat.com/rhel
 
-RUN yum install -y --enablerepo=centosplus epel-release gettext tar automake make git docker
+RUN yum install -y gettext tar automake make git docker --disablerepo=rhel-7-server-rt-rpms
 
 ADD https://github.com/openshift/source-to-image/releases/download/v0.1/source-to-image-v0.1-5813879-linux-amd64.tar.gz /usr/bin/sti.tar.gz
 RUN cd /usr/bin && tar xzvf /usr/bin/sti.tar.gz && rm -f /usr/bin/sti.tar.gz
