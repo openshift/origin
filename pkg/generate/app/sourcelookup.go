@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	argumentGit         = regexp.MustCompile("^(http://|https://|git@|git://).*\\.git(?:#([a-zA-Z0-9]*))?$")
+	argumentGit         = regexp.MustCompile("^(http://|https://|git@|git://).*(?:#([a-zA-Z0-9]*))?$")
 	argumentGitProtocol = regexp.MustCompile("^(git@|git://)")
 	argumentPath        = regexp.MustCompile("^\\.|^\\/[^/]+")
 )
