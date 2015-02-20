@@ -48,5 +48,6 @@ func validateTemplateBody(template *api.Template) (errs errors.ValidationErrorLi
 		paramErr := ValidateParameter(&template.Parameters[i])
 		errs = append(errs, paramErr.PrefixIndex(i).Prefix("parameters")...)
 	}
+	errs = append(errs, validation.ValidateLabels(template.ObjectLabels, "labels")...)
 	return
 }

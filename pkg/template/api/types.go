@@ -16,6 +16,10 @@ type Template struct {
 
 	// Required: A list of resources to create
 	Objects []runtime.Object
+
+	// Optional: ObjectLabels is a set of labels that are applied to every
+	// object during the Template to Config transformation
+	ObjectLabels map[string]string
 }
 
 // TemplateList is a list of Template objects.
