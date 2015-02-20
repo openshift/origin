@@ -75,7 +75,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       },
       "libvirt"           => {
         "box_name" => "fedora_inst",
-        "box_url"  => "https://download.gluster.org/pub/gluster/purpleidea/vagrant/fedora-20/fedora-20.box"
+        "box_url"  => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_libvirt_inst.box"
       },
       "aws"               => {
         "_see_also_"   => AWS_CRED_FILE,
