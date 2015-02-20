@@ -27,9 +27,14 @@ func GenerateBuildFromConfig(bc *buildapi.BuildConfig, r *buildapi.SourceRevisio
 			Revision: r,
 		},
 		ObjectMeta: kapi.ObjectMeta{
-			Labels: map[string]string{buildapi.BuildConfigLabel: bcCopy.Name},
+			Labels: bcCopy.Labels,
 		},
 	}
+	if b.Labels == nil {
+		b.Labels = make(map[string]string)
+	}
+	b.Labels[buildapi.BuildConfigLabel] = bcCopy.Name
+
 	for originalImage, newImage := range imageSubstitutions {
 		glog.V(4).Infof("Substituting %s for %s", newImage, originalImage)
 		SubstituteImageReferences(b, originalImage, newImage)
