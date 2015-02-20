@@ -277,7 +277,13 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 
 	// If imageInfo present, append ports
 	if r.Info != nil {
-		for sp := range r.Info.Config.ExposedPorts {
+		ports := []string{}
+		// ExposedPorts can consist of multiple space-separated ports
+		for exposed := range r.Info.Config.ExposedPorts {
+			ports = append(ports, strings.Split(exposed, " ")...)
+		}
+
+		for _, sp := range ports {
 			p := docker.Port(sp)
 			port, err := strconv.Atoi(p.Port())
 			if err != nil {
