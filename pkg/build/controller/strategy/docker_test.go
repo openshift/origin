@@ -11,9 +11,8 @@ import (
 
 func TestDockerCreateBuildPod(t *testing.T) {
 	strategy := DockerBuildStrategy{
-		Image:          "docker-test-image",
-		UseLocalImages: true,
-		Codec:          v1beta1.Codec,
+		Image: "docker-test-image",
+		Codec: v1beta1.Codec,
 	}
 
 	expected := mockDockerBuild()
@@ -66,10 +65,11 @@ func mockDockerBuild() *buildapi.Build {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 				},
+				ContextDir: "my/test/dir",
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{ContextDir: "my/test/dir"},
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/dockerBuild",

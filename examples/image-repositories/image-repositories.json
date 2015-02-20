@@ -15,10 +15,10 @@
         },
         {
             "apiVersion": "v1beta1",
-            "dockerImageRepository": "openshift/nodejs-0-10-centos",
+            "dockerImageRepository": "openshift/nodejs-010-centos7",
             "kind": "ImageRepository",
             "metadata": {
-                "name": "nodejs-0-10-centos"
+                "name": "nodejs-010-centos7"
             },
             "tags": {
                 "latest": "latest"

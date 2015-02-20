@@ -524,9 +524,13 @@ func (s *DockerServer) commitContainer(w http.ResponseWriter, r *http.Request) {
 		Config:    config,
 	}
 	repository := r.URL.Query().Get("repo")
+	tag := r.URL.Query().Get("tag")
 	s.iMut.Lock()
 	s.images = append(s.images, image)
 	if repository != "" {
+		if tag != "" {
+			repository += ":" + tag
+		}
 		s.imgIDs[repository] = image.ID
 	}
 	s.iMut.Unlock()
@@ -582,20 +586,24 @@ func (s *DockerServer) buildImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *DockerServer) pullImage(w http.ResponseWriter, r *http.Request) {
-	repository := r.URL.Query().Get("fromImage")
+	fromImageName := r.URL.Query().Get("fromImage")
 	image := docker.Image{
 		ID: s.generateID(),
 	}
 	s.iMut.Lock()
 	s.images = append(s.images, image)
-	if repository != "" {
-		s.imgIDs[repository] = image.ID
+	if fromImageName != "" {
+		s.imgIDs[fromImageName] = image.ID
 	}
 	s.iMut.Unlock()
 }
 
 func (s *DockerServer) pushImage(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
+	tag := r.URL.Query().Get("tag")
+	if tag != "" {
+		name += ":" + tag
+	}
 	s.iMut.RLock()
 	if _, ok := s.imgIDs[name]; !ok {
 		s.iMut.RUnlock()
@@ -619,6 +627,10 @@ func (s *DockerServer) tagImage(w http.ResponseWriter, r *http.Request) {
 	s.iMut.Lock()
 	defer s.iMut.Unlock()
 	newRepo := r.URL.Query().Get("repo")
+	newTag := r.URL.Query().Get("tag")
+	if newTag != "" {
+		newRepo += ":" + newTag
+	}
 	s.imgIDs[newRepo] = s.imgIDs[name]
 	w.WriteHeader(http.StatusCreated)
 }

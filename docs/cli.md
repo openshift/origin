@@ -160,14 +160,14 @@ found in [examples/sample-app/application-template-stibuild.json](https://github
 ### Example Usage
 
 ```
-$ osc process -f examples/guestbook/template.json > config.json
+$ osc process -f examples/sample-app/application-template-stibuild.json > config.json
 $ osc process -f template.json | osc create -f -
 ```
 
 osc build-logs
 ------------------
 
-> **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/openshift/origin/blob/master/docs/cli.md#kubectl-log)).
+> **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubectl.md#log)).
 
 This command will retrieve the logs from a Build container. It allows you to
 debug broken Build. If the build is still running, this command can stream the

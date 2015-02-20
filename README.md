@@ -57,7 +57,7 @@ The simplest way to run OpenShift Origin is in a Docker container:
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ docker exec -it openshift-origin bash
-    $ ln -s /var/lib/openshift/openshift.local.certificates/admin/.kubernetes_auth $HOME/.kubernetes_auth
+    $ export KUBECONFIG=/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig
     $ osc --help
 
 
@@ -205,6 +205,12 @@ FAQ
     to deployment on top of Kubernetes.  The geard commandline itself will likely be merged directly
     into the `openshift` command for all-in-one management of a cluster.
 
+3. What can I run on OpenShift?
+
+    OpenShift is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of OpenShift can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image)(STI) builds which allow you to simply supply an application source repository which will be combined with an existing STI-enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of STI-enabled images and documenting them [here](https://ci.openshift.redhat.com/openshift-docs-master-testing/latest/openshift_sti_images/overview.html).  We also have a few more experimental images available:
+
+    * [Wildfly](https://github.com/openshift/wildfly-8-centos)
+    * [Ruby](https://github.com/openshift/ruby-20-centos/)
 
 Contributing
 ------------

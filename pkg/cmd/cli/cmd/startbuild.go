@@ -11,9 +11,10 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-func NewCmdStartBuild(f *Factory, out io.Writer) *cobra.Command {
+func NewCmdStartBuild(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start-build (<buildConfig>|--from-build=<build>)",
 		Short: "Starts a new build from existing build or buildConfig",

@@ -184,6 +184,7 @@ func AddServices(objects Objects) Objects {
 						ObjectMeta: kapi.ObjectMeta{
 							Name:         name,
 							GenerateName: generateName,
+							Labels:       t.Labels,
 						},
 						Spec: kapi.ServiceSpec{
 							ContainerPort: kutil.NewIntOrStringFromInt(p),

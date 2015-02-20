@@ -27,8 +27,8 @@ func TestSubjects(t *testing.T) {
 			Resource:  "pods",
 			Namespace: "adze",
 		},
-		expectedUsers:  []string{"Anna", "ClusterAdmin", "Ellen", "Valerie"},
-		expectedGroups: []string{"RootUsers"},
+		expectedUsers:  []string{"Anna", "ClusterAdmin", "Ellen", "Valerie", "system:admin", "system:kube-client", "system:openshift-client", "system:openshift-deployer"},
+		expectedGroups: []string{"RootUsers", "system:authenticated", "system:unauthenticated"},
 	}
 	globalPolicy, globalPolicyBinding := newDefaultGlobalPolicy()
 	namespacedPolicy, namespacedPolicyBinding := newAdzePolicy()

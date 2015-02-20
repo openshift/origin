@@ -15,8 +15,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dh "github.com/openshift/origin/pkg/cmd/util/docker"
@@ -77,18 +75,16 @@ type params struct {
 	env cmdutil.Environment
 }
 
-func NewCmdGenerate(name string) *cobra.Command {
-	cfg := clientcmd.NewConfig()
+func NewCmdGenerate(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	dockerHelper := dh.NewHelper()
 	input := params{}
-	var factory *cmd.Factory
 
 	c := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
 		Short: "Generates an application configuration from a source repository",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
-			_, osClient, err := cfg.Clients()
+			osClient, _, err := f.Clients(c)
 			if err != nil {
 				osClient = nil
 			}
@@ -116,7 +112,7 @@ func NewCmdGenerate(name string) *cobra.Command {
 				}
 				input.env = env
 			}
-			namespace, err := factory.DefaultNamespace(c)
+			namespace, err := f.DefaultNamespace(c)
 			if err != nil {
 				namespace = ""
 			}
@@ -127,9 +123,6 @@ func NewCmdGenerate(name string) *cobra.Command {
 			}
 		},
 	}
-	clientConfig := cli.DefaultClientConfig(c.PersistentFlags())
-	factory = cmd.NewFactory(clientConfig)
-	factory.BindFlags(c.PersistentFlags())
 
 	flag := c.Flags()
 	flag.StringVar(&input.name, "name", "", "Set name to use for generated application artifacts")

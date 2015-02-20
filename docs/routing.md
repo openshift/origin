@@ -31,12 +31,13 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
 
-    If running in https mode, ensure osc can authenticate
-    [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.certificates/admin/*
+    If running in https mode, ensure osc can authenticate to the master
     [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.certificates/admin/.kubeconfig
+    [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
 
-    If running in https mode, ensure install-router.sh has root certificates for the master
-    [vagrant@openshiftdev origin]$ CERT_DIR=$CERT_DIR/openshift-client hack/install-router.sh {router_id} {master_url}
+    If running in https mode, ensure install-router.sh can authenticate to the master
+    [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.certificates/openshift-client/key.key
+    [vagrant@openshiftdev origin]$ CERT_DIR=openshift.local.certificates/openshift-client hack/install-router.sh {router_id} {master_url}
     [vagrant@openshiftdev origin]$ osc get pods
 
 #### Clustered vagrant environment

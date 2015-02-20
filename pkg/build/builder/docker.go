@@ -13,8 +13,8 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/source-to-image/pkg/sti/git"
-	"github.com/openshift/source-to-image/pkg/sti/tar"
+	"github.com/openshift/source-to-image/pkg/git"
+	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 // urlCheckTimeout is the timeout used to check the source URL
@@ -23,7 +23,7 @@ import (
 const urlCheckTimeout = 16 * time.Second
 
 // imageRegex is used to substitute image names in buildconfigs with immutable image ids at build time.
-var imageRegex = regexp.MustCompile(`^FROM\s+\w+.+`)
+var imageRegex = regexp.MustCompile(`(?mi)^\s*FROM\s+\w+.+`)
 
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
@@ -43,8 +43,8 @@ func NewDockerBuilder(dockerClient DockerClient, authCfg docker.AuthConfiguratio
 		authPresent:  authPresent,
 		auth:         authCfg,
 		build:        build,
-		git:          git.NewGit(),
-		tar:          tar.NewTar(),
+		git:          git.New(),
+		tar:          tar.New(),
 		urlTimeout:   urlCheckTimeout,
 	}
 }
@@ -136,8 +136,8 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 // Also append the environment variables in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
 	dockerfilePath := filepath.Join(dir, "Dockerfile")
-	if d.build.Parameters.Strategy.DockerStrategy != nil && len(d.build.Parameters.Strategy.DockerStrategy.ContextDir) > 0 {
-		dockerfilePath = filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir, "Dockerfile")
+	if d.build.Parameters.Strategy.DockerStrategy != nil && len(d.build.Parameters.Source.ContextDir) > 0 {
+		dockerfilePath = filepath.Join(dir, d.build.Parameters.Source.ContextDir, "Dockerfile")
 	}
 
 	fileStat, err := os.Lstat(dockerfilePath)
@@ -175,8 +175,8 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
 	if d.build.Parameters.Strategy.DockerStrategy != nil {
-		if d.build.Parameters.Strategy.DockerStrategy.ContextDir != "" {
-			dir = filepath.Join(dir, d.build.Parameters.Strategy.DockerStrategy.ContextDir)
+		if d.build.Parameters.Source.ContextDir != "" {
+			dir = filepath.Join(dir, d.build.Parameters.Source.ContextDir)
 		}
 		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
 	}

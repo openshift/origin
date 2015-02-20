@@ -41,7 +41,7 @@ API_HOST=${API_HOST:-127.0.0.1}
 KUBELET_SCHEME=${KUBELET_SCHEME:-http}
 KUBELET_PORT=${KUBELET_PORT:-10250}
 
-TEMP_DIR=$(mktemp -d /tmp/openshift-cmd.XXXX)
+TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
 ETCD_DATA_DIR="${TEMP_DIR}/etcd"
 VOLUME_DIR="${TEMP_DIR}/volumes"
 CERT_DIR="${TEMP_DIR}/certs"
@@ -80,7 +80,7 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80        
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
 # Set KUBERNETES_MASTER for osc
@@ -98,30 +98,41 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # Begin tests
 #
 
+osc get templates
+osc create -f examples/sample-app/application-template-dockerbuild.json
+osc get templates
+osc get templates ruby-helloworld-sample
+[ -n "$(osc get templates ruby-helloworld-sample -o json | osc process -f -)" ]
+osc describe templates ruby-helloworld-sample
+osc delete templates ruby-helloworld-sample
+osc get templates
+# TODO: create directly from template
+echo "templates: ok"
+
 # verify some default commands
 [ "$(openshift cli)" ]
 [ "$(openshift ex)" ]
 [ "$(openshift ex config 2>&1)" ]
 [ "$(openshift ex tokens)" ]
 [ "$(openshift ex policy  2>&1)" ]
-[ "$(openshift kubectl)" ]
+[ "$(openshift kubectl 2>&1)" ]
 [ "$(openshift kube 2>&1)" ]
 
 # help for root commands must be consistent
 [ "$(openshift | grep 'OpenShift for Admins')" ]
 [ "$(osc | grep 'OpenShift Client')" ]
 [ "$(openshift cli | grep 'OpenShift Client')" ]
-[ "$(openshift kubectl | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift for Admins')" ]
 [ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
-[ "$(openshift kubectl --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
 
 # help for root commands through help command must be consistent
 [ "$(openshift help cli 2>&1 | grep 'OpenShift Client')" ]
-[ "$(openshift help kubectl 2>&1 | grep 'OpenShift Client')" ]
+[ "$(openshift help kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 
 # help for given command with --help flag must be consistent
 [ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
@@ -168,13 +179,13 @@ osc delete imageRepositories test
 [ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-repositories/image-repositories.json
 [ -n "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories nodejs-0-10-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
 osc delete imageRepositories ruby-20-centos
-osc delete imageRepositories nodejs-0-10-centos
+osc delete imageRepositories nodejs-010-centos7
 osc delete imageRepositories wildfly-8-centos
 [ -z "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories nodejs-0-10-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
 echo "imageRepositories: ok"
 
@@ -184,6 +195,10 @@ osc get images
 osc get imageRepositories
 osc delete imageRepositories test
 echo "imageRepositoryMappings: ok"
+
+[ "$(osc new-app php mysql -o yaml | grep 3306)" ]
+osc new-app php mysql
+echo "new-app: ok"
 
 osc get routes
 osc create -f test/integration/fixtures/test-route.json create routes

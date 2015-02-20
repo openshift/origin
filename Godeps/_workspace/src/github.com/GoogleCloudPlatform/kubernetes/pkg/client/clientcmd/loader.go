@@ -17,6 +17,7 @@ limitations under the License.
 package clientcmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	clientcmdlatest "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 )
 
 const (
@@ -55,7 +57,8 @@ func NewClientConfigLoadingRules() *ClientConfigLoadingRules {
 //   2.  EnvVarPath
 //   3.  CurrentDirectoryPath
 //   4.  HomeDirectoryPath
-// Empty filenames are ignored.  Files with non-deserializable content produced errors.
+// A missing CommandLinePath file produces an error. Empty filenames or other missing files are ignored.
+// Read errors or files with non-deserializable content produce errors.
 // The first file to set a particular map key wins and map key's value is never changed.
 // BUT, if you set a struct value that is NOT contained inside of map, the value WILL be changed.
 // This results in some odd looking logic to merge in one direction, merge in the other, and then merge the two.
@@ -65,16 +68,30 @@ func NewClientConfigLoadingRules() *ClientConfigLoadingRules {
 // and only absolute file paths are returned.
 func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 
+	errlist := []error{}
+
+	// Make sure a file we were explicitly told to use exists
+	if len(rules.CommandLinePath) > 0 {
+		if _, err := os.Stat(rules.CommandLinePath); os.IsNotExist(err) {
+			errlist = append(errlist, fmt.Errorf("The config file %v does not exist", rules.CommandLinePath))
+		}
+	}
+
 	kubeConfigFiles := []string{rules.CommandLinePath, rules.EnvVarPath, rules.CurrentDirectoryPath, rules.HomeDirectoryPath}
 
 	// first merge all of our maps
 	mapConfig := clientcmdapi.NewConfig()
 	for _, file := range kubeConfigFiles {
-		mergeConfigWithFile(mapConfig, file)
-		resolveLocalPaths(file, mapConfig)
+		if err := mergeConfigWithFile(mapConfig, file); err != nil {
+			errlist = append(errlist, err)
+		}
+		if err := resolveLocalPaths(file, mapConfig); err != nil {
+			errlist = append(errlist, err)
+		}
 	}
 
 	// merge all of the struct values in the reverse order so that priority is given correctly
+	// errors are not added to the list the second time
 	nonMapConfig := clientcmdapi.NewConfig()
 	for i := len(kubeConfigFiles) - 1; i >= 0; i-- {
 		file := kubeConfigFiles[i]
@@ -88,7 +105,7 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 	mergo.Merge(config, mapConfig)
 	mergo.Merge(config, nonMapConfig)
 
-	return config, nil
+	return config, errors.NewAggregate(errlist)
 }
 
 func mergeConfigWithFile(startingConfig *clientcmdapi.Config, filename string) error {
@@ -98,8 +115,11 @@ func mergeConfigWithFile(startingConfig *clientcmdapi.Config, filename string) e
 	}
 
 	config, err := LoadFromFile(filename)
+	if os.IsNotExist(err) {
+		return nil
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("Error loading config file \"%s\": %v", filename, err)
 	}
 
 	mergo.Merge(startingConfig, config)
@@ -117,7 +137,7 @@ func resolveLocalPaths(filename string, config *clientcmdapi.Config) error {
 
 	configDir, err := filepath.Abs(filepath.Dir(filename))
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not determine the absolute path of config file %s: %v", filename, err)
 	}
 
 	resolvedClusters := make(map[string]clientcmdapi.Cluster)
@@ -153,36 +173,46 @@ func resolveLocalPath(startingDir, path string) string {
 
 // LoadFromFile takes a filename and deserializes the contents into Config object
 func LoadFromFile(filename string) (*clientcmdapi.Config, error) {
-	config := &clientcmdapi.Config{}
-
 	kubeconfigBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
+	return Load(kubeconfigBytes)
+}
 
-	if err := clientcmdlatest.Codec.DecodeInto(kubeconfigBytes, config); err != nil {
+// Load takes a byte slice and deserializes the contents into Config object.
+// Encapsulates deserialization without assuming the source is a file.
+func Load(data []byte) (*clientcmdapi.Config, error) {
+	config := &clientcmdapi.Config{}
+	if err := clientcmdlatest.Codec.DecodeInto(data, config); err != nil {
 		return nil, err
 	}
-
 	return config, nil
 }
 
-// WriteToFile serializes the config to yaml and writes it out to a file.  If no present, it creates the file with 0644.  If it is present
+// WriteToFile serializes the config to yaml and writes it out to a file.  If not present, it creates the file with the mode 0600.  If it is present
 // it stomps the contents
 func WriteToFile(config clientcmdapi.Config, filename string) error {
+	content, err := Write(config)
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(filename, content, 0600); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Write serializes the config to yaml.
+// Encapsulates serialization without assuming the destination is a file.
+func Write(config clientcmdapi.Config) ([]byte, error) {
 	json, err := clientcmdlatest.Codec.Encode(&config)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
 	content, err := yaml.JSONToYAML(json)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	if err := ioutil.WriteFile(filename, content, 0644); err != nil {
-		return err
-	}
-
-	return nil
+	return content, nil
 }

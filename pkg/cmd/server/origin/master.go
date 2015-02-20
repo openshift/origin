@@ -60,12 +60,12 @@ import (
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
-	projectetcd "github.com/openshift/origin/pkg/project/registry/etcd"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
+	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
@@ -120,9 +120,6 @@ type MasterConfig struct {
 	EtcdHelper tools.EtcdHelper
 
 	AdmissionControl admission.Interface
-
-	// true if the system should use pullIfNotPresent for images (which means updates will not be fetched aggressively)
-	UseLocalImages bool
 
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
@@ -249,7 +246,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	imageEtcd := imageetcd.New(c.EtcdHelper, imageetcd.DefaultRegistryFunc(defaultRegistryFunc))
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
-	projectEtcd := projectetcd.New(c.EtcdHelper)
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
@@ -288,10 +284,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
 		"templateConfigs": templateregistry.NewREST(),
+		"templates":       templateetcd.NewREST(c.EtcdHelper),
 
 		"routes": routeregistry.NewREST(routeEtcd),
 
-		"projects": projectregistry.NewREST(projectEtcd),
+		"projects": projectregistry.NewREST(kclient.Namespaces()),
 
 		"userIdentityMappings": useridentitymapping.NewREST(userEtcd),
 		"users":                userregistry.NewREST(userEtcd),
@@ -605,7 +602,6 @@ func (c *MasterConfig) RunBuildController() {
 	// initialize build controller
 	dockerImage := c.ImageFor("docker-builder")
 	stiImage := c.ImageFor("sti-builder")
-	useLocalImages := c.UseLocalImages
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
@@ -613,20 +609,17 @@ func (c *MasterConfig) RunBuildController() {
 		KubeClient:   kclient,
 		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image:          dockerImage,
-			UseLocalImages: useLocalImages,
+			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
-			UseLocalImages:       useLocalImages,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
-			UseLocalImages: useLocalImages,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
@@ -656,7 +649,6 @@ func (c *MasterConfig) RunDeploymentController() {
 			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
 			{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
 		},
-		UseLocalImages:        c.UseLocalImages,
 		RecreateStrategyImage: c.ImageFor("deployer"),
 	}
 

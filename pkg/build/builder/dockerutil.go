@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/openshift/source-to-image/pkg/sti/tar"
+	"github.com/openshift/source-to-image/pkg/tar"
 )
 
 // DockerClient is an interface to the Docker client that contains

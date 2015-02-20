@@ -256,12 +256,12 @@ func mockBuildConfigParms(imageName, imageRepo, imageTag string) *buildapi.Build
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.docker/build",
 				},
+				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
-					BaseImage:  imageName,
+					BaseImage: imageName,
 				},
 			},
 			Output: buildapi.BuildOutput{

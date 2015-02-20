@@ -7,13 +7,14 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -51,7 +52,7 @@ application is created.
 ALPHA: This command is under active development - feedback is appreciated.
 `
 
-func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
+func NewCmdNewApplication(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 
 	helper := dockerutil.NewHelper()
@@ -107,32 +108,12 @@ func NewCmdNewApplication(f *Factory, out io.Writer) *cobra.Command {
 				return
 			}
 
-			mapper, typer := f.Object(c)
-			resourceMapper := &resource.Mapper{typer, mapper, f.Factory.ClientMapperForCommand(c)}
-			errs := []error{}
-			for i, item := range result.List.Items {
-				info, err := resourceMapper.InfoForObject(item)
-				if err != nil {
-					errs = append(errs, err)
-					continue
-				}
-				data, err := info.Mapping.Codec.Encode(item)
-				if err != nil {
-					errs = append(errs, err)
-					glog.Error(err)
-					continue
-				}
-				obj, err := resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
-				if err != nil {
-					errs = append(errs, err)
-					glog.Error(err)
-					continue
-				}
-				info.Refresh(obj, true)
-				result.List.Items[i] = obj
-				fmt.Fprintf(out, "%s\n", info.Name)
+			bulk := configcmd.Bulk{
+				Factory: f.Factory,
+				Command: c,
+				After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 			}
-			if len(errs) != 0 {
+			if errs := bulk.Create(result.List, namespace); len(errs) != 0 {
 				os.Exit(1)
 			}
 

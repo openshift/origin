@@ -155,34 +155,23 @@ func writeKubeConfigToDir(client *kclient.Config, username string, dir string) e
 		return err
 	}
 
-	caFile, err := filepath.Rel(dir, client.CAFile)
-	if err != nil {
-		return err
-	}
-	certFile, err := filepath.Rel(dir, client.CertFile)
-	if err != nil {
-		return err
-	}
-	keyFile, err := filepath.Rel(dir, client.KeyFile)
-	if err != nil {
-		return err
-	}
-
 	clusterName := "master"
 	contextName := clusterName + "-" + username
 	config := &clientcmdapi.Config{
 		Clusters: map[string]clientcmdapi.Cluster{
 			clusterName: {
-				Server:                client.Host,
-				CertificateAuthority:  caFile,
-				InsecureSkipTLSVerify: client.Insecure,
+				Server: client.Host,
+				CertificateAuthorityData: client.CAData,
+				InsecureSkipTLSVerify:    client.Insecure,
 			},
 		},
 		AuthInfos: map[string]clientcmdapi.AuthInfo{
 			username: {
-				Token:             client.BearerToken,
-				ClientCertificate: certFile,
-				ClientKey:         keyFile,
+				Username: client.Username,
+				Password: client.Password,
+				Token:    client.BearerToken,
+				ClientCertificateData: client.CertData,
+				ClientKeyData:         client.KeyData,
 			},
 		},
 		Contexts: map[string]clientcmdapi.Context{
@@ -194,7 +183,12 @@ func writeKubeConfigToDir(client *kclient.Config, username string, dir string) e
 		CurrentContext: contextName,
 	}
 
-	if err := clientcmd.WriteToFile(*config, filepath.Join(dir, ".kubeconfig")); err != nil {
+	bytes, err := clientcmd.Write(*config)
+	if err != nil {
+		return err
+	}
+	// Make file readable only to owner, since it contains secrets
+	if err := ioutil.WriteFile(filepath.Join(dir, ".kubeconfig"), bytes, os.FileMode(0600)); err != nil {
 		return err
 	}
 

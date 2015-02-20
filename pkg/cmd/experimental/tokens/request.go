@@ -6,11 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 )
 
-func NewCmdRequestToken(f *cmd.Factory) *cobra.Command {
+func NewCmdRequestToken(f *clientcmd.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "request-token",
 		Short: "request an access token",

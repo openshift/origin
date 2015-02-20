@@ -6,6 +6,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -15,12 +16,12 @@ import (
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	registry Registry
+	client kclient.NamespaceInterface
 }
 
-// NewStorage returns a new REST.
-func NewREST(registry Registry) apiserver.RESTStorage {
-	return &REST{registry}
+// NewREST returns a RESTStorage object that will work against Project resources
+func NewREST(client kclient.NamespaceInterface) apiserver.RESTStorage {
+	return &REST{client: client}
 }
 
 // New returns a new Project for use with Create and Update.
@@ -28,27 +29,57 @@ func (s *REST) New() runtime.Object {
 	return &api.Project{}
 }
 
+// NewList returns a new ProjectList
 func (*REST) NewList() runtime.Object {
-	return &api.Project{}
+	return &api.ProjectList{}
+}
+
+// convertNamespace transforms a Namespace into a Project
+func convertNamespace(namespace *kapi.Namespace) *api.Project {
+	displayName := namespace.Annotations["displayname"]
+	return &api.Project{
+		ObjectMeta:  namespace.ObjectMeta,
+		DisplayName: displayName,
+	}
+}
+
+// convertProject transforms a Project into a Namespace
+func convertProject(project *api.Project) *kapi.Namespace {
+	namespace := &kapi.Namespace{
+		ObjectMeta: project.ObjectMeta,
+	}
+	if namespace.Annotations == nil {
+		namespace.Annotations = map[string]string{}
+	}
+	namespace.Annotations["displayname"] = project.DisplayName
+	return namespace
+}
+
+// convertNamespaceList transforms a NamespaceList into a ProjectList
+func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
+	projects := &api.ProjectList{}
+	for _, n := range namespaceList.Items {
+		projects.Items = append(projects.Items, *convertNamespace(&n))
+	}
+	return projects
 }
 
 // List retrieves a list of Projects that match selector.
 func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	projects, err := s.registry.ListProjects(ctx, selector)
+	namespaces, err := s.client.List(selector)
 	if err != nil {
 		return nil, err
 	}
-
-	return projects, nil
+	return convertNamespaceList(namespaces), nil
 }
 
-// Get retrieves an Project by id.
-func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	project, err := s.registry.GetProject(ctx, id)
+// Get retrieves a Project by name
+func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	namespace, err := s.client.Get(name)
 	if err != nil {
 		return nil, err
 	}
-	return project, nil
+	return convertNamespace(namespace), nil
 }
 
 // Create registers the given Project.
@@ -57,22 +88,18 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
-
 	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
-
-	// kubectl auto-inserts a value, we need to ignore this value until we have cluster-scoped actions in kubectl
-	project.Namespace = ""
 	if errs := validation.ValidateProject(project); len(errs) > 0 {
 		return nil, errors.NewInvalid("project", project.Name, errs)
 	}
-
-	if err := s.registry.CreateProject(ctx, project); err != nil {
+	namespace, err := s.client.Create(convertProject(project))
+	if err != nil {
 		return nil, err
 	}
-	return s.Get(ctx, project.Name)
+	return convertNamespace(namespace), nil
 }
 
-// Delete deletes a Project specified by its id.
-func (s *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
-	return &kapi.Status{Status: kapi.StatusSuccess}, s.registry.DeleteProject(ctx, id)
+// Delete deletes a Project specified by its name
+func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
+	return &kapi.Status{Status: kapi.StatusSuccess}, s.client.Delete(name)
 }

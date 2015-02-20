@@ -11,12 +11,13 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 // NewCmdCancelBuild manages a build cancelling event.
 // To cancel a build its name has to be specified, and two options
 // are available: displaying logs and restarting.
-func NewCmdCancelBuild(f *Factory, out io.Writer) *cobra.Command {
+func NewCmdCancelBuild(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "cancel-build <build>",

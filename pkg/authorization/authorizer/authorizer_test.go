@@ -124,7 +124,73 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 		UserNames: []string{"Anna"},
 	}
 	test.namespacedPolicy, test.namespacedPolicyBinding = newAdzePolicy()
+	test.test(t)
+}
 
+func TestHealthAllow(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name:   "no-one",
+				Groups: []string{"system:unauthenticated"},
+			},
+			Verb:           "get",
+			NonResourceURL: true,
+			URL:            "/healthz",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in master",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
+func TestNonResourceAllow(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "ClusterAdmin",
+			},
+			Verb: "get",
+			URL:  "not-specified",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in master",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
+func TestNonResourceDeny(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "no-one",
+			},
+			Verb: "get",
+			URL:  "not-allowed",
+		},
+		expectedAllowed: false,
+		expectedReason:  "denied by default",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
+	test.test(t)
+}
+
+func TestHealthDeny(t *testing.T) {
+	test := &authorizeTest{
+		attributes: &DefaultAuthorizationAttributes{
+			User: &user.DefaultInfo{
+				Name: "no-one",
+			},
+			Verb:           "get",
+			NonResourceURL: true,
+			URL:            "/healthz",
+		},
+		expectedAllowed: false,
+		expectedReason:  "denied by default",
+	}
+	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
 	test.test(t)
 }
 
@@ -425,12 +491,13 @@ func newDefaultGlobalPolicy() ([]authorizationapi.Policy, []authorizationapi.Pol
 					},
 				},
 			},
+			*GetBootstrapPolicyBinding(testMasterNamespace),
 		}
 }
 
 func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBinding) {
-	return append(make([]authorizationapi.Policy, 0, 0),
-			authorizationapi.Policy{
+	return []authorizationapi.Policy{
+			{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      authorizationapi.PolicyName,
 					Namespace: "adze",
@@ -448,9 +515,9 @@ func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBindin
 							}),
 					},
 				},
-			}),
-		append(make([]authorizationapi.PolicyBinding, 0, 0),
-			authorizationapi.PolicyBinding{
+			}},
+		[]authorizationapi.PolicyBinding{
+			{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      testMasterNamespace,
 					Namespace: "adze",
@@ -491,7 +558,7 @@ func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBindin
 					},
 				},
 			},
-			authorizationapi.PolicyBinding{
+			{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "adze",
 					Namespace: "adze",
@@ -510,5 +577,5 @@ func newAdzePolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBindin
 					},
 				},
 			},
-		)
+		}
 }

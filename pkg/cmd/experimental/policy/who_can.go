@@ -3,23 +3,24 @@ package policy
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type whoCanOptions struct {
-	clientConfig clientcmd.ClientConfig
+	bindingNamespace string
+	client           client.Interface
 
 	verb     string
 	resource string
 }
 
-func NewCmdWhoCan(clientConfig clientcmd.ClientConfig) *cobra.Command {
-	options := &whoCanOptions{clientConfig: clientConfig}
+func NewCmdWhoCan(f *clientcmd.Factory) *cobra.Command {
+	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "who-can",
@@ -30,9 +31,15 @@ func NewCmdWhoCan(clientConfig clientcmd.ClientConfig) *cobra.Command {
 				return
 			}
 
-			err := options.run()
-			if err != nil {
-				fmt.Printf("%v\n", err)
+			var err error
+			if options.client, _, err = f.Clients(cmd); err != nil {
+				glog.Fatalf("Error getting client: %v", err)
+			}
+			if options.bindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+				glog.Fatalf("Error getting client: %v", err)
+			}
+			if err := options.run(); err != nil {
+				glog.Fatal(err)
 			}
 		},
 	}
@@ -53,24 +60,11 @@ func (o *whoCanOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *whoCanOptions) run() error {
-	clientConfig, err := o.clientConfig.ClientConfig()
-	if err != nil {
-		return err
-	}
-	client, err := client.New(clientConfig)
-	if err != nil {
-		return err
-	}
-	namespace, err := o.clientConfig.Namespace()
-	if err != nil {
-		return err
-	}
-
 	resourceAccessReview := &authorizationapi.ResourceAccessReview{}
 	resourceAccessReview.Resource = o.resource
 	resourceAccessReview.Verb = o.verb
 
-	resourceAccessReviewResponse, err := client.ResourceAccessReviews(namespace).Create(resourceAccessReview)
+	resourceAccessReviewResponse, err := o.client.ResourceAccessReviews(o.bindingNamespace).Create(resourceAccessReview)
 	if err != nil {
 		return err
 	}

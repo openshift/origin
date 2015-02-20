@@ -22,7 +22,7 @@ fi
 # Extract the release achives to a staging area.
 os::build::detect_local_release_tars "linux"
 
-echo "Building images from release tars:"
+echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
 echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
 echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
 
@@ -40,27 +40,27 @@ cp -f "${imagedir}/openshift" images/router/haproxy/bin
 cp -f "${imagedir}/pod" images/pod/bin
 cp -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
 
+# builds an image and tags it two ways - with latest, and with the release tag
+function image {
+  echo "--- $1 ---"
+  docker build -t $1:latest $2
+  docker tag $1:latest $1:${OS_RELEASE_COMMIT}
+}
+
 # images that depend on scratch
-echo "--- openshift/origin-pod ---"
-docker build -t openshift/origin-pod:latest            images/pod
-
+image openshift/origin-pod                   images/pod
 # images that depend on openshift/origin-base
-echo "--- openshift/origin ---"
-docker build -t openshift/origin:latest                images/origin
-echo "--- openshift/origin-haproxy-router ---"
-docker build -t openshift/origin-haproxy-router:latest images/router/haproxy
-echo "--- openshift/hello-openshift ---"
-docker build -t openshift/hello-openshift:latest       examples/hello-openshift
-
+image openshift/origin                       images/origin
+image openshift/origin-haproxy-router        images/router/haproxy
 # images that depend on openshift/origin
-echo "--- openshift/origin-deployer ---"
-docker build -t openshift/origin-deployer:latest       images/deployer
-echo "--- openshift/origin-docker-builder ---"
-docker build -t openshift/origin-docker-builder:latest images/builder/docker/docker-builder
-echo "--- openshift/origin-sti-builder ---"
-docker build -t openshift/origin-sti-builder:latest    images/builder/docker/sti-builder
+image openshift/origin-deployer              images/deployer
+image openshift/origin-docker-builder        images/builder/docker/docker-builder
+image openshift/origin-sti-builder           images/builder/docker/sti-builder
+# extra images (not part of infrastructure)
+image openshift/hello-openshift              examples/hello-openshift
 # unpublished images
-echo "--- openshift/origin-custom-docker-builder ---"
-docker build -t openshift/origin-custom-docker-builder:latest images/builder/docker/custom-docker-builder
-echo "--- openshift/sti-image-builder ---"
-docker build -t openshift/sti-image-builder:latest     images/builder/docker/sti-image-builder
+image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
+image openshift/sti-image-builder            images/builder/docker/sti-image-builder
+
+echo "++ Active images"
+docker images | grep openshift/

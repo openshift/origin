@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 )
@@ -35,7 +36,7 @@ func injectUserVars(cmd *cobra.Command, t *api.Template) {
 }
 
 // NewCmdProcess returns a 'process' command
-func NewCmdProcess(f *Factory, out io.Writer) *cobra.Command {
+func NewCmdProcess(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
 		Short: "Process template into list of resources",

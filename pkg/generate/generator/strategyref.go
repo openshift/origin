@@ -80,6 +80,10 @@ func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef app.Sou
 		}
 	}
 
+	if len(context) > 0 {
+		srcRef.ContextDir = context
+	}
+
 	// Look for Dockerfile in repository
 	file, err := os.Open(filepath.Join(srcRef.Dir, context, "Dockerfile"))
 	if err != nil {
@@ -102,16 +106,15 @@ func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef app.Sou
 		return nil, err
 	}
 
-	return g.FromDockerContextAndParent(context, parentRef)
+	return g.FromDockerContextAndParent(parentRef)
 
 }
 
 // FromContextAndParent generates a build strategy ref from a context path and parent image name
-func (g *BuildStrategyRefGenerator) FromDockerContextAndParent(context string, parentRef *app.ImageRef) (*app.BuildStrategyRef, error) {
+func (g *BuildStrategyRefGenerator) FromDockerContextAndParent(parentRef *app.ImageRef) (*app.BuildStrategyRef, error) {
 	return &app.BuildStrategyRef{
 		IsDockerBuild: true,
 		Base:          parentRef,
-		DockerContext: context,
 	}, nil
 }
 
@@ -132,7 +135,7 @@ func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*app.Ima
 	case "JEE":
 		imageName = "openshift/wildfly-8-centos"
 	case "NodeJS":
-		imageName = "openshift/nodejs-0-10-centos"
+		imageName = "openshift/nodejs-010-centos7"
 	default:
 		return nil, errors.NoBuilderFound
 	}

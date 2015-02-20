@@ -4,27 +4,28 @@ import (
 	"fmt"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 type newProjectOptions struct {
-	projectName  string
-	displayName  string
-	description  string
-	clientConfig clientcmd.ClientConfig
+	projectName string
+	displayName string
+	description string
+
+	client client.Interface
 
 	adminRole             string
 	masterPolicyNamespace string
 	adminUser             string
 }
 
-func NewCmdNewProject(name string) *cobra.Command {
+func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	options := &newProjectOptions{}
 
 	cmd := &cobra.Command{
@@ -36,17 +37,15 @@ func NewCmdNewProject(name string) *cobra.Command {
 				return
 			}
 
-			err := options.run()
-			if err != nil {
-				fmt.Printf("%v\n", err)
+			var err error
+			if options.client, _, err = f.Clients(cmd); err != nil {
+				glog.Fatalf("Error getting client: %v", err)
+			}
+			if err := options.run(); err != nil {
+				glog.Fatal(err)
 			}
 		},
 	}
-
-	// Override global default to https and port 8443
-	clientcmd.DefaultCluster.Server = "https://localhost:8443"
-	clientConfig := cmdutil.DefaultClientConfig(cmd.Flags())
-	options.clientConfig = clientConfig
 
 	// TODO remove once we have global policy objects
 	cmd.Flags().StringVar(&options.masterPolicyNamespace, "master-policy-namespace", "master", "master policy namespace")
@@ -71,21 +70,11 @@ func (o *newProjectOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *newProjectOptions) run() error {
-	clientConfig, err := o.clientConfig.ClientConfig()
-	if err != nil {
-		return err
-	}
-	client, err := client.New(clientConfig)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Projects().Get(o.projectName)
-	projectFound := !kerrors.IsNotFound(err)
-	if (err != nil) && (projectFound) {
-		return err
-	}
-	if projectFound {
+	if _, err := o.client.Projects().Get(o.projectName); err != nil {
+		if !kerrors.IsNotFound(err) {
+			return err
+		}
+	} else {
 		return fmt.Errorf("project %v already exists", o.projectName)
 	}
 
@@ -94,7 +83,7 @@ func (o *newProjectOptions) run() error {
 	project.DisplayName = o.displayName
 	project.Annotations = make(map[string]string)
 	project.Annotations["description"] = o.description
-	project, err = client.Projects().Create(project)
+	project, err := o.client.Projects().Create(project)
 	if err != nil {
 		return err
 	}
@@ -107,7 +96,7 @@ func (o *newProjectOptions) run() error {
 		adminRoleBinding.RoleRef.Name = o.adminRole
 		adminRoleBinding.UserNames = []string{o.adminUser}
 
-		_, err := client.RoleBindings(project.Name).Create(adminRoleBinding)
+		_, err := o.client.RoleBindings(project.Name).Create(adminRoleBinding)
 		if err != nil {
 			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.projectName, o.adminUser, o.adminRole)
 			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-user --namespace=%v --role-namespace=%v %v %v\n", o.projectName, o.masterPolicyNamespace, o.adminRole, o.adminUser)

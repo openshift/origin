@@ -11,7 +11,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	"github.com/golang/glog"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	validation "github.com/openshift/origin/pkg/deploy/api/validation"
@@ -82,8 +81,6 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !kapi.ValidNamespace(ctx, &deploymentConfig.ObjectMeta) {
 		return nil, kerrors.NewConflict("deploymentConfig", deploymentConfig.Namespace, fmt.Errorf("DeploymentConfig.Namespace does not match the provided context"))
 	}
-
-	glog.Infof("Creating deploymentConfig with namespace::Name: %v::%v", deploymentConfig.Namespace, deploymentConfig.Name)
 
 	if errs := validation.ValidateDeploymentConfig(deploymentConfig); len(errs) > 0 {
 		return nil, kerrors.NewInvalid("deploymentConfig", deploymentConfig.Name, errs)

@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -18,6 +19,10 @@ import (
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 	return config.Name + "-" + strconv.Itoa(config.LatestVersion)
+}
+
+func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
+	return fmt.Sprintf("deploy-%s", deployment.Name)
 }
 
 // HashPodSpecs hashes a PodSpec into a uint64.
@@ -141,4 +146,19 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	}
 
 	return deployment, nil
+}
+
+// ListWatcherImpl is a pluggable ListWatcher.
+// TODO: This has been incorporated upstream; replace during a future rebase.
+type ListWatcherImpl struct {
+	ListFunc  func() (runtime.Object, error)
+	WatchFunc func(resourceVersion string) (watch.Interface, error)
+}
+
+func (lw *ListWatcherImpl) List() (runtime.Object, error) {
+	return lw.ListFunc()
+}
+
+func (lw *ListWatcherImpl) Watch(resourceVersion string) (watch.Interface, error) {
+	return lw.WatchFunc(resourceVersion)
 }

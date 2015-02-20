@@ -28,6 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 )
 
 // ContextFunc returns a Context given a request - a context must be returned
@@ -347,7 +348,8 @@ func setSelfLink(obj runtime.Object, req *restful.Request, namer ScopeNamer) err
 		return nil
 	}
 	if err != nil {
-		return err
+		glog.V(5).Infof("error generating link: %v", err)
+		return nil
 	}
 
 	newURL := *req.Request.URL

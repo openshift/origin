@@ -15,9 +15,10 @@ import (
 
 const (
 	// Policy is a singleton and this is its name
-	PolicyName  = "default"
-	ResourceAll = "*"
-	VerbAll     = "*"
+	PolicyName     = "default"
+	ResourceAll    = "*"
+	VerbAll        = "*"
+	NonResourceAll = "*"
 )
 
 const (
@@ -59,7 +60,7 @@ var (
 		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, PermissionGrantingGroupName},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
-		KubeInternalsGroupName: {"endpoints", "minions", "nodes", "bindings", "events"},
+		KubeInternalsGroupName: {"endpoints", "minions", "nodes", "bindings", "events", "namespaces"},
 		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 	}
@@ -77,6 +78,9 @@ type PolicyRule struct {
 	Resources []string
 	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
 	ResourceNames kutil.StringSet
+	// NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+	// If an action is not a resource API request, then the URL is split on '/' and is checked against the NonResourceURLs to look for a match.
+	NonResourceURLs kutil.StringSet
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.

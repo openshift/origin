@@ -129,12 +129,11 @@ func mockBuild() *buildapi.Build {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.docker/build",
 				},
+				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "context",
-				},
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "namespace/builtimage",
@@ -209,14 +208,12 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		KubeClient:   kubeClient,
 		BuildUpdater: buildclient.NewOSClientBuildClient(osClient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image:          "test-docker-builder",
-			UseLocalImages: false,
-			Codec:          latest.Codec,
+			Image: "test-docker-builder",
+			Codec: latest.Codec,
 		},
 		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
 			Image:                "test-sti-builder",
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
-			UseLocalImages:       false,
 			Codec:                latest.Codec,
 		},
 		Stop: openshift.stop,

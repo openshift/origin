@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	describe "github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -41,7 +42,7 @@ Examples:
   $ %[1]s %[2]s deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
 `
 
-func NewCmdRollback(parentName string, name string, f *Factory, out io.Writer) *cobra.Command {
+func NewCmdRollback(parentName string, name string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	rollback := &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			IncludeTemplate: true,

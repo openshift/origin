@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -28,13 +29,22 @@ type AuthorizationAttributeBuilder interface {
 }
 
 type AuthorizationAttributes interface {
+	// GetUserInfo returns the user requesting the action
 	GetUserInfo() user.Info
+	// GetVerb returns the verb associated with the action.  For resource requests, this verb is the logical kube verb.  For non-resource requests it is the http method tolowered.
 	GetVerb() string
+	// GetResource returns the resource type.  If IsNonResourceURL() is true, then GetResource() is "".
 	GetResource() string
+	// GetNamespace returns the namespace of a resource request.  If IsNonResourceURL() is true, then GetNamespace() is "".
 	GetNamespace() string
+	// GetResourceName returns the name of the resource being acted upon.  Not all resource actions have one (list as a for instance).  If IsNonResourceURL() is true, then GetResourceName() is "".
 	GetResourceName() string
-	// GetRequestAttributes is of type interface{} because different verbs and different Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements
+	// GetRequestAttributes is of type interface{} because different verbs and different Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements.
 	GetRequestAttributes() interface{}
+	// IsNonResourceURL returns true if this is not an action performed against the resource API
+	IsNonResourceURL() bool
+	// GetURL returns the URL split on '/'s
+	GetURL() string
 }
 
 type openshiftAuthorizer struct {
@@ -54,6 +64,8 @@ type DefaultAuthorizationAttributes struct {
 	ResourceName      string
 	Namespace         string
 	RequestAttributes interface{}
+	NonResourceURL    bool
+	URL               string
 }
 
 type openshiftAuthorizationAttributeBuilder struct {
@@ -289,6 +301,8 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 			Resource:          passedAttributes.GetResource(),
 			ResourceName:      passedAttributes.GetResourceName(),
 			User:              passedAttributes.GetUserInfo(),
+			NonResourceURL:    passedAttributes.IsNonResourceURL(),
+			URL:               passedAttributes.GetURL(),
 		}
 	}
 
@@ -296,9 +310,19 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 }
 
 func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.PolicyRule) (bool, error) {
-	allowedResourceTypes := resolveResources(rule)
+	if a.IsNonResourceURL() {
+		if a.nonResourceMatches(rule) {
+			if a.verbMatches(util.NewStringSet(rule.Verbs...)) {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	}
 
 	if a.verbMatches(util.NewStringSet(rule.Verbs...)) {
+		allowedResourceTypes := resolveResources(rule)
+
 		if a.resourceMatches(allowedResourceTypes) {
 			if a.nameMatches(rule.ResourceNames) {
 				return true, nil
@@ -360,6 +384,35 @@ func (a DefaultAuthorizationAttributes) GetUserInfo() user.Info {
 func (a DefaultAuthorizationAttributes) GetVerb() string {
 	return a.Verb
 }
+
+// nonResourceMatches take the remainer of a URL and attempts to match it against a series of explicitly allowed steps that can end in a wildcard
+func (a DefaultAuthorizationAttributes) nonResourceMatches(rule authorizationapi.PolicyRule) bool {
+	for allowedNonResourcePath := range rule.NonResourceURLs {
+		// if the allowed resource path ends in a wildcard, check to see if the URL starts with it
+		if strings.HasSuffix(allowedNonResourcePath, "*") {
+			if strings.HasPrefix(a.GetURL(), allowedNonResourcePath[0:len(allowedNonResourcePath)-1]) {
+				return true
+			}
+		}
+
+		// if we have an exact match, return true
+		if a.GetURL() == allowedNonResourcePath {
+			return true
+		}
+	}
+
+	return false
+}
+
+// splitPath returns the segments for a URL path.
+func splitPath(thePath string) []string {
+	thePath = strings.Trim(path.Clean(thePath), "/")
+	if thePath == "" {
+		return []string{}
+	}
+	return strings.Split(thePath, "/")
+}
+
 func (a DefaultAuthorizationAttributes) GetResource() string {
 	return a.Resource
 }
@@ -375,16 +428,15 @@ func (a DefaultAuthorizationAttributes) GetRequestAttributes() interface{} {
 	return a.RequestAttributes
 }
 
+func (a DefaultAuthorizationAttributes) IsNonResourceURL() bool {
+	return a.NonResourceURL
+}
+
+func (a DefaultAuthorizationAttributes) GetURL() string {
+	return a.URL
+}
+
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
-	requestInfo, err := a.infoResolver.GetAPIRequestInfo(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if (requestInfo.Resource == "projects") && (len(requestInfo.Name) > 0) {
-		requestInfo.Namespace = requestInfo.Name
-	}
-
 	ctx, ok := a.contextMapper.Get(req)
 	if !ok {
 		return nil, errors.New("could not get request context")
@@ -394,6 +446,31 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		return nil, errors.New("could not get user")
 	}
 
+	// any url that starts with an API prefix and is more than one step long is considered to be a resource URL.
+	// That means that /api is non-resource, /api/v1beta1 is resource, /healthz is non-resource, and /swagger/anything is non-resource
+	urlSegments := splitPath(req.URL.Path)
+	isResourceURL := (len(urlSegments) > 1) && a.infoResolver.APIPrefixes.Has(urlSegments[0])
+
+	if !isResourceURL {
+		return DefaultAuthorizationAttributes{
+			User:           userInfo,
+			Verb:           strings.ToLower(req.Method),
+			NonResourceURL: true,
+			URL:            req.URL.Path,
+		}, nil
+	}
+
+	requestInfo, err := a.infoResolver.GetAPIRequestInfo(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO reconsider special casing this.  Having the special case hereallow us to fully share the kube
+	// APIRequestInfoResolver without any modification or customization.
+	if (requestInfo.Resource == "projects") && (len(requestInfo.Name) > 0) {
+		requestInfo.Namespace = requestInfo.Name
+	}
+
 	return DefaultAuthorizationAttributes{
 		User:              userInfo,
 		Verb:              requestInfo.Verb,
@@ -401,10 +478,11 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		ResourceName:      requestInfo.Name,
 		Namespace:         requestInfo.Namespace,
 		RequestAttributes: nil,
+		NonResourceURL:    false,
+		URL:               req.URL.Path,
 	}, nil
 }
 
-// TODO enumerate all resources and verbs instead of using *
 func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 	return &authorizationapi.Policy{
 		ObjectMeta: kapi.ObjectMeta{
@@ -423,6 +501,10 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 					{
 						Verbs:     []string{authorizationapi.VerbAll},
 						Resources: []string{authorizationapi.ResourceAll},
+					},
+					{
+						Verbs:           []string{authorizationapi.VerbAll},
+						NonResourceURLs: util.NewStringSet(authorizationapi.NonResourceAll),
 					},
 				},
 			},
@@ -478,6 +560,18 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				Rules: []authorizationapi.PolicyRule{
 					{Verbs: []string{"get"}, Resources: []string{"users"}, ResourceNames: util.NewStringSet("~")},
 					{Verbs: []string{"list"}, Resources: []string{"projects"}},
+				},
+			},
+			"cluster-status": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "cluster-status",
+					Namespace: masterNamespace,
+				},
+				Rules: []authorizationapi.PolicyRule{
+					{
+						Verbs:           []string{"get"},
+						NonResourceURLs: util.NewStringSet("/healthz", "/version", "/api", "/osapi"),
+					},
 				},
 			},
 			"system:deployer": {
@@ -593,6 +687,17 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 				},
 				RoleRef: kapi.ObjectReference{
 					Name:      "system:delete-tokens",
+					Namespace: masterNamespace,
+				},
+				GroupNames: []string{"system:authenticated", "system:unauthenticated"},
+			},
+			"cluster-status-binding": {
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "cluster-status-binding",
+					Namespace: masterNamespace,
+				},
+				RoleRef: kapi.ObjectReference{
+					Name:      "cluster-status",
 					Namespace: masterNamespace,
 				},
 				GroupNames: []string{"system:authenticated", "system:unauthenticated"},

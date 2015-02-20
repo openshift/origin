@@ -92,12 +92,12 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 				Git: &buildapi.GitBuildSource{
 					URI: "git://github.com/openshift/ruby-hello-world.git",
 				},
+				ContextDir: "contextimage",
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					ContextDir: "contextimage",
-					BaseImage:  "registry:8080/openshift/test-image",
+					BaseImage: "registry:8080/openshift/test-image",
 				},
 			},
 			Output: buildapi.BuildOutput{

@@ -11,8 +11,7 @@ import (
 
 func TestCustomCreateBuildPod(t *testing.T) {
 	strategy := CustomBuildStrategy{
-		UseLocalImages: true,
-		Codec:          v1beta1.Codec,
+		Codec: v1beta1.Codec,
 	}
 
 	expectedBad := mockCustomBuild()

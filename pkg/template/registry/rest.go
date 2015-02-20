@@ -1,25 +1,74 @@
-package template
+package registry
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	apierr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	utilerr "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
 	"github.com/openshift/origin/pkg/template/generator"
 )
 
-// REST implements RESTStorage interface for Template objects.
+// templateStrategy implements behavior for Templates
+type templateStrategy struct {
+	runtime.ObjectTyper
+	kapi.NameGenerator
+}
+
+// Strategy is the default logic that applies when creating and updating Template
+// objects via the REST API.
+var Strategy = templateStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
+
+// NamespaceScoped is true for templates.
+func (templateStrategy) NamespaceScoped() bool {
+	return true
+}
+
+// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
+func (templateStrategy) ResetBeforeCreate(obj runtime.Object) {
+}
+
+// Validate validates a new template.
+func (templateStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+	template := obj.(*api.Template)
+	return validation.ValidateTemplate(template)
+}
+
+// AllowCreateOnUpdate is false for templates.
+func (templateStrategy) AllowCreateOnUpdate() bool {
+	return false
+}
+
+// ValidateUpdate is the default update validation for an end user.
+func (templateStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))
+}
+
+// MatchTemplate returns a generic matcher for a given label and field selector.
+func MatchTemplate(label, field labels.Selector) generic.Matcher {
+	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
+		o, ok := obj.(*api.Template)
+		if !ok {
+			return false, fmt.Errorf("not a pod")
+		}
+		return label.Matches(labels.Set(o.Labels)), nil
+	})
+}
+
+// REST implements RESTStorage interface for processing Template objects.
 type REST struct{}
 
-// NewREST creates new RESTStorage interface for Template objects.
+// NewREST creates new RESTStorage interface for processing Template objects.
 func NewREST() *REST {
 	return &REST{}
 }
@@ -31,10 +80,10 @@ func (s *REST) New() runtime.Object {
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {
-		return nil, apierr.NewBadRequest("not a template")
+		return nil, errors.NewBadRequest("not a template")
 	}
-	if errs := validation.ValidateTemplate(tpl); len(errs) > 0 {
-		return nil, apierr.NewInvalid("template", tpl.Name, errs)
+	if errs := validation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
+		return nil, errors.NewInvalid("template", tpl.Name, errs)
 	}
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),

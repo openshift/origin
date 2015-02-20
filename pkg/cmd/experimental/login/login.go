@@ -14,23 +14,18 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 )
 
-func NewCmdLogin(name string, parent *cobra.Command) *cobra.Command {
-	clientConfig := cmdutil.DefaultClientConfig(parent.PersistentFlags())
-	f := cmd.NewFactory(clientConfig)
-	f.BindFlags(parent.PersistentFlags())
-
+func NewCmdLogin(f *osclientcmd.Factory, parentName, name string) *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Logs in and returns a session token",
 		Long: `Logs in to the OpenShift server and prints out a session token.
 
-Username and password can be provided through flags, the command will 
+Username and password can be provided through flags, the command will
 prompt for user input if not provided.
 `,
 		Run: func(cmd *cobra.Command, args []string) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const longDesc = `
@@ -41,28 +41,20 @@ created for you.
 Note: This is an alpha release of OpenShift and will change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
 `
-const defaultClusterURL = "https://localhost:8443"
 
 func NewCommandCLI(name, fullName string) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
-		Use:     name,
-		Aliases: []string{"kubectl"},
-		Short:   "Client tools for OpenShift",
-		Long:    fmt.Sprintf(longDesc, fullName),
+		Use:   name,
+		Short: "Client tools for OpenShift",
+		Long:  fmt.Sprintf(longDesc, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			c.SetOutput(os.Stdout)
 			c.Help()
 		},
 	}
 
-	// Override global default to https and port 8443
-	clientcmd.DefaultCluster.Server = defaultClusterURL
-
-	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-	clientConfig := DefaultClientConfig(cmds.PersistentFlags())
-	f := cmd.NewFactory(clientConfig)
-	f.BindFlags(cmds.PersistentFlags())
+	f := clientcmd.New(cmds.PersistentFlags())
 	out := os.Stdout
 
 	cmds.SetUsageTemplate(templates.CliUsageTemplate())
@@ -98,15 +90,18 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 // but with support for OpenShift resources
 func NewCmdKubectl(name string) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-	clientcmd.DefaultCluster.Server = defaultClusterURL
-	clientConfig := DefaultClientConfig(flags)
-	f := cmd.NewFactory(clientConfig)
-	cmd := f.NewKubectlCommand(os.Stdout)
+	f := clientcmd.New(flags)
+	cmd := f.Factory.NewKubectlCommand(os.Stdout)
+	cmd.Aliases = []string{"kubectl"}
 	cmd.Use = name
 	cmd.Short = "Kubernetes cluster management via kubectl"
 	cmd.Long = cmd.Long + "\n\nThis command is provided for direct management of the Kubernetes cluster OpenShift runs on."
 	flags.VisitAll(func(flag *pflag.Flag) {
-		cmd.PersistentFlags().AddFlag(flag)
+		if f := cmd.PersistentFlags().Lookup(flag.Name); f == nil {
+			cmd.PersistentFlags().AddFlag(flag)
+		} else {
+			glog.V(6).Infof("already registered flag %s", flag.Name)
+		}
 	})
 	return cmd
 }
@@ -127,20 +122,4 @@ func applyToCreate(dst *cobra.Command) *cobra.Command {
 		oldRun(c, args)
 	}
 	return dst
-}
-
-// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
-func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
-	// TODO find and merge duplicates, this is also in other places
-	loadingRules := clientcmd.NewClientConfigLoadingRules()
-	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
-
-	overrides := &clientcmd.ConfigOverrides{}
-	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
-	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
-	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-
-	return clientConfig
 }
