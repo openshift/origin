@@ -10,10 +10,10 @@ import (
 
 type FakeUsageHandler struct {
 	cleanupCalled  bool
-	setupRequired  []api.Script
-	setupOptional  []api.Script
+	setupRequired  []string
+	setupOptional  []string
 	setupError     error
-	executeCommand api.Script
+	executeCommand string
 	executeError   error
 }
 
@@ -29,12 +29,12 @@ func (f *FakeUsageHandler) Prepare(*api.Request) error {
 	return f.setupError
 }
 
-func (f *FakeUsageHandler) SetScripts(r, o []api.Script) {
+func (f *FakeUsageHandler) SetScripts(r, o []string) {
 	f.setupRequired = r
 	f.setupOptional = o
 }
 
-func (f *FakeUsageHandler) Execute(command api.Script, r *api.Request) error {
+func (f *FakeUsageHandler) Execute(command string, r *api.Request) error {
 	f.executeCommand = command
 	return f.executeError
 }
@@ -58,10 +58,10 @@ func TestUsage(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error returned from Usage: %v", err)
 	}
-	if !reflect.DeepEqual(fh.setupOptional, []api.Script{}) {
+	if !reflect.DeepEqual(fh.setupOptional, []string{}) {
 		t.Errorf("setup called with unexpected optional scripts: %#v", fh.setupOptional)
 	}
-	if !reflect.DeepEqual(fh.setupRequired, []api.Script{api.Usage}) {
+	if !reflect.DeepEqual(fh.setupRequired, []string{api.Usage}) {
 		t.Errorf("setup called with unexpected required scripts: %#v", fh.setupRequired)
 	}
 	if fh.executeCommand != "usage" {

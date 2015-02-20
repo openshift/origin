@@ -25,7 +25,7 @@ func GetStrategy(request *api.Request) (build.Builder, error) {
 
 // GetBaseImage processes the request and performs operations necessary to make
 // the Docker image specified as BaseImage available locally.
-// It returns informations about the base image, containing metadata necessary
+// It returns information about the base image, containing metadata necessary
 // for choosing the right STI build strategy.
 func GetBaseImage(request *api.Request) (*docker.PullResult, error) {
 	d, err := docker.New(request.DockerSocket)

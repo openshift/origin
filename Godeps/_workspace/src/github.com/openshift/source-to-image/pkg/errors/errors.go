@@ -2,23 +2,23 @@ package errors
 
 import (
 	"fmt"
-
-	"github.com/openshift/source-to-image/pkg/api"
 )
 
 // Common STI errors
 const (
-	ErrInspectImage int = 1 + iota
-	ErrPullImage
-	ErrScriptDownload
-	ErrSaveArtifacts
-	ErrBuild
-	ErrSTIContainer
-	ErrTarTimeout
-	ErrWorkDir
-	ErrDownload
-	ErrURLHandler
-	ErrDefaultScriptsURL
+	InspectImageError int = 1 + iota
+	PullImageError
+	SaveArtifactsError
+	AssembleError
+	WorkdirError
+	BuildError
+	TarTimeoutError
+	DownloadError
+	ScriptsInsideImageError
+	InstallError
+	InstallErrorRequired
+	URLHandlerError
+	STIContainerError
 )
 
 // Error represents an error thrown during STI execution
@@ -55,7 +55,7 @@ func NewInspectImageError(name string, err error) error {
 	return Error{
 		Message:    fmt.Sprintf("unable to get metadata for %s", name),
 		Details:    err,
-		ErrorCode:  ErrInspectImage,
+		ErrorCode:  InspectImageError,
 		Suggestion: "check image name",
 	}
 }
@@ -66,19 +66,8 @@ func NewPullImageError(name string, err error) error {
 	return Error{
 		Message:    fmt.Sprintf("unable to get %s", name),
 		Details:    err,
-		ErrorCode:  ErrPullImage,
+		ErrorCode:  PullImageError,
 		Suggestion: "check image name, or if using local image add --forcePull=false flag",
-	}
-}
-
-// NewScriptDownloadError returns a new error which indicates there was a problem
-// downloading a script
-func NewScriptDownloadError(name api.Script, err error) error {
-	return Error{
-		Message:    fmt.Sprintf("%s script download failed", name),
-		Details:    err,
-		ErrorCode:  ErrScriptDownload,
-		Suggestion: "provide URL with STI scripts with -s flag or check the image if it contains STI_SCRIPTS_URL variable set",
 	}
 }
 
@@ -88,7 +77,7 @@ func NewSaveArtifactsError(name, output string, err error) error {
 	return Error{
 		Message:    fmt.Sprintf("saving artifacts for %s failed:\n%s", name, output),
 		Details:    err,
-		ErrorCode:  ErrSaveArtifacts,
+		ErrorCode:  SaveArtifactsError,
 		Suggestion: "check the save-artifacts script for errors",
 	}
 }
@@ -99,8 +88,19 @@ func NewAssembleError(name, output string, err error) error {
 	return Error{
 		Message:    fmt.Sprintf("assemble for %s failed:\n%s", name, output),
 		Details:    err,
-		ErrorCode:  ErrBuild,
+		ErrorCode:  AssembleError,
 		Suggestion: "check the assemble script output for errors",
+	}
+}
+
+// NewWorkDirError returns a new error which indicates there was a problem
+// when creating working directory
+func NewWorkDirError(dir string, err error) error {
+	return Error{
+		Message:    fmt.Sprintf("creating temporary directory %s failed", dir),
+		Details:    err,
+		ErrorCode:  WorkdirError,
+		Suggestion: "check if you have access to your system's temporary directory",
 	}
 }
 
@@ -110,7 +110,7 @@ func NewBuildError(name string, err error) error {
 	return Error{
 		Message:    fmt.Sprintf("building %s failed", name),
 		Details:    err,
-		ErrorCode:  ErrBuild,
+		ErrorCode:  BuildError,
 		Suggestion: "check the build output for errors",
 	}
 }
@@ -121,19 +121,8 @@ func NewTarTimeoutError() error {
 	return Error{
 		Message:    fmt.Sprintf("timeout waiting for tar stream"),
 		Details:    nil,
-		ErrorCode:  ErrTarTimeout,
+		ErrorCode:  TarTimeoutError,
 		Suggestion: "check the sti-helper script if it accepts tar stream for assemble and sends for save-artifacts",
-	}
-}
-
-// NewWorkDirError returns a new error which indicates there was a problem
-// when creating working directory
-func NewWorkDirError(dir string, err error) error {
-	return Error{
-		Message:    fmt.Sprintf("creating temporary directory %s failed", dir),
-		Details:    err,
-		ErrorCode:  ErrWorkDir,
-		Suggestion: "check if you have access to your system's temporary directory",
 	}
 }
 
@@ -143,8 +132,41 @@ func NewDownloadError(url string, code int) error {
 	return Error{
 		Message:    fmt.Sprintf("failed to retrieve %s, response code %d", url, code),
 		Details:    nil,
-		ErrorCode:  ErrDownload,
+		ErrorCode:  DownloadError,
 		Suggestion: "check the availability of the address",
+	}
+}
+
+// NewScriptsInsideImageError returns a new error which informs of scripts
+// being placed inside the image
+func NewScriptsInsideImageError(url string) error {
+	return Error{
+		Message:    fmt.Sprintf("scripts inside the image: %s", url),
+		Details:    nil,
+		ErrorCode:  ScriptsInsideImageError,
+		Suggestion: "",
+	}
+}
+
+// NewInstallError returns a new error which indicates there was a problem
+// when downloading a script
+func NewInstallError(script string) error {
+	return Error{
+		Message:    fmt.Sprintf("failed to install %v", script),
+		Details:    nil,
+		ErrorCode:  InstallError,
+		Suggestion: "provide URL with STI scripts with -s flag or check the image if it contains STI_SCRIPTS_URL variable set",
+	}
+}
+
+// NewInstallRequiredError returns a new error which indicates there was a problem
+// when downloading a required script
+func NewInstallRequiredError(scripts []string) error {
+	return Error{
+		Message:    fmt.Sprintf("failed to install %v", scripts),
+		Details:    nil,
+		ErrorCode:  InstallErrorRequired,
+		Suggestion: "provide URL with STI scripts with -s flag or check the image if it contains STI_SCRIPTS_URL variable set",
 	}
 }
 
@@ -154,19 +176,8 @@ func NewURLHandlerError(url string) error {
 	return Error{
 		Message:    fmt.Sprintf("no URL handler for %s", url),
 		Details:    nil,
-		ErrorCode:  ErrURLHandler,
+		ErrorCode:  URLHandlerError,
 		Suggestion: "check the URL",
-	}
-}
-
-// NewDefaultScriptsURLError return a new error which indicates there was a problem
-// when trying to read STI_SCRIPTS_URL
-func NewDefaultScriptsURLError(err error) error {
-	return Error{
-		Message:    fmt.Sprintf("error reading STI_SCRIPTS_URL"),
-		Details:    err,
-		ErrorCode:  ErrDefaultScriptsURL,
-		Suggestion: "check the image",
 	}
 }
 
@@ -176,7 +187,7 @@ func NewContainerError(name string, code int, output string) error {
 	return ContainerError{
 		Message:    fmt.Sprintf("non-zero (%d) exit code from %s", code, name),
 		Output:     output,
-		ErrorCode:  ErrSTIContainer,
+		ErrorCode:  STIContainerError,
 		Suggestion: "check the container logs for more information on the failure",
 		ExitCode:   code,
 	}

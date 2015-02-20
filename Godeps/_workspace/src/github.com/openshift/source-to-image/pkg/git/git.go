@@ -16,7 +16,7 @@ type Git interface {
 	Checkout(repo, ref string) error
 }
 
-// NewGit returns a new instance of the default implementation of the Git interface
+// New returns a new instance of the default implementation of the Git interface
 func New() Git {
 	return &stiGit{
 		runner: util.NewCommandRunner(),

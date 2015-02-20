@@ -9,7 +9,7 @@ import (
 type usageHandler interface {
 	build.ScriptsHandler
 	build.Preparer
-	SetScripts([]api.Script, []api.Script)
+	SetScripts([]string, []string)
 }
 
 // Usage display usage information about a particular build image
@@ -39,7 +39,7 @@ func (u *Usage) Show() error {
 	b := u.handler
 	defer u.garbage.Cleanup(u.request)
 
-	b.SetScripts([]api.Script{api.Usage}, []api.Script{})
+	b.SetScripts([]string{api.Usage}, []string{})
 
 	if err := b.Prepare(u.request); err != nil {
 		return err

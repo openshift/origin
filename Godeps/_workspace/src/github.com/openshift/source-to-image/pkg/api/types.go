@@ -49,12 +49,6 @@ type Request struct {
 	// WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.
 	WorkingDir string
 
-	// ExternalRequiredScripts describes if required scripts are from external URL.
-	ExternalRequiredScripts bool
-
-	// ExternalOptionalScripts describes if optional scripts are from external URL.
-	ExternalOptionalScripts bool
-
 	// LayeredBuild describes if this is build which layered scripts and sources on top of BaseImage.
 	LayeredBuild bool
 
@@ -82,4 +76,24 @@ type Result struct {
 
 	// ImageID describes resulting image ID.
 	ImageID string
+}
+
+// InstallResult structure describes the result of install operation
+type InstallResult struct {
+
+	// Script describes which script this result refers to
+	Script string
+
+	// URL describes from where the script was taken
+	URL string
+
+	// Downloaded describes if download operation happened, this will be true for
+	// external scripts, but false for scripts from inside the image
+	Downloaded bool
+
+	// Installed describes if script was installed to upload directory
+	Installed bool
+
+	// Error describes last error encountered during install operation
+	Error error
 }

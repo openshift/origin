@@ -131,7 +131,6 @@ func (b *Layered) Build(request *api.Request) (*api.Result, error) {
 	// new image name
 	b.request.BaseImage = newBaseImage
 	// the scripts are inside the image
-	b.request.ExternalRequiredScripts = false
 	b.request.ScriptsURL = "image://" + filepath.Join(getLocation(request), "scripts")
 	// the source is also inside the image
 	b.request.Location = filepath.Join(getLocation(request), "src")
