@@ -395,8 +395,7 @@ func start(cfg *config, args []string) error {
 		// Allow token as access_token param for WebSockets
 		// TODO: make the param name configurable
 		// TODO: limit this authenticator to watch methods, if possible
-		// TODO: prevent access_token param from getting logged, if possible
-		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator))
+		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
 
 		var roots *x509.CertPool
 		if osmaster.TLS {
