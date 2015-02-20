@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -166,11 +167,11 @@ func (g *BuildStrategyRefGenerator) getSource(srcRef *app.SourceRef) error {
 		return err
 	}
 	if err = g.gitRepository.Clone(srcRef.Dir, srcRef.URL.String()); err != nil {
-		return err
+		return fmt.Errorf("unable to clone repository at %s", srcRef.URL.String())
 	}
 	if len(srcRef.Ref) != 0 {
 		if err = g.gitRepository.Checkout(srcRef.Dir, srcRef.Ref); err != nil {
-			return err
+			return fmt.Errorf("unable to checkout reference %s from repository at %s", srcRef.Ref, srcRef.URL.String())
 		}
 	}
 	return nil
