@@ -3,6 +3,7 @@ package v1beta1
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 // ImageList is a list of Image objects.
@@ -24,6 +25,8 @@ type Image struct {
 	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty"`
 	// This attribute conveys the version of the object, which if empty defaults to "1.0"
 	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty"`
+	// The raw JSON of the manifest
+	DockerImageManifest string `json:"dockerImageManifest,omitempty"`
 }
 
 // ImageRepositoryList is a list of ImageRepository objects.
@@ -55,9 +58,26 @@ type ImageRepositoryStatus struct {
 	// Represents the effective location this repository may be accessed at. May be empty until the server
 	// determines where the repository is located
 	DockerImageRepository string `json:"dockerImageRepository"`
+	// A historical record of images associated with each tag. The first entry in the TagEvent array is
+	// the currently tagged image.
+	Tags []NamedTagEventList `json:"tags,omitempty"`
 }
 
-// TODO add metadata overrides
+// NamedTagEventList relates a tag to its image history.
+type NamedTagEventList struct {
+	Tag   string     `json:"tag"`
+	Items []TagEvent `json:"items"`
+}
+
+// TagEvent is used by ImageRepositoryStatus to keep a historical record of images associated with a tag.
+type TagEvent struct {
+	// When the TagEvent was created
+	Created util.Time `json:"created"`
+	// The string that can be used to pull this image
+	DockerImageReference string `json:"dockerImageReference"`
+	// The image
+	Image string `json:"image"`
+}
 
 // ImageRepositoryMapping represents a mapping from a single tag to a Docker image as
 // well as the reference to the Docker image repository the image came from.

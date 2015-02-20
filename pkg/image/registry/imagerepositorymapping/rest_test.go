@@ -2,37 +2,124 @@ package imagerepositorymapping
 
 import (
 	"fmt"
-	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/coreos/go-etcd/etcd"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/test"
+	"github.com/openshift/origin/pkg/image/registry/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagerepository"
+	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 )
 
-func TestCreateImageRepositoryMappingFindError(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	imageRepositoryRegistry.Err = fmt.Errorf("123")
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
+var testDefaultRegistry = imagerepository.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
 
-	mapping := api.ImageRepositoryMapping{
+func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
+	fakeEtcdClient := tools.NewFakeEtcdClient(t)
+	fakeEtcdClient.TestIndex = true
+	helper := tools.EtcdHelper{Client: fakeEtcdClient, Codec: latest.Codec, ResourceVersioner: tools.RuntimeVersionAdapter{latest.ResourceVersioner}}
+	imageStorage := imageetcd.NewREST(helper)
+	imageRegistry := image.NewRegistry(imageStorage)
+	imageRepositoryStorage := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	storage := NewREST(imageRegistry, imageRepositoryRegistry)
+	return fakeEtcdClient, helper, storage
+}
+
+func validImageRepository() *api.ImageRepository {
+	return &api.ImageRepository{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test",
+		},
+	}
+}
+
+func validNewMappingWithDockerImageRepository() *api.ImageRepositoryMapping {
+	return &api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
 		Image: api.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "imageID1",
 			},
 			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
+					Cmd:          []string{"ls", "/"},
+					Env:          []string{"a=1"},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
+					Memory:       1234,
+					CPUShares:    99,
+					WorkingDir:   "/workingDir",
+				},
+			},
 		},
 		Tag: "latest",
 	}
+}
 
-	obj, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+func validNewMappingWithName() *api.ImageRepositoryMapping {
+	return &api.ImageRepositoryMapping{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "default",
+			Name:      "somerepo",
+		},
+		Image: api.Image{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "imageID1",
+			},
+			DockerImageReference: "localhost:5000/default/somerepo:imageID1",
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
+					Cmd:          []string{"ls", "/"},
+					Env:          []string{"a=1"},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
+					Memory:       1234,
+					CPUShares:    99,
+					WorkingDir:   "/workingDir",
+				},
+			},
+		},
+		Tag: "latest",
+	}
+}
+
+func TestCreateConflictingNamespace(t *testing.T) {
+	_, _, storage := setup(t)
+
+	mapping := validNewMappingWithName()
+	mapping.Namespace = "some-value"
+
+	ch, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), mapping)
+	if ch != nil {
+		t.Error("Expected a nil obj, but we got a value")
+	}
+	expectedError := "the namespace of the provided object does not match the namespace sent on the request"
+	if err == nil {
+		t.Fatalf("Expected '" + expectedError + "', but we didn't get one")
+	}
+	if !strings.Contains(err.Error(), expectedError) {
+		t.Errorf("Expected '"+expectedError+"' error, got '%v'", err.Error())
+	}
+}
+
+func TestCreateErrorListingImageRepositories(t *testing.T) {
+	fakeEtcdClient, _, storage := setup(t)
+	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: nil,
+		},
+		E: fmt.Errorf("123"),
+	}
+
+	obj, err := storage.Create(kapi.NewDefaultContext(), validNewMappingWithDockerImageRepository())
 	if obj != nil {
 		t.Fatalf("Unexpected non-nil obj %#v", obj)
 	}
@@ -40,37 +127,23 @@ func TestCreateImageRepositoryMappingFindError(t *testing.T) {
 		t.Fatal("Unexpected nil err")
 	}
 	if err.Error() != "123" {
-		t.Errorf("Expected 'unable to locate' error, got %#v", err)
+		t.Errorf("Unexpeted error, got %#v", err)
 	}
 }
 
-func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
-		Items: []api.ImageRepository{
-			{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "repo1",
-				},
-				DockerImageRepository: "localhost:5000/test/repo",
+func TestCreateImageRepositoryNotFound(t *testing.T) {
+	fakeEtcdClient, _, storage := setup(t)
+	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
+					ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "bar"},
+				}),
 			},
 		},
 	}
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	mapping := api.ImageRepositoryMapping{
-		DockerImageRepository: "localhost:5000/someproject/somerepo",
-		Image: api.Image{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "imageID1",
-			},
-			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-		},
-		Tag: "latest",
-	}
-
-	obj, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	obj, err := storage.Create(kapi.NewDefaultContext(), validNewMappingWithDockerImageRepository())
 	if obj != nil {
 		t.Errorf("Unexpected non-nil obj %#v", obj)
 	}
@@ -82,48 +155,43 @@ func TestCreateImageRepositoryMappingNotFound(t *testing.T) {
 	}
 }
 
-func TestCreateImageRepositoryMapping(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
-		Items: []api.ImageRepository{
-			{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "repo1",
-				},
-				DockerImageRepository: "localhost:5000/someproject/somerepo",
-			},
-		},
-	}
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
+func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
+	fakeEtcdClient, helper, storage := setup(t)
 
-	mapping := api.ImageRepositoryMapping{
+	initialRepo := &api.ImageRepository{
+		ObjectMeta:            kapi.ObjectMeta{Namespace: "default", Name: "repo1"},
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
-		Image: api.Image{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "imageID1",
-			},
-			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: api.DockerImage{
-				Config: api.DockerConfig{
-					Cmd:          []string{"ls", "/"},
-					Env:          []string{"a=1"},
-					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
-					Memory:       1234,
-					CPUShares:    99,
-					WorkingDir:   "/workingDir",
+	}
+
+	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Nodes: []*etcd.Node{
+					{
+						Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+						ModifiedIndex: 1,
+					},
 				},
 			},
 		},
-		Tag: "latest",
 	}
-	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
-	if err != nil {
-		t.Errorf("Unexpected error creating mapping: %#v", err)
+	fakeEtcdClient.Data["/imageRepositories/default/repo1"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+				ModifiedIndex: 1,
+			},
+		},
 	}
 
-	image, err := imageRegistry.GetImage(kapi.NewDefaultContext(), "imageID1")
+	mapping := validNewMappingWithDockerImageRepository()
+	_, err := storage.Create(kapi.NewDefaultContext(), mapping)
 	if err != nil {
+		t.Fatalf("Unexpected error creating mapping: %#v", err)
+	}
+
+	image := &api.Image{}
+	if err := helper.ExtractObj("/images/imageID1", image, false); err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
@@ -133,8 +201,8 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo, err := imageRepositoryRegistry.GetImageRepository(kapi.NewDefaultContext(), "repo1")
-	if err != nil {
+	repo := &api.ImageRepository{}
+	if err := helper.ExtractObj("/imageRepositories/default/repo1", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "imageID1", repo.Tags["latest"]; e != a {
@@ -142,120 +210,30 @@ func TestCreateImageRepositoryMapping(t *testing.T) {
 	}
 }
 
-func TestCreateImageRepositoryConflictingNamespace(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
-		Items: []api.ImageRepository{
-			{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "repo1",
-				},
-				DockerImageRepository: "localhost:5000/someproject/somerepo",
+func TestCreateSuccessWithName(t *testing.T) {
+	fakeEtcdClient, helper, storage := setup(t)
+
+	initialRepo := &api.ImageRepository{
+		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
+	}
+
+	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+				ModifiedIndex: 1,
 			},
 		},
 	}
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
 
-	mapping := api.ImageRepositoryMapping{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: "some-value",
-		},
-		DockerImageRepository: "localhost:5000/someproject/somerepo",
-		Image: api.Image{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "imageID1",
-			},
-			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: api.DockerImage{
-				Config: api.DockerConfig{
-					Cmd:          []string{"ls", "/"},
-					Env:          []string{"a=1"},
-					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
-					Memory:       1234,
-					CPUShares:    99,
-					WorkingDir:   "/workingDir",
-				},
-			},
-		},
-		Tag: "latest",
-	}
-
-	ch, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &mapping)
-	if ch != nil {
-		t.Error("Expected a nil obj, but we got a value")
-	}
-	checkExpectedNamespaceError(t, err)
-}
-
-func checkExpectedNamespaceError(t *testing.T, err error) {
-	expectedError := "ImageRepositoryMapping.Namespace does not match the provided context"
-	if err == nil {
-		t.Errorf("Expected '" + expectedError + "', but we didn't get one")
-	} else {
-		e, ok := err.(kclient.APIStatus)
-		if !ok {
-			t.Errorf("error was not a statusError: %v", err)
-		}
-		if e.Status().Code != http.StatusConflict {
-			t.Errorf("Unexpected failure status: %v", e.Status())
-		}
-		if strings.Index(err.Error(), expectedError) == -1 {
-			t.Errorf("Expected '"+expectedError+"' error, got '%v'", err.Error())
-		}
-	}
-
-}
-
-func TestAddExistingImageWithNewTag(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRegistry.Err = errors.NewAlreadyExists("image", "existingImage")
-
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
-		Items: []api.ImageRepository{
-			{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "repo1",
-				},
-				DockerImageRepository: "localhost:5000/someproject/somerepo",
-				Tags: map[string]string{
-					"existingTag": "existingImage",
-				},
-			},
-		},
-	}
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
-
-	mapping := api.ImageRepositoryMapping{
-		DockerImageRepository: "localhost:5000/someproject/somerepo",
-		Image: api.Image{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "existingImage",
-			},
-			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: api.DockerImage{
-				Config: api.DockerConfig{
-					Cmd:          []string{"ls", "/"},
-					Env:          []string{"a=1"},
-					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
-					Memory:       1234,
-					CPUShares:    99,
-					WorkingDir:   "/workingDir",
-				},
-			},
-		},
-		Tag: "latest",
-	}
-	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	mapping := validNewMappingWithName()
+	_, err := storage.Create(kapi.NewDefaultContext(), mapping)
 	if err != nil {
-		t.Errorf("Unexpected error creating mapping: %#v", err)
+		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
 
-	imageRegistry.Err = nil
-
-	image, err := imageRegistry.GetImage(kapi.NewDefaultContext(), "existingImage")
-	if err != nil {
+	image := &api.Image{}
+	if err := helper.ExtractObj("/images/imageID1", image, false); err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
@@ -265,73 +243,203 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo, err := imageRepositoryRegistry.GetImageRepository(kapi.NewDefaultContext(), "repo1")
-	if err != nil {
+	repo := &api.ImageRepository{}
+	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
-	if repo == nil {
-		t.Fatalf("Unexpected nil repo")
-	}
-	if len(repo.Tags) != 2 {
-		t.Errorf("Expected 2 tags in repo, got: %v", repo.Tags)
-	}
-	if e, a := "existingImage", repo.Tags["existingTag"]; e != a {
+	if e, a := "imageID1", repo.Tags["latest"]; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	if e, a := "existingImage", repo.Tags["latest"]; e != a {
+}
+
+func TestAddExistingImageWithNewTag(t *testing.T) {
+	imageID := "8d812da98d6dd61620343f1a5bf6585b34ad6ed16e5c5f7c7216a525d6aeb772"
+	existingRepo := &api.ImageRepository{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "repo1",
+			Namespace: "default",
+		},
+		DockerImageRepository: "localhost:5000/someproject/somerepo",
+		Tags: map[string]string{
+			"existingTag": imageID,
+		},
+		Status: api.ImageRepositoryStatus{
+			Tags: map[string]api.TagEventList{
+				"existingTag": {Items: []api.TagEvent{{DockerImageReference: "localhost:5000/someproject/somerepo:" + imageID}}},
+			},
+		},
+	}
+
+	existingImage := &api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      imageID,
+			Namespace: "default",
+		},
+		DockerImageReference: "localhost:5000/someproject/somerepo:" + imageID,
+		DockerImageMetadata: api.DockerImage{
+			Config: api.DockerConfig{
+				Cmd:          []string{"ls", "/"},
+				Env:          []string{"a=1"},
+				ExposedPorts: map[string]struct{}{"1234/tcp": {}},
+				Memory:       1234,
+				CPUShares:    99,
+				WorkingDir:   "/workingDir",
+			},
+		},
+	}
+
+	fakeEtcdClient, helper, storage := setup(t)
+	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Nodes: []*etcd.Node{
+					{
+						Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
+						ModifiedIndex: 1,
+					},
+				},
+			},
+		},
+	}
+	fakeEtcdClient.Data["/imageRepositories/default/repo1"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
+				ModifiedIndex: 1,
+			},
+		},
+	}
+	fakeEtcdClient.Data["/images/default/"+imageID] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, existingImage),
+				ModifiedIndex: 1,
+			},
+		},
+	}
+
+	mapping := api.ImageRepositoryMapping{
+		DockerImageRepository: "localhost:5000/someproject/somerepo",
+		Image: *existingImage,
+		Tag:   "latest",
+	}
+	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	if err != nil {
+		t.Errorf("Unexpected error creating mapping: %#v", err)
+	}
+
+	image := &api.Image{}
+	if err := helper.ExtractObj("/images/"+imageID, image, false); err != nil {
+		t.Errorf("Unexpected error retrieving image: %#v", err)
+	}
+	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
+	}
+	if !reflect.DeepEqual(mapping.Image.DockerImageMetadata, image.DockerImageMetadata) {
+		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
+	}
+
+	repo := &api.ImageRepository{}
+	if err := helper.ExtractObj("/imageRepositories/default/repo1", repo, false); err != nil {
+		t.Errorf("Unexpected non-nil err: %#v", err)
+	}
+	if e, a := imageID, repo.Tags["latest"]; e != a {
+		t.Errorf("Expected %s, got %s", e, a)
+	}
+	if e, a := 2, len(repo.Status.Tags); e != a {
+		t.Fatalf("repo.Status.Tags length: expected %d, got %d: %#v", e, a, repo.Status.Tags)
+	}
+	if e, a := 1, len(repo.Status.Tags["existingTag"].Items); e != a {
+		t.Errorf("repo.Status.Tags['existingTag']: expected '%v', got '%v': %#v", e, a, repo.Status.Tags["existingTag"].Items)
+	}
+	if e, a := "localhost:5000/someproject/somerepo:"+imageID, repo.Status.Tags["existingTag"].Items[0].DockerImageReference; e != a {
+		t.Errorf("existingTag history: expected image %s, got %s", e, a)
+	}
+	if e, a := 1, len(repo.Status.Tags["latest"].Items); e != a {
+		t.Errorf("repo.Status.Tags['latest']: expected '%v', got '%v'", e, a)
+	}
+	if e, a := "localhost:5000/someproject/somerepo:"+imageID, repo.Status.Tags["latest"].Items[0].DockerImageReference; e != a {
+		t.Errorf("latest history: expected image %s, got %s", e, a)
 	}
 }
 
 func TestAddExistingImageAndTag(t *testing.T) {
-	imageRegistry := test.NewImageRegistry()
-	imageRegistry.Err = errors.NewAlreadyExists("image", "existingImage")
+	existingRepo := &api.ImageRepository{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "repo1",
+			Namespace: "default",
+		},
+		DockerImageRepository: "localhost:5000/someproject/somerepo",
+		Tags: map[string]string{
+			"existingTag": "existingImage",
+		},
+		Status: api.ImageRepositoryStatus{
+			Tags: map[string]api.TagEventList{
+				"existingTag": {Items: []api.TagEvent{{DockerImageReference: "existingImage"}}},
+			},
+		},
+	}
 
-	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
-	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
-		Items: []api.ImageRepository{
-			{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "repo1",
-				},
-				DockerImageRepository: "localhost:5000/someproject/somerepo",
-				Tags: map[string]string{
-					"existingTag": "existingImage",
+	existingImage := &api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "existingImage",
+			Namespace: "default",
+		},
+		DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
+		DockerImageMetadata: api.DockerImage{
+			Config: api.DockerConfig{
+				Cmd:          []string{"ls", "/"},
+				Env:          []string{"a=1"},
+				ExposedPorts: map[string]struct{}{"1234/tcp": {}},
+				Memory:       1234,
+				CPUShares:    99,
+				WorkingDir:   "/workingDir",
+			},
+		},
+	}
+
+	fakeEtcdClient, helper, storage := setup(t)
+	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Nodes: []*etcd.Node{
+					{
+						Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
+						ModifiedIndex: 1,
+					},
 				},
 			},
 		},
 	}
-	storage := &REST{imageRegistry, imageRepositoryRegistry}
+	fakeEtcdClient.Data["/imageRepositories/default/repo1"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
+				ModifiedIndex: 1,
+			},
+		},
+	}
+	fakeEtcdClient.Data["/images/default/existingImage"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, existingImage),
+				ModifiedIndex: 1,
+			},
+		},
+	}
 
 	mapping := api.ImageRepositoryMapping{
 		DockerImageRepository: "localhost:5000/someproject/somerepo",
-		Image: api.Image{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "existingImage",
-			},
-			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
-			DockerImageMetadata: api.DockerImage{
-				Config: api.DockerConfig{
-					Cmd:          []string{"ls", "/"},
-					Env:          []string{"a=1"},
-					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
-					Memory:       1234,
-					CPUShares:    99,
-					WorkingDir:   "/workingDir",
-				},
-			},
-		},
-		Tag: "existingTag",
+		Image: *existingImage,
+		Tag:   "existingTag",
 	}
 	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
 	if err != nil {
 		t.Errorf("Unexpected error creating mapping: %#v", err)
 	}
 
-	imageRegistry.Err = nil
-
-	image, err := imageRegistry.GetImage(kapi.NewDefaultContext(), "existingImage")
-	if err != nil {
+	image := &api.Image{}
+	if err := helper.ExtractObj("/images/existingImage", image, false); err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
@@ -341,14 +449,17 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo, err := imageRepositoryRegistry.GetImageRepository(kapi.NewDefaultContext(), "repo1")
-	if err != nil {
+	repo := &api.ImageRepository{}
+	if err := helper.ExtractObj("/imageRepositories/default/repo1", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
-	}
-	if repo == nil {
-		t.Fatalf("Unexpected nil repo")
 	}
 	if e, a := "existingImage", repo.Tags["existingTag"]; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
+	}
+	if e, a := 1, len(repo.Status.Tags); e != a {
+		t.Errorf("repo.Status.Tags length: expected %d, got %d", e, a)
+	}
+	if e, a := mapping.DockerImageRepository+":existingImage", repo.Status.Tags["existingTag"].Items[0].DockerImageReference; e != a {
+		t.Errorf("tag history: expected image %s, got %s", e, a)
 	}
 }

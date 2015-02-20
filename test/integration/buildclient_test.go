@@ -28,8 +28,8 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
-	imageetcd "github.com/openshift/origin/pkg/image/registry/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
+	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 )
 
 func init() {
@@ -187,12 +187,12 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
 	buildEtcd := buildetcd.New(etcdHelper)
-	imageEtcd := imageetcd.New(etcdHelper, imageetcd.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
+	imageRepositoryStorage := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
 
 	storage := map[string]apiserver.RESTStorage{
 		"builds":            buildregistry.NewREST(buildEtcd),
 		"buildConfigs":      buildconfigregistry.NewREST(buildEtcd),
-		"imageRepositories": imagerepository.NewREST(imageEtcd),
+		"imageRepositories": imageRepositoryStorage,
 	}
 
 	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")

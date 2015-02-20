@@ -1,82 +1,158 @@
-package api
+package imagestreamimage
 
 import (
-	"fmt"
-	"reflect"
-	"testing"
-	"time"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/coreos/go-etcd/etcd"
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/registry/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagerepository"
+	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 )
+import "testing"
 
-func TestSplitDockerPullSpec(t *testing.T) {
-	testCases := []struct {
-		From                           string
-		Registry, Namespace, Name, Tag string
-		Err                            bool
+var testDefaultRegistry = imagerepository.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+
+func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
+	fakeEtcdClient := tools.NewFakeEtcdClient(t)
+	fakeEtcdClient.TestIndex = true
+	helper := tools.EtcdHelper{Client: fakeEtcdClient, Codec: latest.Codec, ResourceVersioner: tools.RuntimeVersionAdapter{latest.ResourceVersioner}}
+	imageStorage := imageetcd.NewREST(helper)
+	imageRegistry := image.NewRegistry(imageStorage)
+	imageRepositoryStorage := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	storage := NewREST(imageRegistry, imageRepositoryRegistry)
+	return fakeEtcdClient, helper, storage
+}
+
+func TestNameAndID(t *testing.T) {
+	tests := map[string]struct {
+		input        string
+		expectedRepo string
+		expectedId   string
+		expectError  bool
 	}{
-		{
-			From: "foo",
-			Name: "foo",
+		"empty string": {
+			input:       "",
+			expectError: true,
 		},
-		{
-			From:      "bar/foo",
-			Namespace: "bar",
-			Name:      "foo",
+		"one part": {
+			input:       "a",
+			expectError: true,
 		},
-		{
-			From:      "bar/foo/baz",
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
+		"more than 2 parts": {
+			input:       "a@b@c",
+			expectError: true,
 		},
-		{
-			From:      "bar/foo/baz:tag",
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
-			Tag:       "tag",
+		"empty name part": {
+			input:       "@id",
+			expectError: true,
 		},
-		{
-			From:      "bar:5000/foo/baz:tag",
-			Registry:  "bar:5000",
-			Namespace: "foo",
-			Name:      "baz",
-			Tag:       "tag",
+		"empty id part": {
+			input:       "name@",
+			expectError: true,
 		},
-		{
-			From: "bar/foo/baz/biz",
-			Err:  true,
-		},
-		{
-			From: "",
-			Err:  true,
+		"valid input": {
+			input:        "repo@id",
+			expectedRepo: "repo",
+			expectedId:   "id",
+			expectError:  false,
 		},
 	}
 
-	for _, testCase := range testCases {
-		r, ns, n, tag, err := SplitDockerPullSpec(testCase.From)
-		switch {
-		case err != nil && !testCase.Err:
-			t.Errorf("%s: unexpected error: %v", testCase.From, err)
-			continue
-		case err == nil && testCase.Err:
-			t.Errorf("%s: unexpected non-error", testCase.From)
+	for name, test := range tests {
+		repo, id, err := nameAndID(test.input)
+		didError := err != nil
+		if e, a := test.expectError, didError; e != a {
+			t.Fatalf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+		}
+		if test.expectError {
 			continue
 		}
-		if r != testCase.Registry || ns != testCase.Namespace || n != testCase.Name || tag != testCase.Tag {
-			t.Errorf("%s: unexpected result: %q %q %q %q", testCase.From, r, ns, n, tag)
+		if e, a := test.expectedRepo, repo; e != a {
+			t.Fatalf("%s: repo: expected %q, got %q", name, e, a)
+		}
+		if e, a := test.expectedId, id; e != a {
+			t.Fatalf("%s: id: expected %q, got %q", name, e, a)
 		}
 	}
 }
 
-func validImageWithManifestData() Image {
-	return Image{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "id",
+func TestGet(t *testing.T) {
+	tests := map[string]struct {
+		input       string
+		repo        *api.ImageRepository
+		image       *api.Image
+		expectError bool
+	}{
+		"empty string": {
+			input:       "",
+			expectError: true,
 		},
-		DockerImageManifest: `{
+		"one part": {
+			input:       "a",
+			expectError: true,
+		},
+		"more than 2 parts": {
+			input:       "a@b@c",
+			expectError: true,
+		},
+		"empty name part": {
+			input:       "@id",
+			expectError: true,
+		},
+		"empty id part": {
+			input:       "name@",
+			expectError: true,
+		},
+		"repo not found": {
+			input:       "repo@id",
+			repo:        nil,
+			expectError: true,
+		},
+		"nil tags": {
+			input:       "repo@id",
+			repo:        &api.ImageRepository{},
+			expectError: true,
+		},
+		"image not found": {
+			input: "repo@id",
+			repo: &api.ImageRepository{
+				Status: api.ImageRepositoryStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {
+							Items: []api.TagEvent{
+								{Image: "anotherid"},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+		"happy path": {
+			input: "repo@id",
+			repo: &api.ImageRepository{
+				Status: api.ImageRepositoryStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {
+							Items: []api.TagEvent{
+								{Image: "anotherid"},
+								{Image: "anotherid2"},
+								{Image: "id"},
+							},
+						},
+					},
+				},
+			},
+			image: &api.Image{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "id",
+				},
+				DockerImageManifest: `{
    "name": "library/ubuntu",
    "tag": "latest",
    "architecture": "amd64",
@@ -132,124 +208,66 @@ func validImageWithManifestData() Image {
       }
    ]
 }`,
-	}
-}
-
-func TestImageWithMetadata(t *testing.T) {
-	tests := map[string]struct {
-		image         Image
-		expectedImage Image
-		expectError   bool
-	}{
-		"no manifest data": {
-			image:         Image{},
-			expectedImage: Image{},
-		},
-		"error unmarshalling manifest data": {
-			image: Image{
-				DockerImageManifest: "{ no {{{ json here!!!",
-			},
-			expectedImage: Image{},
-			expectError:   true,
-		},
-		"no history": {
-			image: Image{
-				DockerImageManifest: `{"name": "library/ubuntu", "tag": "latest"}`,
-			},
-			expectedImage: Image{},
-		},
-		"error unmarshalling v1 compat": {
-			image: Image{
-				DockerImageManifest: `{"name": "library/ubuntu", "tag": "latest", "history": ["v1Compatibility": "{ not valid {{ json" }`,
-			},
-			expectError: true,
-		},
-		"happy path": {
-			image: validImageWithManifestData(),
-			expectedImage: Image{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "id",
-				},
-				DockerImageManifest: "",
-				DockerImageMetadata: DockerImage{
-					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
-					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
-					Comment:   "",
-					Created:   util.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
-					Container: "c9a3eda5951d28aa8dbe5933be94c523790721e4f80886d0a8e7a710132a38ec",
-					ContainerConfig: DockerConfig{
-						Hostname:        "43bd710ec89a",
-						Domainname:      "",
-						User:            "",
-						Memory:          0,
-						MemorySwap:      0,
-						CPUShares:       0,
-						CPUSet:          "",
-						AttachStdin:     false,
-						AttachStdout:    false,
-						AttachStderr:    false,
-						PortSpecs:       nil,
-						ExposedPorts:    nil,
-						Tty:             false,
-						OpenStdin:       false,
-						StdinOnce:       false,
-						Env:             []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
-						Cmd:             []string{"/bin/sh", "-c", "#(nop) CMD [/bin/bash]"},
-						Image:           "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
-						Volumes:         nil,
-						WorkingDir:      "",
-						Entrypoint:      nil,
-						NetworkDisabled: false,
-						SecurityOpts:    nil,
-						OnBuild:         []string{},
-					},
-					DockerVersion: "1.4.1",
-					Author:        "",
-					Config: DockerConfig{
-						Hostname:        "43bd710ec89a",
-						Domainname:      "",
-						User:            "",
-						Memory:          0,
-						MemorySwap:      0,
-						CPUShares:       0,
-						CPUSet:          "",
-						AttachStdin:     false,
-						AttachStdout:    false,
-						AttachStderr:    false,
-						PortSpecs:       nil,
-						ExposedPorts:    nil,
-						Tty:             false,
-						OpenStdin:       false,
-						StdinOnce:       false,
-						Env:             []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
-						Cmd:             []string{"/bin/bash"},
-						Image:           "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
-						Volumes:         nil,
-						WorkingDir:      "",
-						Entrypoint:      nil,
-						NetworkDisabled: false,
-						OnBuild:         []string{},
-					},
-					Architecture: "amd64",
-					Size:         0,
-				},
 			},
 		},
 	}
 
 	for name, test := range tests {
-		imageWithMetadata, err := ImageWithMetadata(test.image)
+		fakeEtcdClient, _, storage := setup(t)
+
+		if test.repo != nil {
+			fakeEtcdClient.Data["/imageRepositories/default/repo"] = tools.EtcdResponseWithError{
+				R: &etcd.Response{
+					Node: &etcd.Node{
+						Value: runtime.EncodeOrDie(latest.Codec, test.repo),
+					},
+				},
+			}
+		} else {
+			fakeEtcdClient.Data["/imageRepositories/default/repo"] = tools.EtcdResponseWithError{
+				R: &etcd.Response{
+					Node: nil,
+				},
+				E: tools.EtcdErrorNotFound,
+			}
+		}
+
+		if test.image != nil {
+			fakeEtcdClient.Data["/images/id"] = tools.EtcdResponseWithError{
+				R: &etcd.Response{
+					Node: &etcd.Node{
+						Value: runtime.EncodeOrDie(latest.Codec, test.image),
+					},
+				},
+			}
+		} else {
+			fakeEtcdClient.Data["/images/id"] = tools.EtcdResponseWithError{
+				R: &etcd.Response{
+					Node: nil,
+				},
+				E: tools.EtcdErrorNotFound,
+			}
+		}
+
+		obj, err := storage.Get(kapi.NewDefaultContext(), test.input)
 		gotError := err != nil
 		if e, a := test.expectError, gotError; e != a {
-			t.Fatalf("%s: expectError=%t, gotError=%t: %s", name, e, a, err)
+			t.Fatalf("%s: expected error=%t, got=%t: %s", name, e, a, err)
 		}
 		if test.expectError {
 			continue
 		}
-		if e, a := test.expectedImage, *imageWithMetadata; !reflect.DeepEqual(e, a) {
-			stringE := fmt.Sprintf("%#v", e)
-			stringA := fmt.Sprintf("%#v", a)
-			t.Errorf("%s: image: %s", name, util.StringDiff(stringE, stringA))
+
+		image := obj.(*api.Image)
+		// validate a couple of the fields
+		if e, a := test.image.Name, image.Name; e != a {
+			t.Errorf("%s: name: expected %q, got %q", name, e, a)
+		}
+		if e, a := "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7", image.DockerImageMetadata.ID; e != a {
+			t.Errorf("%s: id: expected %q, got %q", name, e, a)
+		}
+		if e, a := "43bd710ec89a", image.DockerImageMetadata.ContainerConfig.Hostname; e != a {
+			t.Errorf("%s: container config hostname: expected %q, got %q", name, e, a)
 		}
 	}
 }

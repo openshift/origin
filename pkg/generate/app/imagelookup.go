@@ -248,7 +248,7 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 
 type ImageStreamResolver struct {
 	Client     client.ImageRepositoriesNamespacer
-	Images     client.ImagesNamespacer
+	Images     client.ImagesInterfacer
 	Namespaces []string
 }
 
@@ -282,7 +282,7 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 			}
 			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q has not been set", tag)}
 		}
-		imageData, err := r.Images.Images(namespace).Get(id)
+		imageData, err := r.Images.Images().Get(id)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", tag, id)}

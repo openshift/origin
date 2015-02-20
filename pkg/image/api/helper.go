@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -69,23 +70,43 @@ func JoinDockerPullSpec(registry, namespace, name, tag string) string {
 	return fmt.Sprintf("%s/%s/%s%s", registry, namespace, name, tag)
 }
 
-// parseImageName parses image name including a tag and returns image name and tag.
-// copied from kubernetes/pkg/kubelet/dockertools/docker.go#parseImageName
-func parseImageName(image string) (string, string) {
-	tag := ""
-	parts := strings.SplitN(image, "/", 2)
-	repo := ""
-	if len(parts) == 2 {
-		repo = parts[0]
-		image = parts[1]
+// ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
+// from the raw DockerImageManifest data stored in the image.
+func ImageWithMetadata(image Image) (*Image, error) {
+	if len(image.DockerImageManifest) == 0 {
+		return &image, nil
 	}
-	parts = strings.SplitN(image, ":", 2)
-	if len(parts) == 2 {
-		image = parts[0]
-		tag = parts[1]
+
+	manifestData := image.DockerImageManifest
+
+	image.DockerImageManifest = ""
+
+	manifest := DockerImageManifest{}
+	if err := json.Unmarshal([]byte(manifestData), &manifest); err != nil {
+		return nil, err
 	}
-	if repo != "" {
-		image = fmt.Sprintf("%s/%s", repo, image)
+
+	if len(manifest.History) == 0 {
+		// should never have an empty history, but just in case...
+		return &image, nil
 	}
-	return image, tag
+
+	v1Metadata := DockerV1CompatibilityImage{}
+	if err := json.Unmarshal([]byte(manifest.History[0].DockerV1Compatibility), &v1Metadata); err != nil {
+		return nil, err
+	}
+
+	image.DockerImageMetadata.ID = v1Metadata.ID
+	image.DockerImageMetadata.Parent = v1Metadata.Parent
+	image.DockerImageMetadata.Comment = v1Metadata.Comment
+	image.DockerImageMetadata.Created = v1Metadata.Created
+	image.DockerImageMetadata.Container = v1Metadata.Container
+	image.DockerImageMetadata.ContainerConfig = v1Metadata.ContainerConfig
+	image.DockerImageMetadata.DockerVersion = v1Metadata.DockerVersion
+	image.DockerImageMetadata.Author = v1Metadata.Author
+	image.DockerImageMetadata.Config = v1Metadata.Config
+	image.DockerImageMetadata.Architecture = v1Metadata.Architecture
+	image.DockerImageMetadata.Size = v1Metadata.Size
+
+	return &image, nil
 }

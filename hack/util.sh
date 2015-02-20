@@ -216,12 +216,19 @@ function start_etcd {
   # Stop on any failures
   set -e
 
+  # get etcd version
+  etcd_version=$(etcd --version | awk '{print $3}')
+  initial_cluster=""
+  if [[ "${etcd_version}" =~ ^2 ]]; then
+    initial_cluster="--initial-cluster test=http://localhost:2380,test=http://localhost:7001"
+  fi
+
   # Start etcd
   export ETCD_DIR=$(mktemp -d -t test-etcd.XXXXXX)
-  etcd -name test -data-dir ${ETCD_DIR} -bind-addr ${host}:${port} >/dev/null 2>/dev/null &
+  etcd -name test -data-dir ${ETCD_DIR} -bind-addr ${host}:${port} ${initial_cluster} >/dev/null 2>/dev/null &
   export ETCD_PID=$!
 
-  wait_for_url "http://127.0.0.1:4001/v2/keys/" "etcd: "
+  wait_for_url "http://127.0.0.1:4001/version" "etcd: "
 }
 
 # stop_openshift_server utility function to terminate an

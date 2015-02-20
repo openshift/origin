@@ -1,11 +1,9 @@
 package imagerepositorymapping
 
 import (
-	"fmt"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -15,36 +13,59 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 )
 
-// REST implements the RESTStorage interface in terms of an Registry and Registry.
-// It Only supports the Create method and is used to simply adding a new Image and tag to an ImageRepository.
+// REST implements the RESTStorage interface in terms of an image registry and
+// image repository registry. It only supports the Create method and is used
+// to simplify adding a new Image and tag to an ImageRepository.
 type REST struct {
 	imageRegistry           image.Registry
 	imageRepositoryRegistry imagerepository.Registry
 }
 
 // NewREST returns a new REST.
-func NewREST(imageRegistry image.Registry, imageRepositoryRegistry imagerepository.Registry) apiserver.RESTStorage {
-	return &REST{imageRegistry, imageRepositoryRegistry}
+func NewREST(imageRegistry image.Registry, imageRepositoryRegistry imagerepository.Registry) *REST {
+	return &REST{
+		imageRegistry:           imageRegistry,
+		imageRepositoryRegistry: imageRepositoryRegistry,
+	}
 }
 
+// imageRepositoryMappingStrategy implements behavior for image repository mappings.
+type imageRepositoryMappingStrategy struct {
+	runtime.ObjectTyper
+	kapi.NameGenerator
+}
+
+// Strategy is the default logic that applies when creating ImageRepositoryMapping
+// objects via the REST API.
+var Strategy = imageRepositoryMappingStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
+
 // New returns a new ImageRepositoryMapping for use with Create.
-func (s *REST) New() runtime.Object {
+func (r *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
+}
+
+// NamespaceScoped is true for image repository mappings.
+func (s imageRepositoryMappingStrategy) NamespaceScoped() bool {
+	return true
+}
+
+// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
+func (s imageRepositoryMappingStrategy) ResetBeforeCreate(obj runtime.Object) {
+}
+
+// Validate validates a new ImageRepositoryMapping.
+func (s imageRepositoryMappingStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+	mapping := obj.(*api.ImageRepositoryMapping)
+	return validation.ValidateImageRepositoryMapping(mapping)
 }
 
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+		return nil, err
+	}
+
 	mapping := obj.(*api.ImageRepositoryMapping)
-	if !kapi.ValidNamespace(ctx, &mapping.ObjectMeta) {
-		return nil, errors.NewConflict("imageRepositoryMapping", mapping.Namespace, fmt.Errorf("ImageRepositoryMapping.Namespace does not match the provided context"))
-	}
-	kapi.FillObjectMetaSystemFields(ctx, &mapping.ObjectMeta)
-	kapi.FillObjectMetaSystemFields(ctx, &mapping.Image.ObjectMeta)
-	// TODO: allow cross namespace mappings if the user has access
-	mapping.Image.Namespace = ""
-	if errs := validation.ValidateImageRepositoryMapping(mapping); len(errs) > 0 {
-		return nil, errors.NewInvalid("imageRepositoryMapping", mapping.Name, errs)
-	}
 
 	repo, err := s.findRepositoryForMapping(ctx, mapping)
 	if err != nil {
@@ -53,7 +74,6 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	image := mapping.Image
 
-	//TODO apply metadata overrides
 	if repo.Tags == nil {
 		repo.Tags = make(map[string]string)
 	}
@@ -75,7 +95,6 @@ func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepo
 		return s.imageRepositoryRegistry.GetImageRepository(ctx, mapping.Name)
 	}
 	if len(mapping.DockerImageRepository) != 0 {
-		//TODO make this more efficient
 		list, err := s.imageRepositoryRegistry.ListImageRepositories(ctx, labels.Everything())
 		if err != nil {
 			return nil, err
