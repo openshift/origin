@@ -49,4 +49,6 @@ type DockerConfig struct {
 	WorkingDir      string              `json:"WorkingDir,omitempty"`
 	Entrypoint      []string            `json:"Entrypoint,omitempty"`
 	NetworkDisabled bool                `json:"NetworkDisabled,omitempty"`
+	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
+	OnBuild         []string            `json:"OnBuild,omitempty"`
 }
