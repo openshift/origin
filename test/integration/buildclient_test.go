@@ -225,9 +225,4 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 }
 
 func (t *testBuildOpenshift) Close() {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-	close(t.stop)
-	t.server.CloseClientConnections()
-	t.server.Close()
 }
