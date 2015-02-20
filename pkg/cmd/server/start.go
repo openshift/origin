@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 
 	"github.com/openshift/origin/pkg/auth/group"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -645,7 +646,7 @@ func start(cfg *config, args []string) error {
 
 func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace string) authorizer.Authorizer {
 	authorizationEtcd := authorizationetcd.New(etcdHelper)
-	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(authorizationEtcd, authorizationEtcd))
 	return authorizer
 }
 

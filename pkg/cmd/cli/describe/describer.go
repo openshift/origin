@@ -334,8 +334,8 @@ func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error
 			roleBinding := policyBinding.RoleBindings[key]
 			formatString(out, "RoleBinding["+key+"]", " ")
 			formatString(out, "\tRole", roleBinding.RoleRef.Name)
-			formatString(out, "\tUsers", roleBinding.UserNames)
-			formatString(out, "\tGroups", roleBinding.GroupNames)
+			formatString(out, "\tUsers", roleBinding.Users.List())
+			formatString(out, "\tGroups", roleBinding.Groups.List())
 		}
 
 		return nil

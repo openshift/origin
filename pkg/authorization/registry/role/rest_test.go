@@ -11,10 +11,9 @@ import (
 )
 
 func TestCreateValidationError(t *testing.T) {
-	registry := &test.PolicyRegistry{}
-	storage := REST{
-		registry: registry,
-	}
+	registry := test.NewPolicyRegistry([]authorizationapi.Policy{}, nil)
+	storage := REST{registry: registry}
+
 	role := &authorizationapi.Role{}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
@@ -25,12 +24,9 @@ func TestCreateValidationError(t *testing.T) {
 }
 
 func TestCreateStorageError(t *testing.T) {
-	registry := &test.PolicyRegistry{}
-	registry.Err = errors.New("Sample Error")
+	registry := test.NewPolicyRegistry([]authorizationapi.Policy{}, errors.New("Sample Error"))
+	storage := REST{registry: registry}
 
-	storage := REST{
-		registry: registry,
-	}
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
 	}
@@ -47,14 +43,12 @@ func TestCreateStorageError(t *testing.T) {
 }
 
 func TestCreateValid(t *testing.T) {
-	registry := &test.PolicyRegistry{}
-	storage := REST{
-		registry: registry,
-	}
-	registry.Policies = append(make([]authorizationapi.Policy, 0),
-		authorizationapi.Policy{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-		})
+	registry := test.NewPolicyRegistry(
+		[]authorizationapi.Policy{
+			{ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"}},
+		},
+		nil)
+	storage := REST{registry: registry}
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -77,17 +71,17 @@ func TestCreateValid(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	registry := &test.PolicyRegistry{}
-	storage := REST{
-		registry: registry,
-	}
-	registry.Policies = append(make([]authorizationapi.Policy, 0),
-		authorizationapi.Policy{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-			Roles: map[string]authorizationapi.Role{
-				"my-role": {ObjectMeta: kapi.ObjectMeta{Name: "my-role"}},
+	registry := test.NewPolicyRegistry(
+		[]authorizationapi.Policy{
+			{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
+				Roles: map[string]authorizationapi.Role{
+					"my-role": {ObjectMeta: kapi.ObjectMeta{Name: "my-role"}},
+				},
 			},
-		})
+		},
+		nil)
+	storage := REST{registry: registry}
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -114,14 +108,14 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateError(t *testing.T) {
-	registry := &test.PolicyRegistry{}
-	storage := REST{
-		registry: registry,
-	}
-	registry.Policies = append(make([]authorizationapi.Policy, 0),
-		authorizationapi.Policy{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-		})
+	registry := test.NewPolicyRegistry(
+		[]authorizationapi.Policy{
+			{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
+			},
+		},
+		nil)
+	storage := REST{registry: registry}
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -140,12 +134,8 @@ func TestUpdateError(t *testing.T) {
 }
 
 func TestDeleteError(t *testing.T) {
-	registry := &test.PolicyRegistry{}
-
-	registry.Err = errors.New("Sample Error")
-	storage := REST{
-		registry: registry,
-	}
+	registry := test.NewPolicyRegistry([]authorizationapi.Policy{}, errors.New("Sample Error"))
+	storage := REST{registry: registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	_, err := storage.Delete(ctx, "foo")
@@ -155,17 +145,17 @@ func TestDeleteError(t *testing.T) {
 }
 
 func TestDeleteValid(t *testing.T) {
-	registry := &test.PolicyRegistry{}
-	storage := REST{
-		registry: registry,
-	}
-	registry.Policies = append(make([]authorizationapi.Policy, 0),
-		authorizationapi.Policy{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-			Roles: map[string]authorizationapi.Role{
-				"foo": {ObjectMeta: kapi.ObjectMeta{Name: "foo"}},
+	registry := test.NewPolicyRegistry(
+		[]authorizationapi.Policy{
+			{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
+				Roles: map[string]authorizationapi.Role{
+					"foo": {ObjectMeta: kapi.ObjectMeta{Name: "foo"}},
+				},
 			},
-		})
+		},
+		nil)
+	storage := REST{registry: registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	obj, err := storage.Delete(ctx, "foo")

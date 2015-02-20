@@ -70,12 +70,12 @@ var (
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
-	Verbs []string
+	Verbs kutil.StringSet
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
 	AttributeRestrictions kruntime.EmbeddedObject
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
-	Resources []string
+	Resources kutil.StringSet `json:"resources"`
 	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
 	ResourceNames kutil.StringSet
 	// NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
@@ -100,9 +100,9 @@ type RoleBinding struct {
 	kapi.ObjectMeta
 
 	// UserNames holds all the usernames directly bound to the role
-	UserNames []string
+	Users kutil.StringSet
 	// GroupNames holds all the groups directly bound to the role
-	GroupNames []string
+	Groups kutil.StringSet
 
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	// RoleRefs can only reference the current namespace and the global namespace
@@ -207,4 +207,11 @@ type PolicyBindingList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
 	Items []PolicyBinding
+}
+
+// RoleBindingList is a collection of PolicyBindings
+type RoleBindingList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []RoleBinding
 }

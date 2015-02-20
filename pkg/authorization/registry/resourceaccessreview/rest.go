@@ -36,12 +36,11 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	namespace := kapi.NamespaceValue(ctx)
 
 	attributes := &authorizer.DefaultAuthorizationAttributes{
-		Verb:      resourceAccessReview.Verb,
-		Resource:  resourceAccessReview.Resource,
-		Namespace: namespace,
+		Verb:     resourceAccessReview.Verb,
+		Resource: resourceAccessReview.Resource,
 	}
 
-	users, groups, err := r.authorizer.GetAllowedSubjects(attributes)
+	users, groups, err := r.authorizer.GetAllowedSubjects(ctx, attributes)
 	if err != nil {
 		return nil, err
 	}

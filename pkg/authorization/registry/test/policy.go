@@ -12,13 +12,22 @@ import (
 )
 
 type PolicyRegistry struct {
-	Err               error
-	MasterNamespace   string
-	Policies          []authorizationapi.Policy
-	DeletedPolicyName string
+	// Policies is a of namespace->name->Policy
+	Policies map[string]map[string]authorizationapi.Policy
+	Err      error
 }
 
-// ListPolicies obtains list of policies that match a selector.
+func NewPolicyRegistry(policies []authorizationapi.Policy, err error) *PolicyRegistry {
+	policyMap := make(map[string]map[string]authorizationapi.Policy)
+
+	for _, policy := range policies {
+		addPolicy(policyMap, policy)
+	}
+
+	return &PolicyRegistry{policyMap, err}
+}
+
+// ListPolicies obtains list of ListPolicy that match a selector.
 func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.PolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
@@ -30,16 +39,17 @@ func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, labels, fields klabels.S
 	}
 
 	list := make([]authorizationapi.Policy, 0)
-	for _, curr := range r.Policies {
-		if curr.Namespace == namespace {
+	if namespacedPolicies, ok := r.Policies[namespace]; ok {
+		for _, curr := range namespacedPolicies {
 			list = append(list, curr)
 		}
+
 	}
 
 	return &authorizationapi.PolicyList{
 			Items: list,
 		},
-		r.Err
+		nil
 }
 
 // GetPolicy retrieves a specific policy.
@@ -53,9 +63,9 @@ func (r *PolicyRegistry) GetPolicy(ctx kapi.Context, id string) (*authorizationa
 		return nil, errors.New("invalid request.  Namespace parameter required.")
 	}
 
-	for _, curr := range r.Policies {
-		if curr.Namespace == namespace && id == curr.Name {
-			return &curr, nil
+	if namespacedPolicies, ok := r.Policies[namespace]; ok {
+		if policy, ok := namespacedPolicies[id]; ok {
+			return &policy, nil
 		}
 	}
 
@@ -64,20 +74,71 @@ func (r *PolicyRegistry) GetPolicy(ctx kapi.Context, id string) (*authorizationa
 
 // CreatePolicy creates a new policy.
 func (r *PolicyRegistry) CreatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error {
-	return r.Err
+	if r.Err != nil {
+		return r.Err
+	}
+
+	namespace := kapi.NamespaceValue(ctx)
+	if len(namespace) == 0 {
+		return errors.New("invalid request.  Namespace parameter required.")
+	}
+	if existing, _ := r.GetPolicy(ctx, policy.Name); existing != nil {
+		return fmt.Errorf("Policy %v::%v already exists", namespace, policy.Name)
+	}
+
+	addPolicy(r.Policies, *policy)
+
+	return nil
 }
 
 // UpdatePolicy updates a policy.
 func (r *PolicyRegistry) UpdatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error {
-	return r.Err
+	if r.Err != nil {
+		return r.Err
+	}
+
+	namespace := kapi.NamespaceValue(ctx)
+	if len(namespace) == 0 {
+		return errors.New("invalid request.  Namespace parameter required.")
+	}
+	if existing, _ := r.GetPolicy(ctx, policy.Name); existing == nil {
+		return fmt.Errorf("Policy %v::%v not found", namespace, policy.Name)
+	}
+
+	addPolicy(r.Policies, *policy)
+
+	return nil
 }
 
 // DeletePolicy deletes a policy.
 func (r *PolicyRegistry) DeletePolicy(ctx kapi.Context, id string) error {
-	r.DeletedPolicyName = id
-	return r.Err
+	if r.Err != nil {
+		return r.Err
+	}
+
+	namespace := kapi.NamespaceValue(ctx)
+	if len(namespace) == 0 {
+		return errors.New("invalid request.  Namespace parameter required.")
+	}
+
+	namespacedPolicies, ok := r.Policies[namespace]
+	if ok {
+		delete(namespacedPolicies, id)
+	}
+
+	return nil
 }
 
 func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, r.Err
+	return nil, errors.New("unsupported")
+}
+
+func addPolicy(policies map[string]map[string]authorizationapi.Policy, policy authorizationapi.Policy) {
+	namespacedPolicies, ok := policies[policy.Namespace]
+	if !ok {
+		namespacedPolicies = make(map[string]authorizationapi.Policy)
+		policies[policy.Namespace] = namespacedPolicies
+	}
+
+	namespacedPolicies[policy.Name] = policy
 }
