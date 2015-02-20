@@ -141,3 +141,8 @@ func (i *ChangeStrategyImpl) GenerateDeploymentConfig(namespace, name string) (*
 func (i *ChangeStrategyImpl) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	return i.UpdateDeploymentConfigFunc(namespace, config)
 }
+
+// labelFor builds a string identifier for a DeploymentConfig.
+func labelFor(config *deployapi.DeploymentConfig) string {
+	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+}
