@@ -209,7 +209,7 @@ the present working directory is the same directory as this README.
  * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository from step 10.
  * Otherwise you can request a new build by running:
 
-        $ osc start-build -n test ruby-sample-build
+            $ osc start-build -n test ruby-sample-build
 
 15. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
