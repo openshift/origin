@@ -99,15 +99,15 @@ func TestSyncNamespace(t *testing.T) {
 
 	reviewer := &mockReviewer{
 		expectedResults: map[string]*mockReview{
-			"foo": &mockReview{
+			"foo": {
 				users:  []string{alice.GetName(), bob.GetName()},
 				groups: eve.GetGroups(),
 			},
-			"bar": &mockReview{
+			"bar": {
 				users:  []string{frank.GetName(), eve.GetName()},
 				groups: []string{"random"},
 			},
-			"car": &mockReview{
+			"car": {
 				users:  []string{},
 				groups: []string{},
 			},

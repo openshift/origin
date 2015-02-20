@@ -454,7 +454,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	go util.Forever(func() {
 		c.ensureMasterAuthorizationNamespace()
 		c.ensureComponentAuthorizationRules()
-	}, 10)
+	}, 10*time.Second)
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
