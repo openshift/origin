@@ -73,7 +73,7 @@ type RunContainerOptions struct {
 	ExternalScripts bool
 	ScriptsURL      string
 	Location        string
-	Command         api.Script
+	Command         string
 	Env             []string
 	Stdin           io.Reader
 	Stdout          io.Writer
@@ -135,7 +135,7 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 }
 
 // IsImageOnBuild provides information about whether the Docker image has
-// OnBuild intruction recorded in the Image Config.
+// OnBuild instruction recorded in the Image Config.
 func (d *stiDocker) IsImageOnBuild(name string) bool {
 	image, err := d.client.InspectImage(name)
 	if err != nil {
@@ -151,12 +151,10 @@ func (d *stiDocker) CheckAndPull(name string) (image *docker.Image, err error) {
 		return nil, errors.NewInspectImageError(name, err)
 	}
 	if image == nil {
-		if image, err = d.PullImage(name); err != nil {
-			return nil, err
-		}
-	} else {
-		glog.V(2).Infof("Image %s available locally", name)
+		return d.PullImage(name)
 	}
+
+	glog.V(2).Infof("Image %s available locally", name)
 	return
 }
 
