@@ -51,7 +51,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	// create an origin
 	originInterfaces, _ := latest.InterfacesFor(latest.Version)
 	originStorage := map[string]apiserver.RESTStorage{
-		"projects": projectregistry.NewREST(kubeClient.Namespaces()),
+		"projects": projectregistry.NewREST(kubeClient.Namespaces(), nil),
 	}
 	originServer := httptest.NewServer(apiserver.Handle(originStorage, v1beta1.Codec, "/osapi", "v1beta1", originInterfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper))
 	defer originServer.Close()
