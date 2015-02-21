@@ -196,9 +196,6 @@ type testImageOpenshift struct {
 }
 
 func (o *testImageOpenshift) Close() {
-	close(o.stop)
-	o.server.Close()
-	o.dockerServer.Close()
 }
 
 func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
