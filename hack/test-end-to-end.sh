@@ -83,6 +83,7 @@ function cleanup()
 	fi
 	echo
 
+	set +e
 	echo "[INFO] Dumping container logs to ${LOG_DIR}"
 	for container in $(docker ps -aq); do
 		docker logs "$container" >&"${LOG_DIR}/container-$container.log"
@@ -90,7 +91,6 @@ function cleanup()
 
 	echo "[INFO] Dumping build log to ${LOG_DIR}"
 
-	set +e
 	osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
 	osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
 	osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
@@ -213,28 +213,29 @@ echo "Log in as 'e2e-user' to see the 'test' project."
 echo "[INFO] Installing the router"
 openshift ex router --create --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 
-# install the registry
+# install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-CERT_DIR="${CERT_DIR}/openshift-client" hack/install-registry.sh
-
-echo "[INFO] Waiting for Docker registry pod to start"
-wait_for_command "osc get pods | grep registrypod | grep -i Running" $((5*TIME_MIN))
-
-echo "[INFO] Waiting for Docker registry service to start"
-wait_for_command "osc get services | grep registrypod"
-
-# services can end up on any IP.	Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY_IP=$(osc get -o template --output-version=v1beta1 --template="{{ .portalIP }}" service docker-registry)
-
-echo "[INFO] Probing the docker-registry"
-wait_for_url_timed "http://${DOCKER_REGISTRY_IP}:5001" "[INFO] Docker registry says: " $((2*TIME_MIN))
+# TODO: add --images="${USE_IMAGES}" when the Docker registry is built alongside OpenShift
+openshift ex registry --create --credentials="${KUBECONFIG}" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
 
 echo "[INFO] Pre-pulling and pushing centos7"
 docker pull centos:centos7
+# TODO: remove after this becomes part of the build
+docker pull openshift/origin-docker-registry
 echo "[INFO] Pulled centos7"
 
-docker tag -f centos:centos7 ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
-docker push ${DOCKER_REGISTRY_IP}:5001/cached/centos:centos7
+echo "[INFO] Waiting for Docker registry pod to start"
+# TODO: simplify when #4702 is fixed upstream
+wait_for_command '[[ "$(osc get endpoints docker-registry -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+
+# services can end up on any IP.	Make sure we get the IP we need for the docker registry
+DOCKER_REGISTRY=$(osc get --output-version=v1beta1 --template="{{ .portalIP }}:{{ .port }}" service docker-registry)
+
+echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
+wait_for_url_timed "http://${DOCKER_REGISTRY}" "[INFO] Docker registry says: " $((2*TIME_MIN))
+
+docker tag -f centos:centos7 ${DOCKER_REGISTRY}/cached/centos:centos7
+docker push ${DOCKER_REGISTRY}/cached/centos:centos7
 echo "[INFO] Pushed centos7"
 
 # Process template and create
@@ -267,7 +268,8 @@ wait_for_app "test"
 #wait_for_app "custom"
 
 # ensure the router is started
-wait_for_command "osc get pods | grep router-1 | grep -i Running" $((5*TIME_MIN))
+# TODO: simplify when #4702 is fixed upstream
+wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50

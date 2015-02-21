@@ -36,17 +36,17 @@ At this stage of OpenShift 3 development, there are a few things that you will n
 
 ### Docker Changes ###
 
-First, you'll need to configure the docker daemon on your host to trust the docker registry service you'll be starting.
+First, you'll need to configure the Docker daemon on your host to trust the Docker registry service you'll be starting.
 
-To do this, you need to add "--insecure-registry 172.30.17.0/24" to the docker daemon invocation, eg:
+To do this, you need to add "--insecure-registry 172.30.17.0/24" to the Docker daemon invocation, eg:
 
     $ docker -d --insecure-registry 172.30.17.0/24
 
 Note that you need to have installed Docker 1.3.2 or higher in order to use the `--insecure-registry` flag.
 
-If you are running docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
+If you are running Docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
 
-This will instruct the docker daemon to trust any docker registry on the 172.30.17.0/24 subnet,
+This will instruct the Docker daemon to trust any Docker registry on the 172.30.17.0/24 subnet,
 rather than requiring the registry to have a verifiable certificate.
 
 These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.17.0/24.
@@ -73,7 +73,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 NOTE: All commands assume the `osc` binary/symlink is in your path and
 the present working directory is the same directory as this README.
 
-1. *Optional*: Pre-pull the docker images used in this sample.  This is
+1. *Optional*: Pre-pull the Docker images used in this sample.  This is
     not strictly necessary as OpenShift will pull the images as it needs them,
     but by doing it up front it will prevent lengthy operations during build
     and deployment which might otherwise lead you to believe the process
@@ -104,52 +104,49 @@ the present working directory is the same directory as this README.
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/admin/root.crt
         $ sudo chmod +r "$KUBECONFIG"
 
-4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
+4. Deploy a private Docker registry within OpenShift with the certs necessary for access to master:
 
         $ sudo chmod +r ./openshift.local.certificates/openshift-client/key.key
-        $ pushd ../..
-        $ CERT_DIR=examples/sample-app/openshift.local.certificates/openshift-client hack/install-registry.sh
-        $ popd
+        $ openshift ex registry --create --credentials="${KUBECONFIG}"
+          docker-registry # the service
+          docker-registry # the deployment config
 
-    Note that the private docker registry is using ephemeral storage,
+    Note that the private Docker registry is using ephemeral storage,
     so when it is stopped, the image will be lost. An external volume
     could be used for persistent storage, but that is beyond the scope
     of this tutorial.
 
 5. Confirm the registry is started (this can take a few minutes):
 
-        $ osc get pods
+        $ osc describe service docker-registry
 
     You should see:
 
-        Name                                   Image(s)                    Host                     Labels                                                                                                   Status
-        ----------                             ----------                  ----------               ----------                                                                                               ----------
-        94679170-54dc-11e4-88cc-3c970e3bf0b7   openshift/docker-registry   localhost.localdomain/   deployment=registry-config,name=registrypod,replicationController=946583f6-54dc-11e4-88cc-3c970e3bf0b7   Running
+        Name:       docker-registry
+        Labels:     docker-registry=default
+        Selector:   docker-registry=default
+        Port:       5000
+        Endpoints:  172.17.0.60:5000
+        No events.
 
-6. Confirm the registry service is running.  Note that the actual IP address may vary.
+    If "Endpoints" is listed as <none>, your registry hasn't started yet.  You can run `osc get pods` to
+    see the registry pod and if there are any issues. Once the pod has started, the IP of the pod will
+    be added to the docker-registry service list so that it's reachable from other places.
 
-        $ osc get services
+6. Confirm the registry is accessible (you may need to run this more than once):
 
-    You should see:
-
-        Name                Labels              Selector            IP                  Port
-        ----------          ----------          ----------          ----------          ----------
-        docker-registry                         name=registrypod    172.30.17.3        5001
-
-7. Confirm the registry is accessible (you may need to run this more than once):
-
-        $ curl `osc get services docker-registry -o template --template="{{ .portalIP}}:{{ .port }}"`
+        $ curl `osc get service docker-registry --template="{{ .portalIP}}:{{ .port }}"`
 
     You should see:
 
         "docker-registry server (dev) (v0.9.0)"
 
 
-8. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
+7. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
         $ osc create -f project.json
 
-9. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`
+8. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift
@@ -159,7 +156,7 @@ the present working directory is the same directory as this README.
       you'll see the page update as you deploy objects into the project
       and run builds.
 
-10. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+9. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
     to an OpenShift-visible git account that you control, preferably
     somewhere that can also reach your OpenShift server with a webhook.
     A github.com account is an obvious place for this, but an in-house
@@ -172,7 +169,7 @@ the present working directory is the same directory as this README.
     Without your own fork, you can still run the initial build from
     OpenShift's public repository, just not a changed build.
 
-11. *Optional:* Add the following webhook under the settings in your new GitHub repository:
+10. *Optional:* Add the following webhook under the settings in your new GitHub repository:
 
         $ https://<host>:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
 
@@ -181,12 +178,12 @@ the present working directory is the same directory as this README.
     will almost certainly need to "Disable SSL Verification" for your test
     instance as the certificate chain generated is not publicly verified.
 
-12. Edit application-template-stibuild.json which will define the sample application
+11. Edit application-template-stibuild.json which will define the sample application
 
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
 
-13. Submit the application template for processing (generating shared parameters requested in the template)
+12. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
         $ osc process -n test -f application-template-stibuild.json | osc create -n test -f -
@@ -205,13 +202,13 @@ the present working directory is the same directory as this README.
     Note that no build has actually occurred yet, so at this time there
     is no image to deploy and no application to visit.
 
-14. Trigger an initial build of your application
- * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository from step 10.
+13. Trigger an initial build of your application
+ * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository.
  * Otherwise you can request a new build by running:
 
             $ osc start-build -n test ruby-sample-build
 
-15. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
+14. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
         $ osc get -n test builds
 
@@ -241,7 +238,7 @@ the present working directory is the same directory as this README.
     automatically trigger a deployment of the application, creating a
     pod each for the frontend (your Ruby code) and backend.
 
-16. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
+15. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
 
         $ osc get -n test pods
 
@@ -252,7 +249,7 @@ the present working directory is the same directory as this README.
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
         4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.30.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
 
-17. Determine the IP for the frontend service:
+16. Determine the IP for the frontend service:
 
         $ osc get -n test services
 
@@ -266,20 +263,20 @@ the present working directory is the same directory as this README.
 
     In this case, the IP for frontend is 172.30.17.4 and it is on port 5432.
 
-    *Note:* you can also get this information from the web console if you launched it in step 9.
+    *Note:* you can also get this information from the web console.
 
-18. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
+17. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
 
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
-19. Make a change to your ruby sample main.html file, commit, and push it via git.
+18. Make a change to your ruby sample main.html file, commit, and push it via git.
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ osc start-build -n test ruby-sample-build
 
 
-20. Repeat step 15 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
+19. Repeat step 14 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.
 
