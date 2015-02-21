@@ -48,7 +48,7 @@ func (g *SourceRefGenerator) FromDirectory(directory string) (*app.SourceRef, er
 	// Make sure that this is a git directory
 	gitRoot, err := g.repository.GetRootDir(directory)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not obtain git repository root for %s. The directory may not be part of a valid source repository.", directory)
 	}
 
 	// Get URL
