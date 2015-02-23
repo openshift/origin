@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/htpasswd"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
@@ -127,6 +128,8 @@ const (
 	PasswordAuthAnyPassword PasswordAuthType = "anypassword"
 	// PasswordAuthBasicAuthURL validates password credentials by making a request to a remote url using basic auth. See basicauthpassword.Authenticator
 	PasswordAuthBasicAuthURL PasswordAuthType = "basicauthurl"
+	// PasswordAuthHTPasswd validates usernames and passwords against an htpasswd file
+	PasswordAuthHTPasswd PasswordAuthType = "htpasswd"
 	// PasswordAuthDeny treats any username and password combination as an unsuccessful authentication
 	PasswordAuthDeny PasswordAuthType = "deny"
 )
@@ -182,6 +185,8 @@ type AuthConfig struct {
 	PasswordAuth PasswordAuthType
 	// BasicAuthURL specifies the remote URL to validate username/passwords against using basic auth. Used by PasswordAuthBasicAuthURL.
 	BasicAuthURL string
+	// HTPasswdFile specifies the path to an htpasswd file to validate username/passwords against. Used by PasswordAuthHTPasswd.
+	HTPasswdFile string
 
 	// TokenStore specifies how to validate bearer tokens. Used by AuthRequestHandlerBearer.
 	TokenStore TokenStoreType
@@ -479,6 +484,17 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	case PasswordAuthDeny:
 		// Deny any username and password
 		passwordAuth = denypassword.New()
+	case PasswordAuthHTPasswd:
+		htpasswdFile := c.HTPasswdFile
+		if len(htpasswdFile) == 0 {
+			glog.Fatalf("HTPasswdFile is required to support htpasswd auth")
+		}
+		if htpasswordAuth, err := htpasswd.New(htpasswdFile, identityMapper); err != nil {
+			glog.Fatalf("Error loading htpasswd file %s: %v", htpasswdFile, err)
+		} else {
+			passwordAuth = htpasswordAuth
+		}
+
 	default:
 		glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
 	}
