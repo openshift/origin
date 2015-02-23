@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
@@ -126,6 +127,8 @@ const (
 	PasswordAuthAnyPassword PasswordAuthType = "anypassword"
 	// PasswordAuthBasicAuthURL validates password credentials by making a request to a remote url using basic auth. See basicauthpassword.Authenticator
 	PasswordAuthBasicAuthURL PasswordAuthType = "basicauthurl"
+	// PasswordAuthDeny treats any username and password combination as an unsuccessful authentication
+	PasswordAuthDeny PasswordAuthType = "deny"
 )
 
 type TokenStoreType string
@@ -473,6 +476,9 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	case PasswordAuthAnyPassword:
 		// Accepts any username and password
 		passwordAuth = allowanypassword.New(identityMapper)
+	case PasswordAuthDeny:
+		// Deny any username and password
+		passwordAuth = denypassword.New()
 	default:
 		glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
 	}
