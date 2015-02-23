@@ -34,16 +34,21 @@ func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, labels, fields klabels.S
 	}
 
 	namespace := kapi.NamespaceValue(ctx)
-	if len(namespace) == 0 {
-		return nil, errors.New("invalid request.  Namespace parameter required.")
-	}
-
 	list := make([]authorizationapi.Policy, 0)
-	if namespacedPolicies, ok := r.Policies[namespace]; ok {
-		for _, curr := range namespacedPolicies {
-			list = append(list, curr)
+
+	if namespace == kapi.NamespaceAll {
+		for _, curr := range r.Policies {
+			for _, policy := range curr {
+				list = append(list, policy)
+			}
 		}
 
+	} else {
+		if namespacedPolicies, ok := r.Policies[namespace]; ok {
+			for _, curr := range namespacedPolicies {
+				list = append(list, curr)
+			}
+		}
 	}
 
 	return &authorizationapi.PolicyList{
