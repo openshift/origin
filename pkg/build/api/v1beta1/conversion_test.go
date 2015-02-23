@@ -16,13 +16,18 @@ func TestSTIBuildStrategyConversion(t *testing.T) {
 	var actual newer.STIBuildStrategy
 	oldVersion := current.STIBuildStrategy{
 		BuilderImage: "testimage",
+		Clean:        true,
 	}
+
 	err := Convert(&oldVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if actual.Image != oldVersion.BuilderImage {
 		t.Errorf("expected %v, actual %v", oldVersion.BuilderImage, actual.Image)
+	}
+	if actual.Incremental == oldVersion.Clean {
+		t.Errorf("expected %v, actual %v", oldVersion.Clean, actual.Incremental)
 	}
 }
 

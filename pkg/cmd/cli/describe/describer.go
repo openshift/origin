@@ -76,8 +76,8 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 		}
 	case buildapi.STIBuildStrategyType:
 		formatString(out, "Builder Image", p.Strategy.STIStrategy.Image)
-		if p.Strategy.STIStrategy.Clean {
-			formatString(out, "Clean Build", "yes")
+		if p.Strategy.STIStrategy.Incremental {
+			formatString(out, "Incremental Build", "yes")
 		}
 	case buildapi.CustomBuildStrategyType:
 		formatString(out, "Builder Image", p.Strategy.CustomStrategy.Image)
