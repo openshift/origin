@@ -264,4 +264,10 @@ openshift ex router --create --credentials="${KUBECONFIG}"
 [ "$(openshift ex router | grep 'service exists')" ]
 echo "ex router: ok"
 
+[ ! "$(openshift ex registry | grep 'does not exist')"]
+[ "$(openshift ex registry -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-docker-registry')" ]
+openshift ex registry --create --credentials="${KUBECONFIG}"
+[ "$(openshift ex registry | grep 'service exists')" ]
+echo "ex registry: ok"
+
 osc get minions,pods
