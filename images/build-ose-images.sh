@@ -64,3 +64,5 @@ else
   echo "WARNING -- Could not find ../docker-registry-extensions I have not built the registry, this build is incomplete"
   exit 1
 fi
+
+docker rmi $(docker images -q --filter "dangling=true")
