@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	policycache "github.com/openshift/origin/pkg/authorization/cache"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -367,11 +368,9 @@ func start(cfg *config, args []string) error {
 
 			EtcdHelper: etcdHelper,
 
-			AdmissionControl:              admit.NewAlwaysAdmit(),
-			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
-			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
-			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
-			RequestContextMapper:          requestContextMapper,
+			AdmissionControl:             admit.NewAlwaysAdmit(),
+			MasterAuthorizationNamespace: masterAuthorizationNamespace,
+			RequestContextMapper:         requestContextMapper,
 
 			ImageFor: imageResolverFn,
 		}
@@ -501,6 +500,13 @@ func start(cfg *config, args []string) error {
 		}
 
 		osmaster.BuildClients()
+
+		authorizationEtcd := authorizationetcd.New(etcdHelper)
+		osmaster.PolicyCache = policycache.NewPolicyCache(authorizationEtcd, authorizationEtcd)
+		osmaster.Authorizer = newAuthorizer(osmaster.PolicyCache, masterAuthorizationNamespace)
+		osmaster.AuthorizationAttributeBuilder = newAuthorizationAttributeBuilder(requestContextMapper)
+		// the policy cache must start before you attempt to start any other components
+		osmaster.RunPolicyCache()
 
 		osmaster.ProjectAuthorizationCache = projectauth.NewAuthorizationCache(
 			projectauth.NewReviewer(osmaster.PolicyClient()),
@@ -653,9 +659,8 @@ func start(cfg *config, args []string) error {
 	return nil
 }
 
-func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace string) authorizer.Authorizer {
-	authorizationEtcd := authorizationetcd.New(etcdHelper)
-	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(authorizationEtcd, authorizationEtcd))
+func newAuthorizer(policyCache *policycache.PolicyCache, masterAuthorizationNamespace string) authorizer.Authorizer {
+	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(policyCache, policyCache))
 	return authorizer
 }
 
