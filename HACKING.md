@@ -126,6 +126,9 @@ execute an individual test start etcd and then run:
 
     $ hack/test-go.sh test/integration -tags 'integration no-docker' -test.run=TestBuildClient
 
+Each integration function is executed in its own process so that it cleanly shuts down any background
+goroutines. You will not be able to run more than a single test within a single process.
+
 There is a CLI integration test suite which covers general non-Docker functionality of the CLI tool
 working against the API. Run it with:
 

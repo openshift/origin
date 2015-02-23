@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/experimental/login"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/experimental/project"
+	exrouter "github.com/openshift/origin/pkg/cmd/experimental/router"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
@@ -121,7 +122,7 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(policy.NewCommandPolicy(f, subName, "policy"))
 	experimental.AddCommand(generate.NewCmdGenerate(f, subName, "generate"))
 	experimental.AddCommand(login.NewCmdLogin(f, subName, "login"))
-	//experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
+	experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
 	return experimental
 }
 

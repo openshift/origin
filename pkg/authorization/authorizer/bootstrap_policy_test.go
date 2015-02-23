@@ -5,391 +5,414 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
 func TestViewerGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Victor",
-			},
-			Verb:      "get",
-			Resource:  "pods",
-			Namespace: "mallet",
+			Verb:     "get",
+			Resource: "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestViewerGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Victor",
-			},
-			Verb:      "get",
-			Resource:  "pods",
-			Namespace: "adze",
+			Verb:     "get",
+			Resource: "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Victor",
-			},
-			Verb:      "get",
-			Resource:  "policies",
-			Namespace: "mallet",
+			Verb:     "get",
+			Resource: "policies",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Victor",
-			},
-			Verb:      "get",
-			Resource:  "policies",
-			Namespace: "adze",
+			Verb:     "get",
+			Resource: "policies",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Victor",
-			},
-			Verb:      "create",
-			Resource:  "pods",
-			Namespace: "mallet",
+			Verb:     "create",
+			Resource: "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Victor"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Victor",
-			},
-			Verb:      "create",
-			Resource:  "pods",
-			Namespace: "adze",
+			Verb:     "create",
+			Resource: "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Edgar",
-			},
-			Verb:      "update",
-			Resource:  "pods",
-			Namespace: "mallet",
+			Verb:     "update",
+			Resource: "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Edgar",
-			},
-			Verb:      "update",
-			Resource:  "pods",
-			Namespace: "adze",
+			Verb:     "update",
+			Resource: "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Edgar",
-			},
-			Verb:      "update",
-			Resource:  "roleBindings",
-			Namespace: "mallet",
+			Verb:     "update",
+			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Edgar",
-			},
-			Verb:      "update",
-			Resource:  "roleBindings",
-			Namespace: "adze",
+			Verb:     "update",
+			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestEditorGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Edgar",
-			},
-			Verb:      "get",
-			Resource:  "pods",
-			Namespace: "mallet",
+			Verb:     "get",
+			Resource: "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestEditorGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Edgar"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Edgar",
-			},
-			Verb:      "get",
-			Resource:  "pods",
-			Namespace: "adze",
+			Verb:     "get",
+			Resource: "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Matthew",
-			},
-			Verb:      "update",
-			Resource:  "roleBindings",
-			Namespace: "mallet",
+			Verb:     "update",
+			Resource: "roleBindings",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Matthew",
-			},
-			Verb:      "update",
-			Resource:  "roleBindings",
-			Namespace: "adze",
+			Verb:     "update",
+			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Matthew",
-			},
-			Verb:      "update",
-			Resource:  "policies",
-			Namespace: "mallet",
+			Verb:     "update",
+			Resource: "policies",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Matthew",
-			},
-			Verb:      "update",
-			Resource:  "roles",
-			Namespace: "adze",
+			Verb:     "update",
+			Resource: "roles",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
 func TestAdminGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Matthew",
-			},
-			Verb:      "get",
-			Resource:  "policies",
-			Namespace: "mallet",
+			Verb:     "get",
+			Resource: "policies",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 func TestAdminGetAllowedKindInAdze(t *testing.T) {
 	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Matthew"}),
 		attributes: &DefaultAuthorizationAttributes{
-			User: &user.DefaultInfo{
-				Name: "Matthew",
-			},
-			Verb:      "get",
-			Resource:  "policies",
-			Namespace: "adze",
+			Verb:     "get",
+			Resource: "policies",
 		},
 		expectedAllowed: false,
 		expectedReason:  "denied by default",
 	}
-	test.globalPolicy, test.globalPolicyBinding = newDefaultGlobalPolicy()
-	test.namespacedPolicy, test.namespacedPolicyBinding = allNamespacedPolicies()
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
 	test.test(t)
 }
 
-func allNamespacedPolicies() ([]authorizationapi.Policy, []authorizationapi.PolicyBinding) {
-	adzePolicy, adzeBinding := newMalletPolicy()
-	malletPolicy, malletBinding := newMalletPolicy()
-
-	policies := make([]authorizationapi.Policy, 0)
-	policies = append(policies, adzePolicy...)
-	policies = append(policies, malletPolicy...)
-
-	bindings := make([]authorizationapi.PolicyBinding, 0)
-	bindings = append(bindings, adzeBinding...)
-	bindings = append(bindings, malletBinding...)
-
-	return policies, bindings
-
+func newMalletPolicies() []authorizationapi.Policy {
+	return []authorizationapi.Policy{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      authorizationapi.PolicyName,
+				Namespace: "mallet",
+			},
+			Roles: map[string]authorizationapi.Role{},
+		}}
 }
-
-func newMalletPolicy() ([]authorizationapi.Policy, []authorizationapi.PolicyBinding) {
-	return append(make([]authorizationapi.Policy, 0, 0),
-			authorizationapi.Policy{
-				ObjectMeta: kapi.ObjectMeta{
-					Name:      authorizationapi.PolicyName,
-					Namespace: "mallet",
+func newMalletBindings() []authorizationapi.PolicyBinding {
+	return []authorizationapi.PolicyBinding{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      testMasterNamespace,
+				Namespace: "mallet",
+			},
+			RoleBindings: map[string]authorizationapi.RoleBinding{
+				"projectAdmins": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "projectAdmins",
+						Namespace: "mallet",
+					},
+					RoleRef: kapi.ObjectReference{
+						Name:      "admin",
+						Namespace: testMasterNamespace,
+					},
+					Users: util.NewStringSet("Matthew"),
 				},
-				Roles: map[string]authorizationapi.Role{},
-			}),
-		append(make([]authorizationapi.PolicyBinding, 0, 0),
-			authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{
-					Name:      testMasterNamespace,
-					Namespace: "mallet",
+				"viewers": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "viewers",
+						Namespace: "mallet",
+					},
+					RoleRef: kapi.ObjectReference{
+						Name:      "view",
+						Namespace: testMasterNamespace,
+					},
+					Users: util.NewStringSet("Victor"),
 				},
-				RoleBindings: map[string]authorizationapi.RoleBinding{
-					"projectAdmins": {
-						ObjectMeta: kapi.ObjectMeta{
-							Name:      "projectAdmins",
-							Namespace: "mallet",
-						},
-						RoleRef: kapi.ObjectReference{
-							Name:      "admin",
-							Namespace: testMasterNamespace,
-						},
-						UserNames: append(make([]string, 0), "Matthew"),
+				"editors": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "editors",
+						Namespace: "mallet",
 					},
-					"viewers": {
-						ObjectMeta: kapi.ObjectMeta{
-							Name:      "viewers",
-							Namespace: "mallet",
-						},
-						RoleRef: kapi.ObjectReference{
-							Name:      "view",
-							Namespace: testMasterNamespace,
-						},
-						UserNames: append(make([]string, 0), "Victor"),
+					RoleRef: kapi.ObjectReference{
+						Name:      "edit",
+						Namespace: testMasterNamespace,
 					},
-					"editors": {
-						ObjectMeta: kapi.ObjectMeta{
-							Name:      "editors",
-							Namespace: "mallet",
-						},
-						RoleRef: kapi.ObjectReference{
-							Name:      "edit",
-							Namespace: testMasterNamespace,
-						},
-						UserNames: append(make([]string, 0), "Edgar"),
-					},
+					Users: util.NewStringSet("Edgar"),
 				},
 			},
-		)
+		},
+	}
 }

@@ -234,16 +234,13 @@ echo "start-build: ok"
 osc describe build ${started} | grep openshift/ruby-20-centos$
 
 osc cancel-build "${started}" --dump-logs --restart
-echo "cancel-build: ok"
-
 # a build for which there is an upstream tag in the corresponding imagerepo, so
 # the build should use that specific tag of the image instead of the image field
 # as defined in the buildconfig
 started=$(osc start-build ruby-sample-build-validtag)
 osc describe build ${started} | grep openshift/ruby-20-centos:success$
 osc cancel-build "${started}" --dump-logs --restart
-
-osc get minions,pods
+echo "cancel-build: ok"
 
 openshift ex policy add-group cluster-admin system:unauthenticated
 openshift ex policy remove-group cluster-admin system:unauthenticated
@@ -252,3 +249,19 @@ openshift ex policy add-user cluster-admin system:no-user
 openshift ex policy remove-user cluster-admin system:no-user
 openshift ex policy remove-user-from-project system:no-user
 echo "ex policy: ok"
+
+# Test the commands the UI projects page tells users to run
+# These should match what is described in projects.html
+openshift ex new-project ui-test-project --admin="anypassword:createuser"
+openshift ex policy add-user admin anypassword:adduser -n ui-test-project
+osc describe policybinding master -n ui-test-project | grep createuser
+osc describe policybinding master -n ui-test-project | grep adduser
+echo "ui-project-commands: ok"
+
+[ ! "$(openshift ex router | grep 'does not exist')"]
+[ "$(openshift ex router -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-haproxy-')" ]
+openshift ex router --create --credentials="${KUBECONFIG}"
+[ "$(openshift ex router | grep 'service exists')" ]
+echo "ex router: ok"
+
+osc get minions,pods

@@ -266,7 +266,7 @@ func TestExtractTarStreamTimeout(t *testing.T) {
 	}()
 	wg.Wait()
 	err = <-extractError
-	if e, ok := err.(errors.Error); err == nil || (ok && e.ErrorCode != errors.ErrTarTimeout) {
+	if e, ok := err.(errors.Error); err == nil || (ok && e.ErrorCode != errors.TarTimeoutError) {
 		t.Errorf("Did not get the expected timeout error. err = %v\n", err)
 	}
 }

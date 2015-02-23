@@ -1,9 +1,11 @@
 package httpproxy
 
 import (
+	"bufio"
 	"crypto/tls"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -48,11 +50,20 @@ func (p *UpgradeAwareSingleHostReverseProxy) RoundTrip(req *http.Request) (*http
 		return resp, err
 	}
 
-	// strip off CORS headers sent from the backend
-	resp.Header.Del("Access-Control-Allow-Credentials")
-	resp.Header.Del("Access-Control-Allow-Headers")
-	resp.Header.Del("Access-Control-Allow-Methods")
-	resp.Header.Del("Access-Control-Allow-Origin")
+	removeCORSHeaders(resp)
+	removeChallengeHeaders(resp)
+	if resp.StatusCode == http.StatusUnauthorized {
+		glog.Errorf("Got unauthorized error from backend for: %s %s", req.Method, req.URL)
+		// Internal error, backend didn't recognize proxy identity
+		// Surface as a server error to the client
+		// TODO do we need to do more than this?
+		resp = &http.Response{
+			StatusCode:    http.StatusInternalServerError,
+			Status:        http.StatusText(http.StatusInternalServerError),
+			Body:          ioutil.NopCloser(strings.NewReader("Internal Server Error")),
+			ContentLength: -1,
+		}
+	}
 
 	// TODO do we need to strip off anything else?
 
@@ -88,7 +99,10 @@ func (p *UpgradeAwareSingleHostReverseProxy) newProxyRequest(req *http.Request) 
 	}
 	// TODO is this the right way to copy headers?
 	newReq.Header = req.Header
-	// TODO do we need to exclude any headers?
+
+	// TODO do we need to exclude any other headers?
+	removeAuthHeaders(newReq)
+
 	return newReq, nil
 }
 
@@ -154,6 +168,29 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	}
 	defer backendConn.Close()
 
+	addAuthHeaders(req, p.clientConfig)
+
+	err = req.Write(backendConn)
+	if err != nil {
+		glog.Errorf("Error writing request to backend: %s", err)
+		return
+	}
+
+	resp, err := http.ReadResponse(bufio.NewReader(backendConn), req)
+	if err != nil {
+		glog.Errorf("Error reading response from backend: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+		return
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		glog.Errorf("Got unauthorized error from backend for: %s %s", req.Method, req.URL)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+		return
+	}
+
 	requestHijackedConn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
 		glog.Errorf("Error hijacking request connection: %s", err)
@@ -164,19 +201,19 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	// NOTE: from this point forward, we own the connection and we can't use
 	// w.Header(), w.Write(), or w.WriteHeader any more
 
-	err = req.Write(backendConn)
+	removeCORSHeaders(resp)
+	removeChallengeHeaders(resp)
+	err = resp.Write(requestHijackedConn)
 	if err != nil {
-		glog.Errorf("Error writing request to backend: %s", err)
+		glog.Errorf("Error writing backend response to client: %s", err)
+		return
 	}
 
 	done := make(chan struct{}, 2)
 
 	go func() {
 		_, err := io.Copy(backendConn, requestHijackedConn)
-		if err != nil {
-			// TODO I see this printed at least whenever the client goes away from the page.
-			// Should we check for different types of errors and only log certain ones?
-			// Should we make this V(2+) ?
+		if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			glog.Errorf("Error proxying data from client to backend: %v", err)
 		}
 		done <- struct{}{}
@@ -184,11 +221,42 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 
 	go func() {
 		_, err := io.Copy(requestHijackedConn, backendConn)
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			glog.Errorf("Error proxying data from backend to client: %v", err)
 		}
 		done <- struct{}{}
 	}()
 
 	<-done
+}
+
+// removeAuthHeaders strips authorization headers from an incoming client
+// This should be called on all requests before proxying
+func removeAuthHeaders(req *http.Request) {
+	req.Header.Del("Authorization")
+}
+
+// removeChallengeHeaders strips WWW-Authenticate headers from backend responses
+// This should be called on all responses before returning
+func removeChallengeHeaders(resp *http.Response) {
+	resp.Header.Del("WWW-Authenticate")
+}
+
+// removeCORSHeaders strip CORS headers sent from the backend
+// This should be called on all responses before returning
+func removeCORSHeaders(resp *http.Response) {
+	resp.Header.Del("Access-Control-Allow-Credentials")
+	resp.Header.Del("Access-Control-Allow-Headers")
+	resp.Header.Del("Access-Control-Allow-Methods")
+	resp.Header.Del("Access-Control-Allow-Origin")
+}
+
+// addAuthHeaders adds basic/bearer auth from the given config (if specified)
+// This should be run on any requests not handled by the transport returned from TransportFor(config)
+func addAuthHeaders(req *http.Request, clientConfig *kclient.Config) {
+	if clientConfig.BearerToken != "" {
+		req.Header.Set("Authorization", "Bearer "+clientConfig.BearerToken)
+	} else if clientConfig.Username != "" || clientConfig.Password != "" {
+		req.SetBasicAuth(clientConfig.Username, clientConfig.Password)
+	}
 }

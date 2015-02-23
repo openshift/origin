@@ -25,10 +25,10 @@ type testAuthorizer struct {
 	actualAttributes *authorizer.DefaultAuthorizationAttributes
 }
 
-func (a *testAuthorizer) Authorize(attributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
 	return false, "", errors.New("unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(passedAttributes authorizer.AuthorizationAttributes) ([]string, []string, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) ([]string, []string, error) {
 	attributes, ok := passedAttributes.(*authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return nil, nil, errors.New("unexpected type for test")
@@ -99,9 +99,8 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 	}
 
 	expectedAttributes := &authorizer.DefaultAuthorizationAttributes{
-		Verb:      r.reviewRequest.Verb,
-		Resource:  r.reviewRequest.Resource,
-		Namespace: namespace,
+		Verb:     r.reviewRequest.Verb,
+		Resource: r.reviewRequest.Resource,
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)

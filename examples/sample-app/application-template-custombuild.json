@@ -61,21 +61,21 @@
     },
     {
       "metadata":{
-        "name": "origin-ruby-sample",
+        "name": "origin-ruby-sample"
       },
       "kind": "ImageRepository",
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta1"
     },
     {
       "metadata":{
-        "name": "custom-docker-builder",
+        "name": "custom-docker-builder"
       },
       "kind": "ImageRepository",
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta1"
     },
     {
       "metadata":{
-        "name": "ruby-sample-build",
+        "name": "ruby-sample-build"
       },
       "kind": "BuildConfig",
       "apiVersion": "v1beta1",
@@ -122,7 +122,7 @@
           "to": {
             "name": "origin-ruby-sample"
           }
-        },
+        }
       },
       "labels": {
         "name": "ruby-sample-build"
@@ -130,7 +130,7 @@
     },
     {
       "metadata":{
-        "name": "frontend",
+        "name": "frontend"
       },
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta1",
@@ -212,7 +212,7 @@
     },
     {
       "metadata":{
-        "name": "database",
+        "name": "database"
       },
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta1",

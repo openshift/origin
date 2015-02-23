@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -26,7 +25,7 @@ type testAuthorizer struct {
 	actualAttributes *authorizer.DefaultAuthorizationAttributes
 }
 
-func (a *testAuthorizer) Authorize(passedAttributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
 	attributes, ok := passedAttributes.(*authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return false, "ERROR", errors.New("unexpected type for test")
@@ -39,7 +38,7 @@ func (a *testAuthorizer) Authorize(passedAttributes authorizer.AuthorizationAttr
 	}
 	return a.allowed, a.reason, errors.New(a.err)
 }
-func (a *testAuthorizer) GetAllowedSubjects(passedAttributes authorizer.AuthorizationAttributes) ([]string, []string, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) ([]string, []string, error) {
 	return nil, nil, nil
 }
 
@@ -104,13 +103,8 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	}
 
 	expectedAttributes := &authorizer.DefaultAuthorizationAttributes{
-		User: &user.DefaultInfo{
-			Name:   r.reviewRequest.User,
-			Groups: r.reviewRequest.Groups,
-		},
-		Verb:      r.reviewRequest.Verb,
-		Resource:  r.reviewRequest.Resource,
-		Namespace: namespace,
+		Verb:     r.reviewRequest.Verb,
+		Resource: r.reviewRequest.Resource,
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)

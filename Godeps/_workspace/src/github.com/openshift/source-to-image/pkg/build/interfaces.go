@@ -23,22 +23,29 @@ type Cleaner interface {
 
 // IncrementalBuilder provides methods that is used for builders that implements
 // the 'incremental' build workflow.
-// The Determine method checks if the artifacts from the previous build exists
+// The Exists method checks if the artifacts from the previous build exists
 // and if they can be used in the current build.
 // The Save method stores the artifacts for the next build.
 type IncrementalBuilder interface {
-	Determine(*api.Request) error
+	Exists(*api.Request) bool
 	Save(*api.Request) error
 }
 
 // ScriptsHandler provides an interface for executing the scripts
 type ScriptsHandler interface {
-	Execute(api.Script, *api.Request) error
+	Execute(string, *api.Request) error
 }
 
 // Downloader provides methods for downloading the application source code
 type Downloader interface {
 	Download(*api.Request) error
+}
+
+// SourceHandler is a wrapper for STI strategy Downloader and Preparer which
+// allows to use Download and Prepare functions from the STI strategy.
+type SourceHandler interface {
+	Downloader
+	Preparer
 }
 
 // LayeredDockerBuilder represents a minimal Docker builder interface that is

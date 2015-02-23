@@ -96,10 +96,13 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		glog.V(1).Infof(utilerr.NewAggregate(err).Error())
 	}
 
-	if err := template.AddConfigLabels(cfg, labels.Set{"template": tpl.Name}); len(err) > 0 {
-		// TODO: We don't report the processing errors to users as there is no
-		// good way how to do it for just some items.
-		glog.V(1).Infof(utilerr.NewAggregate(err).Error())
+	if tpl.ObjectLabels != nil {
+		objectLabels := labels.Set(tpl.ObjectLabels)
+		if err := template.AddConfigLabels(cfg, objectLabels); len(err) > 0 {
+			// TODO: We don't report the processing errors to users as there is no
+			// good way how to do it for just some items.
+			glog.V(1).Infof(utilerr.NewAggregate(err).Error())
+		}
 	}
 	return cfg, nil
 }

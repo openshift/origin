@@ -93,10 +93,10 @@ the present working directory is the same directory as this README.
     need to accept the server certificates and present its own client
     certificate. These are generated as part of the `openshift start`
     command in whatever the current directory is at the time. You will
-    need to point osc and curl at the appropriate .kubeconfig in order 
-    to connect to OpenShift. Assuming you are running as a user other 
-    than root, you will also need to make the .kubeconfig readable by 
-    that user. (Note: this is just for example purposes; in a real 
+    need to point osc and curl at the appropriate .kubeconfig in order
+    to connect to OpenShift. Assuming you are running as a user other
+    than root, you will also need to make the .kubeconfig readable by
+    that user. (Note: this is just for example purposes; in a real
     installation, users would generate their own keys and not have access
     to the system keys.)
 
@@ -209,7 +209,7 @@ the present working directory is the same directory as this README.
  * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository from step 10.
  * Otherwise you can request a new build by running:
 
-        $ osc start-build -n test ruby-sample-build
+            $ osc start-build -n test ruby-sample-build
 
 15. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
@@ -285,7 +285,7 @@ Congratulations, you've successfully deployed and updated an application on Open
 
 Advanced
 ---------
-OpenShift also provides features that live outside the deployment life cycle like routing.  
+OpenShift also provides features that live outside the deployment life cycle like routing.
 
 1.  Your sample app has been created with a secure route which can be viewed by performing a `GET` on the route api object.
 
@@ -295,53 +295,47 @@ OpenShift also provides features that live outside the deployment life cycle lik
 
 
 2.  To use the route you must first install a router.  OpenShift provides an HAProxy router implementation that we'll use.
-To install the router you must know the ip address of the host the router will be deployed on (used later) and the api 
+To install the router you must know the ip address of the host the router will be deployed on (used later) and the api
 url the master is listening on.  The api url can be found in the logs, your ip address can be determined with `ip a`.  Replace
 the ip address shown below with the correct one for your environment.
 
-            # Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will 
-            # take some time.  Your pod will stay in Pending state while the pull is completed 
+            # Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will
+            # take some time.  Your pod will stay in Pending state while the pull is completed
             $ docker pull openshift/origin-haproxy-router
-            
-            $ pushd ../..
-            $ sudo chmod +r ./openshift.local.certificates/openshift-client/key.key
-            $ CERT_DIR=openshift.local.certificates/openshift-client hack/install-router.sh router https://10.0.2.15:8443
-              Creating router file and starting pod...
-              router
-            $ popd
+
+            $ openshift ex router --create --credentials="${KUBECONFIG}"
+              router # the service
+              router # the deployment config
 
 
 3.  Wait for the router to start.
 
 
-            $ osc get pods
-            POD                       IP                  CONTAINER(S)                   IMAGE(S)                          HOST                           LABELS                                                                                                             STATUS
-            docker-registry-1-fnd84   172.17.0.3          registry-container             openshift/docker-registry         openshiftdev.local/127.0.0.1   deployment=docker-registry-1,deploymentconfig=docker-registry,name=registrypod,template=docker-registry-template   Running
-            router                    172.17.0.10         origin-haproxy-router-router   openshift/origin-haproxy-router   openshiftdev.local/127.0.0.1   <none>                                                                                                             Running
+            $ osc describe dc router
+            # watch for the number of deployed pods to go to 1
 
 
 4.  *Optional:* View the logs of the router.
- 
 
-            $ osc log router
+            $ osc log router-1-<podrandom-suffix>
 
 
 5.  Curl the url, substituting the ip address shown for the correct value in your environment.
 
-            $ curl -s -k --resolve www.example.com:443:10.0.2.15 https://www.example.com 
-                ... removed for readability ... 
+            $ curl -s -k --resolve www.example.com:443:10.0.2.15 https://www.example.com
+                ... removed for readability ...
                 <title>Hello from OpenShift v3!</title>
                 ... removed for readability ...
-            
+
 7. *Optional*: View the certificate being used for the secure route.
-            
+
             $ openssl s_client -servername www.example.com -connect 10.0.2.15:443
             ... removed for readability ...
             subject=/CN=www.example.com/ST=SC/C=US/emailAddress=example@example.com/O=Example/OU=Example
             issuer=/C=US/ST=SC/L=Default City/O=Default Company Ltd/OU=Test CA/CN=www.exampleca.com/emailAddress=example@example.com
             ... removed for readability ...
             ^C
-            
+
 
 
 Additional Operations

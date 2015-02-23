@@ -1,4 +1,4 @@
-package util
+package scripts
 
 import (
 	"fmt"
@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/openshift/source-to-image/pkg/errors"
 )
 
 type FakeHTTPGet struct {
@@ -31,7 +33,7 @@ func (f *FakeHTTPGet) get(url string) (*http.Response, error) {
 func getHTTPReader() (*HttpURLReader, *FakeHTTPGet) {
 	sr := &HttpURLReader{}
 	g := &FakeHTTPGet{content: "test content", statusCode: 200}
-	sr.httpGet = g.get
+	sr.Get = g.get
 	return sr, g
 }
 
@@ -82,20 +84,6 @@ func (f *FakeSchemeReader) Read(url *url.URL) (io.ReadCloser, error) {
 	return ioutil.NopCloser(strings.NewReader(f.content)), f.err
 }
 
-func (f *FakeSchemeReader) IsFromImage() bool {
-	return false
-}
-
-type FakeImageSchemeReader struct{}
-
-func (f *FakeImageSchemeReader) Read(url *url.URL) (io.ReadCloser, error) {
-	return nil, nil
-}
-
-func (f *FakeImageSchemeReader) IsFromImage() bool {
-	return true
-}
-
 func getDownloader() (Downloader, *FakeSchemeReader) {
 	fakeReader := &FakeSchemeReader{}
 	return &downloader{
@@ -107,7 +95,7 @@ func getDownloader() (Downloader, *FakeSchemeReader) {
 	}, fakeReader
 }
 
-func TestDownloadFile(t *testing.T) {
+func TestDownload(t *testing.T) {
 	dl, fr := getDownloader()
 	fr.content = "test file content"
 	temp, err := ioutil.TempFile("", "testdownload")
@@ -117,7 +105,7 @@ func TestDownloadFile(t *testing.T) {
 	defer os.Remove(temp.Name())
 	u, _ := url.Parse("http://www.test.url/a/file")
 	temp.Close()
-	_, err = dl.DownloadFile(u, temp.Name())
+	err = dl.Download(u, temp.Name())
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -127,19 +115,19 @@ func TestDownloadFile(t *testing.T) {
 	}
 }
 
-func TestNoDownloadFile(t *testing.T) {
+func TestNoDownload(t *testing.T) {
 	dl := &downloader{
 		schemeReaders: map[string]schemeReader{
-			"image": &FakeImageSchemeReader{},
+			"image": &ImageReader{},
 		},
 	}
 	u, _ := url.Parse("image:///tmp/testfile")
-	download, err := dl.DownloadFile(u, "")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	err := dl.Download(u, "")
+	if err == nil {
+		t.Error("Expected error with information about scripts inside the image!")
 	}
-	if download {
-		t.Error("Expected no download, but got true!")
+	if e, ok := err.(errors.Error); !ok || e.ErrorCode != errors.ScriptsInsideImageError {
+		t.Errorf("Unexpected error %v", err)
 	}
 }
 
@@ -148,7 +136,7 @@ func TestNoDownloader(t *testing.T) {
 		schemeReaders: map[string]schemeReader{},
 	}
 	u, _ := url.Parse("http://www.test.url/a/file")
-	_, err := dl.DownloadFile(u, "")
+	err := dl.Download(u, "")
 	if err == nil {
 		t.Errorf("Expected error, got nil!")
 	}

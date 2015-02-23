@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/git"
-	"github.com/openshift/source-to-image/pkg/script"
+	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 )
@@ -26,37 +26,39 @@ const (
 )
 
 var (
-	// List of directories that needs to be present inside workign dir
+	// List of directories that needs to be present inside working dir
 	workingDirs = []string{
-		"upload/scripts",
-		"upload/src",
-		"downloads/scripts",
-		"downloads/defaultScripts",
+		api.UploadScripts,
+		api.Source,
+		api.DefaultScripts,
+		api.UserScripts,
 	}
 )
 
 // STI strategy executes the STI build.
 // For more details about STI, visit https://github.com/openshift/source-to-image
 type STI struct {
-	request         *api.Request
-	result          *api.Result
-	postExecutor    docker.PostExecutor
-	installer       script.Installer
-	git             git.Git
-	fs              util.FileSystem
-	tar             tar.Tar
-	docker          docker.Docker
-	callbackInvoker util.CallbackInvoker
-	requiredScripts []api.Script
-	optionalScripts []api.Script
+	request          *api.Request
+	result           *api.Result
+	postExecutor     docker.PostExecutor
+	installer        scripts.Installer
+	git              git.Git
+	fs               util.FileSystem
+	tar              tar.Tar
+	docker           docker.Docker
+	callbackInvoker  util.CallbackInvoker
+	requiredScripts  []string
+	optionalScripts  []string
+	externalScripts  map[string]bool
+	installedScripts map[string]bool
 
 	// Interfaces
-	preparer    build.Preparer
-	incremental build.IncrementalBuilder
-	scripts     build.ScriptsHandler
-	source      build.Downloader
-	garbage     build.Cleaner
-	layered     build.Builder
+	preparer  build.Preparer
+	artifacts build.IncrementalBuilder
+	scripts   build.ScriptsHandler
+	source    build.Downloader
+	garbage   build.Cleaner
+	layered   build.Builder
 }
 
 // New returns the instance of STI builder strategy for the given request.
@@ -68,18 +70,20 @@ func New(req *api.Request) (*STI, error) {
 	if err != nil {
 		return nil, err
 	}
-	inst := script.NewInstaller(req.BaseImage, req.ScriptsURL, req.InstallDestination, docker)
+	inst := scripts.NewInstaller(req.BaseImage, req.ScriptsURL, docker)
 
 	b := &STI{
-		installer:       inst,
-		request:         req,
-		docker:          docker,
-		git:             git.New(),
-		fs:              util.NewFileSystem(),
-		tar:             tar.New(),
-		callbackInvoker: util.NewCallbackInvoker(),
-		requiredScripts: []api.Script{api.Assemble, api.Run},
-		optionalScripts: []api.Script{api.SaveArtifacts},
+		installer:        inst,
+		request:          req,
+		docker:           docker,
+		git:              git.New(),
+		fs:               util.NewFileSystem(),
+		tar:              tar.New(),
+		callbackInvoker:  util.NewCallbackInvoker(),
+		requiredScripts:  []string{api.Assemble, api.Run},
+		optionalScripts:  []string{api.SaveArtifacts},
+		externalScripts:  map[string]bool{},
+		installedScripts: map[string]bool{},
 	}
 
 	// The sources are downloaded using the GIT downloader.
@@ -90,7 +94,7 @@ func New(req *api.Request) (*STI, error) {
 
 	// Set interfaces
 	b.preparer = b
-	b.incremental = b
+	b.artifacts = b
 	b.scripts = b
 	b.postExecutor = b
 	return b, err
@@ -108,19 +112,15 @@ func (b *STI) Build(request *api.Request) (*api.Result, error) {
 		return nil, err
 	}
 
-	if err := b.incremental.Determine(request); err != nil {
-		return nil, err
-	}
-
-	if request.Incremental {
-		glog.V(1).Infof("Existing image for tag %s detected for incremental build.", request.Tag)
+	if b.request.Incremental = b.artifacts.Exists(request); b.request.Incremental {
+		glog.V(1).Infof("Existing image for tag %s detected for incremental build", request.Tag)
 	} else {
 		glog.V(1).Infof("Clean build will be performed")
 	}
 
 	glog.V(2).Infof("Performing source build from %s", request.Source)
 	if request.Incremental {
-		if err := b.incremental.Save(request); err != nil {
+		if err := b.artifacts.Save(request); err != nil {
 			glog.Warningf("Error saving previous build artifacts: %v", err)
 			glog.Warning("Clean build will be performed!")
 		}
@@ -169,21 +169,27 @@ func (b *STI) Prepare(request *api.Request) error {
 	}
 
 	// get the scripts
-	if request.ExternalRequiredScripts, err = b.installer.DownloadAndInstall(
-		b.requiredScripts, request.WorkingDir, true); err != nil {
+	required, err := b.installer.InstallRequired(b.requiredScripts, request.WorkingDir)
+	if err != nil {
 		return err
 	}
+	optional := b.installer.InstallOptional(b.optionalScripts, request.WorkingDir)
 
-	if request.ExternalOptionalScripts, err = b.installer.DownloadAndInstall(
-		b.optionalScripts, request.WorkingDir, false); err != nil {
-		glog.Warningf("Failed downloading optional scripts: %v", err)
+	for _, r := range append(required, optional...) {
+		if r.Error == nil {
+			glog.V(1).Infof("Using %v from %s", r.Script, r.URL)
+			b.externalScripts[r.Script] = r.Downloaded
+			b.installedScripts[r.Script] = r.Installed
+		} else {
+			glog.Warningf("Error getting %v from %s: %v", r.Script, r.URL, r.Error)
+		}
 	}
 
 	return nil
 }
 
-// SetScripts allows to overide default required and optional scripts
-func (b *STI) SetScripts(required, optional []api.Script) {
+// SetScripts allows to override default required and optional scripts
+func (b *STI) SetScripts(required, optional []string) {
 	b.requiredScripts = required
 	b.optionalScripts = optional
 }
@@ -204,7 +210,7 @@ func (b *STI) PostExecute(containerID string, location string) error {
 
 	cmd := []string{}
 	opts := docker.CommitContainerOptions{
-		Command:     append(cmd, filepath.Join(location, string(api.Run))),
+		Command:     append(cmd, filepath.Join(location, api.Run)),
 		Env:         b.generateConfigEnv(),
 		ContainerID: containerID,
 		Repository:  b.request.Tag,
@@ -234,33 +240,24 @@ func (b *STI) PostExecute(containerID string, location string) error {
 	return nil
 }
 
-// Determine determines if the current build supports incremental workflow.
+// Exists determines if the current build supports incremental workflow.
 // It checks if the previous image exists in the system and if so, then it
-// verifies that the save-artifacts scripts is present.
-func (b *STI) Determine(request *api.Request) (err error) {
-	//request.Incremental = false
-
+// verifies that the save-artifacts script is present.
+func (b *STI) Exists(request *api.Request) bool {
 	if request.Clean {
-		return
+		return false
 	}
 
-	// can only do incremental build if runtime image exists
-	previousImageExists, err := b.docker.IsImageInLocalRegistry(request.Tag)
-	if err != nil {
-		return
+	// can only do incremental build if runtime image exists, so always pull image
+	previousImageExists, _ := b.docker.IsImageInLocalRegistry(request.Tag)
+	if image, _ := b.docker.PullImage(request.Tag); image != nil {
+		previousImageExists = true
 	}
 
-	// we're assuming save-artifacts to exists for embedded scripts (if not we'll
-	// warn a user upon container failure and proceed with clean build)
-	// for external save-artifacts - check its existence
-	saveArtifactsExists := request.ExternalOptionalScripts ||
-		b.fs.Exists(filepath.Join(request.WorkingDir, "upload", "scripts", string(api.SaveArtifacts)))
-
-	request.Incremental = previousImageExists && saveArtifactsExists
-	return nil
+	return previousImageExists && b.installedScripts[api.SaveArtifacts]
 }
 
-// Save extracts and store the build artifacts from the previous build to a
+// Save extracts and restores the build artifacts from the previous build to a
 // current build.
 func (b *STI) Save(request *api.Request) (err error) {
 	artifactTmpDir := filepath.Join(request.WorkingDir, "upload", "artifacts")
@@ -278,7 +275,7 @@ func (b *STI) Save(request *api.Request) (err error) {
 
 	opts := docker.RunContainerOptions{
 		Image:           image,
-		ExternalScripts: request.ExternalRequiredScripts,
+		ExternalScripts: b.externalScripts[api.SaveArtifacts],
 		ScriptsURL:      request.ScriptsURL,
 		Location:        request.Location,
 		Command:         api.SaveArtifacts,
@@ -295,7 +292,7 @@ func (b *STI) Save(request *api.Request) (err error) {
 }
 
 // Execute runs the specified STI script in the builder image.
-func (b *STI) Execute(command api.Script, request *api.Request) error {
+func (b *STI) Execute(command string, request *api.Request) error {
 	glog.V(2).Infof("Using image name %s", request.BaseImage)
 
 	uploadDir := filepath.Join(request.WorkingDir, "upload")
@@ -317,12 +314,17 @@ func (b *STI) Execute(command api.Script, request *api.Request) error {
 	defer outWriter.Close()
 	defer errReader.Close()
 	defer errWriter.Close()
+	externalScripts := b.externalScripts[command]
+	// if LayeredBuild is called then all the scripts will be placed inside the image
+	if request.LayeredBuild {
+		externalScripts = false
+	}
 	opts := docker.RunContainerOptions{
 		Image:           request.BaseImage,
 		Stdout:          outWriter,
 		Stderr:          errWriter,
 		PullImage:       request.ForcePull,
-		ExternalScripts: request.ExternalRequiredScripts,
+		ExternalScripts: externalScripts,
 		ScriptsURL:      request.ScriptsURL,
 		Location:        request.Location,
 		Command:         command,

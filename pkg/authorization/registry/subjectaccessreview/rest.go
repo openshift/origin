@@ -35,20 +35,18 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	namespace := kapi.NamespaceValue(ctx)
-
 	user := &user.DefaultInfo{
 		Name:   subjectAccessReview.User,
 		Groups: subjectAccessReview.Groups,
 	}
+	requestContext := kapi.WithUser(kapi.WithNamespace(kapi.NewDefaultContext(), namespace), user)
 
 	attributes := &authorizer.DefaultAuthorizationAttributes{
-		User:      user,
-		Verb:      subjectAccessReview.Verb,
-		Resource:  subjectAccessReview.Resource,
-		Namespace: namespace,
+		Verb:     subjectAccessReview.Verb,
+		Resource: subjectAccessReview.Resource,
 	}
 
-	allowed, reason, err := r.authorizer.Authorize(attributes)
+	allowed, reason, err := r.authorizer.Authorize(requestContext, attributes)
 	if err != nil {
 		return nil, err
 	}

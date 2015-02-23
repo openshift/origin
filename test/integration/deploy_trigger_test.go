@@ -412,9 +412,6 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 }
 
 func (t *testOpenshift) Close() {
-	close(t.stop)
-	t.Server.CloseClientConnections()
-	t.Server.Close()
 }
 
 type clientDeploymentInterface struct {

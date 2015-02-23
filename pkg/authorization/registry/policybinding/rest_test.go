@@ -12,10 +12,9 @@ import (
 )
 
 func TestCreateValidationError(t *testing.T) {
-	registry := test.PolicyBindingRegistry{}
-	storage := REST{
-		registry: &registry,
-	}
+	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{}, nil)
+	storage := REST{registry: registry}
+
 	policyBinding := &authorizationapi.PolicyBinding{
 	// ObjectMeta: kapi.ObjectMeta{Name: "authTokenName"}, // Missing required field
 	}
@@ -28,12 +27,9 @@ func TestCreateValidationError(t *testing.T) {
 }
 
 func TestCreateStorageError(t *testing.T) {
-	registry := test.PolicyBindingRegistry{
-		Err: errors.New("Sample Error"),
-	}
-	storage := REST{
-		registry: &registry,
-	}
+	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{}, nil)
+	storage := REST{registry: registry}
+
 	policyBinding := &authorizationapi.PolicyBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "master"},
 		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
@@ -47,10 +43,9 @@ func TestCreateStorageError(t *testing.T) {
 }
 
 func TestCreateValid(t *testing.T) {
-	registry := test.PolicyBindingRegistry{}
-	storage := REST{
-		registry: &registry,
-	}
+	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{}, nil)
+	storage := REST{registry: registry}
+
 	policyBinding := &authorizationapi.PolicyBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
 		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
@@ -92,23 +87,20 @@ func TestGetError(t *testing.T) {
 }
 
 func TestGetValid(t *testing.T) {
-	registry := test.PolicyBindingRegistry{
-		PolicyBindings: append(make([]authorizationapi.PolicyBinding, 0),
-			authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
-				PolicyRef:  kapi.ObjectReference{Namespace: "master"},
-			}),
+	testBinding := authorizationapi.PolicyBinding{
+		ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
+		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
 	}
-	storage := REST{
-		registry: &registry,
-	}
+	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{testBinding}, nil)
+	storage := REST{registry: registry}
+
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	policyBinding, err := storage.Get(ctx, "master")
 	if err != nil {
 		t.Errorf("got unexpected error: %v", err)
 		return
 	}
-	if reflect.DeepEqual(policyBinding, registry.PolicyBindings[0]) {
+	if reflect.DeepEqual(policyBinding, testBinding) {
 		t.Errorf("got unexpected policyBinding: %v", policyBinding)
 		return
 	}
@@ -134,12 +126,9 @@ func TestListError(t *testing.T) {
 }
 
 func TestListEmpty(t *testing.T) {
-	registry := test.PolicyBindingRegistry{
-		PolicyBindings: make([]authorizationapi.PolicyBinding, 0),
-	}
-	storage := REST{
-		registry: &registry,
-	}
+	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{}, nil)
+	storage := REST{registry: registry}
+
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	policyBindings, err := storage.List(ctx, labels.Everything(), labels.Everything())
 	if err != registry.Err {
@@ -158,15 +147,13 @@ func TestListEmpty(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	registry := test.PolicyBindingRegistry{
-		PolicyBindings: append(make([]authorizationapi.PolicyBinding, 0),
-			authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
-			}),
+	testBinding := authorizationapi.PolicyBinding{
+		ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
+		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
 	}
-	storage := REST{
-		registry: &registry,
-	}
+	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{testBinding}, nil)
+	storage := REST{registry: registry}
+
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	policyBindings, err := storage.List(ctx, labels.Everything(), labels.Everything())
 	if err != registry.Err {
@@ -200,10 +187,12 @@ func TestDeleteError(t *testing.T) {
 }
 
 func TestDeleteValid(t *testing.T) {
-	registry := test.PolicyBindingRegistry{}
-	storage := REST{
-		registry: &registry,
+	testBinding := authorizationapi.PolicyBinding{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "unittest"},
+		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
 	}
+	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{testBinding}, nil)
+	storage := REST{registry: registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	obj, err := storage.Delete(ctx, "foo")
@@ -220,7 +209,7 @@ func TestDeleteValid(t *testing.T) {
 		t.Errorf("Got back non-status result: %v", r)
 	}
 
-	if registry.DeletedPolicyBindingName != "foo" {
-		t.Error("Unexpected policyBinding deleted: %s", registry.DeletedPolicyBindingName)
+	if binding, _ := registry.GetPolicyBinding(ctx, "foo"); binding != nil {
+		t.Error("Unexpected binding found: %v", binding)
 	}
 }

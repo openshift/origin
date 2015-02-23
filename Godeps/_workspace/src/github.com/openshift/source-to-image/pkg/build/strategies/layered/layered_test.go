@@ -11,7 +11,7 @@ import (
 
 type FakeExecutor struct{}
 
-func (f *FakeExecutor) Execute(api.Script, *api.Request) error {
+func (f *FakeExecutor) Execute(string, *api.Request) error {
 	return nil
 }
 
@@ -37,9 +37,6 @@ func TestBuildOK(t *testing.T) {
 	}
 	if m, _ := regexp.MatchString(`test/image-\d+`, l.request.BaseImage); !m {
 		t.Errorf("Expected BaseImage test/image-withnumbers, but got %s", l.request.BaseImage)
-	}
-	if l.request.ExternalRequiredScripts {
-		t.Errorf("Expected ExternalRequiredScripts to be false!")
 	}
 	if l.request.ScriptsURL != "image:///tmp/scripts" {
 		t.Error("Expected ScriptsURL image:///tmp/scripts, but got %s", l.request.ScriptsURL)

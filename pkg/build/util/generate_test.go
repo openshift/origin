@@ -30,7 +30,8 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "test-build-config",
+			Name:   "test-build-config",
+			Labels: map[string]string{"testlabel": "testvalue"},
 		},
 		Parameters: buildapi.BuildParameters{
 			Source: source,
@@ -62,6 +63,12 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if !reflect.DeepEqual(revision, build.Parameters.Revision) {
 		t.Errorf("Build revision does not match passed in revision")
+	}
+	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
+		t.Errorf("Build does not contain labels from BuildConfig")
+	}
+	if build.Labels[buildapi.BuildConfigLabel] != bc.Name {
+		t.Errorf("Build does not contain labels from BuildConfig")
 	}
 }
 

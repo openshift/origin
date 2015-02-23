@@ -3,9 +3,11 @@ package project
 import (
 	"fmt"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -94,7 +96,7 @@ func (o *newProjectOptions) run() error {
 		adminRoleBinding.Name = "admins"
 		adminRoleBinding.RoleRef.Namespace = o.masterPolicyNamespace
 		adminRoleBinding.RoleRef.Name = o.adminRole
-		adminRoleBinding.UserNames = []string{o.adminUser}
+		adminRoleBinding.Users = util.NewStringSet(o.adminUser)
 
 		_, err := o.client.RoleBindings(project.Name).Create(adminRoleBinding)
 		if err != nil {

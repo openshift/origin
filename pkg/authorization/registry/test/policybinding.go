@@ -12,10 +12,19 @@ import (
 )
 
 type PolicyBindingRegistry struct {
-	Err                      error
-	MasterNamespace          string
-	PolicyBindings           []authorizationapi.PolicyBinding
-	DeletedPolicyBindingName string
+	// PolicyBindings is a of namespace->name->PolicyBinding
+	PolicyBindings map[string]map[string]authorizationapi.PolicyBinding
+	Err            error
+}
+
+func NewPolicyBindingRegistry(bindings []authorizationapi.PolicyBinding, err error) *PolicyBindingRegistry {
+	bindingMap := make(map[string]map[string]authorizationapi.PolicyBinding)
+
+	for _, binding := range bindings {
+		addPolicyBinding(bindingMap, binding)
+	}
+
+	return &PolicyBindingRegistry{bindingMap, err}
 }
 
 // ListPolicies obtains list of ListPolicyBinding that match a selector.
@@ -30,16 +39,17 @@ func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, labels, fie
 	}
 
 	list := make([]authorizationapi.PolicyBinding, 0)
-	for _, curr := range r.PolicyBindings {
-		if curr.Namespace == namespace {
+	if namespacedBindings, ok := r.PolicyBindings[namespace]; ok {
+		for _, curr := range namespacedBindings {
 			list = append(list, curr)
 		}
+
 	}
 
 	return &authorizationapi.PolicyBindingList{
 			Items: list,
 		},
-		r.Err
+		nil
 }
 
 // GetPolicyBinding retrieves a specific policyBinding.
@@ -53,9 +63,9 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*
 		return nil, errors.New("invalid request.  Namespace parameter required.")
 	}
 
-	for _, curr := range r.PolicyBindings {
-		if curr.Namespace == namespace && id == curr.Name {
-			return &curr, nil
+	if namespacedBindings, ok := r.PolicyBindings[namespace]; ok {
+		if binding, ok := namespacedBindings[id]; ok {
+			return &binding, nil
 		}
 	}
 
@@ -64,23 +74,71 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*
 
 // CreatePolicyBinding creates a new policyBinding.
 func (r *PolicyBindingRegistry) CreatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
-	if r.Err == nil {
-		r.PolicyBindings = append(r.PolicyBindings, *policyBinding)
+	if r.Err != nil {
+		return r.Err
 	}
-	return r.Err
+
+	namespace := kapi.NamespaceValue(ctx)
+	if len(namespace) == 0 {
+		return errors.New("invalid request.  Namespace parameter required.")
+	}
+	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing != nil {
+		return fmt.Errorf("PolicyBinding %v::%v already exists", namespace, policyBinding.Name)
+	}
+
+	addPolicyBinding(r.PolicyBindings, *policyBinding)
+
+	return nil
 }
 
 // UpdatePolicyBinding updates a policyBinding.
 func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
-	return r.Err
+	if r.Err != nil {
+		return r.Err
+	}
+
+	namespace := kapi.NamespaceValue(ctx)
+	if len(namespace) == 0 {
+		return errors.New("invalid request.  Namespace parameter required.")
+	}
+	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing == nil {
+		return fmt.Errorf("PolicyBinding %v::%v not found", namespace, policyBinding.Name)
+	}
+
+	addPolicyBinding(r.PolicyBindings, *policyBinding)
+
+	return nil
 }
 
 // DeletePolicyBinding deletes a policyBinding.
 func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string) error {
-	r.DeletedPolicyBindingName = id
-	return r.Err
+	if r.Err != nil {
+		return r.Err
+	}
+
+	namespace := kapi.NamespaceValue(ctx)
+	if len(namespace) == 0 {
+		return errors.New("invalid request.  Namespace parameter required.")
+	}
+
+	namespacedBindings, ok := r.PolicyBindings[namespace]
+	if ok {
+		delete(namespacedBindings, id)
+	}
+
+	return nil
 }
 
 func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, r.Err
+	return nil, errors.New("unsupported")
+}
+
+func addPolicyBinding(bindings map[string]map[string]authorizationapi.PolicyBinding, binding authorizationapi.PolicyBinding) {
+	namespacedBindings, ok := bindings[binding.Namespace]
+	if !ok {
+		namespacedBindings = make(map[string]authorizationapi.PolicyBinding)
+		bindings[binding.Namespace] = namespacedBindings
+	}
+
+	namespacedBindings[binding.Name] = binding
 }

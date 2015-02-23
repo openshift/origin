@@ -17,13 +17,6 @@ import (
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
-// SourceHandler is a wrapper for STI strategy Downloader and Preparer which
-// allows to use Download and Prepare functions from the STI strategy.
-type SourceHandler struct {
-	build.Downloader
-	build.Preparer
-}
-
 // OnBuild strategy executes the simple Docker build in case the image does not
 // support STI scripts but has ONBUILD instructions recorded.
 type OnBuild struct {
@@ -31,8 +24,13 @@ type OnBuild struct {
 	git     git.Git
 	fs      util.FileSystem
 	tar     tar.Tar
-	source  SourceHandler
+	source  build.SourceHandler
 	garbage build.Cleaner
+}
+
+type onBuildSourceHandler struct {
+	build.Downloader
+	build.Preparer
 }
 
 // New returns a new instance of OnBuild builder
@@ -50,9 +48,12 @@ func New(request *api.Request) (*OnBuild, error) {
 	// Use STI Prepare() and download the 'run' script optionally.
 	request.InstallDestination = "upload/src"
 	s, err := sti.New(request)
-	s.SetScripts([]api.Script{}, []api.Script{api.Assemble, api.Run})
+	s.SetScripts([]string{}, []string{api.Assemble, api.Run})
 
-	b.source = SourceHandler{&git.Clone{b.git, b.fs}, s}
+	b.source = onBuildSourceHandler{
+		&git.Clone{b.git, b.fs},
+		s,
+	}
 	b.garbage = &build.DefaultCleaner{b.fs, b.docker}
 	return b, nil
 }
@@ -119,7 +120,7 @@ func (b *OnBuild) CreateDockerfile(request *api.Request) error {
 	buffer := bytes.Buffer{}
 	uploadDir := filepath.Join(request.WorkingDir, "upload", "src")
 	buffer.WriteString(fmt.Sprintf("FROM %s\n", request.BaseImage))
-	entrypoint, err := GuessEntrypoint(uploadDir)
+	entrypoint, err := GuessEntrypoint(b.fs, uploadDir)
 	if err != nil {
 		return err
 	}
@@ -137,6 +138,6 @@ func (b *OnBuild) CreateDockerfile(request *api.Request) error {
 // hasAssembleScript checks if the the assemble script is available
 func (b *OnBuild) hasAssembleScript(request *api.Request) bool {
 	assemblePath := filepath.Join(request.WorkingDir, "upload", "src", "assemble")
-	_, err := os.Stat(assemblePath)
+	_, err := b.fs.Stat(assemblePath)
 	return err == nil
 }

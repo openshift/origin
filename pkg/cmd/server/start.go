@@ -39,6 +39,8 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	projectauth "github.com/openshift/origin/pkg/project/auth"
 
 	"github.com/openshift/origin/pkg/auth/group"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -395,8 +397,7 @@ func start(cfg *config, args []string) error {
 		// Allow token as access_token param for WebSockets
 		// TODO: make the param name configurable
 		// TODO: limit this authenticator to watch methods, if possible
-		// TODO: prevent access_token param from getting logged, if possible
-		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator))
+		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
 
 		var roots *x509.CertPool
 		if osmaster.TLS {
@@ -501,6 +502,13 @@ func start(cfg *config, args []string) error {
 
 		osmaster.BuildClients()
 
+		osmaster.ProjectAuthorizationCache = projectauth.NewAuthorizationCache(
+			projectauth.NewReviewer(osmaster.PolicyClient()),
+			osmaster.KubeClient().Namespaces(),
+			osmaster.PolicyClient(),
+			osmaster.PolicyClient(),
+			osmaster.MasterAuthorizationNamespace)
+
 		// Default to a session authenticator (for browsers), and a basicauth authenticator (for clients responding to WWW-Authenticate challenges)
 		defaultAuthRequestHandlers := strings.Join([]string{
 			string(origin.AuthRequestHandlerSession),
@@ -599,6 +607,7 @@ func start(cfg *config, args []string) error {
 		osmaster.RunDeploymentConfigController()
 		osmaster.RunDeploymentConfigChangeController()
 		osmaster.RunDeploymentImageChangeTriggerController()
+		osmaster.RunProjectAuthorizationCache()
 
 		existingKubeClient = osmaster.KubeClient()
 	}
@@ -646,7 +655,7 @@ func start(cfg *config, args []string) error {
 
 func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace string) authorizer.Authorizer {
 	authorizationEtcd := authorizationetcd.New(etcdHelper)
-	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, authorizationEtcd, authorizationEtcd)
+	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(authorizationEtcd, authorizationEtcd))
 	return authorizer
 }
 

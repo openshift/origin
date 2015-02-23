@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -12,19 +12,20 @@ import (
 
 	"github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/project/api/validation"
+	projectauth "github.com/openshift/origin/pkg/project/auth"
 )
 
-// REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	client kclient.NamespaceInterface
+	lister projectauth.Lister
 }
 
 // NewREST returns a RESTStorage object that will work against Project resources
-func NewREST(client kclient.NamespaceInterface) apiserver.RESTStorage {
-	return &REST{client: client}
+func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister) apiserver.RESTStorage {
+	return &REST{client: client, lister: lister}
 }
 
-// New returns a new Project for use with Create and Update.
+// New returns a new Project
 func (s *REST) New() runtime.Object {
 	return &api.Project{}
 }
@@ -66,11 +67,15 @@ func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
 
 // List retrieves a list of Projects that match selector.
 func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	namespaces, err := s.client.List(selector)
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("Unable to list projects without a user on the context"))
+	}
+	namespaceList, err := s.lister.List(user)
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespaceList(namespaces), nil
+	return convertNamespaceList(namespaceList), nil
 }
 
 // Get retrieves a Project by name
@@ -90,7 +95,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
 	if errs := validation.ValidateProject(project); len(errs) > 0 {
-		return nil, errors.NewInvalid("project", project.Name, errs)
+		return nil, kerrors.NewInvalid("project", project.Name, errs)
 	}
 	namespace, err := s.client.Create(convertProject(project))
 	if err != nil {

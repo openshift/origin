@@ -60,6 +60,7 @@ import (
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
@@ -113,6 +114,8 @@ type MasterConfig struct {
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 	MasterAuthorizationNamespace  string
+
+	ProjectAuthorizationCache *projectauth.AuthorizationCache
 
 	// Map requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -186,6 +189,15 @@ func (c *MasterConfig) BuildClients() {
 // KubeClient returns the kubernetes client object
 func (c *MasterConfig) KubeClient() *kclient.Client {
 	return c.kubeClient
+}
+
+// PolicyClient returns the policy client object
+// It must have the following capabilities:
+//  list, watch all policyBindings in all namespaces
+//  list, watch all policies in all namespaces
+//  create resourceAccessReviews in all namespaces
+func (c *MasterConfig) PolicyClient() *osclient.Client {
+	return c.osClient
 }
 
 // DeploymentClient returns the deployment client object
@@ -288,7 +300,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"routes": routeregistry.NewREST(routeEtcd),
 
-		"projects": projectregistry.NewREST(kclient.Namespaces()),
+		"projects": projectregistry.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
 
 		"userIdentityMappings": useridentitymapping.NewREST(userEtcd),
 		"users":                userregistry.NewREST(userEtcd),
@@ -301,7 +313,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"policies":              policyregistry.NewREST(authorizationEtcd),
 		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
 		"roles":                 roleregistry.NewREST(authorizationEtcd),
-		"roleBindings":          rolebindingregistry.NewREST(authorizationEtcd, authorizationEtcd, userEtcd, c.MasterAuthorizationNamespace),
+		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
 	}
@@ -365,8 +377,6 @@ func initAPIVersionRoute(root *restful.WebService, version string) {
 // Unprotected installers' endpoints do not have any additional protection added.
 func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller) {
 	var extra []string
-
-	c.ensureComponentAuthorizationRules()
 
 	safe := kmaster.NewHandlerContainer(http.NewServeMux())
 	open := kmaster.NewHandlerContainer(http.NewServeMux())
@@ -437,6 +447,14 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	cmdutil.WaitForSuccessfulDial("tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+
+	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
+	c.ensureMasterAuthorizationNamespace()
+	c.ensureComponentAuthorizationRules()
+	go util.Forever(func() {
+		c.ensureMasterAuthorizationNamespace()
+		c.ensureComponentAuthorizationRules()
+	}, 10*time.Second)
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
@@ -445,6 +463,21 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
+}
+
+// ensureMasterAuthorizationNamespace is called as part of global policy initialization to ensure master namespace exists
+func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
+
+	// ensure that master namespace actually exists
+	namespace, err := c.KubeClient().Namespaces().Get(c.MasterAuthorizationNamespace)
+	if err != nil {
+		namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.MasterAuthorizationNamespace}}
+		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
+		_, err = c.KubeClient().Namespaces().Create(namespace)
+		if err != nil {
+			glog.Errorf("Error creating namespace: %v due to %v\n", namespace, err)
+		}
+	}
 }
 
 // ensureComponentAuthorizationRules initializes the global policies
@@ -485,19 +518,22 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
-			// fail
 			forbidden(err.Error(), w, req)
 			return
 		}
 		if attributes == nil {
-			// fail
 			forbidden("No attributes", w, req)
 			return
 		}
 
-		allowed, reason, err := c.Authorizer.Authorize(attributes)
+		ctx, exists := c.RequestContextMapper.Get(req)
+		if !exists {
+			forbidden("context not found", w, req)
+			return
+		}
+
+		allowed, reason, err := c.Authorizer.Authorize(ctx, attributes)
 		if err != nil {
-			// fail
 			forbidden(err.Error(), w, req)
 			return
 		}
@@ -512,9 +548,15 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 
 // forbidden renders a simple forbidden error
 func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
-	glog.V(1).Infof("!!!!!!!!!!!! FORBIDDING because %v!\n", reason)
 	w.WriteHeader(http.StatusForbidden)
 	fmt.Fprintf(w, "Forbidden: %q %s", req.RequestURI, reason)
+}
+
+// RunProjectAuthorizationCache starts the project authorization cache
+func (c *MasterConfig) RunProjectAuthorizationCache() {
+	// TODO: look at exposing a configuration option in future to control how often we run this loop
+	period := 1 * time.Second
+	c.ProjectAuthorizationCache.Run(period)
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.

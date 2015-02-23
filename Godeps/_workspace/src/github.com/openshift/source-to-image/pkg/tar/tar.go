@@ -37,7 +37,7 @@ type Tar interface {
 	ExtractTarStream(dir string, reader io.Reader) error
 }
 
-// NewTar creates a new Tar
+// New creates a new Tar
 func New() Tar {
 	return &stiTar{
 		exclude: defaultExclusionPattern,
