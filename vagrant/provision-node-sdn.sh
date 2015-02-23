@@ -23,6 +23,7 @@ popd
 cat <<EOF > /usr/lib/systemd/system/openshift-node-sdn.service
 [Unit]
 Description=openshift SDN node
+Requires=openvswitch.service
 After=openvswitch.service
 Before=openshift-node.service
 
