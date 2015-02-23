@@ -53,3 +53,14 @@ docker push localhost:5000/openshift3_beta/ose-haproxy-router &&
 docker push localhost:5000/openshift3_beta/ose-haproxy-router:${IMAGE_VERSION} &&
 docker push localhost:5000/openshift3_beta/ose-pod &&
 docker push localhost:5000/openshift3_beta/ose-pod:${IMAGE_VERSION}
+
+if [[ -d ${OS_ROOT}/../docker-registry-extensions ]]; then
+  docker build --no-cache=true -t openshift3_beta/ose-docker-registry ${OS_ROOT}/../docker-registry-extensions/
+  docker tag openshift3_beta/ose-docker-registry localhost:5000/openshift3_beta/ose-docker-registry
+  docker tag openshift3_beta/ose-docker-registry localhost:5000/openshift3_beta/ose-docker-registry:${IMAGE_VERSION}
+  docker push localhost:5000/openshift3_beta/ose-docker-registry &&
+  docker push localhost:5000/openshift3_beta/ose-docker-registry:${IMAGE_VERSION}
+else
+  echo "WARNING -- Could not find ../docker-registry-extensions I have not built the registry, this build is incomplete"
+  exit 1
+fi
