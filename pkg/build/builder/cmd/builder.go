@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"log"
 	"os"
 
 	"github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
 	bld "github.com/openshift/origin/pkg/build/builder"
@@ -29,34 +29,40 @@ type factoryFunc func(
 func run(builderFactory factoryFunc) {
 	client, endpoint, err := dockerutil.NewHelper().GetClient()
 	if err != nil {
-		log.Fatalf("Error obtaining docker client: %v", err)
+		glog.Fatalf("Error obtaining docker client: %v", err)
 	}
 	buildStr := os.Getenv("BUILD")
 	build := api.Build{}
 	if err := latest.Codec.DecodeInto([]byte(buildStr), &build); err != nil {
-		log.Fatalf("Unable to parse build: %v", err)
+		glog.Fatalf("Unable to parse build: %v", err)
 	}
 
 	var (
 		authcfg     docker.AuthConfiguration
 		authPresent bool
 	)
+	output := true
 	if len(build.Parameters.Output.DockerImageReference) == 0 {
 		if build.Parameters.Output.To != nil {
-			log.Fatalf("Cannot determine an output image reference. Make sure a registry service is running.")
+			glog.Fatalf("Cannot determine an output image reference. Make sure a registry service is running.")
 		}
-		log.Fatal("Build output has an empty Docker image reference.")
+		output = false
 	}
-	registry, _, _, _, err := image.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference)
-	if err != nil {
-		log.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+	if output {
+		registry, _, _, _, err := image.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference)
+		if err != nil {
+			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+		}
+		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(registry)
 	}
-	authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(registry)
-
 	b := builderFactory(client, endpoint, authcfg, authPresent, &build)
 	if err = b.Build(); err != nil {
-		log.Fatalf("Build error: %v", err)
+		glog.Fatalf("Build error: %v", err)
 	}
+	if !output {
+		glog.Warning("Build does not have an Output defined, no output image was pushed to a registry.")
+	}
+
 }
 
 // RunDockerBuild creates a docker builder and runs its build
