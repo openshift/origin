@@ -205,6 +205,7 @@ type STIBuildStrategy struct {
 	Scripts string `json:"scripts,omitempty"`
 
 	// Clean flag forces the STI build to not do incremental builds if true.
+	// Deprecated: in v1beta2 it will be replaced by Incremental.
 	Clean bool `json:"clean,omitempty"`
 }
 
