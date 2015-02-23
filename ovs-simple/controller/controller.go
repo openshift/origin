@@ -45,7 +45,7 @@ func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) 
 		}
 		selfIP = addrs[0].String()
 	}
-	log.Infof("Self IP : %s", selfIP)
+	log.Infof("Self IP: %s.", selfIP)
 	return &OvsController{
 		subnetRegistry:  sub,
 		localIP:         selfIP,
@@ -77,7 +77,7 @@ func (oc *OvsController) StartMaster(sync bool) error {
 	if err != nil {
 		subnets, err := oc.subnetRegistry.GetSubnets()
 		if err != nil {
-			log.Errorf("Error in initializing/fetching subnets - %v\n", err)
+			log.Errorf("Error in initializing/fetching subnets: %v", err)
 			return err
 		}
 		for _, sub := range *subnets {
@@ -87,7 +87,7 @@ func (oc *OvsController) StartMaster(sync bool) error {
 	oc.subnetAllocator, _ = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
 	err = oc.ServeExistingMinions()
 	if err != nil {
-		log.Warningf("Error initializing existing minions. %v.", err)
+		log.Warningf("Error initializing existing minions: %v", err)
 		// no worry, we can still keep watching it.
 	}
 	go oc.watchMinions()
@@ -117,12 +117,12 @@ func (oc *OvsController) ServeExistingMinions() error {
 func (oc *OvsController) AddNode(minion string) error {
 	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
-		log.Errorf("Error creating network for minion - %s\n", minion)
+		log.Errorf("Error creating network for minion %s.", minion)
 		return err
 	}
 	addrs, err := net.LookupIP(minion)
 	if err != nil {
-		log.Errorf("Failed to lookup IP Address for %s", minion)
+		log.Errorf("Failed to lookup IP address for minion %s.", minion)
 		return err
 	}
 	minionIP := addrs[0].String()
@@ -136,7 +136,7 @@ func (oc *OvsController) AddNode(minion string) error {
 	}
 	oc.subnetRegistry.CreateSubnet(minion, sub)
 	if err != nil {
-		log.Errorf("Error writing subnet to etcd for minion %s - %v\n", minion, sn)
+		log.Errorf("Error writing subnet to etcd for minion %s: %v", minion, sn)
 		return err
 	}
 	return nil
@@ -145,12 +145,12 @@ func (oc *OvsController) AddNode(minion string) error {
 func (oc *OvsController) DeleteNode(minion string) error {
 	sub, err := oc.subnetRegistry.GetSubnet(minion)
 	if err != nil {
-		log.Errorf("Error fetching minion subnet for %s for delete operation.", minion)
+		log.Errorf("Error fetching subnet for minion %s for delete operation.", minion)
 		return err
 	}
 	_, ipnet, err := net.ParseCIDR(sub.Sub)
 	if err != nil {
-		log.Errorf("Error parsing subnet for minion %s, for deletion.", sub.Sub)
+		log.Errorf("Error parsing subnet for minion %s for deletion: %s", minion, sub.Sub)
 		return err
 	}
 	oc.subnetAllocator.ReleaseNetwork(ipnet)
@@ -165,13 +165,13 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 	if sync {
 		err := oc.syncWithMaster()
 		if err != nil {
-			log.Errorf("Failed to register with master. (%s)", err.Error())
+			log.Errorf("Failed to register with master: %v", err)
 			return err
 		}
 	}
 	err := oc.initSelfSubnet()
 	if err != nil {
-		log.Errorf("Failed to get subnet for this host. (%v)", err)
+		log.Errorf("Failed to get subnet for this host: %v", err)
 		return err
 	}
 	// restart docker daemon
@@ -179,7 +179,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 	if err == nil {
 		if !skipsetup {
 			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), ContainerNetwork).CombinedOutput()
-			log.Infof("Output of setup script: %s", out)
+			log.Infof("Output of setup script:\n%s", out)
 			if err != nil {
 				log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
 				return err
@@ -188,7 +188,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0").CombinedOutput()
 		subnets, err := oc.subnetRegistry.GetSubnets()
 		if err != nil {
-			log.Errorf("Could not fetch existing subnets. %v", err)
+			log.Errorf("Could not fetch existing subnets: %v", err)
 		}
 		for _, s := range *subnets {
 			oc.AddOFRules(s.Minion, s.Sub)
@@ -203,7 +203,7 @@ func (oc *OvsController) initSelfSubnet() error {
 	for {
 		sub, err := oc.subnetRegistry.GetSubnet(oc.hostName)
 		if err != nil {
-			log.Errorf("Could not find an allocated subnet for this minion (%s)(%s). Waiting..\n", oc.hostName, err)
+			log.Errorf("Could not find an allocated subnet for minion %s: %s. Waiting...", oc.hostName, err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -286,15 +286,15 @@ func (oc *OvsController) AddOFRules(minionIP, subnet string) {
 }
 
 func (oc *OvsController) DelOFRules(minion string) {
-	log.Infof("Calling del rules for %s", minion)
+	log.Infof("Calling del rules for %s.", minion)
 	cookie := generateCookie(minion)
 	if minion == oc.localIP {
 		iprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,ip,in_port=10", cookie)
 		arprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,arp,in_port=10", cookie)
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
-		log.Infof("Output of deleting local ip rules %s (%v)", o, e)
+		log.Infof("Output of deleting local ip rules: %s (%v)", o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
-		log.Infof("Output of deleting local arp rules %s (%v)", o, e)
+		log.Infof("Output of deleting local arp rules: %s (%v)", o, e)
 	} else {
 		iprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,ip,in_port=9", cookie)
 		arprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,arp,in_port=9", cookie)
