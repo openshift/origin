@@ -85,8 +85,8 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
 	}
 
-	if actual.Parameters.Strategy.DockerStrategy.BaseImage != "registry:3000/integration-test/imageRepo:success" {
-		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageRepo:success", actual.Parameters.Strategy.DockerStrategy.BaseImage)
+	if actual.Parameters.Strategy.DockerStrategy.Image != "registry:3000/integration-test/imageRepo:success" {
+		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageRepo:success", actual.Parameters.Strategy.DockerStrategy.Image)
 	}
 }
 
@@ -126,8 +126,8 @@ func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
 	}
 
-	if actual.Parameters.Strategy.DockerStrategy.BaseImage != "originalImage" {
-		t.Errorf("Expected %s, got %s", "originalImage", actual.Parameters.Strategy.DockerStrategy.BaseImage)
+	if actual.Parameters.Strategy.DockerStrategy.Image != "originalImage" {
+		t.Errorf("Expected %s, got %s", "originalImage", actual.Parameters.Strategy.DockerStrategy.Image)
 	}
 }
 
@@ -168,8 +168,8 @@ func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
 		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
 	}
 
-	if actual.Parameters.Strategy.DockerStrategy.BaseImage != "originalImage" {
-		t.Errorf("Expected %s, got %s", "originalImage", actual.Parameters.Strategy.DockerStrategy.BaseImage)
+	if actual.Parameters.Strategy.DockerStrategy.Image != "originalImage" {
+		t.Errorf("Expected %s, got %s", "originalImage", actual.Parameters.Strategy.DockerStrategy.Image)
 	}
 }
 
@@ -261,7 +261,7 @@ func mockBuildConfigParms(imageName, imageRepo, imageTag string) *buildapi.Build
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					BaseImage: imageName,
+					Image: imageName,
 				},
 			},
 			Output: buildapi.BuildOutput{

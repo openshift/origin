@@ -26,6 +26,20 @@ func TestSTIBuildStrategyConversion(t *testing.T) {
 	}
 }
 
+func TestDockerBuildStrategyConversion(t *testing.T) {
+	var actual newer.DockerBuildStrategy
+	oldVersion := current.DockerBuildStrategy{
+		BaseImage: "testimage",
+	}
+	err := Convert(&oldVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.Image != oldVersion.BaseImage {
+		t.Errorf("expected %v, actual %v", oldVersion.BaseImage, actual.Image)
+	}
+}
+
 func TestImageChangeTriggerFromRename(t *testing.T) {
 	old := current.ImageChangeTrigger{
 		From: kapi.ObjectReference{

@@ -119,8 +119,8 @@ func SubstituteImageReferences(build *buildapi.Build, oldImage string, newImage 
 	switch {
 	case build.Parameters.Strategy.Type == buildapi.DockerBuildStrategyType &&
 		build.Parameters.Strategy.DockerStrategy != nil &&
-		build.Parameters.Strategy.DockerStrategy.BaseImage == oldImage:
-		build.Parameters.Strategy.DockerStrategy.BaseImage = newImage
+		build.Parameters.Strategy.DockerStrategy.Image == oldImage:
+		build.Parameters.Strategy.DockerStrategy.Image = newImage
 	case build.Parameters.Strategy.Type == buildapi.STIBuildStrategyType &&
 		build.Parameters.Strategy.STIStrategy != nil &&
 		build.Parameters.Strategy.STIStrategy.Image == oldImage:

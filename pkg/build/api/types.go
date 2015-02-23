@@ -188,10 +188,10 @@ type DockerBuildStrategy struct {
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
 
-	// BaseImage is optional and indicates the image that the dockerfile for this
+	// Image is optional and indicates the image that the dockerfile for this
 	// build should "FROM".  If present, the build process will substitute this value
 	// into the FROM line of the dockerfile.
-	BaseImage string `json:"baseImage,omitempty"`
+	Image string `json:"image,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.

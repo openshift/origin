@@ -72,7 +72,7 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 			formatString(out, "No Cache", "yes")
 		}
 		if p.Strategy.DockerStrategy != nil {
-			formatString(out, "BaseImage", p.Strategy.DockerStrategy.BaseImage)
+			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
 		}
 	case buildapi.STIBuildStrategyType:
 		formatString(out, "Builder Image", p.Strategy.STIStrategy.Image)
