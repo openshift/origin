@@ -9,7 +9,7 @@ if [ -f $pid_file ]; then
 fi
 
 if [ -n "$old_pid" ]; then
-  /usr/local/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
+  /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
 else
-  /usr/local/sbin/haproxy -f $config_file -p $pid_file
+  /usr/sbin/haproxy -f $config_file -p $pid_file
 fi
