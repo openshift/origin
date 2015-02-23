@@ -69,8 +69,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	if len(build.Name) == 0 {
-		build.Name = uuid.NewUUID().String()
+		if len(build.Labels[api.BuildConfigLabel]) != 0 {
+			build.Name = fmt.Sprintf("%s-%s", build.Labels[api.BuildConfigLabel], uuid.NewUUID().String())
+		} else {
+			build.Name = uuid.NewUUID().String()
+		}
 	}
+
 	if len(build.Status) == 0 {
 		build.Status = api.BuildStatusNew
 	}
