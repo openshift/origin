@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
+	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
@@ -35,6 +36,9 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 			return nil, kerrs.NewForbidden("user", "~", errors.New("Requests to ~ must be authenticated"))
 		}
 		id = user.GetName()
+	}
+	if ok, details := validation.ValidateUserName(id, false); !ok {
+		return nil, kerrs.NewFieldInvalid("metadata.name", id, details)
 	}
 	return s.registry.GetUser(id)
 }
