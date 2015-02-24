@@ -519,13 +519,13 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 			if err != nil {
 				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
 			}
-			authRequestHandler = bearertoken.New(tokenAuthenticator)
+			authRequestHandler = bearertoken.New(tokenAuthenticator, true)
 		case TokenStoreFile:
 			tokenAuthenticator, err := GetCSVTokenAuthenticator(c.TokenFilePath)
 			if err != nil {
 				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
 			}
-			authRequestHandler = bearertoken.New(tokenAuthenticator)
+			authRequestHandler = bearertoken.New(tokenAuthenticator, true)
 		default:
 			glog.Fatalf("Unknown TokenStore %s. Must be oauth or file.  The oauth server cannot start!", c.TokenStore)
 		}
@@ -538,7 +538,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 		authRequestHandler = headerrequest.NewAuthenticator(authRequestConfig, identityMapper)
 	case AuthRequestHandlerBasicAuth:
 		passwordAuthenticator := c.getPasswordAuthenticator()
-		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator)
+		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true)
 	case AuthRequestHandlerSession:
 		authRequestHandler = c.getSessionAuth()
 	default:

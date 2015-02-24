@@ -9,11 +9,14 @@ import (
 )
 
 type Authenticator struct {
+	// auth is the token authenticator to use to validate the token
 	auth authenticator.Token
+	// removeHeader indicates whether the Authorization header should be removeHeaderd on successful auth
+	removeHeader bool
 }
 
-func New(auth authenticator.Token) *Authenticator {
-	return &Authenticator{auth}
+func New(auth authenticator.Token, removeHeader bool) *Authenticator {
+	return &Authenticator{auth, removeHeader}
 }
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -27,5 +30,9 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	}
 
 	token := parts[1]
-	return a.auth.AuthenticateToken(token)
+	user, ok, err := a.auth.AuthenticateToken(token)
+	if ok && a.removeHeader {
+		req.Header.Del("Authorization")
+	}
+	return user, ok, err
 }
