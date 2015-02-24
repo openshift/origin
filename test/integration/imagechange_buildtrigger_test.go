@@ -65,8 +65,8 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 	newBuild := event.Object.(*buildapi.Build)
 
-	if newBuild.Parameters.Strategy.DockerStrategy.BaseImage != "registry:8080/openshift/test-image:ref-2" {
-		t.Fatalf("Expected build with base image %s, got %s", "registry:8080/openshift/test-image:ref-2", newBuild.Parameters.Strategy.DockerStrategy.BaseImage)
+	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image:ref-2" {
+		t.Fatalf("Expected build with base image %s, got %s", "registry:8080/openshift/test-image:ref-2", newBuild.Parameters.Strategy.DockerStrategy.Image)
 	}
 
 	event = <-watch2.ResultChan()
@@ -97,7 +97,7 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					BaseImage: "registry:8080/openshift/test-image",
+					Image: "registry:8080/openshift/test-image",
 				},
 			},
 			Output: buildapi.BuildOutput{

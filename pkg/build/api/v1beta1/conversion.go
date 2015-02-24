@@ -69,6 +69,21 @@ func init() {
 			}
 			return nil
 		},
+		// Rename DockerBuildStrategy.BaseImage to DockerBuildStrategy.Image
+		func(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
+			out.NoCache = in.NoCache
+			out.BaseImage = in.Image
+			return nil
+		},
+		func(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
+			out.NoCache = in.NoCache
+			if len(in.Image) != 0 {
+				out.Image = in.Image
+			} else {
+				out.Image = in.BaseImage
+			}
+			return nil
+		},
 		// Deprecate ImageTag and Registry, replace with To / Tag / DockerImageReference
 		func(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
 			if err := s.Convert(&in.To, &out.To, 0); err != nil {

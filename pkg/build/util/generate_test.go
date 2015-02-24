@@ -75,7 +75,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 func TestGenerateBuildWithImageTag(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
-	strategy.DockerStrategy.BaseImage = originalImage
+	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
 	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
 
@@ -112,15 +112,15 @@ func TestGenerateBuildWithImageTag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	if build.Parameters.Strategy.DockerStrategy.BaseImage != newImage {
-		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.BaseImage, newImage)
+	if build.Parameters.Strategy.DockerStrategy.Image != newImage {
+		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, newImage)
 	}
 }
 
 func TestGenerateBuildWithImageTagUnmatchedRepo(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
-	strategy.DockerStrategy.BaseImage = originalImage
+	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
 	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
 
@@ -157,15 +157,15 @@ func TestGenerateBuildWithImageTagUnmatchedRepo(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	if build.Parameters.Strategy.DockerStrategy.BaseImage != originalImage {
-		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.BaseImage, originalImage)
+	if build.Parameters.Strategy.DockerStrategy.Image != originalImage {
+		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, originalImage)
 	}
 }
 
 func TestGenerateBuildWithImageTagNoTrigger(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
-	strategy.DockerStrategy.BaseImage = originalImage
+	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
 	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
 
@@ -190,15 +190,15 @@ func TestGenerateBuildWithImageTagNoTrigger(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	if build.Parameters.Strategy.DockerStrategy.BaseImage != originalImage {
-		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.BaseImage, originalImage)
+	if build.Parameters.Strategy.DockerStrategy.Image != originalImage {
+		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, originalImage)
 	}
 }
 
 func TestGenerateBuildWithImageTagUnmatchedTag(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
-	strategy.DockerStrategy.BaseImage = originalImage
+	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
 	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
 
@@ -235,8 +235,8 @@ func TestGenerateBuildWithImageTagUnmatchedTag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	if build.Parameters.Strategy.DockerStrategy.BaseImage != originalImage {
-		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.BaseImage, originalImage)
+	if build.Parameters.Strategy.DockerStrategy.Image != originalImage {
+		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, originalImage)
 	}
 }
 
@@ -280,7 +280,7 @@ func TestSubstituteImageDockerNil(t *testing.T) {
 	// Docker build with nil base image
 	// base image should still be nil
 	SubstituteImageReferences(build, originalImage, newImage)
-	if build.Parameters.Strategy.DockerStrategy.BaseImage != "" {
+	if build.Parameters.Strategy.DockerStrategy.Image != "" {
 		t.Errorf("Base image name was improperly substituted in docker strategy")
 	}
 }
@@ -294,12 +294,12 @@ func TestSubstituteImageDockerMatch(t *testing.T) {
 
 	// Docker build with a matched base image
 	// base image should be replaced.
-	build.Parameters.Strategy.DockerStrategy.BaseImage = originalImage
+	build.Parameters.Strategy.DockerStrategy.Image = originalImage
 	SubstituteImageReferences(build, originalImage, newImage)
-	if build.Parameters.Strategy.DockerStrategy.BaseImage != newImage {
+	if build.Parameters.Strategy.DockerStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in docker strategy")
 	}
-	if bc.Parameters.Strategy.DockerStrategy.BaseImage != "" {
+	if bc.Parameters.Strategy.DockerStrategy.Image != "" {
 		t.Errorf("Docker BuildConfig was updated when Build was modified")
 	}
 }
@@ -314,7 +314,7 @@ func TestSubstituteImageDockerMismatch(t *testing.T) {
 	// Docker build with an unmatched base image
 	// base image should not be replaced.
 	SubstituteImageReferences(build, "unmatched", "dummy")
-	if build.Parameters.Strategy.DockerStrategy.BaseImage == "dummy2" {
+	if build.Parameters.Strategy.DockerStrategy.Image == "dummy2" {
 		t.Errorf("Base image name was improperly substituted in docker strategy")
 	}
 }
@@ -360,7 +360,7 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	bc := mockBuildConfig(source, strategy, output)
 	build := GenerateBuildFromConfig(bc, nil, nil)
 
-	// Full custom build with a BaseImage and a well defined environment variable image value,
+	// Full custom build with a Image and a well defined environment variable image value,
 	// both should be replaced.  Additional environment variables should not be touched.
 	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
 	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
@@ -409,7 +409,7 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	bc := mockBuildConfig(source, strategy, output)
 	build := GenerateBuildFromConfig(bc, nil, nil)
 
-	// Full custom build with a BaseImage and a well defined environment variable image value that does not match the new image
+	// Full custom build with a Image and a well defined environment variable image value that does not match the new image
 	// Only base image should be replaced.  Environment variables should not be touched.
 	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
 	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
