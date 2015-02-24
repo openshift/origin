@@ -11,9 +11,13 @@ angular.module('openshiftConsole')
   .controller('BuildsController', function ($scope, DataService, $filter, LabelFilter) {
     $scope.builds = {};
     $scope.unfilteredBuilds = {};
+    $scope.buildConfigs = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+
+    $scope.buildsByBuildConfig = {};
+
     var watches = [];
 
     watches.push(DataService.watch("builds", $scope, function(builds) {
@@ -23,7 +27,23 @@ angular.module('openshiftConsole')
       $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);
       $scope.emptyMessage = "No builds to show";
       updateFilterWarning();
+
+      $scope.buildsByBuildConfig = {};
+      angular.forEach($scope.builds, function(build, buildName) {
+        var buildConfigName = "";
+        if (build.metadata.labels) {
+          buildConfigName = build.metadata.labels.buildconfig || "";
+        }
+        $scope.buildsByBuildConfig[buildConfigName] = $scope.buildsByBuildConfig[buildConfigName] || {};
+        $scope.buildsByBuildConfig[buildConfigName][buildName] = build;
+      });
+
       console.log("builds (subscribe)", $scope.unfilteredBuilds);
+    }));
+
+    watches.push(DataService.watch("buildConfigs", $scope, function(buildConfigs) {
+      $scope.buildConfigs = buildConfigs.by("metadata.name");
+      console.log("buildConfigs (subscribe)", $scope.buildConfigs);
     }));    
 
     var updateFilterWarning = function() {
