@@ -63,8 +63,16 @@ func TestHandleNewDeploymentCreatePodOk(t *testing.T) {
 		t.Fatalf("expected a pod to be created")
 	}
 
+	if _, hasPodAnnotation := updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; !hasPodAnnotation {
+		t.Fatalf("missing deployment pod annotation")
+	}
+
 	if e, a := createdPod.Name, updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; e != a {
 		t.Fatalf("expected deployment pod annotation %s, got %s", e, a)
+	}
+
+	if _, hasDeploymentAnnotation := createdPod.Annotations[deployapi.DeploymentAnnotation]; !hasDeploymentAnnotation {
+		t.Fatalf("missing deployment annotation")
 	}
 
 	if e, a := updatedDeployment.Name, createdPod.Annotations[deployapi.DeploymentAnnotation]; e != a {

@@ -188,10 +188,10 @@ type DockerBuildStrategy struct {
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
 
-	// BaseImage is optional and indicates the image that the dockerfile for this
+	// Image is optional and indicates the image that the dockerfile for this
 	// build should "FROM".  If present, the build process will substitute this value
 	// into the FROM line of the dockerfile.
-	BaseImage string `json:"baseImage,omitempty"`
+	Image string `json:"image,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.
@@ -205,8 +205,8 @@ type STIBuildStrategy struct {
 	// Scripts is the location of STI scripts
 	Scripts string `json:"scripts,omitempty"`
 
-	// Clean flag forces the STI build to not do incremental builds if true.
-	Clean bool `json:"clean,omitempty"`
+	// Incremental flag forces the STI build to do incremental builds if true.
+	Incremental bool `json:"incremental,omitempty"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

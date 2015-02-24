@@ -13,16 +13,16 @@ import (
 // For this authenticator to work, tokens will be part of the request URL, and are more likely to be logged or otherwise exposed.
 // Every effort should be made to filter tokens from being logged when using this authenticator.
 type Authenticator struct {
-	// Param is the query param to use as a token
+	// param is the query param to use as a token
 	param string
-	// Auth is the token authenticator to use to validate the token
+	// auth is the token authenticator to use to validate the token
 	auth authenticator.Token
-	// Remove indicates whether the parameter should be stripped from the incoming request
-	remove bool
+	// removeParam indicates whether the parameter should be stripped from the incoming request
+	removeParam bool
 }
 
-func New(param string, auth authenticator.Token, remove bool) *Authenticator {
-	return &Authenticator{param, auth, remove}
+func New(param string, auth authenticator.Token, removeParam bool) *Authenticator {
+	return &Authenticator{param, auth, removeParam}
 }
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -31,9 +31,10 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	if token == "" {
 		return nil, false, nil
 	}
-	if a.remove {
+	user, ok, err := a.auth.AuthenticateToken(token)
+	if ok && a.removeParam {
 		q.Del(a.param)
 		req.URL.RawQuery = q.Encode()
 	}
-	return a.auth.AuthenticateToken(token)
+	return user, ok, err
 }

@@ -32,6 +32,6 @@ func newUserIdentityMappings(c *Client) *userIdentityMappings {
 // when the identity is new - future APIs may allow clients to bind additional identities to an account.
 func (c *userIdentityMappings) CreateOrUpdate(mapping *userapi.UserIdentityMapping) (result *userapi.UserIdentityMapping, created bool, err error) {
 	result = &userapi.UserIdentityMapping{}
-	err = c.r.Put().Resource("userIdentityMappings").Name("-").Body(mapping).Do().WasCreated(&created).Into(result)
+	err = c.r.Put().Resource("userIdentityMappings").Name(mapping.Name).Body(mapping).Do().WasCreated(&created).Into(result)
 	return
 }

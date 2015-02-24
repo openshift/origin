@@ -186,7 +186,13 @@ type DockerBuildStrategy struct {
 	// BaseImage is optional and indicates the image that the dockerfile for this
 	// build should "FROM".  If present, the build process will substitute this value
 	// into the FROM line of the dockerfile.
+	// Deprecated: will be removed in v1beta2, use Image.
 	BaseImage string `json:"baseImage,omitempty"`
+
+	// Image is optional and indicates the image that the dockerfile for this
+	// build should "FROM".  If present, the build process will substitute this value
+	// into the FROM line of the dockerfile.
+	Image string `json:"image,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.
@@ -205,6 +211,7 @@ type STIBuildStrategy struct {
 	Scripts string `json:"scripts,omitempty"`
 
 	// Clean flag forces the STI build to not do incremental builds if true.
+	// Deprecated: in v1beta2 it will be replaced by Incremental.
 	Clean bool `json:"clean,omitempty"`
 }
 

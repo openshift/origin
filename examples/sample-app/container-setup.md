@@ -57,18 +57,10 @@ bits that are used in the sample app.
     $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
     -O examples/sample-app/application-template-stibuild.json
-    $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/project.json \
-    -O examples/sample-app/project.json
-    $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/hack/install-registry.sh
-    $ chmod a+x install-registry.sh
 
 ## Configure client security
 
-    $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
     $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/admin/root.crt
-    $ chmod +r "$KUBECONFIG"
 
 For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
@@ -76,8 +68,7 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ chmod +r ./openshift.local.certificates/openshift-client/key.key
-    $ CERT_DIR=openshift.local.certificates/openshift-client ./install-registry.sh
+    $ openshift ex registry --create --credentials="${KUBECONFIG}"
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update

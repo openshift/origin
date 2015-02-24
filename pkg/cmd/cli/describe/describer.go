@@ -2,7 +2,7 @@ package describe
 
 import (
 	"fmt"
-	"sort"
+	"reflect"
 	"strings"
 	"text/tabwriter"
 
@@ -11,6 +11,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -72,12 +73,12 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 			formatString(out, "No Cache", "yes")
 		}
 		if p.Strategy.DockerStrategy != nil {
-			formatString(out, "BaseImage", p.Strategy.DockerStrategy.BaseImage)
+			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
 		}
 	case buildapi.STIBuildStrategyType:
 		formatString(out, "Builder Image", p.Strategy.STIStrategy.Image)
-		if p.Strategy.STIStrategy.Clean {
-			formatString(out, "Clean Build", "yes")
+		if p.Strategy.STIStrategy.Incremental {
+			formatString(out, "Incremental Build", "yes")
 		}
 	case buildapi.CustomBuildStrategyType:
 		formatString(out, "Builder Image", p.Strategy.CustomStrategy.Image)
@@ -276,14 +277,8 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 		formatMeta(out, policy.ObjectMeta)
 		formatString(out, "Last Modified", policy.LastModified)
 
-		// display the rules in a consistent order
-		sortedKeys := make([]string, 0)
-		for key := range policy.Roles {
-			sortedKeys = append(sortedKeys, key)
-		}
-		sort.Strings(sortedKeys)
-
-		for _, key := range sortedKeys {
+		// using .List() here because I always want the sorted order that it provides
+		for _, key := range util.KeySet(reflect.ValueOf(policy.Roles)).List() {
 			role := policy.Roles[key]
 			fmt.Fprint(out, key+"\tVerbs\tResources\tExtension\n")
 			for _, rule := range role.Rules {
@@ -294,8 +289,8 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 
 				fmt.Fprintf(out, "%v\t%v\t%v\t%v\n",
 					"",
-					rule.Verbs,
-					rule.Resources,
+					rule.Verbs.List(),
+					rule.Resources.List(),
 					extensionString)
 
 			}
@@ -323,14 +318,8 @@ func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error
 		formatString(out, "Last Modified", policyBinding.LastModified)
 		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
 
-		// display the rules in a consistent order
-		sortedKeys := make([]string, 0)
-		for key := range policyBinding.RoleBindings {
-			sortedKeys = append(sortedKeys, key)
-		}
-		sort.Strings(sortedKeys)
-
-		for _, key := range sortedKeys {
+		// using .List() here because I always want the sorted order that it provides
+		for _, key := range util.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
 			roleBinding := policyBinding.RoleBindings[key]
 			formatString(out, "RoleBinding["+key+"]", " ")
 			formatString(out, "\tRole", roleBinding.RoleRef.Name)

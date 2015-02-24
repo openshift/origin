@@ -13,10 +13,11 @@ import (
 
 type basicAuthRequestHandler struct {
 	passwordAuthenticator authenticator.Password
+	removeHeader          bool
 }
 
-func NewBasicAuthAuthentication(passwordAuthenticator authenticator.Password) authenticator.Request {
-	return &basicAuthRequestHandler{passwordAuthenticator}
+func NewBasicAuthAuthentication(passwordAuthenticator authenticator.Password, removeHeader bool) authenticator.Request {
+	return &basicAuthRequestHandler{passwordAuthenticator, removeHeader}
 }
 
 func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -25,7 +26,11 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 		return nil, false, err
 	}
 
-	return authHandler.passwordAuthenticator.AuthenticatePassword(username, password)
+	user, ok, err := authHandler.passwordAuthenticator.AuthenticatePassword(username, password)
+	if ok && authHandler.removeHeader {
+		req.Header.Del("Authorization")
+	}
+	return user, ok, err
 }
 
 func getBasicAuthInfo(r *http.Request) (string, string, error) {

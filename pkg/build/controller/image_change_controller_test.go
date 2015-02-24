@@ -39,7 +39,7 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					BaseImage: baseImage,
+					Image: baseImage,
 				},
 			},
 		},
@@ -101,8 +101,8 @@ func TestNewImageID(t *testing.T) {
 	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
 	}
 	if buildConfigUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
@@ -123,8 +123,8 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
 	}
 	if buildConfigUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
@@ -214,8 +214,8 @@ func TestMultipleTriggers(t *testing.T) {
 	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename1" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename1", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename1" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename1", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
 	}
 
 	if buildConfigUpdater.buildcfg == nil {
@@ -273,8 +273,8 @@ func TestBuildCreateError(t *testing.T) {
 	if buildCreator.build == nil {
 		t.Error("Expected new build when new image was created!")
 	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.BaseImage)
+	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
+		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
 	}
 	if buildConfigUpdater.buildcfg != nil {
 		t.Fatal("Expected no buildConfig update on BuildCreate error!")

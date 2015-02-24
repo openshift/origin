@@ -47,8 +47,8 @@ sed -ie "s/10.0.2.15/${MASTER_IP}/g" /openshift.local.certificates/admin/.kubeco
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-node.service
 [Unit]
-Description=openshift node
-Requires=docker.service
+Description=OpenShift Node
+Requires=docker.service network.service
 After=network.service
 
 [Service]

@@ -99,3 +99,13 @@ If you find yourself still stuck, before seeking help in #openshift on freenode.
         for container in $(docker ps -aq); do
             docker logs $container >& $LOG_DIR/container-$container.log
         done
+
+1. Authorization rules:
+
+    If you are getting "forbidden" messages or 403 status codes that you aren't expecting, you should gather the policy bindings, roles, and rules being used for the namespace you are trying to access.  Run the following commands, substituting `<project-namespace>` with the namespace you're trying to access.
+
+        $ osc describe policy default --namespace=master
+        $ osc describe policybindings master --namespace=master
+        $ osc describe policy default --namespace=<project-namespace>
+        $ osc describe policybindings master --namespace=<project-namespace>
+        $ osc describe policybindings <project-namespace> --namespace=<project-namespace>

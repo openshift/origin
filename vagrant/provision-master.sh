@@ -37,8 +37,8 @@ systemctl start docker.service
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-master.service
 [Unit]
-Description=openshift master
-Requires=docker.service
+Description=OpenShift Master
+Requires=docker.service network.service
 After=network.service
 
 [Service]
@@ -51,7 +51,6 @@ EOF
 
 # Start the service
 systemctl daemon-reload
-systemctl enable openshift-master.service
 systemctl start openshift-master.service
 
 # if SDN requires service on master, then set it up

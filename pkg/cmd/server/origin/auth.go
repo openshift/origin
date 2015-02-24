@@ -22,6 +22,8 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/htpasswd"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
@@ -126,6 +128,10 @@ const (
 	PasswordAuthAnyPassword PasswordAuthType = "anypassword"
 	// PasswordAuthBasicAuthURL validates password credentials by making a request to a remote url using basic auth. See basicauthpassword.Authenticator
 	PasswordAuthBasicAuthURL PasswordAuthType = "basicauthurl"
+	// PasswordAuthHTPasswd validates usernames and passwords against an htpasswd file
+	PasswordAuthHTPasswd PasswordAuthType = "htpasswd"
+	// PasswordAuthDeny treats any username and password combination as an unsuccessful authentication
+	PasswordAuthDeny PasswordAuthType = "deny"
 )
 
 type TokenStoreType string
@@ -179,6 +185,8 @@ type AuthConfig struct {
 	PasswordAuth PasswordAuthType
 	// BasicAuthURL specifies the remote URL to validate username/passwords against using basic auth. Used by PasswordAuthBasicAuthURL.
 	BasicAuthURL string
+	// HTPasswdFile specifies the path to an htpasswd file to validate username/passwords against. Used by PasswordAuthHTPasswd.
+	HTPasswdFile string
 
 	// TokenStore specifies how to validate bearer tokens. Used by AuthRequestHandlerBearer.
 	TokenStore TokenStoreType
@@ -473,6 +481,20 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	case PasswordAuthAnyPassword:
 		// Accepts any username and password
 		passwordAuth = allowanypassword.New(identityMapper)
+	case PasswordAuthDeny:
+		// Deny any username and password
+		passwordAuth = denypassword.New()
+	case PasswordAuthHTPasswd:
+		htpasswdFile := c.HTPasswdFile
+		if len(htpasswdFile) == 0 {
+			glog.Fatalf("HTPasswdFile is required to support htpasswd auth")
+		}
+		if htpasswordAuth, err := htpasswd.New(htpasswdFile, identityMapper); err != nil {
+			glog.Fatalf("Error loading htpasswd file %s: %v", htpasswdFile, err)
+		} else {
+			passwordAuth = htpasswordAuth
+		}
+
 	default:
 		glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
 	}
@@ -513,13 +535,13 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 			if err != nil {
 				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
 			}
-			authRequestHandler = bearertoken.New(tokenAuthenticator)
+			authRequestHandler = bearertoken.New(tokenAuthenticator, true)
 		case TokenStoreFile:
 			tokenAuthenticator, err := GetCSVTokenAuthenticator(c.TokenFilePath)
 			if err != nil {
 				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
 			}
-			authRequestHandler = bearertoken.New(tokenAuthenticator)
+			authRequestHandler = bearertoken.New(tokenAuthenticator, true)
 		default:
 			glog.Fatalf("Unknown TokenStore %s. Must be oauth or file.  The oauth server cannot start!", c.TokenStore)
 		}
@@ -532,7 +554,7 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 		authRequestHandler = headerrequest.NewAuthenticator(authRequestConfig, identityMapper)
 	case AuthRequestHandlerBasicAuth:
 		passwordAuthenticator := c.getPasswordAuthenticator()
-		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator)
+		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true)
 	case AuthRequestHandlerSession:
 		authRequestHandler = c.getSessionAuth()
 	default:

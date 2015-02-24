@@ -34,16 +34,21 @@ func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, labels, fie
 	}
 
 	namespace := kapi.NamespaceValue(ctx)
-	if len(namespace) == 0 {
-		return nil, errors.New("invalid request.  Namespace parameter required.")
-	}
-
 	list := make([]authorizationapi.PolicyBinding, 0)
-	if namespacedBindings, ok := r.PolicyBindings[namespace]; ok {
-		for _, curr := range namespacedBindings {
-			list = append(list, curr)
+
+	if namespace == kapi.NamespaceAll {
+		for _, curr := range r.PolicyBindings {
+			for _, binding := range curr {
+				list = append(list, binding)
+			}
 		}
 
+	} else {
+		if namespacedBindings, ok := r.PolicyBindings[namespace]; ok {
+			for _, curr := range namespacedBindings {
+				list = append(list, curr)
+			}
+		}
 	}
 
 	return &authorizationapi.PolicyBindingList{

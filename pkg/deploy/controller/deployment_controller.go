@@ -64,12 +64,13 @@ func (dc *DeploymentController) HandleDeployment(deployment *kapi.ReplicationCon
 
 	switch currentStatus {
 	case deployapi.DeploymentStatusNew:
-		deploymentPod, makeDeployerPodErr := dc.makeDeployerPod(deployment)
-		if makeDeployerPodErr != nil {
-			return fmt.Errorf("couldn't make deployer pod for %s: %v", labelForDeployment(deployment), makeDeployerPodErr)
+		podTemplate, err := dc.makeDeployerPod(deployment)
+		if err != nil {
+			return fmt.Errorf("couldn't make deployer pod for %s: %v", labelForDeployment(deployment), err)
 		}
 
-		if _, err := dc.PodClient.CreatePod(deployment.Namespace, deploymentPod); err != nil {
+		deploymentPod, err := dc.PodClient.CreatePod(deployment.Namespace, podTemplate)
+		if err != nil {
 			// If the pod already exists, it's possible that a previous CreatePod succeeded but
 			// the deployment state update failed and now we're re-entering.
 			if !kerrors.IsAlreadyExists(err) {

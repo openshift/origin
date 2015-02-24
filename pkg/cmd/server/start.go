@@ -22,6 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -38,6 +39,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	policycache "github.com/openshift/origin/pkg/authorization/cache"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -367,11 +369,9 @@ func start(cfg *config, args []string) error {
 
 			EtcdHelper: etcdHelper,
 
-			AdmissionControl:              admit.NewAlwaysAdmit(),
-			Authorizer:                    newAuthorizer(etcdHelper, masterAuthorizationNamespace),
-			AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
-			MasterAuthorizationNamespace:  masterAuthorizationNamespace,
-			RequestContextMapper:          requestContextMapper,
+			AdmissionControl:             admit.NewAlwaysAdmit(),
+			MasterAuthorizationNamespace: masterAuthorizationNamespace,
+			RequestContextMapper:         requestContextMapper,
 
 			ImageFor: imageResolverFn,
 		}
@@ -393,7 +393,7 @@ func start(cfg *config, args []string) error {
 		if err != nil {
 			glog.Fatalf("Error creating TokenAuthenticator: %v", err)
 		}
-		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator))
+		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
 		// Allow token as access_token param for WebSockets
 		// TODO: make the param name configurable
 		// TODO: limit this authenticator to watch methods, if possible
@@ -433,7 +433,17 @@ func start(cfg *config, args []string) error {
 			osmaster.AssetKeyFile = serverCert.KeyFile
 
 			// Bootstrap clients
-			osClientConfigTemplate := kclient.Config{Host: cfg.MasterAddr.URL.String(), Version: latest.Version}
+			osClientConfigTemplate := clientcmdapi.Config{
+				Clusters: map[string]clientcmdapi.Cluster{
+					"master":        {Server: cfg.MasterAddr.URL.String()},
+					"public-master": {Server: masterPublicAddr.URL.String()},
+				},
+				Contexts: map[string]clientcmdapi.Context{
+					"master":        {Cluster: "master"},
+					"public-master": {Cluster: "public-master"},
+				},
+				CurrentContext: "master",
+			}
 
 			// OpenShift client
 			openshiftClientUser := &user.DefaultInfo{Name: "system:openshift-client"}
@@ -464,7 +474,7 @@ func start(cfg *config, args []string) error {
 			// If we're running our own Kubernetes, build client credentials
 			if startKube {
 				kubeClientUser := &user.DefaultInfo{Name: "system:kube-client"}
-				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", kubeClientUser, osmaster.KubeClientConfig); err != nil {
+				if osmaster.KubeClientConfig, err = ca.MakeClientConfig("kube-client", kubeClientUser, osClientConfigTemplate); err != nil {
 					return err
 				}
 			}
@@ -502,6 +512,13 @@ func start(cfg *config, args []string) error {
 
 		osmaster.BuildClients()
 
+		authorizationEtcd := authorizationetcd.New(etcdHelper)
+		osmaster.PolicyCache = policycache.NewPolicyCache(authorizationEtcd, authorizationEtcd)
+		osmaster.Authorizer = newAuthorizer(osmaster.PolicyCache, masterAuthorizationNamespace)
+		osmaster.AuthorizationAttributeBuilder = newAuthorizationAttributeBuilder(requestContextMapper)
+		// the policy cache must start before you attempt to start any other components
+		osmaster.RunPolicyCache()
+
 		osmaster.ProjectAuthorizationCache = projectauth.NewAuthorizationCache(
 			projectauth.NewReviewer(osmaster.PolicyClient()),
 			osmaster.KubeClient().Namespaces(),
@@ -537,6 +554,7 @@ func start(cfg *config, args []string) error {
 			// Password config
 			PasswordAuth: origin.PasswordAuthType(env("OPENSHIFT_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
 			BasicAuthURL: env("OPENSHIFT_OAUTH_BASIC_AUTH_URL", ""),
+			HTPasswdFile: env("OPENSHIFT_OAUTH_HTPASSWD_FILE", ""),
 			// Token config
 			TokenStore:    origin.TokenStoreType(env("OPENSHIFT_OAUTH_TOKEN_STORE", string(origin.TokenStoreOAuth))),
 			TokenFilePath: env("OPENSHIFT_OAUTH_TOKEN_FILE_PATH", ""),
@@ -653,9 +671,8 @@ func start(cfg *config, args []string) error {
 	return nil
 }
 
-func newAuthorizer(etcdHelper tools.EtcdHelper, masterAuthorizationNamespace string) authorizer.Authorizer {
-	authorizationEtcd := authorizationetcd.New(etcdHelper)
-	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(authorizationEtcd, authorizationEtcd))
+func newAuthorizer(policyCache *policycache.PolicyCache, masterAuthorizationNamespace string) authorizer.Authorizer {
+	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(policyCache, policyCache))
 	return authorizer
 }
 

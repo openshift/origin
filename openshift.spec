@@ -6,7 +6,7 @@
 %global commit 0128300716d74b7ea4227adad09506bfbda452c9
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
-# Openshift specific ldflags from hack/common.sh os::build:ldflags
+# OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 3+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.3.2-21-g0128300-dirty -X github.com/openshift/origin/pkg/version.commitFromGit 0128300 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit c977a45 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.10.0-503-gc977a45
 }

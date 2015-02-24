@@ -46,7 +46,7 @@ func TestGetToken(t *testing.T) {
 	userRegistry := useretcd.New(etcdHelper, user.NewDefaultUserInitStrategy())
 	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper("front-proxy-test" /*for now*/, userRegistry)
 
-	authRequestHandler := basicauthrequest.NewBasicAuthAuthentication(allowanypassword.New(identityMapper))
+	authRequestHandler := basicauthrequest.NewBasicAuthAuthentication(allowanypassword.New(identityMapper), true)
 	authHandler := oauthhandlers.NewUnionAuthenticationHandler(
 		map[string]oauthhandlers.AuthenticationChallenger{"login": passwordchallenger.NewBasicAuthChallenger("openshift")}, nil, nil)
 

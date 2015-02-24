@@ -16,5 +16,6 @@ RUN ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
     ln -s /usr/bin/openshift /usr/bin/openshift-router
 
 ENV HOME /root
+ENV KUBECONFIG /var/lib/openshift/openshift.local.certificates/admin/.kubeconfig
 WORKDIR /var/lib/openshift
 ENTRYPOINT ["/usr/bin/openshift"]

@@ -75,6 +75,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	policycache "github.com/openshift/origin/pkg/authorization/cache"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -115,6 +116,7 @@ type MasterConfig struct {
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 	MasterAuthorizationNamespace  string
 
+	PolicyCache               *policycache.PolicyCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 
 	// Map requests to contexts
@@ -557,6 +559,11 @@ func (c *MasterConfig) RunProjectAuthorizationCache() {
 	// TODO: look at exposing a configuration option in future to control how often we run this loop
 	period := 1 * time.Second
 	c.ProjectAuthorizationCache.Run(period)
+}
+
+// RunPolicyCache starts the policy cache
+func (c *MasterConfig) RunPolicyCache() {
+	c.PolicyCache.Run()
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.

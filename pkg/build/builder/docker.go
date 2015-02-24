@@ -131,7 +131,7 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 	return d.git.Checkout(dir, d.build.Parameters.Source.Git.Ref)
 }
 
-// addBuildParameters checks if a BaseImage is set to replace the default base image.
+// addBuildParameters checks if a Image is set to replace the default base image.
 // If that's the case then change the Dockerfile to make the build with the given image.
 // Also append the environment variables in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
@@ -153,8 +153,8 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	var newFileData string
-	if d.build.Parameters.Strategy.DockerStrategy.BaseImage != "" {
-		newFileData = imageRegex.ReplaceAllLiteralString(string(fileData), fmt.Sprintf("FROM %s", d.build.Parameters.Strategy.DockerStrategy.BaseImage))
+	if d.build.Parameters.Strategy.DockerStrategy.Image != "" {
+		newFileData = imageRegex.ReplaceAllLiteralString(string(fileData), fmt.Sprintf("FROM %s", d.build.Parameters.Strategy.DockerStrategy.Image))
 	} else {
 		newFileData = newFileData + string(fileData)
 	}
