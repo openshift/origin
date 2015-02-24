@@ -224,7 +224,7 @@ func replaceValidCmd(cmd, replaceArgs string, fileData []byte) (string, error) {
 			// The current line finishes on a backslash
 			// All we need to do is to replace the next
 			// line with our specified replaceArgs
-			if line[len(line)-1:] == "\\" {
+			if line[len(line)-1:] == "\\" && index == pos {
 				replaceNextLn = true
 				newFileData += line + "\n"
 				continue
