@@ -57,9 +57,6 @@ bits that are used in the sample app.
     $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
     -O examples/sample-app/application-template-stibuild.json
-    $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/project.json \
-    -O examples/sample-app/project.json
 
 ## Configure client security
 
