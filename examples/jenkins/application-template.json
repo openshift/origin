@@ -35,7 +35,7 @@
                 },
                 "strategy": {
                     "stiStrategy": {
-                        "image": "openshift/ruby-20-centos"
+                        "image": "openshift/ruby-20-centos7"
                     },
                     "type": "STI"
                 }

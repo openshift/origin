@@ -3,10 +3,10 @@
   "items": [
     {
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/ruby-20-centos",
+      "dockerImageRepository": "openshift/ruby-20-centos7",
       "kind": "ImageRepository",
       "metadata": {
-        "name": "ruby-20-centos"
+        "name": "ruby-20-centos7"
       },
       "tags": {
         "latest": "latest"
