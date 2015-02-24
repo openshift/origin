@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubectl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 
+	latest "github.com/openshift/origin/pkg/api/latest"
 	describe "github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -88,7 +90,8 @@ func NewCmdRollback(parentName string, name string, f *clientcmd.Factory, out io
 			if len(outputFormat) > 0 {
 				printer, _, perr := kubectl.GetPrinter(outputFormat, outputTemplate)
 				checkErr(perr)
-				printer.PrintObj(newConfig, out)
+				versionedPrinter := kubectl.NewVersionedPrinter(printer, kapi.Scheme, latest.Version)
+				versionedPrinter.PrintObj(newConfig, out)
 				return
 			}
 
