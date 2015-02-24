@@ -47,6 +47,10 @@ func TestUserInitialization(t *testing.T) {
 	defer server.Close()
 
 	mapping := api.UserIdentityMapping{
+		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
+		User: api.User{
+			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
+		},
 		Identity: api.Identity{
 			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
 			Provider:   "",
@@ -185,6 +189,10 @@ func TestUserLookup(t *testing.T) {
 	server := httptest.NewServer(contextHandler)
 
 	mapping := api.UserIdentityMapping{
+		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
+		User: api.User{
+			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
+		},
 		Identity: api.Identity{
 			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
 			Provider:   "",
