@@ -4,7 +4,7 @@
 
 In OpenShift, deployment is an update to a single replication controller's pod template based on triggered events. The deployment subsystem provides:
 
-*  [Declarative definition](#defining a deploymentConfig) of a desired deployment configuration which drives automated deployments by the system
+*  [Declarative definition](#defining-a-deploymentconfig) of a desired deployment configuration which drives automated deployments by the system
 *  [Triggers](#triggers) which drive new deployments in response to events
 *  [Rollbacks](#rollbacks) to a previous deployment
 *  [Strategies](strategies) for deployment rollout behavior which are user-customizable
