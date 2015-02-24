@@ -75,7 +75,7 @@ func makeTemplatePlugin(cfg *templateRouterConfig) (*templateplugin.TemplatePlug
 
 // start launches the load balancer.
 func start(cfg *clientcmd.Config, plugin router.Plugin) error {
-	kubeClient, osClient, err := cfg.Clients()
+	osClient, kubeClient, err := cfg.Clients()
 	if err != nil {
 		return err
 	}

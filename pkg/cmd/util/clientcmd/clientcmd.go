@@ -115,7 +115,7 @@ func (cfg *Config) OpenShiftConfig() *kclient.Config {
 	return &osConfig
 }
 
-func (cfg *Config) Clients() (kclient.Interface, osclient.Interface, error) {
+func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, error) {
 	cfg.bindEnv()
 
 	kubeClient, err := kclient.New(cfg.KubeConfig())
@@ -128,5 +128,5 @@ func (cfg *Config) Clients() (kclient.Interface, osclient.Interface, error) {
 		return nil, nil, fmt.Errorf("Unable to configure OpenShift client: %v", err)
 	}
 
-	return kubeClient, osClient, nil
+	return osClient, kubeClient, nil
 }
