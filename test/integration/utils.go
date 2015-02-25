@@ -22,14 +22,18 @@ const (
 )
 
 func newEtcdClient() *etcd.Client {
-	etcdServers := []string{"http://127.0.0.1:4001"}
-
-	etcdFromEnv := os.Getenv("ETCD_SERVER")
-	if len(etcdFromEnv) > 0 {
-		etcdServers = []string{etcdFromEnv}
-	}
+	etcdServers := []string{getEtcdURL()}
 
 	return etcd.NewClient(etcdServers)
+}
+
+func getEtcdURL() string {
+	etcdFromEnv := os.Getenv("ETCD_SERVER")
+	if len(etcdFromEnv) > 0 {
+		return etcdFromEnv
+	}
+
+	return "http://127.0.0.1:4001"
 }
 
 func init() {

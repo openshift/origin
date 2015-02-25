@@ -10,17 +10,17 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-type removeGroupOptions struct {
-	roleNamespace    string
-	roleName         string
-	bindingNamespace string
-	client           client.Interface
+type RemoveGroupOptions struct {
+	RoleNamespace    string
+	RoleName         string
+	BindingNamespace string
+	Client           client.Interface
 
-	groups []string
+	Groups []string
 }
 
 func NewCmdRemoveGroup(f *clientcmd.Factory) *cobra.Command {
-	options := &removeGroupOptions{}
+	options := &RemoveGroupOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "remove-group <role> <group> [group]...",
@@ -32,48 +32,48 @@ func NewCmdRemoveGroup(f *clientcmd.Factory) *cobra.Command {
 			}
 
 			var err error
-			if options.client, _, err = f.Clients(cmd); err != nil {
+			if options.Client, _, err = f.Clients(cmd); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if options.bindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+			if options.BindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if err := options.run(); err != nil {
+			if err := options.Run(); err != nil {
 				glog.Fatal(err)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.roleNamespace, "role-namespace", "master", "namespace where the role is located.")
+	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "master", "namespace where the role is located.")
 
 	return cmd
 }
 
-func (o *removeGroupOptions) complete(cmd *cobra.Command) bool {
+func (o *RemoveGroupOptions) complete(cmd *cobra.Command) bool {
 	args := cmd.Flags().Args()
 	if len(args) < 2 {
 		cmd.Help()
 		return false
 	}
 
-	o.roleName = args[0]
-	o.groups = args[1:]
+	o.RoleName = args[0]
+	o.Groups = args[1:]
 	return true
 }
 
-func (o *removeGroupOptions) run() error {
-	roleBindings, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, o.client.PolicyBindings(o.bindingNamespace))
+func (o *RemoveGroupOptions) Run() error {
+	roleBindings, err := getExistingRoleBindingsForRole(o.RoleNamespace, o.RoleName, o.Client.PolicyBindings(o.BindingNamespace))
 	if err != nil {
 		return err
 	}
 	if len(roleBindings) == 0 {
-		return fmt.Errorf("unable to locate RoleBinding for %v::%v in %v", o.roleNamespace, o.roleName, o.bindingNamespace)
+		return fmt.Errorf("unable to locate RoleBinding for %v::%v in %v", o.RoleNamespace, o.RoleName, o.BindingNamespace)
 	}
 
 	for _, roleBinding := range roleBindings {
-		roleBinding.Groups.Delete(o.groups...)
+		roleBinding.Groups.Delete(o.Groups...)
 
-		_, err = o.client.RoleBindings(o.bindingNamespace).Update(roleBinding)
+		_, err = o.Client.RoleBindings(o.BindingNamespace).Update(roleBinding)
 		if err != nil {
 			return err
 		}
