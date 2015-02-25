@@ -91,7 +91,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 func NewCmdKubectl(name string) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	f := clientcmd.New(flags)
-	cmd := f.Factory.NewKubectlCommand(os.Stdout)
+	cmd := f.Factory.NewKubectlCommand(os.Stdin, os.Stdout, os.Stderr)
 	cmd.Aliases = []string{"kubectl"}
 	cmd.Use = name
 	cmd.Short = "Kubernetes cluster management via kubectl"
