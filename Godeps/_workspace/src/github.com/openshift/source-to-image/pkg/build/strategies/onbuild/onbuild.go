@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/git"
+	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 )
@@ -123,6 +124,12 @@ func (b *OnBuild) CreateDockerfile(request *api.Request) error {
 	entrypoint, err := GuessEntrypoint(b.fs, uploadDir)
 	if err != nil {
 		return err
+	}
+	env, err := scripts.GetEnvironment(request)
+	if err != nil {
+		glog.V(1).Infof("Environment: %v", err)
+	} else {
+		buffer.WriteString(scripts.ConvertEnvironmentToDocker(env))
 	}
 	// If there is an assemble script present, run it as part of the build process
 	// as the last thing.

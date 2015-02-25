@@ -21,8 +21,8 @@ type Request struct {
 	// Tag is a result image tag name.
 	Tag string
 
-	// Clean describes whether to perform full build even if the build is eligible for incremental build.
-	Clean bool
+	// Incremental describes whether to try to perform incremental build.
+	Incremental bool
 
 	// RemovePreviousImage describes if previous image should be removed after successful build.
 	// This applies only to incremental builds.
@@ -42,9 +42,6 @@ type Request struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
-
-	// Incremental describes incremental status of current build
-	Incremental bool
 
 	// WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.
 	WorkingDir string
