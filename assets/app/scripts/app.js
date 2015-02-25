@@ -163,6 +163,13 @@ angular
     for (var i = 0; i < tabs.length; i++) {
       HawtioNav.add(tabs[i]);
     }
-  }]);
+  }])
+  .run(function($interval, dateRelativeFilter) {
+    $interval(function() {
+      $('.timestamp[data-timestamp]').text(function(i, existing) {
+        return dateRelativeFilter($(this).attr("data-timestamp")) || existing;
+      });
+    }, 30000);
+  });
 
 hawtioPluginLoader.addModule('openshiftConsole');
