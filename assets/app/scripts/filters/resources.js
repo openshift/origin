@@ -55,4 +55,15 @@ angular.module('openshiftConsole')
       }
       return null;
     };
+  })
+  .filter('webhookURL', function(DataService) {
+    return function(buildConfig, type, secret, project) {
+      return DataService.url({
+        type: "buildConfigHooks",
+        id: buildConfig,
+        namespace: project,
+        secret: secret,
+        hookType: type,
+      });
+    };
   });

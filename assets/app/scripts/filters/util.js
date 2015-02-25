@@ -30,4 +30,14 @@ angular.module('openshiftConsole')
       }
       return amount + (unit != "" ? " " + unit : "");
     }
+  })
+  .filter('helpLink', function() {
+    return function(type) {
+      switch(type) {
+        case "webhooks":
+          return "http://docs.openshift.org/latest/using_openshift/builds.html#webhook-triggers"
+        default:
+          return "http://docs.openshift.org/latest/welcome/index.html";
+      }
+    };
   });
