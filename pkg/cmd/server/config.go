@@ -144,6 +144,11 @@ func (cfg Config) GetMasterPublicAddress() (*url.URL, error) {
 	return cfg.GetMasterAddress()
 }
 
+func (cfg Config) GetEtcdBindAddress() string {
+	// Derive the etcd bind address by using the bind address and the default etcd port
+	return net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.EtcdAddr.DefaultPort))
+}
+
 func (cfg Config) GetEtcdAddress() (*url.URL, error) {
 	if cfg.EtcdAddr.Provided {
 		return cfg.EtcdAddr.URL, nil
