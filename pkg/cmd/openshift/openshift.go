@@ -80,7 +80,8 @@ func NewCommandOpenShift() *cobra.Command {
 	root.SetUsageTemplate(templates.MainUsageTemplate())
 	root.SetHelpTemplate(templates.MainHelpTemplate())
 
-	root.AddCommand(server.NewCommandStartServer("start"))
+	openshiftStartCommand, _ := server.NewCommandStartServer("start")
+	root.AddCommand(openshiftStartCommand)
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
 	root.AddCommand(newExperimentalCommand("openshift", "ex"))
