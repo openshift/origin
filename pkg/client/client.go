@@ -17,6 +17,7 @@ import (
 type Interface interface {
 	BuildsNamespacer
 	BuildConfigsNamespacer
+	BuildLogsNamespacer
 	ImagesNamespacer
 	ImageRepositoriesNamespacer
 	ImageRepositoryMappingsNamespacer
@@ -37,14 +38,22 @@ type Interface interface {
 	TemplatesNamespacer
 }
 
+// Builds provides a REST client for Builds
 func (c *Client) Builds(namespace string) BuildInterface {
 	return newBuilds(c, namespace)
 }
 
+// BuildConfigs provides a REST client for BuildConfigs
 func (c *Client) BuildConfigs(namespace string) BuildConfigInterface {
 	return newBuildConfigs(c, namespace)
 }
 
+// BuildLogs provides a REST client for BuildLogs
+func (c *Client) BuildLogs(namespace string) BuildLogInterface {
+	return newBuildLogs(c, namespace)
+}
+
+// Images provides a REST client for Images
 func (c *Client) Images(namespace string) ImageInterface {
 	return newImages(c, namespace)
 }
@@ -99,35 +108,42 @@ func (c *Client) TemplateConfigs(namespace string) TemplateConfigInterface {
 	return newTemplateConfigs(c, namespace)
 }
 
-// TemplateConfigs provides a REST client for TemplateConfig
+// Templates provides a REST client for Templates
 func (c *Client) Templates(namespace string) TemplateInterface {
 	return newTemplates(c, namespace)
 }
 
+// Policies provides a REST client for Policies
 func (c *Client) Policies(namespace string) PolicyInterface {
 	return newPolicies(c, namespace)
 }
 
+// PolicyBindings provides a REST client for PolicyBindings
 func (c *Client) PolicyBindings(namespace string) PolicyBindingInterface {
 	return newPolicyBindings(c, namespace)
 }
 
+// Roles provides a REST client for Roles
 func (c *Client) Roles(namespace string) RoleInterface {
 	return newRoles(c, namespace)
 }
 
+// RoleBindings provides a REST client for RoleBindings
 func (c *Client) RoleBindings(namespace string) RoleBindingInterface {
 	return newRoleBindings(c, namespace)
 }
 
+// ResourceAccessReviews provides a REST client for ResourceAccessReviews
 func (c *Client) ResourceAccessReviews(namespace string) ResourceAccessReviewInterface {
 	return newResourceAccessReviews(c, namespace)
 }
 
+// RootResourceAccessReviews provides a REST client for RootResourceAccessReviews
 func (c *Client) RootResourceAccessReviews() ResourceAccessReviewInterface {
 	return newRootResourceAccessReviews(c)
 }
 
+// SubjectAccessReviews provides a REST client for SubjectAccessReviews
 func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
 	return newSubjectAccessReviews(c, namespace)
 }
@@ -152,6 +168,8 @@ func New(c *kclient.Config) (*Client, error) {
 	return &Client{client}, nil
 }
 
+// SetOpenShiftDefaults sets the default settings on the passed
+// client configuration
 func SetOpenShiftDefaults(config *kclient.Config) error {
 	if config.Prefix == "" {
 		config.Prefix = "/osapi"

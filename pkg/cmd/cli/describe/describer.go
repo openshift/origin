@@ -24,6 +24,8 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &BuildDescriber{c}, true
 	case "BuildConfig":
 		return &BuildConfigDescriber{c, host}, true
+	case "BuildLog":
+		return &BuildLogDescriber{c}, true
 	case "Deployment":
 		return &DeploymentDescriber{c}, true
 	case "DeploymentConfig":
@@ -179,6 +181,15 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		d.DescribeTriggers(buildConfig, d.host, out)
 		return nil
 	})
+}
+
+// BuildLogDescriber generates information about a BuildLog
+type BuildLogDescriber struct {
+	client.Interface
+}
+
+func (d *BuildLogDescriber) Describe(namespace, name string) (string, error) {
+	return fmt.Sprintf("Name: %s/%s, Labels:", namespace, name), nil
 }
 
 // ImageDescriber generates information about a Image
