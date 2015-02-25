@@ -62,7 +62,7 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig(config *deplo
 	deployment, err := dc.ChangeStrategy.GetDeployment(config.Namespace, latestDeploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			glog.V(4).Info("Ignoring config change for %s; no existing deployment found", labelFor(config))
+			glog.V(4).Infof("Ignoring config change for %s; no existing deployment found", labelFor(config))
 			return nil
 		}
 		return fmt.Errorf("couldn't retrieve deployment for %s: %v", labelFor(config), err)
