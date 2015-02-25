@@ -132,7 +132,7 @@ func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*app.Ima
 	// TODO: More sophisticated matching
 	switch s.Platform {
 	case "Ruby":
-		imageName = "openshift/ruby-20-centos"
+		imageName = "openshift/ruby-20-centos7"
 	case "JEE":
 		imageName = "openshift/wildfly-8-centos"
 	case "NodeJS":
