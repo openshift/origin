@@ -458,6 +458,7 @@ func setSelfLink(obj runtime.Object, req *restful.Request, namer ScopeNamer) err
 	// TODO: SelfLink generation should return a full URL?
 	path, query, err := namer.GenerateLink(req, obj)
 	if err != nil {
+		glog.V(5).Infof("Unable to generate self link: %v", err)
 		return nil
 	}
 
