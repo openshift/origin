@@ -145,38 +145,23 @@ func start(cfg Config, args []string) error {
 	}
 
 	if cfg.StartNode {
-		openshiftConfig, err := cfg.BuildOriginMasterConfig()
+		kubeClient, _, err := cfg.GetKubeClient()
 		if err != nil {
 			return err
 		}
-
-		kubeClient := openshiftConfig.KubeClient()
 
 		if !cfg.StartMaster {
 			// TODO: recording should occur in individual components
 			record.StartRecording(kubeClient.Events(""), kapi.EventSource{Component: "node"})
 		}
 
-		// define a function for resolving components to names
-		imageResolverFn := cfg.ImageTemplate.ExpandOrDie
-
-		nodeConfig := &kubernetes.NodeConfig{
-			BindHost:   getHostOfHost(openshiftConfig.MasterBindAddr),
-			NodeHost:   cfg.Hostname,
-			MasterHost: openshiftConfig.MasterAddr,
-
-			VolumeDir: cfg.VolumeDir,
-
-			NetworkContainerImage: imageResolverFn("pod"),
-
-			AllowDisabledDocker: cfg.StartNode && cfg.StartMaster,
-
-			Client: kubeClient,
+		nodeConfig, err := cfg.BuildKubernetesNodeConfig()
+		if err != nil {
+			return err
 		}
 
 		nodeConfig.EnsureVolumeDir()
 		nodeConfig.EnsureDocker(cfg.Docker)
-
 		nodeConfig.RunProxy()
 		nodeConfig.RunKubelet()
 	}
