@@ -5,6 +5,6 @@ angular.module('openshiftConsole')
       scope: {
         timestamp: '='
       },
-      template: '<span class="timestamp" title="{{timestamp | date : \'short\'}}">{{timestamp | dateRelative}}</span>'
+      template: '<span data-timestamp="{{timestamp}}" class="timestamp" title="{{timestamp | date : \'short\'}}">{{timestamp | dateRelative}}</span>'
     };
   });
