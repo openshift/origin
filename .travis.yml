@@ -15,6 +15,7 @@ matrix:
 
 install:
   - ./hack/verify-gofmt.sh
+  - ./hack/verify-jsonformat.sh
   - ./hack/install-etcd.sh
   - ./hack/install-std-race.sh
   - ./hack/install-tools.sh
