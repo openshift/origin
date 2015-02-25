@@ -197,7 +197,7 @@ func (cfg Config) RunEtcd() error {
 
 	etcdConfig := &etcd.Config{
 		BindAddr:     cfg.GetEtcdBindAddress(),
-		PeerBindAddr: cfg.GetEtcdBindAddress(),
+		PeerBindAddr: cfg.GetEtcdPeerBindAddress(),
 		MasterAddr:   etcdAddr.Host,
 		EtcdDir:      cfg.EtcdDir,
 	}

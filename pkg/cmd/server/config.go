@@ -149,6 +149,11 @@ func (cfg Config) GetEtcdBindAddress() string {
 	return net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.EtcdAddr.DefaultPort))
 }
 
+func (cfg Config) GetEtcdPeerBindAddress() string {
+	// Derive the etcd peer address by using the bind address and the default etcd peering port
+	return net.JoinHostPort(cfg.BindAddr.Host, "7001")
+}
+
 func (cfg Config) GetEtcdAddress() (*url.URL, error) {
 	if cfg.EtcdAddr.Provided {
 		return cfg.EtcdAddr.URL, nil

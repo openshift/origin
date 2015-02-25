@@ -176,6 +176,16 @@ func TestEtcdBindAddressDefault(t *testing.T) {
 	}
 }
 
+func TestEtcdPeerAddressDefault(t *testing.T) {
+	expected := "0.0.0.0:7001"
+
+	cfg := NewDefaultConfig()
+	actual := cfg.GetEtcdPeerBindAddress()
+	if expected != actual {
+		t.Errorf("expected %v, got %v", expected, actual)
+	}
+}
+
 func TestEtcdBindAddressDefaultToBind(t *testing.T) {
 	expected := "1.2.3.4:4001"
 
