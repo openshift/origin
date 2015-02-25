@@ -2,7 +2,6 @@ package origin
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,7 +16,6 @@ import (
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -30,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/assets"
-	"github.com/openshift/origin/pkg/auth/authenticator"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -60,7 +57,6 @@ import (
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
-	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
@@ -75,7 +71,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
-	policycache "github.com/openshift/origin/pkg/authorization/cache"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -92,74 +87,6 @@ const (
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
-// MasterConfig defines the required parameters for starting the OpenShift master
-type MasterConfig struct {
-	// host:port to bind master to
-	MasterBindAddr string
-	// host:port to bind asset server to
-	AssetBindAddr string
-	// url to access the master API on within the cluster
-	MasterAddr string
-	// url to access kubernetes API on within the cluster
-	KubernetesAddr string
-	// external clients may need to access APIs at different addresses than internal components do
-	MasterPublicAddr     string
-	KubernetesPublicAddr string
-	AssetPublicAddr      string
-	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
-	// If not specified, the built-in logout page is shown.
-	LogoutURI string
-
-	CORSAllowedOrigins            []string
-	Authenticator                 authenticator.Request
-	Authorizer                    authorizer.Authorizer
-	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
-	MasterAuthorizationNamespace  string
-
-	PolicyCache               *policycache.PolicyCache
-	ProjectAuthorizationCache *projectauth.AuthorizationCache
-
-	// Map requests to contexts
-	RequestContextMapper kapi.RequestContextMapper
-
-	EtcdHelper tools.EtcdHelper
-
-	AdmissionControl admission.Interface
-
-	// a function that returns the appropriate image to use for a named component
-	ImageFor func(component string) string
-
-	TLS bool
-
-	MasterCertFile string
-	MasterKeyFile  string
-	AssetCertFile  string
-	AssetKeyFile   string
-
-	// ClientCAs will be used to request client certificates in connections to the API.
-	// This CertPool should contain all the CAs that will be used for client certificate verification.
-	ClientCAs *x509.CertPool
-
-	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
-	kubeClient *kclient.Client
-	// KubeClientConfig is the client configuration used to call Kubernetes APIs from system components.
-	// To apply different access control to a system component, create a client config specifically for that component.
-	KubeClientConfig kclient.Config
-
-	// osClient is the client used to call OpenShift APIs from system components, built from OSClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
-	osClient *osclient.Client
-	// OSClientConfig is the client configuration used to call OpenShift APIs from system components
-	// To apply different access control to a system component, create a client config specifically for that component.
-	OSClientConfig kclient.Config
-
-	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
-	DeployerOSClientConfig kclient.Config
-}
-
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
 	// Returns an array of strings describing what was installed
@@ -174,23 +101,9 @@ func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
 	return fn(container)
 }
 
-func (c *MasterConfig) BuildClients() {
-	kubeClient, err := kclient.New(&c.KubeClientConfig)
-	if err != nil {
-		glog.Fatalf("Unable to configure client: %v", err)
-	}
-	c.kubeClient = kubeClient
-
-	osclient, err := osclient.New(&c.OSClientConfig)
-	if err != nil {
-		glog.Fatalf("Unable to configure client: %v", err)
-	}
-	c.osClient = osclient
-}
-
 // KubeClient returns the kubernetes client object
 func (c *MasterConfig) KubeClient() *kclient.Client {
-	return c.kubeClient
+	return c.MasterConfigParameters.KubeClient
 }
 
 // PolicyClient returns the policy client object
@@ -199,37 +112,37 @@ func (c *MasterConfig) KubeClient() *kclient.Client {
 //  list, watch all policies in all namespaces
 //  create resourceAccessReviews in all namespaces
 func (c *MasterConfig) PolicyClient() *osclient.Client {
-	return c.osClient
+	return c.OSClient
 }
 
 // DeploymentClient returns the deployment client object
 func (c *MasterConfig) DeploymentClient() *kclient.Client {
-	return c.kubeClient
+	return c.MasterConfigParameters.KubeClient
 }
 
 // BuildLogClient returns the build log client object
 func (c *MasterConfig) BuildLogClient() *kclient.Client {
-	return c.kubeClient
+	return c.MasterConfigParameters.KubeClient
 }
 
 // WebHookClient returns the webhook client object
 func (c *MasterConfig) WebHookClient() *osclient.Client {
-	return c.osClient
+	return c.OSClient
 }
 
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.osClient, c.kubeClient
+	return c.OSClient, c.MasterConfigParameters.KubeClient
 }
 
 // ImageChangeControllerClient returns the openshift client object
 func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
-	return c.osClient
+	return c.OSClient
 }
 
 // DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.osClient, c.kubeClient
+	return c.OSClient, c.MasterConfigParameters.KubeClient
 }
 
 // DeployerClientConfig returns the client configuration a Deployer instance launched in a pod
@@ -239,13 +152,13 @@ func (c *MasterConfig) DeployerClientConfig() *kclient.Config {
 }
 
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.osClient, c.kubeClient
+	return c.OSClient, c.MasterConfigParameters.KubeClient
 }
 func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.osClient, c.kubeClient
+	return c.OSClient, c.MasterConfigParameters.KubeClient
 }
 func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
-	return c.osClient
+	return c.OSClient
 }
 
 func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
