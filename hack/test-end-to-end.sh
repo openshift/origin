@@ -33,8 +33,6 @@ if [[ -z "${USE_IMAGES-}" ]]; then
 		USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
 	fi
 fi
-# TODO: remove the need for this by making all OpenShift components pullIfPresent
-USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
@@ -174,7 +172,7 @@ echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start \
      --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
      --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" \
-     --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 --latest-images \
+     --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 \
      --images="${USE_IMAGES}" \
      &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
