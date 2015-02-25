@@ -1,6 +1,6 @@
 - how is router configuration visualized from a user perspective
 - how is router configuration visualized from an admin perspective
-- how is a user notified of a route route binding and final dns
+- how is a user notified of a route binding and final dns
 - how does a user request default dns name vs custom dns name
 - router fronting with DNS, how are entries created
 
