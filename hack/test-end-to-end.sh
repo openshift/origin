@@ -37,6 +37,7 @@ fi
 USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
+TEST_ASSETS="${TEST_ASSETS:-false}"
 
 if [[ -z "${BASETMPDIR-}" ]]; then
 	TMPDIR="${TMPDIR:-"/tmp"}"
@@ -273,3 +274,11 @@ wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .
 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
+
+# UI e2e tests can be found in assets/test/e2e
+if [[ "$TEST_ASSETS" == "true" ]]; then
+	echo "[INFO] Running UI e2e tests..."
+	pushd ${OS_ROOT}/assets > /dev/null
+		grunt test-e2e
+	popd > /dev/null
+fi

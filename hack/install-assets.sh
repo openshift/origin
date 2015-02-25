@@ -51,7 +51,8 @@ fi
 
 pushd ${OS_ROOT}/assets > /dev/null
   cmd "npm install"
-
+  cmd "node_modules/protractor/bin/webdriver-manager update"
+  
   # In case upstream components change things without incrementing versions
   cmd "bower cache clean --allow-root"
   cmd "bower install --allow-root"

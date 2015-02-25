@@ -4,3 +4,4 @@ dist
 .sass-cache
 .bundle
 bower_components
+phantomjsdriver.log

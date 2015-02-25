@@ -5,7 +5,7 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/openshift/origin.git"
-  },  
+  },
   "devDependencies": {
     "grunt": "0.4.5",
     "grunt-autoprefixer": "0.7.6",
@@ -37,12 +37,19 @@
     "grunt-karma": "0.9.0",
     "karma-coverage": "0.2.6",
     "grunt-istanbul-coverage": "0.0.5",
-    "connect-modrewrite": "0.7.9"
+    "connect-modrewrite": "0.7.9",
+    "phantomjs": "1.9.15",
+    "protractor": "1.7.0",
+    "grunt-protractor-runner": "1.2.1",
+    "jasmine-spec-reporter": "1.1.2",
+    "protractor-screenshot-reporter": "0.0.5",
+    "jasmine-beforeall": "0.1.1"
   },
   "engines": {
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "grunt test"
+    "test": "grunt test",
+    "postinstall": "node test/backport-selenium.js"
   }
 }
