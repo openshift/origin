@@ -1,12 +1,12 @@
 {
-  "kind": "Route",
   "apiVersion": "v1beta1",
+  "host": "test.example.com",
+  "kind": "Route",
+  "labels": {
+    "name": "test"
+  },
   "metadata": {
     "name": "testroute"
   },
-  "host": "test.example.com",
-  "serviceName": "testservice",
-  "labels": {
-    "name": "test"
-  }
+  "serviceName": "testservice"
 }

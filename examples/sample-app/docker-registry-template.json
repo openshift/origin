@@ -1,134 +1,135 @@
 {
-  "kind":"Template",
-  "metadata": {
-      "name": "docker-registry-template",
-      "annotations": {
-          "description": "Template for launching a docker-registry pod"
-      }
-  },
-  "parameters": [
-      {
-          "name": "OPENSHIFT_MASTER",
-          "description": "OpenShift master",
-          "value": "http://localhost:8080"
-      },
-      {
-          "name": "OPENSHIFT_CA_DATA",
-          "description": "OpenShift root certificates"
-      },
-      {
-          "name": "OPENSHIFT_CERT_DATA",
-          "description": "OpenShift client certificate"
-      },
-      {
-          "name": "OPENSHIFT_KEY_DATA",
-          "description": "OpenShift client certificate key"
-      }
-  ],
-  "apiVersion":"v1beta1",
-  "creationTimestamp":"2014-09-18T18:28:38-04:00",
-  "items":[
+  "apiVersion": "v1beta1",
+  "creationTimestamp": "2014-09-18T18:28:38-04:00",
+  "items": [
     {
-      "apiVersion":"v1beta2",
-      "creationTimestamp":null,
-      "id":"docker-registry",
-      "kind":"Service",
-      "port":5001,
-      "containerPort":5000,
-      "selector":{
-        "name":"registrypod"
+      "apiVersion": "v1beta2",
+      "containerPort": 5000,
+      "creationTimestamp": null,
+      "id": "docker-registry",
+      "kind": "Service",
+      "port": 5001,
+      "selector": {
+        "name": "registrypod"
       }
     },
     {
-      "metadata":{
-        "name":"docker-registry"
+      "apiVersion": "v1beta1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "name": "docker-registry"
       },
-      "kind":"DeploymentConfig",
-      "apiVersion":"v1beta1",
-      "triggers":[
-        {
-          "type":"ConfigChange"
-        }
-      ],
-      "template":{
-        "strategy":{
-          "type":"Recreate"
-        },
-        "controllerTemplate":{
-          "replicas":1,
-          "replicaSelector":{
-            "name":"registrypod"
-          },
-          "podTemplate":{
-            "desiredState":{
-              "manifest":{
-                "containers":[
+      "template": {
+        "controllerTemplate": {
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "containers": [
                   {
-                    "image":"openshift/docker-registry",
-                    "imagePullPolicy":"PullIfNotPresent",
-                    "name":"registry-container",
-                    "ports":[
+                    "command": [
+                      "sh",
+                      "-c",
+                      "echo \"$OPENSHIFT_KEY_DATA\" \u003e $STORAGE_PATH/key.key \u0026\u0026 echo \"$OPENSHIFT_CERT_DATA\" \u003e $STORAGE_PATH/cert.crt \u0026\u0026 echo \"$OPENSHIFT_CA_DATA\" \u003e $STORAGE_PATH/root.crt \u0026\u0026 echo \"$OPENSHIFT_CA_DATA\" \u003e $STORAGE_PATH/root.crt \u0026\u0026 REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=${OPENSHIFT_MASTER}/osapi/v1beta1 OPENSHIFT_CA_BUNDLE=$STORAGE_PATH/root.crt OPENSHIFT_CLIENT_CERT=$STORAGE_PATH/cert.crt OPENSHIFT_CLIENT_KEY=$STORAGE_PATH/key.key exec docker-registry"
+                    ],
+                    "env": [
                       {
-                        "containerPort":5000,
-                        "protocol":"TCP"
+                        "name": "STORAGE_PATH",
+                        "value": "/tmp/openshift.local.registry"
+                      },
+                      {
+                        "name": "OPENSHIFT_MASTER",
+                        "value": "${OPENSHIFT_MASTER}"
+                      },
+                      {
+                        "name": "OPENSHIFT_CA_DATA",
+                        "value": "${OPENSHIFT_CA_DATA}"
+                      },
+                      {
+                        "name": "OPENSHIFT_CERT_DATA",
+                        "value": "${OPENSHIFT_CERT_DATA}"
+                      },
+                      {
+                        "name": "OPENSHIFT_KEY_DATA",
+                        "value": "${OPENSHIFT_KEY_DATA}"
                       }
                     ],
-                    "env":[
+                    "image": "openshift/docker-registry",
+                    "imagePullPolicy": "PullIfNotPresent",
+                    "name": "registry-container",
+                    "ports": [
                       {
-                        "name":"STORAGE_PATH",
-                        "value":"/tmp/openshift.local.registry"
-                      },
-                      {
-                          "name": "OPENSHIFT_MASTER",
-                          "value": "${OPENSHIFT_MASTER}"
-                      },
-                      {
-                          "name": "OPENSHIFT_CA_DATA",
-                          "value": "${OPENSHIFT_CA_DATA}"
-                      },
-                      {
-                          "name": "OPENSHIFT_CERT_DATA",
-                          "value": "${OPENSHIFT_CERT_DATA}"
-                      },
-                      {
-                          "name": "OPENSHIFT_KEY_DATA",
-                          "value": "${OPENSHIFT_KEY_DATA}"
+                        "containerPort": 5000,
+                        "protocol": "TCP"
                       }
                     ],
-                    "volumeMounts":[
+                    "privileged": true,
+                    "volumeMounts": [
                       {
-                        "name":"registry-storage",
-                        "mountPath":"/tmp/openshift.local.registry",
-                        "readOnly":false
+                        "mountPath": "/tmp/openshift.local.registry",
+                        "name": "registry-storage",
+                        "readOnly": false
                       }
-                    ],
-
-                    "command": ["sh", "-c", "echo \"$OPENSHIFT_KEY_DATA\" > $STORAGE_PATH/key.key && echo \"$OPENSHIFT_CERT_DATA\" > $STORAGE_PATH/cert.crt && echo \"$OPENSHIFT_CA_DATA\" > $STORAGE_PATH/root.crt && echo \"$OPENSHIFT_CA_DATA\" > $STORAGE_PATH/root.crt && REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=${OPENSHIFT_MASTER}/osapi/v1beta1 OPENSHIFT_CA_BUNDLE=$STORAGE_PATH/root.crt OPENSHIFT_CLIENT_CERT=$STORAGE_PATH/cert.crt OPENSHIFT_CLIENT_KEY=$STORAGE_PATH/key.key exec docker-registry"],
-                    "privileged":true
+                    ]
                   }
                 ],
-                "version":"v1beta1",
-                "volumes":[
+                "version": "v1beta1",
+                "volumes": [
                   {
-                    "name":"registry-storage",
-                    "source":{
-                      "hostDir":{
-                        "path":"/tmp/openshift.local.registry"
+                    "name": "registry-storage",
+                    "source": {
+                      "hostDir": {
+                        "path": "/tmp/openshift.local.registry"
                       }
                     }
                   }
                 ]
               },
-              "restartpolicy":{
-
-              }
+              "restartpolicy": {}
             },
-            "labels":{
-              "name":"registrypod"
+            "labels": {
+              "name": "registrypod"
             }
-          }
+          },
+          "replicaSelector": {
+            "name": "registrypod"
+          },
+          "replicas": 1
+        },
+        "strategy": {
+          "type": "Recreate"
         }
-      }
+      },
+      "triggers": [
+        {
+          "type": "ConfigChange"
+        }
+      ]
+    }
+  ],
+  "kind": "Template",
+  "metadata": {
+    "annotations": {
+      "description": "Template for launching a docker-registry pod"
+    },
+    "name": "docker-registry-template"
+  },
+  "parameters": [
+    {
+      "description": "OpenShift master",
+      "name": "OPENSHIFT_MASTER",
+      "value": "http://localhost:8080"
+    },
+    {
+      "description": "OpenShift root certificates",
+      "name": "OPENSHIFT_CA_DATA"
+    },
+    {
+      "description": "OpenShift client certificate",
+      "name": "OPENSHIFT_CERT_DATA"
+    },
+    {
+      "description": "OpenShift client certificate key",
+      "name": "OPENSHIFT_KEY_DATA"
     }
   ]
 }

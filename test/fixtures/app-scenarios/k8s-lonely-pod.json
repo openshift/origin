@@ -1,28 +1,32 @@
 {
-    "kind": "List",
-    "apiVersion": "v1beta1",
-    "items": [
-        {
-          "id": "lonely-pod",
-          "kind": "Pod",
-          "apiVersion":"v1beta2",
-          "namespace": "example",          
-          "labels": {
-            "name": "lonely-pod"
-          },
-          "desiredState": {
-            "manifest": {
-              "version": "v1beta1",
-              "id": "lonely-pod",
-              "containers": [{
-                "name": "lonely-pod",
-                "image": "openshift/hello-openshift",
-                "ports": [{
+  "apiVersion": "v1beta1",
+  "items": [
+    {
+      "apiVersion": "v1beta2",
+      "desiredState": {
+        "manifest": {
+          "containers": [
+            {
+              "image": "openshift/hello-openshift",
+              "name": "lonely-pod",
+              "ports": [
+                {
                   "containerPort": 8080
-                }]
-              }]
+                }
+              ]
             }
-          },
+          ],
+          "id": "lonely-pod",
+          "version": "v1beta1"
         }
-    ]
+      },
+      "id": "lonely-pod",
+      "kind": "Pod",
+      "labels": {
+        "name": "lonely-pod"
+      },
+      "namespace": "example"
+    }
+  ],
+  "kind": "List"
 }

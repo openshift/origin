@@ -1,14 +1,14 @@
 {
-  "kind": "ImageRepository",
   "apiVersion": "v1beta1",
+  "kind": "ImageRepository",
   "metadata": {
-    "name": "test",
     "labels": {
       "color": "blue"
-    }
+    },
+    "name": "test"
   },
   "tags": {
-    "latest": "foo",
     "another": "bar",
+    "latest": "foo"
   }
 }

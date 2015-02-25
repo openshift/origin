@@ -1,160 +1,188 @@
 {
-  "kind": "Template",
   "apiVersion": "v1beta1",
-  "metadata": {
-    "name": "guestbook-example",
-    "annotations": {
-      "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
-    }
-  },
-  "parameters": [
-    {
-      "name": "ADMIN_USERNAME",
-      "description": "Guestbook administrator username",
-      "generate": "expression",
-      "from": "admin[A-Z0-9]{3}"
-    },
-    {
-      "name": "ADMIN_PASSWORD",
-      "description": "Guestbook administrator password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
-    },
-    {
-      "name": "REDIS_PASSWORD",
-      "description": "Redis password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
-    }
-  ],
   "items": [
     {
+      "apiVersion": "v1beta1",
+      "host": "guestbook.example.com",
       "id": "frontend-route",
+      "kind": "Route",
       "metadata": {
         "name": "frontend-route"
       },
-      "kind": "Route",
-      "apiVersion": "v1beta1",
-      "host": "guestbook.example.com",
       "serviceName": "frontend-service"
     },
     {
+      "apiVersion": "v1beta1",
       "id": "frontend-service",
       "kind": "Service",
-      "apiVersion": "v1beta1",
       "port": 5432,
       "selector": {
         "name": "frontend-service"
       }
     },
     {
+      "apiVersion": "v1beta1",
       "id": "redis-master",
       "kind": "Service",
-      "apiVersion": "v1beta1",
       "port": 10000,
       "selector": {
         "name": "redis-master"
       }
     },
     {
+      "apiVersion": "v1beta1",
       "id": "redis-slave",
       "kind": "Service",
-      "apiVersion": "v1beta1",
       "port": 10001,
       "selector": {
         "name": "redis-slave"
       }
     },
     {
-      "id": "redis-master",
-      "kind": "Pod",
       "apiVersion": "v1beta1",
-      "labels": {"name": "redis-master"},
       "desiredState": {
         "manifest": {
-          "version": "v1beta1",
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "REDIS_PASSWORD",
+                  "value": "${REDIS_PASSWORD}"
+                }
+              ],
+              "image": "dockerfile/redis",
+              "name": "master",
+              "ports": [
+                {
+                  "containerPort": 6379
+                }
+              ]
+            }
+          ],
           "name": "redis-master",
-          "containers": [{
-            "name": "master",
-            "image": "dockerfile/redis",
-            "env": [
-              {
-                "name": "REDIS_PASSWORD",
-                "value": "${REDIS_PASSWORD}"
-              }
-            ],
-            "ports": [{
-              "containerPort": 6379
-            }]
-          }]
+          "version": "v1beta1"
         }
+      },
+      "id": "redis-master",
+      "kind": "Pod",
+      "labels": {
+        "name": "redis-master"
       }
     },
     {
-      "id": "guestbook",
-      "kind": "ReplicationController",
       "apiVersion": "v1beta1",
       "desiredState": {
-        "replicas": 3,
-        "replicaSelector": {"name": "frontend-service"},
         "podTemplate": {
-          "labels": {"name": "frontend-service"},
           "desiredState": {
             "manifest": {
-              "version": "v1beta1",
+              "containers": [
+                {
+                  "env": [
+                    {
+                      "name": "ADMIN_USERNAME",
+                      "value": "${ADMIN_USERNAME}"
+                    },
+                    {
+                      "name": "ADMIN_PASSWORD",
+                      "value": "${ADMIN_PASSWORD}"
+                    },
+                    {
+                      "name": "REDIS_PASSWORD",
+                      "value": "${REDIS_PASSWORD}"
+                    }
+                  ],
+                  "image": "brendanburns/php-redis",
+                  "name": "php-redis",
+                  "ports": [
+                    {
+                      "containerPort": 80,
+                      "hostPort": 8000
+                    }
+                  ]
+                }
+              ],
               "name": "guestbook",
-              "containers": [{
-                "name": "php-redis",
-                "image": "brendanburns/php-redis",
-                "env": [
-                  {
-                    "name": "ADMIN_USERNAME",
-                    "value": "${ADMIN_USERNAME}"
-                  },
-                  {
-                    "name": "ADMIN_PASSWORD",
-                    "value": "${ADMIN_PASSWORD}"
-                  },
-                  {
-                    "name": "REDIS_PASSWORD",
-                    "value": "${REDIS_PASSWORD}"
-                  }
-                ],
-                "ports": [{"containerPort": 80, "hostPort": 8000}]
-              }]
+              "version": "v1beta1"
             }
+          },
+          "labels": {
+            "name": "frontend-service"
           }
-        }
-      }
+        },
+        "replicaSelector": {
+          "name": "frontend-service"
+        },
+        "replicas": 3
+      },
+      "id": "guestbook",
+      "kind": "ReplicationController"
     },
     {
-      "id": "redis-slave",
-      "kind": "ReplicationController",
       "apiVersion": "v1beta1",
       "desiredState": {
-        "replicas": 2,
-        "replicaSelector": {"name": "redis-slave"},
         "podTemplate": {
-          "labels": {"name": "redis-slave"},
           "desiredState": {
             "manifest": {
-              "version": "v1beta1",
+              "containers": [
+                {
+                  "env": [
+                    {
+                      "name": "REDIS_PASSWORD",
+                      "value": "${REDIS_PASSWORD}"
+                    }
+                  ],
+                  "image": "brendanburns/redis-slave",
+                  "name": "slave",
+                  "ports": [
+                    {
+                      "containerPort": 6379,
+                      "hostPort": 6380
+                    }
+                  ]
+                }
+              ],
               "id": "redis-slave",
-              "containers": [{
-                "name": "slave",
-                "image": "brendanburns/redis-slave",
-                "env": [
-                  {
-                    "name": "REDIS_PASSWORD",
-                    "value": "${REDIS_PASSWORD}"
-                  }
-                ],
-                "ports": [{"containerPort": 6379, "hostPort": 6380}]
-              }]
+              "version": "v1beta1"
             }
+          },
+          "labels": {
+            "name": "redis-slave"
           }
-        }
-      }
+        },
+        "replicaSelector": {
+          "name": "redis-slave"
+        },
+        "replicas": 2
+      },
+      "id": "redis-slave",
+      "kind": "ReplicationController"
+    }
+  ],
+  "kind": "Template",
+  "metadata": {
+    "annotations": {
+      "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+    },
+    "name": "guestbook-example"
+  },
+  "parameters": [
+    {
+      "description": "Guestbook administrator username",
+      "from": "admin[A-Z0-9]{3}",
+      "generate": "expression",
+      "name": "ADMIN_USERNAME"
+    },
+    {
+      "description": "Guestbook administrator password",
+      "from": "[a-zA-Z0-9]{8}",
+      "generate": "expression",
+      "name": "ADMIN_PASSWORD"
+    },
+    {
+      "description": "Redis password",
+      "from": "[a-zA-Z0-9]{8}",
+      "generate": "expression",
+      "name": "REDIS_PASSWORD"
     }
   ]
 }
