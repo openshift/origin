@@ -452,7 +452,8 @@ func setSelfLink(obj runtime.Object, req *restful.Request, namer ScopeNamer) err
 		return nil
 	}
 	if err != nil {
-		return err
+		glog.V(5).Infof("Unable to generate self link: %v", err)
+		return nil
 	}
 
 	newURL := *req.Request.URL
