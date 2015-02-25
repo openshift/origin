@@ -61,6 +61,6 @@ Examples:
 			fmt.Fprintf(out, "%s\n", newBuild.Name)
 		},
 	}
-	cmd.Flags().StringP("from-build", "", "", "Specify the name of a build which should be re-run")
+	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 	return cmd
 }
