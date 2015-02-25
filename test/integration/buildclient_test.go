@@ -203,7 +203,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			"github": github.New(),
 		})))
 
-	factory := buildcontrollerfactory.BuildControllerFactory{
+	bcFactory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osClient,
 		KubeClient:   kubeClient,
 		BuildUpdater: buildclient.NewOSClientBuildClient(osClient),
@@ -219,7 +219,16 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		Stop: openshift.stop,
 	}
 
-	factory.Create().Run()
+	bcFactory.Create().Run()
+
+	bpcFactory := buildcontrollerfactory.BuildPodControllerFactory{
+		OSClient:     osClient,
+		KubeClient:   kubeClient,
+		BuildUpdater: buildclient.NewOSClientBuildClient(osClient),
+		Stop:         openshift.stop,
+	}
+
+	bpcFactory.Create().Run()
 
 	return openshift
 }
