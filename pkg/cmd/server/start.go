@@ -196,8 +196,8 @@ func (cfg Config) RunEtcd() error {
 	}
 
 	etcdConfig := &etcd.Config{
-		BindAddr:     getHostOfHost(cfg.BindAddr.URL.Host),
-		PeerBindAddr: getHostOfHost(cfg.BindAddr.URL.Host),
+		BindAddr:     cfg.BindAddr.Host,
+		PeerBindAddr: cfg.BindAddr.Host,
 		MasterAddr:   etcdAddr.Host,
 		EtcdDir:      cfg.EtcdDir,
 	}
@@ -211,15 +211,6 @@ func getHost(theURL url.URL) string {
 	host, _, err := net.SplitHostPort(theURL.Host)
 	if err != nil {
 		return theURL.Host
-	}
-
-	return host
-}
-
-func getHostOfHost(urlStyleHost string) string {
-	host, _, err := net.SplitHostPort(urlStyleHost)
-	if err != nil {
-		return urlStyleHost
 	}
 
 	return host
