@@ -37,11 +37,13 @@ func TestMasterPublicAddressExplicit(t *testing.T) {
 	}
 }
 
-func TestKubernetesPublicAddressDefaulting(t *testing.T) {
+func TestKubernetesPublicAddressDefaultToKubernetesAddress(t *testing.T) {
 	expected := "http://example.com:9012"
 
 	cfg := NewDefaultConfig()
-	cfg.MasterPublicAddr.Set(expected)
+	cfg.KubernetesAddr.Set(expected)
+	cfg.MasterPublicAddr.Set("unexpectedpublicmaster")
+	cfg.MasterAddr.Set("unexpectedmaster")
 
 	actual, err := cfg.GetKubernetesPublicAddress()
 	if err != nil {
@@ -52,7 +54,23 @@ func TestKubernetesPublicAddressDefaulting(t *testing.T) {
 	}
 }
 
-func TestKubernetesPublicAddressDoubleDefaulting(t *testing.T) {
+func TestKubernetesPublicAddressDefaultToPublicMasterAddress(t *testing.T) {
+	expected := "http://example.com:9012"
+
+	cfg := NewDefaultConfig()
+	cfg.MasterPublicAddr.Set(expected)
+	cfg.MasterAddr.Set("unexpectedmaster")
+
+	actual, err := cfg.GetKubernetesPublicAddress()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if expected != actual.String() {
+		t.Errorf("expected %v, got %v", expected, actual)
+	}
+}
+
+func TestKubernetesPublicAddressDefaultToMasterAddress(t *testing.T) {
 	expected := "http://example.com:9012"
 
 	cfg := NewDefaultConfig()
@@ -72,6 +90,8 @@ func TestKubernetesPublicAddressExplicit(t *testing.T) {
 
 	cfg := NewDefaultConfig()
 	cfg.MasterAddr.Set("http://internal.com:9012")
+	cfg.KubernetesAddr.Set("http://internal.com:9013")
+	cfg.MasterPublicAddr.Set("http://internal.com:9014")
 	cfg.KubernetesPublicAddr.Set(expected)
 
 	actual, err := cfg.GetKubernetesPublicAddress()

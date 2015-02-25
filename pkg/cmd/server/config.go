@@ -95,8 +95,7 @@ func NewDefaultConfig() *Config {
 }
 
 // GetMasterAddress checks for an unset master address and then attempts to use the first
-// public IPv4 non-loopback address registered on this host. It will also update the
-// EtcdAddr after if it was not provided.
+// public IPv4 non-loopback address registered on this host.
 // TODO: make me IPv6 safe
 func (cfg Config) GetMasterAddress() (*url.URL, error) {
 	if cfg.MasterAddr.Provided {
@@ -171,6 +170,9 @@ func (cfg Config) GetKubernetesAddress() (*url.URL, error) {
 func (cfg Config) GetKubernetesPublicAddress() (*url.URL, error) {
 	if cfg.KubernetesPublicAddr.Provided {
 		return cfg.KubernetesPublicAddr.URL, nil
+	}
+	if cfg.KubernetesAddr.Provided {
+		return cfg.KubernetesAddr.URL, nil
 	}
 
 	return cfg.GetMasterPublicAddress()
