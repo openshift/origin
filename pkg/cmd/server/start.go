@@ -2,12 +2,12 @@ package server
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
@@ -223,21 +223,29 @@ func (cfg Config) RunEtcd() error {
 }
 
 func getHost(theURL url.URL) string {
-	parts := strings.Split(theURL.Host, ":")
-	return parts[0]
+	host, _, err := net.SplitHostPort(theURL.Host)
+	if err != nil {
+		return theURL.Host
+	}
+
+	return host
 }
 
 func getHostOfHost(urlStyleHost string) string {
-	parts := strings.Split(urlStyleHost, ":")
-	return parts[0]
+	host, _, err := net.SplitHostPort(urlStyleHost)
+	if err != nil {
+		return urlStyleHost
+	}
+
+	return host
 }
 
 func getPort(theURL url.URL) int {
-	parts := strings.Split(theURL.Host, ":")
-	if len(parts) < 2 {
+	_, port, err := net.SplitHostPort(theURL.Host)
+	if err != nil {
 		return 0
 	}
 
-	port, _ := strconv.Atoi(parts[1])
-	return port
+	intport, _ := strconv.Atoi(port)
+	return intport
 }
