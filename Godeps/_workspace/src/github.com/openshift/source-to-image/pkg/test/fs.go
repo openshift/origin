@@ -2,10 +2,27 @@ package test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
+	"strings"
 	"sync"
+	"time"
 )
+
+// FakeFile represents a fake file and implements the os.FileInfo interface
+type FakeFile struct {
+	FileName string
+	Dir      bool
+	FMode    os.FileMode
+}
+
+func (f *FakeFile) Name() string       { return f.FileName }
+func (f *FakeFile) Size() int64        { return 0 }
+func (f *FakeFile) Mode() os.FileMode  { return f.FMode }
+func (f *FakeFile) ModTime() time.Time { return time.Now() }
+func (f *FakeFile) IsDir() bool        { return f.Dir }
+func (f *FakeFile) Sys() interface{}   { return nil }
 
 // FakeFileSystem provides a fake filesystem structure for testing
 type FakeFileSystem struct {
@@ -47,6 +64,8 @@ type FakeFileSystem struct {
 	WriteFileError   error
 	WriteFileContent string
 
+	Files []os.FileInfo
+
 	mutex sync.Mutex
 }
 
@@ -61,6 +80,21 @@ type FakeReadCloser struct {
 func (f *FakeReadCloser) Close() error {
 	f.CloseCalled = true
 	return f.CloseError
+}
+
+// ReadDir reads the files in specified directory
+func (f *FakeFileSystem) ReadDir(p string) ([]os.FileInfo, error) {
+	return f.Files, nil
+}
+
+// Stat provides stats about a single file
+func (f *FakeFileSystem) Stat(p string) (os.FileInfo, error) {
+	for _, f := range f.Files {
+		if strings.HasSuffix(p, "/"+f.Name()) {
+			return f, nil
+		}
+	}
+	return nil, &os.PathError{Path: p, Err: errors.New("file does not exists")}
 }
 
 // Chmod manipulates permissions on the fake filesystem
@@ -128,7 +162,7 @@ func (f *FakeFileSystem) Open(file string) (io.ReadCloser, error) {
 	return f.OpenFileResult, f.OpenError
 }
 
-// Write writes a file
+// WriteFile writes a file
 func (f *FakeFileSystem) WriteFile(file string, data []byte) error {
 	f.WriteFileName = file
 	f.WriteFileContent = string(data)

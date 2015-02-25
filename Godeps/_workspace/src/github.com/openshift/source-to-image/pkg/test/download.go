@@ -7,19 +7,19 @@ import (
 
 // FakeDownloader provides a fake downloader interface
 type FakeDownloader struct {
-	URL   []url.URL
-	File  []string
-	Err   map[string]error
-	mutex sync.Mutex
+	URL    []url.URL
+	Target []string
+	Err    map[string]error
+	mutex  sync.Mutex
 }
 
-// DownloadFile downloads a fake file from the URL
-func (f *FakeDownloader) DownloadFile(url *url.URL, targetFile string) (bool, error) {
+// Download downloads a fake file from the URL
+func (f *FakeDownloader) Download(url *url.URL, target string) error {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
 	f.URL = append(f.URL, *url)
-	f.File = append(f.File, targetFile)
+	f.Target = append(f.Target, target)
 
-	return true, f.Err[url.String()]
+	return f.Err[url.String()]
 }

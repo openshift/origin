@@ -9,6 +9,11 @@ const (
 	SaveArtifacts = "save-artifacts"
 	// Usage is the name of the script responsible for printing the builder image's short info.
 	Usage = "usage"
+
+	// Environment contains list of key value pairs that will be set during the
+	// STI build. Users can use this file to provide extra configuration
+	// depending on the builder image used.
+	Environment = "environment"
 )
 
 const (

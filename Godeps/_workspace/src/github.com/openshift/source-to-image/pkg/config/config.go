@@ -45,7 +45,7 @@ func Save(req *api.Request, cmd *cobra.Command) {
 	return
 }
 
-// Restore loads the arguments from disk and prefill the Request
+// Restore loads the arguments from disk and prefills the Request
 func Restore(req *api.Request, cmd *cobra.Command) {
 	data, err := ioutil.ReadFile(DefaultConfigPath)
 	if err != nil {
