@@ -166,6 +166,28 @@ func TestEtcdAddressExplicit(t *testing.T) {
 	}
 }
 
+func TestEtcdBindAddressDefault(t *testing.T) {
+	expected := "0.0.0.0:4001"
+
+	cfg := NewDefaultConfig()
+	actual := cfg.GetEtcdBindAddress()
+	if expected != actual {
+		t.Errorf("expected %v, got %v", expected, actual)
+	}
+}
+
+func TestEtcdBindAddressDefaultToBind(t *testing.T) {
+	expected := "1.2.3.4:4001"
+
+	cfg := NewDefaultConfig()
+	cfg.BindAddr.Set("https://1.2.3.4:8080")
+
+	actual := cfg.GetEtcdBindAddress()
+	if expected != actual {
+		t.Errorf("expected %v, got %v", expected, actual)
+	}
+}
+
 func TestMasterAddressDefaultingToBindValues(t *testing.T) {
 	defaultIP, err := util.DefaultLocalIP4()
 	if err != nil {
