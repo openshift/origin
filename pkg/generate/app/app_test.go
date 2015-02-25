@@ -90,6 +90,115 @@ func TestSimpleDeploymentConfig(t *testing.T) {
 	}
 }
 
+func TestImageRefDeployableContainerPorts(t *testing.T) {
+	tests := []struct {
+		name          string
+		inputPorts    map[string]struct{}
+		expectedPorts map[int]string
+		expectError   bool
+	}{
+		{
+			name: "tcp implied, individual ports",
+			inputPorts: map[string]struct{}{
+				"123": {},
+				"456": {},
+			},
+			expectedPorts: map[int]string{
+				123: "TCP",
+				456: "TCP",
+			},
+			expectError: false,
+		},
+		{
+			name: "tcp implied, multiple ports",
+			inputPorts: map[string]struct{}{
+				"123 456":  {},
+				"678 1123": {},
+			},
+			expectedPorts: map[int]string{
+				123:  "TCP",
+				678:  "TCP",
+				456:  "TCP",
+				1123: "TCP",
+			},
+			expectError: false,
+		},
+		{
+			name: "tcp and udp, individual ports",
+			inputPorts: map[string]struct{}{
+				"123/tcp": {},
+				"456/udp": {},
+			},
+			expectedPorts: map[int]string{
+				123: "TCP",
+				456: "UDP",
+			},
+			expectError: false,
+		},
+		{
+			name: "tcp implied, multiple ports",
+			inputPorts: map[string]struct{}{
+				"123/tcp 456/udp":  {},
+				"678/udp 1123/tcp": {},
+			},
+			expectedPorts: map[int]string{
+				123:  "TCP",
+				456:  "UDP",
+				678:  "UDP",
+				1123: "TCP",
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid format",
+			inputPorts: map[string]struct{}{
+				"123/tcp abc": {},
+			},
+			expectedPorts: map[int]string{},
+			expectError:   true,
+		},
+	}
+	for _, test := range tests {
+		imageRef := &ImageRef{
+			Namespace: "test",
+			Name:      "image",
+			Tag:       "latest",
+			Info: &imageapi.DockerImage{
+				Config: imageapi.DockerConfig{
+					ExposedPorts: test.inputPorts,
+				},
+			},
+		}
+		container, _, err := imageRef.DeployableContainer()
+		if err != nil && !test.expectError {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+		if err == nil && test.expectError {
+			t.Errorf("%s: got no error and expected an error", test.name)
+			continue
+		}
+		if test.expectError {
+			continue
+		}
+		remaining := test.expectedPorts
+		for _, port := range container.Ports {
+			proto, ok := remaining[port.ContainerPort]
+			if !ok {
+				t.Errorf("%s: got unexpected port: %v", test.name, port)
+				continue
+			}
+			if kapi.Protocol(proto) != port.Protocol {
+				t.Errorf("%s: got unexpected protocol %s for port %v", test.name, port.Protocol, port)
+			}
+			delete(remaining, port.ContainerPort)
+		}
+		if len(remaining) > 0 {
+			t.Errorf("%s: did not find expected ports: %#v", test.name, remaining)
+		}
+	}
+}
+
 func ExampleGenerateSimpleDockerApp() {
 	// TODO: determine if the repo is secured prior to fetching
 	// TODO: determine whether we want to clone this repo, or use it directly. Using it directly would require setting hooks
