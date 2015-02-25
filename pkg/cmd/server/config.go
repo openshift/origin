@@ -13,6 +13,7 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
@@ -23,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
-// config is a struct that the command stores flag values into.
+// Config is a struct that the command stores flag values into.
 type Config struct {
 	Docker *docker.Helper
 
@@ -60,9 +61,12 @@ type Config struct {
 	NodeList flagtypes.StringList
 
 	// ClientConfig is used when connecting to Kubernetes from the master, or
-	// when connecting to the master from a detached node. If the server is an
-	// all-in-one, this value is not used.
+	// when connecting to the master from a detached node. If StartKube is true,
+	// this value is not used.
 	ClientConfig clientcmd.ClientConfig
+	// ClientConfigLoadingRules is the ruleset used to load the client config.
+	// Only the CommandLinePath is expected to be used.
+	ClientConfigLoadingRules clientcmd.ClientConfigLoadingRules
 
 	CORSAllowedOrigins flagtypes.StringList
 }
@@ -74,7 +78,9 @@ func NewDefaultConfig() *Config {
 		glog.Warningf("Unable to lookup hostname, using %q: %v", hostname, err)
 	}
 
-	return &Config{
+	// TODO: secure etcd by default
+
+	config := &Config{
 		Docker: docker.NewHelper(),
 
 		MasterAddr:           flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
@@ -90,6 +96,10 @@ func NewDefaultConfig() *Config {
 		Hostname: hostname,
 		NodeList: flagtypes.StringList{"127.0.0.1"},
 	}
+
+	config.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&config.ClientConfigLoadingRules, &clientcmd.ConfigOverrides{})
+
+	return config
 }
 
 // GetMasterAddress checks for an unset master address and then attempts to use the first
@@ -100,38 +110,26 @@ func (cfg Config) GetMasterAddress() (*url.URL, error) {
 		return cfg.MasterAddr.URL, nil
 	}
 
-	if cfg.StartMaster {
-		// If the user specifies a bind address, and the master is not provided, use the bind port by default
-		port := cfg.MasterAddr.Port
-		if cfg.BindAddr.Provided {
-			port = cfg.BindAddr.Port
-		}
-
-		// If the user specifies a bind address, and the master is not provided, use the bind scheme by default
-		scheme := cfg.MasterAddr.URL.Scheme
-		if cfg.BindAddr.Provided {
-			scheme = cfg.BindAddr.URL.Scheme
-		}
-
-		// use the default ip address for the system
-		addr, err := util.DefaultLocalIP4()
-		if err != nil {
-			return nil, fmt.Errorf("Unable to find the public address of this master: %v", err)
-		}
-
-		masterAddr := scheme + "://" + net.JoinHostPort(addr.String(), strconv.Itoa(port))
-		return url.Parse(masterAddr)
+	// If the user specifies a bind address, and the master is not provided, use the bind port by default
+	port := cfg.MasterAddr.Port
+	if cfg.BindAddr.Provided {
+		port = cfg.BindAddr.Port
 	}
 
-	// if we didn't specify and we aren't starting the master, read .kubeconfig to locate the master
-	// TODO client config currently doesn't let you override the defaults
-	// so it is defaulting to https://localhost:8443 for MasterAddr if
-	// it isn't set by --master or --kubeconfig
-	config, err := cfg.ClientConfig.ClientConfig()
+	// If the user specifies a bind address, and the master is not provided, use the bind scheme by default
+	scheme := cfg.MasterAddr.URL.Scheme
+	if cfg.BindAddr.Provided {
+		scheme = cfg.BindAddr.URL.Scheme
+	}
+
+	// use the default ip address for the system
+	addr, err := util.DefaultLocalIP4()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to find a public IP address: %v", err)
 	}
-	return url.Parse(config.Host)
+
+	masterAddr := scheme + "://" + net.JoinHostPort(addr.String(), strconv.Itoa(port))
+	return url.Parse(masterAddr)
 }
 
 func (cfg Config) GetMasterPublicAddress() (*url.URL, error) {
@@ -140,6 +138,16 @@ func (cfg Config) GetMasterPublicAddress() (*url.URL, error) {
 	}
 
 	return cfg.GetMasterAddress()
+}
+
+func (cfg Config) GetEtcdBindAddress() string {
+	// Derive the etcd bind address by using the bind address and the default etcd port
+	return net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.EtcdAddr.DefaultPort))
+}
+
+func (cfg Config) GetEtcdPeerBindAddress() string {
+	// Derive the etcd peer address by using the bind address and the default etcd peering port
+	return net.JoinHostPort(cfg.BindAddr.Host, "7001")
 }
 
 func (cfg Config) GetEtcdAddress() (*url.URL, error) {
@@ -154,12 +162,31 @@ func (cfg Config) GetEtcdAddress() (*url.URL, error) {
 	}
 
 	etcdAddr := net.JoinHostPort(getHost(*masterAddr), strconv.Itoa(cfg.EtcdAddr.DefaultPort))
-	return url.Parse("http://" + etcdAddr)
+	return url.Parse(cfg.EtcdAddr.DefaultScheme + "://" + etcdAddr)
+}
+
+func (cfg Config) GetExternalKubernetesClientConfig() (*client.Config, bool, error) {
+	if len(cfg.ClientConfigLoadingRules.CommandLinePath) == 0 || cfg.ClientConfig == nil {
+		return nil, false, nil
+	}
+	clientConfig, err := cfg.ClientConfig.ClientConfig()
+	if err != nil {
+		return nil, false, err
+	}
+	return clientConfig, true, nil
 }
 
 func (cfg Config) GetKubernetesAddress() (*url.URL, error) {
 	if cfg.KubernetesAddr.Provided {
 		return cfg.KubernetesAddr.URL, nil
+	}
+
+	config, ok, err := cfg.GetExternalKubernetesClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	if ok && len(config.Host) > 0 {
+		return url.Parse(config.Host)
 	}
 
 	return cfg.GetMasterAddress()
@@ -171,6 +198,13 @@ func (cfg Config) GetKubernetesPublicAddress() (*url.URL, error) {
 	}
 	if cfg.KubernetesAddr.Provided {
 		return cfg.KubernetesAddr.URL, nil
+	}
+	config, ok, err := cfg.GetExternalKubernetesClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	if ok && len(config.Host) > 0 {
+		return url.Parse(config.Host)
 	}
 
 	return cfg.GetMasterPublicAddress()
@@ -210,10 +244,10 @@ func (cfg Config) GetNodeList() []string {
 	return nodeList
 }
 
-// getEtcdClient creates an etcd client based on the provided config and waits
+// getAndTestEtcdClient creates an etcd client based on the provided config and waits
 // until etcd server is reachable. It errors out and exits if the server cannot
 // be reached for a certain amount of time.
-func (cfg Config) getEtcdClient() (*etcdclient.Client, error) {
+func (cfg Config) getAndTestEtcdClient() (*etcdclient.Client, error) {
 	address, err := cfg.GetEtcdAddress()
 	if err != nil {
 		return nil, err
@@ -222,6 +256,7 @@ func (cfg Config) getEtcdClient() (*etcdclient.Client, error) {
 	etcdClient := etcdclient.NewClient(etcdServers)
 
 	for i := 0; ; i++ {
+		// TODO: make sure this works with etcd2 (root key may not exist)
 		_, err := etcdClient.Get("/", false, false)
 		if err == nil || tools.IsEtcdNotFound(err) {
 			break
@@ -239,7 +274,7 @@ func (cfg Config) getEtcdClient() (*etcdclient.Client, error) {
 // is incorrect.
 func (cfg Config) newOpenShiftEtcdHelper() (helper tools.EtcdHelper, err error) {
 	// Connect and setup etcd interfaces
-	client, err := cfg.getEtcdClient()
+	client, err := cfg.getAndTestEtcdClient()
 	if err != nil {
 		return tools.EtcdHelper{}, err
 	}

@@ -2,7 +2,6 @@ package server
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net"
 	_ "net/http/pprof"
@@ -11,7 +10,6 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
@@ -74,8 +72,17 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 	}
 
 	kubeClient, kubeClientConfig, err := cfg.GetKubeClient()
+	if err != nil {
+		return nil, err
+	}
 	openshiftClient, openshiftClientConfig, err := cfg.GetOpenshiftClient()
+	if err != nil {
+		return nil, err
+	}
 	deployerClientConfig, err := cfg.GetOpenshiftDeployerClientConfig()
+	if err != nil {
+		return nil, err
+	}
 
 	openshiftConfigParameters := origin.MasterConfigParameters{
 		MasterBindAddr:       cfg.BindAddr.URL.Host,
@@ -323,26 +330,27 @@ func (cfg Config) GetKubeClient() (*kclient.Client, *kclient.Config, error) {
 		}
 
 	} else {
-		// we're pointing to an external kubernetes, so we'll use the passed kubeconfig
-		if cfg.ClientConfig == nil {
-			return nil, nil, errors.New("not starting an all-in-one, but no .kubeconfig specified")
-		}
-		kubeCfg, err := cfg.ClientConfig.ClientConfig()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if len(kubeCfg.Version) == 0 {
-			kubeCfg.Version = klatest.Version
-		}
-
+		// Get the kubernetes address we're using
 		kubeAddr, err := cfg.GetKubernetesAddress()
 		if err != nil {
 			return nil, nil, err
 		}
 
-		kclient.SetKubernetesDefaults(kubeCfg)
-		kubeCfg.Host = kubeAddr.String()
+		// Try to get the kubeconfig
+		kubeCfg, ok, err := cfg.GetExternalKubernetesClientConfig()
+		if err != nil {
+			return nil, nil, err
+		}
+		if !ok {
+			// No kubeconfig was provided, so just make one that points at the specified host
+			// It probably won't work (since it has no auth), but they'll get to see failures logged
+			kubeCfg = &kclient.Config{Host: kubeAddr.String()}
+		}
+
+		// Ensure the kubernetes address matches the one in the config
+		if kubeAddr.String() != kubeCfg.Host {
+			return nil, nil, fmt.Errorf("The Kubernetes server (%s) must match the server in the provided kubeconfig (%s)", kubeAddr.String(), kubeCfg.Host)
+		}
 
 		kubeClientConfig = kubeCfg
 	}
@@ -370,7 +378,7 @@ func (cfg Config) GetOpenshiftClient() (*osclient.Client, *kclient.Config, error
 }
 
 func (cfg Config) GetOpenshiftDeployerClientConfig() (*kclient.Config, error) {
-	clientConfig, err := cfg.MintSystemClientCert("system:openshift-deployer", "system:deployers")
+	clientConfig, err := cfg.MintSystemClientCert("openshift-deployer", "system:deployers")
 	if err != nil {
 		return nil, err
 	}

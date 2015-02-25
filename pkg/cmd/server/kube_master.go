@@ -22,7 +22,7 @@ func (cfg Config) BuildKubernetesMasterConfig(requestContextMapper kapi.RequestC
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := cfg.getEtcdClient()
+	etcdClient, err := cfg.getAndTestEtcdClient()
 	if err != nil {
 		return nil, err
 	}

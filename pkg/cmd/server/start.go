@@ -44,7 +44,10 @@ func (cfg Config) startMaster() error {
 	cfg.MintSystemClientCert("admin", "system:cluster-admins")
 	cfg.MintSystemClientCert("openshift-deployer", "system:deployers")
 	cfg.MintSystemClientCert("openshift-client")
-	cfg.MintSystemClientCert("kube-client")
+	if cfg.StartKube {
+		cfg.MintSystemClientCert("kube-client")
+	}
+	glog.Infof("  Client certificates and .kubeconfig files generated in %v", cfg.CertDir)
 
 	openshiftConfig, err := cfg.BuildOriginMasterConfig()
 	if err != nil {
@@ -197,8 +200,8 @@ func (cfg Config) RunEtcd() error {
 	}
 
 	etcdConfig := &etcd.Config{
-		BindAddr:     cfg.BindAddr.Host,
-		PeerBindAddr: cfg.BindAddr.Host,
+		BindAddr:     cfg.GetEtcdBindAddress(),
+		PeerBindAddr: cfg.GetEtcdPeerBindAddress(),
 		MasterAddr:   etcdAddr.Host,
 		EtcdDir:      cfg.EtcdDir,
 	}

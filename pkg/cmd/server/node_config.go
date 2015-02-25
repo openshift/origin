@@ -7,7 +7,7 @@ import (
 )
 
 func (cfg Config) BuildKubernetesNodeConfig() (*kubernetes.NodeConfig, error) {
-	masterAddr, err := cfg.GetMasterAddress()
+	kubernetesAddr, err := cfg.GetKubernetesAddress()
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (cfg Config) BuildKubernetesNodeConfig() (*kubernetes.NodeConfig, error) {
 	nodeConfig := &kubernetes.NodeConfig{
 		BindHost:   cfg.BindAddr.Host,
 		NodeHost:   cfg.Hostname,
-		MasterHost: masterAddr.String(),
+		MasterHost: kubernetesAddr.String(),
 
 		VolumeDir: cfg.VolumeDir,
 

@@ -7,8 +7,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const longCommandDesc = `
@@ -53,13 +51,13 @@ func NewCommandStartServer(name string) (*cobra.Command, *Config) {
 		Short: "Launch OpenShift",
 		Long:  longCommandDesc,
 		Run: func(c *cobra.Command, args []string) {
-			if err := cfg.Validate(c.Flags().Args()); err != nil {
+			if err := cfg.Validate(args); err != nil {
 				glog.Fatal(err)
 			}
 
 			cfg.Complete(args)
 
-			if err := start(*cfg, c.Flags().Args()); err != nil {
+			if err := start(*cfg, args); err != nil {
 				glog.Fatal(err)
 			}
 		},
@@ -67,7 +65,7 @@ func NewCommandStartServer(name string) (*cobra.Command, *Config) {
 
 	flag := cmd.Flags()
 
-	flag.BoolVar(&cfg.WriteConfigOnly, "write-config-and-walk-away", false, "Indicates that the command should write the config that would be used to start openshift and do nothing else.  This is not yet implemented.")
+	flag.BoolVar(&cfg.WriteConfigOnly, "config-only", false, "Indicates that the command should build the config that would be used to start OpenShift and do nothing else. This is not yet implemented.")
 
 	flag.Var(&cfg.BindAddr, "listen", "The address to listen for connections on (host, host:port, or URL).")
 	flag.Var(&cfg.MasterAddr, "master", "The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the --listen scheme and port.")
@@ -88,7 +86,7 @@ func NewCommandStartServer(name string) (*cobra.Command, *Config) {
 	flag.Var(&cfg.NodeList, "nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flag.Var(&cfg.CORSAllowedOrigins, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
-	cfg.ClientConfig = cmdutil.DefaultClientConfig(flag)
+	flag.StringVar(&cfg.ClientConfigLoadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API.")
 
 	cfg.Docker.InstallFlags(flag)
 
@@ -123,9 +121,9 @@ func (cfg *Config) Complete(args []string) {
 	cfg.StartNode = (len(args) == 0) || (args[0] == startNode)
 
 	if cfg.StartMaster {
-		// if we've explicitly called out a kube location, don't start one in process
-		cfg.StartKube = !cfg.KubernetesAddr.Provided
-		// if we've explicitly called out an etcd location, don't start one in process
+		// if we've explicitly called out a kube server or a client config, don't start kube in-process
+		cfg.StartKube = !cfg.KubernetesAddr.Provided && len(cfg.ClientConfigLoadingRules.CommandLinePath) == 0
+		// if we've explicitly called out an etcd server, don't start etcd in-process
 		cfg.StartEtcd = !cfg.EtcdAddr.Provided
 	}
 }

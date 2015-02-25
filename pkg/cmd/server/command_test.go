@@ -195,6 +195,7 @@ func TestCommandCompletionNode(t *testing.T) {
 		StartNode: true,
 	}.run(t)
 }
+
 func TestCommandCompletionMaster(t *testing.T) {
 	commandCompletionTest{
 		args: []string{"master"},
@@ -204,11 +205,50 @@ func TestCommandCompletionMaster(t *testing.T) {
 		StartEtcd:   true,
 	}.run(t)
 }
+func TestCommandCompletionMasterExternalKubernetes(t *testing.T) {
+	commandCompletionTest{
+		args: []string{"master", "--kubernetes=foo"},
+
+		StartMaster: true,
+		StartKube:   false,
+		StartEtcd:   true,
+	}.run(t)
+}
+func TestCommandCompletionMasterExternalKubernetesConfig(t *testing.T) {
+	commandCompletionTest{
+		args: []string{"master", "--kubeconfig=foo"},
+
+		StartMaster: true,
+		StartKube:   false,
+		StartEtcd:   true,
+	}.run(t)
+}
+
 func TestCommandCompletionAllInOne(t *testing.T) {
 	commandCompletionTest{
 		StartNode:   true,
 		StartMaster: true,
 		StartKube:   true,
+		StartEtcd:   true,
+	}.run(t)
+}
+func TestCommandCompletionAllInOneExternalKubernetes(t *testing.T) {
+	commandCompletionTest{
+		args: []string{"--kubernetes=foo"},
+
+		StartNode:   true,
+		StartMaster: true,
+		StartKube:   false,
+		StartEtcd:   true,
+	}.run(t)
+}
+func TestCommandCompletionAllInOneExternalKubernetesConfig(t *testing.T) {
+	commandCompletionTest{
+		args: []string{"--kubeconfig=foo"},
+
+		StartNode:   true,
+		StartMaster: true,
+		StartKube:   false,
 		StartEtcd:   true,
 	}.run(t)
 }
@@ -226,7 +266,7 @@ func executeCommand(args []string) *Config {
 	argsToUse := make([]string, 0, 1+len(args))
 	argsToUse = append(argsToUse, "start")
 	argsToUse = append(argsToUse, args...)
-	argsToUse = append(argsToUse, "--write-config-and-walk-away")
+	argsToUse = append(argsToUse, "--config-only")
 
 	root := &cobra.Command{
 		Use:   "openshift",
