@@ -304,6 +304,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	}
 	handler := c.authorizationFilter(safe)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
+	handler = namespacingFilter(handler, c.getRequestContextMapper())
 
 	// unprotected resources
 	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
@@ -692,4 +693,39 @@ type clientDeploymentInterface struct {
 
 func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
 	return c.KubeClient.ReplicationControllers(api.NamespaceValue(ctx)).Get(name)
+}
+
+// namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
+// but any that do will have the appropriate value added.
+func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
+	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi"), latest.RESTMapper}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx, ok := contextMapper.Get(req)
+		if !ok {
+			http.Error(w, "Unable to find request context", http.StatusInternalServerError)
+			return
+		}
+
+		if _, exists := kapi.NamespaceFrom(ctx); !exists {
+			if requestInfo, err := infoResolver.GetAPIRequestInfo(req); err == nil {
+				// only set the namespace if the apiRequestInfo was resolved
+				// keep in mind that GetAPIRequestInfo will fail on non-api requests, so don't fail the entire http request on that
+				// kind of failure.
+
+				// TODO reconsider special casing this.  Having the special case hereallow us to fully share the kube
+				// APIRequestInfoResolver without any modification or customization.
+				namespace := requestInfo.Namespace
+				if (requestInfo.Resource == "projects") && (len(requestInfo.Name) > 0) {
+					namespace = requestInfo.Name
+				}
+
+				ctx = kapi.WithNamespace(ctx, namespace)
+				contextMapper.Update(req, ctx)
+				glog.V(2).Infof("set namespace on context to %v", requestInfo.Namespace)
+			}
+		}
+
+		handler.ServeHTTP(w, req)
+	})
 }
