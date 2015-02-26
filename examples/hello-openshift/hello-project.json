@@ -1,14 +1,14 @@
 {
-  "kind": "Project",
   "apiVersion": "v1beta1",
+  "displayName": "Hello OpenShift",
+  "kind": "Project",
   "metadata": {
-    "name": "hello-openshift-project",
+    "annotations": {
+      "description": "This is an example project to demonstrate OpenShift v3"
+    },
     "labels": {
       "name": "hello-openshift-project"
     },
-    "annotations": {
-      "description": "This is an example project to demonstrate OpenShift v3"
-    }
-  },    
-  "displayName": "Hello OpenShift"
+    "name": "hello-openshift-project"
+  }
 }

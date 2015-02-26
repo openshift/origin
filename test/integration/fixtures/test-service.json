@@ -1,7 +1,7 @@
 {
+  "apiVersion": "v1beta2",
   "id": "frontend",
   "kind": "Service",
-  "apiVersion": "v1beta2",
   "port": 9998,
   "selector": {
     "name": "frontend"
