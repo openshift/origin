@@ -55,7 +55,7 @@ var (
 		UserGroupName:               {"users", "useridentitymappings"},
 		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
 		PolicyOwnerGroupName:        {"policies", "policybindings"},
-		PermissionGrantingGroupName: {"roles", "rolebindings"},
+		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, "templateconfigs", "routes", "projects"},
 		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, PermissionGrantingGroupName},
 
