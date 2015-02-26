@@ -34,10 +34,10 @@
               Status has not been reported on this quota usage record.  Any resources limited by this quota record can not be allocated.
             </td>
           </tr>
-          <tr ng-class="{warning: quota.status.used && quota.status.used[resourceType] >= quota.status.hard[resourceType]}" ng-repeat="(resourceType, specMax) in quota.spec.hard">
+          <tr ng-class="{warning: (quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)}" ng-repeat="(resourceType, specMax) in quota.spec.hard">
             <!-- TODO prettify resourceType? -->
             <td>
-              <span ng-if="quota.status.used && quota.status.used[resourceType] >= quota.status.hard[resourceType]" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Quota limit reached" style="cursor: help;">
+              <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Quota limit reached" style="cursor: help;">
                 <span class="pficon pficon-warning-triangle"></span>
                 <span class="pficon pficon-warning-exclamation"></span>
               </span>
