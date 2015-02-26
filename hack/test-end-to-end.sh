@@ -249,8 +249,8 @@ echo "[INFO] Applying STI application config"
 osc create -n test -f "${STI_CONFIG_FILE}"
 
 # Trigger build
-echo "[INFO] Invoking generic web hook to trigger new sti build using curl"
-curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=test && sleep 3
+echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
+osc start-build -n test ruby-sample-build --follow
 wait_for_build "test"
 wait_for_app "test"
 
