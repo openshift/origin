@@ -106,7 +106,7 @@ func (cfg Config) startMaster() error {
 }
 
 // run launches the appropriate startup modes or returns an error.
-func start(cfg Config, args []string) error {
+func (cfg Config) Start(args []string) error {
 	if cfg.WriteConfigOnly {
 		return nil
 	}
