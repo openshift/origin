@@ -12,6 +12,7 @@ import (
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -195,6 +196,15 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 												Image: image,
 												Ports: ports,
 												Env:   env.List(),
+												LivenessProbe: &kapi.Probe{
+													Handler: kapi.Handler{
+														TCPSocket: &kapi.TCPSocketAction{
+															Port: kutil.IntOrString{
+																IntVal: ports[0].ContainerPort,
+															},
+														},
+													},
+												},
 											},
 										},
 									},
