@@ -74,6 +74,12 @@ describe('', function() {
       commonTeardown();
     });
 
+    it('should be able to list the test project', function() {
+      browser.get('/');
+      
+      expect(element(by.cssContainingText("h2.project","test")).isPresent()).toBe(true);
+    });
+
     it('should have access to the test project', function() {
       browser.get('/project/test');
 
