@@ -31,8 +31,8 @@ func TestSubjects(t *testing.T) {
 			Verb:     "get",
 			Resource: "pods",
 		},
-		expectedUsers:  []string{"Anna", "ClusterAdmin", "Ellen", "Valerie", "system:admin", "system:kube-client", "system:openshift-client", "system:openshift-deployer"},
-		expectedGroups: []string{"RootUsers", "system:authenticated", "system:unauthenticated"},
+		expectedUsers:  []string{"Anna", "ClusterAdmin", "Ellen", "Valerie", "system:kube-client", "system:openshift-client", "system:openshift-deployer"},
+		expectedGroups: []string{"RootUsers", "system:authenticated", "system:cluster-admins", "system:unauthenticated"},
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)

@@ -181,7 +181,7 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 					Name:      "cluster-admin",
 					Namespace: masterNamespace,
 				},
-				Users: util.NewStringSet("system:admin"),
+				Groups: util.NewStringSet("system:cluster-admins"),
 			},
 			"basic-user-binding": {
 				ObjectMeta: kapi.ObjectMeta{
