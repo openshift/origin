@@ -57,7 +57,7 @@ func NewCommandStartServer(name string) (*cobra.Command, *Config) {
 
 			cfg.Complete(args)
 
-			if err := start(*cfg, args); err != nil {
+			if err := cfg.Start(args); err != nil {
 				glog.Fatal(err)
 			}
 		},
