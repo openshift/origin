@@ -364,11 +364,11 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	cmdutil.WaitForSuccessfulDial("tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
-	c.ensureMasterAuthorizationNamespace()
 	c.ensureComponentAuthorizationRules()
+	c.ensureMasterAuthorizationNamespace()
 	go util.Forever(func() {
-		c.ensureMasterAuthorizationNamespace()
 		c.ensureComponentAuthorizationRules()
+		c.ensureMasterAuthorizationNamespace()
 	}, 10*time.Second)
 }
 
