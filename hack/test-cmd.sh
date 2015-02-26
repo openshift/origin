@@ -139,12 +139,14 @@ echo "templates: ok"
 [ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift start --help 2>&1 | grep 'Start an OpenShift server')" ]
+[ "$(osc get --help 2>&1 | grep 'osc')" ]
 
 # help for given command through help command must be consistent
 [ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift help start 2>&1 | grep 'Start an OpenShift server')" ]
+[ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
 
 # runnable commands with required flags must error consistently
 [ "$(osc get 2>&1 | grep 'you must provide one or more resources')" ]
