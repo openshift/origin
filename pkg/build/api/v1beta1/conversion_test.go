@@ -45,6 +45,25 @@ func TestDockerBuildStrategyConversion(t *testing.T) {
 	}
 }
 
+func TestContextDirConversion(t *testing.T) {
+	var actual newer.BuildParameters
+	oldVersion := current.BuildParameters{
+		Strategy: current.BuildStrategy{
+			Type: current.DockerBuildStrategyType,
+			DockerStrategy: &current.DockerBuildStrategy{
+				ContextDir: "contextDir",
+			},
+		},
+	}
+	err := Convert(&oldVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.Source.ContextDir != oldVersion.Strategy.DockerStrategy.ContextDir {
+		t.Errorf("expected %v, actual %v", oldVersion.Strategy.DockerStrategy.ContextDir, actual.Source.ContextDir)
+	}
+}
+
 func TestImageChangeTriggerFromRename(t *testing.T) {
 	old := current.ImageChangeTrigger{
 		From: kapi.ObjectReference{
