@@ -170,22 +170,24 @@ type VolumeSource struct {
 	// machine. Most containers will NOT need this.
 	// TODO(jonesdl) We need to restrict who can use host directory mounts and who can/can not
 	// mount host directories as read/write.
-	HostPath *HostPath `json:"hostPath"`
+	HostPath *HostPathVolumeSource `json:"hostPath"`
 	// EmptyDir represents a temporary directory that shares a pod's lifetime.
-	EmptyDir *EmptyDir `json:"emptyDir"`
+	EmptyDir *EmptyDirVolumeSource `json:"emptyDir"`
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	GCEPersistentDisk *GCEPersistentDisk `json:"persistentDisk"`
+	GCEPersistentDisk *GCEPersistentDiskVolumeSource `json:"persistentDisk"`
 	// GitRepo represents a git repository at a particular revision.
-	GitRepo *GitRepo `json:"gitRepo"`
+	GitRepo *GitRepoVolumeSource `json:"gitRepo"`
+	// Secret represents a secret that should populate this volume.
+	Secret *SecretVolumeSource `json:"secret"`
 }
 
-// HostPath represents bare host directory volume.
-type HostPath struct {
+// HostPathVolumeSource represents bare host directory volume.
+type HostPathVolumeSource struct {
 	Path string `json:"path"`
 }
 
-type EmptyDir struct{}
+type EmptyDirVolumeSource struct{}
 
 // Protocol defines network protocols supported for things like conatiner ports.
 type Protocol string
@@ -197,12 +199,12 @@ const (
 	ProtocolUDP Protocol = "UDP"
 )
 
-// GCEPersistentDisk represents a Persistent Disk resource in Google Compute Engine.
+// GCEPersistentDiskVolumeSource represents a Persistent Disk resource in Google Compute Engine.
 //
 // A GCE PD must exist and be formatted before mounting to a container.
 // The disk must also be in the same GCE project and zone as the kubelet.
 // A GCE PD can only be mounted as read/write once.
-type GCEPersistentDisk struct {
+type GCEPersistentDiskVolumeSource struct {
 	// Unique name of the PD resource. Used to identify the disk in GCE
 	PDName string `json:"pdName"`
 	// Required: Filesystem type to mount.
@@ -219,13 +221,22 @@ type GCEPersistentDisk struct {
 	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
-// GitRepo represents a volume that is pulled from git when the pod is created.
-type GitRepo struct {
+// GitRepoVolumeSource represents a volume that is pulled from git when the pod is created.
+type GitRepoVolumeSource struct {
 	// Repository URL
 	Repository string `json:"repository"`
 	// Commit hash, this is optional
 	Revision string `json:"revision"`
 	// TODO: Consider credentials here.
+}
+
+// SecretVolumeSource adapts a Secret into a VolumeSource.
+//
+// The contents of the target Secret's Data field will be presented in a volume
+// as files using the keys in the Data field as the file names.
+type SecretVolumeSource struct {
+	// Reference to a Secret
+	Target ObjectReference `json:"target"`
 }
 
 // Port represents a network port in a single container
@@ -237,7 +248,7 @@ type Port struct {
 	HostPort int `json:"hostPort,omitempty"`
 	// Required: This must be a valid port number, 0 < x < 65536.
 	ContainerPort int `json:"containerPort"`
-	// Optional: Supports "TCP" and "UDP".  Defaults to "TCP".
+	// Required: Supports "TCP" and "UDP".
 	Protocol Protocol `json:"protocol,omitempty"`
 	// Optional: What host IP to bind the external port to.
 	HostIP string `json:"hostIP,omitempty"`
@@ -344,11 +355,11 @@ type Container struct {
 	LivenessProbe  *Probe               `json:"livenessProbe,omitempty"`
 	ReadinessProbe *Probe               `json:"readinessProbe,omitempty"`
 	Lifecycle      *Lifecycle           `json:"lifecycle,omitempty"`
-	// Optional: Defaults to /dev/termination-log
+	// Required.
 	TerminationMessagePath string `json:"terminationMessagePath,omitempty"`
 	// Optional: Default to false.
 	Privileged bool `json:"privileged,omitempty"`
-	// Optional: Policy for pulling images for this container
+	// Required: Policy for pulling images for this container
 	ImagePullPolicy PullPolicy `json:"imagePullPolicy"`
 	// Optional: Capabilities for container.
 	Capabilities Capabilities `json:"capabilities,omitempty"`
@@ -532,7 +543,7 @@ type PodSpec struct {
 	Volumes       []Volume      `json:"volumes"`
 	Containers    []Container   `json:"containers"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
-	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
+	// Required: Set DNS policy.
 	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
@@ -692,7 +703,7 @@ type ServiceSpec struct {
 	// proxied by this service.
 	Port int `json:"port"`
 
-	// Optional: Supports "TCP" and "UDP".  Defaults to "TCP".
+	// Required: Supports "TCP" and "UDP".
 	Protocol Protocol `json:"protocol,omitempty"`
 
 	// This service will route traffic to pods having labels matching this selector. If empty or not present,
@@ -715,7 +726,7 @@ type ServiceSpec struct {
 	// Optional: If unspecified, the first port on the container will be used.
 	ContainerPort util.IntOrString `json:"containerPort,omitempty"`
 
-	// Optional: Supports "ClientIP" and "None".  Used to maintain session affinity.
+	// Required: Supports "ClientIP" and "None".  Used to maintain session affinity.
 	SessionAffinity AffinityType `json:"sessionAffinity,omitempty"`
 }
 
@@ -734,12 +745,25 @@ type Service struct {
 }
 
 // Endpoints is a collection of endpoints that implement the actual service, for example:
-// Name: "mysql", Endpoints: ["10.10.1.1:1909", "10.10.2.2:8834"]
+// Name: "mysql", Endpoints: [{"ip": "10.10.1.1", "port": 1909}, {"ip": "10.10.2.2", "port": 8834}]
 type Endpoints struct {
 	TypeMeta   `json:",inline"`
 	ObjectMeta `json:"metadata,omitempty"`
 
-	Endpoints []string `json:"endpoints,omitempty"`
+	// Optional: The IP protocol for these endpoints. Supports "TCP" and
+	// "UDP".  Defaults to "TCP".
+	Protocol  Protocol   `json:"protocol,omitempty"`
+	Endpoints []Endpoint `json:"endpoints,omitempty"`
+}
+
+// Endpoint is a single IP endpoint of a service.
+type Endpoint struct {
+	// Required: The IP of this endpoint.
+	// TODO: This should allow hostname or IP, see #4447.
+	IP string `json:"ip"`
+
+	// Required: The destination port to access.
+	Port int `json:"port"`
 }
 
 // EndpointsList is a list of endpoints.
@@ -754,6 +778,9 @@ type EndpointsList struct {
 type NodeSpec struct {
 	// Capacity represents the available resources of a node
 	Capacity ResourceList `json:"capacity,omitempty"`
+	// PodCIDR represents the pod IP range assigned to the node
+	// Note: assigning IP ranges to nodes might need to be revisited when we support migratable IPs.
+	PodCIDR string `json:"cidr,omitempty"`
 }
 
 // NodeStatus is information about the current status of a node.
@@ -820,18 +847,7 @@ const (
 // ResourceList is a set of (resource name, quantity) pairs.
 type ResourceList map[ResourceName]resource.Quantity
 
-// Get is a convenience function, which returns a 0 quantity if the
-// resource list is nil, empty, or lacks a value for the requested resource.
-// Treat as read only!
-func (rl ResourceList) Get(name ResourceName) *resource.Quantity {
-	if rl == nil {
-		return &resource.Quantity{}
-	}
-	q := rl[name]
-	return &q
-}
-
-// Node is a worker node in Kubernetenes
+// Node is a worker node in Kubernetes
 // The name of the node according to etcd is in ObjectMeta.Name.
 type Node struct {
 	TypeMeta   `json:",inline"`
@@ -1164,7 +1180,7 @@ type ContainerManifest struct {
 	Volumes       []Volume      `json:"volumes"`
 	Containers    []Container   `json:"containers"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
-	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
+	// Required: Set DNS policy.
 	DNSPolicy DNSPolicy `json:"dnsPolicy"`
 }
 
@@ -1309,3 +1325,62 @@ type ResourceQuotaList struct {
 	// Items is a list of ResourceQuota objects
 	Items []ResourceQuota `json:"items"`
 }
+
+// Secret holds secret data of a certain type.  The total bytes of the values in
+// the Data field must be less than MaxSecretSize bytes.
+type Secret struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Data contains the secret data.  Each key must be a valid DNS_SUBDOMAIN.
+	// The serialized form of the secret data is a base64 encoded string,
+	// representing the arbitrary (possibly non-string) data value here.
+	Data map[string][]byte `json:"data,omitempty"`
+
+	// Used to facilitate programatic handling of secret data.
+	Type SecretType `json:"type,omitempty"`
+}
+
+const MaxSecretSize = 1 * 1024 * 1024
+
+type SecretType string
+
+const (
+	SecretTypeOpaque SecretType = "Opaque" // Default; arbitrary user-defined data
+)
+
+type SecretList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+
+	Items []Secret `json:"items"`
+}
+
+// These constants are for remote command execution and port forwarding and are
+// used by both the client side and server side components.
+//
+// This is probably not the ideal place for them, but it didn't seem worth it
+// to create pkg/exec and pkg/portforward just to contain a single file with
+// constants in it.  Suggestions for more appropriate alternatives are
+// definitely welcome!
+const (
+	// Enable stdin for remote command execution
+	ExecStdinParam = "input"
+	// Enable stdout for remote command execution
+	ExecStdoutParam = "output"
+	// Enable stderr for remote command execution
+	ExecStderrParam = "error"
+	// Enable TTY for remote command execution
+	ExecTTYParam = "tty"
+	// Command to run for remote command execution
+	ExecCommandParamm = "command"
+
+	StreamType       = "streamType"
+	StreamTypeStdin  = "stdin"
+	StreamTypeStdout = "stdout"
+	StreamTypeStderr = "stderr"
+	StreamTypeData   = "data"
+	StreamTypeError  = "error"
+
+	PortHeader = "port"
+)

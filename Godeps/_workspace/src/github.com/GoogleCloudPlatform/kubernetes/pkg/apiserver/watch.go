@@ -39,7 +39,6 @@ import (
 type WatchHandler struct {
 	storage map[string]RESTStorage
 	codec   runtime.Codec
-	prefix  string
 	linker  runtime.SelfLinker
 	info    *APIRequestInfoResolver
 }
@@ -51,7 +50,7 @@ func (h *WatchHandler) setSelfLinkAddName(obj runtime.Object, req *http.Request)
 		return err
 	}
 	newURL := *req.URL
-	newURL.Path = path.Join(h.prefix, req.URL.Path, name)
+	newURL.Path = path.Join(req.URL.Path, name)
 	newURL.RawQuery = ""
 	newURL.Fragment = ""
 	return h.linker.SetSelfLink(obj, newURL.String())
@@ -88,7 +87,7 @@ func (h *WatchHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var apiResource string
 	var httpCode int
 	reqStart := time.Now()
-	defer func() { monitor("watch", verb, apiResource, httpCode, reqStart) }()
+	defer monitor("watch", verb, apiResource, httpCode, reqStart)
 
 	if req.Method != "GET" {
 		notFound(w, req)

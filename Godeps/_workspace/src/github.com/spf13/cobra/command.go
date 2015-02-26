@@ -40,6 +40,8 @@ type Command struct {
 	Short string
 	// The long message shown in the 'help <this-command>' output.
 	Long string
+	// Examples of how to use the command
+	Example string
 	// Full set of flags
 	flags *flag.FlagSet
 	// Set of flags childrens of this command will inherit
@@ -54,6 +56,7 @@ type Command struct {
 	// max lengths of commands' string lengths for use in padding
 	commandsMaxUseLen         int
 	commandsMaxCommandPathLen int
+	commandsMaxNameLen        int
 
 	flagErrorBuf *bytes.Buffer
 	cmdErrorBuf  *bytes.Buffer
@@ -181,6 +184,16 @@ func (c *Command) CommandPathPadding() int {
 	}
 }
 
+var minNamePadding int = 11
+
+func (c *Command) NamePadding() int {
+	if c.parent == nil || minNamePadding > c.parent.commandsMaxNameLen {
+		return minNamePadding
+	} else {
+		return c.parent.commandsMaxNameLen
+	}
+}
+
 func (c *Command) UsageTemplate() string {
 	if c.usageTemplate != "" {
 		return c.usageTemplate
@@ -195,10 +208,13 @@ Usage: {{if .Runnable}}
   {{ .CommandPath}} [command]{{end}}{{if gt .Aliases 0}}
 
 Aliases:
-  {{.NameAndAliases}}{{end}}
-{{ if .HasSubCommands}}
+  {{.NameAndAliases}}
+{{end}}{{if .HasExample}}
+Examples:
+{{ .Example }}
+{{end}}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}
-  {{rpad .Use .UsagePadding }} {{.Short}}{{end}}{{end}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 {{end}}
 {{ if .HasLocalFlags}}Flags:
 {{.LocalFlags.FlagUsages}}{{end}}
@@ -308,9 +324,6 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 				// only accept a single prefix match - multiple matches would be ambiguous
 				if len(matches) == 1 {
 					return innerfind(matches[0], argsMinusX(args, argsWOflags[0]))
-				} else if len(matches) == 0 && len(args) > 0 && args[0] == "help" {
-					// special case help command
-					return innerfind(c, argsMinusX(append(args, "--help"), argsWOflags[0]))
 				}
 			}
 		}
@@ -347,7 +360,6 @@ func (c *Command) Root() *Command {
 func (c *Command) findAndExecute(args []string) (err error) {
 
 	cmd, a, e := c.Find(args)
-
 	if e != nil {
 		return e
 	}
@@ -428,8 +440,6 @@ func (c *Command) Execute() (err error) {
 	} else {
 		args = c.args
 	}
-
-	c.assureHelpFlag()
 
 	if len(args) == 0 {
 		// Only the executable is called and the root is runnable, run it
@@ -534,6 +544,10 @@ func (c *Command) AddCommand(cmds ...*Command) {
 		commandPathLen := len(x.CommandPath())
 		if commandPathLen > c.commandsMaxCommandPathLen {
 			c.commandsMaxCommandPathLen = commandPathLen
+		}
+		nameLen := len(x.Name())
+		if nameLen > c.commandsMaxNameLen {
+			c.commandsMaxNameLen = nameLen
 		}
 		c.commands = append(c.commands, x)
 	}
@@ -675,6 +689,10 @@ func (c *Command) NameAndAliases() string {
 	return strings.Join(append([]string{c.Name()}, c.Aliases...), ", ")
 }
 
+func (c *Command) HasExample() bool {
+	return len(c.Example) > 0
+}
+
 // Determine if the command is itself runnable
 func (c *Command) Runnable() bool {
 	return c.Run != nil
@@ -682,12 +700,7 @@ func (c *Command) Runnable() bool {
 
 // Determine if the command has children commands
 func (c *Command) HasSubCommands() bool {
-	for _, sub := range c.commands {
-		if sub.Runnable() {
-			return true
-		}
-	}
-	return false
+	return len(c.commands) > 0
 }
 
 // Determine if the command is a child command
@@ -703,16 +716,9 @@ func (c *Command) Flags() *flag.FlagSet {
 			c.flagErrorBuf = new(bytes.Buffer)
 		}
 		c.flags.SetOutput(c.flagErrorBuf)
-		c.assureHelpFlag()
-	}
-	return c.flags
-}
-
-func (c *Command) assureHelpFlag() {
-	if c.Flags().Lookup("help") == nil && c.PersistentFlags().Lookup("help") == nil {
 		c.PersistentFlags().BoolVarP(&c.helpFlagVal, "help", "h", false, "help for "+c.Name())
 	}
-	c.mergePersistentFlags()
+	return c.flags
 }
 
 // Get the local FlagSet specifically set in the current command
@@ -724,6 +730,50 @@ func (c *Command) LocalFlags() *flag.FlagSet {
 
 	c.Flags().VisitAll(func(f *flag.Flag) {
 		if allPersistent.Lookup(f.Name) == nil {
+			local.AddFlag(f)
+		}
+	})
+
+	return local
+}
+
+// All Flags which were inherited from parents commands
+func (c *Command) InheritedFlags() *flag.FlagSet {
+	c.mergePersistentFlags()
+
+	local := flag.NewFlagSet(c.Name(), flag.ContinueOnError)
+
+        var rmerge func(x *Command)
+
+        rmerge = func(x *Command) {
+                if x.HasPersistentFlags() {
+                        x.PersistentFlags().VisitAll(func(f *flag.Flag) {
+                                if local.Lookup(f.Name) == nil {
+                                        local.AddFlag(f)
+                                }
+                        })
+                }
+                if x.HasParent() {
+                        rmerge(x.parent)
+                }
+        }
+
+	if c.HasParent() {
+		rmerge(c.parent)
+	}
+
+	return local
+}
+
+// All Flags which were not inherited from parent commands
+func (c *Command) NonInheritedFlags() *flag.FlagSet {
+	c.mergePersistentFlags()
+
+	local := flag.NewFlagSet(c.Name(), flag.ContinueOnError)
+	inheritedFlags := c.InheritedFlags()
+
+	c.Flags().VisitAll(func(f *flag.Flag) {
+		if inheritedFlags.Lookup(f.Name) == nil {
 			local.AddFlag(f)
 		}
 	})

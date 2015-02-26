@@ -99,11 +99,11 @@ func SetList(list Object, objects []Object) error {
 	if err != nil {
 		return err
 	}
-	slice := reflect.MakeSlice(items.Type(), len(objects), len(objects))
 	if items.Type() == objectSliceType {
 		items.Set(reflect.ValueOf(objects))
 		return nil
 	}
+	slice := reflect.MakeSlice(items.Type(), len(objects), len(objects))
 	for i := range objects {
 		dest := slice.Index(i)
 		src, err := conversion.EnforcePtr(objects[i])

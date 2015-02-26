@@ -116,6 +116,28 @@ func ValidateNamespaceName(name string, prefix bool) (bool, string) {
 	return nameIsDNSSubdomain(name, prefix)
 }
 
+// ValidateLimitRangeName can be used to check whether the given limit range name is valid.
+// Prefix indicates this name will be used as part of generation, in which case
+// trailing dashes are allowed.
+func ValidateLimitRangeName(name string, prefix bool) (bool, string) {
+	return nameIsDNSSubdomain(name, prefix)
+}
+
+// ValidateResourceQuotaName can be used to check whether the given
+// resource quota name is valid.
+// Prefix indicates this name will be used as part of generation, in which case
+// trailing dashes are allowed.
+func ValidateResourceQuotaName(name string, prefix bool) (bool, string) {
+	return nameIsDNSSubdomain(name, prefix)
+}
+
+// ValidateSecretName can be used to check whether the given secret name is valid.
+// Prefix indicates this name will be used as part of generation, in which case
+// trailing dashes are allowed.
+func ValidateSecretName(name string, prefix bool) (bool, string) {
+	return nameIsDNSSubdomain(name, prefix)
+}
+
 // nameIsDNSSubdomain is a ValidateNameFunc for names that must be a DNS subdomain.
 func nameIsDNSSubdomain(name string, prefix bool) (bool, string) {
 	if prefix {
@@ -233,7 +255,7 @@ func validateSource(source *api.VolumeSource) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if source.HostPath != nil {
 		numVolumes++
-		allErrs = append(allErrs, validateHostPath(source.HostPath).Prefix("hostPath")...)
+		allErrs = append(allErrs, validateHostPathVolumeSource(source.HostPath).Prefix("hostPath")...)
 	}
 	if source.EmptyDir != nil {
 		numVolumes++
@@ -241,11 +263,15 @@ func validateSource(source *api.VolumeSource) errs.ValidationErrorList {
 	}
 	if source.GitRepo != nil {
 		numVolumes++
-		allErrs = append(allErrs, validateGitRepo(source.GitRepo).Prefix("gitRepo")...)
+		allErrs = append(allErrs, validateGitRepoVolumeSource(source.GitRepo).Prefix("gitRepo")...)
 	}
 	if source.GCEPersistentDisk != nil {
 		numVolumes++
-		allErrs = append(allErrs, validateGCEPersistentDisk(source.GCEPersistentDisk).Prefix("persistentDisk")...)
+		allErrs = append(allErrs, validateGCEPersistentDiskVolumeSource(source.GCEPersistentDisk).Prefix("persistentDisk")...)
+	}
+	if source.Secret != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateSecretVolumeSource(source.Secret).Prefix("secret")...)
 	}
 	if numVolumes != 1 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("", source, "exactly 1 volume type is required"))
@@ -253,7 +279,7 @@ func validateSource(source *api.VolumeSource) errs.ValidationErrorList {
 	return allErrs
 }
 
-func validateHostPath(hostDir *api.HostPath) errs.ValidationErrorList {
+func validateHostPathVolumeSource(hostDir *api.HostPathVolumeSource) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if hostDir.Path == "" {
 		allErrs = append(allErrs, errs.NewFieldRequired("path", hostDir.Path))
@@ -261,7 +287,7 @@ func validateHostPath(hostDir *api.HostPath) errs.ValidationErrorList {
 	return allErrs
 }
 
-func validateGitRepo(gitRepo *api.GitRepo) errs.ValidationErrorList {
+func validateGitRepoVolumeSource(gitRepo *api.GitRepoVolumeSource) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if gitRepo.Repository == "" {
 		allErrs = append(allErrs, errs.NewFieldRequired("repository", gitRepo.Repository))
@@ -269,7 +295,7 @@ func validateGitRepo(gitRepo *api.GitRepo) errs.ValidationErrorList {
 	return allErrs
 }
 
-func validateGCEPersistentDisk(PD *api.GCEPersistentDisk) errs.ValidationErrorList {
+func validateGCEPersistentDiskVolumeSource(PD *api.GCEPersistentDiskVolumeSource) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if PD.PDName == "" {
 		allErrs = append(allErrs, errs.NewFieldRequired("pdName", PD.PDName))
@@ -279,6 +305,20 @@ func validateGCEPersistentDisk(PD *api.GCEPersistentDisk) errs.ValidationErrorLi
 	}
 	if PD.Partition < 0 || PD.Partition > 255 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("partition", PD.Partition, pdPartitionErrorMsg))
+	}
+	return allErrs
+}
+
+func validateSecretVolumeSource(secretSource *api.SecretVolumeSource) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if secretSource.Target.Name == "" {
+		allErrs = append(allErrs, errs.NewFieldRequired("target.name", ""))
+	}
+	if secretSource.Target.Namespace == "" {
+		allErrs = append(allErrs, errs.NewFieldRequired("target.namespace", ""))
+	}
+	if secretSource.Target.Kind != "Secret" {
+		allErrs = append(allErrs, errs.NewFieldInvalid("target.kind", secretSource.Target.Kind, "Secret"))
 	}
 	return allErrs
 }
@@ -348,6 +388,22 @@ func validateVolumeMounts(mounts []api.VolumeMount, volumes util.StringSet) errs
 			mErrs = append(mErrs, errs.NewFieldRequired("mountPath", mnt.MountPath))
 		}
 		allErrs = append(allErrs, mErrs.PrefixIndex(i)...)
+	}
+	return allErrs
+}
+
+func validateProbe(probe *api.Probe) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	if probe == nil {
+		return allErrs
+	}
+	allErrs = append(allErrs, validateHandler(&probe.Handler)...)
+	if probe.InitialDelaySeconds < 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("initialDelay", probe.InitialDelaySeconds, "may not be less than zero"))
+	}
+	if probe.TimeoutSeconds < 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("timeout", probe.TimeoutSeconds, "may not be less than zero"))
 	}
 	return allErrs
 }
@@ -465,6 +521,8 @@ func validateContainers(containers []api.Container, volumes util.StringSet) errs
 		if ctr.Lifecycle != nil {
 			cErrs = append(cErrs, validateLifecycle(ctr.Lifecycle).Prefix("lifecycle")...)
 		}
+		cErrs = append(cErrs, validateProbe(ctr.LivenessProbe).Prefix("livenessProbe")...)
+		cErrs = append(cErrs, validateProbe(ctr.ReadinessProbe).Prefix("readinessProbe")...)
 		cErrs = append(cErrs, validatePorts(ctr.Ports).Prefix("ports")...)
 		cErrs = append(cErrs, validateEnv(ctr.Env).Prefix("env")...)
 		cErrs = append(cErrs, validateVolumeMounts(ctr.VolumeMounts, volumes).Prefix("volumeMounts")...)
@@ -779,16 +837,8 @@ func validateResourceName(value string, field string) errs.ValidationErrorList {
 // ValidateLimitRange tests if required fields in the LimitRange are set.
 func ValidateLimitRange(limitRange *api.LimitRange) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if len(limitRange.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", limitRange.Name))
-	} else if !util.IsDNSSubdomain(limitRange.Name) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("name", limitRange.Name, dnsSubdomainErrorMsg))
-	}
-	if len(limitRange.Namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("namespace", limitRange.Namespace))
-	} else if !util.IsDNSSubdomain(limitRange.Namespace) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", limitRange.Namespace, dnsSubdomainErrorMsg))
-	}
+	allErrs = append(allErrs, ValidateObjectMeta(&limitRange.ObjectMeta, true, ValidateLimitRangeName).Prefix("metadata")...)
+
 	// ensure resource names are properly qualified per docs/resources.md
 	for i := range limitRange.Spec.Limits {
 		limit := limitRange.Spec.Limits[i]
@@ -799,6 +849,27 @@ func ValidateLimitRange(limitRange *api.LimitRange) errs.ValidationErrorList {
 			allErrs = append(allErrs, validateResourceName(string(k), fmt.Sprintf("spec.limits[%d].min[%s]", i, k))...)
 		}
 	}
+	return allErrs
+}
+
+// ValidateSecret tests if required fields in the Secret are set.
+func ValidateSecret(secret *api.Secret) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateObjectMeta(&secret.ObjectMeta, true, ValidateSecretName).Prefix("metadata")...)
+
+	totalSize := 0
+	for key, value := range secret.Data {
+		if !util.IsDNSSubdomain(key) {
+			allErrs = append(allErrs, errs.NewFieldInvalid(fmt.Sprintf("data[%s]", key), key, cIdentifierErrorMsg))
+		}
+
+		totalSize += len(value)
+	}
+
+	if totalSize > api.MaxSecretSize {
+		allErrs = append(allErrs, errs.NewFieldForbidden("data", "Maximum secret size exceeded"))
+	}
+
 	return allErrs
 }
 
@@ -827,16 +898,8 @@ func validateResourceRequirements(container *api.Container) errs.ValidationError
 // ValidateResourceQuota tests if required fields in the ResourceQuota are set.
 func ValidateResourceQuota(resourceQuota *api.ResourceQuota) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if len(resourceQuota.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", resourceQuota.Name))
-	} else if !util.IsDNSSubdomain(resourceQuota.Name) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("name", resourceQuota.Name, dnsSubdomainErrorMsg))
-	}
-	if len(resourceQuota.Namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("namespace", resourceQuota.Namespace))
-	} else if !util.IsDNSSubdomain(resourceQuota.Namespace) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", resourceQuota.Namespace, dnsSubdomainErrorMsg))
-	}
+	allErrs = append(allErrs, ValidateObjectMeta(&resourceQuota.ObjectMeta, true, ValidateResourceQuotaName).Prefix("metadata")...)
+
 	for k := range resourceQuota.Spec.Hard {
 		allErrs = append(allErrs, validateResourceName(string(k), string(resourceQuota.TypeMeta.Kind))...)
 	}

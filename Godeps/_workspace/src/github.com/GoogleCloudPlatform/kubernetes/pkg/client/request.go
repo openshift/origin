@@ -18,6 +18,7 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -33,6 +34,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	watchjson "github.com/GoogleCloudPlatform/kubernetes/pkg/watch/json"
 	"github.com/golang/glog"
@@ -90,7 +92,7 @@ type Request struct {
 	// generic components accessible via method setters
 	path    string
 	subpath string
-	params  map[string]string
+	params  url.Values
 
 	// structural elements of the request that are part of the Kubernetes API conventions
 	namespace    string
@@ -181,6 +183,14 @@ func (r *Request) Namespace(namespace string) *Request {
 	return r
 }
 
+// NamespaceIfScoped is a convenience function to set a namespace if scoped is true
+func (r *Request) NamespaceIfScoped(namespace string, scoped bool) *Request {
+	if scoped {
+		return r.Namespace(namespace)
+	}
+	return r
+}
+
 // AbsPath overwrites an existing path with the segments provided. Trailing slashes are preserved
 // when a single segment is passed.
 func (r *Request) AbsPath(segments ...string) *Request {
@@ -192,6 +202,29 @@ func (r *Request) AbsPath(segments ...string) *Request {
 		r.path = segments[0]
 	} else {
 		r.path = path.Join(segments...)
+	}
+	return r
+}
+
+// RequestURI overwrites existing path and parameters with the value of the provided server relative
+// URI. Some parameters (those in specialParameters) cannot be overwritten.
+func (r *Request) RequestURI(uri string) *Request {
+	if r.err != nil {
+		return r
+	}
+	locator, err := url.Parse(uri)
+	if err != nil {
+		r.err = err
+		return r
+	}
+	r.path = locator.Path
+	if len(locator.Query()) > 0 {
+		if r.params == nil {
+			r.params = make(url.Values)
+		}
+		for k, v := range locator.Query() {
+			r.params[k] = v
+		}
 	}
 	return r
 }
@@ -244,9 +277,9 @@ func (r *Request) setParam(paramName, value string) *Request {
 		return r
 	}
 	if r.params == nil {
-		r.params = make(map[string]string)
+		r.params = make(url.Values)
 	}
-	r.params[paramName] = value
+	r.params[paramName] = append(r.params[paramName], value)
 	return r
 }
 
@@ -316,17 +349,19 @@ func (r *Request) finalURL() string {
 	finalURL.Path = p
 
 	query := url.Values{}
-	for key, value := range r.params {
-		query.Add(key, value)
+	for key, values := range r.params {
+		for _, value := range values {
+			query.Add(key, value)
+		}
 	}
 
 	if r.namespaceSet && r.namespaceInQuery {
-		query.Add("namespace", r.namespace)
+		query.Set("namespace", r.namespace)
 	}
 
 	// timeout is handled specially here.
 	if r.timeout != 0 {
-		query.Add("timeout", r.timeout.String())
+		query.Set("timeout", r.timeout.String())
 	}
 	finalURL.RawQuery = query.Encode()
 	return finalURL.String()
@@ -403,6 +438,41 @@ func (r *Request) Stream() (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
+// Upgrade upgrades the request so that it supports multiplexed bidirectional
+// streams. The current implementation uses SPDY, but this could be replaced
+// with HTTP/2 once it's available, or something else.
+func (r *Request) Upgrade(config *Config, newRoundTripperFunc func(*tls.Config) httpstream.UpgradeRoundTripper) (httpstream.Connection, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+
+	tlsConfig, err := TLSConfigFor(config)
+	if err != nil {
+		return nil, err
+	}
+
+	upgradeRoundTripper := newRoundTripperFunc(tlsConfig)
+	wrapper, err := HTTPWrappersForConfig(config, upgradeRoundTripper)
+	if err != nil {
+		return nil, err
+	}
+
+	r.client = &http.Client{Transport: wrapper}
+
+	req, err := http.NewRequest(r.verb, r.finalURL(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating request: %s", err)
+	}
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error sending request: %s", err)
+	}
+	defer resp.Body.Close()
+
+	return upgradeRoundTripper.NewConnection(resp)
+}
+
 // Do formats and executes the request. Returns a Result object for easy response
 // processing.
 //
@@ -425,6 +495,14 @@ func (r *Request) Do() Result {
 	for {
 		if r.err != nil {
 			return Result{err: &RequestConstructionError{r.err}}
+		}
+
+		// TODO: added to catch programmer errors (invoking operations with an object with an empty namespace)
+		if (r.verb == "GET" || r.verb == "PUT" || r.verb == "DELETE") && r.namespaceSet && len(r.resourceName) > 0 && len(r.namespace) == 0 {
+			return Result{err: &RequestConstructionError{fmt.Errorf("an empty namespace may not be set when a resource name is provided")}}
+		}
+		if (r.verb == "POST") && r.namespaceSet && len(r.namespace) == 0 {
+			return Result{err: &RequestConstructionError{fmt.Errorf("an empty namespace may not be set during creation")}}
 		}
 
 		req, err := http.NewRequest(r.verb, r.finalURL(), r.body)
@@ -474,6 +552,8 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) ([]b
 	}
 
 	switch {
+	case resp.StatusCode == http.StatusSwitchingProtocols:
+		// no-op, we've been upgraded
 	case resp.StatusCode < http.StatusOK || resp.StatusCode > http.StatusPartialContent:
 		if !isStatusResponse {
 			var err error = &UnexpectedStatusError{

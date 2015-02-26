@@ -28,7 +28,7 @@ func init() {
 		func(obj *Volume) {
 			if util.AllPtrFieldsNil(&obj.Source) {
 				obj.Source = VolumeSource{
-					EmptyDir: &EmptyDir{},
+					EmptyDir: &EmptyDirVolumeSource{},
 				}
 			}
 		},
@@ -73,6 +73,21 @@ func init() {
 		func(obj *ContainerManifest) {
 			if obj.DNSPolicy == "" {
 				obj.DNSPolicy = DNSClusterFirst
+			}
+		},
+		func(obj *LivenessProbe) {
+			if obj.TimeoutSeconds == 0 {
+				obj.TimeoutSeconds = 1
+			}
+		},
+		func(obj *Secret) {
+			if obj.Type == "" {
+				obj.Type = SecretTypeOpaque
+			}
+		},
+		func(obj *Endpoints) {
+			if obj.Protocol == "" {
+				obj.Protocol = "TCP"
 			}
 		},
 	)

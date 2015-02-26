@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"path"
 
-	//"github.com/coreos/etcd/mod/dashboard"
+	"github.com/coreos/etcd/mod/dashboard"
 	leader2 "github.com/coreos/etcd/mod/leader/v2"
 	lock2 "github.com/coreos/etcd/mod/lock/v2"
 	"github.com/coreos/etcd/third_party/github.com/gorilla/mux"
@@ -20,10 +20,10 @@ func addSlash(w http.ResponseWriter, req *http.Request) {
 
 func HttpHandler(addr string) http.Handler {
 	r := mux.NewRouter()
-	//r.HandleFunc("/dashboard", addSlash)
+	r.HandleFunc("/dashboard", addSlash)
 
-	//r.PathPrefix("/dashboard/static/").Handler(http.StripPrefix("/dashboard/static/", dashboard.HttpHandler()))
-	//r.HandleFunc("/dashboard{path:.*}", dashboard.IndexPage)
+	r.PathPrefix("/dashboard/static/").Handler(http.StripPrefix("/dashboard/static/", dashboard.HttpHandler()))
+	r.HandleFunc("/dashboard{path:.*}", dashboard.IndexPage)
 
 	r.PathPrefix("/v2/lock").Handler(http.StripPrefix("/v2/lock", lock2.NewHandler(addr)))
 	r.PathPrefix("/v2/leader").Handler(http.StripPrefix("/v2/leader", leader2.NewHandler(addr)))
