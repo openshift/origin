@@ -59,7 +59,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 	repo.Tags[mapping.Tag] = image.Name
 
-	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil {
+	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
 		return nil, err
 	}
 	if err := s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo); err != nil {

@@ -206,3 +206,149 @@ func checkExpectedNamespaceError(t *testing.T, err error) {
 	}
 
 }
+
+func TestAddExistingImageWithNewTag(t *testing.T) {
+	imageRegistry := test.NewImageRegistry()
+	imageRegistry.Err = errors.NewAlreadyExists("image", "existingImage")
+
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
+	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
+		Items: []api.ImageRepository{
+			{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "repo1",
+				},
+				DockerImageRepository: "localhost:5000/someproject/somerepo",
+				Tags: map[string]string{
+					"existingTag": "existingImage",
+				},
+			},
+		},
+	}
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
+
+	mapping := api.ImageRepositoryMapping{
+		DockerImageRepository: "localhost:5000/someproject/somerepo",
+		Image: api.Image{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "existingImage",
+			},
+			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
+					Cmd:          []string{"ls", "/"},
+					Env:          []string{"a=1"},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
+					Memory:       1234,
+					CPUShares:    99,
+					WorkingDir:   "/workingDir",
+				},
+			},
+		},
+		Tag: "latest",
+	}
+	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	if err != nil {
+		t.Errorf("Unexpected error creating mapping: %#v", err)
+	}
+
+	imageRegistry.Err = nil
+
+	image, err := imageRegistry.GetImage(kapi.NewDefaultContext(), "existingImage")
+	if err != nil {
+		t.Errorf("Unexpected error retrieving image: %#v", err)
+	}
+	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
+		t.Errorf("Expected %s, got %s", e, a)
+	}
+	if !reflect.DeepEqual(mapping.Image.DockerImageMetadata, image.DockerImageMetadata) {
+		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
+	}
+
+	repo, err := imageRepositoryRegistry.GetImageRepository(kapi.NewDefaultContext(), "repo1")
+	if err != nil {
+		t.Errorf("Unexpected non-nil err: %#v", err)
+	}
+	if repo == nil {
+		t.Fatalf("Unexpected nil repo")
+	}
+	if len(repo.Tags) != 2 {
+		t.Errorf("Expected 2 tags in repo, got: %v", repo.Tags)
+	}
+	if e, a := "existingImage", repo.Tags["existingTag"]; e != a {
+		t.Errorf("Expected %s, got %s", e, a)
+	}
+	if e, a := "existingImage", repo.Tags["latest"]; e != a {
+		t.Errorf("Expected %s, got %s", e, a)
+	}
+}
+
+func TestAddExistingImageAndTag(t *testing.T) {
+	imageRegistry := test.NewImageRegistry()
+	imageRegistry.Err = errors.NewAlreadyExists("image", "existingImage")
+
+	imageRepositoryRegistry := test.NewImageRepositoryRegistry()
+	imageRepositoryRegistry.ImageRepositories = &api.ImageRepositoryList{
+		Items: []api.ImageRepository{
+			{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "repo1",
+				},
+				DockerImageRepository: "localhost:5000/someproject/somerepo",
+				Tags: map[string]string{
+					"existingTag": "existingImage",
+				},
+			},
+		},
+	}
+	storage := &REST{imageRegistry, imageRepositoryRegistry}
+
+	mapping := api.ImageRepositoryMapping{
+		DockerImageRepository: "localhost:5000/someproject/somerepo",
+		Image: api.Image{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "existingImage",
+			},
+			DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
+			DockerImageMetadata: api.DockerImage{
+				Config: api.DockerConfig{
+					Cmd:          []string{"ls", "/"},
+					Env:          []string{"a=1"},
+					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
+					Memory:       1234,
+					CPUShares:    99,
+					WorkingDir:   "/workingDir",
+				},
+			},
+		},
+		Tag: "existingTag",
+	}
+	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	if err != nil {
+		t.Errorf("Unexpected error creating mapping: %#v", err)
+	}
+
+	imageRegistry.Err = nil
+
+	image, err := imageRegistry.GetImage(kapi.NewDefaultContext(), "existingImage")
+	if err != nil {
+		t.Errorf("Unexpected error retrieving image: %#v", err)
+	}
+	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
+		t.Errorf("Expected %s, got %s", e, a)
+	}
+	if !reflect.DeepEqual(mapping.Image.DockerImageMetadata, image.DockerImageMetadata) {
+		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
+	}
+
+	repo, err := imageRepositoryRegistry.GetImageRepository(kapi.NewDefaultContext(), "repo1")
+	if err != nil {
+		t.Errorf("Unexpected non-nil err: %#v", err)
+	}
+	if repo == nil {
+		t.Fatalf("Unexpected nil repo")
+	}
+	if e, a := "existingImage", repo.Tags["existingTag"]; e != a {
+		t.Errorf("Expected %s, got %s", e, a)
+	}
+}
