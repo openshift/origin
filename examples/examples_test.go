@@ -69,6 +69,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"docker-registry-config":           &configapi.Config{},
 			"docker-registry-template":         &templateapi.Template{},
 			"application-template-stibuild":    &templateapi.Template{},
+			"application-template-sti-onbuild": &templateapi.Template{},
 			"application-template-dockerbuild": &templateapi.Template{},
 			"application-template-custombuild": &templateapi.Template{},
 		},
