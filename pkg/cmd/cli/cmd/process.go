@@ -45,11 +45,13 @@ func NewCmdProcess(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 JSON and YAML formats are accepted.
 
 Examples:
-  $ osc process -f template.json
-  <convert template.json into resource list>
 
-  $ cat template.json | osc process -f -
-  <convert template.json into resource list>`,
+	# Convert template.json into resource list
+	$ osc process -f template.json
+
+	# Convert template.json into resource list
+	$ cat template.json | osc process -f -
+`,
 		Run: func(cmd *cobra.Command, args []string) {
 			filename := cmdutil.GetFlagString(cmd, "filename")
 			if len(filename) == 0 {

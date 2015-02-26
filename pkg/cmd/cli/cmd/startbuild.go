@@ -24,11 +24,13 @@ Manually starts build from existing build or buildConfig
 NOTE: This command is experimental and is subject to change in the future.
 
 Examples:
-  $ osc start-build 3bd2ug53b
-  <Starts build from buildConfig matching the name "3bd2ug53b">
 
-  $ osc start-build --from-build=3bd2ug53b
-  <Starts build from build matching the name "3bd2ug53b">`,
+	# Starts build from buildConfig matching the name "3bd2ug53b"
+	$ osc start-build 3bd2ug53b
+
+	# Starts build from build matching the name "3bd2ug53b"
+	$ osc start-build --from-build=3bd2ug53b
+`,
 		Run: func(cmd *cobra.Command, args []string) {
 			buildName := cmdutil.GetFlagString(cmd, "from-build")
 			if len(args) != 1 && len(buildName) == 0 {

@@ -52,17 +52,18 @@ If not specified, the current directory is used.
 
 Examples:
 
+	# Find a git repository in the current directory and build artifacts based on detection
     $ openshift ex generate
-    <finds a git repository in the current directory and builds artifacts based on detection>
 
+    # Specify the directory for the repository to use
     $ openshift ex generate ./repo/dir
-    <specify the directory for the repository to use>
 
+    # Use a remote git repository
     $ openshift ex generate https://github.com/openshift/ruby-hello-world.git
-    <use a remote git repository>
 
+    # Force the application to use the specific builder-image
     $ openshift ex generate --builder-image=openshift/ruby-20-centos
-    <force the application to use the specific builder-image>`
+`
 
 type params struct {
 	name,
