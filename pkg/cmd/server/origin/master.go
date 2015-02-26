@@ -361,7 +361,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	}, 0)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial("tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
 	c.ensureComponentAuthorizationRules()
@@ -554,7 +554,7 @@ func (c *MasterConfig) RunAssetServer() {
 	}, 0)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial("tcp", c.AssetBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.AssetBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	glog.Infof("OpenShift UI available at %s", c.AssetPublicAddr)
 }
