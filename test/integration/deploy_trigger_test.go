@@ -28,8 +28,9 @@ import (
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
-	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
+	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -384,19 +385,16 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 	dccFactory.Create().Run()
 
-	cccFactory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{
+	cccFactory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osClient,
 		KubeClient: kubeClient,
 		Codec:      latest.Codec,
-		Stop:       openshift.stop,
 	}
 	cccFactory.Create().Run()
 
-	iccFactory := deploycontrollerfactory.ImageChangeControllerFactory{
+	iccFactory := imagechangecontroller.ImageChangeControllerFactory{
 		Client: osClient,
-		Stop:   openshift.stop,
 	}
-
 	iccFactory.Create().Run()
 
 	biccFactory := buildcontrollerfactory.ImageChangeControllerFactory{

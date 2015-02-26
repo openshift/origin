@@ -22,10 +22,10 @@ import (
 //
 // Use the DeploymentConfigControllerFactory to create this controller.
 type DeploymentConfigController struct {
-	// deploymentClient provides access to Deployments.
+	// deploymentClient provides access to deployments.
 	deploymentClient deploymentClient
-	// makeDeployment creates a Deployment from a DeploymentConfig.
-	makeDeployment makeDeployment
+	// makeDeployment knows how to make a deployment from a config.
+	makeDeployment func(*deployapi.DeploymentConfig) (*kapi.ReplicationController, error)
 }
 
 // fatalError is an error which can't be retried.
@@ -33,7 +33,7 @@ type fatalError string
 
 func (e fatalError) Error() string { return "fatal error handling deploymentConfig: " + string(e) }
 
-// Handle creates a new deployment for config as necessary.
+// Handle processes config and creates a new deployment if necessary.
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
 	// Only deploy when the version has advanced past 0.
 	if config.LatestVersion == 0 {
@@ -98,6 +98,3 @@ func (i *deploymentClientImpl) getDeployment(namespace, name string) (*kapi.Repl
 func (i *deploymentClientImpl) createDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 	return i.createDeploymentFunc(namespace, deployment)
 }
-
-// makeDeployment knows how to make a deployment from a config.
-type makeDeployment func(*deployapi.DeploymentConfig) (*kapi.ReplicationController, error)

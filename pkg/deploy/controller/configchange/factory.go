@@ -1,4 +1,4 @@
-package deploymentconfig
+package configchange
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -15,19 +15,19 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// DeploymentConfigControllerFactory can create a DeploymentConfigController which obtains
-// DeploymentConfigs from a queue populated from a watch of all DeploymentConfigs.
-type DeploymentConfigControllerFactory struct {
+// DeploymentConfigChangeControllerFactory can create a
+// DeploymentConfigChangeController that watches all DeploymentConfigs.
+type DeploymentConfigChangeControllerFactory struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
 	KubeClient kclient.Interface
-	// Codec is used to encode/decode.
+	// Codec is used for encoding/decoding.
 	Codec runtime.Codec
 }
 
-// Create creates a DeploymentConfigController.
-func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableController {
+// Create creates a DeploymentConfigChangeController.
+func (factory *DeploymentConfigChangeControllerFactory) Create() controller.RunnableController {
 	deploymentConfigLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
 			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
@@ -39,17 +39,20 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue).Run()
 
-	configController := &DeploymentConfigController{
-		deploymentClient: &deploymentClientImpl{
+	changeController := &DeploymentConfigChangeController{
+		changeStrategy: &changeStrategyImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
 			},
-			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Create(deployment)
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				return factory.Client.DeploymentConfigs(namespace).Generate(name)
+			},
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				return factory.Client.DeploymentConfigs(namespace).Update(config)
 			},
 		},
-		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
-			return deployutil.MakeDeployment(config, factory.Codec)
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
 	}
 
@@ -65,7 +68,7 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 		},
 		Handle: func(obj interface{}) error {
 			config := obj.(*deployapi.DeploymentConfig)
-			return configController.Handle(config)
+			return changeController.Handle(config)
 		},
 	}
 }
