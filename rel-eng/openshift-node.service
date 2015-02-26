@@ -7,7 +7,7 @@ Documentation=https://github.com/openshift/origin
 [Service]
 Type=simple
 EnvironmentFile=-/etc/sysconfig/openshift-node
-ExecStart=/usr/bin/openshift start $ROLE --images=${IMAGES} $OPTIONS
+ExecStart=/usr/bin/openshift start $ROLE --images=${IMAGES} --kubeconfig=${KUBECONFIG} $OPTIONS
 WorkingDirectory=/var/lib/openshift/
 
 [Install]
