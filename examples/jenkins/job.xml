@@ -24,25 +24,32 @@
   <builders>
     <hudson.tasks.Shell>
       <command>
-TEST_ENDPOINT=`openshift kubectl get services -s $OPENSHIFT_HOST| grep frontend-test | awk &apos;{print $4&quot;:&quot;$5}&apos;`
+osc="osc --insecure-skip-tls-verify=true --server=$OPENSHIFT_HOST"
 
-REGISTRY_ENDPOINT=`openshift kubectl get services -s $OPENSHIFT_HOST| grep docker-registry | awk &apos;{print $3&quot;:&quot;$4}&apos;`
+TEST_ENDPOINT=`$osc get services -n test | grep frontend-test | awk '{print $4":"$5}'`
+
+REGISTRY_ENDPOINT=`$osc get services | grep docker-registry | awk '{print $4":"$5}'`
 
 # clean up existing test deployment
 set +e
-echo &quot;Removing old test deployment&quot;
-TEST_RC_ID=`openshift kubectl get replicationController -s $OPENSHIFT_HOST | grep frontend-test | awk &apos;{print $1}&apos;`
-openshift kubectl delete replicationController $TEST_RC_ID -s $OPENSHIFT_HOST
-TEST_POD_ID=`openshift kubectl get pod -s $OPENSHIFT_HOST | grep frontend-test | awk &apos;{print $1}&apos;`
-openshift kubectl delete pod $TEST_POD_ID -s $OPENSHIFT_HOST
+echo "Removing old test deployment"
+TEST_RC_ID=`$osc get -n test replicationController | grep frontend-test | awk '{print $1}'`
+if [ ! -z $TEST_RC_ID ]; then
+  $osc delete -n test replicationController $TEST_RC_ID
+fi
+
+TEST_POD_ID=`$osc get pod -n test | grep frontend-test | awk '{print $1}'`
+if [ ! -z $TEST_POD_ID ]; then
+  $osc delete pod -n test $TEST_POD_ID
+fi
 set -e
 
 # wait for old pod to be torn down
 sleep 5
 
 # trigger a build
-echo &quot;Triggering new application build and deployment&quot;
-openshift kubectl start-build ruby-test-build -s $OPENSHIFT_HOST
+echo "Triggering new application build and deployment"
+$osc start-build -n test ruby-test-build
 
 # check that the build test image deployed successfully
 set +e
@@ -50,29 +57,29 @@ rc=1
 count=0
 attempts=100
 
-echo &quot;Checking test deployment at $TEST_ENDPOINT&quot;
+echo "Checking test deployment at $TEST_ENDPOINT"
 while [ $rc -ne 0 -a $count -lt $attempts ]; do
   curl -s --connect-timeout 2 $TEST_ENDPOINT
   rc=$?
   if [ $rc -ne 0 ]; then
     count=$(($count+1))
-    echo &quot;Attempt $count/$attempts&quot;
+    echo "Attempt $count/$attempts"
     sleep 5
   fi
 done
 set -e
 
 if [ $count -eq $attempts ]; then
-    echo &quot;Failed to reach test deployment&quot;
+    echo "Failed to reach test deployment"
     exit 1
 fi
 
 
 # Tag the image into production
-echo &quot;Test deployment succeeded, rolling out to production...&quot;
+echo "Test deployment succeeded, rolling out to production..."
 
-COMMIT=`curl -s http://$REGISTRY_ENDPOINT/v1/repositories/openshift/origin-ruby-sample/tags/test`
-curl -s -X PUT  http://$REGISTRY_ENDPOINT/v1/repositories/openshift/origin-ruby-sample/tags/prod -d "$COMMIT"
+COMMIT=`curl -s http://$REGISTRY_ENDPOINT/v1/repositories/test/origin-ruby-sample/tags/test`
+curl -s -X PUT  http://$REGISTRY_ENDPOINT/v1/repositories/test/origin-ruby-sample/tags/prod -d "$COMMIT"
       </command>
     </hudson.tasks.Shell>
   </builders>
