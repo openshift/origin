@@ -8,8 +8,10 @@ func init() {
 	api.Scheme.AddKnownTypes("",
 		&Template{},
 		&TemplateList{},
+		&RemoteTemplate{},
 	)
 }
 
-func (*Template) IsAnAPIObject()     {}
-func (*TemplateList) IsAnAPIObject() {}
+func (*Template) IsAnAPIObject()       {}
+func (*TemplateList) IsAnAPIObject()   {}
+func (*RemoteTemplate) IsAnAPIObject() {}

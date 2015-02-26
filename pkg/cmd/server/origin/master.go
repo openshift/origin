@@ -213,6 +213,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"templateConfigs": templateregistry.NewREST(),
 		"templates":       templateetcd.NewREST(c.EtcdHelper),
+		"remoteTemplates": templateregistry.NewRemoteREST(v1beta1.Codec),
 
 		"routes": routeregistry.NewREST(routeEtcd),
 

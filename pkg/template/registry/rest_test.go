@@ -1,11 +1,13 @@
 package registry
 
 import (
+	"fmt"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/api/v1beta1"
 	config "github.com/openshift/origin/pkg/config/api"
 	template "github.com/openshift/origin/pkg/template/api"
 )
@@ -78,4 +80,62 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 			t.Fatalf("Unexpected label value: %s", value)
 		}
 	}
+}
+
+func TestRemoteRESTCreate(t *testing.T) {
+	codec := v1beta1.Codec
+
+	templateName := "testTemplate"
+	tpl := &template.Template{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: templateName,
+		},
+		Objects: []runtime.Object{
+			&kapi.Service{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "test-service",
+				},
+				Spec: kapi.ServiceSpec{
+					Port:            80,
+					Protocol:        kapi.ProtocolTCP,
+					SessionAffinity: kapi.AffinityTypeNone,
+				},
+			},
+		},
+	}
+
+	r := RemoteREST{
+		codec: codec,
+		fetcher: &testFetcher{
+			response: []byte(runtime.EncodeOrDie(codec, tpl)),
+		},
+	}
+
+	remote := &template.RemoteTemplate{
+		RemoteURL: "http://test.url/test",
+	}
+
+	obj, err := r.Create(nil, remote)
+	if err != nil {
+		t.Errorf("Unexpected error creating remoteTemplate: %v", err)
+	}
+	resultTpl, ok := obj.(*template.Template)
+	if !ok {
+		t.Errorf("Unexpected object %#v", obj)
+	}
+	if resultTpl.Name != templateName {
+		t.Errorf("Unexpected template name: %s", resultTpl.Name)
+	}
+}
+
+type testFetcher struct {
+	response []byte
+	isErr    bool
+}
+
+func (f *testFetcher) Fetch(URL string) ([]byte, error) {
+	if f.isErr {
+		return nil, fmt.Errorf("Error")
+	}
+	return f.response, nil
 }

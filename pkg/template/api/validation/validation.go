@@ -51,3 +51,10 @@ func validateTemplateBody(template *api.Template) (errs errors.ValidationErrorLi
 	errs = append(errs, validation.ValidateLabels(template.ObjectLabels, "labels")...)
 	return
 }
+
+func ValidateRemoteTemplate(remote *api.RemoteTemplate) (errs errors.ValidationErrorList) {
+	if len(remote.RemoteURL) == 0 {
+		errs = append(errs, errors.NewFieldRequired("RemoteURL", ""))
+	}
+	return
+}
