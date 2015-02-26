@@ -61,7 +61,7 @@
                 <span data-icon="" aria-hidden="true" class="font-icon"></span>
               </div>Ports:
               <div ng-repeat="port in container.ports" style="position: relative;">
-                <span>{{port.containerPort}} ({{port.protocol}})</span>
+                <span>{{port.containerPort}} ({{port.protocol}})<span ng-if="port.hostPort"> <span style="color: #ddd;">&#10230;</span> {{port.hostPort}}</span></span>
                 <span class="connector connector-horizontal" style="left: -21px; top: 50%; width: 21px;">
                   <span class="connector-endpoint" style="left: -3px;"></span>
                   <span class="connector-line" style="top: 0px; left: 3px;width: 17px;"></span>
