@@ -76,12 +76,12 @@ func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tab
 			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
 		}
 	case buildapi.STIBuildStrategyType:
-		formatString(out, "Builder Image", p.Strategy.STIStrategy.Image)
+		formatString(out, "Image", p.Strategy.STIStrategy.Image)
 		if p.Strategy.STIStrategy.Incremental {
 			formatString(out, "Incremental Build", "yes")
 		}
 	case buildapi.CustomBuildStrategyType:
-		formatString(out, "Builder Image", p.Strategy.CustomStrategy.Image)
+		formatString(out, "Image", p.Strategy.CustomStrategy.Image)
 		if p.Strategy.CustomStrategy.ExposeDockerSocket {
 			formatString(out, "Expose Docker Socket", "yes")
 		}

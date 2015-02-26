@@ -81,7 +81,7 @@ func (f *FakeSTI) Prepare(*api.Request) error {
 
 func (f *FakeSTI) Exists(*api.Request) bool {
 	f.ExistsCalled = true
-	return false
+	return true
 }
 
 func (f *FakeSTI) Request() *api.Request {
@@ -132,7 +132,6 @@ func (f *FakeDockerBuild) Build(*api.Request) (*api.Result, error) {
 func TestBuild(t *testing.T) {
 	incrementalTest := []bool{false, true}
 	for _, incremental := range incrementalTest {
-
 		fh := &FakeSTI{
 			BuildRequest: &api.Request{Incremental: incremental},
 			BuildResult:  &api.Result{},
@@ -261,6 +260,7 @@ func TestPostExecute(t *testing.T) {
 			bh.request.Incremental = incremental
 			if previousImageID != "" {
 				bh.request.RemovePreviousImage = true
+				bh.incremental = incremental
 				bh.docker.(*test.FakeDocker).GetImageIDResult = previousImageID
 			}
 			err := bh.PostExecute("test-container-id", "cmd1")
@@ -291,8 +291,8 @@ func TestPostExecute(t *testing.T) {
 
 func TestExists(t *testing.T) {
 	type incrementalTest struct {
-		// clean flag was passed
-		clean bool
+		// incremental flag was passed
+		incremental bool
 		// previous image existence
 		previousImage bool
 		// script installed
@@ -302,26 +302,26 @@ func TestExists(t *testing.T) {
 	}
 
 	tests := []incrementalTest{
-		// 0-1: no clean, no image, no matter what with scripts
-		{false, false, false, false},
-		{false, false, true, false},
-
-		// 2: no clean, previous image, no scripts
-		{false, true, false, false},
-		// 3: no clean, previous image, scripts installed
-		{false, true, true, true},
-
-		// 4-7: clean build - should always return false no matter what other flags are
+		// 0-1: incremental, no image, no matter what with scripts
 		{true, false, false, false},
 		{true, false, true, false},
+
+		// 2: incremental, previous image, no scripts
 		{true, true, false, false},
-		{true, true, true, false},
+		// 3: incremental, previous image, scripts installed
+		{true, true, true, true},
+
+		// 4-7: no incremental build - should always return false no matter what other flags are
+		{false, false, false, false},
+		{false, false, true, false},
+		{false, true, false, false},
+		{false, true, true, false},
 	}
 
 	for i, ti := range tests {
 		bh := testBuildHandler()
 		bh.request.WorkingDir = "/working-dir"
-		bh.request.Clean = ti.clean
+		bh.request.Incremental = ti.incremental
 		bh.installedScripts = map[string]bool{api.SaveArtifacts: ti.scriptInstalled}
 		bh.docker.(*test.FakeDocker).PullResult = ti.previousImage
 
@@ -330,7 +330,7 @@ func TestExists(t *testing.T) {
 			t.Errorf("(%d) Unexpected incremental result: %v. Expected: %v",
 				i, incremental, ti.expected)
 		}
-		if !ti.clean && ti.previousImage && ti.scriptInstalled {
+		if ti.incremental && ti.previousImage && ti.scriptInstalled {
 			if len(bh.fs.(*test.FakeFileSystem).ExistsFile) == 0 {
 				continue
 			}

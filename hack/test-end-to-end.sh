@@ -33,10 +33,9 @@ if [[ -z "${USE_IMAGES-}" ]]; then
 		USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
 	fi
 fi
-# TODO: remove the need for this by making all OpenShift components pullIfPresent
-USE_LOCAL_IMAGES="${USE_LOCAL_IMAGES:-true}"
 
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
+TEST_ASSETS="${TEST_ASSETS:-false}"
 
 if [[ -z "${BASETMPDIR-}" ]]; then
 	TMPDIR="${TMPDIR:-"/tmp"}"
@@ -173,7 +172,7 @@ echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start \
      --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
      --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" \
-     --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 --latest-images \
+     --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 \
      --images="${USE_IMAGES}" \
      &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
@@ -184,7 +183,9 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_KEY="${CERT_DIR}/admin/key.key"
 
 	# Generate the certs first
-	wait_for_file "${CURL_CERT}" 0.5 80
+	wait_for_file "${CERT_DIR}/openshift-client/key.key" 0.5 80
+	wait_for_file "${CERT_DIR}/admin/key.key" 0.5 80
+	wait_for_file "${CURL_CA_BUNDLE}" 0.5 80
 
 	# Read client cert data in to send to containerized components
 	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
@@ -273,3 +274,11 @@ wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .
 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
+
+# UI e2e tests can be found in assets/test/e2e
+if [[ "$TEST_ASSETS" == "true" ]]; then
+	echo "[INFO] Running UI e2e tests..."
+	pushd ${OS_ROOT}/assets > /dev/null
+		grunt test-e2e
+	popd > /dev/null
+fi

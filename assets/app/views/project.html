@@ -1,7 +1,7 @@
 <div ng-controller="ProjectController">
   <project-page>
     <div ng-controller="OverviewController">
-      <h1>Project {{project.displayName || project.id}}</h1>
+      <h1>Project {{project.displayName || project.metadata.name}}</h1>
       <div class="small muted" style="margin-top: -5px; margin-bottom: 20px" ng-if="project | description">{{project | description}}</div>
       <!-- TODO handle things that don't live under services -->
       <alerts alerts="alerts"></alerts>
@@ -56,7 +56,7 @@
                       <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
                       <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
                         <span>, triggered by 
-                          <span ng-repeat="cause in deployment.details.causes">
+                          <span class="deployment-trigger" ng-repeat="cause in deployment.details.causes">
                             <span ng-switch="cause.type">
                               <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageName}}:{{cause.imageTrigger.tag}}</span>
                               <span ng-switch-when="ConfigChange">deployment configuration change</span>

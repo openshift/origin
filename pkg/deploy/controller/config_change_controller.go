@@ -62,7 +62,7 @@ func (dc *DeploymentConfigChangeController) HandleDeploymentConfig(config *deplo
 	deployment, err := dc.ChangeStrategy.GetDeployment(config.Namespace, latestDeploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			glog.V(4).Info("Ignoring config change for %s; no existing deployment found", labelFor(config))
+			glog.V(4).Infof("Ignoring config change for %s; no existing deployment found", labelFor(config))
 			return nil
 		}
 		return fmt.Errorf("couldn't retrieve deployment for %s: %v", labelFor(config), err)
@@ -140,4 +140,9 @@ func (i *ChangeStrategyImpl) GenerateDeploymentConfig(namespace, name string) (*
 
 func (i *ChangeStrategyImpl) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	return i.UpdateDeploymentConfigFunc(namespace, config)
+}
+
+// labelFor builds a string identifier for a DeploymentConfig.
+func labelFor(config *deployapi.DeploymentConfig) string {
+	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }

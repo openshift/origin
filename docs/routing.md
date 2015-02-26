@@ -149,7 +149,10 @@ route.json
       "kind": "Route",
       "apiVersion": "v1beta1",
       "host": "hello-openshift.v3.rhcloud.com",
-      "serviceName": "hello-openshift"
+      "serviceName": "hello-openshift",
+      "metadata": {
+        "name": "hello-route"
+      }
     }
 
 ## Securing Your Routes

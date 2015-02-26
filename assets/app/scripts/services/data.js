@@ -535,6 +535,8 @@ angular.module('openshiftConsole')
   var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/namespaces/{namespace}/{type}{?q*}";
   var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}{?q*}";
   var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}{?q*}";  
+  // TODO is there a better way to get this template instead of building it, introspection?
+  var BUILD_HOOKS_URL = URL_ROOT_TEMPLATE + "{type}/{id}/{secret}/{hookType}{?q*}";
 
   // Set the api version the console is currently able to talk to
   API_CFG.openshift.version = "v1beta1";
@@ -549,6 +551,8 @@ angular.module('openshiftConsole')
   // https://github.com/openshift/origin/issues/230
   var SERVER_TYPE_MAP = {
     builds:                 API_CFG.openshift,
+    buildConfigs:           API_CFG.openshift,
+    buildConfigHooks:       API_CFG.openshift,
     deploymentConfigs:      API_CFG.openshift,
     images:                 API_CFG.openshift,
     oAuthAccessTokens:      API_CFG.openshift,
@@ -580,27 +584,48 @@ angular.module('openshiftConsole')
       delete params.namespace;
     }
     var template;
-    if (isWebsocket) {
-      template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
-    }
-    else if (id) {
-      template = namespaceInPath ? URL_NAMESPACED_GET_OBJECT : URL_GET_OBJECT;
-    }
-    else {
-      template = namespaceInPath ? URL_NAMESPACED_GET_LIST : URL_GET_LIST;
-    }
-
-    // TODO where do we specify what the server URL and api version should be
-    return URI.expand(template, {
+    var templateOptions = {
       protocol: protocol,
       serverUrl: SERVER_TYPE_MAP[type].hostPort,
       apiPrefix: SERVER_TYPE_MAP[type].prefix,
       apiVersion: SERVER_TYPE_MAP[type].version,
       type: type,
       id: id,
-      namespace: namespace,
-      q: params
-    });
+      namespace: namespace
+    };
+    if (isWebsocket) {
+      template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
+    }
+    else if (id) {
+      if (type == "buildConfigHooks") {
+        templateOptions.secret = params.secret;
+        templateOptions.hookType = params.hookType;
+        params = angular.copy(params);
+        delete params.secret;
+        delete params.hookType;
+        template = BUILD_HOOKS_URL;
+      }
+      else
+      {
+        template = namespaceInPath ? URL_NAMESPACED_GET_OBJECT : URL_GET_OBJECT;
+      }
+    }
+    else {
+      template = namespaceInPath ? URL_NAMESPACED_GET_LIST : URL_GET_LIST;
+    }
+
+    templateOptions.q = params;
+    return URI.expand(template, templateOptions);
+  };
+
+  DataService.prototype.url = function(options) {
+    if (options && options.type) {
+      var opts = angular.copy(options);
+      delete opts.type;
+      delete opts.id;
+      return this._urlForType(options.type, options.id, null, false, opts).toString();
+    }
+    return null;
   };
 
   return new DataService();

@@ -1,94 +1,96 @@
 {
-  "metadata":{
-    "name":"docker-registry"
-  },
-  "kind":"Config",
-  "apiVersion":"v1beta1",
-  "creationTimestamp":"2014-09-18T18:28:38-04:00",
-  "items":[
+  "apiVersion": "v1beta1",
+  "creationTimestamp": "2014-09-18T18:28:38-04:00",
+  "items": [
     {
-      "apiVersion":"v1beta2",
-      "creationTimestamp":null,
-      "id":"docker-registry",
-      "kind":"Service",
-      "port":5001,
-      "containerPort":5000,
-      "selector":{
-        "name":"registrypod"
+      "apiVersion": "v1beta2",
+      "containerPort": 5000,
+      "creationTimestamp": null,
+      "id": "docker-registry",
+      "kind": "Service",
+      "port": 5001,
+      "selector": {
+        "name": "registrypod"
       }
     },
     {
-      "metadata":{
-        "name":"docker-registry"
+      "apiVersion": "v1beta1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "name": "docker-registry"
       },
-      "kind":"DeploymentConfig",
-      "apiVersion":"v1beta1",
-      "triggers":[
-        {
-          "type":"ConfigChange"
-        }
-      ],
-      "template":{
-        "strategy":{
-          "type":"Recreate"
-        },
-        "controllerTemplate":{
-          "replicas":1,
-          "replicaSelector":{
-            "name":"registrypod"
-          },
-          "podTemplate":{
-            "desiredState":{
-              "manifest":{
-                "containers":[
+      "template": {
+        "controllerTemplate": {
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "containers": [
                   {
-                    "image":"openshift/docker-registry",
-                    "imagePullPolicy":"PullIfNotPresent",
-                    "name":"registry-container",
-                    "ports":[
+                    "command": [
+                      "sh",
+                      "-c",
+                      "REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=https://${KUBERNETES_SERVICE_HOST}:443/osapi/v1beta1 OPENSHIFT_INSECURE=true exec docker-registry"
+                    ],
+                    "env": [
                       {
-                        "containerPort":5000,
-                        "protocol":"TCP"
+                        "name": "STORAGE_PATH",
+                        "value": "/tmp/openshift.local.registry"
                       }
                     ],
-                    "env":[
+                    "image": "openshift/docker-registry",
+                    "imagePullPolicy": "PullIfNotPresent",
+                    "name": "registry-container",
+                    "ports": [
                       {
-                        "name":"STORAGE_PATH",
-                        "value":"/tmp/openshift.local.registry"
+                        "containerPort": 5000,
+                        "protocol": "TCP"
                       }
                     ],
-                    "volumeMounts":[
+                    "volumeMounts": [
                       {
-                        "name":"registry-storage",
-                        "mountPath":"/tmp/openshift.local.registry",
-                        "readOnly":false
+                        "mountPath": "/tmp/openshift.local.registry",
+                        "name": "registry-storage",
+                        "readOnly": false
                       }
-                    ],
-                    "command": ["sh", "-c", "REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} OPENSHIFT_URL=https://${KUBERNETES_SERVICE_HOST}:443/osapi/v1beta1 OPENSHIFT_INSECURE=true exec docker-registry"]
+                    ]
                   }
                 ],
-                "version":"v1beta1",
-                "volumes":[
+                "version": "v1beta1",
+                "volumes": [
                   {
-                    "name":"registry-storage",
-                    "source":{
-                      "hostDir":{
-                        "path":"/tmp/openshift.local.registry"
+                    "name": "registry-storage",
+                    "source": {
+                      "hostDir": {
+                        "path": "/tmp/openshift.local.registry"
                       }
                     }
                   }
                 ]
               },
-              "restartpolicy":{
-
-              }
+              "restartpolicy": {}
             },
-            "labels":{
-              "name":"registrypod"
+            "labels": {
+              "name": "registrypod"
             }
-          }
+          },
+          "replicaSelector": {
+            "name": "registrypod"
+          },
+          "replicas": 1
+        },
+        "strategy": {
+          "type": "Recreate"
         }
-      }
+      },
+      "triggers": [
+        {
+          "type": "ConfigChange"
+        }
+      ]
     }
-  ]
+  ],
+  "kind": "Config",
+  "metadata": {
+    "name": "docker-registry"
+  }
 }

@@ -40,8 +40,9 @@ func (s *STIBuilder) Build() error {
 		Tag:          tag,
 		ScriptsURL:   s.build.Parameters.Strategy.STIStrategy.Scripts,
 		Environment:  getBuildEnvVars(s.build),
-		Clean:        !s.build.Parameters.Strategy.STIStrategy.Incremental,
+		Incremental:  s.build.Parameters.Strategy.STIStrategy.Incremental,
 	}
+
 	if s.build.Parameters.Revision != nil && s.build.Parameters.Revision.Git != nil &&
 		s.build.Parameters.Revision.Git.Commit != "" {
 		request.Ref = s.build.Parameters.Revision.Git.Commit

@@ -15,50 +15,10 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	controller "github.com/openshift/origin/pkg/deploy/controller"
+	deploycontroller "github.com/openshift/origin/pkg/deploy/controller"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
-
-// DeploymentConfigControllerFactory can create a DeploymentConfigController which obtains
-// DeploymentConfigs from a queue populated from a watch of all DeploymentConfigs.
-type DeploymentConfigControllerFactory struct {
-	Client     *osclient.Client
-	KubeClient kclient.Interface
-	Codec      runtime.Codec
-	Stop       <-chan struct{}
-}
-
-func (factory *DeploymentConfigControllerFactory) Create() *controller.DeploymentConfigController {
-	deploymentConfigLW := &deployutil.ListWatcherImpl{
-		ListFunc: func() (runtime.Object, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
-		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
-		},
-	}
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
-
-	return &controller.DeploymentConfigController{
-		DeploymentClient: &controller.DeploymentConfigControllerDeploymentClientImpl{
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
-			},
-			CreateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Create(deployment)
-			},
-		},
-		NextDeploymentConfig: func() *deployapi.DeploymentConfig {
-			config := queue.Pop().(*deployapi.DeploymentConfig)
-			panicIfStopped(factory.Stop, "deployment config controller stopped")
-			return config
-		},
-		Codec: factory.Codec,
-		Stop:  factory.Stop,
-	}
-}
 
 // DeploymentControllerFactory can create a DeploymentController which obtains Deployments
 // from a queue populated from a watch of Deployments.
@@ -78,7 +38,7 @@ type DeploymentControllerFactory struct {
 	Stop <-chan struct{}
 }
 
-func (factory *DeploymentControllerFactory) Create() *controller.DeploymentController {
+func (factory *DeploymentControllerFactory) Create() *deploycontroller.DeploymentController {
 	deploymentLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
 			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
@@ -107,9 +67,9 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 	}
 	cache.NewPoller(pollFunc, 10*time.Second, podQueue).RunUntil(factory.Stop)
 
-	return &controller.DeploymentController{
+	return &deploycontroller.DeploymentController{
 		ContainerCreator: &defaultContainerCreator{factory.RecreateStrategyImage},
-		DeploymentClient: &controller.DeploymentControllerDeploymentClientImpl{
+		DeploymentClient: &deploycontroller.DeploymentControllerDeploymentClientImpl{
 			// Since we need to use a deployment cache to support the pod poller, go ahead and use
 			// it for other deployment lookups and maintain the usual REST API for not-found errors.
 			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -131,7 +91,7 @@ func (factory *DeploymentControllerFactory) Create() *controller.DeploymentContr
 				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
 			},
 		},
-		PodClient: &controller.DeploymentControllerPodClientImpl{
+		PodClient: &deploycontroller.DeploymentControllerPodClientImpl{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return factory.KubeClient.Pods(namespace).Create(pod)
 			},
@@ -240,7 +200,7 @@ type DeploymentConfigChangeControllerFactory struct {
 	Stop <-chan struct{}
 }
 
-func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.DeploymentConfigChangeController {
+func (factory *DeploymentConfigChangeControllerFactory) Create() *deploycontroller.DeploymentConfigChangeController {
 	deploymentConfigLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
 			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
@@ -252,8 +212,8 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() *controller.Dep
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue).RunUntil(factory.Stop)
 
-	return &controller.DeploymentConfigChangeController{
-		ChangeStrategy: &controller.ChangeStrategyImpl{
+	return &deploycontroller.DeploymentConfigChangeController{
+		ChangeStrategy: &deploycontroller.ChangeStrategyImpl{
 			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
 			},
@@ -282,7 +242,7 @@ type ImageChangeControllerFactory struct {
 	Stop <-chan struct{}
 }
 
-func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
+func (factory *ImageChangeControllerFactory) Create() *deploycontroller.ImageChangeController {
 	imageRepositoryLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
 			return factory.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
@@ -305,8 +265,8 @@ func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeCon
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, store).RunUntil(factory.Stop)
 
-	return &controller.ImageChangeController{
-		DeploymentConfigClient: &controller.ImageChangeControllerDeploymentConfigClientImpl{
+	return &deploycontroller.ImageChangeController{
+		DeploymentConfigClient: &deploycontroller.ImageChangeControllerDeploymentConfigClientImpl{
 			ListDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
 				configs := []*deployapi.DeploymentConfig{}
 				objs := store.List()

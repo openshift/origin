@@ -1,6 +1,9 @@
 angular.module('openshiftConsole')
   .filter('dateRelative', function() {
     return function(timestamp) {
+      if (!timestamp) {
+        return timestamp;
+      }
       return moment(timestamp).fromNow();
     };
   })

@@ -11,17 +11,17 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-type addUserOptions struct {
-	roleNamespace    string
-	roleName         string
-	bindingNamespace string
-	client           client.Interface
+type AddUserOptions struct {
+	RoleNamespace    string
+	RoleName         string
+	BindingNamespace string
+	Client           client.Interface
 
-	users []string
+	Users []string
 }
 
 func NewCmdAddUser(f *clientcmd.Factory) *cobra.Command {
-	options := &addUserOptions{}
+	options := &AddUserOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "add-user <role> <user> [user]...",
@@ -33,41 +33,41 @@ func NewCmdAddUser(f *clientcmd.Factory) *cobra.Command {
 			}
 
 			var err error
-			if options.client, _, err = f.Clients(cmd); err != nil {
+			if options.Client, _, err = f.Clients(cmd); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if options.bindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+			if options.BindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if err := options.run(); err != nil {
+			if err := options.Run(); err != nil {
 				glog.Fatal(err)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.roleNamespace, "role-namespace", "master", "namespace where the role is located.")
+	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "master", "namespace where the role is located.")
 
 	return cmd
 }
 
-func (o *addUserOptions) complete(cmd *cobra.Command) bool {
+func (o *AddUserOptions) complete(cmd *cobra.Command) bool {
 	args := cmd.Flags().Args()
 	if len(args) < 2 {
 		cmd.Help()
 		return false
 	}
 
-	o.roleName = args[0]
-	o.users = args[1:]
+	o.RoleName = args[0]
+	o.Users = args[1:]
 	return true
 }
 
-func (o *addUserOptions) run() error {
-	roleBindings, err := getExistingRoleBindingsForRole(o.roleNamespace, o.roleName, o.client.PolicyBindings(o.bindingNamespace))
+func (o *AddUserOptions) Run() error {
+	roleBindings, err := getExistingRoleBindingsForRole(o.RoleNamespace, o.RoleName, o.Client.PolicyBindings(o.BindingNamespace))
 	if err != nil {
 		return err
 	}
-	roleBindingNames, err := getExistingRoleBindingNames(o.client.PolicyBindings(o.bindingNamespace))
+	roleBindingNames, err := getExistingRoleBindingNames(o.Client.PolicyBindings(o.BindingNamespace))
 	if err != nil {
 		return err
 	}
@@ -82,16 +82,16 @@ func (o *addUserOptions) run() error {
 		roleBinding = roleBindings[0]
 	}
 
-	roleBinding.RoleRef.Namespace = o.roleNamespace
-	roleBinding.RoleRef.Name = o.roleName
+	roleBinding.RoleRef.Namespace = o.RoleNamespace
+	roleBinding.RoleRef.Name = o.RoleName
 
-	roleBinding.Users.Insert(o.users...)
+	roleBinding.Users.Insert(o.Users...)
 
 	if isUpdate {
-		_, err = o.client.RoleBindings(o.bindingNamespace).Update(roleBinding)
+		_, err = o.Client.RoleBindings(o.BindingNamespace).Update(roleBinding)
 	} else {
-		roleBinding.Name = getUniqueName(o.roleName, roleBindingNames)
-		_, err = o.client.RoleBindings(o.bindingNamespace).Create(roleBinding)
+		roleBinding.Name = getUniqueName(o.RoleName, roleBindingNames)
+		_, err = o.Client.RoleBindings(o.BindingNamespace).Create(roleBinding)
 	}
 	if err != nil {
 		return err

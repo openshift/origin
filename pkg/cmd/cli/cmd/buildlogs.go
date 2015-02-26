@@ -18,8 +18,10 @@ func NewCmdBuildLogs(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 NOTE: This command may be moved in the future.
 
 Examples:
-$ osc build-logs 566bed879d2d
-<stream logs from container to stdout>`,
+
+	# Stream logs from container to stdout
+	$ osc build-logs 566bed879d2d
+`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
 				usageError(cmd, "<build> is a required argument")

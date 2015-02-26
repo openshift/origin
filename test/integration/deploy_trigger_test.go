@@ -28,6 +28,7 @@ import (
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
@@ -376,11 +377,10 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
 
-	dccFactory := deploycontrollerfactory.DeploymentConfigControllerFactory{
+	dccFactory := deployconfigcontroller.DeploymentConfigControllerFactory{
 		Client:     osClient,
 		KubeClient: kubeClient,
 		Codec:      latest.Codec,
-		Stop:       openshift.stop,
 	}
 	dccFactory.Create().Run()
 

@@ -36,6 +36,8 @@ type FakeDocker struct {
 	RemoveImageError             error
 	BuildImageOpts               docker.BuildImageOptions
 	BuildImageError              error
+	PullResult                   bool
+	PullError                    error
 
 	mutex sync.Mutex
 }
@@ -105,7 +107,11 @@ func (f *FakeDocker) RemoveImage(name string) error {
 
 // PullImage pulls a fake docker image
 func (f *FakeDocker) PullImage(imageName string) (*dockerclient.Image, error) {
-	return nil, nil
+	if f.PullResult {
+		return &dockerclient.Image{}, nil
+	}
+
+	return nil, f.PullError
 }
 
 // CheckAndPull pulls a fake docker image

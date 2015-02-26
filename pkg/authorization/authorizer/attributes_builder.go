@@ -36,12 +36,6 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		return nil, err
 	}
 
-	// TODO reconsider special casing this.  Having the special case hereallow us to fully share the kube
-	// APIRequestInfoResolver without any modification or customization.
-	if (requestInfo.Resource == "projects") && (len(requestInfo.Name) > 0) {
-		requestInfo.Namespace = requestInfo.Name
-	}
-
 	return DefaultAuthorizationAttributes{
 		Verb:              requestInfo.Verb,
 		Resource:          requestInfo.Resource,

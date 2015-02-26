@@ -1,22 +1,26 @@
 {
-  "id": "hello-openshift",
-  "kind": "Pod",
-  "apiVersion":"v1beta2",
-  "labels": {
-    "name": "hello-openshift"
-  },
+  "apiVersion": "v1beta2",
   "desiredState": {
     "manifest": {
-      "version": "v1beta1",
+      "containers": [
+        {
+          "image": "openshift/hello-openshift",
+          "name": "hello-openshift",
+          "ports": [
+            {
+              "containerPort": 8080,
+              "hostPort": 6061
+            }
+          ]
+        }
+      ],
       "id": "hello-openshift",
-      "containers": [{
-        "name": "hello-openshift",
-        "image": "openshift/hello-openshift",
-        "ports": [{
-          "hostPort": 6061,
-          "containerPort": 8080
-        }]
-      }]
+      "version": "v1beta1"
     }
+  },
+  "id": "hello-openshift",
+  "kind": "Pod",
+  "labels": {
+    "name": "hello-openshift"
   }
 }

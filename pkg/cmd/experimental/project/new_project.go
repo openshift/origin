@@ -15,20 +15,20 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
-type newProjectOptions struct {
-	projectName string
-	displayName string
-	description string
+type NewProjectOptions struct {
+	ProjectName string
+	DisplayName string
+	Description string
 
-	client client.Interface
+	Client client.Interface
 
-	adminRole             string
-	masterPolicyNamespace string
-	adminUser             string
+	AdminRole             string
+	MasterPolicyNamespace string
+	AdminUser             string
 }
 
 func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Command {
-	options := &newProjectOptions{}
+	options := &NewProjectOptions{}
 
 	cmd := &cobra.Command{
 		Use:   name + " <project-name>",
@@ -40,68 +40,68 @@ func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 			}
 
 			var err error
-			if options.client, _, err = f.Clients(cmd); err != nil {
+			if options.Client, _, err = f.Clients(cmd); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if err := options.run(); err != nil {
+			if err := options.Run(); err != nil {
 				glog.Fatal(err)
 			}
 		},
 	}
 
 	// TODO remove once we have global policy objects
-	cmd.Flags().StringVar(&options.masterPolicyNamespace, "master-policy-namespace", "master", "master policy namespace")
-	cmd.Flags().StringVar(&options.adminRole, "admin-role", "admin", "project admin role name in the master policy namespace")
-	cmd.Flags().StringVar(&options.adminUser, "admin", "", "project admin username")
-	cmd.Flags().StringVar(&options.displayName, "display-name", "", "project display name")
-	cmd.Flags().StringVar(&options.description, "description", "", "project description")
+	cmd.Flags().StringVar(&options.MasterPolicyNamespace, "master-policy-namespace", "master", "master policy namespace")
+	cmd.Flags().StringVar(&options.AdminRole, "admin-role", "admin", "project admin role name in the master policy namespace")
+	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "project admin username")
+	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")
+	cmd.Flags().StringVar(&options.Description, "description", "", "project description")
 
 	return cmd
 }
 
-func (o *newProjectOptions) complete(cmd *cobra.Command) bool {
+func (o *NewProjectOptions) complete(cmd *cobra.Command) bool {
 	args := cmd.Flags().Args()
 	if len(args) != 1 {
 		cmd.Help()
 		return false
 	}
 
-	o.projectName = args[0]
+	o.ProjectName = args[0]
 
 	return true
 }
 
-func (o *newProjectOptions) run() error {
-	if _, err := o.client.Projects().Get(o.projectName); err != nil {
+func (o *NewProjectOptions) Run() error {
+	if _, err := o.Client.Projects().Get(o.ProjectName); err != nil {
 		if !kerrors.IsNotFound(err) {
 			return err
 		}
 	} else {
-		return fmt.Errorf("project %v already exists", o.projectName)
+		return fmt.Errorf("project %v already exists", o.ProjectName)
 	}
 
 	project := &projectapi.Project{}
-	project.Name = o.projectName
-	project.DisplayName = o.displayName
+	project.Name = o.ProjectName
+	project.DisplayName = o.DisplayName
 	project.Annotations = make(map[string]string)
-	project.Annotations["description"] = o.description
-	project, err := o.client.Projects().Create(project)
+	project.Annotations["description"] = o.Description
+	project, err := o.Client.Projects().Create(project)
 	if err != nil {
 		return err
 	}
 
-	if len(o.adminUser) != 0 {
+	if len(o.AdminUser) != 0 {
 		adminRoleBinding := &authorizationapi.RoleBinding{}
 
 		adminRoleBinding.Name = "admins"
-		adminRoleBinding.RoleRef.Namespace = o.masterPolicyNamespace
-		adminRoleBinding.RoleRef.Name = o.adminRole
-		adminRoleBinding.Users = util.NewStringSet(o.adminUser)
+		adminRoleBinding.RoleRef.Namespace = o.MasterPolicyNamespace
+		adminRoleBinding.RoleRef.Name = o.AdminRole
+		adminRoleBinding.Users = util.NewStringSet(o.AdminUser)
 
-		_, err := o.client.RoleBindings(project.Name).Create(adminRoleBinding)
+		_, err := o.Client.RoleBindings(project.Name).Create(adminRoleBinding)
 		if err != nil {
-			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.projectName, o.adminUser, o.adminRole)
-			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-user --namespace=%v --role-namespace=%v %v %v\n", o.projectName, o.masterPolicyNamespace, o.adminRole, o.adminUser)
+			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.ProjectName, o.AdminUser, o.AdminRole)
+			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-user --namespace=%v --role-namespace=%v %v %v\n", o.ProjectName, o.MasterPolicyNamespace, o.AdminRole, o.AdminUser)
 			return err
 		}
 	}

@@ -23,8 +23,8 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	defer openshift.Close()
 
 	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-repo"},
-		DockerImageRepository: "registry:8080/openshift/test-image",
+		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-trigger-repo"},
+		DockerImageRepository: "registry:8080/openshift/test-image-trigger",
 		Tags: map[string]string{
 			"latest": "ref-1",
 		},
@@ -65,8 +65,8 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 	newBuild := event.Object.(*buildapi.Build)
 
-	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image:ref-2" {
-		t.Fatalf("Expected build with base image %s, got %s", "registry:8080/openshift/test-image:ref-2", newBuild.Parameters.Strategy.DockerStrategy.Image)
+	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-2" {
+		t.Fatalf("Expected build with base image %s, got %s", "registry:8080/openshift/test-image-trigger:ref-2", newBuild.Parameters.Strategy.DockerStrategy.Image)
 	}
 
 	event = <-watch2.ResultChan()
@@ -97,7 +97,7 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					Image: "registry:8080/openshift/test-image",
+					Image: "registry:8080/openshift/test-image-trigger",
 				},
 			},
 			Output: buildapi.BuildOutput{
@@ -108,9 +108,9 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 			{
 				Type: buildapi.ImageChangeBuildTriggerType,
 				ImageChange: &buildapi.ImageChangeTrigger{
-					Image: "registry:8080/openshift/test-image",
+					Image: "registry:8080/openshift/test-image-trigger",
 					From: kapi.ObjectReference{
-						Name: "test-image-repo",
+						Name: "test-image-trigger-repo",
 					},
 					Tag: "latest",
 				},

@@ -41,7 +41,7 @@
           <li class="dropdown" ng-if="user">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
               <span class="pficon pficon-user"></span>
-              {{user.fullName || user.metadata.name}} <b class="caret"></b>
+              <span class="username">{{user.fullName || user.metadata.name}}</span> <b class="caret"></b>
             </a>
             <ul class="dropdown-menu">
               <!--
@@ -131,6 +131,7 @@
         <script src="scripts/directives/nav.js"></script>
         <script src="scripts/directives/alerts.js"></script>
         <script src="scripts/directives/popups.js"></script>
+        <script src="scripts/directives/util.js"></script>
         <script src="scripts/filters/date.js"></script>
         <script src="scripts/filters/resources.js"></script>
         <script src="scripts/filters/util.js"></script>

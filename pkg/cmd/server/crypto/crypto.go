@@ -163,7 +163,7 @@ func InitCA(dir string, name string) (*CA, error) {
 
 	caConfig, err := newTLSCertificateConfig(caDir)
 	if err != nil {
-		glog.Infof("Generating new CA in %s", caDir)
+		glog.V(2).Infof("Generating new CA in %s", caDir)
 		// Create CA cert
 		rootcaPublicKey, rootcaPrivateKey, err := NewKeyPair()
 		if err != nil {
@@ -186,7 +186,7 @@ func InitCA(dir string, name string) (*CA, error) {
 			return nil, err
 		}
 	} else {
-		glog.Infof("Using existing CA certificate in %s", caDir)
+		glog.V(2).Infof("Using existing CA certificate in %s", caDir)
 	}
 
 	// read serial file
@@ -228,14 +228,14 @@ func (ca *CA) MakeServerCert(name string, hostnames []string) (*TLSCertificateCo
 		missingIps := ipsNotInSlice(ips, cert.IPAddresses)
 		missingDns := stringsNotInSlice(dns, cert.DNSNames)
 		if len(missingIps) == 0 && len(missingDns) == 0 {
-			glog.Infof("Using existing server certificate in %s", serverDir)
+			glog.V(2).Infof("Using existing server certificate in %s", serverDir)
 			return server, nil
 		}
 
-		glog.Infof("Existing server certificate in %s was missing some hostnames (%v) or IP addresses (%v)", serverDir, missingDns, missingIps)
+		glog.V(2).Infof("Existing server certificate in %s was missing some hostnames (%v) or IP addresses (%v)", serverDir, missingDns, missingIps)
 	}
 
-	glog.Infof("Generating server certificate in %s", serverDir)
+	glog.V(2).Infof("Generating server certificate in %s", serverDir)
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate, _ := newServerCertificateTemplate(pkix.Name{CommonName: hostnames[0]}, hostnames)
 	serverCrt, _ := ca.signCertificate(serverTemplate, serverPublicKey)
@@ -289,9 +289,9 @@ func (ca *CA) MakeClientConfig(clientId string, u user.Info, baseKubeconfig clie
 	}
 
 	if err == nil {
-		glog.V(4).Infof("Using existing client certificates in %s", clientDir)
+		glog.V(2).Infof("Using existing client certificates in %s", clientDir)
 	} else {
-		glog.V(4).Infof("Generating client certificates in %s", clientDir)
+		glog.V(2).Infof("Generating client certificates in %s", clientDir)
 
 		clientPublicKey, clientPrivateKey, _ := NewKeyPair()
 		clientTemplate, _ := newClientCertificateTemplate(x509request.UserToSubject(u))
@@ -349,7 +349,7 @@ func (ca *CA) MakeClientConfig(clientId string, u user.Info, baseKubeconfig clie
 	}
 
 	kubeConfigFile := filepath.Join(clientDir, ".kubeconfig")
-	glog.Infof("Writing client config in %s", kubeConfigFile)
+	glog.V(2).Infof("Writing client config in %s", kubeConfigFile)
 	if err := clientcmd.WriteToFile(baseKubeconfig, kubeConfigFile); err != nil {
 		return client, err
 	}

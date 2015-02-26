@@ -35,11 +35,11 @@ func init() {
 			if err != nil {
 				return err
 			}
-			if in.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
-				out.Source.ContextDir = in.Strategy.DockerStrategy.ContextDir
-			}
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
+			}
+			if in.Strategy.Type == DockerBuildStrategyType && in.Strategy.DockerStrategy != nil {
+				out.Source.ContextDir = in.Strategy.DockerStrategy.ContextDir
 			}
 			if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
 				return err

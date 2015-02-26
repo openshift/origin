@@ -47,7 +47,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 		Short: "Run the OpenShift deployer",
 		Long:  longCommandDesc,
 		Run: func(c *cobra.Command, args []string) {
-			kClient, _, err := cfg.Config.Clients()
+			_, kClient, err := cfg.Config.Clients()
 			if err != nil {
 				glog.Fatal(err)
 			}

@@ -37,11 +37,11 @@ STI builds - If no builder image is specified as an argument, generate will dete
 the type of source repository (JEE, Ruby, NodeJS) and associate a default builder
 to it.
 
-Services and Exposed Ports - For Docker builds, generate looks for EXPOSE directives
-in the Dockerfile to determine which ports to expose. For STI builds, generate will
-use the exposed ports of the builder image. In either case, if a different set of
-ports needs to be exposed, use the --ports flag to specify them. Services will be
-generated using these ports as well.
+Services and Exposed Port - For Docker builds, generate looks for EXPOSE directives
+in the Dockerfile to determine which port to expose. For STI builds, generate will
+use the exposed port of the builder image. In either case, if a different port
+needs to be exposed, use the --port flag to specify them. Services will be
+generated using this port as well.
 
 
 Usage:
@@ -52,17 +52,18 @@ If not specified, the current directory is used.
 
 Examples:
 
+	# Find a git repository in the current directory and build artifacts based on detection
     $ openshift ex generate
-    <finds a git repository in the current directory and builds artifacts based on detection>
 
+    # Specify the directory for the repository to use
     $ openshift ex generate ./repo/dir
-    <specify the directory for the repository to use>
 
+    # Use a remote git repository
     $ openshift ex generate https://github.com/openshift/ruby-hello-world.git
-    <use a remote git repository>
 
+    # Force the application to use the specific builder-image
     $ openshift ex generate --builder-image=openshift/ruby-20-centos
-    <force the application to use the specific builder-image>`
+`
 
 type params struct {
 	name,
@@ -71,7 +72,7 @@ type params struct {
 	sourceURL,
 	dockerContext,
 	builderImage,
-	ports string
+	port string
 	env cmdutil.Environment
 }
 
@@ -130,7 +131,7 @@ func NewCmdGenerate(f *clientcmd.Factory, parentName, name string) *cobra.Comman
 	flag.StringVar(&input.sourceURL, "source-url", "", "Set the source URL")
 	flag.StringVar(&input.dockerContext, "docker-context", "", "Context path for Dockerfile if creating a Docker build")
 	flag.StringVar(&input.builderImage, "builder-image", "", "Image to use for STI build")
-	flag.StringVarP(&input.ports, "ports", "p", "", "Comma-separated list of ports to expose on pod deployment")
+	flag.StringVarP(&input.port, "port", "p", "", "Port to expose on pod deployment")
 	flag.StringP("environment", "e", "", "Comma-separated list of environment variables to add to the deployment. Should be in the form of var1=value1,var2=value2,...")
 	dockerHelper.InstallFlags(flag)
 	return c
@@ -221,6 +222,10 @@ func generateApp(input params, imageResolver genapp.Resolver, out io.Writer) err
 		return err
 	}
 	glog.V(2).Infof("Generated build strategy reference: %#v", strategyRef)
+
+	if len(input.port) > 0 {
+		strategyRef.Base.Info.Config.ExposedPorts = map[string]struct{}{input.port: {}}
+	}
 
 	pipeline, err := genapp.NewBuildPipeline(srcRef.Name, strategyRef.Base, strategyRef, srcRef)
 	if err != nil {
