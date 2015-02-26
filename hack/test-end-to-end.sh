@@ -183,7 +183,9 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_KEY="${CERT_DIR}/admin/key.key"
 
 	# Generate the certs first
-	wait_for_file "${CURL_CERT}" 0.5 80
+	wait_for_file "${CERT_DIR}/openshift-client/key.key" 0.5 80
+	wait_for_file "${CERT_DIR}/admin/key.key" 0.5 80
+	wait_for_file "${CURL_CA_BUNDLE}" 0.5 80
 
 	# Read client cert data in to send to containerized components
 	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
