@@ -254,6 +254,9 @@ echo "ex policy: ok"
 # These should match what is described in projects.html
 openshift ex new-project ui-test-project --admin="anypassword:createuser"
 openshift ex policy add-user admin anypassword:adduser -n ui-test-project
+# Make sure project can be listed by osc (after auth cache syncs)
+sleep 2 && osc get projects | grep 'ui-test-project'
+# Make sure users got added
 osc describe policybinding master -n ui-test-project | grep createuser
 osc describe policybinding master -n ui-test-project | grep adduser
 echo "ui-project-commands: ok"
