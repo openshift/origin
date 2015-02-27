@@ -41,6 +41,33 @@ func TestValidateProject(t *testing.T) {
 			numErrs: 1,
 		},
 		{
+			name: "invalid id uppercase",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "A",
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "valid id leading number",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "1",
+				},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "valid id internal dots",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "1.a.1",
+				},
+			},
+			numErrs: 0,
+		},
+		{
 			name: "has namespace",
 			project: api.Project{
 				ObjectMeta:  kapi.ObjectMeta{Name: "foo", Namespace: "foo"},

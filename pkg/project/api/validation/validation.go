@@ -12,15 +12,15 @@ import (
 func ValidateProject(project *api.Project) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
 	if len(project.Name) == 0 {
-		result = append(result, errors.NewFieldRequired("Name", project.Name))
-	} else if !util.IsDNS952Label(project.Name) {
-		result = append(result, errors.NewFieldInvalid("Name", project.Name, "does not conform to lower-cased dns952"))
+		result = append(result, errors.NewFieldRequired("name", project.Name))
+	} else if !util.IsDNSSubdomain(project.Name) {
+		result = append(result, errors.NewFieldInvalid("name", project.Name, "does not conform to lower-cased dns1123"))
 	}
 	if len(project.Namespace) > 0 {
-		result = append(result, errors.NewFieldInvalid("Namespace", project.Namespace, "must be the empty-string"))
+		result = append(result, errors.NewFieldInvalid("namespace", project.Namespace, "must be the empty-string"))
 	}
 	if !validateNoNewLineOrTab(project.DisplayName) {
-		result = append(result, errors.NewFieldInvalid("DisplayName", project.DisplayName, "may not contain a new line or tab"))
+		result = append(result, errors.NewFieldInvalid("displayName", project.DisplayName, "may not contain a new line or tab"))
 	}
 	return result
 }
