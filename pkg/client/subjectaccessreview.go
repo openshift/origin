@@ -34,3 +34,22 @@ func (c *subjectAccessReviews) Create(policy *authorizationapi.SubjectAccessRevi
 	err = c.r.Post().Namespace(c.ns).Resource("subjectAccessReviews").Body(policy).Do().Into(result)
 	return
 }
+
+// rootSubjectAccessReviews implements RootSubjectAccessReviews interface
+type rootSubjectAccessReviews struct {
+	r *Client
+}
+
+// newRootSubjectAccessReviews returns a rootSubjectAccessReviews
+func newRootSubjectAccessReviews(c *Client) *rootSubjectAccessReviews {
+	return &rootSubjectAccessReviews{
+		r: c,
+	}
+}
+
+// Create creates new policy. Returns the server's representation of the policy and error if one occurs.
+func (c *rootSubjectAccessReviews) Create(policy *authorizationapi.SubjectAccessReview) (result *authorizationapi.SubjectAccessReviewResponse, err error) {
+	result = &authorizationapi.SubjectAccessReviewResponse{}
+	err = c.r.Post().Resource("subjectAccessReviews").Body(policy).Do().Into(result)
+	return
+}
