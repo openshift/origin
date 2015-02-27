@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -44,6 +45,10 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &PolicyDescriber{c}, true
 	case "PolicyBinding":
 		return &PolicyBindingDescriber{c}, true
+	case "RoleBinding":
+		return &RoleBindingDescriber{c}, true
+	case "Role":
+		return &RoleDescriber{c}, true
 	}
 	return nil, false
 }
@@ -289,20 +294,50 @@ func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 		// using .List() here because I always want the sorted order that it provides
 		for _, key := range util.KeySet(reflect.ValueOf(policy.Roles)).List() {
 			role := policy.Roles[key]
-			fmt.Fprint(out, key+"\tVerbs\tResources\tExtension\n")
+			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
-				extensionString := ""
-				if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
-					extensionString = fmt.Sprintf("%v", rule.AttributeRestrictions)
-				}
-
-				fmt.Fprintf(out, "%v\t%v\t%v\t%v\n",
-					"",
-					rule.Verbs.List(),
-					rule.Resources.List(),
-					extensionString)
-
+				describePolicyRule(out, rule, "\t")
 			}
+		}
+
+		return nil
+	})
+}
+
+const policyRuleHeadings = "Verbs\tResources\tResource Names\tExtension"
+
+func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
+	extensionString := ""
+	if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
+		extensionString = fmt.Sprintf("%v", rule.AttributeRestrictions)
+	}
+
+	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\n",
+		rule.Verbs.List(),
+		rule.Resources.List(),
+		rule.ResourceNames.List(),
+		extensionString)
+}
+
+// RoleDescriber generates information about a Project
+type RoleDescriber struct {
+	client.Interface
+}
+
+func (d *RoleDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Roles(namespace)
+	role, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, role.ObjectMeta)
+
+		fmt.Fprint(out, policyRuleHeadings+"\n")
+		for _, rule := range role.Rules {
+			describePolicyRule(out, rule, "")
+
 		}
 
 		return nil
@@ -314,7 +349,6 @@ type PolicyBindingDescriber struct {
 	client.Interface
 }
 
-// TODO make something a lot prettier
 func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error) {
 	c := d.PolicyBindings(namespace)
 	policyBinding, err := c.Get(name)
@@ -334,6 +368,41 @@ func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error
 			formatString(out, "\tRole", roleBinding.RoleRef.Name)
 			formatString(out, "\tUsers", roleBinding.Users.List())
 			formatString(out, "\tGroups", roleBinding.Groups.List())
+		}
+
+		return nil
+	})
+}
+
+// RoleBindingDescriber generates information about a Project
+type RoleBindingDescriber struct {
+	client.Interface
+}
+
+func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) {
+	c := d.RoleBindings(namespace)
+	roleBinding, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	role, roleErr := d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, roleBinding.ObjectMeta)
+
+		formatString(out, "Role", roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name)
+		formatString(out, "Users", roleBinding.Users.List())
+		formatString(out, "Groups", roleBinding.Groups.List())
+
+		if roleErr != nil {
+			formatString(out, "ROLE RESOLUTION ERROR", roleErr)
+
+		} else {
+			fmt.Fprint(out, policyRuleHeadings+"\n")
+			for _, rule := range role.Rules {
+				describePolicyRule(out, rule, "")
+			}
 		}
 
 		return nil
