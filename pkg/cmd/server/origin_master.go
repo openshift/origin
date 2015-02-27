@@ -110,6 +110,8 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 		OSClient:               openshiftClient,
 		OSClientConfig:         *openshiftClientConfig,
 		DeployerOSClientConfig: *deployerClientConfig,
+
+		ImageFor: cfg.ImageTemplate.ExpandOrDie,
 	}
 	openshiftConfig, err := origin.BuildMasterConfig(openshiftConfigParameters)
 	if err != nil {

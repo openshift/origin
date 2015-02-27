@@ -47,9 +47,6 @@ type Config struct {
 	AssetBindAddr   flagtypes.Addr
 	AssetPublicAddr flagtypes.Addr
 
-	ImageFormat         string
-	LatestReleaseImages bool
-
 	ImageTemplate variable.ImageTemplate
 
 	Hostname  string
