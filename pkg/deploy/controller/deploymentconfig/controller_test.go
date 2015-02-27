@@ -13,6 +13,8 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
+// TestHandle_initialOk ensures that an initial config (version 0) doesn't result
+// in a new deployment.
 func TestHandle_initialOk(t *testing.T) {
 	controller := &DeploymentConfigController{
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
@@ -37,6 +39,8 @@ func TestHandle_initialOk(t *testing.T) {
 	}
 }
 
+// TestHandle_updateOk ensures that an updated config (version >0) with no
+// existing deployment will result in a new deployment.
 func TestHandle_updateOk(t *testing.T) {
 	deploymentConfig := deploytest.OkDeploymentConfig(1)
 	var deployed *kapi.ReplicationController
@@ -67,6 +71,8 @@ func TestHandle_updateOk(t *testing.T) {
 	}
 }
 
+// TestHandle_nonfatalLookupError ensures that an API failure to look up the
+// existing deployment for an updated config results in a nonfatal error.
 func TestHandle_nonfatalLookupError(t *testing.T) {
 	configController := &DeploymentConfigController{
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
@@ -92,6 +98,9 @@ func TestHandle_nonfatalLookupError(t *testing.T) {
 	}
 }
 
+// TestHandle_configAlreadyDeployed ensures that an attempt to create a
+// deployment for an updated config for which the deployment was already
+// created results in a no-op.
 func TestHandle_configAlreadyDeployed(t *testing.T) {
 	deploymentConfig := deploytest.OkDeploymentConfig(0)
 
@@ -118,6 +127,8 @@ func TestHandle_configAlreadyDeployed(t *testing.T) {
 	}
 }
 
+// TestHandle_nonfatalCreateError ensures that a failed API attempt to create
+// a new deployment for an updated config results in a nonfatal error.
 func TestHandle_nonfatalCreateError(t *testing.T) {
 	configController := &DeploymentConfigController{
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
@@ -138,10 +149,12 @@ func TestHandle_nonfatalCreateError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	if _, isFatal := err.(fatalError); isFatal {
-		t.Fatalf("expected a retryable error, got a fatal error: %v", err)
+		t.Fatalf("expected a nonfatal error, got a fatal error: %v", err)
 	}
 }
 
+// TestHandle_fatalError ensures that in internal (not API) failure to make a
+// deployment from an updated config results in a fatal error.
 func TestHandle_fatalError(t *testing.T) {
 	configController := &DeploymentConfigController{
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {

@@ -1,4 +1,4 @@
-package controller
+package imagechange
 
 import (
 	"fmt"
@@ -11,32 +11,25 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// ImageChangeController watches for changes to ImageRepositories and regenerates
-// DeploymentConfigs when a new version of a tag referenced by a DeploymentConfig
-// is available.
+// ImageChangeController increments the version of a DeploymentConfig which has an image
+// change trigger when a tag update to a triggered ImageRepository is detected.
+//
+// Use the ImageChangeControllerFactory to create this controller.
 type ImageChangeController struct {
-	DeploymentConfigClient ImageChangeControllerDeploymentConfigClient
-	NextImageRepository    func() *imageapi.ImageRepository
-	// Stop is an optional channel that controls when the controller exits
-	Stop <-chan struct{}
+	deploymentConfigClient deploymentConfigClient
 }
 
-// Run processes ImageRepository events one by one.
-func (c *ImageChangeController) Run() {
-	go util.Until(func() {
-		err := c.HandleImageRepo(c.NextImageRepository())
-		if err != nil {
-			glog.Errorf("%v", err)
-		}
-	}, 0, c.Stop)
-}
+// fatalError is an error which can't be retried.
+type fatalError string
 
-// HandleImageRepo processes the next ImageRepository event.
-func (c *ImageChangeController) HandleImageRepo(imageRepo *imageapi.ImageRepository) error {
+func (e fatalError) Error() string { return "fatal error handling imageRepository: " + string(e) }
+
+// Handle processes image change triggers associated with imageRepo.
+func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) error {
 	configsToGenerate := []*deployapi.DeploymentConfig{}
 	firedTriggersForConfig := make(map[string][]deployapi.DeploymentTriggerImageChangeParams)
 
-	configs, err := c.DeploymentConfigClient.ListDeploymentConfigs()
+	configs, err := c.deploymentConfigClient.listDeploymentConfigs()
 	if err != nil {
 		return fmt.Errorf("couldn't get list of deploymentConfigs while handling imageRepo %s: %v", labelForRepo(imageRepo), err)
 	}
@@ -91,7 +84,7 @@ func (c *ImageChangeController) HandleImageRepo(imageRepo *imageapi.ImageReposit
 	}
 
 	if anyFailed {
-		return fmt.Errorf("couldn't update some deploymentConfigs for trigger on imageRepo %s", labelForRepo(imageRepo))
+		return fatalError(fmt.Sprintf("couldn't update some deploymentConfigs for trigger on imageRepo %s", labelForRepo(imageRepo)))
 	}
 
 	glog.V(4).Infof("Updated all configs for trigger on imageRepo %s", labelForRepo(imageRepo))
@@ -125,7 +118,7 @@ func triggerMatchesImage(config *deployapi.DeploymentConfig, trigger *deployapi.
 
 func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, config *deployapi.DeploymentConfig, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
 	// Get a regenerated config which includes the new image repo references
-	newConfig, err := c.DeploymentConfigClient.GenerateDeploymentConfig(config.Namespace, config.Name)
+	newConfig, err := c.deploymentConfigClient.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
 		return fmt.Errorf("error generating new version of deploymentConfig %s: %v", labelFor(config), err)
 	}
@@ -163,9 +156,9 @@ func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, 
 	}
 
 	// Persist the new config
-	_, err = c.DeploymentConfigClient.UpdateDeploymentConfig(newConfig.Namespace, newConfig)
+	_, err = c.deploymentConfigClient.updateDeploymentConfig(newConfig.Namespace, newConfig)
 	if err != nil {
-		return fmt.Errorf("couldn't update deploymentConfig %s: %v", labelFor(config), err)
+		return err
 	}
 
 	return nil
@@ -175,28 +168,33 @@ func labelForRepo(imageRepo *imageapi.ImageRepository) string {
 	return fmt.Sprintf("%s/%s", imageRepo.Namespace, imageRepo.Name)
 }
 
+// labelFor builds a string identifier for a DeploymentConfig.
+func labelFor(config *deployapi.DeploymentConfig) string {
+	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+}
+
 // ImageChangeControllerDeploymentConfigClient abstracts access to DeploymentConfigs.
-type ImageChangeControllerDeploymentConfigClient interface {
-	ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error)
-	UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
-	GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
+type deploymentConfigClient interface {
+	listDeploymentConfigs() ([]*deployapi.DeploymentConfig, error)
+	updateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	generateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
 }
 
 // ImageChangeControllerDeploymentConfigClientImpl is a pluggable ChangeStrategy.
-type ImageChangeControllerDeploymentConfigClientImpl struct {
-	ListDeploymentConfigsFunc    func() ([]*deployapi.DeploymentConfig, error)
-	GenerateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
-	UpdateDeploymentConfigFunc   func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+type deploymentConfigClientImpl struct {
+	listDeploymentConfigsFunc    func() ([]*deployapi.DeploymentConfig, error)
+	generateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
+	updateDeploymentConfigFunc   func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 }
 
-func (i *ImageChangeControllerDeploymentConfigClientImpl) ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error) {
-	return i.ListDeploymentConfigsFunc()
+func (i *deploymentConfigClientImpl) listDeploymentConfigs() ([]*deployapi.DeploymentConfig, error) {
+	return i.listDeploymentConfigsFunc()
 }
 
-func (i *ImageChangeControllerDeploymentConfigClientImpl) GenerateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return i.GenerateDeploymentConfigFunc(namespace, name)
+func (i *deploymentConfigClientImpl) generateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
+	return i.generateDeploymentConfigFunc(namespace, name)
 }
 
-func (i *ImageChangeControllerDeploymentConfigClientImpl) UpdateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	return i.UpdateDeploymentConfigFunc(namespace, config)
+func (i *deploymentConfigClientImpl) updateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	return i.updateDeploymentConfigFunc(namespace, config)
 }

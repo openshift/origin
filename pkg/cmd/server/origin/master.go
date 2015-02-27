@@ -41,8 +41,11 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
+	deployerpodcontroller "github.com/openshift/origin/pkg/deploy/controller/deployerpod"
+	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
-	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
+	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -604,20 +607,30 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
-	osclient, kclient := c.DeploymentControllerClients()
-	factory := deploycontrollerfactory.DeploymentControllerFactory{
-		Client:     osclient,
-		KubeClient: kclient,
-		Codec:      latest.Codec,
-		Environment: []api.EnvVar{
-			{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
-			{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
-		},
+	_, kclient := c.DeploymentControllerClients()
+	env := []api.EnvVar{
+		{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
+		{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
+	}
+	env = append(env, clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())...)
+
+	factory := deploycontroller.DeploymentControllerFactory{
+		KubeClient:            kclient,
+		Codec:                 latest.Codec,
+		Environment:           env,
 		RecreateStrategyImage: c.ImageFor("deployer"),
 	}
 
-	envvars := clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())
-	factory.Environment = append(factory.Environment, envvars...)
+	controller := factory.Create()
+	controller.Run()
+}
+
+// RunDeployerPodController starts the deployer pod controller process.
+func (c *MasterConfig) RunDeployerPodController() {
+	_, kclient := c.DeploymentControllerClients()
+	factory := deployerpodcontroller.DeployerPodControllerFactory{
+		KubeClient: kclient,
+	}
 
 	controller := factory.Create()
 	controller.Run()
@@ -636,7 +649,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 
 func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	osclient, kclient := c.DeploymentConfigChangeControllerClients()
-	factory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{
+	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
 		Codec:      latest.Codec,
@@ -647,7 +660,7 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	osclient := c.DeploymentImageChangeControllerClient()
-	factory := deploycontrollerfactory.ImageChangeControllerFactory{Client: osclient}
+	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
 }

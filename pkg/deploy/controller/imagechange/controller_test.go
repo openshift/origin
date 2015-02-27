@@ -1,4 +1,4 @@
-package controller
+package imagechange
 
 import (
 	"testing"
@@ -14,18 +14,21 @@ const (
 	nonDefaultNamespace = "nondefaultnamespace"
 )
 
-func TestUnregisteredContainer(t *testing.T) {
+// TestHandle_unregisteredContainer ensures that an image update for which
+// there is a trigger defined results in a no-op due to the config's
+// containers not matching the trigger's containers.
+func TestHandle_unregisteredContainer(t *testing.T) {
 	controller := &ImageChangeController{
-		DeploymentConfigClient: &ImageChangeControllerDeploymentConfigClientImpl{
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+		deploymentConfigClient: &deploymentConfigClientImpl{
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
-			ListDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
+			listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
 				config := deployapitest.OkDeploymentConfig(1)
 				config.Triggers[0].ImageChangeParams.ContainerNames = []string{"container-3"}
 
@@ -35,25 +38,28 @@ func TestUnregisteredContainer(t *testing.T) {
 	}
 
 	// verify no-op
-	err := controller.HandleImageRepo(tagUpdate())
+	err := controller.Handle(tagUpdate())
 
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 }
 
-func TestImageChangeForNonAutomaticTag(t *testing.T) {
+// TestHandle_changeForNonAutomaticTag ensures that an image update for which
+// there is a matching trigger results in a no-op due to the trigger's
+// automatic flag being set to false.
+func TestHandle_changeForNonAutomaticTag(t *testing.T) {
 	controller := &ImageChangeController{
-		DeploymentConfigClient: &ImageChangeControllerDeploymentConfigClientImpl{
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+		deploymentConfigClient: &deploymentConfigClientImpl{
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
-			ListDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
+			listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
 				config := deployapitest.OkDeploymentConfig(1)
 				config.Triggers[0].ImageChangeParams.Automatic = false
 
@@ -63,25 +69,28 @@ func TestImageChangeForNonAutomaticTag(t *testing.T) {
 	}
 
 	// verify no-op
-	err := controller.HandleImageRepo(tagUpdate())
+	err := controller.Handle(tagUpdate())
 
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 }
 
-func TestImageChangeForUnregisteredTag(t *testing.T) {
+// TestHandle_changeForUnregisteredTag ensures that an image update for which
+// there is a matching trigger results in a no-op due to the tag specified on
+// the trigger not matching the tags defined on the image repo.
+func TestHandle_changeForUnregisteredTag(t *testing.T) {
 	controller := &ImageChangeController{
-		DeploymentConfigClient: &ImageChangeControllerDeploymentConfigClientImpl{
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+		deploymentConfigClient: &deploymentConfigClientImpl{
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected deployment config update")
 				return nil, nil
 			},
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generator call")
 				return nil, nil
 			},
-			ListDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
+			listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
 				return []*deployapi.DeploymentConfig{imageChangeDeploymentConfig()}, nil
 			},
 		},
@@ -92,13 +101,16 @@ func TestImageChangeForUnregisteredTag(t *testing.T) {
 	imageRepo.Tags = map[string]string{
 		"unknown-tag": "ref-1",
 	}
-	err := controller.HandleImageRepo(imageRepo)
+	err := controller.Handle(imageRepo)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 }
 
-func TestImageChangeMatchScenarios(t *testing.T) {
+// TestHande_matchScenarios comprehensively tests trigger definitions against
+// image repo updates to ensure that the image change triggers match (or don't
+// match) properly.
+func TestHande_matchScenarios(t *testing.T) {
 	params := map[string]*deployapi.DeploymentTriggerImageChangeParams{
 		"params.1": {
 			Automatic:      true,
@@ -180,29 +192,29 @@ func TestImageChangeMatchScenarios(t *testing.T) {
 		generated := false
 
 		controller := &ImageChangeController{
-			DeploymentConfigClient: &ImageChangeControllerDeploymentConfigClientImpl{
-				UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			deploymentConfigClient: &deploymentConfigClientImpl{
+				updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 					if !s.matches {
 						t.Fatalf("unexpected deployment config update for scenario: %v", s)
 					}
 					updated = true
 					return config, nil
 				},
-				GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 					if !s.matches {
 						t.Fatalf("unexpected generator call for scenario: %v", s)
 					}
 					generated = true
 					return config, nil
 				},
-				ListDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
+				listDeploymentConfigsFunc: func() ([]*deployapi.DeploymentConfig, error) {
 					return []*deployapi.DeploymentConfig{config}, nil
 				},
 			},
 		}
 
 		t.Logf("running scenario: %v", s)
-		err := controller.HandleImageRepo(updates[s.repo])
+		err := controller.Handle(updates[s.repo])
 
 		if err != nil {
 			t.Fatalf("unexpected error for scenario %v: %v", s, err)

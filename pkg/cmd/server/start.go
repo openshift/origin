@@ -98,6 +98,7 @@ func (cfg Config) startMaster() error {
 	openshiftConfig.RunBuildController()
 	openshiftConfig.RunBuildImageChangeTriggerController()
 	openshiftConfig.RunDeploymentController()
+	openshiftConfig.RunDeployerPodController()
 	openshiftConfig.RunDeploymentConfigController()
 	openshiftConfig.RunDeploymentConfigChangeController()
 	openshiftConfig.RunDeploymentImageChangeTriggerController()
