@@ -387,7 +387,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 	case GrantHandlerDeny:
 		grantHandler = handlers.NewEmptyGrant()
 	case GrantHandlerAuto:
-		grantHandler = handlers.NewAutoGrant(authregistry)
+		grantHandler = handlers.NewAutoGrant()
 	case GrantHandlerPrompt:
 		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
 		grantServer.Install(mux, OpenShiftApprovePrefix)

@@ -3,7 +3,6 @@ package handlers
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/oauth/registry/test"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 )
 
@@ -16,7 +15,7 @@ func TestEmptyGrant(t *testing.T) {
 }
 
 func TestAutoGrant(t *testing.T) {
-	_ = NewAutoGrant(&test.ClientAuthorizationRegistry{})
+	_ = NewAutoGrant()
 }
 
 func TestRedirectGrant(t *testing.T) {

@@ -54,7 +54,7 @@ func TestGetToken(t *testing.T) {
 	config := osinserver.NewDefaultServerConfig()
 
 	grantChecker := oauthregistry.NewClientAuthorizationGrantChecker(oauthEtcd)
-	grantHandler := oauthhandlers.NewAutoGrant(oauthEtcd)
+	grantHandler := oauthhandlers.NewAutoGrant()
 
 	server := osinserver.New(
 		config,

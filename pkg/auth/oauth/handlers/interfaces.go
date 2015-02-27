@@ -48,7 +48,9 @@ type GrantChecker interface {
 // GrantHandler handles errors during the grant process, or the client requests an unauthorized grant
 type GrantHandler interface {
 	// GrantNeeded reacts when a client requests an unauthorized grant, and returns true if the response was written
-	GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (handled bool, err error)
+	// granted is true if authorization was granted
+	// handled is true if the response was already written
+	GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (granted, handled bool, err error)
 }
 
 // GrantErrorHandler reacts to grant errors
