@@ -22,7 +22,7 @@ func WaitForSuccessfulDial(https bool, network, address string, timeout, interva
 			conn, err = dialer.Dial(network, address)
 		}
 		if err != nil {
-			glog.V(4).Infof("Got error %#v, trying again: %#v\n", err, address)
+			glog.V(5).Infof("Got error %#v, trying again: %#v\n", err, address)
 			time.Sleep(interval)
 			continue
 		}

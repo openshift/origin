@@ -43,6 +43,9 @@ type Config struct {
 	// addresses for external clients
 	MasterPublicAddr     flagtypes.Addr
 	KubernetesPublicAddr flagtypes.Addr
+	// addresses for asset server
+	AssetBindAddr   flagtypes.Addr
+	AssetPublicAddr flagtypes.Addr
 
 	ImageFormat         string
 	LatestReleaseImages bool
@@ -90,6 +93,8 @@ func NewDefaultConfig() *Config {
 		PortalNet:            flagtypes.DefaultIPNet("172.30.17.0/24"),
 		MasterPublicAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		AssetPublicAddr:      flagtypes.Addr{Value: "localhost:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
+		AssetBindAddr:        flagtypes.Addr{Value: "0.0.0.0:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
 
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
@@ -211,7 +216,11 @@ func (cfg Config) GetKubernetesPublicAddress() (*url.URL, error) {
 }
 
 func (cfg Config) GetAssetPublicAddress() (*url.URL, error) {
+	if cfg.AssetPublicAddr.Provided {
+		return cfg.AssetPublicAddr.URL, nil
+	}
 	// Derive the asset public address by incrementing the master public address port by 1
+	// TODO: derive the scheme/port from the asset bind scheme/port once that is settable via the command line
 	t, err := cfg.GetMasterPublicAddress()
 	if err != nil {
 		return nil, err
@@ -223,6 +232,9 @@ func (cfg Config) GetAssetPublicAddress() (*url.URL, error) {
 }
 
 func (cfg Config) GetAssetBindAddress() string {
+	if cfg.AssetBindAddr.Provided {
+		return cfg.AssetBindAddr.URL.Host
+	}
 	// Derive the asset bind address by incrementing the master bind address port by 1
 	return net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
 }
