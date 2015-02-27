@@ -87,7 +87,6 @@ type resourceAccessReviewTest struct {
 	clientInterface client.ResourceAccessReviewInterface
 	review          *authorizationapi.ResourceAccessReview
 
-	// TODO use resource access review response once internal types use util.StringSet
 	response authorizationapi.ResourceAccessReviewResponse
 	err      string
 }
@@ -233,7 +232,6 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 	}
 }
 
-// TODO add test for "this user" once the subject access review supports it
 func TestSubjectAccessReview(t *testing.T) {
 	startConfig, err := StartTestMaster()
 	if err != nil {
@@ -338,4 +336,26 @@ func TestSubjectAccessReview(t *testing.T) {
 		review:          askCanClusterAdminsCreateProject,
 		err:             "Forbidden",
 	}.run(t)
+
+	askCanICreatePods := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "projects"}
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
+		review:          askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in hammer-project",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+	askCanICreatePolicyBindings := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "policybindings"}
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
+		review:          askCanICreatePolicyBindings,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    "denied by default",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+
 }

@@ -1,6 +1,7 @@
 package subjectaccessreview
 
 import (
+	"errors"
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -34,12 +35,25 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, fmt.Errorf("not a subjectAccessReview: %#v", obj)
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
-	user := &user.DefaultInfo{
-		Name:   subjectAccessReview.User,
-		Groups: subjectAccessReview.Groups.List(),
+	var userToCheck user.Info
+	if (len(subjectAccessReview.User) == 0) && (len(subjectAccessReview.Groups) == 0) {
+		// if no user or group was specified, use the info from the context
+		ctxUser, exists := kapi.UserFrom(ctx)
+		if !exists {
+			return nil, errors.New("user missing from context")
+		}
+		userToCheck = ctxUser
+
+	} else {
+		userToCheck = &user.DefaultInfo{
+			Name:   subjectAccessReview.User,
+			Groups: subjectAccessReview.Groups.List(),
+		}
+
 	}
-	requestContext := kapi.WithUser(kapi.WithNamespace(kapi.NewDefaultContext(), namespace), user)
+
+	namespace := kapi.NamespaceValue(ctx)
+	requestContext := kapi.WithUser(ctx, userToCheck)
 
 	attributes := &authorizer.DefaultAuthorizationAttributes{
 		Verb:     subjectAccessReview.Verb,
