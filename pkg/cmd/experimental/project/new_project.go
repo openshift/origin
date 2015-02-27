@@ -7,10 +7,9 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -91,15 +90,15 @@ func (o *NewProjectOptions) Run() error {
 	}
 
 	if len(o.AdminUser) != 0 {
-		adminRoleBinding := &authorizationapi.RoleBinding{}
+		adduser := &policy.AddUserOptions{
+			RoleNamespace:    o.MasterPolicyNamespace,
+			RoleName:         o.AdminRole,
+			BindingNamespace: project.Name,
+			Client:           o.Client,
+			Users:            []string{o.AdminUser},
+		}
 
-		adminRoleBinding.Name = "admins"
-		adminRoleBinding.RoleRef.Namespace = o.MasterPolicyNamespace
-		adminRoleBinding.RoleRef.Name = o.AdminRole
-		adminRoleBinding.Users = util.NewStringSet(o.AdminUser)
-
-		_, err := o.Client.RoleBindings(project.Name).Create(adminRoleBinding)
-		if err != nil {
+		if err := adduser.Run(); err != nil {
 			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.ProjectName, o.AdminUser, o.AdminRole)
 			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-user --namespace=%v --role-namespace=%v %v %v\n", o.ProjectName, o.MasterPolicyNamespace, o.AdminRole, o.AdminUser)
 			return err

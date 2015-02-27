@@ -148,8 +148,15 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 		Image:      *image,
 	}
 	mapping.Image.DockerImageReference = "different"
-	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err == nil || !errors.IsAlreadyExists(err) {
-		t.Fatalf("unexpected non-error or type: %v", err)
+	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	image, err = openshift.Client.Images(testNamespace).Get(image.Name)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if image.DockerImageReference != "some/other/name" {
+		t.Fatalf("image was unexpectedly mutated: %#v", image)
 	}
 
 	// ensure the correct tags are set
@@ -157,7 +164,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(updated.Tags, map[string]string{"newer": "image1"}) {
+	if !reflect.DeepEqual(updated.Tags, map[string]string{"newer": "image1", "newest": "image2"}) {
 		t.Errorf("unexpected object: %#v", updated.Tags)
 	}
 
@@ -168,6 +175,56 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if fromTag.Name != "image1" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
+
+	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "newest")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+		t.Errorf("unexpected object: %#v", fromTag)
+	}
+
+	// verify that image repository mappings can use the same image for different tags
+	mapping = &imageapi.ImageRepositoryMapping{
+		ObjectMeta: kapi.ObjectMeta{Name: repo.Name},
+		Tag:        "anothertag",
+		Image:      *image,
+	}
+	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// ensure the correct tags are set
+	updated, err = openshift.Client.ImageRepositories(testNamespace).Get(repo.Name)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(updated.Tags, map[string]string{"newer": "image1", "newest": "image2", "anothertag": "image2"}) {
+		t.Errorf("unexpected object: %#v", updated.Tags)
+	}
+
+	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "newer")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if fromTag.Name != "image1" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+		t.Errorf("unexpected object: %#v", fromTag)
+	}
+
+	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "newest")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+		t.Errorf("unexpected object: %#v", fromTag)
+	}
+	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "anothertag")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+		t.Errorf("unexpected object: %#v", fromTag)
+	}
+
 }
 
 func TestImageRepositoryDelete(t *testing.T) {
