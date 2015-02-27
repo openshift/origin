@@ -233,9 +233,6 @@ func (cfg Config) GetNodeList() []string {
 		nodeList = append(nodeList, curr)
 	}
 
-	if len(nodeList) == 1 && nodeList[0] == "127.0.0.1" {
-		nodeList[0] = cfg.Hostname
-	}
 	for i, s := range nodeList {
 		s = strings.ToLower(s)
 		nodeList[i] = s

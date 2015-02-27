@@ -118,11 +118,19 @@ func (cfg Config) Start(args []string) error {
 		if cfg.MasterPublicAddr.Provided {
 			glog.Infof("OpenShift master public address is %s", cfg.MasterPublicAddr.String())
 		}
+		if len(cfg.NodeList) == 1 && cfg.NodeList[0] == "127.0.0.1" {
+			cfg.NodeList[0] = cfg.Hostname
+		}
 
 	case cfg.StartMaster:
 		glog.Infof("Starting an OpenShift master, reachable at %s (etcd: %s)", cfg.MasterAddr.String(), cfg.EtcdAddr.String())
 		if cfg.MasterPublicAddr.Provided {
 			glog.Infof("OpenShift master public address is %s", cfg.MasterPublicAddr.String())
+		}
+		// TODO: refactor the start command to have master and node subcommands.
+		// Then make sure the default NodeList doesn't pollute the master command.
+		if len(cfg.NodeList) == 1 && cfg.NodeList[0] == "127.0.0.1" {
+			cfg.NodeList = []string{}
 		}
 
 	case cfg.StartNode:
