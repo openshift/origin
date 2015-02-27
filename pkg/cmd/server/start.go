@@ -61,7 +61,7 @@ func (cfg Config) startMaster() error {
 		return err
 	}
 
-	glog.Infof("  Nodes: %v", cfg.GetNodeList())
+	glog.Infof("  Nodes: %v", cfg.NodeList)
 
 	if cfg.StartKube {
 		kubeConfig, err := cfg.BuildKubernetesMasterConfig(openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())

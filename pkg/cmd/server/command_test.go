@@ -2,9 +2,12 @@ package server
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func TestCommandBindingListen(t *testing.T) {
@@ -164,12 +167,69 @@ func TestCommandBindingHostname(t *testing.T) {
 	}
 }
 
-func TestCommandBindingNodes(t *testing.T) {
+// AllInOne always adds the default hostname
+func TestCommandBindingNodesForAllInOneAppend(t *testing.T) {
 	valueToSet := "first,second,third"
 	actualCfg := executeCommand([]string{"--nodes=" + valueToSet})
 
 	expectedConfig := NewDefaultConfig()
+
+	stringList := util.StringList{}
+	stringList.Set(valueToSet + "," + strings.ToLower(expectedConfig.Hostname))
+	expectedConfig.NodeList.Set(strings.Join(util.NewStringSet(stringList...).List(), ","))
+
+	if expectedConfig.NodeList.String() != actualCfg.NodeList.String() {
+		t.Errorf("expected %v, got %v", expectedConfig.NodeList, actualCfg.NodeList)
+	}
+}
+
+// AllInOne always adds the default hostname
+func TestCommandBindingNodesForAllInOneAppendNoDupes(t *testing.T) {
+
+	valueToSet := "first,localhost,second,third"
+	actualCfg := executeCommand([]string{"--nodes=" + valueToSet, "--hostname=LOCALHOST"})
+
+	expectedConfig := NewDefaultConfig()
 	expectedConfig.NodeList.Set(valueToSet)
+
+	util.NewStringSet()
+
+	if expectedConfig.NodeList.String() != actualCfg.NodeList.String() {
+		t.Errorf("expected %v, got %v", expectedConfig.NodeList, actualCfg.NodeList)
+	}
+}
+
+// AllInOne always adds the default hostname
+func TestCommandBindingNodesDefaultingAllInOne(t *testing.T) {
+	actualCfg := executeCommand([]string{})
+
+	expectedConfig := NewDefaultConfig()
+	expectedConfig.NodeList.Set(strings.ToLower(expectedConfig.Hostname))
+
+	if expectedConfig.NodeList.String() != actualCfg.NodeList.String() {
+		t.Errorf("expected %v, got %v", expectedConfig.NodeList, actualCfg.NodeList)
+	}
+}
+
+// explicit start master never modifies the NodeList
+func TestCommandBindingNodesForMaster(t *testing.T) {
+	valueToSet := "first,second,third"
+	actualCfg := executeCommand([]string{"master", "--nodes=" + valueToSet})
+
+	expectedConfig := NewDefaultConfig()
+	expectedConfig.NodeList.Set(valueToSet)
+
+	if expectedConfig.NodeList.String() != actualCfg.NodeList.String() {
+		t.Errorf("expected %v, got %v", expectedConfig.NodeList, actualCfg.NodeList)
+	}
+}
+
+// explicit start master never modifies the NodeList
+func TestCommandBindingNodesDefaultingMaster(t *testing.T) {
+	actualCfg := executeCommand([]string{"master"})
+
+	expectedConfig := NewDefaultConfig()
+	expectedConfig.NodeList.Set("")
 
 	if expectedConfig.NodeList.String() != actualCfg.NodeList.String() {
 		t.Errorf("expected %v, got %v", expectedConfig.NodeList, actualCfg.NodeList)
