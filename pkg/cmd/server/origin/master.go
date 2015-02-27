@@ -722,7 +722,7 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 
 				ctx = kapi.WithNamespace(ctx, namespace)
 				contextMapper.Update(req, ctx)
-				glog.V(2).Infof("set namespace on context to %v", requestInfo.Namespace)
+				glog.V(4).Infof("set namespace on context to %v", requestInfo.Namespace)
 			}
 		}
 
