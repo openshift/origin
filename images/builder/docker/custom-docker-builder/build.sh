@@ -25,8 +25,6 @@ if [[ "${SOURCE_REPOSITORY}" != "git://"* ]] && [[ "${SOURCE_REPOSITORY}" != "gi
   fi
 fi
 
-[ -n "${DOCKERFILE_PATH}" ] && DOCKERFILE_PATH=Dockerfile
-
 if [ -n "${SOURCE_REF}" ]; then
   BUILD_DIR=$(mktemp --directory --suffix=docker-build)
   git clone --recursive "${SOURCE_REPOSITORY}" "${BUILD_DIR}"
@@ -43,9 +41,9 @@ if [ -n "${SOURCE_REF}" ]; then
     fi
   fi
   popd
-  docker build --rm -f "${DOCKERFILE_PATH}" -t "${TAG}" "${BUILD_DIR}"
+  docker build --rm -t "${TAG}" "${BUILD_DIR}"
 else
-  docker build --rm -f "${DOCKERFILE_PATH}" -t "${TAG}" "${SOURCE_REPOSITORY}"
+  docker build --rm -t "${TAG}" "${SOURCE_REPOSITORY}"
 fi
 
 if [ -n "${OUTPUT_IMAGE}" ] || [ -s "/root/.dockercfg" ]; then
