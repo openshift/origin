@@ -33,6 +33,7 @@ type testHandlers struct {
 	AuthNeedHandled bool
 	AuthNeedErr     error
 
+	GrantNeedGranted bool
 	GrantNeedHandled bool
 	GrantNeedErr     error
 
@@ -53,9 +54,9 @@ func (h *testHandlers) AuthenticateRequest(req *http.Request) (user.Info, bool, 
 	return h.User, h.Authenticate, h.Err
 }
 
-func (h *testHandlers) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (h *testHandlers) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
 	h.GrantNeed = true
-	return h.GrantNeedHandled, h.GrantNeedErr
+	return h.GrantNeedGranted, h.GrantNeedHandled, h.GrantNeedErr
 }
 
 func (h *testHandlers) GrantError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
