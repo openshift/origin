@@ -8,6 +8,8 @@ Requires=openshift-master.service
 Type=simple
 EnvironmentFile=-/etc/sysconfig/openshift-sdn-master
 ExecStart=/usr/bin/openshift-sdn $OPTIONS
+Restart=on-failure
+RestartSec=1s
 
 [Install]
 WantedBy=multi-user.target
