@@ -1,18 +1,47 @@
 package role
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
 )
 
+func testNewBasePolicies() []authorizationapi.Policy {
+	return []authorizationapi.Policy{
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "master"},
+			Roles: map[string]authorizationapi.Role{
+				"cluster-admin": {
+					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},
+					Rules:      []authorizationapi.PolicyRule{{Verbs: util.NewStringSet("*"), Resources: util.NewStringSet("*")}},
+				},
+				"admin": {
+					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
+					Rules:      []authorizationapi.PolicyRule{{Verbs: util.NewStringSet("*"), Resources: util.NewStringSet("*")}},
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
+			Roles:      map[string]authorizationapi.Role{},
+		},
+	}
+}
+
+func makeTestStorage() *REST {
+	policyRegistry := test.NewPolicyRegistry(testNewBasePolicies(), nil)
+
+	return &REST{NewVirtualRegistry(policyRegistry)}
+}
+
 func TestCreateValidationError(t *testing.T) {
-	registry := test.NewPolicyRegistry([]authorizationapi.Policy{}, nil)
-	storage := REST{registry: registry}
+	storage := makeTestStorage()
 
 	role := &authorizationapi.Role{}
 
@@ -23,32 +52,8 @@ func TestCreateValidationError(t *testing.T) {
 	}
 }
 
-func TestCreateStorageError(t *testing.T) {
-	registry := test.NewPolicyRegistry([]authorizationapi.Policy{}, errors.New("Sample Error"))
-	storage := REST{registry: registry}
-
-	role := &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
-	}
-
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	_, err := storage.Create(ctx, role)
-	if err == nil {
-		t.Errorf("Missing expected error")
-		return
-	}
-	if err != registry.Err {
-		t.Errorf("Expected %v, got %v", registry.Err, err)
-	}
-}
-
 func TestCreateValid(t *testing.T) {
-	registry := test.NewPolicyRegistry(
-		[]authorizationapi.Policy{
-			{ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"}},
-		},
-		nil)
-	storage := REST{registry: registry}
+	storage := makeTestStorage()
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -71,23 +76,16 @@ func TestCreateValid(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	registry := test.NewPolicyRegistry(
-		[]authorizationapi.Policy{
-			{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-				Roles: map[string]authorizationapi.Role{
-					"my-role": {ObjectMeta: kapi.ObjectMeta{Name: "my-role"}},
-				},
-			},
-		},
-		nil)
-	storage := REST{registry: registry}
+	storage := makeTestStorage()
+	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
+	storage.Create(ctx, &authorizationapi.Role{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+	})
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
 	}
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	obj, created, err := storage.Update(ctx, role)
 	if err != nil || created {
 		t.Errorf("Unexpected error %v", err)
@@ -108,14 +106,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateError(t *testing.T) {
-	registry := test.NewPolicyRegistry(
-		[]authorizationapi.Policy{
-			{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-			},
-		},
-		nil)
-	storage := REST{registry: registry}
+	storage := makeTestStorage()
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -127,38 +118,33 @@ func TestUpdateError(t *testing.T) {
 		t.Errorf("Missing expected error")
 		return
 	}
-	expectedErr := "role my-role does not exist"
-	if err.Error() != expectedErr {
-		t.Errorf("Expected %v, got %v", expectedErr, err)
+	if !kapierrors.IsNotFound(err) {
+		t.Errorf("Unexpected error %v", err)
 	}
 }
 
 func TestDeleteError(t *testing.T) {
-	registry := test.NewPolicyRegistry([]authorizationapi.Policy{}, errors.New("Sample Error"))
-	storage := REST{registry: registry}
+	storage := makeTestStorage()
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	_, err := storage.Delete(ctx, "foo")
-	if err != registry.Err {
+
+	if err == nil {
+		t.Errorf("expected error")
+	}
+	if !kapierrors.IsNotFound(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestDeleteValid(t *testing.T) {
-	registry := test.NewPolicyRegistry(
-		[]authorizationapi.Policy{
-			{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-				Roles: map[string]authorizationapi.Role{
-					"foo": {ObjectMeta: kapi.ObjectMeta{Name: "foo"}},
-				},
-			},
-		},
-		nil)
-	storage := REST{registry: registry}
-
+	storage := makeTestStorage()
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	obj, err := storage.Delete(ctx, "foo")
+	storage.Create(ctx, &authorizationapi.Role{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+	})
+
+	obj, err := storage.Delete(ctx, "my-role")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -239,7 +239,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"policies":              policyregistry.NewREST(authorizationEtcd),
 		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
-		"roles":                 roleregistry.NewREST(authorizationEtcd),
+		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
 		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),

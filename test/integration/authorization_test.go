@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -117,8 +118,8 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 	}
 
 	// try to add Valerie to a non-existent role
-	if err := addValerie.Run(); err == nil || err.Error() != "role view not found" {
-		t.Errorf("expected error %v, got %v", "role view not found", err)
+	if err := addValerie.Run(); err == nil || !kapierror.IsNotFound(err) {
+		t.Errorf("unexpected error %v", err)
 	}
 
 }
