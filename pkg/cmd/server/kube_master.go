@@ -47,7 +47,7 @@ func (cfg Config) BuildKubernetesMasterConfig(requestContextMapper kapi.RequestC
 	kmaster := &kubernetes.MasterConfig{
 		MasterIP:             masterIP,
 		MasterPort:           cfg.MasterAddr.Port,
-		NodeHosts:            cfg.NodeList,
+		NodeHosts:            cfg.GetNodeList(),
 		PortalNet:            &portalNet,
 		RequestContextMapper: requestContextMapper,
 		EtcdHelper:           ketcdHelper,
