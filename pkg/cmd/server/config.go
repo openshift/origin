@@ -44,9 +44,6 @@ type Config struct {
 	MasterPublicAddr     flagtypes.Addr
 	KubernetesPublicAddr flagtypes.Addr
 
-	ImageFormat         string
-	LatestReleaseImages bool
-
 	ImageTemplate variable.ImageTemplate
 
 	Hostname  string

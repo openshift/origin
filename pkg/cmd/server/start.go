@@ -94,6 +94,8 @@ func (cfg Config) startMaster() error {
 	// TODO: recording should occur in individual components
 	record.StartRecording(openshiftConfig.KubeClient().Events(""), kapi.EventSource{Component: "master"})
 
+	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+
 	openshiftConfig.RunAssetServer()
 	openshiftConfig.RunBuildController()
 	openshiftConfig.RunBuildImageChangeTriggerController()
