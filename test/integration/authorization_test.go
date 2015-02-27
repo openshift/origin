@@ -71,7 +71,7 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 	}
 
 	// wait for the project authorization cache to catch the change.  It is on a one second period
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	haroldProjects, err := haroldClient.Projects().List(labels.Everything(), labels.Everything())
 	if err != nil {
