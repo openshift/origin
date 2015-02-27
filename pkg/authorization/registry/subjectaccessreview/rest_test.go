@@ -38,8 +38,8 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer
 	}
 	return a.allowed, a.reason, errors.New(a.err)
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) ([]string, []string, error) {
-	return nil, nil, nil
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+	return util.StringSet{}, util.StringSet{}, nil
 }
 
 func TestEmptyReturn(t *testing.T) {
@@ -50,7 +50,7 @@ func TestEmptyReturn(t *testing.T) {
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{
 			User:     "foo",
-			Groups:   []string{},
+			Groups:   util.NewStringSet(),
 			Verb:     "get",
 			Resource: "pods",
 		},
@@ -66,7 +66,7 @@ func TestNoErrors(t *testing.T) {
 			reason:  "because good things",
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{
-			Groups:   []string{"master"},
+			Groups:   util.NewStringSet("master"),
 			Verb:     "delete",
 			Resource: "deploymentConfigs",
 		},
@@ -82,7 +82,7 @@ func TestErrors(t *testing.T) {
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{
 			User:     "foo",
-			Groups:   []string{"first", "second"},
+			Groups:   util.NewStringSet("first", "second"),
 			Verb:     "get",
 			Resource: "pods",
 		},

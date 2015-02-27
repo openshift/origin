@@ -88,10 +88,8 @@ type resourceAccessReviewTest struct {
 	review          *authorizationapi.ResourceAccessReview
 
 	// TODO use resource access review response once internal types use util.StringSet
-	users     util.StringSet
-	groups    util.StringSet
-	namespace string
-	err       string
+	response authorizationapi.ResourceAccessReviewResponse
+	err      string
 }
 
 func (test resourceAccessReviewTest) run(t *testing.T) {
@@ -108,14 +106,8 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 		}
 	}
 
-	expectedResponse := authorizationapi.ResourceAccessReviewResponse{
-		Users:     test.users.List(),
-		Groups:    test.groups.List(),
-		Namespace: test.namespace,
-	}
-
-	if reflect.DeepEqual(actualResponse, expectedResponse) {
-		t.Errorf("%#v: expected %v, got %v", test.review, expectedResponse, actualResponse)
+	if reflect.DeepEqual(actualResponse, test.response) {
+		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
 	}
 }
 
@@ -167,22 +159,26 @@ func TestResourceAccessReview(t *testing.T) {
 		test := resourceAccessReviewTest{
 			clientInterface: haroldClient.ResourceAccessReviews("hammer-project"),
 			review:          requestWhoCanViewDeployments,
-			users:           util.NewStringSet("anypassword:harold", "anypassword:valerie"),
-			groups:          globalClusterAdminGroups,
-			namespace:       "hammer-project",
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:     util.NewStringSet("anypassword:harold", "anypassword:valerie"),
+				Groups:    globalClusterAdminGroups,
+				Namespace: "hammer-project",
+			},
 		}
-		test.users.Insert(globalClusterAdminUsers.List()...)
+		test.response.Users.Insert(globalClusterAdminUsers.List()...)
 		test.run(t)
 	}
 	{
 		test := resourceAccessReviewTest{
 			clientInterface: markClient.ResourceAccessReviews("mallet-project"),
 			review:          requestWhoCanViewDeployments,
-			users:           util.NewStringSet("anypassword:mark", "anypassword:edgar"),
-			groups:          globalClusterAdminGroups,
-			namespace:       "mallet-project",
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:     util.NewStringSet("anypassword:mark", "anypassword:edgar"),
+				Groups:    globalClusterAdminGroups,
+				Namespace: "mallet-project",
+			},
 		}
-		test.users.Insert(globalClusterAdminUsers.List()...)
+		test.response.Users.Insert(globalClusterAdminUsers.List()...)
 		test.run(t)
 	}
 
@@ -201,8 +197,10 @@ func TestResourceAccessReview(t *testing.T) {
 		test := resourceAccessReviewTest{
 			clientInterface: openshiftClient.RootResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
-			users:           globalClusterAdminUsers,
-			groups:          globalClusterAdminGroups,
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:  globalClusterAdminUsers,
+				Groups: globalClusterAdminGroups,
+			},
 		}
 		test.run(t)
 	}
@@ -325,7 +323,7 @@ func TestSubjectAccessReview(t *testing.T) {
 		},
 	}.run(t)
 
-	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{Groups: []string{"system:cluster-admins"}, Verb: "create", Resource: "projects"}
+	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{Groups: util.NewStringSet("system:cluster-admins"), Verb: "create", Resource: "projects"}
 	subjectAccessReviewTest{
 		clientInterface: openshiftClient.RootSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,

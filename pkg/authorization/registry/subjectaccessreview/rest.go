@@ -37,7 +37,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	namespace := kapi.NamespaceValue(ctx)
 	user := &user.DefaultInfo{
 		Name:   subjectAccessReview.User,
-		Groups: subjectAccessReview.Groups,
+		Groups: subjectAccessReview.Groups.List(),
 	}
 	requestContext := kapi.WithUser(kapi.WithNamespace(kapi.NewDefaultContext(), namespace), user)
 
