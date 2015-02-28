@@ -37,10 +37,14 @@ func StartTestServer(args ...string) (start.Config, error) {
 
 	masterAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
 	fmt.Printf("masterAddr: %#v\n", masterAddr)
-
 	startConfig.MasterAddr.Set(masterAddr)
 	startConfig.BindAddr.Set(masterAddr)
 	startConfig.EtcdAddr.Set(getEtcdURL())
+
+	assetAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	fmt.Printf("assetAddr: %#v\n", assetAddr)
+	startConfig.AssetBindAddr.Set(assetAddr)
+	startConfig.AssetPublicAddr.Set(assetAddr)
 
 	startConfig.Complete(args)
 
@@ -54,7 +58,7 @@ func StartTestServer(args ...string) (start.Config, error) {
 	}()
 
 	// wait for the server to come up: 35 seconds
-	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", masterAddr, 100*time.Millisecond, 100*time.Millisecond, 175); err != nil {
+	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", masterAddr, 100*time.Millisecond, 1*time.Second, 35); err != nil {
 		return *startConfig, err
 	}
 

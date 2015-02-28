@@ -27,7 +27,6 @@ import (
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 )
@@ -71,6 +70,9 @@ type MasterConfigParameters struct {
 
 	MasterAuthorizationNamespace string
 
+	// a function that returns the appropriate image to use for a named component
+	ImageFor func(component string) string
+
 	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
 	// It should only be accessed via the *Client() helper methods.
 	// To apply different access control to a system component, create a separate client/config specifically for that component.
@@ -107,9 +109,6 @@ type MasterConfig struct {
 
 	AdmissionControl admission.Interface
 
-	// a function that returns the appropriate image to use for a named component
-	ImageFor func(component string) string
-
 	TLS bool
 }
 
@@ -117,8 +116,6 @@ func BuildMasterConfig(configParams MasterConfigParameters) (*MasterConfig, erro
 
 	policyCache := configParams.newPolicyCache()
 	requestContextMapper := kapi.NewRequestContextMapper()
-
-	imageTemplate := variable.NewDefaultImageTemplate()
 
 	config := &MasterConfig{
 		MasterConfigParameters: configParams,
@@ -133,8 +130,6 @@ func BuildMasterConfig(configParams MasterConfigParameters) (*MasterConfig, erro
 		RequestContextMapper: requestContextMapper,
 
 		AdmissionControl: admit.NewAlwaysAdmit(),
-
-		ImageFor: imageTemplate.ExpandOrDie,
 
 		TLS: strings.HasPrefix(configParams.MasterAddr, "https://"),
 	}

@@ -73,9 +73,8 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"application-template-custombuild": &templateapi.Template{},
 		},
 		"../examples/jenkins": {
-			"jenkins-config":         &configapi.Config{},
-			"docker-registry-config": &configapi.Config{},
-			"application-template":   &templateapi.Template{},
+			"jenkins-config":       &configapi.Config{},
+			"application-template": &templateapi.Template{},
 		},
 		"../examples/image-repositories": {
 			"image-repositories": &imageapi.ImageRepositoryList{},

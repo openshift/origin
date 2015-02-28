@@ -1,4 +1,4 @@
-package controller
+package configchange
 
 import (
 	"testing"
@@ -11,16 +11,19 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// Test the controller's response to a new DeploymentConfig with a config change trigger.
-func TestNewConfigWithoutTrigger(t *testing.T) {
+// TestHandle_newConfigNoTriggers ensures that a change to a config with no
+// triggers doesn't result in a new config version bump.
+func TestHandle_newConfigNoTriggers(t *testing.T) {
 	controller := &DeploymentConfigChangeController{
-		Codec: api.Codec,
-		ChangeStrategy: &ChangeStrategyImpl{
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		changeStrategy: &changeStrategyImpl{
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected generation of deploymentConfig")
 				return nil, nil
 			},
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				t.Fatalf("unexpected update of deploymentConfig")
 				return config, nil
 			},
@@ -29,23 +32,28 @@ func TestNewConfigWithoutTrigger(t *testing.T) {
 
 	config := deployapitest.OkDeploymentConfig(1)
 	config.Triggers = []deployapi.DeploymentTriggerPolicy{}
-	err := controller.HandleDeploymentConfig(config)
+	err := controller.Handle(config)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestNewConfigWithTrigger(t *testing.T) {
+// TestHandle_newConfigTriggers ensures that the creation of a new config
+// (with version 0) with a config change trigger results in a version bump and
+// cause update for initial deployment.
+func TestHandle_newConfigTriggers(t *testing.T) {
 	var updated *deployapi.DeploymentConfig
 
 	controller := &DeploymentConfigChangeController{
-		Codec: api.Codec,
-		ChangeStrategy: &ChangeStrategyImpl{
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		changeStrategy: &changeStrategyImpl{
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				return deployapitest.OkDeploymentConfig(1), nil
 			},
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = config
 				return config, nil
 			},
@@ -54,7 +62,7 @@ func TestNewConfigWithTrigger(t *testing.T) {
 
 	config := deployapitest.OkDeploymentConfig(0)
 	config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
-	err := controller.HandleDeploymentConfig(config)
+	err := controller.Handle(config)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -77,21 +85,25 @@ func TestNewConfigWithTrigger(t *testing.T) {
 	}
 }
 
-// Test the controller's response when the pod template is changed
-func TestChangeWithTemplateDiff(t *testing.T) {
+// TestHandle_changeWithTemplateDiff ensures that a pod template change to a
+// config with a config change trigger results in a version bump and cause
+// update.
+func TestHandle_changeWithTemplateDiff(t *testing.T) {
 	var updated *deployapi.DeploymentConfig
 
 	controller := &DeploymentConfigChangeController{
-		Codec: api.Codec,
-		ChangeStrategy: &ChangeStrategyImpl{
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		changeStrategy: &changeStrategyImpl{
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				return deployapitest.OkDeploymentConfig(2), nil
 			},
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = config
 				return config, nil
 			},
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deployapitest.OkDeploymentConfig(1), kapi.Codec)
 				return deployment, nil
 			},
@@ -101,7 +113,7 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 	config := deployapitest.OkDeploymentConfig(1)
 	config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
 	config.Template.ControllerTemplate.Template.Spec.Containers[1].Name = "modified"
-	err := controller.HandleDeploymentConfig(config)
+	err := controller.Handle(config)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -124,7 +136,9 @@ func TestChangeWithTemplateDiff(t *testing.T) {
 	}
 }
 
-func TestChangeWithoutTemplateDiff(t *testing.T) {
+// TestHandle_changeWithoutTemplateDiff ensures that an updated config with no
+// pod template diff results in the config version remaining the same.
+func TestHandle_changeWithoutTemplateDiff(t *testing.T) {
 	config := deployapitest.OkDeploymentConfig(1)
 	config.Triggers = []deployapi.DeploymentTriggerPolicy{deployapitest.OkConfigChangeTrigger()}
 
@@ -132,24 +146,26 @@ func TestChangeWithoutTemplateDiff(t *testing.T) {
 	updated := false
 
 	controller := &DeploymentConfigChangeController{
-		Codec: api.Codec,
-		ChangeStrategy: &ChangeStrategyImpl{
-			GenerateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		changeStrategy: &changeStrategyImpl{
+			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				generated = true
 				return config, nil
 			},
-			UpdateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 				updated = true
 				return config, nil
 			},
-			GetDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deployapitest.OkDeploymentConfig(1), kapi.Codec)
 				return deployment, nil
 			},
 		},
 	}
 
-	err := controller.HandleDeploymentConfig(config)
+	err := controller.Handle(config)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

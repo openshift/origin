@@ -110,6 +110,8 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 		OSClient:               openshiftClient,
 		OSClientConfig:         *openshiftClientConfig,
 		DeployerOSClientConfig: *deployerClientConfig,
+
+		ImageFor: cfg.ImageTemplate.ExpandOrDie,
 	}
 	openshiftConfig, err := origin.BuildMasterConfig(openshiftConfigParameters)
 	if err != nil {
@@ -176,6 +178,7 @@ func (cfg Config) BuildAuthConfig() (*origin.AuthConfig, error) {
 		// Password config
 		PasswordAuth: origin.PasswordAuthType(env("OPENSHIFT_OAUTH_PASSWORD_AUTH", string(origin.PasswordAuthAnyPassword))),
 		BasicAuthURL: env("OPENSHIFT_OAUTH_BASIC_AUTH_URL", ""),
+		HTPasswdFile: env("OPENSHIFT_OAUTH_HTPASSWD_FILE", ""),
 		// Token config
 		TokenStore:    origin.TokenStoreType(env("OPENSHIFT_OAUTH_TOKEN_STORE", string(origin.TokenStoreOAuth))),
 		TokenFilePath: env("OPENSHIFT_OAUTH_TOKEN_FILE_PATH", ""),

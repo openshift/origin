@@ -6,13 +6,9 @@ import (
 	"net/url"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
-	oapi "github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
-	"github.com/openshift/origin/pkg/oauth/scope"
 )
 
 // GrantCheck implements osinserver.AuthorizeHandler to ensure requested scopes have been authorized
@@ -54,18 +50,22 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseW
 		RedirectURI: ar.RedirectUri,
 	}
 
-	ok, err := h.check.HasAuthorizedClient(user, grant)
+	// Check if the user has already authorized this grant
+	authorized, err := h.check.HasAuthorizedClient(user, grant)
 	if err != nil {
 		return h.errorHandler.GrantError(err, w, ar.HttpRequest)
 	}
-	if !ok {
-		return h.handler.GrantNeeded(user, grant, w, ar.HttpRequest)
+	if authorized {
+		ar.Authorized = true
+		return false, nil
 	}
 
-	// Grant is verified
-	ar.Authorized = true
-
-	return false, nil
+	// React to an unauthorized grant
+	authorized, handled, err := h.handler.GrantNeeded(user, grant, w, ar.HttpRequest)
+	if authorized {
+		ar.Authorized = true
+	}
+	return handled, err
 }
 
 type emptyGrant struct{}
@@ -76,52 +76,21 @@ func NewEmptyGrant() GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (emptyGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
-	return false, nil
+func (emptyGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
+	return false, false, nil
 }
 
 type autoGrant struct {
-	authregistry clientauthorization.Registry
 }
 
-// NewAutoGrant returns a grant handler that automatically creates client authorizations
-// when a grant is needed, then retries the original request
-func NewAutoGrant(authregistry clientauthorization.Registry) GrantHandler {
-	return &autoGrant{authregistry}
+// NewAutoGrant returns a grant handler that automatically approves client authorizations
+func NewAutoGrant() GrantHandler {
+	return &autoGrant{}
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (g *autoGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
-	clientAuthID := g.authregistry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
-	clientAuth, err := g.authregistry.GetClientAuthorization(clientAuthID)
-	if err == nil {
-		// Add new scopes and update
-		clientAuth.Scopes = scope.Add(clientAuth.Scopes, scope.Split(grant.Scope))
-		err = g.authregistry.UpdateClientAuthorization(clientAuth)
-		if err != nil {
-			glog.V(4).Infof("Unable to update authorization: %v", err)
-			return false, err
-		}
-	} else {
-		// Make sure client name, user name, grant scope, expiration, and redirect uri match
-		clientAuth = &oapi.OAuthClientAuthorization{
-			UserName:   user.GetName(),
-			UserUID:    user.GetUID(),
-			ClientName: grant.Client.GetId(),
-			Scopes:     scope.Split(grant.Scope),
-		}
-		clientAuth.Name = clientAuthID
-
-		err = g.authregistry.CreateClientAuthorization(clientAuth)
-		if err != nil {
-			glog.V(4).Infof("Unable to create authorization: %v", err)
-			return false, err
-		}
-	}
-
-	// Retry the request
-	http.Redirect(w, req, req.URL.String(), http.StatusFound)
-	return true, nil
+func (g *autoGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
+	return true, false, nil
 }
 
 type redirectGrant struct {
@@ -143,15 +112,15 @@ func NewRedirectGrant(url string) GrantHandler {
 }
 
 // GrantNeeded implements the GrantHandler interface
-func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, error) {
+func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
 	// If the current request has an error=grant_denied parameter, the user denied the grant
 	if err := req.FormValue("error"); err == GrantDeniedError {
-		return false, nil
+		return false, false, nil
 	}
 
 	redirectURL, err := url.Parse(g.url)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	redirectURL.RawQuery = url.Values{
 		"then":         {req.URL.String()},
@@ -160,5 +129,5 @@ func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.Res
 		"redirect_uri": {grant.RedirectURI},
 	}.Encode()
 	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
-	return true, nil
+	return false, true, nil
 }

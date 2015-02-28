@@ -23,13 +23,15 @@ import (
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
+	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
-	deploycontrollerfactory "github.com/openshift/origin/pkg/deploy/controller/factory"
+	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -384,19 +386,16 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 	dccFactory.Create().Run()
 
-	cccFactory := deploycontrollerfactory.DeploymentConfigChangeControllerFactory{
+	cccFactory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osClient,
 		KubeClient: kubeClient,
 		Codec:      latest.Codec,
-		Stop:       openshift.stop,
 	}
 	cccFactory.Create().Run()
 
-	iccFactory := deploycontrollerfactory.ImageChangeControllerFactory{
+	iccFactory := imagechangecontroller.ImageChangeControllerFactory{
 		Client: osClient,
-		Stop:   openshift.stop,
 	}
-
 	iccFactory.Create().Run()
 
 	biccFactory := buildcontrollerfactory.ImageChangeControllerFactory{
@@ -405,8 +404,25 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		BuildCreator:       buildclient.NewOSClientBuildClient(osClient),
 		Stop:               openshift.stop,
 	}
-
 	biccFactory.Create().Run()
+
+	bcFactory := buildcontrollerfactory.BuildControllerFactory{
+		OSClient:     osClient,
+		KubeClient:   kubeClient,
+		BuildUpdater: buildclient.NewOSClientBuildClient(osClient),
+		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
+			Image: "test-docker-builder",
+			Codec: latest.Codec,
+		},
+		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
+			Image:                "test-sti-builder",
+			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
+			Codec:                latest.Codec,
+		},
+		Stop: openshift.stop,
+	}
+
+	bcFactory.Create().Run()
 
 	return openshift
 }

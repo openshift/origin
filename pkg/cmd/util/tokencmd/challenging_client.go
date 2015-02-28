@@ -37,21 +37,23 @@ func (client *challengingClient) Do(req *http.Request) (*http.Response, error) {
 			username := client.defaultUsername
 			password := client.defaultPassword
 
-			uDefaulted := len(username) > 0
-			pDefaulted := len(password) > 0
+			missingUsername := len(username) == 0
+			missingPassword := len(password) == 0
 
-			if !(uDefaulted && pDefaulted) {
+			if (missingUsername || missingPassword) && (client.reader != nil) {
 				fmt.Printf("Authenticate for \"%v\"\n", realm)
-				if !uDefaulted {
+				if missingUsername {
 					username = util.PromptForString(client.reader, "Username: ")
 				}
-				if !pDefaulted {
+				if missingPassword {
 					password = util.PromptForPasswordString(client.reader, "Password: ")
 				}
 			}
 
-			client.delegate.Transport = kclient.NewBasicAuthRoundTripper(username, password, client.delegate.Transport)
-			return client.Do(resp.Request)
+			if len(username) > 0 || len(password) > 0 {
+				client.delegate.Transport = kclient.NewBasicAuthRoundTripper(username, password, client.delegate.Transport)
+				return client.delegate.Do(resp.Request)
+			}
 		}
 	}
 	return resp, err
