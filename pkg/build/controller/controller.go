@@ -96,7 +96,11 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 			}
 			return fmt.Errorf("the referenced output repo %s/%s could not be found by %s/%s: %v", namespace, ref.Name, build.Namespace, build.Name, err)
 		}
-		spec = repo.Status.DockerImageRepository
+		if len(build.Parameters.Output.Tag) == 0 {
+			spec = repo.Status.DockerImageRepository
+		} else {
+			spec = fmt.Sprintf("%s:%s", repo.Status.DockerImageRepository, build.Parameters.Output.Tag)
+		}
 	}
 
 	// set the expected build parameters, which will be saved if no error occurs
@@ -104,12 +108,13 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 	build.PodName = fmt.Sprintf("build-%s", build.Name)
 
 	// override DockerImageReference in the strategy for the copy we send to the server
+	build.Parameters.Output.DockerImageReference = spec
+
 	copy, err := kapi.Scheme.Copy(build)
 	if err != nil {
 		return fmt.Errorf("unable to copy build: %v", err)
 	}
 	buildCopy := copy.(*buildapi.Build)
-	buildCopy.Parameters.Output.DockerImageReference = spec
 
 	// invoke the strategy to get a build pod
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
