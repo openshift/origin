@@ -70,7 +70,8 @@ func main() {
 			continue
 		}
 		// ignore non code segments
-		if match[2] != "T" {
+		if match[2] != "t" && match[2] != "T" {
+			// log.Printf("non-code line: %s",line)
 			continue
 		}
 		name := match[3]
