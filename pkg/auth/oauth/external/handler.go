@@ -1,6 +1,7 @@
 package external
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -147,11 +148,11 @@ func (defaultState) Generate(w http.ResponseWriter, req *http.Request) (string, 
 		"csrf": {"..."}, // TODO: get csrf
 		"then": {req.URL.String()},
 	}
-	return state.Encode(), nil
+	return encodeState(state)
 }
 
 func (defaultState) Check(state string, w http.ResponseWriter, req *http.Request) (bool, error) {
-	values, err := url.ParseQuery(state)
+	values, err := decodeState(state)
 	if err != nil {
 		return false, err
 	}
@@ -169,7 +170,7 @@ func (defaultState) Check(state string, w http.ResponseWriter, req *http.Request
 }
 
 func (defaultState) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {
-	values, err := url.ParseQuery(state)
+	values, err := decodeState(state)
 	if err != nil {
 		return false, err
 	}
@@ -181,4 +182,16 @@ func (defaultState) AuthenticationSucceeded(user user.Info, state string, w http
 
 	http.Redirect(w, req, then, http.StatusFound)
 	return true, nil
+}
+
+func encodeState(values url.Values) (string, error) {
+	return base64.URLEncoding.EncodeToString([]byte(values.Encode())), nil
+}
+
+func decodeState(state string) (url.Values, error) {
+	decodedState, err := base64.URLEncoding.DecodeString(state)
+	if err != nil {
+		return nil, err
+	}
+	return url.ParseQuery(string(decodedState))
 }

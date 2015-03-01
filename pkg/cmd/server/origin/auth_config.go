@@ -79,6 +79,10 @@ type AuthConfig struct {
 	GithubClientID string
 	// GithubClientID is the client_secret of a client registered with the GitHub OAuth provider.
 	GithubClientSecret string
+
+	// KeycloakClientConfigFile is the json file used to configure the Keycloak OAuth provider.
+	// This file can be generated using the contents from the "Installation" tab for the OAuth client in the Keycloak admin console.
+	KeycloakClientConfigFile string
 }
 
 func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
@@ -137,6 +141,8 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 		// GitHub config
 		GithubClientID:     cmdutil.Env("OPENSHIFT_OAUTH_GITHUB_CLIENT_ID", ""),
 		GithubClientSecret: cmdutil.Env("OPENSHIFT_OAUTH_GITHUB_CLIENT_SECRET", ""),
+		// Keycloak config
+		KeycloakClientConfigFile: cmdutil.Env("OPENSHIFT_OAUTH_KEYCLOAK_CLIENT_CONFIG_FILE", ""),
 	}
 
 	return ret, nil
