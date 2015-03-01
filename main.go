@@ -62,7 +62,7 @@ func newNetworkManager() (controller.Controller, error) {
 		host = strings.TrimSpace(string(output))
 	}
 
-	return controller.NewController(sub, string(host), opts.ip), nil
+	return controller.NewController(sub, string(host), opts.ip)
 }
 
 func newSubnetRegistry() registry.SubnetRegistry {

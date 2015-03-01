@@ -36,12 +36,12 @@ type OvsController struct {
 	sig             chan struct{}
 }
 
-func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) Controller {
+func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) (Controller, error) {
 	if selfIP == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
 			log.Errorf("Failed to lookup IP Address for %s", hostname)
-			return nil
+			return nil, err
 		}
 		selfIP = addrs[0].String()
 	}
@@ -53,7 +53,7 @@ func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) 
 		localSubnet:     nil,
 		subnetAllocator: nil,
 		sig:             make(chan struct{}),
-	}
+	}, nil
 }
 
 func (oc *OvsController) StartMaster(sync bool) error {
