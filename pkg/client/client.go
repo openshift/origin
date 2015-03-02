@@ -32,6 +32,7 @@ type Interface interface {
 	RoleBindingsNamespacer
 	PolicyBindingsNamespacer
 	ResourceAccessReviewsNamespacer
+	RootResourceAccessReviews
 	SubjectAccessReviewsNamespacer
 	TemplatesNamespacer
 }
@@ -121,6 +122,10 @@ func (c *Client) RoleBindings(namespace string) RoleBindingInterface {
 
 func (c *Client) ResourceAccessReviews(namespace string) ResourceAccessReviewInterface {
 	return newResourceAccessReviews(c, namespace)
+}
+
+func (c *Client) RootResourceAccessReviews() ResourceAccessReviewInterface {
+	return newRootResourceAccessReviews(c)
 }
 
 func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
