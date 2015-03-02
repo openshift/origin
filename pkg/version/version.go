@@ -1,5 +1,12 @@
 package version
 
+import (
+	"fmt"
+
+	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
+	"github.com/spf13/cobra"
+)
+
 var (
 	// commitFromGit is a constant representing the source version that
 	// generated this build. It should be set during build via -ldflags.
@@ -41,4 +48,16 @@ func (info Info) String() string {
 		version = "unknown"
 	}
 	return version
+}
+
+// NewVersionCommand creates a command for displaying the version of this binary
+func NewVersionCommand(basename string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Display version",
+		Run: func(c *cobra.Command, args []string) {
+			fmt.Printf("%s %v\n", basename, Get())
+			fmt.Printf("kubernetes %v\n", kubeversion.Get())
+		},
+	}
 }

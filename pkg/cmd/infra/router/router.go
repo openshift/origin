@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
+	"github.com/openshift/origin/pkg/version"
 	templateplugin "github.com/openshift/origin/plugins/router/template"
 )
 
@@ -52,6 +53,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 
 	cmd.SetUsageTemplate(templates.MainUsageTemplate())
 	cmd.SetHelpTemplate(templates.MainHelpTemplate())
+	cmd.AddCommand(version.NewVersionCommand(name))
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)

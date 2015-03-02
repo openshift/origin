@@ -1,12 +1,11 @@
 package builder
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/version"
 )
 
 const longCommandSTIDesc = `
@@ -19,7 +18,7 @@ It expects to be run inside of a container.
 // NewCommandSTIBuilder provides a CLI handler for STI build type
 func NewCommandSTIBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s", name),
+		Use:   name,
 		Short: "Run an OpenShift Source-to-Images build",
 		Long:  longCommandSTIDesc,
 		Run: func(c *cobra.Command, args []string) {
@@ -28,6 +27,7 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 	}
 	cmd.SetUsageTemplate(templates.MainUsageTemplate())
 	cmd.SetHelpTemplate(templates.MainHelpTemplate())
+	cmd.AddCommand(version.NewVersionCommand(name))
 	return cmd
 }
 
@@ -41,7 +41,7 @@ It expects to be run inside of a container.
 // NewCommandDockerBuilder provides a CLI handler for Docker build type
 func NewCommandDockerBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s", name),
+		Use:   name,
 		Short: "Run an OpenShift Docker build",
 		Long:  longCommandDockerDesc,
 		Run: func(c *cobra.Command, args []string) {
@@ -50,5 +50,6 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 	}
 	cmd.SetUsageTemplate(templates.MainUsageTemplate())
 	cmd.SetHelpTemplate(templates.MainHelpTemplate())
+	cmd.AddCommand(version.NewVersionCommand(name))
 	return cmd
 }

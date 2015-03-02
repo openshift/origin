@@ -17,6 +17,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strategy "github.com/openshift/origin/pkg/deploy/strategy/recreate"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	"github.com/openshift/origin/pkg/version"
 )
 
 const longCommandDesc = `
@@ -68,6 +69,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 	cmd.SetUsageTemplate(templates.MainUsageTemplate())
 	cmd.SetHelpTemplate(templates.MainHelpTemplate())
+	cmd.AddCommand(version.NewVersionCommand(name))
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)
