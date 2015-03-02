@@ -66,4 +66,20 @@ angular.module('openshiftConsole')
         hookType: type,
       });
     };
+  })
+  .filter('isWebRoute', function(){
+    return function(route){
+       //TODO: implement when we can tell if routes are http(s) or not web related which will drive links in view
+       return true;
+    };
+  })
+  .filter('routeWebURL', function(){
+    return function(route){
+        var scheme = (route.tls && route.tls.tlsTerminationType != "") ? "https" : "http";
+        var url = scheme + "://" + route.host;
+        if (route.path) {
+            url += route.path;
+        }
+        return url;
+    };
   });

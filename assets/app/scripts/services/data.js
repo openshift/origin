@@ -558,6 +558,7 @@ angular.module('openshiftConsole')
     oAuthAccessTokens:      API_CFG.openshift,
     projects:               API_CFG.openshift,
     users:                  API_CFG.openshift,
+    routes:                 API_CFG.openshift,
 
     pods:                   API_CFG.k8s,
     replicationcontrollers: API_CFG.k8s,
