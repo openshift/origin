@@ -27,6 +27,10 @@ type DeploymentControllerFactory struct {
 	Codec runtime.Codec
 	// Environment is a set of environment which should be injected into all deployer pod containers.
 	Environment []kapi.EnvVar
+	// Volumes is a set of volumes which should be injected into all deployer pod containers.
+	Volumes []kapi.Volume
+	// VolumeMounts is a set of volume mounts which should be injected into all deployer pod containers.
+	VolumeMounts []kapi.VolumeMount
 	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
 	RecreateStrategyImage string
 }
@@ -63,6 +67,9 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return factory.makeContainer(strategy)
+		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			return factory.makeVolumes(strategy)
 		},
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
@@ -115,8 +122,9 @@ func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.De
 	case deployapi.DeploymentStrategyTypeRecreate:
 		// Use the factory-configured image.
 		return &kapi.Container{
-			Image: factory.RecreateStrategyImage,
-			Env:   environment,
+			Image:        factory.RecreateStrategyImage,
+			Env:          environment,
+			VolumeMounts: factory.VolumeMounts,
 		}, nil
 	case deployapi.DeploymentStrategyTypeCustom:
 		// Use user-defined values from the strategy input.
@@ -124,10 +132,15 @@ func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.De
 			environment = append(environment, env)
 		}
 		return &kapi.Container{
-			Image: strategy.CustomParams.Image,
-			Env:   environment,
+			Image:        strategy.CustomParams.Image,
+			Env:          environment,
+			VolumeMounts: factory.VolumeMounts,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported deployment strategy type: %s", strategy.Type)
 	}
+}
+
+func (factory *DeploymentControllerFactory) makeVolumes(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+	return factory.Volumes, nil
 }

@@ -711,12 +711,31 @@ func (c *MasterConfig) RunDeploymentController() error {
 		{Name: "KUBERNETES_MASTER", Value: kclientConfig.Host},
 		{Name: "OPENSHIFT_MASTER", Value: kclientConfig.Host},
 	}
-	env = append(env, clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())...)
+
+	secret, secretVolume, secretVolumeMount, secretEnv, err := clientcmd.SecretVolumeFromConfig("deployer-secret", "/etc/deployer-secret", c.DeployerClientConfig())
+	if err != nil {
+		glog.Fatalf("Cannot build deployment controller secret: %v", err)
+	}
+
+	secrets := c.KubeClient().Secrets(kapi.NamespaceDefault)
+	if _, err := secrets.Create(secret); err != nil {
+		if kapierror.IsAlreadyExists(err) {
+			if _, err := secrets.Update(secret); err != nil {
+				glog.Fatalf("Cannot update deployment controller secret: %v", err)
+			}
+		} else if err != nil {
+			glog.Fatalf("Cannot create deployment controller secret: %v", err)
+		}
+	}
+
+	env = append(env, secretEnv...)
 
 	factory := deploycontroller.DeploymentControllerFactory{
 		KubeClient:            kclient,
 		Codec:                 latest.Codec,
 		Environment:           env,
+		Volumes:               []kapi.Volume{*secretVolume},
+		VolumeMounts:          []kapi.VolumeMount{*secretVolumeMount},
 		RecreateStrategyImage: c.ImageFor("deployer"),
 	}
 

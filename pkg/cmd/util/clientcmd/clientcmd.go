@@ -2,6 +2,7 @@ package clientcmd
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -45,17 +46,59 @@ func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
 }
 
-func EnvVarsFromConfig(config *kclient.Config) []api.EnvVar {
-	insecure := "false"
+func SecretVolumeFromConfig(name string, mountPath string, config *kclient.Config) (*api.Secret, *api.Volume, *api.VolumeMount, []api.EnvVar, error) {
+	if err := kclient.LoadTLSFiles(config); err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("Error loading credential files: %v", err)
+	}
+
+	const (
+		root = "root.crt"
+		cert = "cert.crt"
+		key  = "key.key"
+	)
+	var (
+		root_path = path.Join(mountPath, root)
+		cert_path = path.Join(mountPath, cert)
+		key_path  = path.Join(mountPath, key)
+	)
+
+	secret := &api.Secret{
+		ObjectMeta: api.ObjectMeta{
+			Name: name,
+		},
+		Data: map[string][]byte{
+			root: config.CAData,
+			cert: config.CertData,
+			key:  config.KeyData,
+		},
+	}
+
+	volume := &api.Volume{
+		Name: name,
+		VolumeSource: api.VolumeSource{
+			Secret: &api.SecretVolumeSource{
+				SecretName: name,
+			},
+		},
+	}
+
+	volumeMount := &api.VolumeMount{
+		Name:      name,
+		MountPath: mountPath,
+		ReadOnly:  true,
+	}
+
+	envs := []api.EnvVar{
+		{Name: "OPENSHIFT_MASTER", Value: config.Host},
+		{Name: "OPENSHIFT_CA_BUNDLE", Value: root_path},
+		{Name: "OPENSHIFT_CLIENT_CERT", Value: cert_path},
+		{Name: "OPENSHIFT_CLIENT_KEY", Value: key_path},
+	}
 	if config.Insecure {
-		insecure = "true"
+		envs = append(envs, api.EnvVar{Name: "OPENSHIFT_INSECURE", Value: "true"})
 	}
-	return []api.EnvVar{
-		{Name: "OPENSHIFT_CA_DATA", Value: string(config.CAData)},
-		{Name: "OPENSHIFT_CERT_DATA", Value: string(config.CertData)},
-		{Name: "OPENSHIFT_KEY_DATA", Value: string(config.KeyData)},
-		{Name: "OPENSHIFT_INSECURE", Value: insecure},
-	}
+
+	return secret, volume, volumeMount, envs, nil
 }
 
 func (cfg *Config) bindEnv() {
@@ -69,22 +112,15 @@ func (cfg *Config) bindEnv() {
 		cfg.CommonConfig.BearerToken = value
 	}
 
-	if value, ok := util.GetEnv("OPENSHIFT_CA_FILE"); ok && len(cfg.CommonConfig.CAFile) == 0 {
+	if value, ok := util.GetEnv("OPENSHIFT_CA_BUNDLE"); ok && len(cfg.CommonConfig.CAFile) == 0 {
 		cfg.CommonConfig.CAFile = value
-	} else if value, ok := util.GetEnv("OPENSHIFT_CA_DATA"); ok && len(cfg.CommonConfig.CAData) == 0 {
-		cfg.CommonConfig.CAData = []byte(value)
 	}
 
-	if value, ok := util.GetEnv("OPENSHIFT_CERT_FILE"); ok && len(cfg.CommonConfig.CertFile) == 0 {
+	if value, ok := util.GetEnv("OPENSHIFT_CLIENT_CERT"); ok && len(cfg.CommonConfig.CertFile) == 0 {
 		cfg.CommonConfig.CertFile = value
-	} else if value, ok := util.GetEnv("OPENSHIFT_CERT_DATA"); ok && len(cfg.CommonConfig.CertData) == 0 {
-		cfg.CommonConfig.CertData = []byte(value)
 	}
-
-	if value, ok := util.GetEnv("OPENSHIFT_KEY_FILE"); ok && len(cfg.CommonConfig.KeyFile) == 0 {
+	if value, ok := util.GetEnv("OPENSHIFT_CLIENT_KEY"); ok && len(cfg.CommonConfig.KeyFile) == 0 {
 		cfg.CommonConfig.KeyFile = value
-	} else if value, ok := util.GetEnv("OPENSHIFT_KEY_DATA"); ok && len(cfg.CommonConfig.KeyData) == 0 {
-		cfg.CommonConfig.KeyData = []byte(value)
 	}
 
 	if value, ok := util.GetEnv("OPENSHIFT_INSECURE"); ok && len(value) != 0 {

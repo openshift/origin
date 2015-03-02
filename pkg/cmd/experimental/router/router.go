@@ -8,7 +8,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -157,22 +156,14 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 				if err != nil {
 					glog.Fatalf("The provided credentials %q could not be used: %v", cfg.Credentials, err)
 				}
-				if err := kclient.LoadTLSFiles(config); err != nil {
-					glog.Fatalf("The provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
-				}
-				insecure := "false"
-				if config.Insecure {
-					insecure = "true"
-				}
-				env := app.Environment{
-					"OPENSHIFT_MASTER":    config.Host,
-					"OPENSHIFT_CA_DATA":   string(config.CAData),
-					"OPENSHIFT_KEY_DATA":  string(config.KeyData),
-					"OPENSHIFT_CERT_DATA": string(config.CertData),
-					"OPENSHIFT_INSECURE":  insecure,
+
+				secret, secretVolume, secretVolumeMount, secretEnv, err := clientcmd.SecretVolumeFromConfig(name, "/etc/openshift/router/api-credentials", config)
+				if err != nil {
+					glog.Fatalf("Could not build router secret: %v", err)
 				}
 
 				objects := []runtime.Object{
+					secret,
 					&dapi.DeploymentConfig{
 						ObjectMeta: kapi.ObjectMeta{
 							Name:   name,
@@ -193,10 +184,11 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 									Spec: kapi.PodSpec{
 										Containers: []kapi.Container{
 											{
-												Name:  "router",
-												Image: image,
-												Ports: ports,
-												Env:   env.List(),
+												Name:         "router",
+												Image:        image,
+												Ports:        ports,
+												Env:          secretEnv,
+												VolumeMounts: []kapi.VolumeMount{*secretVolumeMount},
 												LivenessProbe: &kapi.Probe{
 													Handler: kapi.Handler{
 														TCPSocket: &kapi.TCPSocketAction{
@@ -208,6 +200,9 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 													InitialDelaySeconds: 10,
 												},
 											},
+										},
+										Volumes: []kapi.Volume{
+											*secretVolume,
 										},
 									},
 								},

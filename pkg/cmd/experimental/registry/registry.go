@@ -8,7 +8,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -166,20 +165,8 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 				if err != nil {
 					glog.Fatalf("The provided credentials %q could not be used: %v", cfg.Credentials, err)
 				}
-				if err := kclient.LoadTLSFiles(config); err != nil {
-					glog.Fatalf("The provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
-				}
-				insecure := "false"
-				if config.Insecure {
-					insecure = "true"
-				}
-				env := app.Environment{
-					"OPENSHIFT_MASTER":    config.Host,
-					"OPENSHIFT_CA_DATA":   string(config.CAData),
-					"OPENSHIFT_KEY_DATA":  string(config.KeyData),
-					"OPENSHIFT_CERT_DATA": string(config.CertData),
-					"OPENSHIFT_INSECURE":  insecure,
-				}
+
+				secret, secretVolume, secretVolumeMount, secretEnv, err := clientcmd.SecretVolumeFromConfig(name, "/etc/openshift/registry/api-credentials", config)
 
 				mountHost := len(cfg.HostMount) > 0
 				podTemplate := &kapi.PodTemplateSpec{
@@ -190,12 +177,13 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 								Name:  "registry",
 								Image: image,
 								Ports: ports,
-								Env:   env.List(),
+								Env:   secretEnv,
 								VolumeMounts: []kapi.VolumeMount{
 									{
 										Name:      "registry-storage",
 										MountPath: cfg.Volume,
 									},
+									*secretVolumeMount,
 								},
 								Privileged: mountHost,
 							},
@@ -205,6 +193,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 								Name:         "registry-storage",
 								VolumeSource: kapi.VolumeSource{},
 							},
+							*secretVolume,
 						},
 					},
 				}
@@ -215,6 +204,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 				}
 
 				objects := []runtime.Object{
+					secret,
 					&dapi.DeploymentConfig{
 						ObjectMeta: kapi.ObjectMeta{
 							Name:   name,

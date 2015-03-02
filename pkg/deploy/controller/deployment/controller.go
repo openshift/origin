@@ -30,6 +30,8 @@ type DeploymentController struct {
 	podClient podClient
 	// makeContainer knows how to make a container appropriate to execute a deployment strategy.
 	makeContainer func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error)
+	// makeVolumes knows how to make a list of volumes appropriate to execute a deployment strategy.
+	makeVolumes func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error)
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
 }
@@ -108,6 +110,11 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 		return nil, err
 	}
 
+	volumes, err := c.makeVolumes(&deploymentConfig.Template.Strategy)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add deployment environment variables to the container.
 	envVars := []kapi.EnvVar{}
 	for _, env := range container.Env {
@@ -126,13 +133,15 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
 				{
-					Name:    "deployment",
-					Command: container.Command,
-					Args:    container.Args,
-					Image:   container.Image,
-					Env:     envVars,
+					Name:         "deployment",
+					Command:      container.Command,
+					Args:         container.Args,
+					Image:        container.Image,
+					Env:          envVars,
+					VolumeMounts: container.VolumeMounts,
 				},
 			},
+			Volumes:       volumes,
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
