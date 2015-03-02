@@ -21,6 +21,5 @@ func NewIPAllocator(network string) (*IPAllocator, error) {
 }
 
 func (ipa *IPAllocator) GetIP() (net.IP, error) {
-	fmt.Println(ipa.network.IP)
 	return ipa.network.IP, nil
 }
