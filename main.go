@@ -16,23 +16,27 @@ import (
 )
 
 type CmdLineOpts struct {
-	etcdEndpoints string
-	etcdPath      string
-	etcdKeyfile   string
-	etcdCertfile  string
-	etcdCAFile    string
-	ip            string
-	hostname      string
-	master        bool
-	minion        bool
-	skipsetup     bool
-	sync          bool
-	help          bool
+	containerNetwork      string
+	containerSubnetLength uint
+	etcdEndpoints         string
+	etcdPath              string
+	etcdKeyfile           string
+	etcdCertfile          string
+	etcdCAFile            string
+	ip                    string
+	hostname              string
+	master                bool
+	minion                bool
+	skipsetup             bool
+	sync                  bool
+	help                  bool
 }
 
 var opts CmdLineOpts
 
 func init() {
+	flag.StringVar(&opts.containerNetwork, "container-network", "10.1.0.0/16", "container network")
+	flag.UintVar(&opts.containerSubnetLength, "container-subnet-length", 8, "container subnet length")
 	flag.StringVar(&opts.etcdEndpoints, "etcd-endpoints", "http://127.0.0.1:4001", "a comma-delimited list of etcd endpoints")
 	flag.StringVar(&opts.etcdPath, "etcd-path", "/registry/sdn/", "etcd path")
 	flag.StringVar(&opts.etcdKeyfile, "etcd-keyfile", "", "SSL key file used to secure etcd communication")
@@ -64,7 +68,7 @@ func newNetworkManager() (controller.Controller, error) {
 		host = strings.TrimSpace(string(output))
 	}
 
-	return controller.NewController(sub, string(host), opts.ip), nil
+	return controller.NewController(sub, string(host), opts.ip, opts.containerNetwork, opts.containerSubnetLength), nil
 }
 
 func newSubnetRegistry() (registry.SubnetRegistry, error) {

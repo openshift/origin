@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/registry"
 )
 
-const (
+var (
 	ContainerNetwork      string = "10.1.0.0/16"
 	ContainerSubnetLength uint   = 8
 )
@@ -36,7 +36,9 @@ type OvsController struct {
 	sig             chan struct{}
 }
 
-func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) Controller {
+func NewController(sub registry.SubnetRegistry, hostname string, selfIP string, containerNetwork string, containerSubnetLength uint) Controller {
+	ContainerNetwork = containerNetwork
+	ContainerSubnetLength = containerSubnetLength
 	if selfIP == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
@@ -84,7 +86,11 @@ func (oc *OvsController) StartMaster(sync bool) error {
 			subrange = append(subrange, sub.Sub)
 		}
 	}
-	oc.subnetAllocator, _ = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
+
+	oc.subnetAllocator, err = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
+	if err != nil {
+		return err
+	}
 	err = oc.ServeExistingMinions()
 	if err != nil {
 		log.Warningf("Error initializing existing minions: %v", err)
@@ -178,7 +184,9 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 	_, ipnet, err := net.ParseCIDR(oc.localSubnet.Sub)
 	if err == nil {
 		if !skipsetup {
-			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), ContainerNetwork).CombinedOutput()
+			// Assume we are working with IPv4
+			subnetMaskLength, _ := ipnet.Mask.Size()
+			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), ContainerNetwork, strconv.Itoa(subnetMaskLength)).CombinedOutput()
 			log.Infof("Output of setup script:\n%s", out)
 			if err != nil {
 				log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
