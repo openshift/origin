@@ -43,7 +43,22 @@ popd 2>&1 >/dev/null
 start_etcd
 trap cleanup EXIT SIGINT
 
+function exectest() {
+  out=$("${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+  res=$?
+  if [[ ${res} -eq 0 ]]; then
+    echo ok $1
+    exit 0
+  else
+    echo "${out}"
+    exit 1
+  fi
+}
+export -f exectest
+export testexec
+export childargs
+
 # run each test as its own process
 pushd "./${package}" 2>&1 >/dev/null
-time go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" | xargs -I {} -n 1 "${testexec}" -test.run="^{}$" "${@:1}"
+time go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" | xargs -I {} -n 1 bash -c "exectest {} ${@:1}" # "${testexec}" -test.run="^{}$" "${@:1}"
 popd 2>&1 >/dev/null
