@@ -38,7 +38,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageRepository",
       "metadata": {
-        "name": "ruby-20-centos"
+        "name": "ruby-20-centos7"
       }
     },
     {
@@ -82,9 +82,9 @@
         {
           "imageChange": {
             "from": {
-              "name": "ruby-20-centos"
+              "name": "ruby-20-centos7"
             },
-            "image": "openshift/ruby-20-centos",
+            "image": "openshift/ruby-20-centos7",
             "tag": "latest"
           },
           "type": "imageChange"

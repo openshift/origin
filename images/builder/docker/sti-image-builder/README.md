@@ -18,7 +18,7 @@ The sample custom BuildConfig definition might look as following:
   "kind": "BuildConfig",
   "apiVersion": "v1beta1",
   "metadata":{
-    "name": "ruby-20-centos-build"
+    "name": "ruby-20-centos7-build"
   },
   "triggers": [
     {
@@ -32,7 +32,7 @@ The sample custom BuildConfig definition might look as following:
     "source" : {
       "type" : "Git",
       "git" : {
-        "uri": "git://github.com/openshift/ruby-20-centos.git"
+        "uri": "git://github.com/openshift/sti-ruby.git"
       }
     },
     "strategy": {
@@ -41,27 +41,27 @@ The sample custom BuildConfig definition might look as following:
         "image": "openshift/sti-image-builder",
         "exposeDockerSocket": true,
         "env": [
-          { "name": "IMAGE_NAME", "value": "openshift/ruby-20-centos"}
-          { "name": "CONTEXT_DIR", "value": "."}
+          { "name": "IMAGE_NAME", "value": "openshift/ruby-20-centos7"}
+          { "name": "CONTEXT_DIR", "value": "/2.0/"}
         ]
       }
     },
     "output": {
-      "to": "ruby-20-centos-repository",
+      "to": "ruby-20-centos7-repository",
       "tag": "latest",
     },
   },
   "labels": {
-    "name": "ruby-20-centos-build"
+    "name": "ruby-20-centos7-build"
   }
 }
 
 ```
 
-This example will trigger a build for the 'ruby-20-centos' everytime there is a
+This example will trigger a build for the 'ruby-20-centos7' everytime there is a
 push into its Github repository. It will set the name of the resulting image to
-"openshift/ruby-20-centos" and it expects the Dockerfile to be present in the
+"openshift/ruby-20-centos7" and it expects the Dockerfile to be present in the
 root directory of the GIT repository.
 
-After a successful build, the 'openshift/ruby-20-centos' image will be pushed
-into "ruby-20-centos-repository" ImageRepository and tagged as 'latest'.
+After a successful build, the 'openshift/ruby-20-centos7' image will be pushed
+into "ruby-20-centos7-repository" ImageRepository and tagged as 'latest'.

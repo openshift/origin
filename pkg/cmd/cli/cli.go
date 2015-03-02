@@ -23,9 +23,9 @@ tools to interact with each component of your system.
 At the present time, the CLI wraps many of the upstream Kubernetes commands and works generically
 on all resources.  To create a new application, try:
 
-    $ %[1]s new-app openshift/ruby-20-centos~git@github.com/mfojtik/sinatra-app-example
+    $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
 
-This will create an application based on the Docker image 'openshift/ruby-20-centos' that builds
+This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
 the source code at 'github.com/mfojtik/sinatra-app-example'. To start the build, run
 
     $ %[1]s start-build sinatra-app-example

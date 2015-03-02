@@ -180,13 +180,13 @@ osc delete -f examples/sample-app/docker-registry-config.json
 osc delete imageRepositories test
 [ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-repositories/image-repositories.json
-[ -n "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageRepositories ruby-20-centos
+osc delete imageRepositories ruby-20-centos7
 osc delete imageRepositories nodejs-010-centos7
 osc delete imageRepositories wildfly-8-centos
-[ -z "$(osc get imageRepositories ruby-20-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
 echo "imageRepositories: ok"
@@ -233,14 +233,14 @@ osc create -f test/integration/fixtures/test-buildcli.json
 # the build should use the image field as defined in the buildconfig
 started=$(osc start-build ruby-sample-build-invalidtag)
 echo "start-build: ok"
-osc describe build ${started} | grep openshift/ruby-20-centos$
+osc describe build ${started} | grep openshift/ruby-20-centos7$
 
 osc cancel-build "${started}" --dump-logs --restart
 # a build for which there is an upstream tag in the corresponding imagerepo, so
 # the build should use that specific tag of the image instead of the image field
 # as defined in the buildconfig
 started=$(osc start-build ruby-sample-build-validtag)
-osc describe build ${started} | grep openshift/ruby-20-centos:success$
+osc describe build ${started} | grep openshift/ruby-20-centos7:success$
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 
