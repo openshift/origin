@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/cli"
@@ -85,7 +84,7 @@ func NewCommandOpenShift() *cobra.Command {
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
 	root.AddCommand(newExperimentalCommand("openshift", "ex"))
-	root.AddCommand(newVersionCommand("version"))
+	root.AddCommand(version.NewVersionCommand("openshift"))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly
@@ -127,16 +126,4 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
 	experimental.AddCommand(exregistry.NewCmdRegistry(f, subName, "registry", os.Stdout))
 	return experimental
-}
-
-// newVersionCommand creates a command for displaying the version of this binary
-func newVersionCommand(name string) *cobra.Command {
-	return &cobra.Command{
-		Use:   name,
-		Short: "Display version",
-		Run: func(c *cobra.Command, args []string) {
-			fmt.Printf("openshift %v\n", version.Get())
-			fmt.Printf("kubernetes %v\n", kubeversion.Get())
-		},
-	}
 }
