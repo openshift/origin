@@ -1,6 +1,7 @@
 angular.module('openshiftConsole')
   .filter('hashSize', function() {
     return function(hash) {
+      if(!hash) return 0;
       return Object.keys(hash).length;
     };
   })

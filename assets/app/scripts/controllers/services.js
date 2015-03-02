@@ -11,6 +11,7 @@ angular.module('openshiftConsole')
   .controller('ServicesController', function ($scope, DataService, $filter, LabelFilter) {
     $scope.services = {};
     $scope.unfilteredServices = {};
+    $scope.routesByService = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
@@ -24,7 +25,21 @@ angular.module('openshiftConsole')
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
       console.log("services (subscribe)", $scope.unfilteredServices);
-    }));    
+    }));
+
+    watches.push(DataService.watch("routes", $scope, function(routes){
+        $scope.routesByService = routesByService(routes.by("metadata.name"));
+        console.log("routes (subscribe)", $scope.routesByService);
+    }));
+
+    var routesByService = function(routes) {
+        var routeMap = {};
+        angular.forEach(routes, function(route, routeName){
+            routeMap[route.serviceName] = routeMap[route.serviceName] || {};
+            routeMap[route.serviceName][routeName] = route;
+        });
+        return routeMap;
+    };
 
     var updateFilterWarning = function() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services)  && !$.isEmptyObject($scope.unfilteredServices)) {
