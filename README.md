@@ -79,7 +79,7 @@ Once setup with a Go development environment and Docker, you can:
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ _output/local/go/bin/osc create -f examples/hello-openshift/hello-pod.json
+        $ _output/local/go/bin/osc create -f examples/hello-openshift/hello-pod.json --kubeconfig=$CERT_DIR/admin/.kubeconfig
 
 In your browser, go to [http://localhost:6061](http://localhost:6061) and you should see 'Welcome to OpenShift'.
 
