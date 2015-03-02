@@ -62,7 +62,7 @@ Examples:
     $ openshift ex generate https://github.com/openshift/ruby-hello-world.git
 
     # Force the application to use the specific builder-image
-    $ openshift ex generate --builder-image=openshift/ruby-20-centos
+    $ openshift ex generate --builder-image=openshift/ruby-20-centos7
 `
 
 type params struct {

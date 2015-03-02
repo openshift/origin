@@ -23,9 +23,9 @@ tools to interact with each component of your system.
 At the present time, the CLI wraps many of the upstream Kubernetes commands and works generically
 on all resources.  To create a new application, try:
 
-    $ %[1]s new-app openshift/ruby-20-centos~git@github.com/mfojtik/sinatra-app-example
+    $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
 
-This will create an application based on the Docker image 'openshift/ruby-20-centos' that builds
+This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
 the source code at 'github.com/mfojtik/sinatra-app-example'. To start the build, run
 
     $ %[1]s start-build sinatra-app-example
@@ -66,15 +66,15 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdBuildLogs(f, out))
 	cmds.AddCommand(cmd.NewCmdRollback(name, "rollback", f, out))
 
-	cmds.AddCommand(f.NewCmdGet(out))
+	cmds.AddCommand(cmd.NewCmdGet(fullName, f, out))
 	cmds.AddCommand(f.NewCmdDescribe(out))
 	// Deprecate 'osc apply' with 'osc create' command.
-	cmds.AddCommand(applyToCreate(f.NewCmdCreate(out)))
+	cmds.AddCommand(applyToCreate(cmd.NewCmdCreate(fullName, f, out)))
 	cmds.AddCommand(cmd.NewCmdProcess(f, out))
-	cmds.AddCommand(f.NewCmdUpdate(out))
-	cmds.AddCommand(f.NewCmdDelete(out))
+	cmds.AddCommand(cmd.NewCmdUpdate(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdDelete(fullName, f, out))
 
-	cmds.AddCommand(f.NewCmdLog(out))
+	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
 	cmds.AddCommand(f.NewCmdProxy(out))
 
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))

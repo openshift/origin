@@ -207,7 +207,7 @@ the present working directory is the same directory as this README.
     * A BuildConfig (ruby-sample-build) to specify a build that uses
       your ruby-hello-world fork as the input for a source-to-image (STI) build
     * ImageRepositories for the images used and created in the build:
-      * The ruby-20-centos STI builder will build an image from your source
+      * The ruby-20-centos7 STI builder will build an image from your source
       * The output image will be called origin-ruby-sample
     * DeploymentConfigs (frontend, backend) for defining Deployments once the images are available
     * Services (routable endpoints) for the ruby frontend and database backend deployments

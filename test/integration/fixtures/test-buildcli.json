@@ -3,10 +3,10 @@
   "items": [
     {
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/ruby-20-centos",
+      "dockerImageRepository": "openshift/ruby-20-centos7",
       "kind": "ImageRepository",
       "metadata": {
-        "name": "ruby-20-centos-buildcli"
+        "name": "ruby-20-centos7-buildcli"
       },
       "tags": {
         "valid": "success"
@@ -35,8 +35,8 @@
         },
         "strategy": {
           "stiStrategy": {
-            "image": "openshift/ruby-20-centos",
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
+            "image": "openshift/ruby-20-centos7",
+            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos7/master/.sti/bin"
           },
           "type": "STI"
         }
@@ -45,9 +45,9 @@
         {
           "imageChange": {
             "from": {
-              "name": "ruby-20-centos-buildcli"
+              "name": "ruby-20-centos7-buildcli"
             },
-            "image": "openshift/ruby-20-centos",
+            "image": "openshift/ruby-20-centos7",
             "tag": "valid"
           },
           "type": "imageChange"
@@ -77,8 +77,8 @@
         },
         "strategy": {
           "stiStrategy": {
-            "image": "openshift/ruby-20-centos",
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
+            "image": "openshift/ruby-20-centos7",
+            "scripts": "https://raw.githubusercontent.com/openshift/sti-ruby/master/2.0/.sti/bin"
           },
           "type": "STI"
         }
@@ -87,9 +87,9 @@
         {
           "imageChange": {
             "from": {
-              "name": "ruby-20-centos-buildcli"
+              "name": "ruby-20-centos7-buildcli"
             },
-            "image": "openshift/ruby-20-centos",
+            "image": "openshift/ruby-20-centos7",
             "tag": "invalid"
           },
           "type": "imageChange"
