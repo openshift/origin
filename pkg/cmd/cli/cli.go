@@ -66,15 +66,15 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdBuildLogs(f, out))
 	cmds.AddCommand(cmd.NewCmdRollback(name, "rollback", f, out))
 
-	cmds.AddCommand(f.NewCmdGet(out))
+	cmds.AddCommand(cmd.NewCmdGet(fullName, f, out))
 	cmds.AddCommand(f.NewCmdDescribe(out))
 	// Deprecate 'osc apply' with 'osc create' command.
-	cmds.AddCommand(applyToCreate(f.NewCmdCreate(out)))
+	cmds.AddCommand(applyToCreate(cmd.NewCmdCreate(fullName, f, out)))
 	cmds.AddCommand(cmd.NewCmdProcess(f, out))
-	cmds.AddCommand(f.NewCmdUpdate(out))
-	cmds.AddCommand(f.NewCmdDelete(out))
+	cmds.AddCommand(cmd.NewCmdUpdate(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdDelete(fullName, f, out))
 
-	cmds.AddCommand(f.NewCmdLog(out))
+	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
 	cmds.AddCommand(f.NewCmdProxy(out))
 
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
