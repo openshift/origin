@@ -259,5 +259,8 @@
       "name": "MYSQL_DATABASE",
       "value": "root"
     }
-  ]
+  ],
+  "labels": {
+    "template": "application-template-dockerbuild"
+  }
 }
