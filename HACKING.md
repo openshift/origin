@@ -153,8 +153,7 @@ Run the end to end tests with:
 OpenShift and Kubernetes use [Godep](https://github.com/tools/godep) for dependency management.
 Godep allows versions of dependent packages to be locked at a specific commit by *vendoring* them
 (checking a copy of them into `Godeps/_workspace/`).  This means that everything you need for
-OpenShift is checked into this repository, and the `hack/config-go.sh` script will set your GOPATH
-appropriately.  To install `godep` locally run:
+OpenShift is checked into this repository.  To install `godep` locally run:
 
     $ go get github.com/tools/godep
 
@@ -165,7 +164,7 @@ If you are not updating packages you should not need godep installed.
 There are a few steps involved in rebasing Origin to a new version of Kubernetes. We need to make sure
 that not only the Kubernetes packages were updated correctly into `Godeps`, but also that *all tests are
 still running without errors* and *code changes, refactorings or the inclusion/removal of attributes
-were properly reflected* in the Origin codebase. 
+were properly reflected* in the Origin codebase.
 
 ### 1. Preparation
 
@@ -193,47 +192,47 @@ $ git checkout -b stable_proposed
 #### 2.1. First option (preferred): using the rebase-kube.sh script
 
 If all requirements described in *Preparation* were correctly attended, you should not have any trouble
-with rebasing the Kubernetes code using the script that automates this process.  
+with rebasing the Kubernetes code using the script that automates this process.
 
 ```
 $ cd $GOPATH/src/github.com/openshift/origin
 $ hack/rebase-kube.sh
 ```
 
-Read over the changes with `git status` and make sure it looks reasonable. Check specially the 
+Read over the changes with `git status` and make sure it looks reasonable. Check specially the
 `Godeps/Godeps.json` file to make sure no dependency is unintentionally missing.
 
-Commit using the message `bump(github.com/GoogleCloudPlatform/kubernetes):<commit SHA>`, where 
-`<commit SHA>` is the commit id for the Kubernetes version we are including in our Godeps. It can be 
+Commit using the message `bump(github.com/GoogleCloudPlatform/kubernetes):<commit SHA>`, where
+`<commit SHA>` is the commit id for the Kubernetes version we are including in our Godeps. It can be
 found in our `Godeps/Godeps.json` in the declaration of any Kubernetes package.
 
 #### 2.2. Second option: manually
 
-If for any reason you had trouble rebasing using the script, you may need to to do it manually. 
-After following all requirements described in the *Preparation* topic, you will need to run 
+If for any reason you had trouble rebasing using the script, you may need to to do it manually.
+After following all requirements described in the *Preparation* topic, you will need to run
 `godep restore` from both the Origin and the Kubernetes directories and then `godep save ./...`
 from the Origin directory. Follow these steps:
 
 1. `$ cd $GOPATH/src/github.com/openshift/origin`
-2. `make clean ; godep restore` will restore the package versions specified in the `Godeps/Godeps.json` 
+2. `make clean ; godep restore` will restore the package versions specified in the `Godeps/Godeps.json`
 of Origin to your GOPATH.
 2. `$ cd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes`
-3. `$ git checkout stable_proposed` will checkout the desired version of Kubernetes as branched in 
+3. `$ git checkout stable_proposed` will checkout the desired version of Kubernetes as branched in
 *Preparation*.
-4. `$ godep restore` will restore the package versions specified in the `Godeps/Godeps.json` 
+4. `$ godep restore` will restore the package versions specified in the `Godeps/Godeps.json`
 of Kubernetes to your GOPATH.
 5. `$ cd $GOPATH/src/github.com/openshift/origin`.
-6. `$ make clean ; godep save ./...` will save a list of the checked-out dependencies to the file 
+6. `$ make clean ; godep save ./...` will save a list of the checked-out dependencies to the file
 `Godeps/Godeps.json`, and copy their source code into `Godeps/_workspace`.
-7. If in the previous step godep complaints about the checked out revision of a package being different 
-than the wanted revision, this probably means there are new packages in Kubernetes that we need to add. 
-Do a `godep save <pkgname>` with the package specified by the error message and then `$ godep save ./...` 
+7. If in the previous step godep complaints about the checked out revision of a package being different
+than the wanted revision, this probably means there are new packages in Kubernetes that we need to add.
+Do a `godep save <pkgname>` with the package specified by the error message and then `$ godep save ./...`
 again.
-8. Read over the changes with `git status` and make sure it looks reasonable. Check specially the 
-`Godeps/Godeps.json` file to make sure no dependency is unintentionally missing. The whole Godeps 
+8. Read over the changes with `git status` and make sure it looks reasonable. Check specially the
+`Godeps/Godeps.json` file to make sure no dependency is unintentionally missing. The whole Godeps
 directory will be added to version control, including `_workspace`.
-9. Commit using the message `bump(github.com/GoogleCloudPlatform/kubernetes):<commit SHA>`, where 
-`<commit SHA>` is the commit id for the Kubernetes version we are including in our Godeps. It can be 
+9. Commit using the message `bump(github.com/GoogleCloudPlatform/kubernetes):<commit SHA>`, where
+`<commit SHA>` is the commit id for the Kubernetes version we are including in our Godeps. It can be
 found in our `Godeps/Godeps.json` in the declaration of any Kubernetes package.
 
 If in the process of rebasing manually you found any corner case not attended by the `hack/rebase-kube.sh`
@@ -241,36 +240,36 @@ script, make sure you update it accordingly to help future rebases.
 
 ### 3. cherry-pick upstream changes pushed to the Origin repo
 
-Eventually during the development cycle we introduce changes to dependencies right in the Origin 
-repository. This is not a largely recommended practice, but it's useful if we need something that, 
-for example, is in the Kubernetes repository but we are not doing a rebase yet. So, when doing the next 
-rebase, we need to make sure we get all these changes otherwise they will be overriden by `godep save`.
+Eventually during the development cycle we introduce changes to dependencies right in the Origin
+repository. This is not a largely recommended practice, but it's useful if we need something that,
+for example, is in the Kubernetes repository but we are not doing a rebase yet. So, when doing the next
+rebase, we need to make sure we get all these changes otherwise they will be overridden by `godep save`.
 
-1. Check the `Godeps` directory [commits history](https://github.com/openshift/origin/commits/master/Godeps) 
-for commits tagged with the *UPSTREAM* keyword. We will need to cherry-pick *all UPSTREAM commits since 
-the last Kubernetes rebase* (remember you can find the last rebase commit looking for a message like 
+1. Check the `Godeps` directory [commits history](https://github.com/openshift/origin/commits/master/Godeps)
+for commits tagged with the *UPSTREAM* keyword. We will need to cherry-pick *all UPSTREAM commits since
+the last Kubernetes rebase* (remember you can find the last rebase commit looking for a message like
 `bump(github.com/GoogleCloudPlatform/kubernetes):...`).
 2. For every commit tagged UPSTREAM, do `git cherry-pick <commit SHA>`.
-3. Notice that eventually the cherry-pick will be empty. This probably means the given change were 
+3. Notice that eventually the cherry-pick will be empty. This probably means the given change were
 already merged in Kubernetes and we don't need to specifically add it to our Godeps. Nice!
-4. Read over the commit history and make sure you have every UPSTREAM commit since the last rebase 
+4. Read over the commit history and make sure you have every UPSTREAM commit since the last rebase
 (except only for the empty ones).
 
 
 ### 4. Refactor Origin to be compliant with upstream changes
 
-After making sure we have all the dependencies in place and up-to-date, we need to work in the Origin 
-codebase to make sure the compilation is not broken, all tests pass and it's compliant with any 
-refactorings, architectural changes or behavior changes introduced in Kubernetes. Make sure: 
+After making sure we have all the dependencies in place and up-to-date, we need to work in the Origin
+codebase to make sure the compilation is not broken, all tests pass and it's compliant with any
+refactorings, architectural changes or behavior changes introduced in Kubernetes. Make sure:
 
 1. `make clean ; hack/build-go.sh` compiles without errors and the standalone server starts correctly.
 2. `hack/test-go.sh` runs without errors.
 3. `hack/test-cmd.sh` runs without errors.
 3. `hack/test-integration.sh` runs without errors.
-3. `hack/test-end-to-end.sh` runs without errors.  
+3. `hack/test-end-to-end.sh` runs without errors.
     See *Building a Release* above for setting up the environment for the *test-end-to-end.sh* tests.
 
-It is helpful to look at the Kubernetes commit history to be aware of the major topics. Although it 
+It is helpful to look at the Kubernetes commit history to be aware of the major topics. Although it
 can potentially break or change any part of Origin, the most affected parts are usually:
 
 1. https://github.com/openshift/origin/blob/master/pkg/cmd/server/start.go
@@ -287,7 +286,7 @@ Place all your changes in a commit called "Refactor to match changes upstream".
 A typical pull request for your Kubernetes rebase will contain:
 
 1. One commit for the Godeps bump (`bump(github.com/GoogleCloudPlatform/kubernetes):<commit SHA>`).
-2. Zero, one or more cherry-picked commits tagged UPSTREAM. 
+2. Zero, one or more cherry-picked commits tagged UPSTREAM.
 3. One commit "Refactor to match changes upstream".
 
 ## Updating other Godeps from upstream
@@ -299,4 +298,5 @@ both of these changes with message `bump(<pkgname>): <pkgcommit>`.
 
 ## Troubleshooting
 
-If you run into difficulties running OpenShift, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
+If you run into difficulties running OpenShift, start by reading through the
+[troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
