@@ -3,12 +3,12 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit 9744dbb43bd20304730f053c3647035a1c98f71d
+%global commit f55c2c41c1bfe8bc99e29a4de4ef21145636aaf9
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 3+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.3.3-29-g9744dbb-dirty -X github.com/openshift/origin/pkg/version.commitFromGit 9744dbb -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit c977a45 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.10.0-503-gc977a45
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 3+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.3.4-34-gf55c2c4-dirty -X github.com/openshift/origin/pkg/version.commitFromGit f55c2c4 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit c977a45 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.10.0-503-gc977a45
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,7 +23,7 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.3.3
+Version:        0.3.4
 #Release:        1git%{shortcommit}%{?dist}
 Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
@@ -180,6 +180,108 @@ fi
 
 
 %changelog
+* Tue Mar 03 2015 Scott Dodson <sdodson@redhat.com> 0.3.4-0
+- Merge tag 'v0.3.4' (sdodson@redhat.com)
+- Merge pull request #1206 from bparees/image_tags
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1133 from pweil-/routes-console
+  (dmcphers+openshiftbot@redhat.com)
+- add annotations to image repos (bparees@redhat.com)
+- Merge pull request #1203 from bparees/int_tests
+  (dmcphers+openshiftbot@redhat.com)
+- add routes to services (pweil@redhat.com)
+- exit with error if no tests are found (bparees@redhat.com)
+- Merge pull request #1202 from csrwng/sample_app_labels
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1109 from tdawson/2015-02/haproxy-rpm
+  (dmcphers+openshiftbot@redhat.com)
+- Add default template label to sample app templates (cewong@redhat.com)
+- Add version command for all binaries/symlinks
+  (kargakis@users.noreply.github.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Merge pull request #1195 from smarterclayton/better_integration_output
+  (dmcphers+openshiftbot@redhat.com)
+- Updating ruby-20 links and image name so they point to new repo and image
+  (j.hadvig@gmail.com)
+- Better output for integration tests (ccoleman@redhat.com)
+- Wrap some commands to display OpenShift-specific usage msg
+  (kargakis@users.noreply.github.com)
+- Merge pull request #1192 from bparees/integration
+  (dmcphers+openshiftbot@redhat.com)
+- support multiple go versions (bparees@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- fix up the jenkins example (bparees@redhat.com)
+- Merge pull request #1190 from deads2k/deads-fix-stuck-merge-queue
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1188 from deads2k/deads-fix-image-format-flag
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1170 from ironcladlou/deploy-retry-refactor
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1176 from liggitt/test_ui_bind_address
+  (dmcphers+openshiftbot@redhat.com)
+- extend the wait time for the project authorization cache (deads@redhat.com)
+- Refactor deploy controllers to use RetryController (ironcladlou@gmail.com)
+- Specify UI bind address in integration tests (jliggitt@redhat.com)
+- reconnect --image (deads@redhat.com)
+- Add htpasswd file param (jliggitt@redhat.com)
+- Prevent challenging client from looping (jliggitt@redhat.com)
+- Simplify auto-grant (jliggitt@redhat.com)
+- Merge pull request #1174 from liggitt/project_name_validation
+  (dmcphers+openshiftbot@redhat.com)
+- Merge tag 'v0.3.3' (sdodson@redhat.com)
+- use rpm instead of build haproxy from source (tdawson@redhat.com)
+- fix nodelist access for kube master (deads@redhat.com)
+- Merge pull request #1173 from liggitt/new_project_add_user
+  (dmcphers+openshiftbot@redhat.com)
+- Revert "Support multiple Dockerfiles with custom-docker-builder"
+  (bparees@redhat.com)
+- Merge pull request #1172 from liggitt/test_osc_list_projects
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1163 from ncdc/allow-multiple-tags-with-same-image-id
+  (dmcphers+openshiftbot@redhat.com)
+- Match project name validation to namespace name validation
+  (jliggitt@redhat.com)
+- Make "new-project --admin" reuse "add-user" (jliggitt@redhat.com)
+- Automatic commit of package [openshift] release [0.3.3-0].
+  (sdodson@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Add test to make sure osc can list new projects (jliggitt@redhat.com)
+- Merge pull request #1169 from sdodson/fix-openshift-node-service
+  (bleanhar@redhat.com)
+- Explicitly set --kubeconfig when starting node (sdodson@redhat.com)
+- Allow multiple tags to refer to the same image (agoldste@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Cleanup dangling images from cache (sdodson@redhat.com)
+- Add ose-docker-registry to ose-build script (sdodson@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Automatic commit of package [openshift] release [0.3.2-0].
+  (sdodson@redhat.com)
+- Merge tag 'v0.3.2' (sdodson@redhat.com)
+- First hack at docker builds for OSE (bleanhar@redhat.com)
+- Merge remote-tracking branch 'upstream/master' (bleanhar@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Bump specfile 0.3.1 (sdodson@redhat.com)
+- Merge tag 'v0.3.1' (sdodson@redhat.com)
+- Revert "Drop the version variable from --images for now" (sdodson@redhat.com)
+- Merge remote-tracking branch 'origin-sdodson/set-images-format'
+  (sdodson@redhat.com)
+- Fix .el7dist string (sdodson@redhat.com)
+- Merge remote-tracking branch 'origin-sdodson/set-images-format'
+  (sdodson@redhat.com)
+- Merge tag 'v0.3' (sdodson@redhat.com)
+- Update the custom tagger and builder to provide OpenShift ldflags
+  (sdodson@redhat.com)
+- Drop the version variable from --images for now (sdodson@redhat.com)
+- Attempt to manipulate images path conditionally (sdodson@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Automatic commit of package [openshift] release [0.2.2-0].
+  (sdodson@redhat.com)
+- Merge tag 'v0.2.2' (sdodson@redhat.com)
+- Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
+- Automatic commit of package [openshift] release [0.2.1-4].
+  (sdodson@redhat.com)
+
 * Thu Feb 26 2015 Scott Dodson <sdodson@redhat.com> 0.3.3-0
 - Merge remote-tracking branch 'origin-upstream/master' (sdodson@redhat.com)
 - Merge pull request #1169 from sdodson/fix-openshift-node-service
