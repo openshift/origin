@@ -416,7 +416,7 @@ func (cfg Config) MintSystemClientCert(username string, groups ...string) (*kcli
 }
 
 func (cfg Config) MintNodeCerts() error {
-	for _, node := range cfg.GetNodeList() {
+	for _, node := range cfg.NodeList {
 		username := "node-" + node
 		if _, err := cfg.MintSystemClientCert(username, "system:nodes"); err != nil {
 			return err

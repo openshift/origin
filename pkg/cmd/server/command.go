@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	_ "net/http/pprof"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 const longCommandDesc = `
@@ -125,5 +128,17 @@ func (cfg *Config) Complete(args []string) {
 		cfg.StartKube = !cfg.KubernetesAddr.Provided && len(cfg.ClientConfigLoadingRules.CommandLinePath) == 0
 		// if we've explicitly called out an etcd server, don't start etcd in-process
 		cfg.StartEtcd = !cfg.EtcdAddr.Provided
+	}
+
+	// if this is an all-in-one start, be sure to add our hostname to the NodeList if it is not already present
+	isAllInOne := (len(args) == 0)
+	if isAllInOne {
+		nodeList := util.NewStringSet(strings.ToLower(cfg.Hostname))
+		// take everything toLower
+		for _, s := range cfg.NodeList {
+			nodeList.Insert(strings.ToLower(s))
+		}
+
+		cfg.NodeList = nodeList.List()
 	}
 }
