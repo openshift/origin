@@ -194,18 +194,6 @@ func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyB
 				},
 				Groups: util.NewStringSet("system:authenticated"),
 			},
-			"insecure-cluster-admin-binding": {
-				ObjectMeta: kapi.ObjectMeta{
-					Name:      "insecure-cluster-admin-binding",
-					Namespace: masterNamespace,
-				},
-				RoleRef: kapi.ObjectReference{
-					Name:      "cluster-admin",
-					Namespace: masterNamespace,
-				},
-				// TODO until we decide to enforce policy, simply allow every one access
-				Groups: util.NewStringSet("system:authenticated", "system:unauthenticated"),
-			},
 			"system:delete-tokens-binding": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "system:delete-tokens-binding",

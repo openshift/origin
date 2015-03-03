@@ -26,18 +26,6 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	// TODO remove once bootstrap authorization rules are tightened
-	removeInsecureOptions := &policy.RemoveGroupOptions{
-		RoleNamespace:    "master",
-		RoleName:         "cluster-admin",
-		BindingNamespace: "master",
-		Client:           openshiftClient,
-		Groups:           []string{"system:authenticated", "system:unauthenticated"},
-	}
-	if err := removeInsecureOptions.Run(); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
 	haroldClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -102,18 +90,6 @@ func TestResourceAccessReview(t *testing.T) {
 
 	openshiftClient, openshiftClientConfig, err := startConfig.GetOpenshiftClient()
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	// TODO remove once bootstrap authorization rules are tightened
-	removeInsecureOptions := &policy.RemoveGroupOptions{
-		RoleNamespace:    "master",
-		RoleName:         "cluster-admin",
-		BindingNamespace: "master",
-		Client:           openshiftClient,
-		Groups:           []string{"system:authenticated", "system:unauthenticated"},
-	}
-	if err := removeInsecureOptions.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
