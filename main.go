@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 	"syscall"
-	"time"
 
 	log "github.com/golang/glog"
 	"github.com/openshift/openshift-sdn/ovs-simple/controller"
@@ -52,7 +51,10 @@ func init() {
 }
 
 func newNetworkManager() (controller.Controller, error) {
-	sub := newSubnetRegistry()
+	sub, err := newSubnetRegistry()
+	if err != nil {
+		return nil, err
+	}
 	host := opts.hostname
 	if host == "" {
 		output, err := exec.Command("hostname", "-f").CombinedOutput()
@@ -65,7 +67,7 @@ func newNetworkManager() (controller.Controller, error) {
 	return controller.NewController(sub, string(host), opts.ip), nil
 }
 
-func newSubnetRegistry() registry.SubnetRegistry {
+func newSubnetRegistry() (registry.SubnetRegistry, error) {
 	peers := strings.Split(opts.etcdEndpoints, ",")
 
 	subnetPath := path.Join(opts.etcdPath, "subnets")
@@ -83,15 +85,7 @@ func newSubnetRegistry() registry.SubnetRegistry {
 		MinionPath: minionPath,
 	}
 
-	for {
-		esr, err := registry.NewEtcdSubnetRegistry(cfg)
-		if err == nil {
-			return esr
-		}
-
-		log.Error("Failed to create SubnetRegistry: %v ", err)
-		time.Sleep(time.Second)
-	}
+	return registry.NewEtcdSubnetRegistry(cfg)
 }
 
 func main() {
