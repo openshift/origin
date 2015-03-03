@@ -14,13 +14,8 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/registry"
 )
 
-const (
-	ContainerNetwork      string = "10.1.0.0/16"
-	ContainerSubnetLength uint   = 8
-)
-
 type Controller interface {
-	StartMaster(sync bool) error
+	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error
 	StartNode(sync, skipsetup bool) error
 	AddNode(minionIP string) error
 	DeleteNode(minionIP string) error
@@ -56,7 +51,7 @@ func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) 
 	}
 }
 
-func (oc *OvsController) StartMaster(sync bool) error {
+func (oc *OvsController) StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error {
 	// wait a minute for etcd to come alive
 	status := oc.subnetRegistry.CheckEtcdIsAlive(60)
 	if !status {
@@ -84,7 +79,16 @@ func (oc *OvsController) StartMaster(sync bool) error {
 			subrange = append(subrange, sub.Sub)
 		}
 	}
-	oc.subnetAllocator, _ = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
+
+	err = oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength)
+	if err != nil {
+		return err
+	}
+
+	oc.subnetAllocator, err = netutils.NewSubnetAllocator(containerNetwork, containerSubnetLength, subrange)
+	if err != nil {
+		return err
+	}
 	err = oc.ServeExistingMinions()
 	if err != nil {
 		log.Warningf("Error initializing existing minions: %v", err)
@@ -178,7 +182,14 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 	_, ipnet, err := net.ParseCIDR(oc.localSubnet.Sub)
 	if err == nil {
 		if !skipsetup {
-			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), ContainerNetwork).CombinedOutput()
+			// Assume we are working with IPv4
+			subnetMaskLength, _ := ipnet.Mask.Size()
+			containerNetwork, err := oc.subnetRegistry.GetContainerNetwork()
+			if err != nil {
+				log.Errorf("Failed to obtain ContainerNetwork: %v", err)
+				return err
+			}
+			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength)).CombinedOutput()
 			log.Infof("Output of setup script:\n%s", out)
 			if err != nil {
 				log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
