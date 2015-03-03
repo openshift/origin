@@ -2,7 +2,7 @@
 
 set -ex
 
-echo $@
+printf 'Container network is "%s"; local host has subnet "%s" and gateway "%s".\n' "$3" "$2" "$1"
 
 ## openvswitch
 ovs-vsctl del-br br0 || true

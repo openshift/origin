@@ -19,7 +19,7 @@ func NewSubnetAllocator(network string, capacity uint, inUse []string) (*SubnetA
 
 	netMaskSize, _ := netIP.Mask.Size()
 	if capacity > (32 - uint(netMaskSize)) {
-		return nil, fmt.Errorf("Subnet capacity cannot be larger than number of networks available")
+		return nil, fmt.Errorf("Subnet capacity cannot be larger than number of networks available.")
 	}
 
 	amap := make(map[string]bool)
@@ -65,12 +65,12 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 
 func (sna *SubnetAllocator) ReleaseNetwork(ipnet *net.IPNet) error {
 	if !sna.network.Contains(ipnet.IP) {
-		return fmt.Errorf("Provided subnet %v doesn't belong to the network %v", ipnet, sna.network)
+		return fmt.Errorf("Provided subnet %v doesn't belong to the network %v.", ipnet, sna.network)
 	}
 
 	ipnetStr := ipnet.String()
 	if !sna.allocMap[ipnetStr] {
-		return fmt.Errorf("Provided subnet %v is already available", ipnet)
+		return fmt.Errorf("Provided subnet %v is already available.", ipnet)
 	}
 
 	sna.allocMap[ipnetStr] = false

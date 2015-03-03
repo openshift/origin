@@ -78,7 +78,7 @@ func newMinionEvent(action, key, value string) *MinionEvent {
 		return min
 	}
 
-	fmt.Printf("Error decoding minion event.. nil key. (%s,%s,%s)\n", action, key, value)
+	fmt.Printf("Error decoding minion event: nil key (%s,%s,%s).\n", action, key, value)
 	return nil
 }
 
@@ -102,7 +102,7 @@ func newSubnetEvent(resp *etcd.Response) *SubnetEvent {
 			Sub:    sub,
 		}
 	}
-	log.Errorf("Failed to unmarshal %v", resp)
+	log.Errorf("Failed to unmarshal response: %v", resp)
 	return nil
 }
 
@@ -164,7 +164,7 @@ func (sub *EtcdSubnetRegistry) GetMinions() (*[]string, error) {
 	}
 
 	if resp.Node.Dir == false {
-		return nil, errors.New("minion path is not a directory")
+		return nil, errors.New("Minion path is not a directory")
 	}
 
 	minions := make([]string, 0)
@@ -188,7 +188,7 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]Subnet, error) {
 	}
 
 	if resp.Node.Dir == false {
-		return nil, errors.New("subnet path is not a directory")
+		return nil, errors.New("Subnet path is not a directory")
 	}
 
 	subnets := make([]Subnet, 0)
@@ -197,7 +197,7 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]Subnet, error) {
 		var s Subnet
 		err := json.Unmarshal([]byte(node.Value), &s)
 		if err != nil {
-			log.Errorf("Error unmarshalling GetSubnets response node %s (%s)", node.Value, err.Error())
+			log.Errorf("Error unmarshalling GetSubnets response for node %s: %s", node.Value, err.Error())
 			continue
 		}
 		subnets = append(subnets, s)
@@ -209,7 +209,7 @@ func (sub *EtcdSubnetRegistry) GetSubnet(minionip string) (*Subnet, error) {
 	key := path.Join(sub.etcdCfg.SubnetPath, minionip)
 	resp, err := sub.client().Get(key, false, false)
 	if err == nil {
-		log.Infof("unmarshalling %s", resp.Node.Value)
+		log.Infof("Unmarshalling response: %s", resp.Node.Value)
 		var sub Subnet
 		if err = json.Unmarshal([]byte(resp.Node.Value), &sub); err == nil {
 			return &sub, nil
@@ -232,7 +232,7 @@ func (sub *EtcdSubnetRegistry) CreateMinion(minion string, data string) error {
 		// good, it does not exist, write it
 		_, err = sub.client().Create(key, data, 0)
 		if err != nil {
-			log.Errorf("Failed to write new subnet to etcd - %v", err)
+			log.Errorf("Failed to write new subnet to etcd: %v", err)
 			return err
 		}
 	}
@@ -249,7 +249,7 @@ func (sub *EtcdSubnetRegistry) CreateSubnet(minion string, subnet *Subnet) (*etc
 	if err != nil {
 		resp, err = sub.client().Update(key, data, 0)
 		if err != nil {
-			log.Errorf("Failed to write new subnet to etcd - %v", err)
+			log.Errorf("Failed to write new subnet to etcd: %v", err)
 			return nil, err
 		}
 	}
@@ -305,11 +305,11 @@ func (sub *EtcdSubnetRegistry) WatchSubnets(rev uint64, receiver chan *SubnetEve
 		}
 		rev = resp.Node.ModifiedIndex + 1
 		if err != nil && err == etcd.ErrWatchStoppedByUser {
-			log.Infof("New subnet event err : %s\n", err.Error())
+			log.Infof("New subnet event error: %v", err)
 			return err
 		}
 		subevent := newSubnetEvent(resp)
-		log.Infof("New subnet event : %v, %v\n", subevent, resp)
+		log.Infof("New subnet event: %v, %v", subevent, resp)
 		receiver <- subevent
 	}
 }
