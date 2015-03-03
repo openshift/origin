@@ -82,13 +82,13 @@ func newSubnetRegistry() (registry.SubnetRegistry, error) {
 	}
 
 	cfg := &registry.EtcdConfig{
-		Endpoints:  peers,
-		Keyfile:    opts.etcdKeyfile,
-		Certfile:   opts.etcdCertfile,
-		CAFile:     opts.etcdCAFile,
-		SubnetPath: subnetPath,
+		Endpoints:        peers,
+		Keyfile:          opts.etcdKeyfile,
+		Certfile:         opts.etcdCertfile,
+		CAFile:           opts.etcdCAFile,
+		SubnetPath:       subnetPath,
 		SubnetConfigPath: subnetConfigPath,
-		MinionPath: minionPath,
+		MinionPath:       minionPath,
 	}
 
 	return registry.NewEtcdSubnetRegistry(cfg)

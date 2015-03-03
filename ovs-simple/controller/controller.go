@@ -14,9 +14,6 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/registry"
 )
 
-var (
-)
-
 type Controller interface {
 	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error
 	StartNode(sync, skipsetup bool) error
@@ -83,7 +80,10 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		}
 	}
 
-	oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength)
+	err = oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength)
+	if err != nil {
+		return err
+	}
 
 	oc.subnetAllocator, err = netutils.NewSubnetAllocator(containerNetwork, containerSubnetLength, subrange)
 	if err != nil {
@@ -184,7 +184,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		if !skipsetup {
 			// Assume we are working with IPv4
 			subnetMaskLength, _ := ipnet.Mask.Size()
-			containerNetwork,err := oc.subnetRegistry.GetContainerNetwork()
+			containerNetwork, err := oc.subnetRegistry.GetContainerNetwork()
 			if err != nil {
 				log.Errorf("Failed to obtain ContainerNetwork: %v", err)
 				return err

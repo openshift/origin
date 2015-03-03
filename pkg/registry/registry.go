@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 
 	"github.com/coreos/go-etcd/etcd"
 	log "github.com/golang/glog"
@@ -38,13 +38,13 @@ type SubnetRegistry interface {
 }
 
 type EtcdConfig struct {
-	Endpoints  []string
-	Keyfile    string
-	Certfile   string
-	CAFile     string
-	SubnetPath string
+	Endpoints        []string
+	Keyfile          string
+	Certfile         string
+	CAFile           string
+	SubnetPath       string
 	SubnetConfigPath string
-	MinionPath string
+	MinionPath       string
 }
 
 type SubnetEvent struct {
@@ -239,6 +239,7 @@ func (sub *EtcdSubnetRegistry) WriteNetworkConfig(network string, subnetLength u
 	key := path.Join(sub.etcdCfg.SubnetConfigPath, "ContainerNetwork")
 	_, err := sub.client().Create(key, network, 0)
 	if err != nil {
+		log.Warningf("Found existing network configuration, overwriting it.")
 		_, err = sub.client().Update(key, network, 0)
 		if err != nil {
 			log.Errorf("Failed to write Network configuration to etcd: %v", err)
