@@ -31,10 +31,17 @@ Steps
         $ JENKINS_ENDPOINT=`osc get services -n test | grep jenkins | awk '{print $4":"$5}'`
         $ cat job.xml | curl -X POST -H "Content-Type: application/xml" -H "Expect: " --data-binary @- http://$JENKINS_ENDPOINT/createItem?name=rubyJob
 
+6. Add API credentials to the Jenkins build:
+
+    1. Go back to your browser, refresh and select the rubyJob build job.
+    2. Choose `Configure`.
+    3. Locate the KUBECONFIG_CREDENTIALS parameter, and replace the default value with the contents of the `openshift.local.certificates/openshift-client/.kubeconfig` file.
+    4. Click `Save`.
+
 6. Run the Jenkins build
    
-    Go back to your browser, refresh and select the rubyJob build job and choose `Build with parameters`. 
-    You should not need to modify the `OPENSHIFT_HOST`.
+    1. In the browser, select the rubyJob build job and choose `Build with parameters`.
+    2. Click `Build` (you should not need to modify any parameters).
 
 7. Watch the job output
 
