@@ -12,6 +12,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -174,6 +175,7 @@ func (cfg Config) Start(args []string) error {
 		nodeConfig.RunKubelet()
 	}
 
+	daemon.SdNotify("READY=1")
 	select {}
 
 	return nil
