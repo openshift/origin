@@ -7,6 +7,7 @@ import (
 	"path"
 	"sync"
 	"time"
+	"strconv"
 
 	"github.com/coreos/go-etcd/etcd"
 	log "github.com/golang/glog"
@@ -30,6 +31,9 @@ type SubnetRegistry interface {
 	WatchSubnets(rev uint64, receiver chan *SubnetEvent, stop chan bool) error
 	GetMinions() (*[]string, error)
 	WatchMinions(rev uint64, receiver chan *MinionEvent, stop chan bool) error
+	WriteNetworkConfig(network string, subnetLength uint) error
+	GetContainerNetwork() (string, error)
+	GetSubnetLength() (uint64, error)
 	CheckEtcdIsAlive(seconds uint64) bool
 }
 
@@ -39,6 +43,7 @@ type EtcdConfig struct {
 	Certfile   string
 	CAFile     string
 	SubnetPath string
+	SubnetConfigPath string
 	MinionPath string
 }
 
@@ -147,6 +152,11 @@ func NewEtcdSubnetRegistry(config *EtcdConfig) (SubnetRegistry, error) {
 func (sub *EtcdSubnetRegistry) InitSubnets() error {
 	key := sub.etcdCfg.SubnetPath
 	_, err := sub.client().SetDir(key, 0)
+	if err != nil {
+		return err
+	}
+	key = sub.etcdCfg.SubnetConfigPath
+	_, err = sub.client().SetDir(key, 0)
 	return err
 }
 
@@ -223,6 +233,48 @@ func (sub *EtcdSubnetRegistry) DeleteSubnet(minion string) error {
 	key := path.Join(sub.etcdCfg.SubnetPath, minion)
 	_, err := sub.client().Delete(key, false)
 	return err
+}
+
+func (sub *EtcdSubnetRegistry) WriteNetworkConfig(network string, subnetLength uint) error {
+	key := path.Join(sub.etcdCfg.SubnetConfigPath, "ContainerNetwork")
+	_, err := sub.client().Create(key, network, 0)
+	if err != nil {
+		_, err = sub.client().Update(key, network, 0)
+		if err != nil {
+			log.Errorf("Failed to write Network configuration to etcd: %v", err)
+			return err
+		}
+	}
+
+	key = path.Join(sub.etcdCfg.SubnetConfigPath, "SubnetLength")
+	data := strconv.FormatUint(uint64(subnetLength), 10)
+	_, err = sub.client().Create(key, data, 0)
+	if err != nil {
+		_, err = sub.client().Update(key, data, 0)
+		if err != nil {
+			log.Errorf("Failed to write Network configuration to etcd: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (sub *EtcdSubnetRegistry) GetContainerNetwork() (string, error) {
+	key := path.Join(sub.etcdCfg.SubnetConfigPath, "ContainerNetwork")
+	resp, err := sub.client().Get(key, false, false)
+	if err != nil {
+		return "", err
+	}
+	return resp.Node.Value, err
+}
+
+func (sub *EtcdSubnetRegistry) GetSubnetLength() (uint64, error) {
+	key := path.Join(sub.etcdCfg.SubnetConfigPath, "SubnetLength")
+	resp, err := sub.client().Get(key, false, false)
+	if err == nil {
+		return strconv.ParseUint(resp.Node.Value, 10, 0)
+	}
+	return 0, err
 }
 
 func (sub *EtcdSubnetRegistry) CreateMinion(minion string, data string) error {

@@ -15,12 +15,10 @@ import (
 )
 
 var (
-	ContainerNetwork      string = "10.1.0.0/16"
-	ContainerSubnetLength uint   = 8
 )
 
 type Controller interface {
-	StartMaster(sync bool) error
+	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error
 	StartNode(sync, skipsetup bool) error
 	AddNode(minionIP string) error
 	DeleteNode(minionIP string) error
@@ -36,9 +34,7 @@ type OvsController struct {
 	sig             chan struct{}
 }
 
-func NewController(sub registry.SubnetRegistry, hostname string, selfIP string, containerNetwork string, containerSubnetLength uint) Controller {
-	ContainerNetwork = containerNetwork
-	ContainerSubnetLength = containerSubnetLength
+func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) Controller {
 	if selfIP == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
@@ -58,7 +54,7 @@ func NewController(sub registry.SubnetRegistry, hostname string, selfIP string, 
 	}
 }
 
-func (oc *OvsController) StartMaster(sync bool) error {
+func (oc *OvsController) StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error {
 	// wait a minute for etcd to come alive
 	status := oc.subnetRegistry.CheckEtcdIsAlive(60)
 	if !status {
@@ -87,7 +83,9 @@ func (oc *OvsController) StartMaster(sync bool) error {
 		}
 	}
 
-	oc.subnetAllocator, err = netutils.NewSubnetAllocator(ContainerNetwork, ContainerSubnetLength, subrange)
+	oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength)
+
+	oc.subnetAllocator, err = netutils.NewSubnetAllocator(containerNetwork, containerSubnetLength, subrange)
 	if err != nil {
 		return err
 	}
@@ -186,7 +184,12 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		if !skipsetup {
 			// Assume we are working with IPv4
 			subnetMaskLength, _ := ipnet.Mask.Size()
-			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), ContainerNetwork, strconv.Itoa(subnetMaskLength)).CombinedOutput()
+			containerNetwork,err := oc.subnetRegistry.GetContainerNetwork()
+			if err != nil {
+				log.Errorf("Failed to obtain ContainerNetwork: %v", err)
+				return err
+			}
+			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength)).CombinedOutput()
 			log.Infof("Output of setup script:\n%s", out)
 			if err != nil {
 				log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)

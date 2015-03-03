@@ -68,13 +68,14 @@ func newNetworkManager() (controller.Controller, error) {
 		host = strings.TrimSpace(string(output))
 	}
 
-	return controller.NewController(sub, string(host), opts.ip, opts.containerNetwork, opts.containerSubnetLength), nil
+	return controller.NewController(sub, string(host), opts.ip), nil
 }
 
 func newSubnetRegistry() (registry.SubnetRegistry, error) {
 	peers := strings.Split(opts.etcdEndpoints, ",")
 
 	subnetPath := path.Join(opts.etcdPath, "subnets")
+	subnetConfigPath := path.Join(opts.etcdPath, "config")
 	minionPath := "/registry/minions/"
 	if opts.sync {
 		minionPath = path.Join(opts.etcdPath, "minions")
@@ -86,6 +87,7 @@ func newSubnetRegistry() (registry.SubnetRegistry, error) {
 		Certfile:   opts.etcdCertfile,
 		CAFile:     opts.etcdCAFile,
 		SubnetPath: subnetPath,
+		SubnetConfigPath: subnetConfigPath,
 		MinionPath: minionPath,
 	}
 
@@ -121,7 +123,7 @@ func main() {
 			log.Fatalf("Failed to start openshift sdn in node mode: %v", err)
 		}
 	} else if opts.master {
-		err := be.StartMaster(opts.sync)
+		err := be.StartMaster(opts.sync, opts.containerNetwork, opts.containerSubnetLength)
 		if err != nil {
 			log.Fatalf("Failed to start openshift sdn in master mode: %v", err)
 		}
