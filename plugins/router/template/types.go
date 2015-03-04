@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"strings"
 )
 
 // ServiceUnit is an encapsulation of a service, the endpoints that back that service, and the routes
@@ -41,4 +42,10 @@ type Endpoint struct {
 	ID   string
 	IP   string
 	Port string
+}
+
+//TemplateSafeName provides a name that can be used in the template that does not contain restricted
+//characters like / which is used to concat namespace and name in the service unit key
+func (s ServiceUnit) TemplateSafeName() string {
+	return strings.Replace(s.Name, "/", "-", -1)
 }

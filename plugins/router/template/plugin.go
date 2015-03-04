@@ -109,18 +109,14 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	return p.Router.Commit()
 }
 
-// TODO: the internal keys for routes and endpoints should be namespaced.  Currently
-// there is an upstream issue where the namespace is not set on non-resolved endpoints.
-// A fix has been submitted and we should consume it in the next rebase.
-
 // routeKey returns the internal router key to use for the given Route.
 func routeKey(route routeapi.Route) string {
-	return route.ServiceName
+	return fmt.Sprintf("%s/%s", route.Namespace, route.ServiceName)
 }
 
 // endpointsKey returns the internal router key to use for the given Endpoints.
 func endpointsKey(endpoints kapi.Endpoints) string {
-	return endpoints.Name
+	return fmt.Sprintf("%s/%s", endpoints.Namespace, endpoints.Name)
 }
 
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
