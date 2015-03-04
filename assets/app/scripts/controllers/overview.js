@@ -241,20 +241,37 @@ angular.module('openshiftConsole')
 
 
     var associateDeploymentConfigTriggersToBuild = function(deploymentConfig, build) {
+      // Make sure we have both a deploymentConfig and a build
       if (!deploymentConfig || !build) {
+        return;
+      }
+      // Make sure we have a build output
+      if (!build.parameters.output.to) {
         return;
       }
       for (var i = 0; i < deploymentConfig.triggers.length; i++) {
         var trigger = deploymentConfig.triggers[i];
         if (trigger.type === "ImageChange") {
-          var image = trigger.imageChangeParams.from.name;
+          var triggerImage = trigger.imageChangeParams.from.name;
           var buildImage = build.parameters.output.to.name;
-          if (image === buildImage) {
-            if (!trigger.builds) {
-              trigger.builds = {};
-            }
-            trigger.builds[build.metadata.name] = build;
-          }          
+          if (triggerImage !== buildImage) {
+          	continue;
+          }
+
+          var triggerNamespace = trigger.imageChangeParams.from.namespace || deploymentConfig.metadata.namespace;
+          var buildNamespace = build.parameters.output.to.namespace || build.metadata.namespace;
+          if (triggerNamespace !== buildNamespace) {
+          	continue;
+          }
+
+          var triggerTag = trigger.imageChangeParams.tag;
+          var buildTag = build.parameters.output.tag;
+          if (triggerTag !== buildTag) {
+          	continue;
+          }
+          
+          trigger.builds = trigger.builds || {};
+          trigger.builds[build.metadata.name] = build;
         }
       }
     };
