@@ -124,8 +124,8 @@ mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
 
-mkdir -p %{buildroot}/usr/lib/tuned/openshift-node
-install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-node/tuned.conf
+mkdir -p %{buildroot}%{_libdir}/tuned/openshift-node
+install -m 0644 -t %{buildroot}%{_libdir}/tuned/openshift-node tuned/openshift-node/tuned.conf
 
 %files
 %defattr(-,root,root,-)
@@ -165,7 +165,7 @@ install -m 0644 -t %{buildroot}/usr/lib/tuned/openshift-node tuned/openshift-nod
 
 %files -n tuned-profiles-openshift-node
 %defattr(-,root,root,-)
-%{_prefix}/lib/tuned/openshift-node
+%{_libdir}/tuned/openshift-node
 
 %post -n tuned-profiles-openshift-node
 /usr/sbin/tuned-adm profile openshift-node > /dev/null 2>&1
