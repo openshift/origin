@@ -17,21 +17,21 @@ import (
 )
 
 func TestRestrictedAccessForProjectAdmins(t *testing.T) {
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	openshiftClient, openshiftClientConfig, err := startConfig.GetOpenshiftClient()
+	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "hammer-project", "harold")
+	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "mallet-project", "mark")
+	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -81,12 +81,12 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 }
 
 func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	openshiftClient, _, err := startConfig.GetOpenshiftClient()
+	clusterAdminClient, _, _, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -95,14 +95,14 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		RoleNamespace:    "master",
 		RoleName:         "view",
 		BindingNamespace: "master",
-		Client:           openshiftClient,
+		Client:           clusterAdminClient,
 		Users:            []string{"anypassword:valerie"},
 	}
 	if err := addValerie.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err = openshiftClient.Roles("master").Delete("view"); err != nil {
+	if err = clusterAdminClient.Roles("master").Delete("view"); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -110,7 +110,7 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		RoleNamespace:    "master",
 		RoleName:         "edit",
 		BindingNamespace: "master",
-		Client:           openshiftClient,
+		Client:           clusterAdminClient,
 		Users:            []string{"anypassword:edgar"},
 	}
 	if err := addEdgar.Run(); err != nil {
@@ -126,7 +126,7 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 
 // TODO this list should start collapsing as we continue to tighten access on generated system ids
 var globalClusterAdminUsers = util.NewStringSet("system:kube-client", "system:openshift-client", "system:openshift-deployer")
-var globalClusterAdminGroups = util.NewStringSet("system:cluster-admins")
+var globalClusterAdminGroups = util.NewStringSet("system:cluster-admins", "system:nodes")
 
 type resourceAccessReviewTest struct {
 	clientInterface client.ResourceAccessReviewInterface
@@ -156,21 +156,21 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 }
 
 func TestResourceAccessReview(t *testing.T) {
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	openshiftClient, openshiftClientConfig, err := startConfig.GetOpenshiftClient()
+	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "hammer-project", "harold")
+	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "mallet-project", "mark")
+	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestResourceAccessReview(t *testing.T) {
 	// a cluster-admin should be able to make global access review requests
 	{
 		test := resourceAccessReviewTest{
-			clientInterface: openshiftClient.RootResourceAccessReviews(),
+			clientInterface: clusterAdminClient.RootResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:  globalClusterAdminUsers,
@@ -278,21 +278,21 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 }
 
 func TestSubjectAccessReview(t *testing.T) {
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	openshiftClient, openshiftClientConfig, err := startConfig.GetOpenshiftClient()
+	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "hammer-project", "harold")
+	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "mallet-project", "mark")
+	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -368,7 +368,7 @@ func TestSubjectAccessReview(t *testing.T) {
 
 	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{Groups: util.NewStringSet("system:cluster-admins"), Verb: "create", Resource: "projects"}
 	subjectAccessReviewTest{
-		clientInterface: openshiftClient.RootSubjectAccessReviews(),
+		clientInterface: clusterAdminClient.RootSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,

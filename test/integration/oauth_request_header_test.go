@@ -104,11 +104,12 @@ func TestOAuthRequestHeader(t *testing.T) {
 	os.Setenv("OPENSHIFT_OAUTH_REQUEST_HEADER_CA_FILE", caFile.Name())
 
 	// Start server
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, clientConfig, err := startConfig.GetOpenshiftClient()
+
+	_, _, clientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

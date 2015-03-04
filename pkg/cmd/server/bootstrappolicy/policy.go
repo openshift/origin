@@ -16,6 +16,7 @@ const (
 	AuthenticatedGroup   = "system:authenticated"
 	UnauthenticatedGroup = "system:unauthenticated"
 	ClusterAdminGroup    = "system:cluster-admins"
+	NodesGroup           = "system:nodes"
 )
 
 const (
@@ -226,7 +227,8 @@ func GetBootstrapMasterRoleBindings(masterNamespace string) []authorizationapi.R
 				Name:      InternalComponentRoleName,
 				Namespace: masterNamespace,
 			},
-			Users: util.NewStringSet(InternalComponentUsername, InternalComponentKubeUsername),
+			Users:  util.NewStringSet(InternalComponentUsername, InternalComponentKubeUsername),
+			Groups: util.NewStringSet(NodesGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{

@@ -2,8 +2,8 @@ package origin
 
 import (
 	"crypto/x509"
+	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -26,8 +26,12 @@ import (
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 const (
@@ -37,70 +41,9 @@ const (
 	unauthenticatedGroup = "system:unauthenticated"
 )
 
-type MasterConfigParameters struct {
-	// host:port to bind master to
-	MasterBindAddr string
-	// host:port to bind asset server to
-	AssetBindAddr string
-	// url to access the master API on within the cluster
-	MasterAddr string
-	// url to access kubernetes API on within the cluster
-	KubernetesAddr string
-	// external clients may need to access APIs at different addresses than internal components do
-	MasterPublicAddr     string
-	KubernetesPublicAddr string
-	AssetPublicAddr      string
-	// host:port to bind DNS on. The default is port 53.
-	DNSBindAddr string
-	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
-	// If not specified, the built-in logout page is shown.
-	LogoutURI string
-
-	CORSAllowedOrigins []string
-
-	EtcdHelper tools.EtcdHelper
-
-	MasterCertFile string
-	MasterKeyFile  string
-	AssetCertFile  string
-	AssetKeyFile   string
-
-	// ClientCAs will be used to request client certificates in connections to the API or OAuth server.
-	// This CertPool should contain all the CAs that will be used for client certificate verification (the union
-	// of APIClientCAs and OAuthClientCAs).
-	ClientCAs *x509.CertPool
-	// APIClientCAs is used to verify client certificates presented for API auth
-	APIClientCAs *x509.CertPool
-
-	MasterAuthorizationNamespace      string
-	OpenshiftSharedResourcesNamespace string
-
-	// a function that returns the appropriate image to use for a named component
-	ImageFor func(component string) string
-
-	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
-	KubeClient *kclient.Client
-	// KubeClientConfig is the client configuration used to call Kubernetes APIs from system components.
-	// To apply different access control to a system component, create a client config specifically for that component.
-	KubeClientConfig kclient.Config
-
-	// osClient is the client used to call OpenShift APIs from system components, built from OSClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
-	OSClient *osclient.Client
-	// OSClientConfig is the client configuration used to call OpenShift APIs from system components
-	// To apply different access control to a system component, create a client config specifically for that component.
-	OSClientConfig kclient.Config
-
-	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
-	DeployerOSClientConfig kclient.Config
-}
-
 // MasterConfig defines the required parameters for starting the OpenShift master
 type MasterConfig struct {
-	MasterConfigParameters
+	Options configapi.OpenShiftMasterConfig
 
 	Authenticator                 authenticator.Request
 	Authorizer                    authorizer.Authorizer
@@ -115,41 +58,111 @@ type MasterConfig struct {
 	AdmissionControl admission.Interface
 
 	TLS bool
+
+	// a function that returns the appropriate image to use for a named component
+	ImageFor func(component string) string
+
+	EtcdHelper tools.EtcdHelper
+
+	// ClientCAs will be used to request client certificates in connections to the API.
+	// This CertPool should contain all the CAs that will be used for client certificate verification.
+	ClientCAs *x509.CertPool
+	// APIClientCAs is used to verify client certificates presented for API auth
+	APIClientCAs *x509.CertPool
+
+	// KubeClientConfig is the client configuration used to call Kubernetes APIs from system components.
+	// To apply different access control to a system component, create a client config specifically for that component.
+	KubeClientConfig kclient.Config
+	// OSClientConfig is the client configuration used to call OpenShift APIs from system components
+	// To apply different access control to a system component, create a client config specifically for that component.
+	OSClientConfig kclient.Config
+	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
+	DeployerOSClientConfig kclient.Config
+
+	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
+	// It should only be accessed via the *Client() helper methods.
+	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	KubernetesClient *kclient.Client
+	// osClient is the client used to call OpenShift APIs from system components, built from OSClientConfig.
+	// It should only be accessed via the *Client() helper methods.
+	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	OSClient *osclient.Client
 }
 
-func BuildMasterConfig(configParams MasterConfigParameters) (*MasterConfig, error) {
+func BuildMasterConfig(options configapi.OpenShiftMasterConfig) (*MasterConfig, error) {
 
-	policyCache := configParams.newPolicyCache()
+	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(options.EtcdClientInfo.URL)
+	if err != nil {
+		return nil, fmt.Errorf("Error setting up server storage: %v", err)
+	}
+
+	clientCAs, err := configapi.GetClientCertCAPool(options)
+	if err != nil {
+		return nil, err
+	}
+	apiClientCAs, err := configapi.GetAPIClientCertCAPool(options)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient, kubeClientConfig, err := configapi.GetKubeClient(options.MasterClients.KubernetesKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	openshiftClient, osClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	_, deployerOSClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.DeployerKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = options.ImageFormat
+	imageTemplate.Latest = options.UseLatestImages
+
+	policyCache := newPolicyCache(etcdHelper)
 	requestContextMapper := kapi.NewRequestContextMapper()
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
 	admissionControlPluginNames := []string{"AlwaysAdmit"}
-	admissionController := admission.NewFromPlugins(configParams.KubeClient, admissionControlPluginNames, "")
+	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
 
 	config := &MasterConfig{
-		MasterConfigParameters: configParams,
+		Options: options,
 
-		Authenticator:                 configParams.newAuthenticator(),
-		Authorizer:                    newAuthorizer(policyCache, configParams.MasterAuthorizationNamespace),
+		Authenticator:                 newAuthenticator(options.ServingInfo, etcdHelper, apiClientCAs),
+		Authorizer:                    newAuthorizer(policyCache, options.MasterAuthorizationNamespace),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
-		ProjectAuthorizationCache: configParams.newProjectAuthorizationCache(),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(options.MasterAuthorizationNamespace, openshiftClient, kubeClient),
 
 		RequestContextMapper: requestContextMapper,
 
 		AdmissionControl: admissionController,
 
-		TLS: strings.HasPrefix(configParams.MasterAddr, "https://"),
+		TLS: configapi.UseTLS(options.ServingInfo),
+
+		ImageFor:   imageTemplate.ExpandOrDie,
+		EtcdHelper: etcdHelper,
+
+		ClientCAs:    clientCAs,
+		APIClientCAs: apiClientCAs,
+
+		KubeClientConfig:       *kubeClientConfig,
+		OSClientConfig:         *osClientConfig,
+		DeployerOSClientConfig: *deployerOSClientConfig,
+		OSClient:               openshiftClient,
+		KubernetesClient:       kubeClient,
 	}
 
 	return config, nil
 }
 
-func (c MasterConfigParameters) newAuthenticator() authenticator.Request {
-	useTLS := strings.HasPrefix(c.MasterAddr, "https://")
-
-	tokenAuthenticator := getEtcdTokenAuthenticator(c.EtcdHelper)
+func newAuthenticator(servingInfo configapi.ServingInfo, etcdHelper tools.EtcdHelper, apiClientCAs *x509.CertPool) authenticator.Request {
+	tokenAuthenticator := getEtcdTokenAuthenticator(etcdHelper)
 
 	authenticators := []authenticator.Request{}
 	authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
@@ -159,11 +172,11 @@ func (c MasterConfigParameters) newAuthenticator() authenticator.Request {
 	// TODO: prevent access_token param from getting logged, if possible
 	authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
 
-	if useTLS {
+	if configapi.UseTLS(servingInfo) {
 		// build cert authenticator
 		// TODO: add cert users to etcd?
 		opts := x509request.DefaultVerifyOptions()
-		opts.Roots = c.APIClientCAs
+		opts.Roots = apiClientCAs
 		certauth := x509request.New(opts, x509request.SubjectToUserConversion)
 		authenticators = append(authenticators, certauth)
 	}
@@ -182,17 +195,17 @@ func (c MasterConfigParameters) newAuthenticator() authenticator.Request {
 	return ret
 }
 
-func (c MasterConfigParameters) newProjectAuthorizationCache() *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(masterAuthorizationNamespace string, openshiftClient *osclient.Client, kubeClient *kclient.Client) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
-		projectauth.NewReviewer(c.OSClient),
-		c.KubeClient.Namespaces(),
-		c.OSClient,
-		c.OSClient,
-		c.MasterAuthorizationNamespace)
+		projectauth.NewReviewer(openshiftClient),
+		kubeClient.Namespaces(),
+		openshiftClient,
+		openshiftClient,
+		masterAuthorizationNamespace)
 }
 
-func (c MasterConfigParameters) newPolicyCache() *policycache.PolicyCache {
-	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
+func newPolicyCache(etcdHelper tools.EtcdHelper) *policycache.PolicyCache {
+	authorizationEtcd := authorizationetcd.New(etcdHelper)
 	return policycache.NewPolicyCache(authorizationEtcd, authorizationEtcd)
 }
 

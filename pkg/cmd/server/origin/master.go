@@ -86,6 +86,7 @@ import (
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
@@ -114,7 +115,7 @@ func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
 
 // KubeClient returns the kubernetes client object
 func (c *MasterConfig) KubeClient() *kclient.Client {
-	return c.MasterConfigParameters.KubeClient
+	return c.KubernetesClient
 }
 
 // PolicyClient returns the policy client object
@@ -128,19 +129,19 @@ func (c *MasterConfig) PolicyClient() *osclient.Client {
 
 // DeploymentClient returns the deployment client object
 func (c *MasterConfig) DeploymentClient() *kclient.Client {
-	return c.MasterConfigParameters.KubeClient
+	return c.KubernetesClient
 }
 
 // DNSServerClient returns the DNS server client object
 // It must have the following capabilities:
 //   list, watch all services in all namespaces
 func (c *MasterConfig) DNSServerClient() *kclient.Client {
-	return c.MasterConfigParameters.KubeClient
+	return c.KubernetesClient
 }
 
 // BuildLogClient returns the build log client object
 func (c *MasterConfig) BuildLogClient() *kclient.Client {
-	return c.MasterConfigParameters.KubeClient
+	return c.KubernetesClient
 }
 
 // WebHookClient returns the webhook client object
@@ -150,7 +151,7 @@ func (c *MasterConfig) WebHookClient() *osclient.Client {
 
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.MasterConfigParameters.KubeClient
+	return c.OSClient, c.KubernetesClient
 }
 
 // ImageChangeControllerClient returns the openshift client object
@@ -160,7 +161,7 @@ func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
 
 // DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.MasterConfigParameters.KubeClient
+	return c.OSClient, c.KubernetesClient
 }
 
 // DeployerClientConfig returns the client configuration a Deployer instance launched in a pod
@@ -170,10 +171,10 @@ func (c *MasterConfig) DeployerClientConfig() *kclient.Config {
 }
 
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.MasterConfigParameters.KubeClient
+	return c.OSClient, c.KubernetesClient
 }
 func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.MasterConfigParameters.KubeClient
+	return c.OSClient, c.KubernetesClient
 }
 func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
 	return c.OSClient
@@ -258,7 +259,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"policies":              policyregistry.NewREST(authorizationEtcd),
 		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
 		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
-		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.MasterAuthorizationNamespace)),
+		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
 	}
@@ -365,7 +366,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	}
 
 	server := &http.Server{
-		Addr:           c.MasterBindAddr,
+		Addr:           c.Options.ServingInfo.BindAddress,
 		Handler:        handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
@@ -374,7 +375,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	go util.Forever(func() {
 		for _, s := range extra {
-			glog.Infof(s, c.MasterAddr)
+			glog.Infof(s, c.Options.ServingInfo.BindAddress)
 		}
 		if c.TLS {
 			server.TLSConfig = &tls.Config{
@@ -385,14 +386,14 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 				ClientAuth: tls.RequestClientCert,
 				ClientCAs:  c.ClientCAs,
 			}
-			glog.Fatal(server.ListenAndServeTLS(c.MasterCertFile, c.MasterKeyFile))
+			glog.Fatal(server.ListenAndServeTLS(c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
 		} else {
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.MasterBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
 	c.ensureComponentAuthorizationRules()
@@ -415,9 +416,9 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
 
 	// ensure that master namespace actually exists
-	namespace, err := c.KubeClient().Namespaces().Get(c.MasterAuthorizationNamespace)
+	namespace, err := c.KubeClient().Namespaces().Get(c.Options.MasterAuthorizationNamespace)
 	if err != nil {
-		namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.MasterAuthorizationNamespace}}
+		namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Options.MasterAuthorizationNamespace}}
 		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
 		_, err = c.KubeClient().Namespaces().Create(namespace)
 		if err != nil {
@@ -431,7 +432,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	registry := authorizationetcd.New(c.EtcdHelper)
 
 	roleRegistry := roleregistry.NewVirtualRegistry(registry)
-	for _, role := range bootstrappolicy.GetBootstrapRoles(c.MasterAuthorizationNamespace, c.OpenshiftSharedResourcesNamespace) {
+	for _, role := range bootstrappolicy.GetBootstrapRoles(c.Options.MasterAuthorizationNamespace, c.Options.OpenShiftSharedResourcesNamespace) {
 		ctx := kapi.WithNamespace(kapi.NewContext(), role.Namespace)
 
 		if _, err := roleRegistry.GetRole(ctx, role.Name); kapierror.IsNotFound(err) {
@@ -444,13 +445,13 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 		}
 	}
 
-	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(registry, registry, c.MasterAuthorizationNamespace)
-	for _, roleBinding := range bootstrappolicy.GetBootstrapRoleBindings(c.MasterAuthorizationNamespace, c.OpenshiftSharedResourcesNamespace) {
+	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(registry, registry, c.Options.MasterAuthorizationNamespace)
+	for _, roleBinding := range bootstrappolicy.GetBootstrapRoleBindings(c.Options.MasterAuthorizationNamespace, c.Options.OpenShiftSharedResourcesNamespace) {
 		ctx := kapi.WithNamespace(kapi.NewContext(), roleBinding.Namespace)
 
 		if _, err := roleBindingRegistry.GetRoleBinding(ctx, roleBinding.Name); kapierror.IsNotFound(err) {
 			// if this is a binding for a non-master namespaced role.  That means that the policy binding must be provisioned
-			if roleBinding.RoleRef.Namespace != c.MasterAuthorizationNamespace {
+			if roleBinding.RoleRef.Namespace != c.Options.MasterAuthorizationNamespace {
 				policyBindingName := roleBinding.RoleRef.Namespace
 				if _, err := registry.GetPolicyBinding(ctx, policyBindingName); kapierror.IsNotFound(err) {
 					policyBinding := &authorizationapi.PolicyBinding{
@@ -540,12 +541,12 @@ func (c *MasterConfig) RunAssetServer() {
 	// TODO use	version.Get().GitCommit as an etag cache header
 	mux := http.NewServeMux()
 
-	masterURL, err := url.Parse(c.MasterPublicAddr)
+	masterURL, err := url.Parse(c.Options.AssetConfig.MasterPublicURL)
 	if err != nil {
 		glog.Fatalf("Error parsing master url: %v", err)
 	}
 
-	k8sURL, err := url.Parse(c.KubernetesPublicAddr)
+	k8sURL, err := url.Parse(c.Options.AssetConfig.KubernetesPublicURL)
 	if err != nil {
 		glog.Fatalf("Error parsing kubernetes url: %v", err)
 	}
@@ -556,9 +557,9 @@ func (c *MasterConfig) RunAssetServer() {
 		KubernetesAddr:    k8sURL.Host,
 		KubernetesPrefix:  "/api",
 		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
-		OAuthRedirectBase: c.AssetPublicAddr,
+		OAuthRedirectBase: c.Options.AssetConfig.PublicURL,
 		OAuthClientID:     OpenShiftWebConsoleClientID,
-		LogoutURI:         c.LogoutURI,
+		LogoutURI:         c.Options.AssetConfig.LogoutURI,
 	}
 
 	assets.RegisterMimeTypes()
@@ -588,7 +589,7 @@ func (c *MasterConfig) RunAssetServer() {
 	)
 
 	server := &http.Server{
-		Addr:           c.AssetBindAddr,
+		Addr:           c.Options.AssetConfig.ServingInfo.BindAddress,
 		Handler:        mux,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
@@ -601,18 +602,18 @@ func (c *MasterConfig) RunAssetServer() {
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 				MinVersion: tls.VersionTLS10,
 			}
-			glog.Infof("OpenShift UI listening at https://%s", c.AssetBindAddr)
-			glog.Fatal(server.ListenAndServeTLS(c.AssetCertFile, c.AssetKeyFile))
+			glog.Infof("OpenShift UI listening at https://%s", c.Options.AssetConfig.ServingInfo.BindAddress)
+			glog.Fatal(server.ListenAndServeTLS(c.Options.AssetConfig.ServingInfo.ServerCert.CertFile, c.Options.AssetConfig.ServingInfo.ServerCert.KeyFile))
 		} else {
-			glog.Infof("OpenShift UI listening at https://%s", c.AssetBindAddr)
+			glog.Infof("OpenShift UI listening at https://%s", c.Options.AssetConfig.ServingInfo.BindAddress)
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.AssetBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.AssetConfig.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
-	glog.Infof("OpenShift UI available at %s", c.AssetPublicAddr)
+	glog.Infof("OpenShift UI available at %s", c.Options.AssetConfig.PublicURL)
 }
 
 func (c *MasterConfig) RunDNSServer() {
@@ -620,22 +621,24 @@ func (c *MasterConfig) RunDNSServer() {
 	if err != nil {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
+	config.DnsAddr = c.Options.DNSConfig.BindAddress
 
-	if _, port, err := net.SplitHostPort(c.DNSBindAddr); err == nil {
-		if len(port) != 0 && port != "53" {
-			glog.Warningf("Unable to bind DNS on port 53 (you may need to run as root), using %s which will not resolve from all locations", c.DNSBindAddr)
-		}
+	_, port, err := net.SplitHostPort(c.Options.DNSConfig.BindAddress)
+	if err != nil {
+		glog.Fatalf("Could not start DNS: %v", err)
+	}
+	if port != "53" {
+		glog.Warningf("Binding DNS on port %v instead of 53 (you may need to run as root and update your config), using %s which will not resolve from all locations", port, c.Options.DNSConfig.BindAddress)
 	}
 
-	config.DnsAddr = c.DNSBindAddr
 	go func() {
 		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdHelper.Client.(*etcdclient.Client))
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
 
-	cmdutil.WaitForSuccessfulDial(false, "tcp", c.DNSBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial(false, "tcp", c.Options.DNSConfig.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
-	glog.Infof("OpenShift DNS listening at %s", c.DNSBindAddr)
+	glog.Infof("OpenShift DNS listening at %s", c.Options.DNSConfig.BindAddress)
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
@@ -682,7 +685,7 @@ func (c *MasterConfig) RunBuildPodController() {
 	controller.Run()
 }
 
-// RunDeploymentController starts the build image change trigger controller process.
+// RunBuildImageChangeTriggerController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildControllerClients()
 	bcUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
@@ -692,11 +695,17 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 }
 
 // RunDeploymentController starts the deployment controller process.
-func (c *MasterConfig) RunDeploymentController() {
+func (c *MasterConfig) RunDeploymentController() error {
 	_, kclient := c.DeploymentControllerClients()
+
+	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig)
+	if err != nil {
+		return err
+	}
+	// TODO eliminate these environment variables once we figure out what they do
 	env := []api.EnvVar{
-		{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
-		{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
+		{Name: "KUBERNETES_MASTER", Value: kclientConfig.Host},
+		{Name: "OPENSHIFT_MASTER", Value: kclientConfig.Host},
 	}
 	env = append(env, clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())...)
 
@@ -709,6 +718,8 @@ func (c *MasterConfig) RunDeploymentController() {
 
 	controller := factory.Create()
 	controller.Run()
+
+	return nil
 }
 
 // RunDeployerPodController starts the deployer pod controller process.
@@ -774,10 +785,10 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 // ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
 // regexes, or exits if it cannot.
 func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
-	if len(c.CORSAllowedOrigins) == 0 {
+	if len(c.Options.CORSAllowedOrigins) == 0 {
 		return []*regexp.Regexp{}
 	}
-	allowedOriginRegexps, err := util.CompileRegexps(util.StringList(c.CORSAllowedOrigins))
+	allowedOriginRegexps, err := util.CompileRegexps(util.StringList(c.Options.CORSAllowedOrigins))
 	if err != nil {
 		glog.Fatalf("Invalid --cors-allowed-origins: %v", err)
 	}
