@@ -87,9 +87,6 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 		return "", errors.NewFieldInvalid("build.Status", build.Status, "must be Running, Complete or Failed")
 	}
 
-	if err != nil {
-		return "", err
-	}
 	return location.String(), nil
 }
 
