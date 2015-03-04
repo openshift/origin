@@ -2,7 +2,9 @@ package registry
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -105,4 +107,70 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 	}
 	return cfg, nil
+}
+
+// retrieveFunc is a function that fetches the contents of a given URL
+
+type fetcher interface {
+	Fetch(URL string) ([]byte, error)
+}
+
+// RemoteREST implements RESTStorage interface for fetching remote Templates
+type RemoteREST struct {
+	codec   runtime.Codec
+	fetcher fetcher
+}
+
+// NewRemoteREST creates a new RESTStorage interface for fetching remote Template objects
+func NewRemoteREST(codec runtime.Codec) *RemoteREST {
+	remoteREST := &RemoteREST{
+		codec: codec,
+	}
+	remoteREST.fetcher = remoteREST
+	return remoteREST
+}
+
+// New creates a new empty remote template
+func (r *RemoteREST) New() runtime.Object {
+	return &api.RemoteTemplate{}
+}
+
+// Create fetches a remote template and ensures it is a valid template
+func (r *RemoteREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+	remote, ok := obj.(*api.RemoteTemplate)
+	if !ok {
+		return nil, errors.NewBadRequest("not a remote template")
+	}
+	body, err := r.fetcher.Fetch(remote.RemoteURL)
+	if err != nil {
+		return nil, err
+	}
+	templateObject, err := r.codec.Decode(body)
+	if err != nil {
+		return nil, errors.NewInternalError(fmt.Errorf("error decoding template from %s: %v",
+			remote.RemoteURL, err))
+	}
+	template, ok := templateObject.(*api.Template)
+	if !ok {
+		return nil, errors.NewInternalError(fmt.Errorf("resource at %s is not a template."))
+	}
+	if errs := validation.ValidateProcessedTemplate(template); len(errs) > 0 {
+		return nil, errors.NewInvalid("template", template.Name, errs)
+	}
+	return template, nil
+}
+
+func (r *RemoteREST) Fetch(remoteURL string) ([]byte, error) {
+	resp, err := http.Get(remoteURL)
+	if err != nil {
+		return nil, errors.NewInternalError(fmt.Errorf("error retrieving template from %s: %v",
+			remoteURL, err))
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.NewInternalError(fmt.Errorf("error reading data from %s: %v",
+			remoteURL, err))
+	}
+	return body, nil
 }

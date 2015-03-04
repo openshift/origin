@@ -10,7 +10,9 @@ func init() {
 		&TemplateList{},
 	)
 	api.Scheme.AddKnownTypeWithName("v1beta1", "TemplateConfig", &Template{})
+	api.Scheme.AddKnownTypeWithName("v1beta1", "RemoteTemplate", &RemoteTemplate{})
 }
 
-func (*Template) IsAnAPIObject()     {}
-func (*TemplateList) IsAnAPIObject() {}
+func (*Template) IsAnAPIObject()       {}
+func (*TemplateList) IsAnAPIObject()   {}
+func (*RemoteTemplate) IsAnAPIObject() {}

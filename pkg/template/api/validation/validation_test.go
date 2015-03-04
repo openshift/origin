@@ -190,3 +190,19 @@ func TestValidateTemplate(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateRemoteTemplate(t *testing.T) {
+	valid := &api.RemoteTemplate{
+		RemoteURL: "http://a.test.url/test",
+	}
+	invalid := &api.RemoteTemplate{}
+
+	errs := ValidateRemoteTemplate(valid)
+	if len(errs) > 0 {
+		t.Errorf("Unexpected error on valid remote template: %v", errors.NewAggregate(errs))
+	}
+	errs = ValidateRemoteTemplate(invalid)
+	if len(errs) == 0 {
+		t.Errorf("Did not validate remote template properly. Error expected.")
+	}
+}

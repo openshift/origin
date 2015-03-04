@@ -53,3 +53,12 @@ type Parameter struct {
 	// Optional: From is an input value for the generator.
 	From string
 }
+
+// RemoteTemplate is a resource that points to a URL-accessible template
+type RemoteTemplate struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	// URL for the remote template
+	RemoteURL string
+}
