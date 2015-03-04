@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	"fmt"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -115,12 +116,13 @@ func TestHandleEndpoints(t *testing.T) {
 			eventType: watch.Added,
 			endpoints: &kapi.Endpoints{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: "test", //kapi.endpoints inherits the name of the service
+					Namespace: "foo",
+					Name:      "test", //kapi.endpoints inherits the name of the service
 				},
 				Endpoints: []kapi.Endpoint{{IP: "1.1.1.1", Port: 345}}, //not specifying a port to force the port 80 assumption
 			},
 			expectedServiceUnit: &ServiceUnit{
-				Name: "test", //service name from kapi.endpoints object
+				Name: "foo/test", //service name from kapi.endpoints object
 				EndpointTable: map[string]Endpoint{
 					"1.1.1.1:345": {
 						ID:   "1.1.1.1:345",
@@ -135,12 +137,13 @@ func TestHandleEndpoints(t *testing.T) {
 			eventType: watch.Modified,
 			endpoints: &kapi.Endpoints{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: "test",
+					Namespace: "foo",
+					Name:      "test",
 				},
 				Endpoints: []kapi.Endpoint{{IP: "2.2.2.2", Port: 8080}},
 			},
 			expectedServiceUnit: &ServiceUnit{
-				Name: "test",
+				Name: "foo/test",
 				EndpointTable: map[string]Endpoint{
 					"2.2.2.2:8080": {
 						ID:   "2.2.2.2:8080",
@@ -155,12 +158,13 @@ func TestHandleEndpoints(t *testing.T) {
 			eventType: watch.Deleted,
 			endpoints: &kapi.Endpoints{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: "test",
+					Namespace: "foo",
+					Name:      "test",
 				},
 				Endpoints: []kapi.Endpoint{{IP: "3.3.3.3", Port: 0}},
 			},
 			expectedServiceUnit: &ServiceUnit{
-				Name:          "test",
+				Name:          "foo/test",
 				EndpointTable: map[string]Endpoint{},
 			},
 		},
@@ -203,9 +207,13 @@ func TestHandleRoute(t *testing.T) {
 
 	//add
 	route := &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+		},
 		Host:        "www.example.com",
 		ServiceName: "TestService",
 	}
+	serviceUnitKey := fmt.Sprintf("%s/%s", route.Namespace, route.ServiceName)
 
 	plugin.HandleRoute(watch.Added, route)
 
@@ -213,7 +221,7 @@ func TestHandleRoute(t *testing.T) {
 		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
 
-	actualSU, ok := router.FindServiceUnit(route.ServiceName)
+	actualSU, ok := router.FindServiceUnit(serviceUnitKey)
 
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
@@ -237,7 +245,7 @@ func TestHandleRoute(t *testing.T) {
 		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
 
-	actualSU, ok = router.FindServiceUnit(route.ServiceName)
+	actualSU, ok = router.FindServiceUnit(serviceUnitKey)
 
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
@@ -260,7 +268,7 @@ func TestHandleRoute(t *testing.T) {
 		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
 
-	actualSU, ok = router.FindServiceUnit(route.ServiceName)
+	actualSU, ok = router.FindServiceUnit(serviceUnitKey)
 
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
