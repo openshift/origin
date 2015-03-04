@@ -91,9 +91,8 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	processor := template.NewProcessor(generators)
 	cfg, err := processor.Process(tpl)
 	if len(err) > 0 {
-		// TODO: We don't report the processing errors to users as there is no
-		// good way how to do it for just some items.
 		glog.V(1).Infof(utilerr.NewAggregate(err).Error())
+		return nil, errors.NewInvalid("template", tpl.Name, err)
 	}
 
 	if tpl.ObjectLabels != nil {
