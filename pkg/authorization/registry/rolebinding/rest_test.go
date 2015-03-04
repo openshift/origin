@@ -173,6 +173,31 @@ func TestUpdateError(t *testing.T) {
 	}
 }
 
+func TestUpdateCannotChangeRoleRefError(t *testing.T) {
+	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
+
+	storage := makeTestStorage()
+	storage.Create(ctx, &authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
+		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: "master"},
+	})
+
+	roleBinding := &authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
+		RoleRef:    kapi.ObjectReference{Name: "cluster-admin", Namespace: "master"},
+	}
+
+	_, _, err := storage.Update(ctx, roleBinding)
+	if err == nil {
+		t.Errorf("Missing expected error")
+		return
+	}
+	expectedErr := "roleBinding.RoleRef may not be modified"
+	if err.Error() != expectedErr {
+		t.Errorf("Expected %v, got %v", expectedErr, err)
+	}
+}
+
 func TestDeleteError(t *testing.T) {
 	registry := &test.PolicyBindingRegistry{}
 
