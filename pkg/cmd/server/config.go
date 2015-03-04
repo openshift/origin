@@ -16,6 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -58,7 +59,7 @@ type Config struct {
 
 	StorageVersion string
 
-	NodeList flagtypes.StringList
+	NodeList kutil.StringList
 
 	// ClientConfig is used when connecting to Kubernetes from the master, or
 	// when connecting to the master from a detached node. If StartKube is true,
@@ -68,7 +69,7 @@ type Config struct {
 	// Only the CommandLinePath is expected to be used.
 	ClientConfigLoadingRules clientcmd.ClientConfigLoadingRules
 
-	CORSAllowedOrigins flagtypes.StringList
+	CORSAllowedOrigins kutil.StringList
 }
 
 func NewDefaultConfig() *Config {
@@ -96,7 +97,6 @@ func NewDefaultConfig() *Config {
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
 		Hostname: hostname,
-		NodeList: flagtypes.StringList{"127.0.0.1"},
 	}
 
 	config.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&config.ClientConfigLoadingRules, &clientcmd.ConfigOverrides{})
@@ -234,23 +234,6 @@ func (cfg Config) GetAssetBindAddress() string {
 	}
 	// Derive the asset bind address by incrementing the master bind address port by 1
 	return net.JoinHostPort(cfg.BindAddr.Host, strconv.Itoa(cfg.BindAddr.Port+1))
-}
-
-func (cfg Config) GetNodeList() []string {
-	nodeList := []string{}
-	for _, curr := range cfg.NodeList {
-		nodeList = append(nodeList, curr)
-	}
-
-	if len(nodeList) == 1 && nodeList[0] == "127.0.0.1" {
-		nodeList[0] = cfg.Hostname
-	}
-	for i, s := range nodeList {
-		s = strings.ToLower(s)
-		nodeList[i] = s
-	}
-
-	return nodeList
 }
 
 // getAndTestEtcdClient creates an etcd client based on the provided config and waits

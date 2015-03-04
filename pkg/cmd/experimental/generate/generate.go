@@ -81,7 +81,7 @@ func NewCmdGenerate(f *clientcmd.Factory, parentName, name string) *cobra.Comman
 	input := params{}
 
 	c := &cobra.Command{
-		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
+		Use:   fmt.Sprintf("%s [source]", name),
 		Short: "Generates an application configuration from a source repository",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
