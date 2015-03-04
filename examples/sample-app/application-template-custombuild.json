@@ -44,11 +44,11 @@
     {
       "apiVersion": "v1beta1",
       "kind": "BuildConfig",
-      "labels": {
-        "name": "ruby-sample-build"
-      },
       "metadata": {
-        "name": "ruby-sample-build"
+        "name": "ruby-sample-build",
+        "labels": {
+          "name": "ruby-sample-build"
+        }
       },
       "parameters": {
         "output": {
