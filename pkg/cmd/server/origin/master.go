@@ -609,8 +609,8 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 func (c *MasterConfig) RunDeploymentController() {
 	_, kclient := c.DeploymentControllerClients()
 	env := []api.EnvVar{
-		{Name: "KUBERNETES_MASTER", Value: c.MasterAddr},
-		{Name: "OPENSHIFT_MASTER", Value: c.MasterAddr},
+		{Name: "KUBERNETES_MASTER", Value: c.MasterPublicAddr},
+		{Name: "OPENSHIFT_MASTER", Value: c.MasterPublicAddr},
 	}
 	env = append(env, clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())...)
 
