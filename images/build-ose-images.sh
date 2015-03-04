@@ -41,24 +41,24 @@ docker tag openshift3_beta/ose-pod localhost:5000/openshift3_beta/ose-pod:${IMAG
 
 
 
-docker push localhost:5000/openshift3_beta/ose-docker-builder &&
+docker push localhost:5000/openshift3_beta/ose-docker-builder:latest &&
 docker push localhost:5000/openshift3_beta/ose-docker-builder:${IMAGE_VERSION} &&
-docker push localhost:5000/openshift3_beta/ose-sti-builder &&
+docker push localhost:5000/openshift3_beta/ose-sti-builder:latest &&
 docker push localhost:5000/openshift3_beta/ose-sti-builder:${IMAGE_VERSION} &&
-docker push localhost:5000/openshift3_beta/ose-sti-image-builder &&
+docker push localhost:5000/openshift3_beta/ose-sti-image-builder:latest &&
 docker push localhost:5000/openshift3_beta/ose-sti-image-builder:${IMAGE_VERSION} &&
-docker push localhost:5000/openshift3_beta/ose-deployer &&
+docker push localhost:5000/openshift3_beta/ose-deployer:latest &&
 docker push localhost:5000/openshift3_beta/ose-deployer:${IMAGE_VERSION} &&
-docker push localhost:5000/openshift3_beta/ose-haproxy-router &&
+docker push localhost:5000/openshift3_beta/ose-haproxy-router:latest &&
 docker push localhost:5000/openshift3_beta/ose-haproxy-router:${IMAGE_VERSION} &&
-docker push localhost:5000/openshift3_beta/ose-pod &&
+docker push localhost:5000/openshift3_beta/ose-pod:latest &&
 docker push localhost:5000/openshift3_beta/ose-pod:${IMAGE_VERSION}
 
 if [[ -d ${OS_ROOT}/../docker-registry-extensions ]]; then
   docker build --no-cache=true -t openshift3_beta/ose-docker-registry ${OS_ROOT}/../docker-registry-extensions/
   docker tag openshift3_beta/ose-docker-registry localhost:5000/openshift3_beta/ose-docker-registry
   docker tag openshift3_beta/ose-docker-registry localhost:5000/openshift3_beta/ose-docker-registry:${IMAGE_VERSION}
-  docker push localhost:5000/openshift3_beta/ose-docker-registry &&
+  docker push localhost:5000/openshift3_beta/ose-docker-registry:latest &&
   docker push localhost:5000/openshift3_beta/ose-docker-registry:${IMAGE_VERSION}
 else
   echo "WARNING -- Could not find ../docker-registry-extensions I have not built the registry, this build is incomplete"
