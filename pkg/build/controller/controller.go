@@ -8,7 +8,6 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -17,9 +16,6 @@ import (
 
 // BuildController watches build resources and manages their state
 type BuildController struct {
-	BuildStore    cache.Store
-	NextBuild     func() *buildapi.Build
-	NextPod       func() *kapi.Pod
 	BuildUpdater  buildclient.BuildUpdater
 	PodManager    podManager
 	BuildStrategy BuildStrategy
@@ -41,32 +37,30 @@ type imageRepositoryClient interface {
 	GetImageRepository(namespace, name string) (*imageapi.ImageRepository, error)
 }
 
-// Run begins watching and syncing build jobs onto the cluster.
-func (bc *BuildController) Run() {
-	go util.Forever(func() { bc.HandleBuild(bc.NextBuild()) }, 0)
-	go util.Forever(func() { bc.HandlePod(bc.NextPod()) }, 0)
-}
-
-func (bc *BuildController) HandleBuild(build *buildapi.Build) {
+func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling build %s", build.Name)
 
 	// We only deal with new builds here
 	if build.Status != buildapi.BuildStatusNew {
-		return
+		return nil
 	}
 
 	if err := bc.nextBuildStatus(build); err != nil {
 		// TODO: all build errors should be retried, and build error should not be a permanent status change.
 		// Instead, we should requeue this build request using the same backoff logic as the scheduler.
-		// BuildStatusError should be reserved for meaning "permanently errored, no way to try again".
-		glog.V(4).Infof("Build failed with error %s/%s: %#v", build.Namespace, build.Name, err)
-		build.Status = buildapi.BuildStatusError
-		build.Message = err.Error()
+		//build.Status = buildapi.BuildStatusError
+		//build.Message = err.Error()
+		return fmt.Errorf("Build failed with error %s/%s: %#v", build.Namespace, build.Name, err)
 	}
 
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
+		// This is not a retryable error because the build has been created.  The worst case
+		// outcome of not updating the buildconfig is that we might rerun a build for the
+		// same "new" imageid change in the future, which is better than guaranteeing we
+		// run the build 2+ times by retrying it here.
 		glog.V(2).Infof("Failed to record changes to build %s/%s: %#v", build.Namespace, build.Name, err)
 	}
+	return nil
 }
 
 // nextBuildStatus updates build with any appropriate changes, or returns an error if
@@ -134,7 +128,14 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 	return nil
 }
 
-func (bc *BuildController) HandlePod(pod *kapi.Pod) {
+// BuildPodController watches pods running builds and manages the build state
+type BuildPodController struct {
+	BuildStore   cache.Store
+	BuildUpdater buildclient.BuildUpdater
+	PodManager   podManager
+}
+
+func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	// Find the build for this pod
 	var build *buildapi.Build
 	for _, obj := range bc.BuildStore.List() {
@@ -146,7 +147,7 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 	}
 
 	if build == nil {
-		return
+		return nil
 	}
 
 	// A cancelling event was triggered for the build, delete its pod and update build status.
@@ -154,9 +155,9 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 		glog.V(2).Infof("Cancelling build %s.", build.Name)
 
 		if err := bc.CancelBuild(build, pod); err != nil {
-			glog.Errorf("Failed to cancel build %s: %#v", build.Name, err)
+			return fmt.Errorf("Failed to cancel build %s: %#v, will retry", build.Name, err)
 		}
-		return
+		return nil
 	}
 
 	nextStatus := build.Status
@@ -180,13 +181,14 @@ func (bc *BuildController) HandlePod(pod *kapi.Pod) {
 		glog.V(4).Infof("Updating build %s status %s -> %s", build.Name, build.Status, nextStatus)
 		build.Status = nextStatus
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
-			glog.Errorf("Failed to update build %s: %#v", build.Name, err)
+			return fmt.Errorf("Failed to update build %s: %#v", build.Name, err)
 		}
 	}
+	return nil
 }
 
-// CancelBuild updates a build status to Cancelled, after its associated pod is associated.
-func (bc *BuildController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) error {
+// CancelBuild updates a build status to Cancelled, after its associated pod is deleted.
+func (bc *BuildPodController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) error {
 	if !isBuildCancellable(build) {
 		glog.V(2).Infof("The build can be cancelled only if it has pending/running status, not %s.", build.Status)
 		return nil

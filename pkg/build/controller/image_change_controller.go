@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/golang/glog"
+	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/golang/glog"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -12,27 +12,28 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+type ImageChangeControllerFatalError struct {
+	Reason string
+	Err    error
+}
+
+func (e ImageChangeControllerFatalError) Error() string {
+	return "fatal error handling ImageRepository change: " + e.Reason
+}
+
 // ImageChangeController watches for changes to ImageRepositories and triggers
 // builds when a new version of a tag referenced by a BuildConfig
 // is available.
 type ImageChangeController struct {
-	NextImageRepository func() *imageapi.ImageRepository
-	BuildConfigStore    cache.Store
-	BuildCreator        buildclient.BuildCreator
-	BuildConfigUpdater  buildclient.BuildConfigUpdater
+	BuildConfigStore   cache.Store
+	BuildCreator       buildclient.BuildCreator
+	BuildConfigUpdater buildclient.BuildConfigUpdater
 	// Stop is an optional channel that controls when the controller exits
 	Stop <-chan struct{}
 }
 
-// Run processes ImageRepository events one by one.
-func (c *ImageChangeController) Run() {
-	go util.Until(c.HandleImageRepo, 0, c.Stop)
-}
-
 // HandleImageRepo processes the next ImageRepository event.
-func (c *ImageChangeController) HandleImageRepo() {
-	glog.V(4).Infof("Waiting for imagerepo change")
-	imageRepo := c.NextImageRepository()
+func (c *ImageChangeController) HandleImageRepo(imageRepo *imageapi.ImageRepository) error {
 	glog.V(4).Infof("Build image change controller detected imagerepo change %s", imageRepo.DockerImageRepository)
 	imageSubstitutions := make(map[string]string)
 
@@ -78,12 +79,18 @@ func (c *ImageChangeController) HandleImageRepo() {
 			glog.V(4).Infof("Running build for buildConfig %s in namespace %s", config.Name, config.Namespace)
 			b := buildutil.GenerateBuildFromConfig(config, nil, imageSubstitutions)
 			if err := c.BuildCreator.Create(config.Namespace, b); err != nil {
-				glog.V(2).Infof("Error starting build for buildConfig %v: %v", config.Name, err)
+				return fmt.Errorf("Error starting build for buildConfig %s: %v", config.Name, err)
 			} else {
 				if err := c.BuildConfigUpdater.Update(config); err != nil {
+					// This is not a retryable error because the build has been created.  The worst case
+					// outcome of not updating the buildconfig is that we might rerun a build for the
+					// same "new" imageid change in the future, which is better than guaranteeing we
+					// run the build 2+ times by retrying it here.
 					glog.V(2).Infof("Error updating buildConfig %v: %v", config.Name, err)
+					return ImageChangeControllerFatalError{Reason: fmt.Sprintf("Error updating buildConfig %s with new LastTriggeredImageID", config.Name), Err: err}
 				}
 			}
 		}
 	}
+	return nil
 }

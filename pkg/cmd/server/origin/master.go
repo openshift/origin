@@ -596,6 +596,18 @@ func (c *MasterConfig) RunBuildController() {
 	controller.Run()
 }
 
+// RunBuildPodController starts the build/pod status sync loop for build status
+func (c *MasterConfig) RunBuildPodController() {
+	osclient, kclient := c.BuildControllerClients()
+	factory := buildcontrollerfactory.BuildPodControllerFactory{
+		OSClient:     osclient,
+		KubeClient:   kclient,
+		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
+	}
+	controller := factory.Create()
+	controller.Run()
+}
+
 // RunDeploymentController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildControllerClients()
