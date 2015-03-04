@@ -22,15 +22,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/merge"
 	"github.com/golang/glog"
-	"github.com/imdario/mergo"
 	"github.com/spf13/cobra"
 )
 
@@ -66,26 +65,6 @@ func GetFlagBool(cmd *cobra.Command, flag string) bool {
 	return false
 }
 
-// Returns nil if the flag wasn't set.
-func GetFlagBoolPtr(cmd *cobra.Command, flag string) *bool {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
-	}
-	// Check if flag was not set at all.
-	if !f.Changed && f.DefValue == f.Value.String() {
-		return nil
-	}
-	var ret bool
-	// Caseless compare.
-	if strings.ToLower(f.Value.String()) == "true" {
-		ret = true
-	} else {
-		ret = false
-	}
-	return &ret
-}
-
 // Assumes the flag has a default value.
 func GetFlagInt(cmd *cobra.Command, flag string) int {
 	f := cmd.Flags().Lookup(flag)
@@ -107,33 +86,6 @@ func GetFlagDuration(cmd *cobra.Command, flag string) time.Duration {
 	v, err := time.ParseDuration(f.Value.String())
 	checkErr(err)
 	return v
-}
-
-// Returns the first non-empty string out of the ones provided. If all
-// strings are empty, returns an empty string.
-func FirstNonEmptyString(args ...string) string {
-	for _, s := range args {
-		if len(s) > 0 {
-			return s
-		}
-	}
-	return ""
-}
-
-// Return a list of file names of a certain type within a given directory.
-// TODO: replace with resource.Builder
-func GetFilesFromDir(directory string, fileType string) []string {
-	files := []string{}
-
-	err := filepath.Walk(directory, func(path string, f os.FileInfo, err error) error {
-		if filepath.Ext(path) == fileType {
-			files = append(files, path)
-		}
-		return err
-	})
-
-	checkErr(err)
-	return files
 }
 
 // ReadConfigData reads the bytes from the specified filesytem or network
@@ -188,36 +140,40 @@ func ReadConfigDataFromLocation(location string) ([]byte, error) {
 	}
 }
 
-func Merge(dst runtime.Object, fragment, kind string) error {
+func Merge(dst runtime.Object, fragment, kind string) (runtime.Object, error) {
 	// Ok, this is a little hairy, we'd rather not force the user to specify a kind for their JSON
 	// So we pull it into a map, add the Kind field, and then reserialize.
 	// We also pull the apiVersion for proper parsing
 	var intermediate interface{}
 	if err := json.Unmarshal([]byte(fragment), &intermediate); err != nil {
-		return err
+		return nil, err
 	}
 	dataMap, ok := intermediate.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("Expected a map, found something else: %s", fragment)
+		return nil, fmt.Errorf("Expected a map, found something else: %s", fragment)
 	}
 	version, found := dataMap["apiVersion"]
 	if !found {
-		return fmt.Errorf("Inline JSON requires an apiVersion field")
+		return nil, fmt.Errorf("Inline JSON requires an apiVersion field")
 	}
 	versionString, ok := version.(string)
 	if !ok {
-		return fmt.Errorf("apiVersion must be a string")
+		return nil, fmt.Errorf("apiVersion must be a string")
 	}
-	codec := runtime.CodecFor(api.Scheme, versionString)
 
-	dataMap["kind"] = kind
-	data, err := json.Marshal(intermediate)
+	codec := runtime.CodecFor(api.Scheme, versionString)
+	// encode dst into versioned json and apply fragment directly too it
+	target, err := codec.Encode(dst)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	src, err := codec.Decode(data)
+	patched, err := merge.MergeJSON(target, []byte(fragment))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return mergo.Merge(dst, src)
+	out, err := codec.Decode(patched)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }

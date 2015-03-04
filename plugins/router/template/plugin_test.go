@@ -1,7 +1,6 @@
 package templaterouter
 
 import (
-	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -118,15 +117,15 @@ func TestHandleEndpoints(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "test", //kapi.endpoints inherits the name of the service
 				},
-				Endpoints: []string{"1.1.1.1"}, //not specifying a port to force the port 80 assumption
+				Endpoints: []kapi.Endpoint{{IP: "1.1.1.1", Port: 345}}, //not specifying a port to force the port 80 assumption
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "test", //service name from kapi.endpoints object
 				EndpointTable: map[string]Endpoint{
-					"1.1.1.1:80": { //port 80 will be added by default if not specified
-						ID:   "1.1.1.1:80",
+					"1.1.1.1:345": {
+						ID:   "1.1.1.1:345",
 						IP:   "1.1.1.1",
-						Port: "80", //defaulted by code
+						Port: "345",
 					},
 				},
 			},
@@ -138,7 +137,7 @@ func TestHandleEndpoints(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "test",
 				},
-				Endpoints: []string{"2.2.2.2:8080"},
+				Endpoints: []kapi.Endpoint{{IP: "2.2.2.2", Port: 8080}},
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "test",
@@ -158,7 +157,7 @@ func TestHandleEndpoints(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "test",
 				},
-				Endpoints: []string{"3.3.3.3"},
+				Endpoints: []kapi.Endpoint{{IP: "3.3.3.3", Port: 0}},
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name:          "test",
@@ -273,49 +272,4 @@ func TestHandleRoute(t *testing.T) {
 		}
 	}
 
-}
-
-// TestEndpointFromString test creation of endpoint from a string
-func TestEndpointFromString(t *testing.T) {
-	endpointFromStringTestCases := map[string]struct {
-		InputEndpoint    string
-		ExpectedEndpoint *Endpoint
-		ExpectedOk       bool
-	}{
-		"Empty String": {
-			InputEndpoint:    "",
-			ExpectedEndpoint: nil,
-			ExpectedOk:       false,
-		},
-		"Default Port": {
-			InputEndpoint: "test",
-			ExpectedEndpoint: &Endpoint{
-				ID:   "test:80",
-				IP:   "test",
-				Port: "80",
-			},
-			ExpectedOk: true,
-		},
-		"Non-default Port": {
-			InputEndpoint: "test:9999",
-			ExpectedEndpoint: &Endpoint{
-				ID:   "test:9999",
-				IP:   "test",
-				Port: "9999",
-			},
-			ExpectedOk: true,
-		},
-	}
-
-	for k, tc := range endpointFromStringTestCases {
-		endpoint, ok := endpointFromString(tc.InputEndpoint)
-
-		if ok != tc.ExpectedOk {
-			t.Fatalf("%s failed, expected ok=%t but got %t", k, tc.ExpectedOk, ok)
-		}
-
-		if !reflect.DeepEqual(endpoint, tc.ExpectedEndpoint) {
-			t.Fatalf("%s failed, the returned endpoint didn't match the expected endpoint %v : %v", k, endpoint, tc.ExpectedEndpoint)
-		}
-	}
 }

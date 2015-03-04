@@ -159,13 +159,13 @@ func TestResourceAccessReview(t *testing.T) {
 	}
 
 	// mark should not be able to make global access review requests
-	_, err = markClient.ResourceAccessReviews("").Create(requestWhoCanViewDeployments)
+	_, err = markClient.RootResourceAccessReviews().Create(requestWhoCanViewDeployments)
 	if (err == nil) || (!strings.Contains(err.Error(), "Forbidden")) {
 		t.Errorf("expected forbidden error, but didn't get one")
 	}
 
 	// a cluster-admin should be able to make global access review requests
-	whoCanViewDeploymentInAnyNamespace, err := openshiftClient.ResourceAccessReviews("").Create(requestWhoCanViewDeployments)
+	whoCanViewDeploymentInAnyNamespace, err := openshiftClient.RootResourceAccessReviews().Create(requestWhoCanViewDeployments)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

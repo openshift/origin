@@ -84,6 +84,10 @@ func (c *Fake) ResourceAccessReviews(namespace string) ResourceAccessReviewInter
 	return &FakeResourceAccessReviews{Fake: c}
 }
 
+func (c *Fake) RootResourceAccessReviews() ResourceAccessReviewInterface {
+	return &FakeRootResourceAccessReviews{Fake: c}
+}
+
 func (c *Fake) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
 	return &FakeSubjectAccessReviews{Fake: c}
 }
