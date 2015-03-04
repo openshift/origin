@@ -1,6 +1,7 @@
 package rolebinding
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -121,9 +122,12 @@ func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *autho
 		return err
 	}
 
-	_, exists := policyBinding.RoleBindings[roleBinding.Name]
+	previousRoleBinding, exists := policyBinding.RoleBindings[roleBinding.Name]
 	if !exists {
 		return fmt.Errorf("roleBinding %v does not exist", roleBinding.Name)
+	}
+	if previousRoleBinding.RoleRef != roleBinding.RoleRef {
+		return errors.New("roleBinding.RoleRef may not be modified")
 	}
 
 	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
