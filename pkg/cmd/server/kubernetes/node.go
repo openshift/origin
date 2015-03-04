@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,11 +9,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
@@ -53,44 +50,6 @@ func (ce defaultCommandExecutor) LookPath(executable string) (string, error) {
 func (ce defaultCommandExecutor) Run(command string, args ...string) error {
 	c := exec.Command(command, args...)
 	return c.Run()
-}
-
-// NodeConfig represents the required parameters to start the OpenShift node
-// through Kubernetes. All fields are required.
-type NodeConfig struct {
-	// The address to bind to
-	BindHost string
-	// The name of this node that will be used to identify the node in the master.
-	// This value must match the value provided to the master on startup.
-	NodeHost string
-	// The host that the master can be reached at (not in use yet)
-	MasterHost string
-	// The directory that volumes will be stored under
-	VolumeDir string
-
-	ClusterDomain string
-	ClusterDNS    net.IP
-
-	// The image used as the Kubelet network namespace and volume container.
-	NetworkContainerImage string
-
-	// If true, the Kubelet will ignore errors from Docker
-	AllowDisabledDocker bool
-
-	// Whether to enable TLS serving
-	TLS bool
-
-	KubeletCertFile string
-	KubeletKeyFile  string
-
-	// ClientCAs will be used to request client certificates in connections to the node.
-	// This CertPool should contain all the CAs that will be used for client certificate verification.
-	ClientCAs *x509.CertPool
-
-	// A client to connect to the master.
-	Client *client.Client
-	// A client to connect to Docker
-	DockerClient dockertools.DockerInterface
 }
 
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
@@ -186,7 +145,7 @@ func (c *NodeConfig) RunKubelet() {
 	handler := kubelet.NewServer(k, true)
 
 	server := &http.Server{
-		Addr:           net.JoinHostPort(c.BindHost, strconv.Itoa(NodePort)),
+		Addr:           c.BindAddress,
 		Handler:        &handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
@@ -194,7 +153,7 @@ func (c *NodeConfig) RunKubelet() {
 	}
 
 	go util.Forever(func() {
-		glog.Infof("Started Kubelet for node %s, server at %s:%d", c.NodeHost, c.BindHost, NodePort)
+		glog.Infof("Started Kubelet for node %s, server at %s", c.NodeHost, c.BindAddress)
 		if clusterDNS != nil {
 			glog.Infof("  Kubelet is setting %s as a DNS nameserver for domain %q", clusterDNS, c.ClusterDomain)
 		}
@@ -245,9 +204,13 @@ func (c *NodeConfig) RunProxy() {
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
 
-	ip := net.ParseIP(c.BindHost)
+	host, _, err := net.SplitHostPort(c.BindAddress)
+	if err != nil {
+		glog.Fatalf("The provided value to bind to must be an ip:port %q", c.BindAddress)
+	}
+	ip := net.ParseIP(host)
 	if ip == nil {
-		glog.Fatalf("The provided value to bind to must be an IP: %q", c.BindHost)
+		glog.Fatalf("The provided value to bind to must be an ip:port: %q", c.BindAddress)
 	}
 
 	protocol := iptables.ProtocolIpv4
@@ -263,5 +226,5 @@ func (c *NodeConfig) RunProxy() {
 	}
 	serviceConfig.RegisterHandler(proxier)
 
-	glog.Infof("Started Kubernetes Proxy on %s", c.BindHost)
+	glog.Infof("Started Kubernetes Proxy on %s", host)
 }
