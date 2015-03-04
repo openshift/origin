@@ -449,6 +449,10 @@
 			"Rev": "23142f6773a676cc2cae8dd0cb90b2ea761c853f"
 		},
 		{
+			"ImportPath": "github.com/coreos/go-systemd/daemon",
+			"Rev": "2d21675230a81a503f4363f4aa3490af06d52bb8"
+		},
+		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
 			"Rev": "1aaf839fb07e099361e445273993ccd9adc21b07"
 		},

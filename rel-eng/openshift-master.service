@@ -5,7 +5,7 @@ After=network.target
 Requires=network.target
 
 [Service]
-Type=simple
+Type=notify
 EnvironmentFile=-/etc/sysconfig/openshift-master
 ExecStart=/usr/bin/openshift start $ROLE --images=${IMAGES} $OPTIONS
 WorkingDirectory=/var/lib/openshift/
