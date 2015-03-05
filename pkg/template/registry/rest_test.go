@@ -34,6 +34,25 @@ func TestNewRESTDefaultsName(t *testing.T) {
 	}
 }
 
+func TestNewRESTInvalidParameter(t *testing.T) {
+	storage := NewREST()
+	_, err := storage.Create(nil, &template.Template{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test",
+		},
+		Parameters: []template.Parameter{
+			{
+				Name:     "TEST_PARAM",
+				Generate: "[a-z0-Z0-9]{8}",
+			},
+		},
+		Objects: []runtime.Object{},
+	})
+	if err == nil {
+		t.Fatalf("Expected 'invalid parameter error', got nothing")
+	}
+}
+
 func TestNewRESTTemplateLabels(t *testing.T) {
 	testLabels := map[string]string{
 		"label1": "value1",
