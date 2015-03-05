@@ -1,17 +1,22 @@
 package builder
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
+	dockercmd "github.com/docker/docker/builder/command"
+	"github.com/docker/docker/builder/parser"
 	"github.com/fsouza/go-dockerclient"
+
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -21,9 +26,6 @@ import (
 // If fetching the URL exceeds the timeout, then the build will
 // not proceed further and stop
 const urlCheckTimeout = 16 * time.Second
-
-// imageRegex is used to substitute image names in buildconfigs with immutable image ids at build time.
-var imageRegex = regexp.MustCompile(`(?mi)^\s*FROM\s+\w+.+`)
 
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
@@ -154,7 +156,10 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 
 	var newFileData string
 	if d.build.Parameters.Strategy.DockerStrategy.Image != "" {
-		newFileData = imageRegex.ReplaceAllLiteralString(string(fileData), fmt.Sprintf("FROM %s", d.build.Parameters.Strategy.DockerStrategy.Image))
+		newFileData, err = replaceValidCmd(dockercmd.From, d.build.Parameters.Strategy.DockerStrategy.Image, fileData)
+		if err != nil {
+			return err
+		}
 	} else {
 		newFileData = newFileData + string(fileData)
 	}
@@ -169,6 +174,136 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	return nil
+}
+
+// invalidCmdErr represents an error returned from replaceValidCmd
+// when an invalid Dockerfile command has been passed to
+// replaceValidCmd
+var invalidCmdErr = errors.New("invalid Dockerfile command")
+
+// replaceCmdErr represents an error returned from replaceValidCmd
+// when a command which has more than one valid occurrences inside
+// a Dockerfile has been passed or the specified command cannot
+// be found
+var replaceCmdErr = errors.New("cannot replace given Dockerfile command")
+
+// replaceValidCmd replaces the valid occurrence of a command
+// in a Dockerfile with the given replaceArgs
+func replaceValidCmd(cmd, replaceArgs string, fileData []byte) (string, error) {
+	if _, ok := dockercmd.Commands[cmd]; !ok {
+		return "", invalidCmdErr
+	}
+	buf := bytes.NewBuffer(fileData)
+	// Parse with Docker parser
+	node, err := parser.Parse(buf)
+	if err != nil {
+		return "", errors.New("cannot parse Dockerfile: " + err.Error())
+	}
+
+	pos := traverseAST(cmd, node)
+	if pos == 0 {
+		return "", replaceCmdErr
+	}
+
+	// Re-initialize the buffer
+	buf = bytes.NewBuffer(fileData)
+	var newFileData string
+	var index int
+	var replaceNextLn bool
+	for {
+		line, err := buf.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+		line = strings.TrimSpace(line)
+
+		// The current line starts with the specified command (cmd)
+		if strings.HasPrefix(strings.ToUpper(line), strings.ToUpper(cmd)) {
+			index++
+
+			// The current line finishes on a backslash.
+			// All we need to do is replace the next line
+			// with our specified replaceArgs
+			if line[len(line)-1:] == "\\" && index == pos {
+				replaceNextLn = true
+
+				args := strings.Split(line, " ")
+				if len(args) > 2 {
+					// Keep just our Dockerfile command and the backslash
+					newFileData += args[0] + " \\" + "\n"
+				} else {
+					newFileData += line + "\n"
+				}
+				continue
+			}
+
+			// Normal ending line
+			if index == pos {
+				line = fmt.Sprintf("%s %s", strings.ToUpper(cmd), replaceArgs)
+			}
+		}
+
+		// Previous line ended on a backslash
+		// This line contains command arguments
+		if replaceNextLn {
+			if line[len(line)-1:] == "\\" {
+				// Ignore all successive lines terminating on a backslash
+				// since they all are going to be replaced by replaceArgs
+				continue
+			}
+			replaceNextLn = false
+			line = replaceArgs
+		}
+
+		if err == io.EOF {
+			// Otherwise, the new Dockerfile will have one newline
+			// more in the end
+			newFileData += line
+			break
+		}
+		newFileData += line + "\n"
+	}
+
+	// Parse output for validation
+	buf = bytes.NewBuffer([]byte(newFileData))
+	if _, err := parser.Parse(buf); err != nil {
+		return "", errors.New("cannot parse new Dockerfile: " + err.Error())
+	}
+
+	return newFileData, nil
+}
+
+// traverseAST traverses the Abstract Syntax Tree output
+// from the Docker parser and returns the valid position
+// of the command it was requested to look for.
+//
+// Note that this function is intended to be used with
+// Dockerfile commands that should be specified only once
+// in a Dockerfile (FROM, CMD, ENTRYPOINT)
+func traverseAST(cmd string, node *parser.Node) int {
+	switch cmd {
+	case dockercmd.From, dockercmd.Entrypoint, dockercmd.Cmd:
+	default:
+		return 0
+	}
+
+	index := 0
+	if node.Value == cmd {
+		index++
+	}
+	for _, n := range node.Children {
+		index += traverseAST(cmd, n)
+	}
+	if node.Next != nil {
+		for n := node.Next; n != nil; n = n.Next {
+			if len(n.Children) > 0 {
+				index += traverseAST(cmd, n)
+			} else if n.Value == cmd {
+				index++
+			}
+		}
+	}
+	return index
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
