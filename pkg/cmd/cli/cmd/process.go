@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
@@ -89,7 +90,7 @@ Examples:
 			// If 'parameters' flag is set it does not do processing but only print
 			// the template parameters to console for inspection.
 			if cmdutil.GetFlagBool(cmd, "parameters") == true {
-				err = printer.PrintObj(templateObj, out)
+				err = describe.PrintTemplateParameters(templateObj.Parameters, out)
 				checkErr(err)
 				return
 			}
