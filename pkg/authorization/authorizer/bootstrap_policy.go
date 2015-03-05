@@ -40,11 +40,11 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
+						Verbs:     util.NewStringSet("get", "list", "watch", "redirect", "create", "update", "delete"),
 						Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName),
 					},
 					{
-						Verbs:     util.NewStringSet("get", "list", "watch"),
+						Verbs:     util.NewStringSet("get", "list", "watch", "redirect"),
 						Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName),
 					},
 				},
@@ -56,11 +56,11 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
+						Verbs:     util.NewStringSet("get", "list", "watch", "redirect", "create", "update", "delete"),
 						Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName),
 					},
 					{
-						Verbs:     util.NewStringSet("get", "list", "watch"),
+						Verbs:     util.NewStringSet("get", "list", "watch", "redirect"),
 						Resources: util.NewStringSet(authorizationapi.KubeAllGroupName),
 					},
 				},
@@ -72,7 +72,7 @@ func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
 				},
 				Rules: []authorizationapi.PolicyRule{
 					{
-						Verbs:     util.NewStringSet("get", "list", "watch"),
+						Verbs:     util.NewStringSet("get", "list", "watch", "redirect"),
 						Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName),
 					},
 				},
