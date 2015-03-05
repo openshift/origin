@@ -78,6 +78,50 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 	// }
 }
 
+func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
+	startConfig, err := StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	openshiftClient, _, err := startConfig.GetOpenshiftClient()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	addValerie := &policy.AddUserOptions{
+		RoleNamespace:    "master",
+		RoleName:         "view",
+		BindingNamespace: "master",
+		Client:           openshiftClient,
+		Users:            []string{"anypassword:valerie"},
+	}
+	if err := addValerie.Run(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err = openshiftClient.Roles("master").Delete("view"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	addEdgar := &policy.AddUserOptions{
+		RoleNamespace:    "master",
+		RoleName:         "edit",
+		BindingNamespace: "master",
+		Client:           openshiftClient,
+		Users:            []string{"anypassword:edgar"},
+	}
+	if err := addEdgar.Run(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// try to add Valerie to a non-existent role
+	if err := addValerie.Run(); err == nil || err.Error() != "role view not found" {
+		t.Errorf("expected error %v, got %v", "role view not found", err)
+	}
+
+}
+
 // TODO this list should start collapsing as we continue to tighten access on generated system ids
 var globalClusterAdminUsers = util.NewStringSet("system:kube-client", "system:openshift-client", "system:openshift-deployer")
 var globalClusterAdminGroups = util.NewStringSet("system:cluster-admins")

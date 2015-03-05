@@ -42,7 +42,6 @@ type BindingLister interface {
 	ListPolicyBindings(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.PolicyBindingList, error)
 }
 
-// getPolicy provides a point for easy caching
 func (a *DefaultRuleResolver) getPolicy(ctx kapi.Context) (*authorizationapi.Policy, error) {
 	policy, err := a.policyGetter.GetPolicy(ctx, authorizationapi.PolicyName)
 	if err != nil && !strings.Contains(err.Error(), "not found") {
@@ -52,7 +51,6 @@ func (a *DefaultRuleResolver) getPolicy(ctx kapi.Context) (*authorizationapi.Pol
 	return policy, nil
 }
 
-// getPolicyBindings provides a point for easy caching
 func (a *DefaultRuleResolver) getPolicyBindings(ctx kapi.Context) ([]authorizationapi.PolicyBinding, error) {
 	policyBindingList, err := a.bindingLister.ListPolicyBindings(ctx, klabels.Everything(), klabels.Everything())
 	if err != nil {
@@ -62,7 +60,6 @@ func (a *DefaultRuleResolver) getPolicyBindings(ctx kapi.Context) ([]authorizati
 	return policyBindingList.Items, nil
 }
 
-// getRoleBindings provides a point for easy caching
 func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]authorizationapi.RoleBinding, error) {
 	policyBindings, err := a.getPolicyBindings(ctx)
 	if err != nil {
@@ -105,10 +102,18 @@ func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([]autho
 	if err != nil {
 		return nil, err
 	}
+	user, exists := kapi.UserFrom(ctx)
+	if !exists {
+		return nil, errors.New("user missing from context")
+	}
 
 	errs := []error{}
 	rules := make([]authorizationapi.PolicyRule, 0, len(roleBindings))
 	for _, roleBinding := range roleBindings {
+		if !appliesToUser(roleBinding.Users, roleBinding.Groups, user) {
+			continue
+		}
+
 		role, err := a.GetRole(roleBinding)
 		if err != nil {
 			errs = append(errs, err)
@@ -116,21 +121,13 @@ func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([]autho
 		}
 
 		for _, curr := range role.Rules {
-			user, exists := kapi.UserFrom(ctx)
-			if !exists {
-				errs = append(errs, errors.New("user missing from context"))
-			}
-
-			if doesApplyToUser(roleBinding.Users, roleBinding.Groups, user) {
-				rules = append(rules, curr)
-			}
+			rules = append(rules, curr)
 		}
 	}
 
 	return rules, kerrors.NewAggregate(errs)
 }
-
-func doesApplyToUser(ruleUsers, ruleGroups util.StringSet, user user.Info) bool {
+func appliesToUser(ruleUsers, ruleGroups util.StringSet, user user.Info) bool {
 	if ruleUsers.Has(user.GetName()) {
 		return true
 	}
