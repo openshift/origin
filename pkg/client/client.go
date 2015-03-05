@@ -132,6 +132,10 @@ func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInter
 	return newSubjectAccessReviews(c, namespace)
 }
 
+func (c *Client) RootSubjectAccessReviews() SubjectAccessReviewInterface {
+	return newRootSubjectAccessReviews(c)
+}
+
 // Client is an OpenShift client object
 type Client struct {
 	*kclient.RESTClient

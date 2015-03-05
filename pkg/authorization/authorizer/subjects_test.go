@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -19,8 +20,8 @@ type subjectsTest struct {
 	context    kapi.Context
 	attributes *DefaultAuthorizationAttributes
 
-	expectedUsers  []string
-	expectedGroups []string
+	expectedUsers  util.StringSet
+	expectedGroups util.StringSet
 	expectedError  string
 }
 
@@ -31,8 +32,8 @@ func TestSubjects(t *testing.T) {
 			Verb:     "get",
 			Resource: "pods",
 		},
-		expectedUsers:  []string{"Anna", "ClusterAdmin", "Ellen", "Valerie", "system:kube-client", "system:openshift-client", "system:openshift-deployer"},
-		expectedGroups: []string{"RootUsers", "system:cluster-admins"},
+		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:kube-client", "system:openshift-client", "system:openshift-deployer"),
+		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins"),
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -49,7 +50,7 @@ func (test *subjectsTest) test(t *testing.T) {
 
 	actualUsers, actualGroups, actualError := authorizer.GetAllowedSubjects(test.context, *test.attributes)
 
-	matchStringSlice(test.expectedUsers, actualUsers, "users", t)
-	matchStringSlice(test.expectedGroups, actualGroups, "groups", t)
+	matchStringSlice(test.expectedUsers.List(), actualUsers.List(), "users", t)
+	matchStringSlice(test.expectedGroups.List(), actualGroups.List(), "groups", t)
 	matchError(test.expectedError, actualError, "error", t)
 }

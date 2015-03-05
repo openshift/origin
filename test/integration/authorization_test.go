@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/experimental/policy"
 )
 
@@ -126,6 +127,33 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 var globalClusterAdminUsers = util.NewStringSet("system:kube-client", "system:openshift-client", "system:openshift-deployer")
 var globalClusterAdminGroups = util.NewStringSet("system:cluster-admins")
 
+type resourceAccessReviewTest struct {
+	clientInterface client.ResourceAccessReviewInterface
+	review          *authorizationapi.ResourceAccessReview
+
+	response authorizationapi.ResourceAccessReviewResponse
+	err      string
+}
+
+func (test resourceAccessReviewTest) run(t *testing.T) {
+	actualResponse, err := test.clientInterface.Create(test.review)
+	if len(test.err) > 0 {
+		if err == nil {
+			t.Errorf("Expected error: %v", test.err)
+		} else if !strings.Contains(err.Error(), test.err) {
+			t.Errorf("expected %v, got %v", test.err, err)
+		}
+	} else {
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	if reflect.DeepEqual(actualResponse, test.response) {
+		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
+	}
+}
+
 func TestResourceAccessReview(t *testing.T) {
 	startConfig, err := StartTestMaster()
 	if err != nil {
@@ -170,55 +198,208 @@ func TestResourceAccessReview(t *testing.T) {
 
 	requestWhoCanViewDeployments := &authorizationapi.ResourceAccessReview{Verb: "get", Resource: "deployments"}
 
-	whoCanViewDeploymentInHammer, err := haroldClient.ResourceAccessReviews("hammer-project").Create(requestWhoCanViewDeployments)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+	{
+		test := resourceAccessReviewTest{
+			clientInterface: haroldClient.ResourceAccessReviews("hammer-project"),
+			review:          requestWhoCanViewDeployments,
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:     util.NewStringSet("anypassword:harold", "anypassword:valerie"),
+				Groups:    globalClusterAdminGroups,
+				Namespace: "hammer-project",
+			},
+		}
+		test.response.Users.Insert(globalClusterAdminUsers.List()...)
+		test.run(t)
 	}
-	expectedHammerUsers := util.NewStringSet("anypassword:harold", "anypassword:valerie")
-	expectedHammerUsers.Insert(globalClusterAdminUsers.List()...)
-	expectedHammerGroups := globalClusterAdminGroups
-	actualHammerUsers := util.NewStringSet(whoCanViewDeploymentInHammer.Users...)
-	actualHammerGroups := util.NewStringSet(whoCanViewDeploymentInHammer.Groups...)
-	if !reflect.DeepEqual(expectedHammerGroups.List(), actualHammerGroups.List()) {
-		t.Errorf("expected %v, got %v", expectedHammerGroups.List(), actualHammerGroups.List())
-	}
-	if !reflect.DeepEqual(expectedHammerUsers.List(), actualHammerUsers.List()) {
-		t.Errorf("expected %v, got %v", expectedHammerUsers.List(), actualHammerUsers.List())
-	}
-
-	whoCanViewDeploymentInMallet, err := markClient.ResourceAccessReviews("mallet-project").Create(requestWhoCanViewDeployments)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	expectedMalletUsers := util.NewStringSet("anypassword:mark", "anypassword:edgar")
-	expectedMalletUsers.Insert(globalClusterAdminUsers.List()...)
-	expectedMalletGroups := globalClusterAdminGroups
-	actualMalletUsers := util.NewStringSet(whoCanViewDeploymentInMallet.Users...)
-	actualMalletGroups := util.NewStringSet(whoCanViewDeploymentInMallet.Groups...)
-	if !reflect.DeepEqual(expectedMalletGroups.List(), actualMalletGroups.List()) {
-		t.Errorf("expected %v, got %v", expectedMalletGroups.List(), actualMalletGroups.List())
-	}
-	if !reflect.DeepEqual(expectedMalletUsers.List(), actualMalletUsers.List()) {
-		t.Errorf("expected %v, got %v", expectedMalletUsers.List(), actualMalletUsers.List())
+	{
+		test := resourceAccessReviewTest{
+			clientInterface: markClient.ResourceAccessReviews("mallet-project"),
+			review:          requestWhoCanViewDeployments,
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:     util.NewStringSet("anypassword:mark", "anypassword:edgar"),
+				Groups:    globalClusterAdminGroups,
+				Namespace: "mallet-project",
+			},
+		}
+		test.response.Users.Insert(globalClusterAdminUsers.List()...)
+		test.run(t)
 	}
 
 	// mark should not be able to make global access review requests
-	_, err = markClient.RootResourceAccessReviews().Create(requestWhoCanViewDeployments)
-	if (err == nil) || (!strings.Contains(err.Error(), "Forbidden")) {
-		t.Errorf("expected forbidden error, but didn't get one")
+	{
+		test := resourceAccessReviewTest{
+			clientInterface: markClient.RootResourceAccessReviews(),
+			review:          requestWhoCanViewDeployments,
+			err:             "Forbidden",
+		}
+		test.run(t)
 	}
 
 	// a cluster-admin should be able to make global access review requests
-	whoCanViewDeploymentInAnyNamespace, err := openshiftClient.RootResourceAccessReviews().Create(requestWhoCanViewDeployments)
+	{
+		test := resourceAccessReviewTest{
+			clientInterface: openshiftClient.RootResourceAccessReviews(),
+			review:          requestWhoCanViewDeployments,
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:  globalClusterAdminUsers,
+				Groups: globalClusterAdminGroups,
+			},
+		}
+		test.run(t)
+	}
+}
+
+type subjectAccessReviewTest struct {
+	clientInterface client.SubjectAccessReviewInterface
+	review          *authorizationapi.SubjectAccessReview
+
+	response authorizationapi.SubjectAccessReviewResponse
+	err      string
+}
+
+func (test subjectAccessReviewTest) run(t *testing.T) {
+	actualResponse, err := test.clientInterface.Create(test.review)
+	if len(test.err) > 0 {
+		if err == nil {
+			t.Errorf("Expected error: %v", test.err)
+		} else if !strings.Contains(err.Error(), test.err) {
+			t.Errorf("expected %v, got %v", test.err, err)
+		}
+	} else {
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	if reflect.DeepEqual(actualResponse, test.response) {
+		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
+	}
+}
+
+func TestSubjectAccessReview(t *testing.T) {
+	startConfig, err := StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	openshiftClient, openshiftClientConfig, err := startConfig.GetOpenshiftClient()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	actualAnyUsers := util.NewStringSet(whoCanViewDeploymentInAnyNamespace.Users...)
-	actualAnyGroups := util.NewStringSet(whoCanViewDeploymentInAnyNamespace.Groups...)
-	if !reflect.DeepEqual(globalClusterAdminGroups.List(), actualAnyGroups.List()) {
-		t.Errorf("expected %v, got %v", globalClusterAdminGroups.List(), actualAnyGroups.List())
+
+	haroldClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "hammer-project", "harold")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(globalClusterAdminUsers.List(), actualAnyUsers.List()) {
-		t.Errorf("expected %v, got %v", globalClusterAdminUsers.List(), actualAnyUsers.List())
+	markClient, err := CreateNewProject(openshiftClient, *openshiftClientConfig, "mallet-project", "mark")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
+
+	addValerie := &policy.AddUserOptions{
+		RoleNamespace:    "master",
+		RoleName:         "view",
+		BindingNamespace: "hammer-project",
+		Client:           haroldClient,
+		Users:            []string{"anypassword:valerie"},
+	}
+	if err := addValerie.Run(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	addEdgar := &policy.AddUserOptions{
+		RoleNamespace:    "master",
+		RoleName:         "edit",
+		BindingNamespace: "mallet-project",
+		Client:           markClient,
+		Users:            []string{"anypassword:edgar"},
+	}
+	if err := addEdgar.Run(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	askCanValerieGetProject := &authorizationapi.SubjectAccessReview{User: "anypassword:valerie", Verb: "get", Resource: "projects"}
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
+		review:          askCanValerieGetProject,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in hammer-project",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		clientInterface: markClient.SubjectAccessReviews("mallet-project"),
+		review:          askCanValerieGetProject,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    "denied by default",
+			Namespace: "mallet-project",
+		},
+	}.run(t)
+
+	askCanEdgarDeletePods := &authorizationapi.SubjectAccessReview{User: "anypassword:edgar", Verb: "delete", Resource: "pods"}
+	subjectAccessReviewTest{
+		clientInterface: markClient.SubjectAccessReviews("mallet-project"),
+		review:          askCanEdgarDeletePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in mallet-project",
+			Namespace: "mallet-project",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.SubjectAccessReviews("mallet-project"),
+		review:          askCanEdgarDeletePods,
+		err:             "Forbidden",
+	}.run(t)
+
+	askCanHaroldUpdateProject := &authorizationapi.SubjectAccessReview{User: "anypassword:harold", Verb: "update", Resource: "projects"}
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
+		review:          askCanHaroldUpdateProject,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in hammer-project",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+
+	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{Groups: util.NewStringSet("system:cluster-admins"), Verb: "create", Resource: "projects"}
+	subjectAccessReviewTest{
+		clientInterface: openshiftClient.RootSubjectAccessReviews(),
+		review:          askCanClusterAdminsCreateProject,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "",
+			Namespace: "",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.RootSubjectAccessReviews(),
+		review:          askCanClusterAdminsCreateProject,
+		err:             "Forbidden",
+	}.run(t)
+
+	askCanICreatePods := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "projects"}
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
+		review:          askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in hammer-project",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+	askCanICreatePolicyBindings := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "policybindings"}
+	subjectAccessReviewTest{
+		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
+		review:          askCanICreatePolicyBindings,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    "denied by default",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+
 }

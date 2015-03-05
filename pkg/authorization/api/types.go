@@ -145,9 +145,9 @@ type ResourceAccessReviewResponse struct {
 	// Namespace is the namespace used for the access review
 	Namespace string
 	// Users is the list of users who can perform the action
-	Users []string
+	Users kutil.StringSet
 	// Groups is the list of groups who can perform the action
-	Groups []string
+	Groups kutil.StringSet
 }
 
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
@@ -188,7 +188,7 @@ type SubjectAccessReview struct {
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	Groups []string
+	Groups kutil.StringSet
 	// Content is the actual content of the request for create and update
 	Content kruntime.EmbeddedObject
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"

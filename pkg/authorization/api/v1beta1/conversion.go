@@ -12,6 +12,44 @@ import (
 
 func init() {
 	err := api.Scheme.AddConversionFuncs(
+		func(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+
+			out.Groups = util.NewStringSet(in.GroupsSlice...)
+
+			return nil
+		},
+		func(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+
+			out.GroupsSlice = in.Groups.List()
+
+			return nil
+		},
+		func(in *ResourceAccessReviewResponse, out *newer.ResourceAccessReviewResponse, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+
+			out.Users = util.NewStringSet(in.UsersSlice...)
+			out.Groups = util.NewStringSet(in.GroupsSlice...)
+
+			return nil
+		},
+		func(in *newer.ResourceAccessReviewResponse, out *ResourceAccessReviewResponse, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+
+			out.UsersSlice = in.Users.List()
+			out.GroupsSlice = in.Groups.List()
+
+			return nil
+		},
 		func(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
 			if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
 				return err

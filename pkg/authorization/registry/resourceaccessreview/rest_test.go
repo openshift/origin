@@ -28,7 +28,7 @@ type testAuthorizer struct {
 func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
 	return false, "", errors.New("unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) ([]string, []string, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
 	attributes, ok := passedAttributes.(*authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return nil, nil, errors.New("unexpected type for test")
@@ -36,9 +36,9 @@ func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes a
 
 	a.actualAttributes = attributes
 	if len(a.err) == 0 {
-		return a.users.List(), a.groups.List(), nil
+		return a.users, a.groups, nil
 	}
-	return a.users.List(), a.groups.List(), errors.New(a.err)
+	return a.users, a.groups, errors.New(a.err)
 }
 
 func TestEmptyReturn(t *testing.T) {
@@ -94,8 +94,8 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 
 	expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: namespace,
-		Users:     r.authorizer.users.List(),
-		Groups:    r.authorizer.groups.List(),
+		Users:     r.authorizer.users,
+		Groups:    r.authorizer.groups,
 	}
 
 	expectedAttributes := &authorizer.DefaultAuthorizationAttributes{

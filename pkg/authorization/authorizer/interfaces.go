@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 type Authorizer interface {
 	Authorize(ctx kapi.Context, a AuthorizationAttributes) (allowed bool, reason string, err error)
-	GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) ([]string, []string, error)
+	GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (util.StringSet, util.StringSet, error)
 }
 
 type AuthorizationAttributeBuilder interface {
