@@ -1,9 +1,8 @@
 
 .pod {
   padding: 10px;  
-  border-radius: 20px;
+  border-radius: 10px;
   margin-bottom: 5px;
-  margin-right: 5px;
   display: inline-block;  
   background-color: rgba(204, 204, 204, 0.15);
   border: 1px solid rgba(170, 170, 170, 0.15);
@@ -12,6 +11,9 @@
     background-color: rgba(117, 198, 247, 0.15);
     border: 1px solid rgba(66, 147, 196, 0.15);
   }
+}
+.pod + .pod {
+  margin-left: 5px;
 }
 
 .service {
@@ -30,10 +32,10 @@
 
 .pod-template {
   text-align: left;
-  padding: 10px;
+  padding: 5px 10px;
   border: solid 1px #ddd;
   display: inline-block;
-  border-radius: 20px; 
+  border-radius: 10px; 
   margin-bottom: 10px;
 
   .pod-template-container {
@@ -43,8 +45,8 @@
 
   .pod-template-image {
     border: 1px dashed #ddd;
-    border-radius: 20px;
-    padding: 10px;
+    border-radius: 3px;
+    padding: 0px 10px 5px;
   }
 }
 
