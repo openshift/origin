@@ -1,13 +1,13 @@
 osc command line interface
 ==============================
 
-The `osc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s).
+The `osc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `osc` is an alias for `openshift cli`.
 
-osc is *verb focused*. The base verbs are *get*, *create*, *delete*,
-*update* and *describe*. These verbs can be used to manage both Kubernetes and
+`osc` is *verb focused*. The base verbs are *[get](#osc-get)*, *[create](#osc-create)*, *[delete](#osc-delete)*,
+*[update](#osc-update)*, and *[describe](#osc-describe)*. These verbs can be used to manage both Kubernetes and
 OpenShift resources.
 
-Some verbs support `-f` flag, which accepts regular file path, URL or '-' for
+Some verbs support the `-f` flag, which accepts regular file path, URL or '-' for
 the standard input. For most actions, both JSON and YAML file formats are
 supported.
 
@@ -34,11 +34,11 @@ osc get
 
 This command can be used for displaying one or many resources. Possible
 resources are all OpenShift resources (builds, buildConfigs, deployments,
-deploymentConfigs, images, imageRepositories, routes, projects and others) and
+deploymentConfigs, images, imageRepositories, routes, projects, and others) and
 all Kubernetes resources (pods, replicationControllers, services, minions,
 events).
 
-### Example Usage
+#### Examples
 
 ```
 $ osc get pods
@@ -47,13 +47,12 @@ $ osc get service database
 $ osc get -f json pods
 ```
 
-### Output formatting
+#### Output formatting
 
-You can control the output format by using the `-o format` flag for `get`.
-By default, `cli` uses human-friendly printer format for console.
-
-You can control what API version will be used to print the resource by using the
-`--output-version` flag. By default it uses the latest API version.
+You can control the output format by using the `-o format` flag. By default, 
+`osc` uses human-friendly printer format for console. You can also 
+control what API version will be used to print the resource by using the
+`--output-version` flag. By default, it uses the latest API version.
 
 Available formats include:
 
@@ -61,19 +60,23 @@ Available formats include:
 |:-------------|:------------------------------------------------------|
 | json         | Pretty formated JSON format |
 | yaml         | [YAML](http://www.yaml.org/) format |
-| template     | User defined [Go template](http://golang.org/pkg/text/template) (combined with the `-t` flag |
+| template     | User defined [Go template](http://golang.org/pkg/text/template) (combined with the `-t` flag) |
 | templatefile | Same as above, but use the template file instead of `-t` |
 
 An example of using `-o template` to retrieve the *name* of the first build:
 
-`$ osc get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+```
+$ osc get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"
+```
 
-### Selectors
+#### Selectors
 
-osc `get` provides also 'selectors' that you can use to filter the output
+`osc get` provides also *selectors* that you can use to filter the output
 by applying key-value pairs that will be matched with the resource labels:
 
-`$ osc get pods -s template=production`
+```
+$ osc get pods -s template=production
+```
 
 This command will return only pods whose `labels` include `"template": "production"`
 
@@ -84,7 +87,7 @@ This command can be used to create resources. It does not require pointers about
 what resource it should create because it reads it from the provided JSON/YAML.
 After successful creation, the resource name will be printed to the console.
 
-### Example Usage
+#### Examples
 
 ```
 $ osc create -f pod.json
@@ -97,7 +100,7 @@ osc update
 
 This command can be used to update existing resources.
 
-### Example Usage
+#### Examples
 
 ```
 $ osc update -f pod.json
@@ -108,9 +111,9 @@ $ osc update -f http://server/pod.json
 osc delete
 --------------
 
-This command deletes the resource.
+This command deletes a specified resource.
 
-### Example Usage
+#### Examples
 
 ```
 $ osc delete -f pod.json
@@ -120,22 +123,25 @@ $ osc delete pod 1234-56-7890-234234-456456
 osc describe
 ----------------
 
-The `describe` command is a wordier version of `get` which also integrates other
+This command is a wordier version of `osc get` which also integrates other
 information that's related to a given resource.
 
-### Example Usage
+#### Examples
 
-`$ osc describe service frontend`
+```
+$ osc describe service frontend
+```
 
 osc namespace
 -----------------
 
-You can use this command to set the default namespace used for all osc
-commands.
+This command sets the default namespace used for all `osc` commands.
 
-### Example Usage
+#### Examples
 
-`$ osc namespace myuser`
+```
+$ osc namespace myuser
+```
 
 osc log
 ------------
@@ -143,11 +149,15 @@ osc log
 This command dumps the logs from a given Pod container. You can list the
 containers from a Pod using the following command:
 
-`$ osc get -o yaml pod POD_ID`
+```
+$ osc get -o yaml pod POD_ID
+```
 
-### Example Usage
+#### Examples
 
-`$ osc log frontend-pod mysql-container`
+```
+$ osc log frontend-pod mysql-container
+```
 
 osc process
 ---------------
@@ -157,24 +167,43 @@ will take care of generating values for parameters specified in the Template and
 substituting the values in the corresponding places. An example Template can be
 found in [examples/sample-app/application-template-stibuild.json](https://github.com/openshift/origin/blob/master/examples/sample-app/application-template-stibuild.json).
 
-### Example Usage
+#### Examples
 
 ```
 $ osc process -f examples/sample-app/application-template-stibuild.json > config.json
 $ osc process -f template.json | osc create -f -
 ```
 
+osc start-build
+------------------
+
+This command will manually start a build by specifying either a buildConfig or
+a build name with the `--from-build` flag. There is also the option of streaming 
+the logs of the build if the `--follow` flag is specified.
+
+#### Examples
+
+```
+$ osc start-build ruby-sample-build
+$ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9
+$ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9 --follow 
+```
+
 osc build-logs
 ------------------
 
-> **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubectl.md#log)).
+> **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubectl-log.md#kubectl-log)).
 
 This command will retrieve the logs from a Build container. It allows you to
 debug broken Build. If the build is still running, this command can stream the
 logs from the container to console. You can obtain a list of builds by using:
 
-`$ osc get builds`
+```
+$ osc get builds
+```
 
-### Example Usage
+#### Examples
 
-`$ osc build-logs rubyapp-build`
+```
+$ osc build-logs rubyapp-build
+```
