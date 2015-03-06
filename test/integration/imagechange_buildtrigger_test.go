@@ -38,37 +38,68 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	if imageRepo, err = openshift.Client.ImageRepositories(testNamespace).Create(imageRepo); err != nil {
-		t.Fatalf("Couldn't create ImageRepository: %v", err)
-	}
-
 	created, err := openshift.Client.BuildConfigs(testNamespace).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
-
 	watch2, err := openshift.Client.BuildConfigs(testNamespace).Watch(labels.Everything(), labels.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
 	defer watch2.Stop()
 
-	imageRepo.Tags["latest"] = "ref-2"
-
-	if _, err = openshift.Client.ImageRepositories(testNamespace).Update(imageRepo); err != nil {
-		t.Fatalf("Error updating imageRepo: %v", err)
+	imageRepo, err = openshift.Client.ImageRepositories(testNamespace).Create(imageRepo)
+	if err != nil {
+		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
+	// initial build event from the creation of the imagerepo with tag ref-1
 	event := <-watch.ResultChan()
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild := event.Object.(*buildapi.Build)
-
-	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-2" {
-		t.Fatalf("Expected build with base image %s, got %s", "registry:8080/openshift/test-image-trigger:ref-2", newBuild.Parameters.Strategy.DockerStrategy.Image)
+	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-1" {
+		i, _ := openshift.Client.ImageRepositories(testNamespace).Get(imageRepo.Name)
+		bc, _ := openshift.Client.BuildConfigs(testNamespace).Get(config.Name)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-1", newBuild.Parameters.Strategy.DockerStrategy.Image, i, bc.Triggers[0].ImageChange)
+	}
+	event = <-watch.ResultChan()
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild = event.Object.(*buildapi.Build)
+	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger:outputtag" {
+		t.Fatalf("Expected build with output image %s, got %s", "registry:8080/openshift/test-image-trigger:outputtag", newBuild.Parameters.Output.DockerImageReference)
+	}
+	if newBuild.Labels["testlabel"] != "testvalue" {
+		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
+	}
+	event = <-watch2.ResultChan()
+	updatedConfig, err := openshift.Client.BuildConfigs(testNamespace).Get(config.Name)
+	if err != nil {
+		t.Fatalf("Couldn't get BuildConfig: %v", err)
+	}
+	if updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID != "ref-1" {
+		t.Errorf("Expected imageID ref-1, got %s", updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID)
 	}
 
+	// update the image tag to ref-2 in the imagerepo so we get another build event using that tag.
+	imageRepo.Tags["latest"] = "ref-2"
+	if _, err = openshift.Client.ImageRepositories(testNamespace).Update(imageRepo); err != nil {
+		t.Fatalf("Error updating imageRepo: %v", err)
+	}
+
+	event = <-watch.ResultChan()
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild = event.Object.(*buildapi.Build)
+	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-2" {
+		i, _ := openshift.Client.ImageRepositories(testNamespace).Get(imageRepo.Name)
+		bc, _ := openshift.Client.BuildConfigs(testNamespace).Get(config.Name)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2", newBuild.Parameters.Strategy.DockerStrategy.Image, i, bc.Triggers[0].ImageChange)
+	}
 	event = <-watch.ResultChan()
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -82,9 +113,7 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 
 	event = <-watch2.ResultChan()
-	event = <-watch2.ResultChan()
-
-	updatedConfig, err := openshift.Client.BuildConfigs(testNamespace).Get(config.Name)
+	updatedConfig, err = openshift.Client.BuildConfigs(testNamespace).Get(config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
