@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -28,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/auth/authenticator/token/filetoken"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
@@ -195,6 +197,9 @@ type AuthConfig struct {
 
 	// RequestHeaders lists the headers to check (in order) for a username. Used by AuthRequestHandlerRequestHeader
 	RequestHeaders []string
+	// RequestHeaderCAFile specifies the path to a PEM-encoded certificate bundle.
+	// If set, a client certificate must be presented and validate against the CA before the request headers are checked for usernames
+	RequestHeaderCAFile string
 
 	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
 	SessionSecrets []string
@@ -552,6 +557,21 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 			UserNameHeaders: c.RequestHeaders,
 		}
 		authRequestHandler = headerrequest.NewAuthenticator(authRequestConfig, identityMapper)
+
+		// Wrap with an x509 verifier
+		if len(c.RequestHeaderCAFile) > 0 {
+			caData, err := ioutil.ReadFile(c.RequestHeaderCAFile)
+			if err != nil {
+				glog.Fatalf("Error reading %s: %v", c.RequestHeaderCAFile, err)
+			}
+			opts := x509request.DefaultVerifyOptions()
+			opts.Roots = x509.NewCertPool()
+			if ok := opts.Roots.AppendCertsFromPEM(caData); !ok {
+				glog.Fatalf("Error loading certs from %s: %v", c.RequestHeaderCAFile, err)
+			}
+
+			authRequestHandler = x509request.NewVerifier(opts, authRequestHandler)
+		}
 	case AuthRequestHandlerBasicAuth:
 		passwordAuthenticator := c.getPasswordAuthenticator()
 		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true)
