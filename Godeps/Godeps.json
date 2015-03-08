@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/openshift/origin",
-	"GoVersion": "go1.4.1",
+	"GoVersion": "go1.3.3",
 	"Packages": [
 		"./..."
 	],
@@ -457,12 +457,12 @@
 			"Rev": "1aaf839fb07e099361e445273993ccd9adc21b07"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/builder/parser",
+			"ImportPath": "github.com/docker/docker/builder/command",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/builder/command",
+			"ImportPath": "github.com/docker/docker/builder/parser",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
@@ -477,22 +477,7 @@
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/homedir",
-			"Comment": "v1.4.1-656-g2115131",
-			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/httputils",
-			"Comment": "v1.4.1-656-g2115131",
-			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/ioutils",
-			"Comment": "v1.4.1-656-g2115131",
-			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/mflag",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
@@ -512,27 +497,12 @@
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/tarsum",
-			"Comment": "v1.4.1-656-g2115131",
-			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/term",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/timeutils",
-			"Comment": "v1.4.1-656-g2115131",
-			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/units",
-			"Comment": "v1.4.1-656-g2115131",
-			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/utils",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
@@ -596,10 +566,6 @@
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "a8662172a384296ff59d28f837e151643c662985"
-		},
-		{
-			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "9b36453141c35697401168b07f2c09fcff7721ce"
 		},
 		{
 			"ImportPath": "github.com/gorilla/securecookie",
@@ -705,10 +671,6 @@
 		{
 			"ImportPath": "github.com/prometheus/procfs",
 			"Rev": "92faa308558161acab0ada1db048e9996ecec160"
-		},
-		{
-			"ImportPath": "github.com/smarterclayton/go-dockerregistryclient",
-			"Rev": "3b6185cb3ac3811057e317dcff91f36eef17b8b0"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
