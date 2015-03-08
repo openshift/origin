@@ -27,6 +27,7 @@ import (
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/kubelet/app"
 	"github.com/openshift/origin/pkg/service"
@@ -66,6 +67,9 @@ type NodeConfig struct {
 	MasterHost string
 	// The directory that volumes will be stored under
 	VolumeDir string
+
+	ClusterDomain string
+	ClusterDNS    net.IP
 
 	// The image used as the Kubelet network namespace and volume container.
 	NetworkContainerImage string
@@ -139,6 +143,17 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
+	// TODO: clean this up and make it more formal (service named 'dns'?). Use multiple ports.
+	clusterDNS := c.ClusterDNS
+	if clusterDNS == nil {
+		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil && len(service.Endpoints) > 0 {
+			firstIP := service.Endpoints[0].IP
+			if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", firstIP, 53), 50*time.Millisecond, 0, 2); err == nil {
+				clusterDNS = net.ParseIP(firstIP)
+			}
+		}
+	}
+
 	// initialize Kubelet
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
@@ -158,8 +173,8 @@ func (c *NodeConfig) RunKubelet() {
 		1*time.Second,
 		5,
 		cfg.IsSourceSeen,
-		"",
-		nil,
+		c.ClusterDomain,
+		clusterDNS,
 		kapi.NamespaceDefault,
 		app.ProbeVolumePlugins(),
 		5*time.Minute)
@@ -180,6 +195,9 @@ func (c *NodeConfig) RunKubelet() {
 
 	go util.Forever(func() {
 		glog.Infof("Started Kubelet for node %s, server at %s:%d", c.NodeHost, c.BindHost, NodePort)
+		if clusterDNS != nil {
+			glog.Infof("  Kubelet is setting %s as a DNS nameserver for domain %q", clusterDNS, c.ClusterDomain)
+		}
 
 		if c.TLS {
 			server.TLSConfig = &tls.Config{

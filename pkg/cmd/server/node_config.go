@@ -1,7 +1,7 @@
 package server
 
 import (
-	_ "net/http/pprof"
+	"net"
 
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 )
@@ -16,6 +16,12 @@ func (cfg Config) BuildKubernetesNodeConfig() (*kubernetes.NodeConfig, error) {
 		return nil, err
 	}
 
+	dnsDomain := env("OPENSHIFT_DNS_DOMAIN", "local")
+	dnsIP := cfg.ClusterDNS
+	if clusterDNS := env("OPENSHIFT_DNS_ADDR", ""); len(clusterDNS) > 0 {
+		dnsIP = net.ParseIP(clusterDNS)
+	}
+
 	// define a function for resolving components to names
 	imageResolverFn := cfg.ImageTemplate.ExpandOrDie
 
@@ -23,6 +29,9 @@ func (cfg Config) BuildKubernetesNodeConfig() (*kubernetes.NodeConfig, error) {
 		BindHost:   cfg.BindAddr.Host,
 		NodeHost:   cfg.Hostname,
 		MasterHost: kubernetesAddr.String(),
+
+		ClusterDomain: dnsDomain,
+		ClusterDNS:    dnsIP,
 
 		VolumeDir: cfg.VolumeDir,
 

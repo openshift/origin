@@ -51,6 +51,7 @@ import (
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
+	"github.com/openshift/origin/pkg/dns"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/etcd"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
@@ -121,6 +122,13 @@ func (c *MasterConfig) PolicyClient() *osclient.Client {
 
 // DeploymentClient returns the deployment client object
 func (c *MasterConfig) DeploymentClient() *kclient.Client {
+	return c.MasterConfigParameters.KubeClient
+}
+
+// DNSServerClient returns the DNS server client object
+// It must have the following capabilities:
+//   list, watch all services in all namespaces
+func (c *MasterConfig) DNSServerClient() *kclient.Client {
 	return c.MasterConfigParameters.KubeClient
 }
 
@@ -562,6 +570,22 @@ func (c *MasterConfig) RunAssetServer() {
 	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.AssetBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	glog.Infof("OpenShift UI available at %s", c.AssetPublicAddr)
+}
+
+func (c *MasterConfig) RunDNSServer() {
+	config, err := dns.NewServerDefaults()
+	if err != nil {
+		glog.Fatalf("Could not start DNS: %v", err)
+	}
+	config.DnsAddr = c.DNSBindAddr
+	go func() {
+		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdHelper.Client.(*etcdclient.Client))
+		glog.Fatalf("Could not start DNS: %v", err)
+	}()
+
+	cmdutil.WaitForSuccessfulDial(false, "tcp", c.DNSBindAddr, 100*time.Millisecond, 100*time.Millisecond, 100)
+
+	glog.Infof("OpenShift DNS listening at %s", c.DNSBindAddr)
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.

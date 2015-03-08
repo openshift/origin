@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"strconv"
@@ -97,6 +96,7 @@ func (cfg Config) startMaster() error {
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 
+	openshiftConfig.RunDNSServer()
 	openshiftConfig.RunAssetServer()
 	openshiftConfig.RunBuildController()
 	openshiftConfig.RunBuildPodController()
