@@ -3,12 +3,11 @@ package dockerregistry
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
-	dockerutils "github.com/docker/docker/utils"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/smarterclayton/go-dockerregistryclient"
 )
 
 // Client includes methods for accessing a Docker registry by name.
@@ -39,27 +38,19 @@ type client struct {
 
 func (c *client) Connect(name string) (Connection, error) {
 	if len(name) == 0 {
-		name = registry.IndexServerAddress()
+		name = "index.docker.io"
 	}
 	if conn, ok := c.connections[name]; ok {
 		return conn, nil
 	}
-	e, err := registry.NewEndpoint(name, []string{})
-	if err != nil {
-		return nil, convertConnectionError(name, err)
-	}
-	session, err := registry.NewSession(&registry.AuthConfig{}, nil, e, true)
-	if err != nil {
-		return nil, convertConnectionError(name, err)
-	}
-	conn := connection{session}
+	conn := newConnection(name)
 	c.connections[name] = conn
 	return conn, nil
 }
 
 func convertConnectionError(registry string, err error) error {
 	switch {
-	case isDockerNotFoundError(err), strings.Contains(err.Error(), "connection refused"):
+	case strings.Contains(err.Error(), "connection refused"):
 		return errRegistryNotFound{registry}
 	default:
 		return err
@@ -67,7 +58,21 @@ func convertConnectionError(registry string, err error) error {
 }
 
 type connection struct {
-	*registry.Session
+	client *http.Client
+	host   string
+}
+
+func newConnection(name string) connection {
+	return connection{
+		host:   name,
+		client: http.DefaultClient,
+	}
+}
+
+type repository struct {
+	name     string
+	endpoint string
+	token    string
 }
 
 func (c connection) ImageByTag(namespace, name, tag string) (*docker.Image, error) {
@@ -81,29 +86,86 @@ func (c connection) ImageByTag(namespace, name, tag string) (*docker.Image, erro
 	if len(searchTag) == 0 {
 		searchTag = "latest"
 	}
-	repository := fmt.Sprintf("%s/%s", namespace, name)
 
-	data, err := c.GetRepositoryData(repository)
-	if err != nil {
-		if isDockerNotFoundError(err) {
-			return nil, errRepositoryNotFound{repository}
-		}
-		return nil, err
-	}
-	tags, err := c.GetRemoteTags(data.Endpoints, repository, data.Tokens)
+	repo, err := c.getRepository(fmt.Sprintf("%s/%s", namespace, name))
 	if err != nil {
 		return nil, err
 	}
-	id, ok := tags[searchTag]
-	if !ok {
-		return nil, errTagNotFound{len(tag) == 0, searchTag, repository}
-	}
-	body, _, err := c.GetRemoteImageJSON(id, data.Endpoints[0], data.Tokens)
+
+	imageID, err := c.getTag(repo, searchTag, tag)
 	if err != nil {
-		if isDockerNotFoundError(err) {
-			return nil, errImageNotFound{searchTag, id, repository}
-		}
 		return nil, err
+	}
+
+	return c.getImage(repo, imageID, tag)
+}
+
+func (c connection) getRepository(name string) (*repository, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/v1/repositories/%s/images", c.host, name), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	req.Header.Add("X-Docker-Token", "true")
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, convertConnectionError(c.host, fmt.Errorf("error getting X-Docker-Token from index.docker.io: %v", err))
+	}
+	switch code := resp.StatusCode; {
+	case code == http.StatusNotFound:
+		return nil, errRepositoryNotFound{name}
+	case code >= 300 || resp.StatusCode < 200:
+		return nil, fmt.Errorf("error retrieving repository: server returned %d", resp.StatusCode)
+	}
+	return &repository{
+		name:     name,
+		endpoint: resp.Header.Get("X-Docker-Endpoints"),
+		token:    resp.Header.Get("X-Docker-Token"),
+	}, nil
+}
+
+func (c connection) getTag(repo *repository, tag, userTag string) (string, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/v1/repositories/%s/tags/%s", repo.endpoint, repo.name, tag), nil)
+	if err != nil {
+		return "", fmt.Errorf("error creating request: %v", err)
+	}
+	req.Header.Add("Authorization", "Token "+repo.token)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", convertConnectionError(c.host, fmt.Errorf("error getting image id for %s:%s: %v", repo.name, tag, err))
+	}
+	switch code := resp.StatusCode; {
+	case code == http.StatusNotFound:
+		return "", errTagNotFound{len(userTag) == 0, tag, repo.name}
+	case code >= 300 || resp.StatusCode < 200:
+		return "", fmt.Errorf("error retrieving tag: server returned %d", resp.StatusCode)
+	}
+	var imageID string
+	if err := json.NewDecoder(resp.Body).Decode(&imageID); err != nil {
+		return "", fmt.Errorf("error decoding image id: %v", err)
+	}
+	return imageID, nil
+}
+
+func (c connection) getImage(repo *repository, image, userTag string) (*docker.Image, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/v1/images/%s/json", repo.endpoint, image), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	req.Header.Add("Authorization", "Token "+repo.token)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, convertConnectionError(c.host, fmt.Errorf("error getting json for image %q: %v", image, err))
+	}
+	switch code := resp.StatusCode; {
+	case code == http.StatusNotFound:
+		return nil, errImageNotFound{userTag, image, repo.name}
+	case code >= 300 || resp.StatusCode < 200:
+		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)
 	}
 	return unmarshalDockerImage(body)
 }
@@ -169,13 +231,6 @@ func IsTagNotFound(err error) bool {
 
 func IsNotFound(err error) bool {
 	return IsRegistryNotFound(err) || IsRepositoryNotFound(err) || IsImageNotFound(err) || IsTagNotFound(err)
-}
-
-func isDockerNotFoundError(err error) bool {
-	if json, ok := err.(*dockerutils.JSONError); ok && err != nil {
-		return json.Code == http.StatusNotFound
-	}
-	return false
 }
 
 func unmarshalDockerImage(body []byte) (*docker.Image, error) {
