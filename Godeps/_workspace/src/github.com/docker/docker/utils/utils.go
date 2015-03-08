@@ -21,7 +21,7 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/docker/autogen/dockerversion"
+	//"github.com/docker/docker/autogen/dockerversion"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/docker/docker/pkg/ioutils"
@@ -94,6 +94,10 @@ func isValidDockerInitPath(target string, selfPath string) bool { // target and 
 	if target == "" {
 		return false
 	}
+	dockerversion := struct {
+		IAMSTATIC string
+		INITSHA1  string
+	}{"", ""}
 	if dockerversion.IAMSTATIC == "true" {
 		if selfPath == "" {
 			return false
@@ -121,6 +125,9 @@ func DockerInitPath(localCopy string) string {
 		// if we're valid, don't bother checking anything else
 		return selfPath
 	}
+	dockerversion := struct {
+		INITPATH string
+	}{""}
 	var possibleInits = []string{
 		localCopy,
 		dockerversion.INITPATH,
