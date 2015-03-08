@@ -457,11 +457,6 @@
 			"Rev": "1aaf839fb07e099361e445273993ccd9adc21b07"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/autogen/dockerversion",
-			"Comment": "v1.4.1-656-g2115131",
-			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/builder/parser",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
