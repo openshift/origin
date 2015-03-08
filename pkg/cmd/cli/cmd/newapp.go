@@ -23,7 +23,7 @@ type usage interface {
 	UsageError(commandName string) string
 }
 
-const longNewAppDescription = `
+const newAppLongDesc = `
 Create a new application in OpenShift by specifying source code, templates, and/or images.
 
 This command will try to build up the components of an application using images or code
@@ -36,13 +36,13 @@ configuration, and a service will be hookup up to the first public port of the a
 Examples:
 
 	# Try to create an application based on the source code in the current directory
-	$ osc new-app .
+	$ %[1]s new-app .
 
 	$ Use the public Docker Hub MySQL image to create an app
-	$ osc new-app mysql
+	$ %[1]s new-app mysql
 
 	# Use a MySQL image in a private registry to create an app
-	$ osc new-app myregistry.com/mycompany/mysql
+	$ %[1]s new-app myregistry.com/mycompany/mysql
 
 If you specify source code, you may need to run a build with 'start-build' after the
 application is created.
@@ -50,14 +50,14 @@ application is created.
 ALPHA: This command is under active development - feedback is appreciated.
 `
 
-func NewCmdNewApplication(f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 
 	helper := dockerutil.NewHelper()
 	cmd := &cobra.Command{
 		Use:   "new-app <components> [--code=<path|url>]",
 		Short: "Create a new application",
-		Long:  longNewAppDescription,
+		Long:  fmt.Sprintf(newAppLongDesc, fullName),
 
 		Run: func(c *cobra.Command, args []string) {
 			namespace, err := f.DefaultNamespace(c)
