@@ -1,7 +1,9 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .filter('hashSize', function() {
     return function(hash) {
-      if(!hash) return 0;
+      if(!hash) { return 0; }
       return Object.keys(hash).length;
     };
   })
@@ -22,8 +24,8 @@ angular.module('openshiftConsole')
       else {
         return parseInt(split[1]);
       }
-    }
-  })  
+    };
+  })
   .filter('usageWithUnits', function() {
     return function(value, type) {
       if (!value) {
@@ -42,22 +44,37 @@ angular.module('openshiftConsole')
           unit += "B";
           break;
         case "cpu":
-          if (unit == "m") {
+          if (unit === "m") {
             unit = "milli";
           }
-          unit += (amount == "1" ? "core" : "cores")
+          unit += (amount === "1" ? "core" : "cores");
           break;
       }
-      return amount + (unit != "" ? " " + unit : "");
-    }
+      return amount + (unit !== "" ? " " + unit : "");
+    };
   })
   .filter('helpLink', function() {
     return function(type) {
       switch(type) {
         case "webhooks":
-          return "http://docs.openshift.org/latest/using_openshift/builds.html#webhook-triggers"
+          return "http://docs.openshift.org/latest/using_openshift/builds.html#webhook-triggers";
         default:
           return "http://docs.openshift.org/latest/welcome/index.html";
+      }
+    };
+  })
+  .filter('taskTitle', function() {
+    return function(task) {
+      if (task.status !== "completed") {
+        return task.titles.started;
+      }
+      else {
+        if (task.hasErrors) {
+          return task.titles.failure;
+        }
+        else {
+          return task.titles.success;
+        }
       }
     };
   });

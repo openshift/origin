@@ -1,7 +1,9 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .directive('podTemplate', function() {
     return {
-      restrict: 'E',    
+      restrict: 'E',
       templateUrl: 'views/_pod-template.html'
     };
   })
@@ -19,7 +21,7 @@ angular.module('openshiftConsole')
       restrict: 'E',
       scope: {
         triggers: '='
-      },      
+      },
       templateUrl: 'views/_triggers.html'
     };
   })

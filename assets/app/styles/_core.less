@@ -12,6 +12,12 @@
     position: relative;
     padding-top: 10px;
   }
+  #content-wrap > .container {
+    margin-top: 35px;
+    h1 {
+      margin-top: 10px;
+    }
+  }
 }
 .console-os {
   .navbar {
@@ -19,6 +25,9 @@
   }
   .navbar-pf {
     background: @navbar-os-bg-color;
+    .navbar-header {
+      border-bottom-color: darken(@navbar-os-bg-color, 3%);
+    }
     .navbar-utility > li {
       &.dropdown > .dropdown-toggle .pficon-user {
         left: 10px;
@@ -135,4 +144,148 @@
 .dl-horizontal.left dt {
   text-align: left;
   font-weight: normal;
+}
+
+
+// Create App
+// --------------
+
+.create-from-template {
+  .template-name {
+    text-align: right;
+    span.fa {
+      font-size: 40px;
+    }
+    @media (min-width: @screen-sm-min) {
+      span.fa {
+        font-size: 100px;
+      }
+    }
+  }
+  span.fa.visible-xs-inline {
+    margin-right: 10px;
+  }
+}
+
+.flow {
+  display: table;
+  width: 100%;
+  > .flow-block {
+    display: inline-block;
+    &.right {
+      font-size: @font-size-small;
+      font-weight: normal;
+    }
+    .action {
+        font-size: @font-size-small;
+        font-weight: normal;
+        // &:extend(.action-inline);
+      }
+    > ul.list-inline {
+      margin-bottom: 0;
+      > li {
+        font-size: @font-size-small;
+        text-align: left;
+      }
+    }
+  }
+}
+@media (min-width: 767px) {
+  .flow > .flow-block {
+    display: table-cell;
+    &.right {
+      // float: right;
+      text-align: right;
+    }
+  }
+}
+
+
+.label-list li,
+.env-variable-list li {
+  &:first-child {
+    padding: 6px 0 0;
+  }
+  .key,
+  .value {
+    display: inline-block;
+    margin: 0;
+    width: 44%;
+  }
+  .key {
+    margin-left: 2px;
+  }
+  .btn {
+    vertical-align: top;
+  }
+}
+
+// Modals //
+.modal {
+  &.modal-create {
+    .modal-content {
+      padding: 0;
+      .modal-header {
+        background-color: transparent;
+      }
+      .modal-body {
+        .template-icon {
+          text-align: center;
+        }
+        .template-icon {
+          font-size: 80px;
+          line-height: 80px;
+        }
+        @media (min-width:@screen-sm-min) {
+          .template-icon {
+            font-size: 130px;
+            line-height: 130px;
+          }
+        }
+      }
+      .modal-footer {
+        .btn-block {
+          padding: 10px;
+        }
+      }
+    }
+    @media (min-width:@screen-sm-min) {
+      .modal-content {padding: 25px;}
+    }
+  }
+}
+
+.label + .label {
+  margin-left: 3px;
+}
+
+// Misc
+// ------------
+
+.action-inline {
+  margin-left: @action-link-inline-margin;
+  i.pficon, i.fa {
+    color: @btn-default-color;
+    margin-right: 5px;
+  }
+}
+.btn-xs {
+  padding: 0 4px;
+}
+.gutter-top-bottom {
+  padding: 15px 0;
+}
+.gutter-top {
+  padding-top: 15px;
+}
+.gutter-bottom {
+  padding-bottom: 15px;
+}
+select:invalid {
+    box-shadow: none;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

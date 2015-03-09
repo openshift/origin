@@ -22,7 +22,7 @@ angular.module('openshiftConsole')
       filtered.sort(function (a, b) {
         if (!a.metadata || !a.metadata.creationTimestamp || !b.metadata || !b.metadata.creationTimestamp) {
           throw "orderObjectsByDate expects all objects to have the field metadata.creationTimestamp";
-        }       
+        }
         return moment(a.metadata.creationTimestamp).diff(moment(b.metadata.creationTimestamp));
       });
       if(reverse) filtered.reverse();
