@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -103,14 +102,7 @@ func NewDefaultConfig() *Config {
 	}
 
 	// TODO: allow DNS binding to be disabled.
-	dnsAddr := flagtypes.Addr{Value: config.BindAddr.Host, DefaultPort: 53}.Default()
-	if !cmdutil.TryListen(dnsAddr.URL.Host) {
-		original := dnsAddr.URL.Host
-		dnsAddr.DefaultPort = 8053
-		dnsAddr = dnsAddr.Default()
-		glog.Warningf("Unable to bind DNS as %s (you may need to run as root), using %s which will not resolve from all locations", original, dnsAddr.URL.Host)
-	}
-	config.DNSBindAddr = dnsAddr
+	config.DNSBindAddr = flagtypes.Addr{Value: config.BindAddr.Host, DefaultPort: 53}.Default()
 
 	config.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&config.ClientConfigLoadingRules, &clientcmd.ConfigOverrides{})
 

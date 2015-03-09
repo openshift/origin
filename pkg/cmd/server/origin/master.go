@@ -3,6 +3,7 @@ package origin
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -577,6 +578,13 @@ func (c *MasterConfig) RunDNSServer() {
 	if err != nil {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
+
+	if _, port, err := net.SplitHostPort(c.DNSBindAddr); err == nil {
+		if len(port) != 0 && port != "53" {
+			glog.Warningf("Unable to bind DNS on port 53 (you may need to run as root), using %s which will not resolve from all locations", c.DNSBindAddr)
+		}
+	}
+
 	config.DnsAddr = c.DNSBindAddr
 	go func() {
 		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdHelper.Client.(*etcdclient.Client))
