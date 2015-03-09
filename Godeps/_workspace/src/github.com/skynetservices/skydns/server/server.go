@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/coreos/go-etcd/etcd"
-	"github.com/coreos/go-systemd/activation"
 	"github.com/miekg/dns"
 	"github.com/skynetservices/skydns/cache"
 	"github.com/skynetservices/skydns/msg"
@@ -100,60 +99,22 @@ func (s *server) Run() error {
 		}
 	}
 
-	if s.config.Systemd {
-		packetConns, err := activation.PacketConns(false)
-		if err != nil {
-			return err
+	s.group.Add(1)
+	go func() {
+		defer s.group.Done()
+		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
+			log.Fatalf("skydns: %s", err)
 		}
-		listeners, err := activation.Listeners(true)
-		if err != nil {
-			return err
+	}()
+	dnsReadyMsg(s.config.DnsAddr, "tcp")
+	s.group.Add(1)
+	go func() {
+		defer s.group.Done()
+		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
+			log.Fatalf("skydns: %s", err)
 		}
-		if len(packetConns) == 0 && len(listeners) == 0 {
-			return fmt.Errorf("no UDP or TCP sockets supplied by systemd")
-		}
-		for _, p := range packetConns {
-			if u, ok := p.(*net.UDPConn); ok {
-				s.group.Add(1)
-				go func() {
-					defer s.group.Done()
-					if err := dns.ActivateAndServe(nil, u, mux); err != nil {
-						log.Fatalf("skydns: %s", err)
-					}
-				}()
-				dnsReadyMsg(u.LocalAddr().String(), "udp")
-			}
-		}
-		for _, l := range listeners {
-			if t, ok := l.(*net.TCPListener); ok {
-				s.group.Add(1)
-				go func() {
-					defer s.group.Done()
-					if err := dns.ActivateAndServe(t, nil, mux); err != nil {
-						log.Fatalf("skydns: %s", err)
-					}
-				}()
-				dnsReadyMsg(t.Addr().String(), "tcp")
-			}
-		}
-	} else {
-		s.group.Add(1)
-		go func() {
-			defer s.group.Done()
-			if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
-				log.Fatalf("skydns: %s", err)
-			}
-		}()
-		dnsReadyMsg(s.config.DnsAddr, "tcp")
-		s.group.Add(1)
-		go func() {
-			defer s.group.Done()
-			if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
-				log.Fatalf("skydns: %s", err)
-			}
-		}()
-		dnsReadyMsg(s.config.DnsAddr, "udp")
-	}
+	}()
+	dnsReadyMsg(s.config.DnsAddr, "udp")
 
 	s.group.Wait()
 	return nil
