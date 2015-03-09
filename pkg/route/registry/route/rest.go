@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/route/api/allocator"
 	"github.com/openshift/origin/pkg/route/api/validation"
 )
 
@@ -76,6 +77,13 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 	}
 	if len(route.Name) == 0 {
 		route.Name = uuid.NewUUID().String()
+	}
+
+	//  shards will be eventually allocated via a separate controller.
+	shard := allocator.Allocate(route)
+
+	if len(route.Host) == 0 {
+		route.Host = allocator.Generate(route, shard)
 	}
 
 	kapi.FillObjectMetaSystemFields(ctx, &route.ObjectMeta)

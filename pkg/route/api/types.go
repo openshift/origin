@@ -30,6 +30,12 @@ type RouteList struct {
 	Items         []Route `json:"items"`
 }
 
+// RouterShard defines a routing shard.
+type RouterShard struct {
+	ShardName string
+	DNSSuffix string
+}
+
 // TLSConfig defines config used to secure a route and provide termination
 type TLSConfig struct {
 	// Termination indicates termination type.  If termination type is not set, any termination config will be ignored
