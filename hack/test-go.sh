@@ -78,5 +78,8 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
     fi
   done
 else
-  go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
+  # Allow specific tests (e.g. TestRoute1) to be run via make.
+  # Example:
+  #   make check WHAT=pkg/route/api/validation/ GOFLAGS="-v -run TestRoute1"
+  go test ${GOFLAGS:-} $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
 fi
