@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
-	_ "net/http/pprof"
 	"strings"
 	"time"
 
@@ -87,6 +86,7 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 	openshiftConfigParameters := origin.MasterConfigParameters{
 		MasterBindAddr:       cfg.BindAddr.URL.Host,
 		AssetBindAddr:        cfg.GetAssetBindAddress(),
+		DNSBindAddr:          cfg.DNSBindAddr.URL.Host,
 		MasterAddr:           masterAddr.String(),
 		KubernetesAddr:       kubeAddr.String(),
 		MasterPublicAddr:     masterPublicAddr.String(),

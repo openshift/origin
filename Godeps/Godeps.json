@@ -449,6 +449,11 @@
 			"Rev": "23142f6773a676cc2cae8dd0cb90b2ea761c853f"
 		},
 		{
+			"ImportPath": "github.com/coreos/go-systemd/activation",
+			"Comment": "v2-43-g2d21675",
+			"Rev": "2d21675230a81a503f4363f4aa3490af06d52bb8"
+		},
+		{
 			"ImportPath": "github.com/coreos/go-systemd/daemon",
 			"Rev": "2d21675230a81a503f4363f4aa3490af06d52bb8"
 		},
@@ -595,6 +600,10 @@
 			"Rev": "7a864a042e844af638df17ebbabf8183dace556a"
 		},
 		{
+			"ImportPath": "github.com/miekg/dns",
+			"Rev": "3f504e8dabd5d562e997d19ce0200aa41973e1b2"
+		},
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
 			"Comment": "v0.2",
 			"Rev": "c0c154efcba27ea5693c428bfe28560c220b4850"
@@ -671,6 +680,26 @@
 		{
 			"ImportPath": "github.com/prometheus/procfs",
 			"Rev": "92faa308558161acab0ada1db048e9996ecec160"
+		},
+		{
+			"ImportPath": "github.com/skynetservices/skydns/backends/etcd",
+			"Comment": "2.0.1d-50-g73f6fae",
+			"Rev": "73f6fae00933f23a08b1e436537721e499d4410a"
+		},
+		{
+			"ImportPath": "github.com/skynetservices/skydns/cache",
+			"Comment": "2.0.1d-50-g73f6fae",
+			"Rev": "73f6fae00933f23a08b1e436537721e499d4410a"
+		},
+		{
+			"ImportPath": "github.com/skynetservices/skydns/msg",
+			"Comment": "2.0.1d-50-g73f6fae",
+			"Rev": "73f6fae00933f23a08b1e436537721e499d4410a"
+		},
+		{
+			"ImportPath": "github.com/skynetservices/skydns/server",
+			"Comment": "2.0.1d-50-g73f6fae",
+			"Rev": "73f6fae00933f23a08b1e436537721e499d4410a"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",

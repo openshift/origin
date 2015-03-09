@@ -50,6 +50,8 @@ type MasterConfigParameters struct {
 	MasterPublicAddr     string
 	KubernetesPublicAddr string
 	AssetPublicAddr      string
+	// host:port to bind DNS on. The default is port 53.
+	DNSBindAddr string
 	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
 	// If not specified, the built-in logout page is shown.
 	LogoutURI string

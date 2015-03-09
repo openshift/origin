@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net"
 	_ "net/http/pprof"
 	"strings"
 
@@ -140,5 +141,12 @@ func (cfg *Config) Complete(args []string) {
 		}
 
 		cfg.NodeList = nodeList.List()
+
+		// in the all-in-one, default ClusterDNS to the master's address
+		if url, err := cfg.GetMasterAddress(); err == nil {
+			if host, _, err := net.SplitHostPort(url.Host); err == nil {
+				cfg.ClusterDNS = net.ParseIP(host)
+			}
+		}
 	}
 }
