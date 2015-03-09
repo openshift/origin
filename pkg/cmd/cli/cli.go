@@ -61,23 +61,23 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.SetUsageTemplate(templates.CliUsageTemplate())
 	cmds.SetHelpTemplate(templates.CliHelpTemplate())
 
-	cmds.AddCommand(cmd.NewCmdNewApplication(f, out))
-	cmds.AddCommand(cmd.NewCmdStartBuild(f, out))
-	cmds.AddCommand(cmd.NewCmdCancelBuild(f, out))
-	cmds.AddCommand(cmd.NewCmdBuildLogs(f, out))
-	cmds.AddCommand(cmd.NewCmdRollback(name, "rollback", f, out))
+	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdStartBuild(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdCancelBuild(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdBuildLogs(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdRollback(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdGet(fullName, f, out))
 	cmds.AddCommand(f.NewCmdDescribe(out))
 	// Deprecate 'osc apply' with 'osc create' command.
 	cmds.AddCommand(applyToCreate(cmd.NewCmdCreate(fullName, f, out)))
-	cmds.AddCommand(cmd.NewCmdProcess(f, out))
+	cmds.AddCommand(cmd.NewCmdProcess(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdUpdate(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdDelete(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
 	cmds.AddCommand(f.NewCmdProxy(out))
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
 	cmds.AddCommand(cmd.NewCmdOptions(f, out))
-	cmds.AddCommand(version.NewVersionCommand(name))
+	cmds.AddCommand(version.NewVersionCommand(fullName))
 
 	return cmds
 }

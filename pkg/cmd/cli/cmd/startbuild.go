@@ -15,11 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-func NewCmdStartBuild(f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "start-build (<buildConfig>|--from-build=<build>)",
-		Short: "Starts a new build from existing build or buildConfig",
-		Long: `
+const startBuildLongDesc = `
 Manually starts build from existing build or buildConfig
 
 NOTE: This command is experimental and is subject to change in the future.
@@ -27,14 +23,20 @@ NOTE: This command is experimental and is subject to change in the future.
 Examples:
 
 	# Starts build from build configuration matching the name "3bd2ug53b"
-	$ osc start-build 3bd2ug53b
+	$ %[1]s start-build 3bd2ug53b
 
 	# Starts build from build matching the name "3bd2ug53b"
-	$ osc start-build --from-build=3bd2ug53b
+	$ %[1]s start-build --from-build=3bd2ug53b
 
 	# Starts build from build configuration matching the name "3bd2ug53b" and watches the logs until the build completes or fails
-	$ osc start-build 3bd2ug53b --follow
-`,
+	$ %[1]s start-build 3bd2ug53b --follow
+`
+
+func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "start-build (<buildConfig>|--from-build=<build>)",
+		Short: "Starts a new build from existing build or buildConfig",
+		Long:  fmt.Sprintf(startBuildLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			buildName := cmdutil.GetFlagString(cmd, "from-build")
 			follow := cmdutil.GetFlagBool(cmd, "follow")
