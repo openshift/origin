@@ -33,16 +33,16 @@ will be.
 Examples:
 
 	# Perform a rollback
-	$ %[1]s %[2]s deployment-1
+	$ %[1]s rollback deployment-1
 
 	# See what the rollback will look like, but don't perform the rollback
-	$ %[1]s %[2]s deployment-1 --dry-run
+	$ %[1]s rollback deployment-1 --dry-run
 
 	# Perform the rollback manually by piping the JSON of the new config back to %[1]s
-	$ %[1]s %[2]s deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
+	$ %[1]s rollback deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
 `
 
-func NewCmdRollback(parentName string, name string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	rollback := &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			IncludeTemplate: true,
@@ -50,9 +50,9 @@ func NewCmdRollback(parentName string, name string, f *clientcmd.Factory, out io
 	}
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s <from-deployment>", name),
+		Use:   "rollback <from-deployment>",
 		Short: "Revert part of an application back to a previous deployment.",
-		Long:  fmt.Sprintf(rollbackLongDesc, parentName, name),
+		Long:  fmt.Sprintf(rollbackLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 || len(args[0]) == 0 {
 				usageError(cmd, "A deployment name is required.")

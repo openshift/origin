@@ -12,18 +12,12 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-
-	// Admission control plugins from upstream Kubernetes
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/exists"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcedefaults"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota"
 )
 
 const (
@@ -98,6 +92,7 @@ func (cfg Config) startMaster() error {
 
 	openshiftConfig.RunAssetServer()
 	openshiftConfig.RunBuildController()
+	openshiftConfig.RunBuildPodController()
 	openshiftConfig.RunBuildImageChangeTriggerController()
 	openshiftConfig.RunDeploymentController()
 	openshiftConfig.RunDeployerPodController()
@@ -174,6 +169,7 @@ func (cfg Config) Start(args []string) error {
 		nodeConfig.RunKubelet()
 	}
 
+	daemon.SdNotify("READY=1")
 	select {}
 
 	return nil

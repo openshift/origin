@@ -226,6 +226,8 @@ osc process -f examples/sample-app/application-template-dockerbuild.json | osc c
 osc get buildConfigs
 osc get bc
 osc get builds
+[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github" ]]
+[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic" ]]
 echo "buildConfig: ok"
 
 osc create -f test/integration/fixtures/test-buildcli.json

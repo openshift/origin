@@ -20,6 +20,10 @@ func (c *Fake) BuildConfigs(namespace string) BuildConfigInterface {
 	return &FakeBuildConfigs{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) BuildLogs(namespace string) BuildLogInterface {
+	return &FakeBuildLogs{Fake: c, Namespace: namespace}
+}
+
 func (c *Fake) Images(namespace string) ImageInterface {
 	return &FakeImages{Fake: c, Namespace: namespace}
 }
@@ -82,6 +86,10 @@ func (c *Fake) PolicyBindings(namespace string) PolicyBindingInterface {
 
 func (c *Fake) ResourceAccessReviews(namespace string) ResourceAccessReviewInterface {
 	return &FakeResourceAccessReviews{Fake: c}
+}
+
+func (c *Fake) RootResourceAccessReviews() ResourceAccessReviewInterface {
+	return &FakeRootResourceAccessReviews{Fake: c}
 }
 
 func (c *Fake) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {

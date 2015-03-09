@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -66,11 +68,20 @@ func TestRouter(t *testing.T) {
 
 	defer cleanUp(dockerCli, routerId)
 
+	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
+	httpsEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpsAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get https endpoint: %v", err)
+	}
+
 	//run through test cases now that environment is set up
 	testCases := []struct {
 		name              string
 		serviceName       string
-		endpoints         []string
+		endpoints         []kapi.Endpoint
 		routeAlias        string
 		endpointEventType watch.EventType
 		routeEventType    watch.EventType
@@ -82,7 +93,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "non-secure",
 			serviceName:       "example",
-			endpoints:         []string{fakeMasterAndPod.PodHttpAddr},
+			endpoints:         []kapi.Endpoint{httpEndpoint},
 			routeAlias:        "www.example-unsecure.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -94,7 +105,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "edge termination",
 			serviceName:       "example-edge",
-			endpoints:         []string{fakeMasterAndPod.PodHttpAddr},
+			endpoints:         []kapi.Endpoint{httpEndpoint},
 			routeAlias:        "www.example.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -111,7 +122,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "passthrough termination",
 			serviceName:       "example-passthrough",
-			endpoints:         []string{fakeMasterAndPod.PodHttpsAddr},
+			endpoints:         []kapi.Endpoint{httpsEndpoint},
 			routeAlias:        "www.example2.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -125,7 +136,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "websocket unsecure",
 			serviceName:       "websocket-unsecure",
-			endpoints:         []string{fakeMasterAndPod.PodHttpAddr},
+			endpoints:         []kapi.Endpoint{httpEndpoint},
 			routeAlias:        "0.0.0.0:80",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -136,7 +147,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "ws edge termination",
 			serviceName:       "websocket-edge",
-			endpoints:         []string{fakeMasterAndPod.PodHttpAddr},
+			endpoints:         []kapi.Endpoint{httpEndpoint},
 			routeAlias:        "0.0.0.0:443",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -153,7 +164,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "ws passthrough termination",
 			serviceName:       "websocket-passthrough",
-			endpoints:         []string{fakeMasterAndPod.PodHttpsAddr},
+			endpoints:         []kapi.Endpoint{httpsEndpoint},
 			routeAlias:        "0.0.0.0:443",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -227,6 +238,18 @@ func TestRouter(t *testing.T) {
 		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 	}
+}
+
+func getEndpoint(hostport string) (kapi.Endpoint, error) {
+	host, port, err := net.SplitHostPort(hostport)
+	if err != nil {
+		return kapi.Endpoint{}, err
+	}
+	portNum, err := strconv.Atoi(port)
+	if err != nil {
+		return kapi.Endpoint{}, err
+	}
+	return kapi.Endpoint{IP: host, Port: portNum}, nil
 }
 
 // getRoute is a utility function for making the web request to a route.  Protocol is either http or https.  If the

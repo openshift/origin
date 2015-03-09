@@ -17,12 +17,12 @@ type review struct {
 
 // Users returns the users that can access a resource
 func (r *review) Users() []string {
-	return r.response.Users
+	return r.response.Users.List()
 }
 
 // Groups returns the groups that can access a resource
 func (r *review) Groups() []string {
-	return r.response.Groups
+	return r.response.Groups.List()
 }
 
 // Reviewer performs access reviews for a project by name

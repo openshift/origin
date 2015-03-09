@@ -17,12 +17,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
-	"github.com/fsouza/go-dockerclient"
+	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	cadvisor "github.com/google/cadvisor/client"
 
@@ -85,7 +86,7 @@ type NodeConfig struct {
 	// A client to connect to the master.
 	Client *client.Client
 	// A client to connect to Docker
-	DockerClient *docker.Client
+	DockerClient dockertools.DockerInterface
 }
 
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
@@ -93,11 +94,15 @@ type NodeConfig struct {
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 	dockerClient, dockerAddr := docker.GetClientOrExit()
 	if err := dockerClient.Ping(); err != nil {
+		if !c.AllowDisabledDocker {
+			glog.Fatalf("ERROR: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
+		}
 		glog.Errorf("WARNING: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
+		c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"apiversion=1.15"}}
 	} else {
 		glog.Infof("Connecting to Docker at %s", dockerAddr)
+		c.DockerClient = dockerClient
 	}
-	c.DockerClient = dockerClient
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
@@ -156,13 +161,14 @@ func (c *NodeConfig) RunKubelet() {
 		"",
 		nil,
 		kapi.NamespaceDefault,
-		app.ProbeVolumePlugins())
+		app.ProbeVolumePlugins(),
+		5*time.Minute)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
 	}
 	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
 
-	handler := kubelet.NewServer(k, true, c.AllowDisabledDocker)
+	handler := kubelet.NewServer(k, true)
 
 	server := &http.Server{
 		Addr:           net.JoinHostPort(c.BindHost, strconv.Itoa(NodePort)),

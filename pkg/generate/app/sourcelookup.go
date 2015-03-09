@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/generate/dockerfile"
+	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
 )
 
@@ -28,8 +30,10 @@ func IsRemoteRepository(s string) bool {
 
 // SourceRepository represents an code repository that may be the target of a build.
 type SourceRepository struct {
-	location string
-	url      url.URL
+	location  string
+	url       url.URL
+	localDir  string
+	remoteURL *url.URL
 
 	usedBy          []ComponentReference
 	buildWithDocker bool
@@ -105,15 +109,55 @@ func (r *SourceRepository) String() string {
 }
 
 func (r *SourceRepository) LocalPath() (string, error) {
+	if len(r.localDir) > 0 {
+		return r.localDir, nil
+	}
 	switch {
 	case r.url.Scheme == "file":
-		return r.url.Path, nil
-		// TODO: implement other types
-		// TODO: lazy cache (predictably?)
+		r.localDir = r.url.Path
 	default:
-
-		return "", fmt.Errorf("reading local repositories is not implemented: %q", r.location)
+		gitRepo := git.NewRepository()
+		var err error
+		if r.localDir, err = ioutil.TempDir("", "gen"); err != nil {
+			return "", err
+		}
+		localUrl := r.url
+		ref := localUrl.Fragment
+		localUrl.Fragment = ""
+		if err = gitRepo.Clone(r.localDir, localUrl.String()); err != nil {
+			return "", fmt.Errorf("cannot clone repository %s: %v", localUrl.String(), err)
+		}
+		if len(ref) > 0 {
+			if err = gitRepo.Checkout(r.localDir, ref); err != nil {
+				return "", fmt.Errorf("cannot checkout ref %s of repository %s: %v", ref, localUrl.String(), err)
+			}
+		}
 	}
+	return r.localDir, nil
+}
+
+func (r *SourceRepository) RemoteURL() (*url.URL, error) {
+	if r.remoteURL != nil {
+		return r.remoteURL, nil
+	}
+	switch r.url.Scheme {
+	case "file":
+		gitRepo := git.NewRepository()
+		remote, _, err := gitRepo.GetOriginURL(r.url.Path)
+		if err != nil {
+			return nil, err
+		}
+		ref := gitRepo.GetRef(r.url.Path)
+		if len(ref) > 0 {
+			remote = fmt.Sprintf("%s#%s", remote, ref)
+		}
+		if r.remoteURL, err = url.Parse(remote); err != nil {
+			return nil, err
+		}
+	default:
+		r.remoteURL = &r.url
+	}
+	return r.remoteURL, nil
 }
 
 type SourceRepositoryInfo struct {
@@ -172,16 +216,16 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 }
 
 func StrategyAndSourceForRepository(repo *SourceRepository) (*BuildStrategyRef, *SourceRef, error) {
-	// TODO: replace with repository origin lookup, then in the future replace with auto push repository to server
-	if !repo.Remote() {
-		return nil, nil, fmt.Errorf("the repository %q can't be used, as the CLI does not yet support pushing a local repository from your filesystem to OpenShift", repo)
+	remoteUrl, err := repo.RemoteURL()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
 	}
 	strategy := &BuildStrategyRef{
 		IsDockerBuild: repo.IsDockerBuild(),
 	}
 	source := &SourceRef{
-		URL:        &repo.url,
-		Ref:        repo.url.Fragment,
+		URL:        remoteUrl,
+		Ref:        remoteUrl.Fragment,
 		ContextDir: "",
 	}
 	return strategy, source, nil

@@ -11,16 +11,19 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	controller "github.com/openshift/origin/pkg/build/controller"
+	buildcontroller "github.com/openshift/origin/pkg/build/controller"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
+	controller "github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// BuildControllerFactory constructs BuildController objects
 type BuildControllerFactory struct {
 	OSClient            osclient.Interface
 	KubeClient          kclient.Interface
@@ -30,16 +33,55 @@ type BuildControllerFactory struct {
 	CustomBuildStrategy *strategy.CustomBuildStrategy
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
+}
+
+// Create constructs a BuildController
+func (factory *BuildControllerFactory) Create() controller.RunnableController {
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue).Run()
+
+	client := ControllerClient{factory.KubeClient, factory.OSClient}
+	buildController := &buildcontroller.BuildController{
+		BuildUpdater:          factory.BuildUpdater,
+		ImageRepositoryClient: client,
+		PodManager:            client,
+		BuildStrategy: &typeBasedFactoryStrategy{
+			DockerBuildStrategy: factory.DockerBuildStrategy,
+			STIBuildStrategy:    factory.STIBuildStrategy,
+			CustomBuildStrategy: factory.CustomBuildStrategy,
+		},
+	}
+
+	return &controller.RetryController{
+		Queue:        queue,
+		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, -1),
+		ShouldRetry: func(obj interface{}, err error) bool {
+			kutil.HandleError(err)
+			// BuildController currently has no fatal errors.
+			return true
+		},
+		Handle: func(obj interface{}) error {
+			build := obj.(*buildapi.Build)
+			return buildController.HandleBuild(build)
+		},
+	}
+}
+
+// BuildPodControllerFactory construct BuildPodController objects
+type BuildPodControllerFactory struct {
+	OSClient     osclient.Interface
+	KubeClient   kclient.Interface
+	BuildUpdater buildclient.BuildUpdater
+	// Stop may be set to allow controllers created by this factory to be terminated.
+	Stop <-chan struct{}
 
 	buildStore cache.Store
 }
 
-func (factory *BuildControllerFactory) Create() *controller.BuildController {
+// Create constructs a BuildPodController
+func (factory *BuildPodControllerFactory) Create() controller.RunnableController {
 	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore).RunUntil(factory.Stop)
-
-	buildQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, buildQueue).RunUntil(factory.Stop)
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore).Run()
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)
@@ -49,29 +91,27 @@ func (factory *BuildControllerFactory) Create() *controller.BuildController {
 	//
 	// TODO: Find a way to get watch events for Pod/container status updates. The polling
 	// strategy is horribly inefficient and should be addressed upstream somehow.
-	podQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewPoller(factory.pollPods, 10*time.Second, podQueue).RunUntil(factory.Stop)
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	cache.NewPoller(factory.pollPods, 10*time.Second, queue).RunUntil(factory.Stop)
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
-	return &controller.BuildController{
-		BuildStore:            factory.buildStore,
-		BuildUpdater:          factory.BuildUpdater,
-		ImageRepositoryClient: client,
-		PodManager:            client,
-		NextBuild: func() *buildapi.Build {
-			build := buildQueue.Pop().(*buildapi.Build)
-			panicIfStopped(factory.Stop, "build controller stopped")
-			return build
+	buildPodController := &buildcontroller.BuildPodController{
+		BuildStore:   factory.buildStore,
+		BuildUpdater: factory.BuildUpdater,
+		PodManager:   client,
+	}
+
+	return &controller.RetryController{
+		Queue:        queue,
+		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, -1),
+		ShouldRetry: func(obj interface{}, err error) bool {
+			kutil.HandleError(err)
+			// BuildPodController currently has no fatal errors.
+			return true
 		},
-		NextPod: func() *kapi.Pod {
-			pod := podQueue.Pop().(*kapi.Pod)
-			panicIfStopped(factory.Stop, "build controller stopped")
-			return pod
-		},
-		BuildStrategy: &typeBasedFactoryStrategy{
-			DockerBuildStrategy: factory.DockerBuildStrategy,
-			STIBuildStrategy:    factory.STIBuildStrategy,
-			CustomBuildStrategy: factory.CustomBuildStrategy,
+		Handle: func(obj interface{}) error {
+			pod := obj.(*kapi.Pod)
+			return buildPodController.HandlePod(pod)
 		},
 	}
 }
@@ -88,29 +128,40 @@ type ImageChangeControllerFactory struct {
 
 // Create creates a new ImageChangeController which is used to trigger builds when a new
 // image is available
-func (factory *ImageChangeControllerFactory) Create() *controller.ImageChangeController {
+func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).RunUntil(factory.Stop)
+	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).Run()
 
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).RunUntil(factory.Stop)
+	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).Run()
 
-	return &controller.ImageChangeController{
+	imageChangeController := &buildcontroller.ImageChangeController{
 		BuildConfigStore:   store,
 		BuildConfigUpdater: factory.BuildConfigUpdater,
 		BuildCreator:       factory.BuildCreator,
-		NextImageRepository: func() *imageapi.ImageRepository {
-			repo := queue.Pop().(*imageapi.ImageRepository)
-			panicIfStopped(factory.Stop, "build image change controller stopped")
-			return repo
+		Stop:               factory.Stop,
+	}
+
+	return &controller.RetryController{
+		Queue:        queue,
+		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, -1),
+		ShouldRetry: func(obj interface{}, err error) bool {
+			kutil.HandleError(err)
+			if _, isFatal := err.(buildcontroller.ImageChangeControllerFatalError); isFatal {
+				return false
+			}
+			return true
 		},
-		Stop: factory.Stop,
+		Handle: func(obj interface{}) error {
+			imageRepo := obj.(*imageapi.ImageRepository)
+			return imageChangeController.HandleImageRepo(imageRepo)
+		},
 	}
 }
 
 // pollPods lists pods for all builds in the buildStore which are pending or running and
 // returns an enumerator for cache.Poller. The poll scope is narrowed for efficiency.
-func (factory *BuildControllerFactory) pollPods() (cache.Enumerator, error) {
+func (factory *BuildPodControllerFactory) pollPods() (cache.Enumerator, error) {
 	list := &kapi.PodList{}
 
 	for _, obj := range factory.buildStore.List() {

@@ -14,28 +14,30 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-// NewCmdCancelBuild manages a build cancelling event.
-// To cancel a build its name has to be specified, and two options
-// are available: displaying logs and restarting.
-func NewCmdCancelBuild(f *clientcmd.Factory, out io.Writer) *cobra.Command {
-
-	cmd := &cobra.Command{
-		Use:   "cancel-build <build>",
-		Short: "Cancel a pending or running build.",
-		Long: `
+const cancelBuildLongDesc = `
 Cancels a pending or running build.
 
 Examples:
 
 	# Cancel the build with the given name
-	$ osc cancel-build 1da32cvq
+	$ %[1]s cancel-build 1da32cvq
 	
 	# Cancel the named build and print the build logs
-	$ osc cancel-build 1da32cvq --dump-logs
+	$ %[1]s cancel-build 1da32cvq --dump-logs
 
 	# Cancel the named build and create a new one with the same parameters
-	$ osc cancel-build 1da32cvq --restart
-`,
+	$ %[1]s cancel-build 1da32cvq --restart
+`
+
+// NewCmdCancelBuild manages a build cancelling event.
+// To cancel a build its name has to be specified, and two options
+// are available: displaying logs and restarting.
+func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+
+	cmd := &cobra.Command{
+		Use:   "cancel-build <build>",
+		Short: "Cancel a pending or running build.",
+		Long:  fmt.Sprintf(cancelBuildLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 
 			if len(args) == 0 || len(args[0]) == 0 {

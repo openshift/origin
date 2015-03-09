@@ -143,7 +143,7 @@ the present working directory is the same directory as this README.
         Endpoints:  172.17.0.60:5000
         No events.
 
-    If "Endpoints" is listed as <none>, your registry hasn't started yet.  You can run `osc get pods` to
+    If "Endpoints" is listed as `<empty>`, your registry hasn't started yet.  You can run `osc get pods` to
     see the registry pod and if there are any issues. Once the pod has started, the IP of the pod will
     be added to the docker-registry service list so that it's reachable from other places.
 

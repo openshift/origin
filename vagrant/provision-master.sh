@@ -42,7 +42,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start master --public-master=${MASTER_IP} --nodes=${node_list}
+ExecStart=/usr/bin/openshift start master --master=${MASTER_IP} --nodes=${node_list}
 WorkingDirectory=/vagrant/
 
 [Install]

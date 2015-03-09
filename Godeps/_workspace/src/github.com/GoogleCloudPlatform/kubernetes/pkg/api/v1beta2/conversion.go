@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	newer "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -617,6 +618,7 @@ func init() {
 			}
 
 			out.HostIP = in.Status.HostIP
+			out.PodCIDR = in.Spec.PodCIDR
 			return s.Convert(&in.Spec.Capacity, &out.NodeResources.Capacity, 0)
 		},
 		func(in *Minion, out *newer.Node, s conversion.Scope) error {
@@ -637,6 +639,7 @@ func init() {
 			}
 
 			out.Status.HostIP = in.HostIP
+			out.Spec.PodCIDR = in.PodCIDR
 			return s.Convert(&in.NodeResources.Capacity, &out.Spec.Capacity, 0)
 		},
 		func(in *newer.LimitRange, out *LimitRange, s conversion.Scope) error {
@@ -943,6 +946,9 @@ func init() {
 			if err := s.Convert(&in.HostPath, &out.HostDir, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.Secret, &out.Secret, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *VolumeSource, out *newer.VolumeSource, s conversion.Scope) error {
@@ -956,6 +962,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.HostDir, &out.HostPath, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Secret, &out.Secret, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1020,6 +1029,48 @@ func init() {
 			}
 			out.InitialDelaySeconds = in.InitialDelaySeconds
 			out.TimeoutSeconds = in.TimeoutSeconds
+			return nil
+		},
+		func(in *newer.Endpoints, out *Endpoints, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Protocol, &out.Protocol, 0); err != nil {
+				return err
+			}
+			for i := range in.Endpoints {
+				ep := &in.Endpoints[i]
+				out.Endpoints = append(out.Endpoints, net.JoinHostPort(ep.IP, strconv.Itoa(ep.Port)))
+			}
+			return nil
+		},
+		func(in *Endpoints, out *newer.Endpoints, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Protocol, &out.Protocol, 0); err != nil {
+				return err
+			}
+			for i := range in.Endpoints {
+				out.Endpoints = append(out.Endpoints, newer.Endpoint{})
+				ep := &out.Endpoints[i]
+				host, port, err := net.SplitHostPort(in.Endpoints[i])
+				if err != nil {
+					return err
+				}
+				ep.IP = host
+				pn, err := strconv.Atoi(port)
+				if err != nil {
+					return err
+				}
+				ep.Port = pn
+			}
 			return nil
 		},
 	)

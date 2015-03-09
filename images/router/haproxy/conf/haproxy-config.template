@@ -131,31 +131,31 @@ backend openshift_default
 {{ range $id, $serviceUnit := . }}
         {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
             {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
-backend be_http_{{$id}}
+backend be_http_{{$serviceUnit.TemplateSafeName}}
   mode http
   balance leastconn
   timeout check 5000ms
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
                 {{ end }}
             {{ end }}
 
             {{ if eq $cfg.TLSTermination "passthrough" }}
-backend be_tcp_{{$id}}
+backend be_tcp_{{$serviceUnit.TemplateSafeName}}
   balance leastconn
   timeout check 5000ms
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
                 {{ end }}
             {{ end }}
 
             {{ if eq $cfg.TLSTermination "reencrypt" }}
-backend be_secure_{{$id}}
+backend be_secure_{{$serviceUnit.TemplateSafeName}}
   mode http
   balance leastconn
   timeout check 5000ms
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfg.Host}}_pod.pem
+  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfg.Host}}_pod.pem
                 {{ end }}
             {{ end  }}
         {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}
@@ -172,7 +172,7 @@ backend be_secure_{{$id}}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
 {{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge"))}}
-{{$cfg.Host}} {{$id}}
+{{$cfg.Host}} {{$serviceUnit.TemplateSafeName}}
 {{       end }}
 {{     end }}
 {{   end }}
@@ -186,7 +186,7 @@ backend be_secure_{{$id}}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
 {{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt")) }}
-{{$cfg.Host}} {{$id}}
+{{$cfg.Host}} {{$serviceUnit.TemplateSafeName}}
 {{       end }}
 {{     end }}
 {{   end }}

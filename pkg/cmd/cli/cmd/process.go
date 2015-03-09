@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
@@ -35,23 +36,25 @@ func injectUserVars(cmd *cobra.Command, t *api.Template) {
 	}
 }
 
-// NewCmdProcess returns a 'process' command
-func NewCmdProcess(f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "process -f filename",
-		Short: "Process template into list of resources",
-		Long: `Process template into a list of resources specified in filename or stdin
+const processLongDesc = `Process template into a list of resources specified in filename or stdin
 
 JSON and YAML formats are accepted.
 
 Examples:
 
 	# Convert template.json into resource list
-	$ osc process -f template.json
+	$ %[1]s process -f template.json
 
 	# Convert template.json into resource list
-	$ cat template.json | osc process -f -
-`,
+	$ cat template.json | %[1]s process -f -
+`
+
+// NewCmdProcess returns a 'process' command
+func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "process -f filename",
+		Short: "Process template into list of resources",
+		Long:  fmt.Sprintf(processLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			filename := cmdutil.GetFlagString(cmd, "filename")
 			if len(filename) == 0 {
@@ -73,7 +76,7 @@ Examples:
 
 			templateObj, ok := obj.(*api.Template)
 			if !ok {
-				checkErr(errors.New("Unable to the convert input to the Template"))
+				checkErr(fmt.Errorf("cannot convert input to Template"))
 			}
 
 			client, _, err := f.Clients(cmd)
@@ -89,7 +92,7 @@ Examples:
 			// If 'parameters' flag is set it does not do processing but only print
 			// the template parameters to console for inspection.
 			if cmdutil.GetFlagBool(cmd, "parameters") == true {
-				err = printer.PrintObj(templateObj, out)
+				err = describe.PrintTemplateParameters(templateObj.Parameters, out)
 				checkErr(err)
 				return
 			}

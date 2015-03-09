@@ -208,9 +208,9 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 					},
 				}
 				if mountHost {
-					podTemplate.Spec.Volumes[0].Source.HostPath = &kapi.HostPath{Path: cfg.HostMount}
+					podTemplate.Spec.Volumes[0].Source.HostPath = &kapi.HostPathVolumeSource{Path: cfg.HostMount}
 				} else {
-					podTemplate.Spec.Volumes[0].Source.EmptyDir = &kapi.EmptyDir{}
+					podTemplate.Spec.Volumes[0].Source.EmptyDir = &kapi.EmptyDirVolumeSource{}
 				}
 
 				objects := []runtime.Object{

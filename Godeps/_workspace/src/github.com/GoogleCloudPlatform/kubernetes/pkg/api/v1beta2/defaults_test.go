@@ -92,3 +92,23 @@ func TestSetDefaultContainer(t *testing.T) {
 			current.ProtocolTCP, container.Ports[0].Protocol)
 	}
 }
+
+func TestSetDefaultSecret(t *testing.T) {
+	s := &current.Secret{}
+	obj2 := roundTrip(t, runtime.Object(s))
+	s2 := obj2.(*current.Secret)
+
+	if s2.Type != current.SecretTypeOpaque {
+		t.Errorf("Expected secret type %v, got %v", current.SecretTypeOpaque, s2.Type)
+	}
+}
+
+func TestSetDefaulEndpointsProtocol(t *testing.T) {
+	in := &current.Endpoints{}
+	obj := roundTrip(t, runtime.Object(in))
+	out := obj.(*current.Endpoints)
+
+	if out.Protocol != current.ProtocolTCP {
+		t.Errorf("Expected protocol %s, got %s", current.ProtocolTCP, out.Protocol)
+	}
+}

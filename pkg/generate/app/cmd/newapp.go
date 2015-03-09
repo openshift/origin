@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 type AppConfig struct {
@@ -48,12 +49,14 @@ type errlist interface {
 }
 
 func NewAppConfig() *AppConfig {
+	dockerResolver := app.DockerRegistryResolver{dockerregistry.NewClient()}
 	return &AppConfig{
 		detector: app.SourceRepositoryEnumerator{
 			Detectors: source.DefaultDetectors,
 			Tester:    dockerfile.NewTester(),
 		},
-		dockerResolver: app.DockerRegistryResolver{dockerregistry.NewClient()},
+		dockerResolver: dockerResolver,
+		searcher:       &simpleSearcher{dockerResolver},
 	}
 }
 
@@ -187,8 +190,9 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 }
 
 // detectSource tries to match each source repository to an image type
-func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
+func (c *AppConfig) detectSource(repositories []*app.SourceRepository) (app.ComponentReferences, error) {
 	errs := []error{}
+	refs := app.ComponentReferences{}
 	for _, repo := range repositories {
 		// if the repository is being used by one of the images, we don't need to detect its type (unless we want to double check)
 		if repo.InUse() {
@@ -214,6 +218,29 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 				}
 				input.
 			}*/
+			ports, _ := info.Dockerfile.GetDirective("EXPOSE")
+			exposedPorts := map[string]struct{}{}
+
+			for _, p := range ports {
+				exposedPorts[p] = struct{}{}
+			}
+
+			dockerImage := &imageapi.DockerImage{
+				Config: imageapi.DockerConfig{
+					ExposedPorts: exposedPorts,
+				},
+			}
+			from, _ := info.Dockerfile.GetDirective("FROM")
+			componentRef := &app.ComponentInput{
+				Match: &app.ComponentMatch{
+					Value: from[0],
+					Image: dockerImage,
+				},
+				ExpectToBuild: true,
+				Uses:          repo,
+			}
+			refs = append(refs, componentRef)
+			repo.UsedBy(componentRef)
 			repo.BuildWithDocker()
 			continue
 		}
@@ -228,9 +255,16 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 			errs = append(errs, fmt.Errorf("we could not find any images that match the source repo %q (looked for: %v) and this repository does not have a Dockerfile - you'll need to choose a source builder image to continue", repo, terms))
 			continue
 		}
-		errs = append(errs, fmt.Errorf("found the following possible images to use to build this source repository: %v - to continue, you'll need to specify which image to use with %q", matches, repo))
+		componentRef := &app.ComponentInput{
+			Match:         matches[0],
+			ExpectToBuild: true,
+			Uses:          repo,
+		}
+		repo.UsedBy(componentRef)
+		refs = append(refs, componentRef)
+
 	}
-	return errors.NewAggregate(errs)
+	return refs, errors.NewAggregate(errs)
 }
 
 // buildPipelines converts a set of resolved, valid references into pipelines.
@@ -314,9 +348,14 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 	glog.V(4).Infof("Code %v", repositories)
 	glog.V(4).Infof("Images %v", components)
 
-	if err := c.detectSource(repositories); err != nil {
+	// TODO: Source detection needs to happen before components
+	//       are validated and resolved.
+	srcComponents, err := c.detectSource(repositories)
+	if err != nil {
 		return nil, err
 	}
+
+	components = append(components, srcComponents...)
 
 	pipelines, err := c.buildPipelines(components, app.Environment(environment))
 	if err != nil {
@@ -349,6 +388,34 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 		BuildNames: buildNames,
 		HasSource:  hasSource,
 	}, nil
+}
+
+// simpleSearcher resolves known builder images for source code
+// TODO: eventually needs to be replaced by a more sophisticated searcher
+type simpleSearcher struct {
+	resolver app.Resolver
+}
+
+// Search takes the first term if it exists and tries to match it to one
+// of the known builder images
+func (s *simpleSearcher) Search(terms []string) ([]*app.ComponentMatch, error) {
+	if len(terms) == 0 {
+		return nil, fmt.Errorf("No search terms were specified.")
+	}
+	term := strings.ToLower(terms[0])
+	builder := ""
+	switch term {
+	case "jee":
+		builder = "openshift/wildfly-8-centos"
+	case "ruby":
+		builder = "openshift/ruby-20-centos7"
+	case "nodejs":
+		builder = "openshift/node-0-10-centos"
+	default:
+		return nil, fmt.Errorf("No matching image found for %s", term)
+	}
+	match, err := s.resolver.Resolve(builder)
+	return []*app.ComponentMatch{match}, err
 }
 
 type mockSearcher struct{}

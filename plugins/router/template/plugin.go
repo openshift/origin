@@ -2,7 +2,7 @@ package templaterouter
 
 import (
 	"fmt"
-	"strings"
+	"strconv"
 	"text/template"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -109,41 +109,14 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	return p.Router.Commit()
 }
 
-// TODO: the internal keys for routes and endpoints should be namespaced.  Currently
-// there is an upstream issue where the namespace is not set on non-resolved endpoints.
-// A fix has been submitted and we should consume it in the next rebase.
-
 // routeKey returns the internal router key to use for the given Route.
 func routeKey(route routeapi.Route) string {
-	return route.ServiceName
+	return fmt.Sprintf("%s/%s", route.Namespace, route.ServiceName)
 }
 
 // endpointsKey returns the internal router key to use for the given Endpoints.
 func endpointsKey(endpoints kapi.Endpoints) string {
-	return endpoints.Name
-}
-
-// endpointFromString parses the string into host/port and create an endpoint from it.
-// if the string is empty then nil, false will be returned
-func endpointFromString(s string) (ep *Endpoint, ok bool) {
-	if len(s) == 0 {
-		return nil, false
-	}
-
-	ep = &Endpoint{}
-	//not using net.url here because it doesn't split the port out when parsing
-	if strings.Contains(s, ":") {
-		eArr := strings.Split(s, ":")
-		ep.IP = eArr[0]
-		ep.Port = eArr[1]
-	} else {
-		ep.IP = s
-		ep.Port = "80"
-	}
-
-	ep.ID = fmt.Sprintf("%s:%s", ep.IP, ep.Port)
-
-	return ep, true
+	return fmt.Sprintf("%s/%s", endpoints.Namespace, endpoints.Name)
 }
 
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
@@ -151,13 +124,11 @@ func createRouterEndpoints(endpoints *kapi.Endpoints) []Endpoint {
 	routerEndpoints := make([]Endpoint, len(endpoints.Endpoints))
 
 	for i, e := range endpoints.Endpoints {
-		ep, ok := endpointFromString(e)
-
-		if !ok {
-			glog.Warningf("Unable to convert %s to endpoint", e)
-			continue
+		routerEndpoints[i] = Endpoint{
+			ID:   fmt.Sprintf("%s:%d", e.IP, e.Port),
+			IP:   e.IP,
+			Port: strconv.Itoa(e.Port),
 		}
-		routerEndpoints[i] = *ep
 	}
 
 	return routerEndpoints

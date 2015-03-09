@@ -55,7 +55,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 	return false, "denied by default", nil
 }
 
-func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) ([]string, []string, error) {
+func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
 	masterContext := kapi.WithNamespace(ctx, a.masterAuthorizationNamespace)
 	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(masterContext, attributes)
 	if err != nil {
@@ -74,7 +74,7 @@ func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Au
 	groups.Insert(globalGroups.List()...)
 	groups.Insert(localGroups.List()...)
 
-	return users.List(), groups.List(), nil
+	return users, groups, nil
 }
 
 func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {

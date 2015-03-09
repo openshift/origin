@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -93,8 +94,8 @@ func (_ *errNotFoundImageRepositoryClient) GetImageRepository(namespace, name st
 	return nil, kerrors.NewNotFound("ImageRepository", name)
 }
 
-func mockBuildAndController(status buildapi.BuildStatus, output buildapi.BuildOutput) (build *buildapi.Build, controller *BuildController) {
-	build = &buildapi.Build{
+func mockBuild(status buildapi.BuildStatus, output buildapi.BuildOutput) *buildapi.Build {
+	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "data-build",
 			Namespace: "namespace",
@@ -119,16 +120,23 @@ func mockBuildAndController(status buildapi.BuildStatus, output buildapi.BuildOu
 		Status:  status,
 		PodName: "-the-pod-id",
 	}
-	controller = &BuildController{
-		BuildStore:            buildtest.NewFakeBuildStore(build),
+}
+
+func mockBuildController() *BuildController {
+	return &BuildController{
 		BuildUpdater:          &okBuildUpdater{},
 		PodManager:            &okPodManager{},
-		NextBuild:             func() *buildapi.Build { return nil },
-		NextPod:               func() *kapi.Pod { return nil },
 		BuildStrategy:         &okStrategy{},
 		ImageRepositoryClient: &okImageRepositoryClient{},
 	}
-	return
+}
+
+func mockBuildPodController(build *buildapi.Build) *BuildPodController {
+	return &BuildPodController{
+		BuildStore:   buildtest.NewFakeBuildStore(build),
+		BuildUpdater: &okBuildUpdater{},
+		PodManager:   &okPodManager{},
+	}
 }
 
 func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
@@ -257,7 +265,7 @@ func TestHandleBuild(t *testing.T) {
 		},
 		{ // 12
 			inStatus:    buildapi.BuildStatusNew,
-			outStatus:   buildapi.BuildStatusError, // TODO: this should be a retry
+			outStatus:   buildapi.BuildStatusError,
 			imageClient: &errNotFoundImageRepositoryClient{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
@@ -275,10 +283,24 @@ func TestHandleBuild(t *testing.T) {
 				},
 			},
 		},
+		{ // 14
+			inStatus:  buildapi.BuildStatusNew,
+			outStatus: buildapi.BuildStatusPending,
+			buildOutput: buildapi.BuildOutput{
+				To: &kapi.ObjectReference{
+					Name:      "foo",
+					Namespace: "bar",
+				},
+			},
+			outputSpec: "image/repo",
+			// an error updating the build is not reported as an error.
+			buildUpdater: &errBuildUpdater{},
+		},
 	}
 
 	for i, tc := range tests {
-		build, ctrl := mockBuildAndController(tc.inStatus, tc.buildOutput)
+		build := mockBuild(tc.inStatus, tc.buildOutput)
+		ctrl := mockBuildController()
 		if tc.buildStrategy != nil {
 			ctrl.BuildStrategy = tc.buildStrategy
 		}
@@ -292,8 +314,20 @@ func TestHandleBuild(t *testing.T) {
 			ctrl.ImageRepositoryClient = tc.imageClient
 		}
 
-		ctrl.HandleBuild(build)
+		err := ctrl.HandleBuild(build)
 
+		// ensure we return an error for cases where expected output is an error.
+		// these will be retried by the retrycontroller
+		if tc.inStatus != buildapi.BuildStatusError && tc.outStatus == buildapi.BuildStatusError {
+			if err == nil {
+				t.Errorf("(%d) Expected an error from HandleBuild, got none!", i)
+			}
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("(%d) Unexpected error %v", err)
+		}
 		if build.Status != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)
 		}
@@ -317,6 +351,7 @@ func TestHandlePod(t *testing.T) {
 		podStatus    kapi.PodPhase
 		exitCode     int
 		buildUpdater buildclient.BuildUpdater
+		podManager   podManager
 	}
 
 	tests := []handlePodTest{
@@ -366,7 +401,8 @@ func TestHandlePod(t *testing.T) {
 	}
 
 	for i, tc := range tests {
-		build, ctrl := mockBuildAndController(tc.inStatus, buildapi.BuildOutput{})
+		build := mockBuild(tc.inStatus, buildapi.BuildOutput{})
+		ctrl := mockBuildPodController(build)
 		pod := mockPod(tc.podStatus, tc.exitCode)
 		if tc.matchID {
 			build.PodName = pod.Name
@@ -375,8 +411,16 @@ func TestHandlePod(t *testing.T) {
 			ctrl.BuildUpdater = tc.buildUpdater
 		}
 
-		ctrl.HandlePod(pod)
+		err := ctrl.HandlePod(pod)
 
+		if tc.buildUpdater != nil && reflect.TypeOf(tc.buildUpdater).Elem().Name() == "errBuildUpdater" {
+			if err == nil {
+				t.Errorf("(%d) Expected error, got none", i)
+			}
+			// can't check tc.outStatus because the local build object does get updated
+			// in this test (but would not updated in etcd)
+			continue
+		}
 		if build.Status != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)
 		}
@@ -385,10 +429,12 @@ func TestHandlePod(t *testing.T) {
 
 func TestCancelBuild(t *testing.T) {
 	type handleCancelBuildTest struct {
-		inStatus  buildapi.BuildStatus
-		outStatus buildapi.BuildStatus
-		podStatus kapi.PodPhase
-		exitCode  int
+		inStatus     buildapi.BuildStatus
+		outStatus    buildapi.BuildStatus
+		podStatus    kapi.PodPhase
+		exitCode     int
+		buildUpdater buildclient.BuildUpdater
+		podManager   podManager
 	}
 
 	tests := []handleCancelBuildTest{
@@ -421,13 +467,48 @@ func TestCancelBuild(t *testing.T) {
 			podStatus: kapi.PodFailed,
 			exitCode:  1,
 		},
+		{ // 5
+			inStatus:   buildapi.BuildStatusNew,
+			outStatus:  buildapi.BuildStatusNew,
+			podStatus:  kapi.PodFailed,
+			exitCode:   1,
+			podManager: &errPodManager{},
+		},
+		{ // 6
+			inStatus:     buildapi.BuildStatusNew,
+			outStatus:    buildapi.BuildStatusNew,
+			podStatus:    kapi.PodFailed,
+			exitCode:     1,
+			buildUpdater: &errBuildUpdater{},
+		},
 	}
 
 	for i, tc := range tests {
-		build, ctrl := mockBuildAndController(tc.inStatus, buildapi.BuildOutput{})
+		build := mockBuild(tc.inStatus, buildapi.BuildOutput{})
+		ctrl := mockBuildPodController(build)
 		pod := mockPod(tc.podStatus, tc.exitCode)
+		if tc.buildUpdater != nil {
+			ctrl.BuildUpdater = tc.buildUpdater
+		}
+		if tc.podManager != nil {
+			ctrl.PodManager = tc.podManager
+		}
 
-		ctrl.CancelBuild(build, pod)
+		err := ctrl.CancelBuild(build, pod)
+
+		if tc.podManager != nil && reflect.TypeOf(tc.podManager).Elem().Name() == "errPodManager" {
+			if err == nil {
+				t.Errorf("(%d) Expected error, got none", i)
+			}
+		}
+		if tc.buildUpdater != nil && reflect.TypeOf(tc.buildUpdater).Elem().Name() == "errBuildUpdater" {
+			if err == nil {
+				t.Errorf("(%d) Expected error, got none", i)
+			}
+			// can't check tc.outStatus because the local build object does get updated
+			// in this test (but would not updated in etcd)
+			continue
+		}
 
 		if build.Status != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)
