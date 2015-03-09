@@ -139,8 +139,6 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 // BuildConfigDescriber generates information about a buildConfig
 type BuildConfigDescriber struct {
 	client.Interface
-	// TODO: this is broken, webhook URL generation should be done by client interface using
-	// the string value
 	host string
 }
 
