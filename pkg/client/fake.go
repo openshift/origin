@@ -20,6 +20,10 @@ func (c *Fake) BuildConfigs(namespace string) BuildConfigInterface {
 	return &FakeBuildConfigs{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) BuildLogs(namespace string) BuildLogInterface {
+	return &FakeBuildLogs{Fake: c, Namespace: namespace}
+}
+
 func (c *Fake) Images(namespace string) ImageInterface {
 	return &FakeImages{Fake: c, Namespace: namespace}
 }
