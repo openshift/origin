@@ -315,6 +315,10 @@ func (sub *EtcdSubnetRegistry) WatchMinions(rev uint64, receiver chan *MinionEve
 	log.Infof("Watching %s for new minions.", key)
 	for {
 		resp, err := sub.watch(key, rev, stop)
+		if err != nil && err == etcd.ErrWatchStoppedByUser {
+			log.Infof("New subnet event error: %v", err)
+			return err
+		}
 		if resp == nil || err != nil {
 			continue
 		}
