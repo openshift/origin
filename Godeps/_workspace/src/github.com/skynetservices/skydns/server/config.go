@@ -7,6 +7,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -111,7 +112,14 @@ func SetDefaults(config *Config) error {
 
 	if len(config.Nameservers) == 0 {
 		c, err := dns.ClientConfigFromFile("/etc/resolv.conf")
-		if err != nil {
+		if os.IsNotExist(err) {
+			c = &dns.ClientConfig{
+				Port:     "53",
+				Ndots:    1,
+				Timeout:  1,
+				Attempts: 2,
+			}
+		} else if err != nil {
 			return err
 		}
 		for _, s := range c.Servers {
