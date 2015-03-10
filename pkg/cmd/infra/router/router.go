@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
+	"github.com/openshift/origin/pkg/util/proc"
 	"github.com/openshift/origin/pkg/version"
 	templateplugin "github.com/openshift/origin/plugins/router/template"
 )
@@ -81,6 +82,8 @@ func start(cfg *clientcmd.Config, plugin router.Plugin) error {
 	if err != nil {
 		return err
 	}
+
+	proc.StartReaper()
 
 	factory := controllerfactory.RouterControllerFactory{kubeClient, osClient}
 	controller := factory.Create(plugin)
