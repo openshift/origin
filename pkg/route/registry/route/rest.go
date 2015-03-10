@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/route/api/allocator"
 	"github.com/openshift/origin/pkg/route/api/validation"
 )
 
@@ -69,6 +70,13 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 	}
 	if !kapi.ValidNamespace(ctx, &route.ObjectMeta) {
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
+	}
+
+	//  shards will be eventually allocated via a separate controller.
+	shard := allocator.Allocate(route)
+
+	if len(route.Host) == 0 {
+		route.Host = allocator.Generate(route, shard)
 	}
 
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
