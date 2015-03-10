@@ -102,7 +102,7 @@ osc get templates
 osc create -f examples/sample-app/application-template-dockerbuild.json
 osc get templates
 osc get templates ruby-helloworld-sample
-[ -n "$(osc get templates ruby-helloworld-sample -o json | osc process -f -)" ]
+osc process ruby-helloworld-sample
 osc describe templates ruby-helloworld-sample
 osc delete templates ruby-helloworld-sample
 osc get templates

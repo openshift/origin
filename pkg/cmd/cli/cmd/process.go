@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
@@ -42,8 +43,11 @@ JSON and YAML formats are accepted.
 
 Examples:
 
-	# Convert template.json into resource list
+	# Convert template.json file into resource list
 	$ %[1]s process -f template.json
+
+	# Convert stored template into resource list
+	$ %[1]s process foo
 
 	# Convert template.json into resource list
 	$ cat template.json | %[1]s process -f -
@@ -56,31 +60,52 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		Short: "Process template into list of resources",
 		Long:  fmt.Sprintf(processLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			filename := cmdutil.GetFlagString(cmd, "filename")
-			if len(filename) == 0 {
-				usageError(cmd, "Must pass a filename to update")
+			storedTemplate := ""
+			if len(args) > 0 {
+				storedTemplate = args[0]
 			}
 
-			schema, err := f.Validator(cmd)
-			checkErr(err)
+			filename := cmdutil.GetFlagString(cmd, "filename")
+			if len(storedTemplate) == 0 && len(filename) == 0 {
+				usageError(cmd, "Must pass a filename or name of stored template")
+			}
 
-			cfg, err := f.ClientConfig(cmd)
-			checkErr(err)
 			namespace, err := f.DefaultNamespace(cmd)
 			checkErr(err)
+
 			mapper, typer := f.Object(cmd)
-
-			mapping, _, _, data := cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
-			obj, err := mapping.Codec.Decode(data)
-			checkErr(err)
-
-			templateObj, ok := obj.(*api.Template)
-			if !ok {
-				checkErr(fmt.Errorf("cannot convert input to Template"))
-			}
 
 			client, _, err := f.Clients(cmd)
 			checkErr(err)
+
+			var (
+				templateObj *api.Template
+				mapping     *meta.RESTMapping
+			)
+
+			if len(storedTemplate) > 0 {
+				templateObj, err = client.Templates(namespace).Get(storedTemplate)
+				version, kind, err := mapper.VersionAndKindForResource("template")
+				if mapping, err = mapper.RESTMapping(kind, version); err != nil {
+					checkErr(err)
+				}
+			} else {
+				schema, err := f.Validator(cmd)
+				checkErr(err)
+				cfg, err := f.ClientConfig(cmd)
+				checkErr(err)
+				var (
+					ok   bool
+					data []byte
+				)
+				mapping, _, _, data = cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
+				obj, err := mapping.Codec.Decode(data)
+				checkErr(err)
+				templateObj, ok = obj.(*api.Template)
+				if !ok {
+					checkErr(fmt.Errorf("cannot convert input to Template"))
+				}
+			}
 
 			if cmd.Flag("value").Changed {
 				injectUserVars(cmd, templateObj)
