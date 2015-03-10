@@ -14,8 +14,8 @@ const DockerDefaultNamespace = "library"
 // SplitDockerPullSpec breaks a Docker pull specification into its components, or returns
 // an error if those components are not valid. Attempts to match as closely as possible the
 // Docker spec up to 1.3. Future API revisions may change the pull syntax.
-func SplitDockerPullSpec(spec string) (registry, namespace, name, tag string, err error) {
-	registry, namespace, name, tag, err = SplitOpenShiftPullSpec(spec)
+func SplitDockerPullSpec(spec string) (registry, namespace, name, ref string, err error) {
+	registry, namespace, name, ref, err = SplitOpenShiftPullSpec(spec)
 	if err != nil {
 		return
 	}
@@ -25,20 +25,20 @@ func SplitDockerPullSpec(spec string) (registry, namespace, name, tag string, er
 // SplitOpenShiftPullSpec breaks an OpenShift pull specification into its components, or returns
 // an error if those components are not valid. Attempts to match as closely as possible the
 // Docker spec up to 1.3. Future API revisions may change the pull syntax.
-func SplitOpenShiftPullSpec(spec string) (registry, namespace, name, tag string, err error) {
-	spec, tag = docker.ParseRepositoryTag(spec)
+func SplitOpenShiftPullSpec(spec string) (registry, namespace, name, ref string, err error) {
+	spec, ref = docker.ParseRepositoryTag(spec)
 	arr := strings.Split(spec, "/")
 	switch len(arr) {
 	case 2:
-		return "", arr[0], arr[1], tag, nil
+		return "", arr[0], arr[1], ref, nil
 	case 3:
-		return arr[0], arr[1], arr[2], tag, nil
+		return arr[0], arr[1], arr[2], ref, nil
 	case 1:
 		if len(arr[0]) == 0 {
 			err = fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 			return
 		}
-		return "", "", arr[0], tag, nil
+		return "", "", arr[0], ref, nil
 	default:
 		err = fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 		return
@@ -54,20 +54,25 @@ func IsPullSpec(spec string) bool {
 // JoinDockerPullSpec turns a set of components of a Docker pull specification into a single
 // string. Attempts to match as closely as possible the Docker spec up to 1.3. Future API
 // revisions may change the pull syntax.
-func JoinDockerPullSpec(registry, namespace, name, tag string) string {
-	if len(tag) != 0 {
-		tag = ":" + tag
+func JoinDockerPullSpec(registry, namespace, name, ref string) string {
+	if len(ref) != 0 {
+		if strings.Contains(ref, ":") {
+			// v2 digest
+			ref = "@" + ref
+		} else {
+			ref = ":" + ref
+		}
 	}
 	if len(namespace) == 0 {
 		if len(registry) == 0 {
-			return fmt.Sprintf("%s%s", name, tag)
+			return fmt.Sprintf("%s%s", name, ref)
 		}
 		namespace = DockerDefaultNamespace
 	}
 	if len(registry) == 0 {
-		return fmt.Sprintf("%s/%s%s", namespace, name, tag)
+		return fmt.Sprintf("%s/%s%s", namespace, name, ref)
 	}
-	return fmt.Sprintf("%s/%s/%s%s", registry, namespace, name, tag)
+	return fmt.Sprintf("%s/%s/%s%s", registry, namespace, name, ref)
 }
 
 // ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
@@ -109,4 +114,23 @@ func ImageWithMetadata(image Image) (*Image, error) {
 	image.DockerImageMetadata.Size = v1Metadata.Size
 
 	return &image, nil
+}
+
+// LatestTaggedImage returns the most recent TagEvent for the specified image
+// repository and tag.
+func LatestTaggedImage(repo ImageRepository, tag string) (*TagEvent, error) {
+	if _, ok := repo.Tags[tag]; !ok {
+		return nil, fmt.Errorf("image repository %s/%s: tag %q not found", repo.Namespace, repo.Name, tag)
+	}
+
+	tagHistory, ok := repo.Status.Tags[tag]
+	if !ok {
+		return nil, fmt.Errorf("image repository %s/%s: tag %q not found in tag history", repo.Namespace, repo.Name, tag)
+	}
+
+	if len(tagHistory.Items) == 0 {
+		return nil, fmt.Errorf("image repository %s/%s: tag %q has 0 history items", repo.Namespace, repo.Name, tag)
+	}
+
+	return &tagHistory.Items[0], nil
 }

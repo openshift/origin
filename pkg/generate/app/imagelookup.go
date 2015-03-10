@@ -247,22 +247,22 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 }
 
 type ImageStreamResolver struct {
-	Client     client.ImageRepositoriesNamespacer
-	Images     client.ImagesInterfacer
-	Namespaces []string
+	Client            client.ImageRepositoriesNamespacer
+	ImageStreamImages client.ImageStreamImagesNamespacer
+	Namespaces        []string
 }
 
 func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
-	registry, namespace, name, tag, err := imageapi.SplitOpenShiftPullSpec(value)
+	registry, namespace, name, ref, err := imageapi.SplitOpenShiftPullSpec(value)
 	if err != nil || len(registry) != 0 {
-		return nil, fmt.Errorf("image repositories must be of the form [<namespace>/]<name>[:<tag>]")
+		return nil, fmt.Errorf("image repositories must be of the form [<namespace>/]<name>[:<tag>|@<digest>]")
 	}
 	namespaces := r.Namespaces
 	if len(namespace) != 0 {
 		namespaces = []string{namespace}
 	}
 	for _, namespace := range namespaces {
-		glog.V(4).Infof("checking image stream %s/%s with tag %q", namespace, name, tag)
+		glog.V(4).Infof("checking image stream %s/%s with ref %q", namespace, name, ref)
 		repo, err := r.Client.ImageRepositories(namespace).Get(name)
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -270,27 +270,24 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 			}
 			return nil, err
 		}
-		searchTag := tag
+		searchTag := ref
 		// TODO: move to a lookup function on repo, or better yet, have the repo.Status.Tags field automatically infer latest
 		if len(searchTag) == 0 {
 			searchTag = "latest"
 		}
-		id, ok := repo.Tags[searchTag]
-		if !ok {
-			if len(tag) == 0 {
-				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("the default tag %q has not been set", searchTag)}
-			}
-			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q has not been set", tag)}
+		tagEvent, err := imageapi.LatestTaggedImage(*repo, searchTag)
+		if err != nil {
+			return nil, ErrNoMatch{value: value, qualifier: err.Error()}
 		}
-		imageData, err := r.Images.Images().Get(id)
+		imageData, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(name, tagEvent.Image)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", tag, id)}
+				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", ref, tagEvent.Image)}
 			}
 			return nil, err
 		}
 
-		spec := imageapi.JoinDockerPullSpec("", namespace, name, tag)
+		spec := imageapi.JoinDockerPullSpec("", namespace, name, ref)
 		return &ComponentMatch{
 			Value:       spec,
 			Argument:    fmt.Sprintf("--image=%q", spec),

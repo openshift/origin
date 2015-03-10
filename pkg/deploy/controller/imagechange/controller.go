@@ -65,7 +65,14 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) erro
 					continue
 				}
 
-				if repoImageID, repoHasTag := imageRepo.Tags[params.Tag]; repoHasTag && repoImageID != containerImageID {
+				tagEvent, err := imageapi.LatestTaggedImage(*imageRepo, params.Tag)
+				if err != nil {
+					glog.V(4).Infof("Skipping container %s for config %s; %s", container.Name, labelFor(config), err)
+					continue
+				}
+
+				if tagEvent.Image != containerImageID {
+					glog.V(4).Infof("Container %s for config %s: image id changed from %q to %q; regenerating config", container.Name, labelFor(config), containerImageID, tagEvent.Image)
 					configsToGenerate = append(configsToGenerate, config)
 					firedTriggersForConfig[config.Name] = append(firedTriggersForConfig[config.Name], params)
 				}
@@ -135,11 +142,11 @@ func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, 
 				continue
 			}
 
-			id, ok := imageRepo.Tags[trigger.Tag]
-			if !ok {
-				// TODO: not really sure what to do here
+			tagEvent, err := imageapi.LatestTaggedImage(*imageRepo, trigger.Tag)
+			if err != nil {
+				return fmt.Errorf("error generating new version of deploymentConfig: %s: %s", labelFor(config), err)
 			}
-			repoName = fmt.Sprintf("%s:%s", imageRepo.Status.DockerImageRepository, id)
+			repoName = tagEvent.DockerImageReference
 		}
 
 		causes = append(causes,

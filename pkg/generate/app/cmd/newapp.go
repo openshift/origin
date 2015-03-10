@@ -70,9 +70,9 @@ func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
 	c.imageStreamResolver = app.ImageStreamResolver{
-		Client:     osclient,
-		Images:     osclient,
-		Namespaces: []string{originNamespace, "default"},
+		Client:            osclient,
+		ImageStreamImages: osclient,
+		Namespaces:        []string{originNamespace, "default"},
 	}
 }
 
