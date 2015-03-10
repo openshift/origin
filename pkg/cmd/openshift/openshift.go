@@ -120,7 +120,7 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(config.NewCmdConfig(subName, "config"))
 	experimental.AddCommand(tokens.NewCmdTokens(f, subName, "tokens"))
 	experimental.AddCommand(policy.NewCommandPolicy(f, subName, "policy"))
-	experimental.AddCommand(generate.NewCmdGenerate(f, subName, "generate"))
+	experimental.AddCommand(generate.NewCmdGenerate(f, subName, "generate", os.Stdout))
 	experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
 	experimental.AddCommand(exregistry.NewCmdRegistry(f, subName, "registry", os.Stdout))
 	return experimental

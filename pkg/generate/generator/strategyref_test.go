@@ -90,7 +90,7 @@ func TestFromSourceRefAndDockerContext(t *testing.T) {
 		Dir: tmp,
 		Ref: "master",
 	}
-	strategy, err := g.FromSourceRefAndDockerContext(srcRef, ".")
+	strategy, err := g.FromSourceRefAndDockerContext(&srcRef, ".")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestFromSourceRefDocker(t *testing.T) {
 		Dir: tmp,
 		Ref: "master",
 	}
-	strategy, err := g.FromSourceRef(srcRef)
+	strategy, err := g.FromSourceRef(&srcRef)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestFromSourceRefSTI(t *testing.T) {
 		Dir: "/tmp/dir",
 		Ref: "master",
 	}
-	strategy, err := g.FromSourceRef(srcRef)
+	strategy, err := g.FromSourceRef(&srcRef)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
