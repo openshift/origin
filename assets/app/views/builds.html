@@ -43,11 +43,11 @@
             <li ng-repeat="trigger in buildConfig.triggers">
               <span ng-switch="trigger.type">
                 <span ng-switch-when="github">
-                  GitHub webhook URL: <input class="small" readonly="readonly" value="{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}" select-on-focus />
+                  GitHub webhook URL: <input class="small" readonly="readonly" value="{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}" select-on-focus>
                   <a href="{{'webhooks' | helpLink}}" target="_blank"><i class="pficon pficon-help"></i></a>
                 </span>
                 <span ng-switch-when="generic">
-                  Generic webhook URL: <input class="small" readonly="readonly" value="{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}" select-on-focus />
+                  Generic webhook URL: <input class="small" readonly="readonly" value="{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}" select-on-focus>
                   <a href="{{'webhooks' | helpLink}}" target="_blank"><i class="pficon pficon-help"></i></a>
                 </span>
                 <span ng-switch-when="imageChange">
