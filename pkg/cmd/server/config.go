@@ -138,12 +138,16 @@ func (cfg Config) GetMasterAddress() (*url.URL, error) {
 	}
 
 	// use the default ip address for the system
-	addr, err := util.DefaultLocalIP4()
-	if err != nil {
+	addr := ""
+	if ip, err := util.DefaultLocalIP4(); err == nil {
+		addr = ip.String()
+	} else if err == util.ErrorNoDefaultIP {
+		addr = "127.0.0.1"
+	} else if err != nil {
 		return nil, fmt.Errorf("Unable to find a public IP address: %v", err)
 	}
 
-	masterAddr := scheme + "://" + net.JoinHostPort(addr.String(), strconv.Itoa(port))
+	masterAddr := scheme + "://" + net.JoinHostPort(addr, strconv.Itoa(port))
 	return url.Parse(masterAddr)
 }
 
