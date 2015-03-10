@@ -28,9 +28,24 @@ Setup
 -----
 At this stage of OpenShift 3 development, there are a few things that you will need to configure on the host where OpenShift is running in order for things to work.
 
-- - -
+**NOTE:** You do not need to do this if you are using [Vagrant](https://vagrantup.com/) to work with OpenShift.  Refer to the "VAGRANT USERS" callouts throughout this document for modifications specific to Vagrant users. 
 
-**NOTE:** You do not need to do this if you are using [Vagrant](https://vagrantup.com/) to work with OpenShift (see the [Vagrantfile](https://github.com/openshift/origin/blob/master/Vagrantfile) for more info). These changes are only necessary when you have set up the host system yourself. If you are using Vagrant, [jump to the next section](#application-build-deploy-and-update-flow).
+- - - 
+**VAGRANT USERS**:
+If you haven't already, fire up a Vagrant instance.
+
+	$ vagrant up 
+	$ vagrant ssh
+
+Inside of your Vagrant instance, the path to the origin directory is `/data/src/github.com/openshift/origin`.
+
+	$ cd /data/src/github.com/openshift/origin
+
+Run an advance build of the OpenShift binaries before continuing:
+
+	$ make clean build
+
+This will set up a go workspace locally and will build all go components.  It is not necessary to make the docker and firewall changes, instead [jump to the next section](#application-build-deploy-and-update-flow).
 
 - - -
 
@@ -70,8 +85,16 @@ Application Build, Deploy, and Update Flow
 
 This section covers how to perform all the steps of building, deploying, and updating an application on the OpenShift platform.
 
-NOTE: All commands assume the `osc` binary/symlink is in your path and
-the present working directory is the same directory as this README.
+- - -
+**NOTE**
+
+* All commands assume the `osc` binary/symlink is in your path.
+* All commands assume that you are working from the `sample-app` directory in your local environment.
+    * If you are working from a local git repo, this might be `$GOPATH/src/gitghub.com/<username>/origin/examples/sample-app`
+    * **VAGRANT USERS**: `cd /data/src/gitghub.com/<username>/origin/examples/sample-app`
+
+- - -
+
 
 1. *Optional*: Pre-pull the Docker images used in this sample.  This is
     not strictly necessary as OpenShift will pull the images as it needs them,
@@ -82,8 +105,12 @@ the present working directory is the same directory as this README.
         $ ./pullimages.sh
 
 2. Launch an all-in-one `openshift` instance
-
+                                                                                               
         $ sudo openshift start &> logs/openshift.log &
+        
+       **VAGRANT USERS**: Instead of the above command, use
+   
+        $ sudo /data/src/github.com/openshift/origin/_output/local/go/bin/openshift start --public-master=localhost &> logs/openshift.log &
 
     Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
 
@@ -117,6 +144,7 @@ the present working directory is the same directory as this README.
     * If you click the `default` project and leave the tab open,
       you'll see the page update as you deploy objects into the project
       and run builds.
+
 
 6. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
@@ -170,6 +198,7 @@ the present working directory is the same directory as this README.
       you'll see the page update as you deploy objects into the project
       and run builds.
 
+
 11. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
     to an OpenShift-visible git account that you control, preferably
     somewhere that can also reach your OpenShift server with a webhook.
@@ -187,11 +216,13 @@ the present working directory is the same directory as this README.
 
         $ https://<host>:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
 
+
   * Note: Using the webhook requires that your OpenShift server be
     publicly accessible so GitHub can reach it to invoke the hook. You
     will almost certainly need to "Disable SSL Verification" for your test
     instance as the certificate chain generated is not publicly verified.
 
+	
 13. Edit application-template-stibuild.json which will define the sample application
 
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
@@ -280,6 +311,15 @@ the present working directory is the same directory as this README.
     *Note:* you can also get this information from the web console.
 
 19. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
+
+	- - -
+	**VAGRANT USERS:**
+	Open a new terminal and enter this command to forward the application port to a port on your workstation:
+
+		$ vagrant ssh -- -L 9999:172.30.17.4:5432 (or 9999:whatever IP address was reported above)
+
+	You can now confirm the application is accessible on port 5432 by going to `http://<host>:9999`.  Note that port 9999 is arbitrary.
+	- - - 
 
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
