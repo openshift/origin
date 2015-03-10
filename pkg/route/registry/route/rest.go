@@ -72,18 +72,18 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
-	if errs := validation.ValidateRoute(route); len(errs) > 0 {
-		return nil, errors.NewInvalid("route", route.Name, errs)
-	}
-	if len(route.Name) == 0 {
-		route.Name = uuid.NewUUID().String()
-	}
-
 	//  shards will be eventually allocated via a separate controller.
 	shard := allocator.Allocate(route)
 
 	if len(route.Host) == 0 {
 		route.Host = allocator.Generate(route, shard)
+	}
+
+	if errs := validation.ValidateRoute(route); len(errs) > 0 {
+		return nil, errors.NewInvalid("route", route.Name, errs)
+	}
+	if len(route.Name) == 0 {
+		route.Name = uuid.NewUUID().String()
 	}
 
 	kapi.FillObjectMetaSystemFields(ctx, &route.ObjectMeta)

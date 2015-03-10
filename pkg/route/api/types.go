@@ -30,9 +30,17 @@ type RouteList struct {
 	Items         []Route `json:"items"`
 }
 
-// RouterShard defines a routing shard.
+// RouterShard has information of a routing shard and is used to
+// generate host names and routing table entries when a routing shard is
+// allocated for a specific route.
+// Caveat: This is WIP and will likely undergo modifications when sharding
+//         support is added.
 type RouterShard struct {
+	// Shard name uniquely identifies a router shard in the "set" of
+	// routers used for routing traffic to the services.
 	ShardName string
+
+	// The DNS suffix for the shard ala: shard-1.v3.openshift.com
 	DNSSuffix string
 }
 
