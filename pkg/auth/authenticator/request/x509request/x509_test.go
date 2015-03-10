@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
 const (
@@ -522,6 +523,127 @@ func TestX509(t *testing.T) {
 		if testCase.ExpectOK {
 			if testCase.ExpectUserName != user.GetName() {
 				t.Errorf("%s: Expected user.name=%v, got %v", k, testCase.ExpectUserName, user.GetName())
+				continue
+			}
+		}
+	}
+}
+
+func TestX509Verifier(t *testing.T) {
+	testCases := map[string]struct {
+		Insecure bool
+		Certs    []*x509.Certificate
+
+		Opts x509.VerifyOptions
+
+		ExpectOK  bool
+		ExpectErr bool
+	}{
+		"non-tls": {
+			Insecure: true,
+
+			ExpectOK:  false,
+			ExpectErr: false,
+		},
+
+		"tls, no certs": {
+			ExpectOK:  false,
+			ExpectErr: false,
+		},
+
+		"self signed": {
+			Opts:  getDefaultVerifyOptions(t),
+			Certs: getCerts(t, selfSignedCert),
+
+			ExpectErr: true,
+		},
+
+		"server cert disallowed": {
+			Opts:  getDefaultVerifyOptions(t),
+			Certs: getCerts(t, serverCert),
+
+			ExpectErr: true,
+		},
+		"server cert allowing non-client cert usages": {
+			Opts:  x509.VerifyOptions{Roots: getRootCertPool(t)},
+			Certs: getCerts(t, serverCert),
+
+			ExpectOK:  true,
+			ExpectErr: false,
+		},
+
+		"valid client cert": {
+			Opts:  getDefaultVerifyOptions(t),
+			Certs: getCerts(t, clientCNCert),
+
+			ExpectOK:  true,
+			ExpectErr: false,
+		},
+
+		"future cert": {
+			Opts: x509.VerifyOptions{
+				CurrentTime: time.Now().Add(time.Duration(-100 * time.Hour * 24 * 365)),
+				Roots:       getRootCertPool(t),
+			},
+			Certs: getCerts(t, clientCNCert),
+
+			ExpectOK:  false,
+			ExpectErr: true,
+		},
+		"expired cert": {
+			Opts: x509.VerifyOptions{
+				CurrentTime: time.Now().Add(time.Duration(100 * time.Hour * 24 * 365)),
+				Roots:       getRootCertPool(t),
+			},
+			Certs: getCerts(t, clientCNCert),
+
+			ExpectOK:  false,
+			ExpectErr: true,
+		},
+	}
+
+	for k, testCase := range testCases {
+		req, _ := http.NewRequest("GET", "/", nil)
+		if !testCase.Insecure {
+			req.TLS = &tls.ConnectionState{PeerCertificates: testCase.Certs}
+		}
+
+		authCall := false
+		auth := authenticator.RequestFunc(func(req *http.Request) (user.Info, bool, error) {
+			authCall = true
+			return &user.DefaultInfo{Name: "innerauth"}, true, nil
+		})
+
+		a := NewVerifier(testCase.Opts, auth)
+
+		user, ok, err := a.AuthenticateRequest(req)
+
+		if testCase.ExpectErr && err == nil {
+			t.Errorf("%s: Expected error, got none", k)
+			continue
+		}
+		if !testCase.ExpectErr && err != nil {
+			t.Errorf("%s: Got unexpected error: %v", k, err)
+			continue
+		}
+
+		if testCase.ExpectOK != ok {
+			t.Errorf("%s: Expected ok=%v, got %v", k, testCase.ExpectOK, ok)
+			continue
+		}
+
+		if testCase.ExpectOK {
+			if !authCall {
+				t.Errorf("%s: Expected inner auth called, wasn't")
+				continue
+			}
+			if "innerauth" != user.GetName() {
+				t.Errorf("%s: Expected user.name=%v, got %v", k, "innerauth", user.GetName())
+				continue
+			}
+		} else {
+			if authCall {
+				t.Errorf("%s: Expected inner auth not to be called, was")
 				continue
 			}
 		}

@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/openshift/origin/pkg/auth/authenticator"
 )
 
 // UserConversion defines an interface for extracting user info from a client certificate chain
@@ -60,7 +61,35 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 			}
 		}
 	}
-	return nil, false, errors.NewAggregate(errlist)
+	return nil, false, kerrors.NewAggregate(errlist)
+}
+
+// Verifier implements request.Authenticator by verifying a client cert on the request, then delegating to the wrapped auth
+type Verifier struct {
+	opts x509.VerifyOptions
+	auth authenticator.Request
+}
+
+func NewVerifier(opts x509.VerifyOptions, auth authenticator.Request) authenticator.Request {
+	return &Verifier{opts, auth}
+}
+
+// AuthenticateRequest verifies the presented client certificates, then delegates to the wrapped auth
+func (a *Verifier) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+	if req.TLS == nil {
+		return nil, false, nil
+	}
+
+	var errlist []error
+	for _, cert := range req.TLS.PeerCertificates {
+		_, err := cert.Verify(a.opts)
+		if err != nil {
+			errlist = append(errlist, err)
+			continue
+		}
+		return a.auth.AuthenticateRequest(req)
+	}
+	return nil, false, kerrors.NewAggregate(errlist)
 }
 
 // DefaultVerifyOptions returns VerifyOptions that use the system root certificates, current time,
