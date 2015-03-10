@@ -99,6 +99,11 @@ type SourceRef struct {
 	ContextDir string
 }
 
+func urlWithoutRef(url url.URL) string {
+	url.Fragment = ""
+	return url.String()
+}
+
 // SuggestName returns a name derived from the source URL
 func (r *SourceRef) SuggestName() (string, bool) {
 	if len(r.Name) > 0 {
@@ -112,7 +117,7 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 	return &buildapi.BuildSource{
 			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitBuildSource{
-				URI: r.URL.String(),
+				URI: urlWithoutRef(*r.URL),
 				Ref: r.Ref,
 			},
 			ContextDir: r.ContextDir,
