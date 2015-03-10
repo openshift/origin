@@ -16,6 +16,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -113,7 +114,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 			// time a still running build has been running in a pod
 			formatString(out, "Duration", fmt.Sprintf("running for %s", t.Sub(build.StartTimestamp.Rfc3339Copy().Time)))
 		}
-		formatString(out, "Build Pod", build.PodName)
+		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
 		describeBuildParameters(build.Parameters, out)
 		return nil
 	})

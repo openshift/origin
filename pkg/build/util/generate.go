@@ -236,3 +236,8 @@ func SubstituteImageRepoReferences(build *buildapi.Build, imageRepo kapi.ObjectR
 		build.Parameters.Strategy.STIStrategy.From = nil
 	}
 }
+
+// GetBuildPodName returns name of the build pod.
+func GetBuildPodName(build *buildapi.Build) string {
+	return fmt.Sprintf("pod-%s", build.Name)
+}

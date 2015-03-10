@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 )
 
@@ -51,22 +52,17 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 
 	// TODO: these must be status errors, not field errors
 	// TODO: choose a more appropriate "try again later" status code, like 202
-	if len(build.PodName) == 0 {
-		return "", errors.NewFieldRequired("Build.PodName")
-	}
-
-	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
+	buildPodName := buildutil.GetBuildPodName(build)
+	pod, err := r.PodControl.getPod(build.Namespace, buildPodName)
 	if err != nil {
-		return "", errors.NewFieldNotFound("Pod.Name", build.PodName)
+		return "", errors.NewFieldNotFound("Pod.Name", buildPodName)
 	}
 
-	buildPodID := build.PodName
 	buildPodHost := pod.Status.Host
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
 	buildContainerName := pod.Spec.Containers[0].Name
-
-	location := fmt.Sprintf("%s:%d/containerLogs/%s/%s/%s", buildPodHost, kubernetes.NodePort, buildPodNamespace, buildPodID, buildContainerName)
+	location := fmt.Sprintf("%s:%d/containerLogs/%s/%s/%s", buildPodHost, kubernetes.NodePort, buildPodNamespace, buildPodName, buildContainerName)
 
 	// Pod in which build take place can't be in the Pending or Unknown phase,
 	// cause no containers are present in the Pod in those phases.

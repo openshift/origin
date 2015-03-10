@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestDockerCreateBuildPod(t *testing.T) {
@@ -16,12 +17,14 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	}
 
 	expected := mockDockerBuild()
-	actual, _ := strategy.CreateBuildPod(expected)
-
-	if actual.ObjectMeta.Name != expected.PodName {
-		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
+	actual, err := strategy.CreateBuildPod(expected)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
 
+	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+		t.Errorf("Expected %s, but got %s!", expected, actual)
+	}
 	container := actual.Spec.Containers[0]
 	if container.Name != "docker-build" {
 		t.Errorf("Expected docker-build, but got %s!", container.Name)
@@ -88,7 +91,6 @@ func mockDockerBuild() *buildapi.Build {
 				PushSecretName:       "foo",
 			},
 		},
-		Status:  buildapi.BuildStatusNew,
-		PodName: "-the-pod-id",
+		Status: buildapi.BuildStatusNew,
 	}
 }

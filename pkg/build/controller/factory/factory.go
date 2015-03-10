@@ -19,6 +19,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -169,9 +170,10 @@ func (factory *BuildPodControllerFactory) pollPods() (cache.Enumerator, error) {
 
 		switch build.Status {
 		case buildapi.BuildStatusPending, buildapi.BuildStatusRunning:
-			pod, err := factory.KubeClient.Pods(build.Namespace).Get(build.PodName)
+			podName := buildutil.GetBuildPodName(build)
+			pod, err := factory.KubeClient.Pods(build.Namespace).Get(podName)
 			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", build.PodName, build.Name, err)
+				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", podName, build.Name, err)
 				continue
 			}
 			list.Items = append(list.Items, *pod)

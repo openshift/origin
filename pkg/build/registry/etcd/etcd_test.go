@@ -119,8 +119,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 				DockerImageReference: "repository/dataBuild",
 			},
 		},
-		Status:  api.BuildStatusPending,
-		PodName: "-the-pod-id",
+		Status: api.BuildStatusPending,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -174,8 +173,7 @@ func TestEtcdCreateBuildUsingImage(t *testing.T) {
 				DockerImageReference: "repository/dataBuild",
 			},
 		},
-		Status:  api.BuildStatusPending,
-		PodName: "-the-pod-id",
+		Status: api.BuildStatusPending,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -296,7 +294,7 @@ func TestEtcdListBuilds(t *testing.T) {
 func TestEtcdWatchBuilds(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := fields.SelectorFromSet(fields.Set{"name": "foo", "status": string(api.BuildStatusRunning), "podName": "bar"})
+	filterFields := fields.SelectorFromSet(fields.Set{"name": "foo", "status": string(api.BuildStatusRunning), "podName": "pod-foo"})
 
 	watching, err := registry.WatchBuilds(kapi.NewContext(), labels.Everything(), filterFields, "1")
 	if err != nil {
@@ -304,7 +302,7 @@ func TestEtcdWatchBuilds(t *testing.T) {
 	}
 	fakeClient.WaitForWatchCompletion()
 
-	repo := &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}, Status: api.BuildStatusRunning, PodName: "bar"}
+	repo := &api.Build{ObjectMeta: kapi.ObjectMeta{Name: "foo"}, Status: api.BuildStatusRunning}
 	repoBytes, _ := latest.Codec.Encode(repo)
 	fakeClient.WatchResponse <- &etcd.Response{
 		Action: "set",

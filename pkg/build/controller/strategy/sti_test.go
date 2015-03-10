@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 type FakeTempDirCreator struct{}
@@ -23,10 +24,13 @@ func TestSTICreateBuildPod(t *testing.T) {
 	}
 
 	expected := mockSTIBuild()
-	actual, _ := strategy.CreateBuildPod(expected)
+	actual, err := strategy.CreateBuildPod(expected)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 
-	if actual.ObjectMeta.Name != expected.PodName {
-		t.Errorf("Expected %s, but got %s!", expected.PodName, actual.ObjectMeta.Name)
+	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
 	container := actual.Spec.Containers[0]
 	if container.Name != "sti-build" {
@@ -108,7 +112,6 @@ func mockSTIBuild() *buildapi.Build {
 				PushSecretName:       "foo",
 			},
 		},
-		Status:  buildapi.BuildStatusNew,
-		PodName: "-the-pod-id",
+		Status: buildapi.BuildStatusNew,
 	}
 }

@@ -20,9 +20,6 @@ type Build struct {
 	// A human readable message indicating details about why the build has this status
 	Message string `json:"message,omitempty"`
 
-	// PodName is the name of the pod that is used to execute the build
-	PodName string `json:"podName,omitempty"`
-
 	// Cancelled describes if a cancelling event was triggered for the build.
 	Cancelled bool `json:"cancelled,omitempty"`
 

@@ -118,8 +118,7 @@ func mockBuild(status buildapi.BuildStatus, output buildapi.BuildOutput) *builda
 			},
 			Output: output,
 		},
-		Status:  status,
-		PodName: "-the-pod-id",
+		Status: status,
 	}
 }
 
@@ -142,7 +141,7 @@ func mockBuildPodController(build *buildapi.Build) *BuildPodController {
 
 func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
+		ObjectMeta: kapi.ObjectMeta{Name: "pod-name"},
 		Status: kapi.PodStatus{
 			Phase: status,
 			Info: kapi.PodInfo{
@@ -421,7 +420,7 @@ func TestHandlePod(t *testing.T) {
 		ctrl := mockBuildPodController(build)
 		pod := mockPod(tc.podStatus, tc.exitCode)
 		if tc.matchID {
-			build.PodName = pod.Name
+			build.Name = "name"
 		}
 		if tc.buildUpdater != nil {
 			ctrl.BuildUpdater = tc.buildUpdater

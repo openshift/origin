@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -29,7 +30,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      build.PodName,
+			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
 		},
 		Spec: kapi.PodSpec{

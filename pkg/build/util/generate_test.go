@@ -591,6 +591,12 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	}
 }
 
+func TestGetBuildPodName(t *testing.T) {
+	if expected, actual := "pod-mybuild", GetBuildPodName(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: "mybuild"}}); expected != actual {
+		t.Errorf("Expected %s, got %s", expected, actual)
+	}
+}
+
 func mockSource() buildapi.BuildSource {
 	return buildapi.BuildSource{
 		Type: buildapi.BuildSourceGit,

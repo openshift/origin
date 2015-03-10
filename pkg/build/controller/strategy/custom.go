@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // CustomBuildStrategy creates a build using a custom builder image.
@@ -40,13 +41,13 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	if strategy.ExposeDockerSocket {
-		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.PodName)
+		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.Name)
 		containerEnv = append(containerEnv, kapi.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
 	}
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      build.PodName,
+			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
 		},
 		Spec: kapi.PodSpec{
