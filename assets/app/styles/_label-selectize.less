@@ -17,7 +17,7 @@
 @selectize-color-item: @console-dark-blue;
 @selectize-color-item-border: @btn-default-border;
 @selectize-padding-x: 10px;
-@selectize-padding-y: 10px;
+@selectize-padding-y: 7px;
 @selectize-padding-dropdown-item-y: @selectize-padding-y;
 @selectize-padding-dropdown-item-x: @selectize-padding-y;
 @selectize-vertical-gradient-color-end: #1da7ee;
@@ -65,8 +65,7 @@
       background: @navbar-os-label-filter-bg;
       float: left;
       min-width: @label-filter-default-width;
-      min-height: 47px; // match height of project select
-      margin-right: 15px;
+      min-height: @navbar-project-input-height;
       border: @navbar-os-project-menu-border;
       border-radius: @selectize-border-radius;
       .selectize-control {
@@ -93,7 +92,7 @@
           width: auto !important; // overwrite inline width
           white-space: nowrap;
           z-index: 9999;
-          margin: 6px 0 0 -1px;
+          margin: 7px 0 0 -1px;
           border: @navbar-os-project-menu-border; 
           .selectize-dropdown-content {
             .option {
@@ -111,9 +110,10 @@
       }
     }
     .label-filter-add.btn {
+      border-left: 0;
       margin-right: @selectize-padding-x;
       opacity: 1;
-      margin-top: 8px;
+      height: @navbar-project-input-height;
       &.disabled {
         opacity: .75;
       }
