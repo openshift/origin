@@ -21,6 +21,10 @@
 			"Rev": "7fc9d958c83464bd7650240569bf93a102266e6a"
 		},
 		{
+			"ImportPath": "code.google.com/p/gographviz",
+			"Rev": "454bc64fdfa20468f637d99162e1edc60c1a6677"
+		},
+		{
 			"ImportPath": "code.google.com/p/google-api-go-client/compute/v1",
 			"Comment": "release-105",
 			"Rev": "98c78185197025f935947caac56a7b6d022f89d2"
