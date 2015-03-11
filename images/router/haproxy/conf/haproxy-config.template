@@ -29,7 +29,12 @@ frontend public
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
 
-  use_backend be_http_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
+  # map to http backend
+  use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)]
+
+  # if a specific path based lookup was not found then revert to a host header lookup
+  use_backend be_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
+
   default_backend openshift_default
 
 # public ssl accepts all connections and isn't checking certificates yet certificates to use will be
@@ -75,8 +80,11 @@ frontend fe_sni
   acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
   use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
 
-  # regular http
-  use_backend be_http_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
+  # map to http backend
+  use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)]
+
+  # if a specific path based lookup was not found then revert to a host header lookup
+  use_backend be_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
 
   default_backend openshift_default
 
@@ -131,7 +139,11 @@ backend openshift_default
 {{ range $id, $serviceUnit := . }}
         {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
             {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
+                {{ if eq $cfg.Path "" }}
 backend be_http_{{$serviceUnit.TemplateSafeName}}
+                {{ else }}
+backend be_http_{{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
+                {{ end }}
   mode http
   balance leastconn
   timeout check 5000ms
@@ -172,11 +184,12 @@ backend be_secure_{{$serviceUnit.TemplateSafeName}}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
 {{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge"))}}
-{{$cfg.Host}} {{$serviceUnit.TemplateSafeName}}
+{{$cfg.Host}}{{$cfg.Path}} {{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
 {{       end }}
 {{     end }}
 {{   end }}
 {{ end }}{{/* end http host map template */}}
+
 
 {{/*
     os_tcp_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
@@ -185,7 +198,7 @@ backend be_secure_{{$serviceUnit.TemplateSafeName}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" }}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt")) }}
+{{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt"))) }}
 {{$cfg.Host}} {{$serviceUnit.TemplateSafeName}}
 {{       end }}
 {{     end }}
@@ -199,7 +212,7 @@ backend be_secure_{{$serviceUnit.TemplateSafeName}}
 {{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" }}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if eq $cfg.TLSTermination "passthrough" }}
+{{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "passthrough") }}
 {{$cfg.Host}} 1
 {{       end }}
 {{     end }}
@@ -214,7 +227,7 @@ backend be_secure_{{$serviceUnit.TemplateSafeName}}
 {{ define "/var/lib/haproxy/conf/os_reencrypt.map" }}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if eq $cfg.TLSTermination "reencrypt" }}
+{{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "reencrypt") }}
 {{$cfg.Host}} 1
 {{       end }}
 {{     end }}
