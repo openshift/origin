@@ -28,10 +28,17 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		return nil, err
 	}
 
+	podLabels := make(map[string]string)
+	for k, v := range build.Labels {
+		podLabels[k] = v
+	}
+	podLabels[buildapi.BuildLabel] = build.Name
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
+			Labels:    podLabels,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
@@ -49,6 +56,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
+	pod.Labels[buildapi.BuildLabel] = build.Name
 
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 

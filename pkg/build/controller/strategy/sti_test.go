@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -31,6 +32,14 @@ func TestSTICreateBuildPod(t *testing.T) {
 
 	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
+	}
+	expectedLabels := make(map[string]string)
+	for k, v := range expected.Labels {
+		expectedLabels[k] = v
+	}
+	expectedLabels[buildapi.BuildLabel] = expected.Name
+	if !reflect.DeepEqual(expectedLabels, actual.Labels) {
+		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	container := actual.Spec.Containers[0]
 	if container.Name != "sti-build" {
