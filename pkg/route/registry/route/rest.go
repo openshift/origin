@@ -13,16 +13,19 @@ import (
 
 	"github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/route/api/validation"
+	rac "github.com/openshift/origin/pkg/route/controller/allocation"
 )
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
-	registry Registry
+	registry  Registry
+	allocator rac.RouteAllocationController
 }
 
-func NewREST(registry Registry) *REST {
+func NewREST(registry Registry, allocator rac.RouteAllocationController) *REST {
 	return &REST{
-		registry: registry,
+		registry:  registry,
+		allocator: allocator,
 	}
 }
 
@@ -69,6 +72,15 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 	}
 	if !kapi.ValidNamespace(ctx, &route.ObjectMeta) {
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
+	}
+
+	shard, allocError := rs.allocator.Allocate(route)
+	if allocError != nil {
+		return nil, fmt.Errorf("allocation error: %s for route: %#v", allocError, obj)
+	}
+
+	if len(route.Host) == 0 {
+		route.Host = rs.allocator.GenerateHostname(route, shard)
 	}
 
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {

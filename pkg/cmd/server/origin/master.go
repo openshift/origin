@@ -65,6 +65,7 @@ import (
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/service"
@@ -85,6 +86,7 @@ import (
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
 const (
@@ -197,6 +199,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
 	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
+	routeAllocator := c.RouteAllocator()
 
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
@@ -238,7 +241,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"templateConfigs": templateregistry.NewREST(),
 		"templates":       templateetcd.NewREST(c.EtcdHelper),
 
-		"routes": routeregistry.NewREST(routeEtcd),
+		"routes": routeregistry.NewREST(routeEtcd, *routeAllocator),
 
 		"projects": projectregistry.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
 
@@ -737,6 +740,18 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// RouteAllocator returns a route allocation controller.
+func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
+	factory := routeallocationcontroller.RouteAllocationControllerFactory{
+		OSClient:   c.OSClient,
+		KubeClient: c.KubeClient(),
+	}
+
+	// TODO(ramr): Get plugin name + params from config.
+	plugin, _ := routeplugin.NewSimpleAllocationPlugin("")
+	return factory.Create(plugin)
 }
 
 // ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
