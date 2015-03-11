@@ -290,6 +290,14 @@ wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
+# Remote command execution
+registry_pod=$(osc get pod | grep docker-registry | awk '{print $1}')
+osc exec -p ${registry_pod} whoami | grep root
+
+# Port forwarding
+osc port-forward -p ${registry_pod} 5001:5000 &
+wait_for_url_timed "http://localhost:5001/" "[INFO] Docker registry says: " $((10*TIME_SEC))
+
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
 	echo "[INFO] Running UI e2e tests..."
