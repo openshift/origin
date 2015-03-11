@@ -57,6 +57,12 @@ var mockBuildStrategy api.BuildStrategy = api.BuildStrategy{
 	},
 }
 
+type okBuildConfigUpdater struct{}
+
+func (*okBuildConfigUpdater) Update(buildConfig *api.BuildConfig) error {
+	return nil
+}
+
 type okBuildCreator struct{}
 
 func (c *okBuildCreator) Create(namespace string, build *api.Build) error {
@@ -64,7 +70,8 @@ func (c *okBuildCreator) Create(namespace string, build *api.Build) error {
 }
 
 func TestWrongMethod(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	resp, _ := http.Get(server.URL + "/build100/secret101/github")
@@ -76,7 +83,8 @@ func TestWrongMethod(t *testing.T) {
 }
 
 func TestWrongContentType(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -93,7 +101,8 @@ func TestWrongContentType(t *testing.T) {
 }
 
 func TestWrongUserAgent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -110,7 +119,8 @@ func TestWrongUserAgent(t *testing.T) {
 }
 
 func TestMissingGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -126,7 +136,8 @@ func TestMissingGithubEvent(t *testing.T) {
 }
 
 func TestWrongGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	client := &http.Client{}
@@ -143,7 +154,8 @@ func TestWrongGithubEvent(t *testing.T) {
 }
 
 func TestJsonPingEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	postFile("ping", "pingevent.json", server.URL+"/build100/secret101/github",
@@ -151,14 +163,16 @@ func TestJsonPingEvent(t *testing.T) {
 }
 
 func TestJsonPushEventError(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	post("push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
 }
 
 func TestJsonPushEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
 	postFile("push", "pushevent.json", server.URL+"/build100/secret101/github",

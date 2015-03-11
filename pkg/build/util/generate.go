@@ -2,10 +2,12 @@ package util
 
 import (
 	"fmt"
+
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -14,6 +16,7 @@ import (
 // GenerateBuildFromConfig creates a new build based on a given BuildConfig. Optionally a SourceRevision for the new
 // build can be specified.  Also optionally a list of image names to be substituted can be supplied.  Values in the BuildConfig
 // that have a substitution provided will be replaced in the resulting Build
+// You NEED to update BuildConfig object after calling this!
 func GenerateBuildFromConfig(bc *buildapi.BuildConfig, ref *buildapi.SourceRevision, imageSubstitutions map[string]string,
 	imageRepoSubstitutions map[kapi.ObjectReference]string) (build *buildapi.Build) {
 	// Need to copy the buildConfig here so that it doesn't share pointers with
@@ -29,6 +32,7 @@ func GenerateBuildFromConfig(bc *buildapi.BuildConfig, ref *buildapi.SourceRevis
 			Revision: ref,
 		},
 		ObjectMeta: kapi.ObjectMeta{
+			Name:   GetNextBuildName(bc),
 			Labels: bcCopy.Labels,
 		},
 	}
@@ -59,6 +63,7 @@ func GenerateBuildFromBuild(build *buildapi.Build) *buildapi.Build {
 	return &buildapi.Build{
 		Parameters: buildCopy.Parameters,
 		ObjectMeta: kapi.ObjectMeta{
+			Name:   getNextBuildNameFromBuild(buildCopy),
 			Labels: buildCopy.ObjectMeta.Labels,
 		},
 	}
@@ -71,6 +76,7 @@ func GenerateBuildFromBuild(build *buildapi.Build) *buildapi.Build {
 // an ImageChangeTrigger).  If there is a match in the image repo list, the resulting build will use
 // the image tag from the corresponding image repo rather than the image field from the buildconfig
 // as the base image for the build.
+// You NEED to update BuildConfig object after calling this!
 func GenerateBuildWithImageTag(config *buildapi.BuildConfig, revision *buildapi.SourceRevision, imageRepoGetter osclient.ImageRepositoryNamespaceGetter) (*buildapi.Build, error) {
 	var build *buildapi.Build
 	var err error
@@ -240,4 +246,15 @@ func SubstituteImageRepoReferences(build *buildapi.Build, imageRepo kapi.ObjectR
 // GetBuildPodName returns name of the build pod.
 func GetBuildPodName(build *buildapi.Build) string {
 	return fmt.Sprintf("pod-%s", build.Name)
+}
+
+// GetNextBuildName returns name of the next build and increments BuildConfig's LastVersion.
+func GetNextBuildName(bc *buildapi.BuildConfig) string {
+	bc.LastVersion++
+	return fmt.Sprintf("%s-%d", bc.Name, bc.LastVersion)
+}
+
+// getNextBuildNameFromBuild returns name of the next build with random uuid added at the end
+func getNextBuildNameFromBuild(build *buildapi.Build) string {
+	return fmt.Sprintf("%s-%d", build.Name, int32(util.Now().Unix()))
 }

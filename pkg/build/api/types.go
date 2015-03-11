@@ -265,6 +265,9 @@ type BuildConfig struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers,omitempty"`
 
+	// LastVersion is used to inform about number of last triggered build.
+	LastVersion int `json:"lastVersion,omitempty"`
+
 	// Parameters holds all the input necessary to produce a new build. A build config may only
 	// define either the Output.To or Output.DockerImageReference fields, but not both.
 	Parameters BuildParameters `json:"parameters,omitempty"`

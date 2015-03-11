@@ -3,6 +3,7 @@ package describe
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -234,6 +235,11 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
+		if buildConfig.LastVersion == 0 {
+			formatString(out, "Latest Version", "Never built")
+		} else {
+			formatString(out, "Latest Version", strconv.Itoa(buildConfig.LastVersion))
+		}
 		describeBuildParameters(buildConfig.Parameters, out)
 		d.DescribeTriggers(buildConfig, d.host, out)
 		return nil

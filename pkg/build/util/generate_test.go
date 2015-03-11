@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -595,6 +596,24 @@ func TestGetBuildPodName(t *testing.T) {
 	if expected, actual := "pod-mybuild", GetBuildPodName(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: "mybuild"}}); expected != actual {
 		t.Errorf("Expected %s, got %s", expected, actual)
 	}
+}
+
+func TestGetNextBuildName(t *testing.T) {
+	bc := mockBuildConfig(mockSource(), mockSTIStrategyForImage(), mockOutput())
+	if expected, actual := bc.Name+"-1", GetNextBuildName(bc); expected != actual {
+		t.Errorf("Wrong buildName, expected %s, got %s", expected, actual)
+	}
+	if expected, actual := 1, bc.LastVersion; expected != actual {
+		t.Errorf("Wrong version, expected %d, got %d", expected, actual)
+	}
+}
+
+func TestGetNextBuildNameFromBuild(t *testing.T) {
+	buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: "mybuild-1"}})
+	if matched, err := regexp.MatchString(`^mybuild-1-\d+$`, buildName); !matched || err != nil {
+		t.Errorf("Unexpected build name, got %s", buildName)
+	}
+
 }
 
 func mockSource() buildapi.BuildSource {

@@ -27,10 +27,11 @@ type Plugin interface {
 
 // controller used for processing webhook requests.
 type controller struct {
-	buildCreator      buildclient.BuildCreator
-	buildConfigGetter buildclient.BuildConfigGetter
-	imageRepoGetter   osclient.ImageRepositoryNamespaceGetter
-	plugins           map[string]Plugin
+	buildCreator       buildclient.BuildCreator
+	buildConfigGetter  buildclient.BuildConfigGetter
+	buildConfigUpdater buildclient.BuildConfigUpdater
+	imageRepoGetter    osclient.ImageRepositoryNamespaceGetter
+	plugins            map[string]Plugin
 }
 
 // urlVars holds parsed URL parts.
@@ -43,12 +44,14 @@ type urlVars struct {
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
-func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildCreator buildclient.BuildCreator, imageRepoGetter osclient.ImageRepositoryNamespaceGetter, plugins map[string]Plugin) http.Handler {
+func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildConfigUpdater buildclient.BuildConfigUpdater,
+	buildCreator buildclient.BuildCreator, imageRepoGetter osclient.ImageRepositoryNamespaceGetter, plugins map[string]Plugin) http.Handler {
 	return &controller{
-		buildConfigGetter: buildConfigGetter,
-		buildCreator:      buildCreator,
-		imageRepoGetter:   imageRepoGetter,
-		plugins:           plugins,
+		buildConfigGetter:  buildConfigGetter,
+		buildConfigUpdater: buildConfigUpdater,
+		buildCreator:       buildCreator,
+		imageRepoGetter:    imageRepoGetter,
+		plugins:            plugins,
 	}
 }
 
@@ -91,6 +94,9 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	if err := c.buildCreator.Create(uv.namespace, build); err != nil {
 		glog.V(4).Infof("Failed creating new build: %v", err)
+		badRequest(w, err.Error())
+	}
+	if err := c.buildConfigUpdater.Update(buildCfg); err != nil {
 		badRequest(w, err.Error())
 	}
 }

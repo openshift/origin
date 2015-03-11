@@ -48,6 +48,12 @@ func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error
 	}, nil
 }
 
+type okBuildConfigUpdater struct{}
+
+func (*okBuildConfigUpdater) Update(buildConfig *api.BuildConfig) error {
+	return nil
+}
+
 type okBuildCreator struct{}
 
 func (*okBuildCreator) Create(namespace string, build *api.Build) error {
@@ -66,6 +72,12 @@ func (*errorBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, er
 	return &api.BuildConfig{}, errors.New("BuildConfig error!")
 }
 
+type errorBuildConfigUpdater struct{}
+
+func (*errorBuildConfigUpdater) Update(buildConfig *api.BuildConfig) error {
+	return errors.New("BuildConfig error!")
+}
+
 type pathPlugin struct {
 	Path string
 }
@@ -82,7 +94,8 @@ func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 }
 
 func TestParseUrlError(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL, "application/json", nil)
@@ -97,9 +110,10 @@ func TestParseUrlError(t *testing.T) {
 }
 
 func TestParseUrlOK(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
-		"pathplugin": &pathPlugin{},
-	}))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
+			"pathplugin": &pathPlugin{},
+		}))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/pathplugin",
@@ -116,9 +130,10 @@ func TestParseUrlOK(t *testing.T) {
 
 func TestParseUrlLong(t *testing.T) {
 	plugin := &pathPlugin{}
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
-		"pathplugin": plugin,
-	}))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
+			"pathplugin": plugin,
+		}))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/pathplugin/some/more/args",
@@ -137,7 +152,8 @@ func TestParseUrlLong(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorSecret(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/wrongsecret/somePlugin",
@@ -153,7 +169,8 @@ func TestInvokeWebhookErrorSecret(t *testing.T) {
 }
 
 func TestInvokeWebhookMissingPlugin(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/missingplugin",
@@ -170,9 +187,10 @@ func TestInvokeWebhookMissingPlugin(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorBuildConfig(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &errorBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
-		"okPlugin": &pathPlugin{},
-	}))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&errorBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
+			"okPlugin": &pathPlugin{},
+		}))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/okPlugin",
@@ -189,7 +207,8 @@ func TestInvokeWebhookErrorBuildConfig(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorGetConfig(t *testing.T) {
-	server := httptest.NewServer(NewController(&errorBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
+	server := httptest.NewServer(NewController(&errorBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, nil))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/errPlugin",
@@ -206,9 +225,10 @@ func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 }
 
 func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
-	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
-		"errPlugin": &errPlugin{},
-	}))
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &okBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
+			"errPlugin": &errPlugin{},
+		}))
 	defer server.Close()
 
 	resp, err := http.Post(server.URL+"/build100/secret101/errPlugin",
@@ -219,6 +239,26 @@ func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest &&
 		!strings.Contains(string(body), "Plugin error!") {
+		t.Errorf("Wrong response code, expecting 400, got %s: %s!", resp.Status,
+			string(body))
+	}
+}
+
+func TestInvokeWebhookErrorUpdateBuildConfig(t *testing.T) {
+	server := httptest.NewServer(NewController(&okBuildConfigGetter{}, &errorBuildConfigUpdater{},
+		&okBuildCreator{}, &okImageRepositoryNamespaceGetter{}, map[string]Plugin{
+			"okPlugin": &pathPlugin{},
+		}))
+	defer server.Close()
+
+	resp, err := http.Post(server.URL+"/build100/secret101/okPlugin",
+		"application/json", nil)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusBadRequest &&
+		!strings.Contains(string(body), "BuildConfig error!") {
 		t.Errorf("Wrong response code, expecting 400, got %s: %s!", resp.Status,
 			string(body))
 	}
@@ -246,7 +286,7 @@ func (i *testBuildConfigInterface) Get(namespace, name string) (*api.BuildConfig
 	return i.GetBuildConfigFunc(namespace, name)
 }
 
-func TestInvokeWebhookOk(t *testing.T) {
+func TestInvokeWebhookOK(t *testing.T) {
 	var buildRequest *api.Build
 	buildConfig := &api.BuildConfig{
 		Parameters: api.BuildParameters{
@@ -268,6 +308,7 @@ func TestInvokeWebhookOk(t *testing.T) {
 				},
 			},
 		},
+		&okBuildConfigUpdater{},
 		&mockOkBuildCreator{
 			testBuildInterface: testBuildInterface{
 				CreateFunc: func(namespace string, build *api.Build) error {

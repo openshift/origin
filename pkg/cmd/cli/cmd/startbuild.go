@@ -52,9 +52,10 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 			checkErr(err)
 
 			var newBuild *buildapi.Build
+			var config *buildapi.BuildConfig
 			if len(buildName) == 0 {
 				// from build config
-				config, err := client.BuildConfigs(namespace).Get(args[0])
+				config, err = client.BuildConfigs(namespace).Get(args[0])
 				checkErr(err)
 
 				newBuild, err = buildutil.GenerateBuildWithImageTag(config, nil, client.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter))
@@ -69,6 +70,11 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 			// Start a build
 			newBuild, err = client.Builds(namespace).Create(newBuild)
 			checkErr(err)
+
+			if config != nil {
+				_, err := client.BuildConfigs(namespace).Update(config)
+				checkErr(err)
+			}
 
 			if follow {
 				set := labels.Set(newBuild.Labels)

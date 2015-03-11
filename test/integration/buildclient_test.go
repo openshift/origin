@@ -223,10 +223,12 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	}
 
 	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
+	bcClient := buildclient.NewOSClientBuildConfigClient(osClient)
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(buildclient.NewOSClientBuildConfigClient(osClient), buildclient.NewOSClientBuildClient(osClient), osClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter), map[string]webhook.Plugin{
-			"github": github.New(),
-		})))
+		webhook.NewController(bcClient, bcClient, buildclient.NewOSClientBuildClient(osClient),
+			osClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter), map[string]webhook.Plugin{
+				"github": github.New(),
+			})))
 
 	bcFactory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osClient,
