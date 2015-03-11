@@ -4,8 +4,13 @@
 
 .console-os {
   .wrap {
-    .sidebar {
+    .flex-display(@display: flex);
+    .flex-direction(@direction: column);
+    .flex(@columns: 1 0 auto);
+    min-height: 100%; // required for flex to extend on short content pages
+    .sidebar-left {
       background: @sidebar-os-bg;
+      position:relative;
       .sidebar-drawer {}
       .navbar-sidebar {
         .sidebar-header {
@@ -90,10 +95,15 @@
     }
   }
   &.show-drawer .wrap {
-    .sidebar .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
+    .sidebar-left .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
     }
-    .sidebar .sidebar-drawer {
+    .sidebar-left .sidebar-drawer {
       background-color: @sidebar-os-drawer;
+    }
+  }
+  &.show-sidebar-right .wrap {
+    .sidebar-right {
+      
     }
   }
 }
@@ -103,18 +113,13 @@
 @media (min-width: @screen-sm-min) {
   .console-os {
     .wrap {
-      transition:@sidebar-os-transition;
-      margin-left: 80px;
-      .sidebar {
-        border-right: 1px solid @navbar-os-project-border-color;
-        position: absolute;
-        height: 100%;
-        left: 0;
-        width: 80px;
+      .flex-direction(@direction: row);
+      .sidebar-left {
+        transition:@sidebar-os-transition;
+        .flex(@columns: 0 0 @sidebar-left-width-sm);
         .sidebar-drawer {
           border-bottom: 0;
           display: block;
-          width: 80px; // width when no sidebar-drawer shown
           position: absolute;
           top: 0;
           left: 0;
@@ -124,6 +129,14 @@
         }
         .navbar-sidebar {
           font-size: 12px;
+          border-right: 1px solid @navbar-os-project-border-color;
+          width: @sidebar-left-width-sm;
+          position: absolute;
+          top:0;
+          right:0;
+          bottom: 0;
+          left:0;
+          margin-bottom: 0;
           .sidebar-header {
             display: none;
           }
@@ -162,24 +175,30 @@
           }
         }
       }
+      .sidebar-right {
+        display: none;
+      }
     }
     &.show-drawer .wrap {
-      margin-left: @sidebar-os-width-sm;
-      .sidebar .navbar-sidebar ul.nav-sidenav > li {
-        &.active a {
-          margin-right: -1px;
-          padding-right: @sidebar-os-padding-x + 1;
-        }
-        .sidenav-secondary {
-          display: inline-block;
-          position: absolute;
-          top: 30px;
-          margin-left: 95px;
-          width: 170px;
+      .sidebar-left {
+        .flex(@columns: 0 0 @sidebar-left-width-open-sm);
+        border-right: 1px solid @navbar-os-project-border-color;
+        .navbar-sidebar ul.nav-sidenav > li {
+          &.active a {
+            margin-right: -1px;
+            padding-right: @sidebar-os-padding-x + 1;
+          }
+          .sidenav-secondary {
+            display: inline-block;
+            position: absolute;
+            top: 30px;
+            margin-left: @sidebar-left-width-sm + 15px;
+            width: (@sidebar-left-width-open-sm - @sidebar-left-width-sm) - 25px;
+          }
         }
       }
-      .sidebar .sidebar-drawer {
-        width: @sidebar-os-width-sm;
+      .sidebar-left .sidebar-drawer {
+        width: @sidebar-left-width-open-sm;
         &:before {
           display: block;
           content: '';
@@ -187,8 +206,14 @@
           height: 100%;
           right: 0;
           position: absolute;
-          box-shadow: @sidebar-os-drawer-box-shadow;
         }
+      }
+    }
+    &.show-sidebar-right .wrap {
+      .sidebar-right {
+        display: block;
+        border-left: 1px solid @navbar-os-project-border-color;
+        .flex(@columns: 0 0 @sidebar-right-width-sm);
       }
     }
   }
@@ -197,13 +222,12 @@
 @media (min-width: @screen-lg-min) { 
   .console-os {
     .wrap {
-      margin-left: 100px;
-      .sidebar {
-        width:100px;
+      .sidebar-left {
+        .flex(@columns: 0 0 @sidebar-left-width-md);
         .sidebar-drawer {
-          width: 100px; // width when no sidebar-drawer shown
         }
         .navbar-sidebar {
+          width: @sidebar-left-width-md;
           font-size: 15px;
           .sidebar-header {}
           ul.nav-sidenav > li {
@@ -217,27 +241,34 @@
       }
     }
     &.show-drawer .wrap {
-      margin-left: @sidebar-os-width-md;
-      .sidebar .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
-        font-size: 14px;
-        margin-left: 115px;
-        width: 250px;
+      .sidebar-left {
+        .flex(@columns: 0 0 @sidebar-left-width-open-md);
+        .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
+          font-size: 14px;
+          margin-left: @sidebar-left-width-md + 15px;
+          width: (@sidebar-left-width-open-md - @sidebar-left-width-md) - 25px;
+        }
       }
-      .sidebar .sidebar-drawer {
-        width: @sidebar-os-width-md;
+      .sidebar-left .sidebar-drawer {
+        width: @sidebar-left-width-open-md;
+      }
+    }
+    &.show-sidebar-right .wrap {
+      .sidebar-right {
+        .flex(@columns: 0 0 @sidebar-right-width-md);
       }
     }
   }
 }
 
-@media (min-width: @screen-xlg-min)  {  
+@media (min-width: @screen-xlg-min) {  
   .console-os {
     .wrap {
-      margin-left: 160px;
-      .sidebar {
-        width: 160px;
+      .sidebar-left {
+        .flex(@columns: 0 0 @sidebar-left-width-lg);
         .sidebar-drawer {}
         .navbar-sidebar {
+          width: @sidebar-left-width-lg;
           .sidebar-header {}
           ul.nav-sidenav > li {
             > a {
@@ -259,13 +290,20 @@
       }
     }
     &.show-drawer .wrap {
-      margin-left: @sidebar-os-width-lg;
-      .sidebar .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
-        margin-left: 175px;
-        width: 290px;
+      .sidebar-left {
+        .flex(@columns: 0 0 @sidebar-left-width-open-lg);
+        .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
+          margin-left: @sidebar-left-width-lg + 15px;
+          width: (@sidebar-left-width-open-lg - @sidebar-left-width-lg) - 25px;
+        }
       }
-      .sidebar .sidebar-drawer {
-        width: @sidebar-os-width-lg;
+      .sidebar-left .sidebar-drawer {
+        width: @sidebar-left-width-open-lg;
+      }
+    }
+    &.show-sidebar-right .wrap {
+      .sidebar-right {
+        .flex(@columns: 0 0 @sidebar-right-width-lg);
       }
     }
   }
