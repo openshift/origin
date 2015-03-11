@@ -37,7 +37,7 @@ func TestViewerGetAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Victor cannot get on pods in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -57,7 +57,7 @@ func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Victor cannot get on policies in mallet",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -76,7 +76,7 @@ func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Victor cannot get on policies in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -96,7 +96,7 @@ func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Victor cannot create on pods in mallet",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -115,7 +115,7 @@ func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Victor cannot create on pods in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -154,7 +154,7 @@ func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Edgar cannot update on pods in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -174,7 +174,7 @@ func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Edgar cannot update on roleBindings in mallet",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -193,7 +193,7 @@ func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Edgar cannot update on roleBindings in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -232,7 +232,7 @@ func TestEditorGetAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Edgar cannot get on pods in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -271,7 +271,7 @@ func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Matthew cannot update on roleBindings in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -291,7 +291,7 @@ func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Matthew cannot update on policies in mallet",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -310,7 +310,7 @@ func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 			Resource: "roles",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Matthew cannot update on roles in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -349,7 +349,7 @@ func TestAdminGetAllowedKindInAdze(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  "Matthew cannot get on policies in adze",
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
