@@ -14,9 +14,9 @@ type Registry interface {
 	// GetRoleBinding retrieves a specific policyRoleBinding.
 	GetRoleBinding(ctx kapi.Context, id string) (*authorizationapi.RoleBinding, error)
 	// CreateRoleBinding creates a new policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
-	CreateRoleBinding(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding, skipEscalationCheck bool) error
+	CreateRoleBinding(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding, allowEscalation bool) error
 	// UpdateRoleBinding updates a policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
-	UpdateRoleBinding(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding, skipEscalationCheck bool) error
+	UpdateRoleBinding(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding, allowEscalation bool) error
 	// DeleteRoleBinding deletes a policyRoleBinding.
 	DeleteRoleBinding(ctx kapi.Context, id string) error
 }

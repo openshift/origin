@@ -7,6 +7,42 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+const (
+	UnauthenticatedUsername       = "system:anonymous"
+	InternalComponentUsername     = "system:openshift-client"
+	InternalComponentKubeUsername = "system:kube-client"
+	DeployerUsername              = "system:openshift-deployer"
+
+	AuthenticatedGroup   = "system:authenticated"
+	UnauthenticatedGroup = "system:unauthenticated"
+	ClusterAdminGroup    = "system:cluster-admins"
+)
+
+const (
+	ClusterAdminRoleName      = "cluster-admin"
+	AdminRoleName             = "admin"
+	EditRoleName              = "edit"
+	ViewRoleName              = "view"
+	BasicUserRoleName         = "basic-user"
+	StatusCheckerRoleName     = "cluster-status"
+	DeployerRoleName          = "system:deployer"
+	InternalComponentRoleName = "system:component"
+	DeleteTokensRoleName      = "system:delete-tokens"
+
+	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
+)
+
+const (
+	InternalComponentRoleBindingName = InternalComponentRoleName + "-binding"
+	DeployerRoleBindingName          = DeployerRoleName + "-binding"
+	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "-binding"
+	BasicUserRoleBindingName         = BasicUserRoleName + "-binding"
+	DeleteTokensRoleBindingName      = DeleteTokensRoleName + "-binding"
+	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
+
+	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "-binding"
+)
+
 func GetBootstrapRoles(masterNamespace, openshiftNamespace string) []authorizationapi.Role {
 	masterRoles := GetBootstrapMasterRoles(masterNamespace)
 	openshiftRoles := GetBootstrapOpenshiftRoles(openshiftNamespace)
@@ -20,7 +56,7 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 	return []authorizationapi.Role{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "shared-resource-viewer",
+				Name:      OpenshiftSharedResourceViewRoleName,
 				Namespace: openshiftNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -36,7 +72,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 	return []authorizationapi.Role{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "cluster-admin",
+				Name:      ClusterAdminRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -52,7 +88,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "admin",
+				Name:      AdminRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -68,7 +104,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "edit",
+				Name:      EditRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -84,7 +120,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "view",
+				Name:      ViewRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -96,7 +132,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "basic-user",
+				Name:      BasicUserRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -106,7 +142,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "cluster-status",
+				Name:      StatusCheckerRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -118,7 +154,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "system:deployer",
+				Name:      DeployerRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -130,7 +166,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "system:component",
+				Name:      InternalComponentRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -142,7 +178,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "system:delete-tokens",
+				Name:      DeleteTokensRoleName,
 				Namespace: masterNamespace,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -168,14 +204,14 @@ func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []authorizatio
 	return []authorizationapi.RoleBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "shared-resource-viewer-binding",
+				Name:      OpenshiftSharedResourceViewRoleBindingName,
 				Namespace: openshiftNamespace,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      "shared-resource-viewer",
+				Name:      OpenshiftSharedResourceViewRoleName,
 				Namespace: openshiftNamespace,
 			},
-			Groups: util.NewStringSet("system:authenticated"),
+			Groups: util.NewStringSet(AuthenticatedGroup),
 		},
 	}
 }
@@ -183,69 +219,69 @@ func GetBootstrapMasterRoleBindings(masterNamespace string) []authorizationapi.R
 	return []authorizationapi.RoleBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "system:component-binding",
+				Name:      InternalComponentRoleBindingName,
 				Namespace: masterNamespace,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      "system:component",
+				Name:      InternalComponentRoleName,
 				Namespace: masterNamespace,
 			},
-			Users: util.NewStringSet("system:openshift-client", "system:kube-client"),
+			Users: util.NewStringSet(InternalComponentUsername, InternalComponentKubeUsername),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "system:deployer-binding",
+				Name:      DeployerRoleBindingName,
 				Namespace: masterNamespace,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      "system:deployer",
+				Name:      DeployerRoleName,
 				Namespace: masterNamespace,
 			},
-			Users: util.NewStringSet("system:openshift-deployer"),
+			Users: util.NewStringSet(DeployerUsername),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "cluster-admin-binding",
+				Name:      ClusterAdminRoleBindingName,
 				Namespace: masterNamespace,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      "cluster-admin",
+				Name:      ClusterAdminRoleName,
 				Namespace: masterNamespace,
 			},
-			Groups: util.NewStringSet("system:cluster-admins"),
+			Groups: util.NewStringSet(ClusterAdminGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "basic-user-binding",
+				Name:      BasicUserRoleBindingName,
 				Namespace: masterNamespace,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      "basic-user",
+				Name:      BasicUserRoleName,
 				Namespace: masterNamespace,
 			},
-			Groups: util.NewStringSet("system:authenticated"),
+			Groups: util.NewStringSet(AuthenticatedGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "system:delete-tokens-binding",
+				Name:      DeleteTokensRoleBindingName,
 				Namespace: masterNamespace,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      "system:delete-tokens",
+				Name:      DeleteTokensRoleName,
 				Namespace: masterNamespace,
 			},
-			Groups: util.NewStringSet("system:authenticated", "system:unauthenticated"),
+			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "cluster-status-binding",
+				Name:      StatusCheckerRoleBindingName,
 				Namespace: masterNamespace,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      "cluster-status",
+				Name:      StatusCheckerRoleName,
 				Namespace: masterNamespace,
 			},
-			Groups: util.NewStringSet("system:authenticated", "system:unauthenticated"),
+			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
 		},
 	}
 }

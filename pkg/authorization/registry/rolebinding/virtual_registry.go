@@ -83,11 +83,11 @@ func (m *VirtualRegistry) DeleteRoleBinding(ctx kapi.Context, name string) error
 	return m.bindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding)
 }
 
-func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding, skipEscalationCheck bool) error {
+func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding, allowEscalation bool) error {
 	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
 		return err
 	}
-	if !skipEscalationCheck {
+	if !allowEscalation {
 		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
 			return err
 		}
@@ -112,11 +112,11 @@ func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *autho
 	return nil
 }
 
-func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding, skipEscalationCheck bool) error {
+func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding, allowEscalation bool) error {
 	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
 		return err
 	}
-	if !skipEscalationCheck {
+	if !allowEscalation {
 		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
 			return err
 		}

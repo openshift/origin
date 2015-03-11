@@ -19,13 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
-const (
-	unauthenticatedUsername = "system:anonymous"
-
-	authenticatedGroup   = "system:authenticated"
-	unauthenticatedGroup = "system:unauthenticated"
-)
-
 func (cfg Config) startMaster() error {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
