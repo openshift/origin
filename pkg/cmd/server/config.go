@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"net"
-	_ "net/http/pprof"
 	"net/url"
 	"os/exec"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -41,6 +41,7 @@ type Config struct {
 	EtcdAddr       flagtypes.Addr
 	KubernetesAddr flagtypes.Addr
 	PortalNet      flagtypes.IPNet
+	DNSBindAddr    flagtypes.Addr
 	// addresses for external clients
 	MasterPublicAddr     flagtypes.Addr
 	KubernetesPublicAddr flagtypes.Addr
@@ -56,6 +57,8 @@ type Config struct {
 	EtcdDir string
 
 	CertDir string
+
+	ClusterDNS net.IP
 
 	StorageVersion string
 
@@ -98,6 +101,16 @@ func NewDefaultConfig() *Config {
 
 		Hostname: hostname,
 	}
+
+	// TODO: allow DNS binding to be disabled.
+	dnsAddr := flagtypes.Addr{Value: config.BindAddr.Host, DefaultPort: 53}.Default()
+	if !cmdutil.TryListen(dnsAddr.URL.Host) {
+		original := dnsAddr.URL.Host
+		dnsAddr.DefaultPort = 8053
+		dnsAddr = dnsAddr.Default()
+		glog.Warningf("Unable to bind DNS as %s (you may need to run as root), using %s which will not resolve from all locations", original, dnsAddr.URL.Host)
+	}
+	config.DNSBindAddr = dnsAddr
 
 	config.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&config.ClientConfigLoadingRules, &clientcmd.ConfigOverrides{})
 

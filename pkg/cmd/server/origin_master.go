@@ -3,8 +3,8 @@ package server
 import (
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
-	_ "net/http/pprof"
 	"strings"
 	"time"
 
@@ -66,7 +66,11 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 		return nil, err
 	}
 
-	clientCAs, err := cfg.GetClientCAs()
+	clientCAs, err := cfg.GetClientCertCAPool()
+	if err != nil {
+		return nil, err
+	}
+	apiClientCAs, err := cfg.GetAPIClientCertCAPool()
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +91,7 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 	openshiftConfigParameters := origin.MasterConfigParameters{
 		MasterBindAddr:       cfg.BindAddr.URL.Host,
 		AssetBindAddr:        cfg.GetAssetBindAddress(),
+		DNSBindAddr:          cfg.DNSBindAddr.URL.Host,
 		MasterAddr:           masterAddr.String(),
 		KubernetesAddr:       kubeAddr.String(),
 		MasterPublicAddr:     masterPublicAddr.String(),
@@ -104,6 +109,7 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 		AssetCertFile:  assetCertFile,
 		AssetKeyFile:   assetKeyFile,
 		ClientCAs:      clientCAs,
+		APIClientCAs:   apiClientCAs,
 
 		KubeClient:             kubeClient,
 		KubeClientConfig:       *kubeClientConfig,
@@ -135,7 +141,7 @@ func (cfg Config) BuildAuthConfig() (*origin.AuthConfig, error) {
 		return nil, err
 	}
 
-	clientCAs, err := cfg.GetClientCAs()
+	apiServerCAs, err := cfg.GetAPIServerCertCAPool()
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +165,7 @@ func (cfg Config) BuildAuthConfig() (*origin.AuthConfig, error) {
 		MasterAddr:           masterAddr.String(),
 		MasterPublicAddr:     masterPublicAddr.String(),
 		AssetPublicAddresses: assetPublicAddresses,
-		MasterRoots:          clientCAs,
+		MasterRoots:          apiServerCAs,
 		EtcdHelper:           etcdHelper,
 
 		// Max token ages
@@ -170,7 +176,8 @@ func (cfg Config) BuildAuthConfig() (*origin.AuthConfig, error) {
 		AuthHandler:         origin.AuthHandlerType(env("OPENSHIFT_OAUTH_HANDLER", string(origin.AuthHandlerLogin))),
 		GrantHandler:        origin.GrantHandlerType(env("OPENSHIFT_OAUTH_GRANT_HANDLER", string(origin.GrantHandlerAuto))),
 		// RequestHeader config
-		RequestHeaders: strings.Split(env("OPENSHIFT_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
+		RequestHeaders:      strings.Split(env("OPENSHIFT_OAUTH_REQUEST_HEADERS", "X-Remote-User"), ","),
+		RequestHeaderCAFile: GetOAuthRequestHeaderCAFile(),
 		// Session config (default to unknowable secret)
 		SessionSecrets:       []string{env("OPENSHIFT_OAUTH_SESSION_SECRET", uuid.NewUUID().String())},
 		SessionMaxAgeSeconds: envInt("OPENSHIFT_OAUTH_SESSION_MAX_AGE_SECONDS", 300, 1),
@@ -194,6 +201,10 @@ func (cfg Config) BuildAuthConfig() (*origin.AuthConfig, error) {
 
 }
 
+func GetOAuthRequestHeaderCAFile() string {
+	return env("OPENSHIFT_OAUTH_REQUEST_HEADER_CA_FILE", "")
+}
+
 func (cfg Config) newCA() (*crypto.CA, error) {
 	masterAddr, err := cfg.GetMasterAddress()
 	if err != nil {
@@ -210,19 +221,79 @@ func (cfg Config) newCA() (*crypto.CA, error) {
 	return ca, nil
 }
 
-func (cfg Config) GetClientCAs() (*x509.CertPool, error) {
-	ca, err := cfg.newCA()
+// GetAPIClientCertCAPool returns the cert pool used to validate client certificates to the API server
+func (cfg Config) GetAPIClientCertCAPool() (*x509.CertPool, error) {
+	certs, err := cfg.getAPIClientCertCAs()
 	if err != nil {
 		return nil, err
 	}
-
-	// Save cert roots
 	roots := x509.NewCertPool()
-	for _, root := range ca.Config.Roots {
+	for _, root := range certs {
+		roots.AddCert(root)
+	}
+	return roots, nil
+}
+
+// GetClientCertCAPool returns a cert pool containing all client CAs that could be presented (union of API and OAuth)
+func (cfg Config) GetClientCertCAPool() (*x509.CertPool, error) {
+	roots := x509.NewCertPool()
+
+	// Add CAs for OAuth
+	certs, err := cfg.getOAuthClientCertCAs()
+	if err != nil {
+		return nil, err
+	}
+	for _, root := range certs {
+		roots.AddCert(root)
+	}
+
+	// Add CAs for API
+	certs, err = cfg.getAPIClientCertCAs()
+	if err != nil {
+		return nil, err
+	}
+	for _, root := range certs {
 		roots.AddCert(root)
 	}
 
 	return roots, nil
+}
+
+// GetAPIServerCertCAPool returns the cert pool containing the roots for the API server cert
+func (cfg Config) GetAPIServerCertCAPool() (*x509.CertPool, error) {
+	ca, err := cfg.newCA()
+	if err != nil {
+		return nil, err
+	}
+	roots := x509.NewCertPool()
+	for _, root := range ca.Config.Roots {
+		roots.AddCert(root)
+	}
+	return roots, nil
+}
+
+func (cfg Config) getOAuthClientCertCAs() ([]*x509.Certificate, error) {
+	caFile := GetOAuthRequestHeaderCAFile()
+	if len(caFile) == 0 {
+		return nil, nil
+	}
+	caPEMBlock, err := ioutil.ReadFile(caFile)
+	if err != nil {
+		return nil, err
+	}
+	certs, err := crypto.CertsFromPEM(caPEMBlock)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
+	}
+	return certs, nil
+}
+
+func (cfg Config) getAPIClientCertCAs() ([]*x509.Certificate, error) {
+	ca, err := cfg.newCA()
+	if err != nil {
+		return nil, err
+	}
+	return ca.Config.Roots, nil
 }
 
 func (cfg Config) GetServerCertHostnames() ([]string, error) {

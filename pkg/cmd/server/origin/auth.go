@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -28,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
+	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/auth/authenticator/token/filetoken"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
@@ -195,6 +197,9 @@ type AuthConfig struct {
 
 	// RequestHeaders lists the headers to check (in order) for a username. Used by AuthRequestHandlerRequestHeader
 	RequestHeaders []string
+	// RequestHeaderCAFile specifies the path to a PEM-encoded certificate bundle.
+	// If set, a client certificate must be presented and validate against the CA before the request headers are checked for usernames
+	RequestHeaderCAFile string
 
 	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
 	SessionSecrets []string
@@ -229,7 +234,10 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 
-	authRequestHandler, authHandler, authFinalizer := c.getAuthorizeAuthenticationHandlers(mux)
+	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux)
+	if err != nil {
+		glog.Fatal(err)
+	}
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
@@ -371,12 +379,21 @@ func (c *AuthConfig) getSessionAuth() *session.Authenticator {
 	return c.sessionAuth
 }
 
-func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler) {
-	authRequestHandler := c.getAuthenticationRequestHandler()
-	authHandler := c.getAuthenticationHandler(mux, handlers.EmptyError{})
-	authFinalizer := c.getAuthenticationFinalizer()
+func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+	authRequestHandler, err := c.getAuthenticationRequestHandler()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	authHandler, err := c.getAuthenticationHandler(mux, handlers.EmptyError{})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	authFinalizer, err := c.getAuthenticationFinalizer()
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	return authRequestHandler, authHandler, authFinalizer
+	return authRequestHandler, authHandler, authFinalizer, nil
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
@@ -399,7 +416,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 }
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request
-func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
+func (c *AuthConfig) getAuthenticationFinalizer() (osinserver.AuthorizeHandler, error) {
 	for _, requestHandler := range c.AuthRequestHandlers {
 		switch requestHandler {
 		case AuthRequestHandlerSession:
@@ -407,17 +424,17 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 			return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
 				_ = c.getSessionAuth().InvalidateAuthentication(w, ar.HttpRequest)
 				return false, nil
-			})
+			}), nil
 		}
 	}
 
 	// Otherwise return a no-op finalizer
 	return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
 		return false, nil
-	})
+	}), nil
 }
 
-func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) handlers.AuthenticationHandler {
+func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
 	successHandler := c.getAuthenticationSuccessHandler()
 
 	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
@@ -440,13 +457,16 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 		state := external.DefaultState()
 		oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.MasterPublicAddr+callbackPath, successHandler, errorHandler, identityMapper)
 		if err != nil {
-			glog.Fatalf("unexpected error: %v", err)
+			return nil, fmt.Errorf("unexpected error: %v", err)
 		}
 
 		mux.Handle(callbackPath, oauthHandler)
 		authHandler = handlers.NewUnionAuthenticationHandler(nil, map[string]handlers.AuthenticationRedirector{string(authHandlerType): oauthHandler}, errorHandler)
 	case AuthHandlerLogin:
-		passwordAuth := c.getPasswordAuthenticator()
+		passwordAuth, err := c.getPasswordAuthenticator()
+		if err != nil {
+			return nil, err
+		}
 		authHandler = handlers.NewUnionAuthenticationHandler(
 			map[string]handlers.AuthenticationChallenger{"login": passwordchallenger.NewBasicAuthChallenger("openshift")},
 			map[string]handlers.AuthenticationRedirector{"login": &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}},
@@ -457,13 +477,13 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	case AuthHandlerDeny:
 		authHandler = handlers.EmptyAuth{}
 	default:
-		glog.Fatalf("No AuthenticationHandler found that matches %v.  The oauth server cannot start!", authHandlerType)
+		return nil, fmt.Errorf("No AuthenticationHandler found that matches %v.  The oauth server cannot start!", authHandlerType)
 	}
 
-	return authHandler
+	return authHandler, nil
 }
 
-func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
+func (c *AuthConfig) getPasswordAuthenticator() (authenticator.Password, error) {
 	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	passwordAuthType := c.PasswordAuth
@@ -475,7 +495,7 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	case PasswordAuthBasicAuthURL:
 		basicAuthURL := c.BasicAuthURL
 		if len(basicAuthURL) == 0 {
-			glog.Fatalf("BasicAuthURL is required to support basic password auth")
+			return nil, fmt.Errorf("BasicAuthURL is required to support basic password auth")
 		}
 		passwordAuth = basicauthpassword.New(basicAuthURL, identityMapper)
 	case PasswordAuthAnyPassword:
@@ -487,19 +507,19 @@ func (c *AuthConfig) getPasswordAuthenticator() authenticator.Password {
 	case PasswordAuthHTPasswd:
 		htpasswdFile := c.HTPasswdFile
 		if len(htpasswdFile) == 0 {
-			glog.Fatalf("HTPasswdFile is required to support htpasswd auth")
+			return nil, fmt.Errorf("HTPasswdFile is required to support htpasswd auth")
 		}
 		if htpasswordAuth, err := htpasswd.New(htpasswdFile, identityMapper); err != nil {
-			glog.Fatalf("Error loading htpasswd file %s: %v", htpasswdFile, err)
+			return nil, fmt.Errorf("Error loading htpasswd file %s: %v", htpasswdFile, err)
 		} else {
 			passwordAuth = htpasswordAuth
 		}
 
 	default:
-		glog.Fatalf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
+		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", passwordAuthType)
 	}
 
-	return passwordAuth
+	return passwordAuth, nil
 }
 
 func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSuccessHandler {
@@ -523,7 +543,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 	return successHandlers
 }
 
-func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType AuthRequestHandlerType) authenticator.Request {
+func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerType AuthRequestHandlerType) (authenticator.Request, error) {
 	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandler authenticator.Request
@@ -533,17 +553,17 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 		case TokenStoreOAuth:
 			tokenAuthenticator, err := GetEtcdTokenAuthenticator(c.EtcdHelper)
 			if err != nil {
-				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
+				return nil, fmt.Errorf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
 			}
 			authRequestHandler = bearertoken.New(tokenAuthenticator, true)
 		case TokenStoreFile:
 			tokenAuthenticator, err := GetCSVTokenAuthenticator(c.TokenFilePath)
 			if err != nil {
-				glog.Fatalf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
+				return nil, fmt.Errorf("Error creating TokenAuthenticator: %v.  The oauth server cannot start!", err)
 			}
 			authRequestHandler = bearertoken.New(tokenAuthenticator, true)
 		default:
-			glog.Fatalf("Unknown TokenStore %s. Must be oauth or file.  The oauth server cannot start!", c.TokenStore)
+			return nil, fmt.Errorf("Unknown TokenStore %s. Must be oauth or file.  The oauth server cannot start!", c.TokenStore)
 		}
 	case AuthRequestHandlerRequestHeader:
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
@@ -552,28 +572,50 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 			UserNameHeaders: c.RequestHeaders,
 		}
 		authRequestHandler = headerrequest.NewAuthenticator(authRequestConfig, identityMapper)
+
+		// Wrap with an x509 verifier
+		if len(c.RequestHeaderCAFile) > 0 {
+			caData, err := ioutil.ReadFile(c.RequestHeaderCAFile)
+			if err != nil {
+				return nil, fmt.Errorf("Error reading %s: %v", c.RequestHeaderCAFile, err)
+			}
+			opts := x509request.DefaultVerifyOptions()
+			opts.Roots = x509.NewCertPool()
+			if ok := opts.Roots.AppendCertsFromPEM(caData); !ok {
+				return nil, fmt.Errorf("Error loading certs from %s: %v", c.RequestHeaderCAFile, err)
+			}
+
+			authRequestHandler = x509request.NewVerifier(opts, authRequestHandler)
+		}
 	case AuthRequestHandlerBasicAuth:
-		passwordAuthenticator := c.getPasswordAuthenticator()
+		passwordAuthenticator, err := c.getPasswordAuthenticator()
+		if err != nil {
+			return nil, err
+		}
 		authRequestHandler = basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true)
 	case AuthRequestHandlerSession:
 		authRequestHandler = c.getSessionAuth()
 	default:
-		glog.Fatalf("No AuthenticationRequestHandler found that matches %v.  The oauth server cannot start!", authRequestHandlerType)
+		return nil, fmt.Errorf("No AuthenticationRequestHandler found that matches %v.  The oauth server cannot start!", authRequestHandlerType)
 	}
 
-	return authRequestHandler
+	return authRequestHandler, nil
 }
 
-func (c *AuthConfig) getAuthenticationRequestHandler() authenticator.Request {
+func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, error) {
 	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	var authRequestHandlers []authenticator.Request
 	for _, requestHandler := range c.AuthRequestHandlers {
-		authRequestHandlers = append(authRequestHandlers, c.getAuthenticationRequestHandlerFromType(requestHandler))
+		authRequestHandler, err := c.getAuthenticationRequestHandlerFromType(requestHandler)
+		if err != nil {
+			return nil, err
+		}
+		authRequestHandlers = append(authRequestHandlers, authRequestHandler)
 	}
 
 	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers...)
-	return authRequestHandler
+	return authRequestHandler, nil
 }
 
 func GetEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, error) {

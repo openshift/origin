@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"net"
-	_ "net/http/pprof"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"

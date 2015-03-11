@@ -8,4 +8,18 @@ angular.module('openshiftConsole')
         });
       }
     };
+  })
+  .directive('tileClick', function() {
+    return {
+      restrict: 'AC', 
+      link: function($scope, element, attrs) {
+        $(element).click(function (evt) {
+          var t = $(evt.target);
+          if (t && t.is('a')){
+            return;
+          }
+          $('a.tile-target', element).trigger("click");
+        });
+      }
+    };
   });

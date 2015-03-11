@@ -426,6 +426,34 @@ func IPAddressesDNSNames(hosts []string) ([]net.IP, []string) {
 	return ips, dns
 }
 
+func CertsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
+	ok := false
+	certs := []*x509.Certificate{}
+	for len(pemCerts) > 0 {
+		var block *pem.Block
+		block, pemCerts = pem.Decode(pemCerts)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
+			continue
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return certs, err
+		}
+
+		certs = append(certs, cert)
+		ok = true
+	}
+
+	if !ok {
+		return certs, errors.New("Could not read any certificates")
+	}
+	return certs, nil
+}
+
 // Can be used as a certificate in http.Transport TLSClientConfig
 func newClientCertificateTemplate(subject pkix.Name) (*x509.Certificate, error) {
 	return &x509.Certificate{

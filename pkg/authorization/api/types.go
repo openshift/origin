@@ -209,9 +209,16 @@ type PolicyBindingList struct {
 	Items []PolicyBinding
 }
 
-// RoleBindingList is a collection of PolicyBindings
+// RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
 	Items []RoleBinding
+}
+
+// RoleList is a collection of Roles
+type RoleList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []Role
 }

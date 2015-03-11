@@ -111,28 +111,7 @@ function wait_for_url {
   wait=${3:-0.2}
   times=${4:-10}
 
-  CURL_CERT=${CURL_CERT:-}
-  CURL_KEY=${CURL_KEY:-}
-  clientcert_args=""
-
-  if [ -n "${CURL_CERT}" ]; then
-   if [ -n "${CURL_KEY}" ]; then
-     if [[ `curl -V` == *"SecureTransport"* ]]; then
-       # Convert to a p12 cert for SecureTransport
-       CURL_CERT_DIR=$(dirname "${CURL_CERT}")
-       CURL_CERT_P12=${CURL_CERT_P12:-${CURL_CERT_DIR}/cert.p12}
-       CURL_CERT_P12_PASSWORD=${CURL_CERT_P12_PASSWORD:-password}
-       if [ ! -f "${CURL_CERT_P12}" ]; then
-         wait_for_file "${CURL_CERT}" $wait $times
-         wait_for_file "${CURL_KEY}" $wait $times
-         openssl pkcs12 -export -inkey "${CURL_KEY}" -in "${CURL_CERT}" -out "${CURL_CERT_P12}" -password "pass:${CURL_CERT_P12_PASSWORD}"
-       fi
-       clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD}"
-     else
-       clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY}"
-     fi
-   fi
-  fi
+  set_curl_args $wait $times
 
   set +e
   for i in $(seq 1 $times); do
@@ -145,9 +124,45 @@ function wait_for_url {
     sleep $wait
   done
   echo "ERROR: gave up waiting for $url"
-  curl ${clientcert_args} $url
+  curl ${CURL_ARGS} $url
   set -e
   return 1
+}
+
+# set_curl_args tries to export CURL_ARGS for a program to use.
+# will do a wait for the files to exist when using curl with
+# SecureTransport (because we must convert the keys to a different
+# form).
+#
+# $1 - Optional time to sleep between attempts (Default: 0.2s)
+# $2 - Optional number of attemps to make (Default: 10)
+function set_curl_args {
+  wait=${1:-0.2}
+  times=${2:-10}
+
+  CURL_CERT=${CURL_CERT:-}
+  CURL_KEY=${CURL_KEY:-}
+  clientcert_args=""
+
+  if [ -n "${CURL_CERT}" ]; then
+   if [ -n "${CURL_KEY}" ]; then
+     if [[ `curl -V` == *"SecureTransport"* ]]; then
+       # Convert to a p12 cert for SecureTransport
+       export CURL_CERT_DIR=$(dirname "${CURL_CERT}")
+       export CURL_CERT_P12=${CURL_CERT_P12:-${CURL_CERT_DIR}/cert.p12}
+       export CURL_CERT_P12_PASSWORD=${CURL_CERT_P12_PASSWORD:-password}
+       if [ ! -f "${CURL_CERT_P12}" ]; then
+         wait_for_file "${CURL_CERT}" $wait $times
+         wait_for_file "${CURL_KEY}" $wait $times
+         openssl pkcs12 -export -inkey "${CURL_KEY}" -in "${CURL_CERT}" -out "${CURL_CERT_P12}" -password "pass:${CURL_CERT_P12_PASSWORD}"
+       fi
+       clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD}"
+     else
+       clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY}"
+     fi
+   fi
+  fi
+  export CURL_ARGS="${clientcert_args}"
 }
 
 # Search for a regular expression in a HTTP response.

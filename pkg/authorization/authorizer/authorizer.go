@@ -52,7 +52,24 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 		return false, "", kerrors.NewAggregate(errs)
 	}
 
-	return false, "denied by default", nil
+	username := "MISSING"
+	if user, userExists := kapi.UserFrom(ctx); userExists {
+		username = user.GetName()
+	}
+
+	denyReason := "denied by default"
+	if passedAttributes.IsNonResourceURL() {
+		denyReason = fmt.Sprintf("%v cannot %v on %v", username, attributes.GetVerb(), attributes.GetURL())
+
+	} else {
+		resourceNamePart := ""
+		if len(attributes.GetResourceName()) > 0 {
+			resourceNamePart = fmt.Sprintf(" with name \"%v\"", attributes.GetResourceName())
+		}
+		denyReason = fmt.Sprintf("%v cannot %v on %v%v in %v", username, attributes.GetVerb(), attributes.GetResource(), resourceNamePart, namespace)
+	}
+
+	return false, denyReason, nil
 }
 
 func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {

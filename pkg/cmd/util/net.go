@@ -8,6 +8,17 @@ import (
 	"github.com/golang/glog"
 )
 
+// TryListen tries to open a connection on the given port and returns true if it succeeded.
+func TryListen(hostPort string) bool {
+	l, err := net.Listen("tcp", hostPort)
+	if err != nil {
+		glog.V(5).Infof("Failure while checking listen on %s: %v", err)
+		return false
+	}
+	defer l.Close()
+	return true
+}
+
 // WaitForDial attempts to connect to the given address, closing and returning nil on the first successful connection.
 func WaitForSuccessfulDial(https bool, network, address string, timeout, interval time.Duration, retries int) error {
 	var (

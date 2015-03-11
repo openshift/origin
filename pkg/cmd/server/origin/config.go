@@ -50,6 +50,8 @@ type MasterConfigParameters struct {
 	MasterPublicAddr     string
 	KubernetesPublicAddr string
 	AssetPublicAddr      string
+	// host:port to bind DNS on. The default is port 53.
+	DNSBindAddr string
 	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
 	// If not specified, the built-in logout page is shown.
 	LogoutURI string
@@ -63,9 +65,12 @@ type MasterConfigParameters struct {
 	AssetCertFile  string
 	AssetKeyFile   string
 
-	// ClientCAs will be used to request client certificates in connections to the API.
-	// This CertPool should contain all the CAs that will be used for client certificate verification.
+	// ClientCAs will be used to request client certificates in connections to the API or OAuth server.
+	// This CertPool should contain all the CAs that will be used for client certificate verification (the union
+	// of APIClientCAs and OAuthClientCAs).
 	ClientCAs *x509.CertPool
+	// APIClientCAs is used to verify client certificates presented for API auth
+	APIClientCAs *x509.CertPool
 
 	MasterAuthorizationNamespace string
 
@@ -157,7 +162,7 @@ func (c MasterConfigParameters) newAuthenticator() authenticator.Request {
 		// build cert authenticator
 		// TODO: add cert users to etcd?
 		opts := x509request.DefaultVerifyOptions()
-		opts.Roots = c.ClientCAs
+		opts.Roots = c.APIClientCAs
 		certauth := x509request.New(opts, x509request.SubjectToUserConversion)
 		authenticators = append(authenticators, certauth)
 	}

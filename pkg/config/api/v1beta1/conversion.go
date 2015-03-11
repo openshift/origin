@@ -11,14 +11,12 @@ func init() {
 		func(in *newer.Config, out *Config, s conversion.Scope) error {
 			out.ResourceVersion = in.ListMeta.ResourceVersion
 			out.SelfLink = in.ListMeta.SelfLink
-			s.Convert(&in.Items, &out.Items, conversion.DestFromSource)
-			return nil
+			return s.Convert(&in.Items, &out.Items, conversion.DestFromSource)
 		},
 		func(in *Config, out *newer.Config, s conversion.Scope) error {
 			out.ListMeta.ResourceVersion = in.ResourceVersion
 			out.ListMeta.SelfLink = in.SelfLink
-			s.Convert(&in.Items, &out.Items, conversion.DestFromSource)
-			return nil
+			return s.Convert(&in.Items, &out.Items, conversion.DestFromSource)
 		},
 	)
 }

@@ -55,19 +55,17 @@ func init() {
 			out.Image = in.Image
 			out.Scripts = in.Scripts
 			out.Clean = !in.Incremental
-			s.Convert(&in.Env, &out.Env, 0)
-			return nil
+			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
 			out.Scripts = in.Scripts
 			out.Incremental = !in.Clean
-			s.Convert(&in.Env, &out.Env, 0)
 			if len(in.Image) != 0 {
 				out.Image = in.Image
 			} else {
 				out.Image = in.BuilderImage
 			}
-			return nil
+			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		// Rename DockerBuildStrategy.BaseImage to DockerBuildStrategy.Image
 		func(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {

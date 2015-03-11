@@ -1,11 +1,23 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
 type FakeRoles struct {
 	Fake *Fake
+}
+
+func (c *FakeRoles) List(label, field labels.Selector) (*authorizationapi.RoleList, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-role"})
+	return &authorizationapi.RoleList{}, nil
+}
+
+func (c *FakeRoles) Get(name string) (*authorizationapi.Role, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-role"})
+	return &authorizationapi.Role{}, nil
 }
 
 func (c *FakeRoles) Create(role *authorizationapi.Role) (*authorizationapi.Role, error) {

@@ -41,7 +41,7 @@ func TestResourceNameDeny(t *testing.T) {
 			ResourceName: "just-a-user",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  `just-a-user cannot get on users with name "just-a-user"`,
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.bindings = newDefaultGlobalBinding()
@@ -166,7 +166,7 @@ func TestNonResourceDeny(t *testing.T) {
 			URL:            "not-allowed",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  `no-one cannot get on not-allowed`,
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.bindings = newDefaultGlobalBinding()
@@ -183,7 +183,7 @@ func TestHealthDeny(t *testing.T) {
 			URL:            "/healthz",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  `no-one cannot get on /healthz`,
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.bindings = newDefaultGlobalBinding()
@@ -215,7 +215,7 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  `SomeYahoo cannot get on pods`,
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.bindings = newDefaultGlobalBinding()
@@ -282,7 +282,7 @@ func TestResourceRestrictionsWork(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  `Rachel cannot get on pods in adze`,
 	}
 	test2.policies = newDefaultGlobalPolicies()
 	test2.policies = append(test2.policies, newAdzePolicies()...)
@@ -331,7 +331,7 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 			Resource: "buildConfigs",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  `Rachel cannot get on buildConfigs in backsaw`,
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -364,7 +364,7 @@ func TestVerbRestrictionsWork(t *testing.T) {
 			Resource: "buildConfigs",
 		},
 		expectedAllowed: false,
-		expectedReason:  "denied by default",
+		expectedReason:  `Valerie cannot create on buildConfigs in adze`,
 	}
 	test2.policies = newDefaultGlobalPolicies()
 	test2.policies = append(test2.policies, newAdzePolicies()...)

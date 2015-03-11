@@ -22,8 +22,8 @@ angular
   // configure our tabs and routing
   .config(['mainNavTabs','$routeProvider', 'HawtioNavBuilderProvider', function(tabs, $routeProvider, builder) {
     var template = function() {
-      // TODO - Don't love triggering the show/hide drawer here, would prefer if 
-      // we could listen for an event that the nav was being redrawn and 
+      // TODO - Don't love triggering the show/hide drawer here, would prefer if
+      // we could listen for an event that the nav was being redrawn and
       // check HawtioNav.selected()
       if (this.isSelected()) {
         if (this.tabs && this.tabs.length > 0) {
@@ -33,7 +33,7 @@ angular
           $("body").removeClass("show-drawer");
         }
       }
-      return "<sidebar-nav-item></sidebar-nav-item>";        
+      return "<sidebar-nav-item></sidebar-nav-item>";
     };
 
     var projectHref = function(path) {
@@ -45,7 +45,7 @@ angular
             return "/project/" + encodeURIComponent(routeParams.project) + "/" + path;
           }
         }
-        return "/project/:project/" + path; 
+        return "/project/:project/" + path;
       }
     };
 
@@ -56,7 +56,7 @@ angular
      .title(function () { return "Overview"; })
      .template(template)
      .href(projectHref("overview"))
-     .page(function () { return builder.join(templatePath, 'project.html'); })                     
+     .page(function () { return builder.join(templatePath, 'project.html'); })
      .build();
     tab.icon = "dashboard";
     tabs.push(tab);
@@ -81,7 +81,7 @@ angular
      .title(function () { return "Settings"; })
      .template(template)
      .href(projectHref("settings"))
-     .page(function () { return builder.join(templatePath, 'settings.html'); })                     
+     .page(function () { return builder.join(templatePath, 'settings.html'); })
      .build();
     tab.icon = "sliders";
     tabs.push(tab);
@@ -97,34 +97,39 @@ angular
         redirectTo: function(params) {
           return '/project/' + encodeURIComponent(params.project) + "/overview";
         }
-      })      
+      })
       .when('/project/:project/overview', {
         templateUrl: 'views/project.html'
       })
       .when('/project/:project/settings', {
         templateUrl: 'views/settings.html'
-      })      
+      })
       .when('/project/:project/browse', {
         redirectTo: function(params) {
           return '/project/' + encodeURIComponent(params.project) + "/browse/pods";  // TODO decide what subtab to default to here
         }
-      })      
+      })
       .when('/project/:project/browse/builds', {
         templateUrl: 'views/builds.html'
-      })      
+      })
       .when('/project/:project/browse/deployments', {
         templateUrl: 'views/deployments.html'
-      })            
+      })
       .when('/project/:project/browse/images', {
         templateUrl: 'views/images.html'
-      })      
+      })
       .when('/project/:project/browse/pods', {
         templateUrl: 'views/pods.html'
-      }) 
+      })
       .when('/project/:project/browse/services', {
         templateUrl: 'views/services.html'
       })
-
+      .when('/project/:project/catalog', {
+        templateUrl: 'views/catalog.html'
+      })
+      .when('/project/:project/create/fromtemplate', {
+        templateUrl: 'views/newfromtemplate.html'
+      })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
         controller: 'OAuthController'
