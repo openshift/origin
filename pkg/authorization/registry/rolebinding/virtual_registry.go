@@ -3,9 +3,9 @@ package rolebinding
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -14,6 +14,8 @@ import (
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
+
+// TODO sort out resourceVersions.  Perhaps a hash of the object contents?
 
 type VirtualRegistry struct {
 	bindingRegistry              policybindingregistry.Registry
@@ -26,6 +28,7 @@ func NewVirtualRegistry(bindingRegistry policybindingregistry.Registry, policyRe
 	return &VirtualRegistry{bindingRegistry, policyRegistry, masterAuthorizationNamespace}
 }
 
+// TODO either add selector for fields ot eliminate the option
 func (m *VirtualRegistry) ListRoleBindings(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.RoleBindingList, error) {
 	policyBindingList, err := m.bindingRegistry.ListPolicyBindings(ctx, klabels.Everything(), klabels.Everything())
 	if err != nil {
@@ -36,7 +39,9 @@ func (m *VirtualRegistry) ListRoleBindings(ctx kapi.Context, labels, fields klab
 
 	for _, policyBinding := range policyBindingList.Items {
 		for _, roleBinding := range policyBinding.RoleBindings {
-			roleBindingList.Items = append(roleBindingList.Items, roleBinding)
+			if labels.Matches(klabels.Set(roleBinding.Labels)) {
+				roleBindingList.Items = append(roleBindingList.Items, roleBinding)
+			}
 		}
 	}
 
@@ -45,24 +50,31 @@ func (m *VirtualRegistry) ListRoleBindings(ctx kapi.Context, labels, fields klab
 
 func (m *VirtualRegistry) GetRoleBinding(ctx kapi.Context, name string) (*authorizationapi.RoleBinding, error) {
 	policyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
+	if err != nil && kapierrors.IsNotFound(err) {
+		return nil, kapierrors.NewNotFound("RoleBinding", name)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if policyBinding == nil {
-		return nil, fmt.Errorf("RoleBinding %v not found", name)
-	}
 
-	binding := policyBinding.RoleBindings[name]
+	binding, exists := policyBinding.RoleBindings[name]
+	if !exists {
+		return nil, kapierrors.NewNotFound("RoleBinding", name)
+	}
 	return &binding, nil
 }
 
 func (m *VirtualRegistry) DeleteRoleBinding(ctx kapi.Context, name string) error {
 	owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
+	if err != nil && kapierrors.IsNotFound(err) {
+		return kapierrors.NewNotFound("RoleBinding", name)
+	}
 	if err != nil {
 		return err
 	}
-	if owningPolicyBinding == nil {
-		return fmt.Errorf("roleBinding %v does not exist", name)
+
+	if _, exists := owningPolicyBinding.RoleBindings[name]; !exists {
+		return kapierrors.NewNotFound("RoleBinding", name)
 	}
 
 	delete(owningPolicyBinding.RoleBindings, name)
@@ -86,7 +98,7 @@ func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *autho
 
 	_, exists := policyBinding.RoleBindings[roleBinding.Name]
 	if exists {
-		return fmt.Errorf("roleBinding %v already exists", roleBinding.Name)
+		return kapierrors.NewAlreadyExists("RoleBinding", roleBinding.Name)
 	}
 
 	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
@@ -111,7 +123,7 @@ func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *autho
 		return err
 	}
 	if existingRoleBinding == nil {
-		return fmt.Errorf("roleBinding %v does not exist", roleBinding.Name)
+		return kapierrors.NewNotFound("RoleBinding", roleBinding.Name)
 	}
 	if existingRoleBinding.RoleRef.Namespace != roleBinding.RoleRef.Namespace {
 		return fmt.Errorf("cannot change roleBinding.RoleRef.Namespace from %v to %v", existingRoleBinding.RoleRef.Namespace, roleBinding.RoleRef.Namespace)
@@ -124,7 +136,7 @@ func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *autho
 
 	previousRoleBinding, exists := policyBinding.RoleBindings[roleBinding.Name]
 	if !exists {
-		return fmt.Errorf("roleBinding %v does not exist", roleBinding.Name)
+		return kapierrors.NewNotFound("RoleBinding", roleBinding.Name)
 	}
 	if previousRoleBinding.RoleRef != roleBinding.RoleRef {
 		return errors.New("roleBinding.RoleRef may not be modified")
@@ -152,12 +164,12 @@ func (m *VirtualRegistry) getReferencedRole(roleRef kapi.ObjectReference) (*auth
 
 	policy, err := m.policyRegistry.GetPolicy(ctx, authorizationapi.PolicyName)
 	if err != nil {
-		return nil, fmt.Errorf("policy %v not found: %v", roleRef.Namespace, err)
+		return nil, err
 	}
 
 	role, exists := policy.Roles[roleRef.Name]
 	if !exists {
-		return nil, fmt.Errorf("role %v not found", roleRef.Name)
+		return nil, kapierrors.NewNotFound("Role", roleRef.Name)
 	}
 
 	return &role, nil
@@ -197,7 +209,7 @@ func (m *VirtualRegistry) confirmNoEscalaton(ctx kapi.Context, roleBinding *auth
 func (m *VirtualRegistry) ensurePolicyBindingToMaster(ctx kapi.Context) (*authorizationapi.PolicyBinding, error) {
 	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, m.masterAuthorizationNamespace)
 	if err != nil {
-		if !strings.Contains(err.Error(), "not found") {
+		if !kapierrors.IsNotFound(err) {
 			return nil, err
 		}
 
@@ -252,5 +264,5 @@ func (m *VirtualRegistry) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bi
 		}
 	}
 
-	return nil, nil
+	return nil, kapierrors.NewNotFound("RoleBinding", bindingName)
 }

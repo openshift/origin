@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -25,6 +26,11 @@ func testNewBaseBindings() []authorizationapi.PolicyBinding {
 					Users:      util.NewStringSet("system:admin"),
 				},
 			},
+		},
+		{
+			ObjectMeta:   kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
+			PolicyRef:    kapi.ObjectReference{Namespace: "master"},
+			RoleBindings: map[string]authorizationapi.RoleBinding{},
 		},
 	}
 }
@@ -167,9 +173,8 @@ func TestUpdateError(t *testing.T) {
 		t.Errorf("Missing expected error")
 		return
 	}
-	expectedErr := "RoleBinding my-roleBinding not found"
-	if err.Error() != expectedErr {
-		t.Errorf("Expected %v, got %v", expectedErr, err)
+	if !kapierrors.IsNotFound(err) {
+		t.Errorf("Unexpected error %v", err)
 	}
 }
 

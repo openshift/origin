@@ -33,6 +33,8 @@ var (
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
+	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS"}
+	roleColumns             = []string{"NAME"}
 
 	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
 	oauthClientAuthorizationColumns = []string{"NAME", "USER NAME", "CLIENT NAME", "SCOPES"}
@@ -67,6 +69,10 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(policyColumns, printPolicyList)
 	p.Handler(policyBindingColumns, printPolicyBinding)
 	p.Handler(policyBindingColumns, printPolicyBindingList)
+	p.Handler(roleBindingColumns, printRoleBinding)
+	p.Handler(roleBindingColumns, printRoleBindingList)
+	p.Handler(roleColumns, printRole)
+	p.Handler(roleColumns, printRoleList)
 
 	p.Handler(oauthClientColumns, printOAuthClient)
 	p.Handler(oauthClientColumns, printOAuthClientList)
@@ -318,6 +324,36 @@ func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writ
 func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Writer) error {
 	for _, policyBinding := range list.Items {
 		if err := printPolicyBinding(&policyBinding, w); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printRole(role *authorizationapi.Role, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", role.Name)
+	return err
+}
+
+func printRoleList(list *authorizationapi.RoleList, w io.Writer) error {
+	for _, role := range list.Items {
+		if err := printRole(&role, w); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\n", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, roleBinding.Users.List(), roleBinding.Groups.List())
+	return err
+}
+
+func printRoleBindingList(list *authorizationapi.RoleBindingList, w io.Writer) error {
+	for _, roleBinding := range list.Items {
+		if err := printRoleBinding(&roleBinding, w); err != nil {
 			return err
 		}
 	}

@@ -6,13 +6,13 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/api/validation"
 )
-
-// TODO add get and list
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
@@ -27,6 +27,29 @@ func NewREST(registry Registry) apiserver.RESTStorage {
 // New creates a new RoleBinding object
 func (r *REST) New() runtime.Object {
 	return &authorizationapi.RoleBinding{}
+}
+
+func (*REST) NewList() runtime.Object {
+	return &authorizationapi.RoleBindingList{}
+}
+
+// List obtains a list of rolebindings that match selector.
+func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+	roleBindings, err := r.registry.ListRoleBindings(ctx, selector, fields)
+	if err != nil {
+		return nil, err
+	}
+	return roleBindings, err
+
+}
+
+// Get obtains the rolebinding specified by its id.
+func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	roleBinding, err := r.registry.GetRoleBinding(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return roleBinding, err
 }
 
 // Delete asynchronously deletes the PolicyBinding specified by its name.
