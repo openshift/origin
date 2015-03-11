@@ -128,16 +128,9 @@ func (g *BuildStrategyRefGenerator) FromSTIBuilderImage(image *app.ImageRef) (*a
 }
 
 func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*app.ImageRef, error) {
-	var imageName string
 	// TODO: More sophisticated matching
-	switch s.Platform {
-	case "Ruby":
-		imageName = "openshift/ruby-20-centos7"
-	case "JEE":
-		imageName = "openshift/wildfly-8-centos"
-	case "NodeJS":
-		imageName = "openshift/nodejs-010-centos7"
-	default:
+	imageName := app.BuilderForPlatform(s.Platform)
+	if len(imageName) == 0 {
 		return nil, errors.NoBuilderFound
 	}
 	if g.resolver != nil {
