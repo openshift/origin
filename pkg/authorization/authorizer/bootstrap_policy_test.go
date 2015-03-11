@@ -8,6 +8,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func TestViewerGetAllowedKindInMallet(t *testing.T) {
@@ -415,4 +417,43 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 			},
 		},
 	}
+}
+
+func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
+	policy := &authorizationapi.Policy{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:              authorizationapi.PolicyName,
+			Namespace:         masterNamespace,
+			CreationTimestamp: util.Now(),
+			UID:               util.NewUUID(),
+		},
+		LastModified: util.Now(),
+		Roles:        make(map[string]authorizationapi.Role),
+	}
+
+	for _, role := range bootstrappolicy.GetBootstrapMasterRoles(masterNamespace) {
+		policy.Roles[role.Name] = role
+	}
+
+	return policy
+}
+
+func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyBinding {
+	policyBinding := &authorizationapi.PolicyBinding{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:              masterNamespace,
+			Namespace:         masterNamespace,
+			CreationTimestamp: util.Now(),
+			UID:               util.NewUUID(),
+		},
+		LastModified: util.Now(),
+		PolicyRef:    kapi.ObjectReference{Namespace: masterNamespace},
+		RoleBindings: make(map[string]authorizationapi.RoleBinding),
+	}
+
+	for _, roleBinding := range bootstrappolicy.GetBootstrapMasterRoleBindings(masterNamespace) {
+		policyBinding.RoleBindings[roleBinding.Name] = roleBinding
+	}
+
+	return policyBinding
 }

@@ -72,7 +72,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kerrors.NewInvalid("roleBinding", roleBinding.Name, errs)
 	}
 
-	err := r.registry.CreateRoleBinding(ctx, roleBinding)
+	err := r.registry.CreateRoleBinding(ctx, roleBinding, false)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 		return nil, false, kerrors.NewInvalid("roleBinding", roleBinding.Name, errs)
 	}
 
-	err := r.registry.UpdateRoleBinding(ctx, roleBinding)
+	err := r.registry.UpdateRoleBinding(ctx, roleBinding, false)
 	if err != nil {
 		return nil, false, err
 	}

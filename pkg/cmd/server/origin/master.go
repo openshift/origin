@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -75,7 +75,6 @@ import (
 	"github.com/openshift/origin/pkg/version"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -83,6 +82,7 @@ import (
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 const (
@@ -411,35 +411,60 @@ func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
 // ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	registry := authorizationetcd.New(c.EtcdHelper)
-	ctx := kapi.WithNamespace(kapi.NewContext(), c.MasterAuthorizationNamespace)
 
-	if existing, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); err == nil || strings.Contains(err.Error(), " not found") {
-		if existing != nil && existing.Name == authorizationapi.PolicyName {
-			return
+	roleRegistry := roleregistry.NewVirtualRegistry(registry)
+	for _, role := range bootstrappolicy.GetBootstrapRoles(c.MasterAuthorizationNamespace, c.OpenshiftSharedResourcesNamespace) {
+		ctx := kapi.WithNamespace(kapi.NewContext(), role.Namespace)
+
+		if _, err := roleRegistry.GetRole(ctx, role.Name); kapierror.IsNotFound(err) {
+			if err := roleRegistry.CreateRole(ctx, &role); err != nil {
+				glog.Errorf("Error creating role: %#v due to %v\n", role, err)
+			}
+
+		} else if err != nil {
+			glog.Errorf("Error get role: %#v due to %v\n", role, err)
 		}
-
-		bootstrapGlobalPolicy := authorizer.GetBootstrapPolicy(c.MasterAuthorizationNamespace)
-		if err = registry.CreatePolicy(ctx, bootstrapGlobalPolicy); err != nil {
-			glog.Errorf("Error creating policy: %v due to %v\n", bootstrapGlobalPolicy, err)
-		}
-
-	} else {
-		glog.Errorf("Error getting policy: %v due to %v\n", authorizationapi.PolicyName, err)
 	}
 
-	if existing, err := registry.GetPolicyBinding(ctx, c.MasterAuthorizationNamespace); err == nil || strings.Contains(err.Error(), " not found") {
-		if existing != nil && existing.Name == c.MasterAuthorizationNamespace {
-			return
-		}
+	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(registry, registry, c.MasterAuthorizationNamespace)
+	for _, roleBinding := range bootstrappolicy.GetBootstrapRoleBindings(c.MasterAuthorizationNamespace, c.OpenshiftSharedResourcesNamespace) {
+		ctx := kapi.WithNamespace(kapi.NewContext(), roleBinding.Namespace)
 
-		bootstrapGlobalPolicyBinding := authorizer.GetBootstrapPolicyBinding(c.MasterAuthorizationNamespace)
-		if err = registry.CreatePolicyBinding(ctx, bootstrapGlobalPolicyBinding); err != nil {
-			glog.Errorf("Error creating policy: %v due to %v\n", bootstrapGlobalPolicyBinding, err)
-		}
+		if _, err := roleBindingRegistry.GetRoleBinding(ctx, roleBinding.Name); kapierror.IsNotFound(err) {
 
-	} else {
-		glog.Errorf("Error getting policy: %v due to %v\n", c.MasterAuthorizationNamespace, err)
+			// if this is a binding for a non-master namespace the policy binding must be provisioned
+			if roleBinding.Namespace != c.MasterAuthorizationNamespace {
+				if _, err := registry.GetPolicyBinding(ctx, roleBinding.Namespace); kapierror.IsNotFound(err) {
+					policyBinding := &authorizationapi.PolicyBinding{
+						ObjectMeta: kapi.ObjectMeta{
+							Namespace: roleBinding.Namespace,
+							Name:      roleBinding.RoleRef.Namespace,
+						},
+
+						PolicyRef: kapi.ObjectReference{
+							Namespace: roleBinding.RoleRef.Namespace,
+							Name:      roleBinding.RoleRef.Name,
+						},
+					}
+
+					if err := registry.CreatePolicyBinding(ctx, policyBinding); err != nil {
+						glog.Errorf("Error creating policyBinding: %#v due to %v\n", policyBinding, err)
+					}
+
+				} else if err != nil {
+					glog.Errorf("Error getting policyBinding: %#v due to %v\n", roleBinding.Namespace, err)
+				}
+			}
+
+			if err := roleBindingRegistry.CreateRoleBinding(ctx, &roleBinding, true); err != nil {
+				glog.Errorf("Error creating roleBinding: %#v due to %v\n", roleBinding, err)
+			}
+
+		} else if err != nil {
+			glog.Errorf("Error getting roleBinding: %#v due to %v\n", roleBinding, err)
+		}
 	}
+
 }
 
 func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {

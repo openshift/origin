@@ -83,12 +83,14 @@ func (m *VirtualRegistry) DeleteRoleBinding(ctx kapi.Context, name string) error
 	return m.bindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding)
 }
 
-func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
+func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding, skipEscalationCheck bool) error {
 	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
 		return err
 	}
-	if err := m.confirmNoEscalaton(ctx, roleBinding); err != nil {
-		return err
+	if !skipEscalationCheck {
+		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
+			return err
+		}
 	}
 
 	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace)
@@ -110,12 +112,14 @@ func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *autho
 	return nil
 }
 
-func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
+func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding, skipEscalationCheck bool) error {
 	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
 		return err
 	}
-	if err := m.confirmNoEscalaton(ctx, roleBinding); err != nil {
-		return err
+	if !skipEscalationCheck {
+		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
+			return err
+		}
 	}
 
 	existingRoleBinding, err := m.GetRoleBinding(ctx, roleBinding.Name)
@@ -175,7 +179,7 @@ func (m *VirtualRegistry) getReferencedRole(roleRef kapi.ObjectReference) (*auth
 	return &role, nil
 }
 
-func (m *VirtualRegistry) confirmNoEscalaton(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
+func (m *VirtualRegistry) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
 	modifyingRole, err := m.getReferencedRole(roleBinding.RoleRef)
 	if err != nil {
 		return err

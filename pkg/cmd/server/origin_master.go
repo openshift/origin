@@ -98,9 +98,10 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 		KubernetesPublicAddr: kubePublicAddr.String(),
 		AssetPublicAddr:      assetPublicAddr.String(),
 
-		CORSAllowedOrigins:           corsAllowedOrigins,
-		MasterAuthorizationNamespace: "master",
-		LogoutURI:                    env("OPENSHIFT_LOGOUT_URI", ""),
+		CORSAllowedOrigins:                corsAllowedOrigins,
+		MasterAuthorizationNamespace:      "master",
+		OpenshiftSharedResourcesNamespace: "openshift",
+		LogoutURI:                         env("OPENSHIFT_LOGOUT_URI", ""),
 
 		EtcdHelper: etcdHelper,
 
