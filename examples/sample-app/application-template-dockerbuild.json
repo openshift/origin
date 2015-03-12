@@ -39,7 +39,8 @@
       "kind": "ImageRepository",
       "metadata": {
         "name": "ruby-20-centos7"
-      }
+      },
+      "dockerImageRepository": "openshift/ruby-20-centos7"
     },
     {
       "apiVersion": "v1beta1",

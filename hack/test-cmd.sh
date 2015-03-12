@@ -225,10 +225,9 @@ osc create -f examples/image-repositories/image-repositories.json
 [ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
 osc delete imageRepositories ruby-20-centos7
 osc delete imageRepositories nodejs-010-centos7
-osc delete imageRepositories wildfly-8-centos
 [ -z "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
+# don't delete wildfly-8-centos
 echo "imageRepositories: ok"
 
 osc create -f test/integration/fixtures/test-image-repository.json
@@ -323,5 +322,9 @@ echo "ex router: ok"
 openshift ex registry --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(openshift ex registry | grep 'service exists')" ]
 echo "ex registry: ok"
+
+# verify the image repository had its tags populated
+[ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.tags.latest}}")" ]
+[ -n "$(osc get imageRepositories wildfly-8-centos -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 
 osc get minions,pods

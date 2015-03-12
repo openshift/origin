@@ -53,6 +53,7 @@ import (
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
 	"github.com/openshift/origin/pkg/dns"
+	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
@@ -156,6 +157,11 @@ func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Clie
 
 // ImageChangeControllerClient returns the openshift client object
 func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
+	return c.OSClient
+}
+
+// ImageImportControllerClient returns the deployment client object
+func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 	return c.OSClient
 }
 
@@ -774,10 +780,7 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 		KubeClient: c.KubeClient(),
 	}
 
-	subdomain := os.Getenv("OPENSHIFT_ROUTE_SUBDOMAIN")
-	if len(subdomain) == 0 {
-		subdomain = OpenShiftRouteSubdomain
-	}
+	subdomain := env("OPENSHIFT_ROUTE_SUBDOMAIN", OpenShiftRouteSubdomain)
 
 	plugin, err := routeplugin.NewSimpleAllocationPlugin(subdomain)
 	if err != nil {
@@ -785,6 +788,15 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 	}
 
 	return factory.Create(plugin)
+}
+
+func (c *MasterConfig) RunImageImportController() {
+	osclient := c.ImageImportControllerClient()
+	factory := imagecontroller.ImportControllerFactory{
+		Client: osclient,
+	}
+	controller := factory.Create()
+	controller.Run()
 }
 
 // ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin

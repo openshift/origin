@@ -343,6 +343,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunDeploymentConfigController()
 	openshiftConfig.RunDeploymentConfigChangeController()
 	openshiftConfig.RunDeploymentImageChangeTriggerController()
+	openshiftConfig.RunImageImportController()
 	openshiftConfig.RunProjectAuthorizationCache()
 
 	return nil
