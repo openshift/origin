@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/openshift/origin/pkg/api/latest"
 	newer "github.com/openshift/origin/pkg/image/api"
+	current "github.com/openshift/origin/pkg/image/api/v1beta1"
 )
 
 var Convert = kapi.Scheme.Convert
@@ -84,5 +85,22 @@ func TestDecodeDockerRegistryJSON(t *testing.T) {
 	}
 	if newImage.ID != "something" || newImage.Config.Env[0] != "A=1" {
 		t.Errorf("unexpected object: %#v", newImage)
+	}
+}
+
+func TestConvertTagEvent(t *testing.T) {
+	newRepo := &newer.ImageRepository{
+		Status: newer.ImageRepositoryStatus{
+			Tags: map[string]newer.TagEventList{
+				"tag1": {Items: []newer.TagEvent{{DockerImageReference: "ref1"}}},
+				"tag2": {Items: []newer.TagEvent{{DockerImageReference: "ref2"}}},
+			},
+		},
+	}
+
+	oldRepo := &current.ImageRepository{}
+	err := Convert(newRepo, oldRepo)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

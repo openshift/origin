@@ -2,6 +2,7 @@ package validation
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -13,9 +14,6 @@ func ValidateImage(image *api.Image) errors.ValidationErrorList {
 
 	if len(image.Name) == 0 {
 		result = append(result, errors.NewFieldRequired("name", image.Name))
-	}
-	if !util.IsDNSSubdomain(image.Namespace) {
-		result = append(result, errors.NewFieldInvalid("namespace", image.Namespace, ""))
 	}
 	if len(image.DockerImageReference) == 0 {
 		result = append(result, errors.NewFieldRequired("dockerImageReference", image.DockerImageReference))
@@ -52,6 +50,15 @@ func ValidateImageRepository(repo *api.ImageRepository) errors.ValidationErrorLi
 	return result
 }
 
+func ValidateImageRepositoryUpdate(newRepo, oldRepo *api.ImageRepository) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
+
+	result = append(result, validation.ValidateObjectMetaUpdate(&oldRepo.ObjectMeta, &newRepo.ObjectMeta).Prefix("metadata")...)
+	result = append(result, ValidateImageRepository(newRepo)...)
+
+	return result
+}
+
 // ValidateImageRepositoryMapping tests required fields for an ImageRepositoryMapping.
 func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
@@ -75,9 +82,6 @@ func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.
 	}
 	if len(mapping.Tag) == 0 {
 		result = append(result, errors.NewFieldRequired("tag", mapping.Tag))
-	}
-	if len(mapping.Image.Namespace) == 0 {
-		mapping.Image.Namespace = mapping.Namespace
 	}
 	if errs := ValidateImage(&mapping.Image).Prefix("image"); len(errs) != 0 {
 		result = append(result, errs...)

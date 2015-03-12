@@ -135,17 +135,17 @@ func TestHande_matchScenarios(t *testing.T) {
 	updates := map[string]*imageapi.ImageRepository{
 		"repo.1": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
-			Status:     imageapi.ImageRepositoryStatus{"registry:8080/openshift/test-image"},
+			Status:     imageapi.ImageRepositoryStatus{DockerImageRepository: "registry:8080/openshift/test-image"},
 			Tags:       map[string]string{"test-tag": "ref-2"},
 		},
 		"repo.2": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoB", Namespace: kapi.NamespaceDefault},
-			Status:     imageapi.ImageRepositoryStatus{"registry:8080/openshift/test-image"},
+			Status:     imageapi.ImageRepositoryStatus{DockerImageRepository: "registry:8080/openshift/test-image"},
 			Tags:       map[string]string{"test-tag": "ref-3"},
 		},
 		"repo.3": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoC", Namespace: kapi.NamespaceDefault},
-			Status:     imageapi.ImageRepositoryStatus{"registry:8080/openshift/test-image-B"},
+			Status:     imageapi.ImageRepositoryStatus{DockerImageRepository: "registry:8080/openshift/test-image-B"},
 			Tags:       map[string]string{"test-tag": "ref-2"},
 		},
 		"repo.4": {

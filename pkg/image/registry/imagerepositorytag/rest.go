@@ -1,11 +1,11 @@
 package imagerepositorytag
 
 import (
+	"fmt"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -21,19 +21,19 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(imageRegistry image.Registry, imageRepositoryRegistry imagerepository.Registry) apiserver.RESTStorage {
+func NewREST(imageRegistry image.Registry, imageRepositoryRegistry imagerepository.Registry) *REST {
 	return &REST{imageRegistry, imageRepositoryRegistry}
 }
 
-// New returns a new ImageRepositoryMapping for use with Create.
-func (s *REST) New() runtime.Object {
-	return &api.ImageRepositoryMapping{}
+// New is only implemented to make REST implement RESTStorage
+func (r *REST) New() runtime.Object {
+	return &api.Image{}
 }
 
 // nameAndTag splits a string into its name component and tag component, and returns an error
 // if the string is not in the right form.
 func nameAndTag(id string) (name string, tag string, err error) {
-	segments := strings.SplitN(id, ":", 2)
+	segments := strings.Split(id, ":")
 	switch len(segments) {
 	case 2:
 		name = segments[0]
@@ -47,22 +47,65 @@ func nameAndTag(id string) (name string, tag string, err error) {
 	return
 }
 
-// Get retrieves images that have been tagged by image and id
-func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
+// Get retrieves an image that has been tagged by repo and tag. `id` is of the format
+// <repo name>:<tag>.
+func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	name, tag, err := nameAndTag(id)
 	if err != nil {
 		return nil, err
 	}
-	repo, err := s.imageRepositoryRegistry.GetImageRepository(ctx, name)
+
+	repo, err := r.imageRepositoryRegistry.GetImageRepository(ctx, name)
 	if err != nil {
 		return nil, err
 	}
+
 	if repo.Tags == nil {
 		return nil, errors.NewNotFound("imageRepositoryTag", tag)
 	}
+
 	imageName, ok := repo.Tags[tag]
 	if !ok {
 		return nil, errors.NewNotFound("imageRepositoryTag", tag)
 	}
-	return s.imageRegistry.GetImage(ctx, imageName)
+
+	image, err := r.imageRegistry.GetImage(ctx, imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.ImageWithMetadata(*image)
+}
+
+// Delete removes a tag from a repo. `id` is of the format <repo name>:<tag>.
+// The associated image that the tag points to is *not* deleted.
+// The tag history remains intact and is not deleted.
+func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	name, tag, err := nameAndTag(id)
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := r.imageRepositoryRegistry.GetImageRepository(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	if repo.Tags == nil {
+		return nil, errors.NewNotFound("imageRepositoryTag", tag)
+	}
+
+	_, ok := repo.Tags[tag]
+	if !ok {
+		return nil, errors.NewNotFound("imageRepositoryTag", tag)
+	}
+
+	delete(repo.Tags, tag)
+
+	err = r.imageRepositoryRegistry.UpdateImageRepository(ctx, repo)
+	if err != nil {
+		return nil, fmt.Errorf("Error removing tag from image repository: %s", err)
+	}
+
+	return &kapi.Status{Status: kapi.StatusSuccess}, nil
 }

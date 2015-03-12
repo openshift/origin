@@ -49,4 +49,45 @@ type DockerConfig struct {
 	WorkingDir      string              `json:"WorkingDir,omitempty"`
 	Entrypoint      []string            `json:"Entrypoint,omitempty"`
 	NetworkDisabled bool                `json:"NetworkDisabled,omitempty"`
+	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
+	OnBuild         []string            `json:"OnBuild,omitempty"`
+}
+
+// DockerImageManifest represents the Docker v2 image format.
+type DockerImageManifest struct {
+	SchemaVersion int             `json:"schemaVersion"`
+	Name          string          `json:"name"`
+	Tag           string          `json:"tag"`
+	Architecture  string          `json:"architecture"`
+	FSLayers      []DockerFSLayer `json:"fsLayers"`
+	History       []DockerHistory `json:"history"`
+}
+
+// DockerFSLayer is a container struct for BlobSums defined in an image manifest
+type DockerFSLayer struct {
+	// TODO make this digest.Digest once docker/distribution is in Godeps
+	// DockerBlobSum is the tarsum of the referenced filesystem image layer
+	DockerBlobSum string `json:"blobSum"`
+}
+
+// DockerHistory stores unstructured v1 compatibility information
+type DockerHistory struct {
+	// DockerV1Compatibility is the raw v1 compatibility information
+	DockerV1Compatibility string `json:"v1Compatibility"`
+}
+
+// DockerV1CompatibilityImage represents the structured v1
+// compatibility information.
+type DockerV1CompatibilityImage struct {
+	ID              string       `json:"id"`
+	Parent          string       `json:"parent,omitempty"`
+	Comment         string       `json:"comment,omitempty"`
+	Created         util.Time    `json:"created"`
+	Container       string       `json:"container,omitempty"`
+	ContainerConfig DockerConfig `json:"container_config,omitempty"`
+	DockerVersion   string       `json:"docker_version,omitempty"`
+	Author          string       `json:"author,omitempty"`
+	Config          DockerConfig `json:"config,omitempty"`
+	Architecture    string       `json:"architecture,omitempty"`
+	Size            int64        `json:"size,omitempty"`
 }

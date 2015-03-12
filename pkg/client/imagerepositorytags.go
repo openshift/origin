@@ -14,6 +14,7 @@ type ImageRepositoryTagsNamespacer interface {
 // ImageRepositoryTagInterface exposes methods on ImageRepositoryTag resources.
 type ImageRepositoryTagInterface interface {
 	Get(name, tag string) (*api.Image, error)
+	Delete(name, tag string) error
 }
 
 // imageRepositoryTags implements ImageRepositoryTagsNamespacer interface
@@ -35,4 +36,9 @@ func (c *imageRepositoryTags) Get(name, tag string) (result *api.Image, err erro
 	result = &api.Image{}
 	err = c.r.Get().Namespace(c.ns).Resource("imageRepositoryTags").Name(fmt.Sprintf("%s:%s", name, tag)).Do().Into(result)
 	return
+}
+
+// Delete deletes the specified tag from the image repository.
+func (c *imageRepositoryTags) Delete(name, tag string) error {
+	return c.r.Delete().Namespace(c.ns).Resource("imageRepositoryTags").Name(fmt.Sprintf("%s:%s", name, tag)).Do().Error()
 }

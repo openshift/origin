@@ -7,12 +7,15 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// FakeImageRepositories implements ImageInterface. Meant to be embedded into a struct to get a default
-// implementation. This makes faking out just the methods you want to test easier.
+// FakeImageRepositories implements ImageRepositoryInterface. Meant to be
+// embedded into a struct to get a default implementation. This makes faking
+// out just the methods you want to test easier.
 type FakeImageRepositories struct {
 	Fake      *Fake
 	Namespace string
 }
+
+var _ ImageRepositoryInterface = &FakeImageRepositories{}
 
 func (c *FakeImageRepositories) List(label, field labels.Selector) (*imageapi.ImageRepositoryList, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-imagerepositries"})

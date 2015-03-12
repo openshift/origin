@@ -70,7 +70,7 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 var originTypes = []string{
 	"Build", "BuildConfig", "BuildLog",
 	"Deployment", "DeploymentConfig",
-	"Image", "ImageRepository", "ImageRepositoryMapping",
+	"Image", "ImageRepository", "ImageRepositoryMapping", "ImageRepositoryTag", "ImageStreamImage",
 	"Template", "TemplateConfig",
 	"Route",
 	"Project",

@@ -52,11 +52,13 @@ import (
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
 	"github.com/openshift/origin/pkg/dns"
-	imageetcd "github.com/openshift/origin/pkg/image/registry/etcd"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
+	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/accesstoken"
 	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
@@ -182,19 +184,26 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 
 	buildEtcd := buildetcd.New(c.EtcdHelper)
-	imageEtcd := imageetcd.New(c.EtcdHelper, imageetcd.DefaultRegistryFunc(defaultRegistryFunc))
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
+	imageStorage := imageetcd.NewREST(c.EtcdHelper)
+	imageRegistry := image.NewRegistry(imageStorage)
+	imageRepositoryStorage := imagerepositoryetcd.NewREST(c.EtcdHelper, imagerepository.DefaultRegistryFunc(defaultRegistryFunc))
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
+
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
 			DCFn:   deployEtcd.GetDeploymentConfig,
-			IRFn:   imageEtcd.GetImageRepository,
-			LIRFn2: imageEtcd.ListImageRepositories,
+			IRFn:   imageRepositoryRegistry.GetImageRepository,
+			LIRFn2: imageRepositoryRegistry.ListImageRepositories,
 		},
 		Codec: latest.Codec,
 	}
@@ -212,10 +221,14 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
 		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
 
-		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd),
-		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
-		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
+		"images":                  imageStorage,
+		"imageStreams":            imageRepositoryStorage,
+		"imageStreamImages":       imageStreamImageStorage,
+		"imageStreamMappings":     imageRepositoryMappingStorage,
+		"imageStreamTags":         imageRepositoryTagStorage,
+		"imageRepositories":       imageRepositoryStorage,
+		"imageRepositoryMappings": imageRepositoryMappingStorage,
+		"imageRepositoryTags":     imageRepositoryTagStorage,
 
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
