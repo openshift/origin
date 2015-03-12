@@ -431,19 +431,19 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 		ctx := kapi.WithNamespace(kapi.NewContext(), roleBinding.Namespace)
 
 		if _, err := roleBindingRegistry.GetRoleBinding(ctx, roleBinding.Name); kapierror.IsNotFound(err) {
-
-			// if this is a binding for a non-master namespace the policy binding must be provisioned
-			if roleBinding.Namespace != c.MasterAuthorizationNamespace {
-				if _, err := registry.GetPolicyBinding(ctx, roleBinding.Namespace); kapierror.IsNotFound(err) {
+			// if this is a binding for a non-master namespaced role.  That means that the policy binding must be provisioned
+			if roleBinding.RoleRef.Namespace != c.MasterAuthorizationNamespace {
+				policyBindingName := roleBinding.RoleRef.Namespace
+				if _, err := registry.GetPolicyBinding(ctx, policyBindingName); kapierror.IsNotFound(err) {
 					policyBinding := &authorizationapi.PolicyBinding{
 						ObjectMeta: kapi.ObjectMeta{
 							Namespace: roleBinding.Namespace,
-							Name:      roleBinding.RoleRef.Namespace,
+							Name:      policyBindingName,
 						},
 
 						PolicyRef: kapi.ObjectReference{
 							Namespace: roleBinding.RoleRef.Namespace,
-							Name:      roleBinding.RoleRef.Name,
+							Name:      authorizationapi.PolicyName,
 						},
 					}
 
@@ -452,7 +452,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 					}
 
 				} else if err != nil {
-					glog.Errorf("Error getting policyBinding: %#v due to %v\n", roleBinding.Namespace, err)
+					glog.Errorf("Error getting policyBinding: %#v due to %v\n", policyBindingName, err)
 				}
 			}
 
