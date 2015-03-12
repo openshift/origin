@@ -23,7 +23,7 @@ func TestListRoutesEmptyList(t *testing.T) {
 
 	storage := REST{
 		registry:  mockRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	routes, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
@@ -56,7 +56,7 @@ func TestListRoutesPopulatedList(t *testing.T) {
 
 	storage := REST{
 		registry:  mockRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
@@ -88,7 +88,7 @@ func TestCreateRouteOK(t *testing.T) {
 	mockAllocator := ractest.NewTestRouteAllocationController()
 	storage := REST{
 		registry:  mockRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	obj, err := storage.Create(kapi.NewDefaultContext(), &api.Route{
@@ -117,7 +117,7 @@ func TestGetRouteError(t *testing.T) {
 	mockAllocator := ractest.NewTestRouteAllocationController()
 	storage := REST{
 		registry:  mockRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	route, err := storage.Get(kapi.NewDefaultContext(), "foo")
@@ -142,7 +142,7 @@ func TestGetRouteOK(t *testing.T) {
 	}
 	storage := REST{
 		registry:  mockRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	route, err := storage.Get(kapi.NewDefaultContext(), "foo")
@@ -186,7 +186,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 	mockAllocator := ractest.NewTestRouteAllocationController()
 	storage := REST{
 		registry:  mockRepositoryRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	_, _, err := storage.Update(kapi.NewDefaultContext(), &api.Route{
@@ -214,7 +214,7 @@ func TestUpdateRouteOK(t *testing.T) {
 
 	storage := REST{
 		registry:  mockRepositoryRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.Route{
@@ -250,7 +250,7 @@ func TestDeleteRouteError(t *testing.T) {
 	mockAllocator := ractest.NewTestRouteAllocationController()
 	storage := REST{
 		registry:  mockRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 	_, err := storage.Delete(kapi.NewDefaultContext(), "foo")
 	if err == nil {
@@ -273,7 +273,7 @@ func TestDeleteRouteOk(t *testing.T) {
 	}
 	storage := REST{
 		registry:  mockRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo")
 	if obj == nil {
@@ -311,7 +311,7 @@ func TestUpdateRouteConflictingNamespace(t *testing.T) {
 	mockAllocator := ractest.NewTestRouteAllocationController()
 	storage := REST{
 		registry:  mockRepositoryRegistry,
-		allocator: *mockAllocator,
+		allocator: mockAllocator,
 	}
 
 	obj, created, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.Route{

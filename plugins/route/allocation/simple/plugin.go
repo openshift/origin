@@ -1,7 +1,6 @@
 package simple
 
 import (
-	"errors"
 	"fmt"
 
 	"code.google.com/p/go-uuid/uuid"
@@ -27,13 +26,11 @@ func NewSimpleAllocationPlugin(suffix string) (*SimpleAllocationPlugin, error) {
 		suffix = defaultDNSSuffix
 	}
 
-	glog.V(4).Infof("NewSimpleAllocationPlugin: suffix=%s", suffix)
+	glog.V(4).Infof("Route plugin initialized with suffix=%s", suffix)
 
 	// Check that the DNS suffix is valid.
 	if !util.IsDNSSubdomain(suffix) {
-		errmsg := fmt.Sprintf("invalid DNS suffix: %s", suffix)
-		glog.Errorf("NewSimpleAllocationPlugin: %s", errmsg)
-		return nil, errors.New(errmsg)
+		return nil, fmt.Errorf("invalid DNS suffix: %s", suffix)
 	}
 
 	return &SimpleAllocationPlugin{DNSSuffix: suffix}, nil
@@ -43,7 +40,7 @@ func NewSimpleAllocationPlugin(suffix string) (*SimpleAllocationPlugin, error) {
 // the "global" router shard.
 func (p *SimpleAllocationPlugin) Allocate(route *routeapi.Route) (*routeapi.RouterShard, error) {
 
-	glog.V(4).Infof("SimpleAllocationPlugin: Allocating global shard *.%s to Route: %s",
+	glog.V(4).Infof("Allocating global shard *.%s to Route: %s",
 		p.DNSSuffix, route.ServiceName)
 
 	return &routeapi.RouterShard{ShardName: "global", DNSSuffix: p.DNSSuffix}, nil
@@ -56,7 +53,7 @@ func (p *SimpleAllocationPlugin) GenerateHostname(route *routeapi.Route, shard *
 	name := route.ServiceName
 	if len(name) == 0 {
 		name = uuid.NewUUID().String()
-		glog.V(4).Infof("SimpleAllocationPlugin: No service name passed, using generated name: %s", name)
+		glog.V(4).Infof("No service name passed, using generated name: %s", name)
 	}
 
 	s := ""
@@ -66,7 +63,7 @@ func (p *SimpleAllocationPlugin) GenerateHostname(route *routeapi.Route, shard *
 		s = fmt.Sprintf("%s-%s.%s", name, route.Namespace, shard.DNSSuffix)
 	}
 
-	glog.V(4).Infof("SimpleAllocationPlugin: Generated hostname=%s for Route: %s", s, route.ServiceName)
+	glog.V(4).Infof("Generated hostname=%s for Route: %s", s, route.ServiceName)
 
 	return s
 }

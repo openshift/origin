@@ -74,7 +74,7 @@ func TestRouteAllocationController(t *testing.T) {
 	fac := &RouteAllocationControllerFactory{nil, nil}
 	allocator := fac.Create(plugin)
 	for _, tc := range tests {
-		shard, err := allocator.Allocate(tc.route)
+		shard, err := allocator.AllocateRouterShard(tc.route)
 		if err != nil {
 			t.Errorf("Test case %s got an error %s", tc.name, err)
 			continue

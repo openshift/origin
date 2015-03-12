@@ -162,7 +162,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 	sac := fac.Create(plugin)
 
 	for _, tc := range tests {
-		shard, err := sac.Allocate(tc.route)
+		shard, err := sac.AllocateRouterShard(tc.route)
 		if err != nil {
 			t.Errorf("Test case %s got an error %s", tc.name, err)
 		}

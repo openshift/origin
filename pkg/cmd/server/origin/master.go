@@ -93,6 +93,7 @@ const (
 	OpenShiftAPIPrefix        = "/osapi"
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
+	OpenShiftRouteSubdomain   = "openshift.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
@@ -241,7 +242,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"templateConfigs": templateregistry.NewREST(),
 		"templates":       templateetcd.NewREST(c.EtcdHelper),
 
-		"routes": routeregistry.NewREST(routeEtcd, *routeAllocator),
+		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
 		"projects": projectregistry.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
 
@@ -749,8 +750,16 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 		KubeClient: c.KubeClient(),
 	}
 
-	// TODO(ramr): Get plugin name + params from config.
-	plugin, _ := routeplugin.NewSimpleAllocationPlugin("")
+	subdomain := os.Getenv("OPENSHIFT_ROUTE_SUBDOMAIN")
+	if len(subdomain) == 0 {
+		subdomain = OpenShiftRouteSubdomain
+	}
+
+	plugin, err := routeplugin.NewSimpleAllocationPlugin(subdomain)
+	if err != nil {
+		glog.Fatalf("Route plugin initialization failed: %v", err)
+	}
+
 	return factory.Create(plugin)
 }
 

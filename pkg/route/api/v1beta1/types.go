@@ -38,10 +38,10 @@ type RouteList struct {
 type RouterShard struct {
 	// Shard name uniquely identifies a router shard in the "set" of
 	// routers used for routing traffic to the services.
-	ShardName string
+	ShardName string `json:"shardName"`
 
 	// The DNS suffix for the shard ala: shard-1.v3.openshift.com
-	DNSSuffix string
+	DNSSuffix string `json:"dnsSuffix"`
 }
 
 // TLSConfig defines config used to secure a route and provide termination

@@ -14,19 +14,19 @@ type RouteAllocationController struct {
 }
 
 // Allocate a router shard for the given route.
-func (c *RouteAllocationController) Allocate(route *routeapi.Route) (*routeapi.RouterShard, error) {
+func (c *RouteAllocationController) AllocateRouterShard(route *routeapi.Route) (*routeapi.RouterShard, error) {
 
-	glog.V(4).Infof("RoutingAllocationController: Allocating shard for Route: %s [alias=%s]",
+	glog.V(4).Infof("Allocating router shard for Route: %s [alias=%s]",
 		route.ServiceName, route.Host)
 
 	shard, err := c.Plugin.Allocate(route)
 
 	if err != nil {
-		glog.Errorf("RoutingAllocationController: Unable to allocate router shard: %v", err)
+		glog.Errorf("unable to allocate router shard: %v", err)
 		return shard, err
 	}
 
-	glog.V(4).Infof("RoutingAllocationController: Route %s allocated to shard %s [suffix=%s]",
+	glog.V(4).Infof("Route %s allocated to shard %s [suffix=%s]",
 		route.ServiceName, shard.ShardName, shard.DNSSuffix)
 
 	return shard, err
