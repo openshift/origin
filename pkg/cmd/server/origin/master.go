@@ -93,7 +93,7 @@ const (
 	OpenShiftAPIPrefix        = "/osapi"
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
-	OpenShiftRouteSubdomain   = "openshift.local"
+	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
