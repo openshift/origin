@@ -11,6 +11,11 @@
 			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
 		},
 		{
+			"ImportPath": "code.google.com/p/go.net/context",
+			"Comment": "null-240",
+			"Rev": "937a34c9de13c766c814510f76bca091dee06028"
+		},
+		{
 			"ImportPath": "code.google.com/p/go.net/spdy",
 			"Comment": "null-240",
 			"Rev": "937a34c9de13c766c814510f76bca091dee06028"
@@ -39,6 +44,14 @@
 			"ImportPath": "code.google.com/p/goprotobuf/proto",
 			"Comment": "go.r60-163",
 			"Rev": "9352842ae63ee1d7e74e074ce7bb10370c4b6b9e"
+		},
+		{
+			"ImportPath": "github.com/AdRoll/goamz/aws",
+			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
+		},
+		{
+			"ImportPath": "github.com/AdRoll/goamz/s3",
+			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
 		},
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/admission",
@@ -462,6 +475,11 @@
 			"Rev": "1aaf839fb07e099361e445273993ccd9adc21b07"
 		},
 		{
+			"ImportPath": "github.com/docker/distribution",
+			"Comment": "v2.0.0-alpha.3-30-g06fcf05",
+			"Rev": "06fcf053e7b45aa8608c6bf32e8d3227b31d3747"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/builder/command",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
@@ -502,6 +520,11 @@
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
 		},
 		{
+			"ImportPath": "github.com/docker/docker/pkg/tarsum",
+			"Comment": "v1.4.1-1223-g7d2188f",
+			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/pkg/term",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
@@ -515,6 +538,10 @@
 			"ImportPath": "github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar",
 			"Comment": "v1.4.1-656-g2115131",
 			"Rev": "7d2188f9955d3f2002ff8c2e566ef84121de5217"
+		},
+		{
+			"ImportPath": "github.com/docker/libtrust",
+			"Rev": "c54fbb67c1f1e68d7d6f8d2ad7c9360404616a41"
 		},
 		{
 			"ImportPath": "github.com/docker/spdystream",
@@ -571,6 +598,14 @@
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "a8662172a384296ff59d28f837e151643c662985"
+		},
+		{
+			"ImportPath": "github.com/gorilla/handlers",
+			"Rev": "4ef72b2795a418935d497c8db213080be06f8850"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "9b36453141c35697401168b07f2c09fcff7721ce"
 		},
 		{
 			"ImportPath": "github.com/gorilla/securecookie",
