@@ -27,6 +27,9 @@ func RegisterMimeTypes() {
 	// http://www.iana.org/assignments/media-types/application/font-sfnt
 	registerIfNeeded(".ttf", "application/font-sfnt")
 	registerIfNeeded(".otf", "application/font-sfnt")
+
+	// Flash
+	registerIfNeeded(".swf", "application/x-shockwave-flash")
 }
 
 func registerIfNeeded(extension, mimeType string) {

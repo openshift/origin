@@ -392,6 +392,12 @@ module.exports = function (grunt) {
           cwd: 'bower_components/patternfly/components/font-awesome',
           src: 'fonts/*',
           dest: '<%= yeoman.dist %>/styles'
+        }, 
+        {
+          expand: true,
+          cwd: 'bower_components/zeroclipboard/dist',
+          src: 'ZeroClipboard.swf',
+          dest: '<%= yeoman.dist %>/scripts'
         }]
       },
       styles: {

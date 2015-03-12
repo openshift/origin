@@ -265,7 +265,7 @@ angular.module('openshiftConsole')
           }
 
           var triggerTag = trigger.imageChangeParams.tag;
-          var buildTag = build.parameters.output.tag;
+          var buildTag = build.parameters.output.tag || "latest";
           if (triggerTag !== buildTag) {
           	continue;
           }
