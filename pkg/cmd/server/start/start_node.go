@@ -115,7 +115,6 @@ func (o NodeOptions) StartNode() error {
 		return nil
 	}
 
-	daemon.SdNotify("READY=1")
 	select {}
 
 	return nil
@@ -262,6 +261,7 @@ func StartNode(config configapi.NodeConfig) error {
 	nodeConfig.EnsureDocker(docker.NewHelper())
 	nodeConfig.RunProxy()
 	nodeConfig.RunKubelet()
+	go daemon.SdNotify("READY=1")
 
 	return nil
 }
