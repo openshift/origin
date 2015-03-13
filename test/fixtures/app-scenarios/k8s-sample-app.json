@@ -57,8 +57,7 @@
       "kind": "ReplicationController",
       "labels": {
         "template": "ruby-helloworld-sample"
-      },
-      "namespace": "example"
+      }
     },
     {
       "annotations": {},
@@ -126,8 +125,7 @@
       "kind": "ReplicationController",
       "labels": {
         "template": "ruby-helloworld-sample"
-      },
-      "namespace": "example"
+      }
     },
     {
       "apiVersion": "v1beta1",
@@ -137,7 +135,6 @@
       "labels": {
         "template": "ruby-helloworld-sample"
       },
-      "namespace": "example",
       "port": 5434,
       "protocol": "TCP",
       "selector": {
@@ -153,7 +150,6 @@
       "labels": {
         "template": "ruby-helloworld-sample"
       },
-      "namespace": "example",
       "port": 5432,
       "protocol": "TCP",
       "selector": {

@@ -357,6 +357,8 @@ echo "deploymentConfigs: ok"
 
 osc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
 osc process -f test/templates/fixtures/guestbook.json | osc create -f -
+osc status
+[ "$(osc status | grep frontend-service)" ]
 echo "template+config: ok"
 
 openshift kube resize --replicas=2 rc guestbook
@@ -439,3 +441,9 @@ echo "ex registry: ok"
 echo "ex build-chain: ok"
 
 osc get minions,pods
+
+osadm new-project example --admin="createuser"
+osc project example
+osc create -f test/fixtures/app-scenarios
+osc status
+echo "complex-scenarios: ok"
