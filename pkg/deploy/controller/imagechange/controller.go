@@ -58,21 +58,25 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) erro
 					continue
 				}
 
-				// The container image's tag name is by convention the same as the image ID it references
-				_, _, _, containerImageID, err := imageapi.SplitDockerPullSpec(container.Image)
+				ref, err := imageapi.ParseDockerImageReference(container.Image)
 				if err != nil {
 					glog.V(4).Infof("Skipping container %s for config %s; container's image is invalid: %v", container.Name, labelFor(config), err)
 					continue
 				}
 
-				tagEvent, err := imageapi.LatestTaggedImage(*imageRepo, params.Tag)
+				latest, err := imageapi.LatestTaggedImage(*imageRepo, params.Tag)
 				if err != nil {
 					glog.V(4).Infof("Skipping container %s for config %s; %s", container.Name, labelFor(config), err)
 					continue
 				}
 
-				if tagEvent.Image != containerImageID {
-					glog.V(4).Infof("Container %s for config %s: image id changed from %q to %q; regenerating config", container.Name, labelFor(config), containerImageID, tagEvent.Image)
+				containerImageID := ref.ID
+				if len(containerImageID) == 0 {
+					// For v1 images, the container image's tag name is by convention the same as the image ID it references
+					containerImageID = ref.Tag
+				}
+				if latest.Image != containerImageID {
+					glog.V(4).Infof("Container %s for config %s: image id changed from %q to %q; regenerating config", container.Name, labelFor(config), containerImageID, latest.Image)
 					configsToGenerate = append(configsToGenerate, config)
 					firedTriggersForConfig[config.Name] = append(firedTriggersForConfig[config.Name], params)
 				}
@@ -142,11 +146,11 @@ func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, 
 				continue
 			}
 
-			tagEvent, err := imageapi.LatestTaggedImage(*imageRepo, trigger.Tag)
+			latest, err := imageapi.LatestTaggedImage(*imageRepo, trigger.Tag)
 			if err != nil {
 				return fmt.Errorf("error generating new version of deploymentConfig: %s: %s", labelFor(config), err)
 			}
-			repoName = tagEvent.DockerImageReference
+			repoName = latest.DockerImageReference
 		}
 
 		causes = append(causes,

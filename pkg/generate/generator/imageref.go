@@ -37,16 +37,13 @@ func NewImageRefGenerator() ImageRefGenerator {
 
 // FromName generates an ImageRef from a given name
 func (g *imageRefGenerator) FromName(name string) (*app.ImageRef, error) {
-	registry, namespace, name, tag, err := imageapi.SplitDockerPullSpec(name)
+	ref, err := imageapi.ParseDockerImageReference(name)
 	if err != nil {
 		return nil, err
 	}
 	return &app.ImageRef{
-		Registry:          registry,
-		Namespace:         namespace,
-		Name:              name,
-		Tag:               tag,
-		AsImageRepository: true,
+		DockerImageReference: ref,
+		AsImageRepository:    true,
 	}, nil
 }
 
@@ -121,25 +118,17 @@ func (g *imageRefGenerator) FromRepository(repo *imageapi.ImageRepository, tag s
 		// need to know the default OpenShift registry
 		return nil, fmt.Errorf("the repository does not resolve to a pullable Docker repository")
 	}
-	registry, namespace, name, repoTag, err := imageapi.SplitDockerPullSpec(pullSpec)
+	ref, err := imageapi.ParseDockerImageReference(pullSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(tag) == 0 {
-		if len(repoTag) != 0 {
-			tag = repoTag
-		} else {
-			tag = "latest"
-		}
+	if len(tag) == 0 && len(ref.Tag) == 0 {
+		ref.Tag = "latest"
 	}
 
 	return &app.ImageRef{
-		Registry:  registry,
-		Namespace: namespace,
-		Name:      name,
-		Tag:       tag,
-
-		Repository: repo,
+		DockerImageReference: ref,
+		Repository:           repo,
 	}, nil
 }

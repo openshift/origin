@@ -227,12 +227,12 @@ func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (chan
 		}
 
 		// get the image ref from the repo's tag history
-		tagEvent, err := imageapi.LatestTaggedImage(*repo, tag)
+		latest, err := imageapi.LatestTaggedImage(*repo, tag)
 		if err != nil {
 			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, err.Error()))
 			continue
 		}
-		image := tagEvent.DockerImageReference
+		image := latest.DockerImageReference
 
 		// update containers
 		names := util.NewStringSet(params.ContainerNames...)

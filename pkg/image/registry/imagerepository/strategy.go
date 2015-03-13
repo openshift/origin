@@ -72,7 +72,12 @@ func (s imageRepositoryStrategy) dockerImageRepository(repo *api.ImageRepository
 	if len(repo.Namespace) == 0 {
 		repo.Namespace = kapi.NamespaceDefault
 	}
-	return api.JoinDockerPullSpec(registry, repo.Namespace, repo.Name, "")
+	ref := api.DockerImageReference{
+		Registry:  registry,
+		Namespace: repo.Namespace,
+		Name:      repo.Name,
+	}
+	return ref.String()
 }
 
 // updateTagHistory updates repo.Status.Tags to add any new or updated tags

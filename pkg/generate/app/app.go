@@ -155,30 +155,21 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 	return &buildapi.BuildStrategy{
 		Type: buildapi.STIBuildStrategyType,
 		STIStrategy: &buildapi.STIBuildStrategy{
-			Image: s.Base.NameReference(),
+			Image: s.Base.String(),
 		},
 	}, nil
 }
 
 // ImageRef is a reference to an image
 type ImageRef struct {
-	Namespace string
-	Name      string
-	Tag       string
-	Registry  string
-
+	imageapi.DockerImageReference
 	AsImageRepository bool
 
 	Repository *imageapi.ImageRepository
 	Info       *imageapi.DockerImage
 }
 
-// pullSpec returns the string that can be passed to Docker to fetch this
-// image.
-func (r *ImageRef) pullSpec() string {
-	return imageapi.JoinDockerPullSpec(r.Registry, r.Namespace, r.Name, r.Tag)
-}
-
+/*
 // NameReference returns the name that other OpenShift objects may refer to this
 // image as.  Deployment Configs and Build Configs may look an image up
 // in an image repository before creating other objects that use the name.
@@ -191,6 +182,7 @@ func (r *ImageRef) NameReference() string {
 	}
 	return r.pullSpec()
 }
+*/
 
 func (r *ImageRef) RepoName() string {
 	name := r.Namespace
@@ -235,7 +227,7 @@ func (r *ImageRef) ImageRepository() (*imageapi.ImageRepository, error) {
 
 	name, ok := r.SuggestName()
 	if !ok {
-		return nil, fmt.Errorf("unable to suggest an image repository name for %q", r.pullSpec())
+		return nil, fmt.Errorf("unable to suggest an image repository name for %q", r.String())
 	}
 
 	repo := &imageapi.ImageRepository{
@@ -244,7 +236,7 @@ func (r *ImageRef) ImageRepository() (*imageapi.ImageRepository, error) {
 		},
 	}
 	if !r.AsImageRepository {
-		repo.DockerImageRepository = r.pullSpec()
+		repo.DockerImageRepository = r.String()
 	}
 
 	return repo, nil
@@ -253,7 +245,7 @@ func (r *ImageRef) ImageRepository() (*imageapi.ImageRepository, error) {
 func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []deployapi.DeploymentTriggerPolicy, err error) {
 	name, ok := r.SuggestName()
 	if !ok {
-		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.pullSpec())
+		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.String())
 	}
 	if r.AsImageRepository {
 		tag := r.Tag
@@ -277,7 +269,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 
 	container = &kapi.Container{
 		Name:  name,
-		Image: r.NameReference(),
+		Image: r.String(),
 	}
 
 	// If imageInfo present, append ports

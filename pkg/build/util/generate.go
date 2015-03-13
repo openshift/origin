@@ -102,11 +102,11 @@ func GenerateBuildWithImageTag(config *buildapi.BuildConfig, revision *buildapi.
 		if len(tag) == 0 {
 			tag = buildapi.DefaultImageTag
 		}
-		tagEvent, err := imageapi.LatestTaggedImage(*imageRepo, tag)
+		latest, err := imageapi.LatestTaggedImage(*imageRepo, tag)
 		if err != nil {
 			continue
 		}
-		imageRef := tagEvent.DockerImageReference
+		imageRef := latest.DockerImageReference
 		glog.V(4).Infof("Adding substitution %s with %s", icTrigger.Image, imageRef)
 		imageSubstitutions[icTrigger.Image] = imageRef
 	}
