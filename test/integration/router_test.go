@@ -83,6 +83,7 @@ func TestRouter(t *testing.T) {
 		serviceName       string
 		endpoints         []kapi.Endpoint
 		routeAlias        string
+		routePath         string
 		endpointEventType watch.EventType
 		routeEventType    watch.EventType
 		protocol          string
@@ -103,6 +104,19 @@ func TestRouter(t *testing.T) {
 			routerUrl:         "0.0.0.0",
 		},
 		{
+			name:              "non-secure-path",
+			serviceName:       "example",
+			endpoints:         []kapi.Endpoint{httpEndpoint},
+			routeAlias:        "www.example-unsecure.com",
+			routePath:         "/test",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "http",
+			expectedResponse:  tr.HelloPodPath,
+			routeTLS:          nil,
+			routerUrl:         "0.0.0.0/test",
+		},
+		{
 			name:              "edge termination",
 			serviceName:       "example-edge",
 			endpoints:         []kapi.Endpoint{httpEndpoint},
@@ -118,6 +132,24 @@ func TestRouter(t *testing.T) {
 				CACertificate: tr.ExampleCACert,
 			},
 			routerUrl: "0.0.0.0",
+		},
+		{
+			name:              "edge termination path",
+			serviceName:       "example-edge",
+			endpoints:         []kapi.Endpoint{httpEndpoint},
+			routeAlias:        "www.example.com",
+			routePath:         "/test",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "https",
+			expectedResponse:  tr.HelloPodPath,
+			routeTLS: &routeapi.TLSConfig{
+				Termination:   routeapi.TLSTerminationEdge,
+				Certificate:   tr.ExampleCert,
+				Key:           tr.ExampleKey,
+				CACertificate: tr.ExampleCACert,
+			},
+			routerUrl: "0.0.0.0/test",
 		},
 		{
 			name:              "passthrough termination",
@@ -202,6 +234,7 @@ func TestRouter(t *testing.T) {
 					APIVersion: "v1beta1",
 				},
 				Host:        tc.routeAlias,
+				Path:        tc.routePath,
 				ServiceName: tc.serviceName,
 				TLS:         tc.routeTLS,
 			},
@@ -237,6 +270,146 @@ func TestRouter(t *testing.T) {
 
 		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	}
+}
+
+// TestRouterPathSpecificity tests that the router is matching routes from most specific to least when using
+// a combination of path AND host based routes.  It also ensures that a host based route still allows path based
+// matches via the host header.
+//
+// For example, the http server simulator acts as if it has a directory structure like:
+// /var/www
+//         index.html (Hello Pod)
+//         /test
+//              index.html (Hello Pod Path)
+//
+// With just a path based route for www.example.com/test I should get Hello Pod Path for a curl to www.example.com/test
+// A curl to www.example.com should fall through to the default handlers.  In the test environment it will fall through
+// to a call to 0.0.0.0:8080 which is the master simulator
+//
+// If a host based route for www.example.com is added into the mix I should then be able to curl www.example.com and get
+// Hello Pod and still be able to curl www.example.com/test and get Hello Pod Path
+//
+// If the path based route is deleted I should still be able to curl both routes successfully using the host based path
+func TestRouterPathSpecificity(t *testing.T) {
+	fakeMasterAndPod := tr.NewTestHttpService()
+	err := fakeMasterAndPod.Start()
+	if err != nil {
+		t.Fatalf("Unable to start http server: %v", err)
+	}
+	defer fakeMasterAndPod.Stop()
+
+	validateServer(fakeMasterAndPod, t)
+
+	dockerCli, err := newDockerClient()
+	if err != nil {
+		t.Fatalf("Unable to get docker client: %v", err)
+	}
+
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr)
+	if err != nil {
+		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
+	}
+	defer cleanUp(dockerCli, routerId)
+
+	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
+
+	//create path based route
+	endpointEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &kapi.Endpoints{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "myService",
+				Namespace: "default",
+			},
+			TypeMeta: kapi.TypeMeta{
+				Kind:       "Endpoints",
+				APIVersion: "v1beta3",
+			},
+			Endpoints: []kapi.Endpoint{httpEndpoint},
+		},
+	}
+	routeEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "path",
+				Namespace: "default",
+			},
+			TypeMeta: kapi.TypeMeta{
+				Kind:       "Route",
+				APIVersion: "v1beta1",
+			},
+			Host:        "www.example.com",
+			Path:        "/test",
+			ServiceName: "myService",
+		},
+	}
+
+	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
+	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	time.Sleep(time.Second * tcWaitSeconds)
+	//ensure you can curl path but not main host
+	validateRoute("0.0.0.0/test", "www.example.com", "http", tr.HelloPodPath, t)
+	//should fall through to the default backend which is 127.0.0.1:8080 where the test server is simulating a master
+	validateRoute("0.0.0.0", "www.example.com", "http", tr.HelloMaster, t)
+
+	//create host based route
+	routeEvent = &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "host",
+				Namespace: "default",
+			},
+			TypeMeta: kapi.TypeMeta{
+				Kind:       "Route",
+				APIVersion: "v1beta1",
+			},
+			Host:        "www.example.com",
+			ServiceName: "myService",
+		},
+	}
+	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	time.Sleep(time.Second * tcWaitSeconds)
+	//ensure you can curl path and host
+	validateRoute("0.0.0.0/test", "www.example.com", "http", tr.HelloPodPath, t)
+	validateRoute("0.0.0.0", "www.example.com", "http", tr.HelloPod, t)
+
+	//delete path based route
+	routeEvent = &watch.Event{
+		Type: watch.Deleted,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "path",
+				Namespace: "default",
+			},
+			TypeMeta: kapi.TypeMeta{
+				Kind:       "Route",
+				APIVersion: "v1beta1",
+			},
+			Host:        "www.example.com",
+			Path:        "/test",
+			ServiceName: "myService",
+		},
+	}
+	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	time.Sleep(time.Second * tcWaitSeconds)
+	//ensure you can still curl path and host
+	validateRoute("0.0.0.0/test", "www.example.com", "http", tr.HelloPodPath, t)
+	validateRoute("0.0.0.0", "www.example.com", "http", tr.HelloPod, t)
+}
+
+func validateRoute(url, host, scheme, expected string, t *testing.T) {
+	resp, err := getRoute(url, host, scheme, expected)
+	if err != nil {
+		t.Fatalf("Unable to verify response: %v", err)
+	}
+	if resp != expected {
+		t.Errorf("Unexepected response, wanted: %s but got: %s", expected, resp)
 	}
 }
 
