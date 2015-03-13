@@ -11,18 +11,21 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/route"
 	"github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/route/api/validation"
 )
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
-	registry Registry
+	registry  Registry
+	allocator route.RouteAllocator
 }
 
-func NewREST(registry Registry) *REST {
+func NewREST(registry Registry, allocator route.RouteAllocator) *REST {
 	return &REST{
-		registry: registry,
+		registry:  registry,
+		allocator: allocator,
 	}
 }
 
@@ -71,6 +74,15 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
+	shard, err := rs.allocator.AllocateRouterShard(route)
+	if err != nil {
+		return nil, fmt.Errorf("allocation error: %s for route: %#v", err, obj)
+	}
+
+	if len(route.Host) == 0 {
+		route.Host = rs.allocator.GenerateHostname(route, shard)
+	}
+
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
 		return nil, errors.NewInvalid("route", route.Name, errs)
 	}
@@ -82,7 +94,7 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 
 	escapeNewLines(route.TLS)
 
-	err := rs.registry.CreateRoute(ctx, route)
+	err = rs.registry.CreateRoute(ctx, route)
 	if err != nil {
 		return nil, err
 	}
