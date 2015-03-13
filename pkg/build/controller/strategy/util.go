@@ -77,13 +77,13 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 		// Do nothing for unknown source types
 	}
 
-	registry, namespace, name, tag, err := imageapi.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference)
+	ref, err := imageapi.ParseDockerImageReference(build.Parameters.Output.DockerImageReference)
 	if err != nil {
 		return err
 	}
-	outputImage := imageapi.JoinDockerPullSpec("", namespace, name, tag)
-	vars = append(vars, kapi.EnvVar{"OUTPUT_IMAGE", outputImage})
-	vars = append(vars, kapi.EnvVar{"OUTPUT_REGISTRY", registry})
+	vars = append(vars, kapi.EnvVar{"OUTPUT_REGISTRY", ref.Registry})
+	ref.Registry = ""
+	vars = append(vars, kapi.EnvVar{"OUTPUT_IMAGE", ref.String()})
 
 	if len(pod.Spec.Containers) > 0 {
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, vars...)

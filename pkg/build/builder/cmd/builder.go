@@ -49,11 +49,11 @@ func run(builderFactory factoryFunc) {
 		output = false
 	}
 	if output {
-		registry, _, _, _, err := image.SplitDockerPullSpec(build.Parameters.Output.DockerImageReference)
+		ref, err := image.ParseDockerImageReference(build.Parameters.Output.DockerImageReference)
 		if err != nil {
 			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
 		}
-		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(registry)
+		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(ref.Registry)
 	}
 	b := builderFactory(client, endpoint, authcfg, authPresent, &build)
 	if err = b.Build(); err != nil {

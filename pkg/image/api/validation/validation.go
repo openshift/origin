@@ -18,8 +18,7 @@ func ValidateImage(image *api.Image) errors.ValidationErrorList {
 	if len(image.DockerImageReference) == 0 {
 		result = append(result, errors.NewFieldRequired("dockerImageReference", image.DockerImageReference))
 	} else {
-		_, _, _, _, err := api.SplitDockerPullSpec(image.DockerImageReference)
-		if err != nil {
+		if _, err := api.ParseDockerImageReference(image.DockerImageReference); err != nil {
 			result = append(result, errors.NewFieldInvalid("dockerImageReference", image.DockerImageReference, err.Error()))
 		}
 	}
@@ -41,8 +40,7 @@ func ValidateImageRepository(repo *api.ImageRepository) errors.ValidationErrorLi
 		result = append(result, errors.NewFieldInvalid("namespace", repo.Namespace, ""))
 	}
 	if len(repo.DockerImageRepository) != 0 {
-		_, _, _, _, err := api.SplitDockerPullSpec(repo.DockerImageRepository)
-		if err != nil {
+		if _, err := api.ParseDockerImageReference(repo.DockerImageRepository); err != nil {
 			result = append(result, errors.NewFieldInvalid("dockerImageRepository", repo.DockerImageRepository, err.Error()))
 		}
 	}
@@ -67,8 +65,7 @@ func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.
 	hasName := len(mapping.Name) != 0
 	switch {
 	case hasRepository:
-		_, _, _, _, err := api.SplitDockerPullSpec(mapping.DockerImageRepository)
-		if err != nil {
+		if _, err := api.ParseDockerImageReference(mapping.DockerImageRepository); err != nil {
 			result = append(result, errors.NewFieldInvalid("dockerImageRepository", mapping.DockerImageRepository, err.Error()))
 		}
 	case hasName:

@@ -131,6 +131,8 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 			LIRFn: func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
 				list := okImageRepoList()
 				list.Items[0].Tags["tag1"] = "ref2"
+				list.Items[0].Status.Tags["tag1"].Items[0].Image = "ref2"
+				list.Items[0].Status.Tags["tag1"].Items[0].DockerImageReference = "registry:8080/repo1@ref2"
 				return list, nil
 			},
 		},
@@ -150,7 +152,7 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 		t.Fatalf("Expected config LatestVersion=2, got %d", config.LatestVersion)
 	}
 
-	expected := "registry:8080/repo1:ref2"
+	expected := "registry:8080/repo1@ref2"
 	actual := config.Template.ControllerTemplate.Template.Spec.Containers[0].Image
 	if expected != actual {
 		t.Fatalf("Expected container image %s, got %s", expected, actual)
@@ -246,7 +248,7 @@ func TestGenerateDeploymentConfigWithFrom(t *testing.T) {
 		t.Fatalf("Expected config LatestVersion=2, got %d", config.LatestVersion)
 	}
 
-	expected := "internal/namespace/imageRepo1:ref1"
+	expected := "internal/namespace/imageRepo1@ref1"
 	actual := config.Template.ControllerTemplate.Template.Spec.Containers[0].Image
 	if expected != actual {
 		t.Fatalf("Expected container image %s, got %s", expected, actual)
@@ -264,6 +266,16 @@ func okImageRepoList() *imageapi.ImageRepositoryList {
 				},
 				Status: imageapi.ImageRepositoryStatus{
 					DockerImageRepository: "registry:8080/repo1",
+					Tags: map[string]imageapi.TagEventList{
+						"tag1": {
+							Items: []imageapi.TagEvent{
+								{
+									DockerImageReference: "registry:8080/repo1:ref1",
+									Image:                "ref1",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -367,6 +379,16 @@ func internalImageRepo() *imageapi.ImageRepositoryList {
 				},
 				Status: imageapi.ImageRepositoryStatus{
 					DockerImageRepository: "internal/namespace/imageRepo1",
+					Tags: map[string]imageapi.TagEventList{
+						"tag1": {
+							Items: []imageapi.TagEvent{
+								{
+									DockerImageReference: "internal/namespace/imageRepo1@ref1",
+									Image:                "ref1",
+								},
+							},
+						},
+					},
 				},
 			},
 		},

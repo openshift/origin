@@ -26,19 +26,19 @@ type DockerClientResolver struct {
 }
 
 func (r DockerClientResolver) Resolve(value string) (*ComponentMatch, error) {
-	registry, namespace, name, tag, err := imageapi.SplitDockerPullSpec(value)
+	ref, err := imageapi.ParseDockerImageReference(value)
 	if err != nil {
 		return nil, err
 	}
 
-	glog.V(4).Infof("checking local Docker daemon %s/%s/%s with tag %q", registry, namespace, name, tag)
+	glog.V(4).Infof("checking local Docker daemon for %q", ref.String())
 	images, err := r.Client.ListImages(docker.ListImagesOptions{})
 	if err != nil {
 		return nil, err
 	}
 	matches := ScoredComponentMatches{}
 	for _, image := range images {
-		if tags := matchTag(image, value, registry, namespace, name, tag); len(tags) > 0 {
+		if tags := matchTag(image, value, ref.Registry, ref.Namespace, ref.Name, ref.Tag); len(tags) > 0 {
 			matches = append(matches, tags...)
 		}
 	}
@@ -73,7 +73,7 @@ func (r DockerClientResolver) Resolve(value string) (*ComponentMatch, error) {
 			continue
 		}
 		updated.Score = match.Score
-		updated.ImageTag = tag
+		updated.ImageTag = ref.Tag
 		matches[i] = updated
 	}
 
@@ -123,27 +123,27 @@ type DockerRegistryResolver struct {
 }
 
 func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
-	registry, namespace, name, tag, err := imageapi.SplitDockerPullSpec(value)
+	ref, err := imageapi.ParseDockerImageReference(value)
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Infof("checking Docker registry %s/%s/%s with tag %q", registry, namespace, name, tag)
-	connection, err := r.Client.Connect(registry)
+	glog.V(4).Infof("checking Docker registry for %q", ref.String())
+	connection, err := r.Client.Connect(ref.Registry)
 	if err != nil {
 		if dockerregistry.IsRegistryNotFound(err) {
 			return nil, ErrNoMatch{value: value}
 		}
-		return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("can't connect to %q: %v", registry, err)}
+		return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("can't connect to %q: %v", ref.Registry, err)}
 	}
-	image, err := connection.ImageByTag(namespace, name, tag)
+	image, err := connection.ImageByTag(ref.Namespace, ref.Name, ref.Tag)
 	if err != nil {
 		if dockerregistry.IsNotFound(err) {
 			return nil, ErrNoMatch{value: value, qualifier: err.Error()}
 		}
-		return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("can't connect to %q: %v", registry, err)}
+		return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("can't connect to %q: %v", ref.Registry, err)}
 	}
-	if len(tag) == 0 {
-		tag = "latest"
+	if len(ref.Tag) == 0 {
+		ref.Tag = "latest"
 	}
 	glog.V(4).Infof("found image: %#v", image)
 	dockerImage := &imageapi.DockerImage{}
@@ -151,9 +151,9 @@ func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 		return nil, err
 	}
 
-	from := registry
-	if len(registry) == 0 {
-		registry = "Docker Hub"
+	from := ref.Registry
+	if len(ref.Registry) == 0 {
+		ref.Registry = "Docker Hub"
 	}
 	return &ComponentMatch{
 		Value:       value,
@@ -163,7 +163,7 @@ func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 		Builder:     IsBuilderImage(dockerImage),
 		Score:       0,
 		Image:       dockerImage,
-		ImageTag:    tag,
+		ImageTag:    ref.Tag,
 	}, nil
 }
 
@@ -215,24 +215,24 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 			})
 			continue
 		}
-		iRegistry, iNamespace, iName, iTag, err := imageapi.SplitDockerPullSpec(s)
+		iRef, err := imageapi.ParseDockerImageReference(s)
 		if err != nil {
 			continue
 		}
-		if len(iTag) == 0 {
-			iTag = "latest"
+		if len(iRef.Tag) == 0 {
+			iRef.Tag = "latest"
 		}
 		match := &ComponentMatch{}
-		ok, score := partialScorer(name, iName, true, 0.5, 1.0)
+		ok, score := partialScorer(name, iRef.Name, true, 0.5, 1.0)
 		if !ok {
 			continue
 		}
 		match.Score += score
-		_, score = partialScorer(namespace, iNamespace, false, 0.5, 1.0)
+		_, score = partialScorer(namespace, iRef.Namespace, false, 0.5, 1.0)
 		match.Score += score
-		_, score = partialScorer(registry, iRegistry, false, 0.5, 1.0)
+		_, score = partialScorer(registry, iRef.Registry, false, 0.5, 1.0)
 		match.Score += score
-		_, score = partialScorer(tag, iTag, false, 0.5, 1.0)
+		_, score = partialScorer(tag, iRef.Tag, false, 0.5, 1.0)
 		match.Score += score
 
 		if match.Score >= 4.0 {
@@ -247,55 +247,52 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 }
 
 type ImageStreamResolver struct {
-	Client     client.ImageRepositoriesNamespacer
-	Images     client.ImagesInterfacer
-	Namespaces []string
+	Client            client.ImageRepositoriesNamespacer
+	ImageStreamImages client.ImageStreamImagesNamespacer
+	Namespaces        []string
 }
 
 func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
-	registry, namespace, name, tag, err := imageapi.SplitOpenShiftPullSpec(value)
-	if err != nil || len(registry) != 0 {
-		return nil, fmt.Errorf("image repositories must be of the form [<namespace>/]<name>[:<tag>]")
+	ref, err := imageapi.ParseDockerImageReference(value)
+	if err != nil || len(ref.Registry) != 0 {
+		return nil, fmt.Errorf("image repositories must be of the form [<namespace>/]<name>[:<tag>|@<digest>]")
 	}
 	namespaces := r.Namespaces
-	if len(namespace) != 0 {
-		namespaces = []string{namespace}
+	if len(ref.Namespace) != 0 {
+		namespaces = []string{ref.Namespace}
 	}
 	for _, namespace := range namespaces {
-		glog.V(4).Infof("checking image stream %s/%s with tag %q", namespace, name, tag)
-		repo, err := r.Client.ImageRepositories(namespace).Get(name)
+		glog.V(4).Infof("checking image stream %s/%s with ref %q", namespace, ref.Name, ref.Tag)
+		repo, err := r.Client.ImageRepositories(namespace).Get(ref.Name)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
 			}
 			return nil, err
 		}
-		searchTag := tag
+		searchTag := ref.Tag
 		// TODO: move to a lookup function on repo, or better yet, have the repo.Status.Tags field automatically infer latest
 		if len(searchTag) == 0 {
 			searchTag = "latest"
 		}
-		id, ok := repo.Tags[searchTag]
-		if !ok {
-			if len(tag) == 0 {
-				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("the default tag %q has not been set", searchTag)}
-			}
-			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q has not been set", tag)}
+		latest, err := imageapi.LatestTaggedImage(*repo, searchTag)
+		if err != nil {
+			return nil, ErrNoMatch{value: value, qualifier: err.Error()}
 		}
-		imageData, err := r.Images.Images().Get(id)
+		imageData, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", tag, id)}
+				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", ref.Tag, latest.Image)}
 			}
 			return nil, err
 		}
 
-		spec := imageapi.JoinDockerPullSpec("", namespace, name, tag)
+		ref.Registry = ""
 		return &ComponentMatch{
-			Value:       spec,
-			Argument:    fmt.Sprintf("--image=%q", spec),
-			Name:        name,
-			Description: fmt.Sprintf("Image stream %s (tag %q) in namespace %s, tracks %q", name, searchTag, namespace, repo.Status.DockerImageRepository),
+			Value:       ref.String(),
+			Argument:    fmt.Sprintf("--image=%q", ref.String()),
+			Name:        ref.Name,
+			Description: fmt.Sprintf("Image stream %s (tag %q) in namespace %s, tracks %q", ref.Name, searchTag, ref.Namespace, repo.Status.DockerImageRepository),
 			Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
 			Score:       0,
 

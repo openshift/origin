@@ -73,12 +73,25 @@ func appendTrigger(buildcfg *buildapi.BuildConfig, triggerImage, repoName, repoT
 }
 
 func mockImageRepo(repoName, dockerImageRepo string, tags map[string]string) *imageapi.ImageRepository {
+	tagHistory := make(map[string]imageapi.TagEventList)
+	for tag, imageID := range tags {
+		tagHistory[tag] = imageapi.TagEventList{
+			Items: []imageapi.TagEvent{
+				{
+					Image:                imageID,
+					DockerImageReference: fmt.Sprintf("%s:%s", dockerImageRepo, imageID),
+				},
+			},
+		}
+	}
+
 	return &imageapi.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: repoName,
 		},
 		Status: imageapi.ImageRepositoryStatus{
 			DockerImageRepository: dockerImageRepo,
+			Tags: tagHistory,
 		},
 		Tags: tags,
 	}
@@ -105,7 +118,7 @@ func TestNewImageID(t *testing.T) {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
 	if buildCreator.build == nil {
-		t.Error("Expected new build when new image was created!")
+		t.Fatal("Expected new build when new image was created!")
 	}
 	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
 		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
@@ -131,7 +144,7 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
 	if buildCreator.build == nil {
-		t.Error("Expected new build when new image was created!")
+		t.Fatal("Expected new build when new image was created!")
 	}
 	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
 		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
@@ -241,7 +254,7 @@ func TestMultipleTriggers(t *testing.T) {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
 	if buildCreator.build == nil {
-		t.Error("Expected new build when new image was created!")
+		t.Fatal("Expected new build when new image was created!")
 	}
 	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename1" {
 		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename1", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
@@ -315,7 +328,7 @@ func TestBuildCreateError(t *testing.T) {
 		t.Error("Expected retryable error from HandleImageRepo")
 	}
 	if buildCreator.build == nil {
-		t.Error("Expected new build when new image was created!")
+		t.Fatal("Expected new build when new image was created!")
 	}
 	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
 		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
@@ -339,7 +352,7 @@ func TestBuildUpdateError(t *testing.T) {
 		t.Error("Expected fatal error from HandleImageRepo")
 	}
 	if buildCreator.build == nil {
-		t.Error("Expected new build when new image was created!")
+		t.Fatal("Expected new build when new image was created!")
 	}
 	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
 		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)

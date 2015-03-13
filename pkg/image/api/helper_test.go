@@ -10,20 +10,42 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-func TestSplitDockerPullSpec(t *testing.T) {
+func TestParseDockerImageReference(t *testing.T) {
 	testCases := []struct {
-		From                           string
-		Registry, Namespace, Name, Tag string
-		Err                            bool
+		From                               string
+		Registry, Namespace, Name, Tag, ID string
+		Err                                bool
 	}{
 		{
 			From: "foo",
 			Name: "foo",
 		},
 		{
+			From: "foo:tag",
+			Name: "foo",
+			Tag:  "tag",
+		},
+		{
+			From: "foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Name: "foo",
+			ID:   "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
 			From:      "bar/foo",
 			Namespace: "bar",
 			Name:      "foo",
+		},
+		{
+			From:      "bar/foo:tag",
+			Namespace: "bar",
+			Name:      "foo",
+			Tag:       "tag",
+		},
+		{
+			From:      "bar/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Namespace: "bar",
+			Name:      "foo",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			From:      "bar/foo/baz",
@@ -39,11 +61,31 @@ func TestSplitDockerPullSpec(t *testing.T) {
 			Tag:       "tag",
 		},
 		{
+			From:      "bar/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			From:      "bar:5000/foo/baz",
+			Registry:  "bar:5000",
+			Namespace: "foo",
+			Name:      "baz",
+		},
+		{
 			From:      "bar:5000/foo/baz:tag",
 			Registry:  "bar:5000",
 			Namespace: "foo",
 			Name:      "baz",
 			Tag:       "tag",
+		},
+		{
+			From:      "bar:5000/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Registry:  "bar:5000",
+			Namespace: "foo",
+			Name:      "baz",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			From: "bar/foo/baz/biz",
@@ -56,7 +98,7 @@ func TestSplitDockerPullSpec(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		r, ns, n, tag, err := SplitDockerPullSpec(testCase.From)
+		ref, err := ParseDockerImageReference(testCase.From)
 		switch {
 		case err != nil && !testCase.Err:
 			t.Errorf("%s: unexpected error: %v", testCase.From, err)
@@ -65,8 +107,113 @@ func TestSplitDockerPullSpec(t *testing.T) {
 			t.Errorf("%s: unexpected non-error", testCase.From)
 			continue
 		}
-		if r != testCase.Registry || ns != testCase.Namespace || n != testCase.Name || tag != testCase.Tag {
-			t.Errorf("%s: unexpected result: %q %q %q %q", testCase.From, r, ns, n, tag)
+		if e, a := testCase.Registry, ref.Registry; e != a {
+			t.Errorf("%s: registry: expected %q, got %q", testCase.From, e, a)
+		}
+		if e, a := testCase.Namespace, ref.Namespace; e != a {
+			t.Errorf("%s: namespace: expected %q, got %q", testCase.From, e, a)
+		}
+		if e, a := testCase.Name, ref.Name; e != a {
+			t.Errorf("%s: name: expected %q, got %q", testCase.From, e, a)
+		}
+		if e, a := testCase.Tag, ref.Tag; e != a {
+			t.Errorf("%s: tag: expected %q, got %q", testCase.From, e, a)
+		}
+		if e, a := testCase.ID, ref.ID; e != a {
+			t.Errorf("%s: id: expected %q, got %q", testCase.From, e, a)
+		}
+	}
+}
+
+func TestDockerImageReferenceString(t *testing.T) {
+	testCases := []struct {
+		Registry, Namespace, Name, Tag, ID string
+		Expected                           string
+	}{
+		{
+			Name:     "foo",
+			Expected: "library/foo",
+		},
+		{
+			Name:     "foo",
+			Tag:      "tag",
+			Expected: "library/foo:tag",
+		},
+		{
+			Name:     "foo",
+			ID:       "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected: "library/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			Expected:  "bar/foo",
+		},
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			Tag:       "tag",
+			Expected:  "bar/foo:tag",
+		},
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "bar/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			Expected:  "bar/foo/baz",
+		},
+		{
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			Tag:       "tag",
+			Expected:  "bar/foo/baz:tag",
+		},
+		{
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "bar/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Registry:  "bar:5000",
+			Namespace: "foo",
+			Name:      "baz",
+			Expected:  "bar:5000/foo/baz",
+		},
+		{
+			Registry:  "bar:5000",
+			Namespace: "foo",
+			Name:      "baz",
+			Tag:       "tag",
+			Expected:  "bar:5000/foo/baz:tag",
+		},
+		{
+			Registry:  "bar:5000",
+			Namespace: "foo",
+			Name:      "baz",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "bar:5000/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+	}
+
+	for i, testCase := range testCases {
+		ref := DockerImageReference{
+			Registry:  testCase.Registry,
+			Namespace: testCase.Namespace,
+			Name:      testCase.Name,
+			Tag:       testCase.Tag,
+			ID:        testCase.ID,
+		}
+		actual := ref.String()
+		if e, a := testCase.Expected, actual; e != a {
+			t.Errorf("%d: expected %q, got %q", i, e, a)
 		}
 	}
 }

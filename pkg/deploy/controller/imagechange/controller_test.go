@@ -1,6 +1,7 @@
 package imagechange
 
 import (
+	"fmt"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -132,25 +133,50 @@ func TestHande_matchScenarios(t *testing.T) {
 		},
 	}
 
+	tagHistoryFor := func(repo, tag, value string) map[string]imageapi.TagEventList {
+		return map[string]imageapi.TagEventList{
+			tag: {
+				Items: []imageapi.TagEvent{
+					{
+						DockerImageReference: fmt.Sprintf("%s:%s", repo, value),
+						Image:                value,
+					},
+				},
+			},
+		}
+	}
+
 	updates := map[string]*imageapi.ImageRepository{
 		"repo.1": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
-			Status:     imageapi.ImageRepositoryStatus{DockerImageRepository: "registry:8080/openshift/test-image"},
-			Tags:       map[string]string{"test-tag": "ref-2"},
+			Status: imageapi.ImageRepositoryStatus{
+				DockerImageRepository: "registry:8080/openshift/test-image",
+				Tags: tagHistoryFor("registry:8080/openshift/test-image", "test-tag", "ref-2"),
+			},
+			Tags: map[string]string{"test-tag": "ref-2"},
 		},
 		"repo.2": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoB", Namespace: kapi.NamespaceDefault},
-			Status:     imageapi.ImageRepositoryStatus{DockerImageRepository: "registry:8080/openshift/test-image"},
-			Tags:       map[string]string{"test-tag": "ref-3"},
+			Status: imageapi.ImageRepositoryStatus{
+				DockerImageRepository: "registry:8080/openshift/test-image",
+				Tags: tagHistoryFor("registry:8080/openshift/test-image", "test-tag", "ref-3"),
+			},
+			Tags: map[string]string{"test-tag": "ref-3"},
 		},
 		"repo.3": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoC", Namespace: kapi.NamespaceDefault},
-			Status:     imageapi.ImageRepositoryStatus{DockerImageRepository: "registry:8080/openshift/test-image-B"},
-			Tags:       map[string]string{"test-tag": "ref-2"},
+			Status: imageapi.ImageRepositoryStatus{
+				DockerImageRepository: "registry:8080/openshift/test-image-B",
+				Tags: tagHistoryFor("registry:8080/openshift/test-image-B", "test-tag", "ref-2"),
+			},
+			Tags: map[string]string{"test-tag": "ref-2"},
 		},
 		"repo.4": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
-			Tags:       map[string]string{"test-tag": "ref-2"},
+			Status: imageapi.ImageRepositoryStatus{
+				Tags: tagHistoryFor("default/repoA", "test-tag", "ref-2"),
+			},
+			Tags: map[string]string{"test-tag": "ref-2"},
 		},
 	}
 

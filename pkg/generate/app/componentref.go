@@ -41,8 +41,8 @@ func componentWithSource(s string) (component, repo string, builder bool, err er
 		component = s
 	}
 	// TODO: component must be of the form compatible with a pull spec *or* <namespace>/<name>
-	if !imageapi.IsPullSpec(component) {
-		return "", "", false, fmt.Errorf("%q is not a valid Docker pull specification", component)
+	if _, err := imageapi.ParseDockerImageReference(component); err != nil {
+		return "", "", false, fmt.Errorf("%q is not a valid Docker pull specification: %s", component, err)
 	}
 	return
 }

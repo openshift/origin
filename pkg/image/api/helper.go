@@ -4,70 +4,104 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/fsouza/go-dockerclient"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
 const DockerDefaultNamespace = "library"
 
-// SplitDockerPullSpec breaks a Docker pull specification into its components, or returns
-// an error if those components are not valid. Attempts to match as closely as possible the
-// Docker spec up to 1.3. Future API revisions may change the pull syntax.
-func SplitDockerPullSpec(spec string) (registry, namespace, name, tag string, err error) {
-	registry, namespace, name, tag, err = SplitOpenShiftPullSpec(spec)
-	if err != nil {
-		return
-	}
-	return
+// DockerImageReference points to a Docker image.
+type DockerImageReference struct {
+	Registry  string
+	Namespace string
+	Name      string
+	Tag       string
+	ID        string
 }
 
-// SplitOpenShiftPullSpec breaks an OpenShift pull specification into its components, or returns
-// an error if those components are not valid. Attempts to match as closely as possible the
-// Docker spec up to 1.3. Future API revisions may change the pull syntax.
-func SplitOpenShiftPullSpec(spec string) (registry, namespace, name, tag string, err error) {
-	spec, tag = docker.ParseRepositoryTag(spec)
-	arr := strings.Split(spec, "/")
-	switch len(arr) {
+// COPIED from upstream
+// TODO remove
+func parseRepositoryTag(repos string) (string, string) {
+	n := strings.Index(repos, "@")
+	if n >= 0 {
+		parts := strings.Split(repos, "@")
+		return parts[0], parts[1]
+	}
+	n = strings.LastIndex(repos, ":")
+	if n < 0 {
+		return repos, ""
+	}
+	if tag := repos[n+1:]; !strings.Contains(tag, "/") {
+		return repos[:n], tag
+	}
+	return repos, ""
+}
+
+// ParseDockerImageReference parses a Docker pull spec string into a
+// DockerImageReference.
+func ParseDockerImageReference(spec string) (DockerImageReference, error) {
+	var (
+		ref     DockerImageReference
+		tag, id string
+	)
+	// TODO replace with docker version once docker/docker PR11109 is merged upstream
+	repo, tagOrID := parseRepositoryTag(spec)
+	if strings.Contains(tagOrID, ":") {
+		id = tagOrID
+	} else {
+		tag = tagOrID
+	}
+
+	repoParts := strings.Split(repo, "/")
+	switch len(repoParts) {
 	case 2:
-		return "", arr[0], arr[1], tag, nil
+		// namespace/name
+		ref.Namespace = repoParts[0]
+		ref.Name = repoParts[1]
+		ref.Tag = tag
+		ref.ID = id
+		return ref, nil
 	case 3:
-		return arr[0], arr[1], arr[2], tag, nil
+		// registry/namespace/name
+		ref.Registry = repoParts[0]
+		ref.Namespace = repoParts[1]
+		ref.Name = repoParts[2]
+		ref.Tag = tag
+		ref.ID = id
+		return ref, nil
 	case 1:
-		if len(arr[0]) == 0 {
-			err = fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
-			return
+		// name
+		if len(repoParts[0]) == 0 {
+			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 		}
-		return "", "", arr[0], tag, nil
+		ref.Name = repoParts[0]
+		ref.Tag = tag
+		ref.ID = id
+		return ref, nil
 	default:
-		err = fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
-		return
+		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 	}
 }
 
-// IsPullSpec returns true if the provided string appears to be a valid Docker pull spec.
-func IsPullSpec(spec string) bool {
-	_, _, _, _, err := SplitDockerPullSpec(spec)
-	return err == nil
-}
+// String converts a DockerImageReference to a Docker pull spec.
+func (r DockerImageReference) String() string {
+	registry := r.Registry
+	if len(registry) > 0 {
+		registry += "/"
+	}
 
-// JoinDockerPullSpec turns a set of components of a Docker pull specification into a single
-// string. Attempts to match as closely as possible the Docker spec up to 1.3. Future API
-// revisions may change the pull syntax.
-func JoinDockerPullSpec(registry, namespace, name, tag string) string {
-	if len(tag) != 0 {
-		tag = ":" + tag
+	if len(r.Namespace) == 0 {
+		r.Namespace = DockerDefaultNamespace
 	}
-	if len(namespace) == 0 {
-		if len(registry) == 0 {
-			return fmt.Sprintf("%s%s", name, tag)
-		}
-		namespace = DockerDefaultNamespace
+	r.Namespace += "/"
+
+	var ref string
+	if len(r.Tag) > 0 {
+		ref = ":" + r.Tag
+	} else if len(r.ID) > 0 {
+		ref = "@" + r.ID
 	}
-	if len(registry) == 0 {
-		return fmt.Sprintf("%s/%s%s", namespace, name, tag)
-	}
-	return fmt.Sprintf("%s/%s/%s%s", registry, namespace, name, tag)
+
+	return fmt.Sprintf("%s%s%s%s", registry, r.Namespace, r.Name, ref)
 }
 
 // ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
@@ -109,4 +143,23 @@ func ImageWithMetadata(image Image) (*Image, error) {
 	image.DockerImageMetadata.Size = v1Metadata.Size
 
 	return &image, nil
+}
+
+// LatestTaggedImage returns the most recent TagEvent for the specified image
+// repository and tag.
+func LatestTaggedImage(repo ImageRepository, tag string) (*TagEvent, error) {
+	if _, ok := repo.Tags[tag]; !ok {
+		return nil, fmt.Errorf("image repository %s/%s: tag %q not found", repo.Namespace, repo.Name, tag)
+	}
+
+	tagHistory, ok := repo.Status.Tags[tag]
+	if !ok {
+		return nil, fmt.Errorf("image repository %s/%s: tag %q not found in tag history", repo.Namespace, repo.Name, tag)
+	}
+
+	if len(tagHistory.Items) == 0 {
+		return nil, fmt.Errorf("image repository %s/%s: tag %q has 0 history items", repo.Namespace, repo.Name, tag)
+	}
+
+	return &tagHistory.Items[0], nil
 }

@@ -126,7 +126,7 @@ func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
 	}
 
 	if len(output.DockerImageReference) != 0 {
-		if _, _, _, _, err := imageapi.SplitDockerPullSpec(output.DockerImageReference); err != nil {
+		if _, err := imageapi.ParseDockerImageReference(output.DockerImageReference); err != nil {
 			allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
 		}
 	}

@@ -102,12 +102,13 @@ func GenerateBuildWithImageTag(config *buildapi.BuildConfig, revision *buildapi.
 		if len(tag) == 0 {
 			tag = buildapi.DefaultImageTag
 		}
-		imageID, hasTag := imageRepo.Tags[tag]
-		if !hasTag {
+		latest, err := imageapi.LatestTaggedImage(*imageRepo, tag)
+		if err != nil {
 			continue
 		}
-		glog.V(4).Infof("Adding substitution %s with %s:%s", icTrigger.Image, imageRepo.Status.DockerImageRepository, imageID)
-		imageSubstitutions[icTrigger.Image] = imageRepo.Status.DockerImageRepository + ":" + imageID
+		imageRef := latest.DockerImageReference
+		glog.V(4).Infof("Adding substitution %s with %s", icTrigger.Image, imageRef)
+		imageSubstitutions[icTrigger.Image] = imageRef
 	}
 	glog.V(4).Infof("Generating build from config for build config %s", config.Name)
 	build := GenerateBuildFromConfig(config, revision, imageSubstitutions)
