@@ -652,6 +652,11 @@
             "Rev": "7f07925444bb51fa4cf9dfe6f7661876f8852275"
         },
         {
+            "ImportPath": "github.com/gonum/graph",
+            "Comment": "v0.1-11-gf6ac2b0",
+            "Rev": "f6ac2b0f80f5a28ee70af78ce415393b37bcd6c1"
+        },
+        {
             "ImportPath": "github.com/google/cadvisor/api",
             "Comment": "0.10.1-106-gfd9f7e0",
             "Rev": "fd9f7e0e820c7916e052e2180ee51e5ef8ad6614"

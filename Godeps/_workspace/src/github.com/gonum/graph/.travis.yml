@@ -1,0 +1,34 @@
+sudo: false
+
+language: go
+
+go:
+ - 1.3.3
+ - 1.4.2
+ - tip
+
+env:
+  global:
+  - secure: "DFMafUo/eJVHYw6k2pHzu/zVTE0d0Aeec+YeaFnw2QlP+mr7jIpj7hYwBMeYm7ZromVRvF6cAW4R1za6NeugzHEEIll5cnWwLyGXWMq25hd7xOd+vq9qzY00OEKecHQgXpDx6RZkMvQEkHcuiWxueCe0BH41gtA8iVQ9TXjNbgQ="
+
+before_install:
+ - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+ - go get github.com/mattn/goveralls
+
+script:
+ - go get -d -t -v ./...
+ - go build -x -v ./...
+ - go test -x -v ./...
+ - diff <(gofmt -d .) <("")
+ - if [[ $TRAVIS_SECURE_ENV_VARS = "true" ]]; then bash test-coverage.sh; fi
+
+after_failure: failure
+
+notifications:
+  email:
+    recipients:
+      - jonathan.lawlor@gmail.com
+      - jragonmiris@gmail.com
+    on_success: change
+    on_failure: always
+
