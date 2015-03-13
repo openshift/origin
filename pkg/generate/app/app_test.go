@@ -199,6 +199,35 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 	}
 }
 
+func TestSourceRefBuildSourceURI(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "URL without hash",
+			input:    "https://github.com/openshift/ruby-hello-world.git",
+			expected: "https://github.com/openshift/ruby-hello-world.git",
+		},
+		{
+			name:     "URL with hash",
+			input:    "https://github.com/openshift/ruby-hello-world.git#testref",
+			expected: "https://github.com/openshift/ruby-hello-world.git",
+		},
+	}
+	for _, tst := range tests {
+		u, _ := url.Parse(tst.input)
+		s := SourceRef{
+			URL: u,
+		}
+		buildSource, _ := s.BuildSource()
+		if buildSource.Git.URI != tst.expected {
+			t.Errorf("%s: unexpected build source URI: %s. Expected: %s", tst.name, buildSource.Git.URI, tst.expected)
+		}
+	}
+}
+
 func ExampleGenerateSimpleDockerApp() {
 	// TODO: determine if the repo is secured prior to fetching
 	// TODO: determine whether we want to clone this repo, or use it directly. Using it directly would require setting hooks
