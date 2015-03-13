@@ -82,6 +82,20 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	}
 }
 
+// DockerClientDefaults sets the default values used by the Docker client.
+func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
+	if len(r.Namespace) == 0 {
+		r.Namespace = "library"
+	}
+	if len(r.Registry) == 0 {
+		r.Registry = "index.docker.io"
+	}
+	if len(r.Tag) == 0 {
+		r.Tag = "latest"
+	}
+	return r
+}
+
 // String converts a DockerImageReference to a Docker pull spec.
 func (r DockerImageReference) String() string {
 	registry := r.Registry

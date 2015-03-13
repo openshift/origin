@@ -37,18 +37,18 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 		return nil
 	}
 
-	registry, namespace, name, _, err := api.SplitDockerPullSpec(name)
+	ref, err := api.ParseDockerImageReference(name)
 	if err != nil {
 		err = fmt.Errorf("invalid docker image repository, cannot import data: %v", err)
 		util.HandleError(err)
 		return c.done(repo, err.Error())
 	}
 
-	conn, err := c.client.Connect(registry)
+	conn, err := c.client.Connect(ref.Registry)
 	if err != nil {
 		return err
 	}
-	tags, err := conn.ImageTags(namespace, name)
+	tags, err := conn.ImageTags(ref.Namespace, ref.Name)
 	switch {
 	case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err):
 		return c.done(repo, err.Error())
@@ -61,8 +61,8 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 	switch {
 	case len(repo.Tags) == 0:
 		// copy all tags
-		for tag, _ := range tags {
-			// TODO: once pull by image is implemented, use tag = imageid
+		for tag := range tags {
+			// TODO: switch to image when pull by ID is automatic
 			newTags[tag] = tag
 		}
 		for tag, image := range tags {
@@ -80,7 +80,7 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 				continue
 			}
 			imageToTag[image] = append(imageToTag[image], tag)
-			// TODO: once pull by image is implemented, use tag = imageid
+			// TODO: switch to image when pull by ID is automatic
 			newTags[tag] = tag
 		}
 	}
@@ -94,7 +94,7 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 	}
 
 	for id, tags := range imageToTag {
-		dockerImage, err := conn.ImageByID(namespace, name, id)
+		dockerImage, err := conn.ImageByID(ref.Namespace, ref.Name, id)
 		switch {
 		case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err):
 			return c.done(repo, err.Error())
@@ -112,14 +112,31 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 			util.HandleError(err)
 			return c.done(repo, err.Error())
 		}
+
+		// if there is a tag for the image by its id (tag=tag), we can pull by id
+		tag := tags[0]
+		if hasTag(tags, id) {
+			tag = id
+		}
+		pullRef := api.DockerImageReference{
+			Registry:  ref.Registry,
+			Namespace: ref.Namespace,
+			Name:      ref.Name,
+			Tag:       tag,
+		}
+
 		mapping := &api.ImageRepositoryMapping{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      repo.Name,
 				Namespace: repo.Namespace,
 			},
-			Tag: tags[0],
+			Tag: tag,
 			Image: api.Image{
-				DockerImageMetadata: image,
+				ObjectMeta: kapi.ObjectMeta{
+					Name: id,
+				},
+				DockerImageReference: pullRef.String(),
+				DockerImageMetadata:  image,
 			},
 		}
 		if err := c.mappings.ImageRepositoryMappings(repo.Namespace).Create(mapping); err != nil {
@@ -144,4 +161,13 @@ func (c *ImportController) done(repo *api.ImageRepository, reason string) error 
 		return err
 	}
 	return nil
+}
+
+func hasTag(tags []string, tag string) bool {
+	for _, s := range tags {
+		if s == tag {
+			return true
+		}
+	}
+	return false
 }

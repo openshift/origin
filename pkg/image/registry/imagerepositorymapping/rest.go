@@ -74,10 +74,21 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	image := mapping.Image
 
+	pullTag := mapping.Tag
+	// TODO: default tag value to "latest" or the tag latest points to
+	if len(image.DockerImageReference) > 0 {
+		if ref, err := api.ParseDockerImageReference(image.DockerImageReference); err == nil {
+			// TODO: use a canonical comparison (latest -> latest)
+			if ref.Name == repo.Name && ref.Tag != mapping.Tag {
+				pullTag = ref.Tag
+			}
+		}
+	}
+
 	if repo.Tags == nil {
 		repo.Tags = make(map[string]string)
 	}
-	repo.Tags[mapping.Tag] = image.Name
+	repo.Tags[mapping.Tag] = pullTag
 
 	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
 		return nil, err
