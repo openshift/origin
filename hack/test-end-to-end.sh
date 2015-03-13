@@ -62,7 +62,7 @@ KUBELET_PORT="${KUBELET_PORT:-10250}"
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
-# Used by the docker-registry and the router pods to call back to the API
+# used as a resolve IP to test routing
 CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 
 STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"

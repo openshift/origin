@@ -250,9 +250,7 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	// 172.17.42.1 enables the router to call back out to the master
-	// TODO: Remove 172.17.42.1 once we can figure out how to validate the master's cert from inside a pod, or tell pods the real IP for the master
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "172.17.42.1", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
+	allHostnames := util.NewStringSet("localhost", "127.0.0.1", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
 	certHostnames := util.StringSet{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {
