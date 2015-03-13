@@ -67,11 +67,12 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 	}
 
 	return &controller.RetryController{
-		Queue:        podQueue,
-		RetryManager: controller.NewQueueRetryManager(podQueue, cache.MetaNamespaceKeyFunc, 1),
-		ShouldRetry: func(obj interface{}, err error) bool {
-			return true
-		},
+		Queue: podQueue,
+		RetryManager: controller.NewQueueRetryManager(
+			podQueue,
+			cache.MetaNamespaceKeyFunc,
+			func(obj interface{}, err error, count int) bool { return count < 1 },
+		),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
 			return podController.Handle(pod)
