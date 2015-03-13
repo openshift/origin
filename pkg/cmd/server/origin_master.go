@@ -18,6 +18,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
@@ -88,10 +89,16 @@ func (cfg Config) BuildOriginMasterConfig() (*origin.MasterConfig, error) {
 		return nil, err
 	}
 
+	dnsAddr := cfg.DNSBindAddr
+	if !cmdutil.TryListen(dnsAddr.URL.Host) {
+		dnsAddr.DefaultPort = 8053
+		dnsAddr = dnsAddr.Default()
+	}
+
 	openshiftConfigParameters := origin.MasterConfigParameters{
 		MasterBindAddr:       cfg.BindAddr.URL.Host,
 		AssetBindAddr:        cfg.GetAssetBindAddress(),
-		DNSBindAddr:          cfg.DNSBindAddr.URL.Host,
+		DNSBindAddr:          dnsAddr.URL.Host,
 		MasterAddr:           masterAddr.String(),
 		KubernetesAddr:       kubeAddr.String(),
 		MasterPublicAddr:     masterPublicAddr.String(),
