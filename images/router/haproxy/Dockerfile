@@ -5,7 +5,7 @@
 #
 FROM openshift3_beta/ose-haproxy-router-base
 
-RUN yum -y install openshift
+RUN yum -y install openshift && yum clean all
 
 ADD conf/ /var/lib/haproxy/conf/
 ADD reload-haproxy /var/lib/haproxy/reload-haproxy
