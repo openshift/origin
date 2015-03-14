@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,12 +12,13 @@ import (
 )
 
 func TestDNS(t *testing.T) {
-	cfg, err := StartTestAllInOne()
+	_, err := StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	port := cfg.DNSBindAddr.Port
-	server := fmt.Sprintf("127.0.0.1:%d", port)
+
+	// ugly...
+	server := "127.0.0.1:8053"
 
 	// verify service DNS entry is visible
 	stop := make(chan struct{})

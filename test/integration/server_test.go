@@ -28,6 +28,8 @@ func StartTestServer(args ...string) (start.Config, error) {
 	deleteAllEtcdKeys()
 
 	startConfig := start.NewDefaultConfig()
+	startConfig.DNSBindAddr.DefaultPort = 8053
+	startConfig.DNSBindAddr = startConfig.DNSBindAddr.Default()
 
 	basedir := path.Join(os.TempDir(), "openshift-integration-tests")
 
