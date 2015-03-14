@@ -102,7 +102,7 @@ func GenerateBuildWithImageTag(config *buildapi.BuildConfig, revision *buildapi.
 		if len(tag) == 0 {
 			tag = buildapi.DefaultImageTag
 		}
-		latest, err := imageapi.LatestTaggedImage(*imageRepo, tag)
+		latest, err := imageapi.LatestTaggedImage(imageRepo, tag)
 		if err != nil {
 			continue
 		}

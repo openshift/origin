@@ -132,11 +132,11 @@ func TestControllerRepoTagsAlreadySet(t *testing.T) {
 		ObjectMeta:            kapi.ObjectMeta{Name: "test", Namespace: "other"},
 		DockerImageRepository: "foo/bar",
 		Tags: map[string]string{
-			"test": "value",
+			"test": "",
 		},
 	}
 	if err := c.Next(&repo); err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(repo.Annotations["openshift.io/image.dockerRepositoryCheck"]) == 0 {
 		t.Errorf("did not set annotation: %#v", repo)

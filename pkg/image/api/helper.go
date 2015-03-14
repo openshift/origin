@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
@@ -18,38 +20,31 @@ type DockerImageReference struct {
 	ID        string
 }
 
-// COPIED from upstream
-// TODO remove
-func parseRepositoryTag(repos string) (string, string) {
+// TODO remove (base, tag, id)
+func parseRepositoryTag(repos string) (string, string, string) {
 	n := strings.Index(repos, "@")
 	if n >= 0 {
 		parts := strings.Split(repos, "@")
-		return parts[0], parts[1]
+		return parts[0], "", parts[1]
 	}
 	n = strings.LastIndex(repos, ":")
 	if n < 0 {
-		return repos, ""
+		return repos, "", ""
 	}
 	if tag := repos[n+1:]; !strings.Contains(tag, "/") {
-		return repos[:n], tag
+		return repos[:n], tag, ""
 	}
-	return repos, ""
+	return repos, "", ""
 }
 
 // ParseDockerImageReference parses a Docker pull spec string into a
 // DockerImageReference.
 func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	var (
-		ref     DockerImageReference
-		tag, id string
+		ref DockerImageReference
 	)
 	// TODO replace with docker version once docker/docker PR11109 is merged upstream
-	repo, tagOrID := parseRepositoryTag(spec)
-	if strings.Contains(tagOrID, ":") {
-		id = tagOrID
-	} else {
-		tag = tagOrID
-	}
+	repo, tag, id := parseRepositoryTag(spec)
 
 	repoParts := strings.Split(repo, "/")
 	switch len(repoParts) {
@@ -159,21 +154,108 @@ func ImageWithMetadata(image Image) (*Image, error) {
 	return &image, nil
 }
 
+func TagValueToTagEvent(repo *ImageRepository, value string) (*TagEvent, error) {
+	if strings.Contains(value, "@") {
+		segs := strings.SplitN(value, "@", 2)
+		if len(segs[1]) == 0 {
+			return nil, fmt.Errorf("%q may not end with a @", value)
+		}
+		ref, err := DockerImageReferenceForRepository(repo)
+		if err != nil {
+			return nil, err
+		}
+		ref.ID = segs[1]
+		return &TagEvent{
+			Created:              util.Now(),
+			DockerImageReference: ref.String(),
+			Image:                ref.ID,
+		}, nil
+	}
+	return LatestTaggedImage(repo, value)
+}
+
+// DockerImageReferenceForRepository returns a DockerImageReference that represents
+// the ImageRepository or false, if no valid reference exists.
+func DockerImageReferenceForRepository(repo *ImageRepository) (DockerImageReference, error) {
+	spec := repo.Status.DockerImageRepository
+	if len(spec) == 0 {
+		spec = repo.DockerImageRepository
+	}
+	if len(spec) == 0 {
+		return DockerImageReference{}, fmt.Errorf("no possible pull spec for %s/%s", repo.Namespace, repo.Name)
+	}
+	return ParseDockerImageReference(spec)
+}
+
 // LatestTaggedImage returns the most recent TagEvent for the specified image
-// repository and tag.
-func LatestTaggedImage(repo ImageRepository, tag string) (*TagEvent, error) {
-	if _, ok := repo.Tags[tag]; !ok {
-		return nil, fmt.Errorf("image repository %s/%s: tag %q not found", repo.Namespace, repo.Name, tag)
+// repository and tag. Will resolve lookups for the empty tag.
+func LatestTaggedImage(repo *ImageRepository, tag string) (*TagEvent, error) {
+	if len(tag) == 0 {
+		tag = "latest"
+	}
+	// find the most recent tag event with an image reference
+	if repo.Status.Tags != nil {
+		if history, ok := repo.Status.Tags[tag]; ok {
+			for _, item := range history.Items {
+				if len(item.DockerImageReference) > 0 {
+					return &item, nil
+				}
+			}
+		}
 	}
 
-	tagHistory, ok := repo.Status.Tags[tag]
-	if !ok {
-		return nil, fmt.Errorf("image repository %s/%s: tag %q not found in tag history", repo.Namespace, repo.Name, tag)
+	// infer a pull spec given the pull locations - requires the tag
+	// to have a value, for .status.DIR or .DIR to be set, and for
+	// one of those values to be valid.
+	if value, ok := repo.Tags[tag]; ok && len(value) > 0 {
+		ref, err := DockerImageReferenceForRepository(repo)
+		if err != nil {
+			return nil, err
+		}
+		ref.Tag = value
+		return &TagEvent{
+			Created:              util.Now(),
+			DockerImageReference: ref.String(),
+		}, nil
 	}
 
-	if len(tagHistory.Items) == 0 {
-		return nil, fmt.Errorf("image repository %s/%s: tag %q has 0 history items", repo.Namespace, repo.Name, tag)
+	return nil, fmt.Errorf("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag)
+}
+
+// AddTagEventToImageRepository attempts to update the given image repository with a tag event. It will
+// collapse duplicate entries - returning true if a change was made or false if no change
+// occurred.
+func AddTagEventToImageRepository(repo *ImageRepository, tag string, next TagEvent) bool {
+	if repo.Status.Tags == nil {
+		repo.Status.Tags = make(map[string]TagEventList)
 	}
 
-	return &tagHistory.Items[0], nil
+	tags, ok := repo.Status.Tags[tag]
+	if !ok || len(tags.Items) == 0 {
+		repo.Status.Tags[tag] = TagEventList{Items: []TagEvent{next}}
+		return true
+	}
+
+	previous := &tags.Items[0]
+
+	// image reference has not changed
+	if previous.DockerImageReference == next.DockerImageReference {
+		if next.Image == previous.Image {
+			return false
+		}
+		previous.Image = next.Image
+		repo.Status.Tags[tag] = tags
+		return true
+	}
+
+	// image has not changed, but image reference has
+	if next.Image == previous.Image {
+		previous.DockerImageReference = next.DockerImageReference
+		repo.Status.Tags[tag] = tags
+		return true
+	}
+
+	tags.Items = append([]TagEvent{next}, tags.Items...)
+	repo.Status.Tags[tag] = tags
+	return true
 }

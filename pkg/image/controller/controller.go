@@ -21,21 +21,36 @@ type ImportController struct {
 	client       dockerregistry.Client
 }
 
+// needsImport returns true if the provided repository should have its tags imported.
+func needsImport(repo *api.ImageRepository) bool {
+	if len(repo.DockerImageRepository) == 0 {
+		return false
+	}
+	if repo.Annotations != nil && len(repo.Annotations[dockerImageRepositoryCheckAnnotation]) != 0 {
+		return false
+	}
+	if len(repo.Tags) == 0 {
+		return true
+	}
+	emptyTags := 0
+	for _, v := range repo.Tags {
+		if len(v) == 0 {
+			emptyTags++
+		}
+	}
+	return emptyTags > 0
+}
+
 // Next processes the given image repository, looking for repos that have DockerImageRepository
 // set but have not yet been marked as "ready". If transient errors occur, err is returned but
 // the image repository is not modified (so it will be tried again later). If a permanent
-// failure occurs the image is marked with an annotation.
+// failure occurs the image is marked with an annotation. The tags of the original spec image
+// are left as is (those are updated through status).
 func (c *ImportController) Next(repo *api.ImageRepository) error {
+	if !needsImport(repo) {
+		return nil
+	}
 	name := repo.DockerImageRepository
-	if len(name) == 0 {
-		return nil
-	}
-	if repo.Annotations == nil {
-		repo.Annotations = make(map[string]string)
-	}
-	if len(repo.Annotations[dockerImageRepositoryCheckAnnotation]) != 0 {
-		return nil
-	}
 
 	ref, err := api.ParseDockerImageReference(name)
 	if err != nil {
@@ -84,9 +99,6 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 			newTags[tag] = tag
 		}
 	}
-
-	// whether we ignore or succeed, ensure the most recent mappings are recorded
-	repo.Tags = newTags
 
 	// nothing to tag - no images in the upstream repo, or we're in sync
 	if len(imageToTag) == 0 {
@@ -155,6 +167,9 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 func (c *ImportController) done(repo *api.ImageRepository, reason string) error {
 	if len(reason) == 0 {
 		reason = util.Now().UTC().Format(time.RFC3339)
+	}
+	if repo.Annotations == nil {
+		repo.Annotations = make(map[string]string)
 	}
 	repo.Annotations[dockerImageRepositoryCheckAnnotation] = reason
 	if _, err := c.repositories.ImageRepositories(repo.Namespace).Update(repo); err != nil && !errors.IsNotFound(err) {

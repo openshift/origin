@@ -187,12 +187,18 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
 	buildEtcd := buildetcd.New(etcdHelper)
-	imageRepositoryStorage := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(
+		etcdHelper,
+		imagerepository.DefaultRegistryFunc(func() (string, bool) {
+			return "registry:3000", true
+		}),
+	)
 
 	storage := map[string]apiserver.RESTStorage{
-		"builds":            buildregistry.NewREST(buildEtcd),
-		"buildConfigs":      buildconfigregistry.NewREST(buildEtcd),
-		"imageRepositories": imageRepositoryStorage,
+		"builds":                   buildregistry.NewREST(buildEtcd),
+		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"imageRepositories":        imageRepositoryStorage,
+		"imageRepositories/status": imageRepositoryStatus,
 	}
 
 	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")

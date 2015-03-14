@@ -6,6 +6,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -73,28 +74,25 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	image := mapping.Image
-
-	pullTag := mapping.Tag
-	// TODO: default tag value to "latest" or the tag latest points to
-	if len(image.DockerImageReference) > 0 {
-		if ref, err := api.ParseDockerImageReference(image.DockerImageReference); err == nil {
-			// TODO: use a canonical comparison (latest -> latest)
-			if ref.Name == repo.Name && ref.Tag != mapping.Tag {
-				pullTag = ref.Tag
-			}
-		}
+	tag := mapping.Tag
+	if len(tag) == 0 {
+		// TODO: redirect this to the stable tag
+		tag = "latest"
 	}
-
-	if repo.Tags == nil {
-		repo.Tags = make(map[string]string)
-	}
-	repo.Tags[mapping.Tag] = pullTag
 
 	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
 		return nil, err
 	}
-	if err := s.imageRepositoryRegistry.UpdateImageRepository(ctx, repo); err != nil {
-		return nil, err
+
+	next := api.TagEvent{
+		Created:              util.Now(),
+		DockerImageReference: image.DockerImageReference,
+		Image:                image.Name,
+	}
+	if api.AddTagEventToImageRepository(repo, tag, next) {
+		if err := s.imageRepositoryRegistry.UpdateImageRepositoryStatus(ctx, repo); err != nil {
+			return nil, err
+		}
 	}
 
 	return &kapi.Status{Status: kapi.StatusSuccess}, nil

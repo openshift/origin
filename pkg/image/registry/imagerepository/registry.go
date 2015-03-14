@@ -20,6 +20,8 @@ type Registry interface {
 	CreateImageRepository(ctx kapi.Context, repo *api.ImageRepository) error
 	// UpdateImageRepository updates an image repository.
 	UpdateImageRepository(ctx kapi.Context, repo *api.ImageRepository) error
+	// UpdateImageRepository updates an image repository's status.
+	UpdateImageRepositoryStatus(ctx kapi.Context, repo *api.ImageRepository) error
 	// DeleteImageRepository deletes an image repository.
 	DeleteImageRepository(ctx kapi.Context, id string) error
 	// WatchImageRepositories watches for new/changed/deleted image repositories.
@@ -40,12 +42,13 @@ type Storage interface {
 // storage puts strong typing around storage calls
 type storage struct {
 	Storage
+	status apiserver.RESTUpdater
 }
 
 // NewRegistry returns a new Registry interface for the given Storage. Any mismatched
 // types will panic.
-func NewRegistry(s Storage) Registry {
-	return &storage{s}
+func NewRegistry(s Storage, status apiserver.RESTUpdater) Registry {
+	return &storage{s, status}
 }
 
 func (s *storage) ListImageRepositories(ctx kapi.Context, label labels.Selector) (*api.ImageRepositoryList, error) {
@@ -71,6 +74,11 @@ func (s *storage) CreateImageRepository(ctx kapi.Context, imageRepository *api.I
 
 func (s *storage) UpdateImageRepository(ctx kapi.Context, imageRepository *api.ImageRepository) error {
 	_, _, err := s.Update(ctx, imageRepository)
+	return err
+}
+
+func (s *storage) UpdateImageRepositoryStatus(ctx kapi.Context, imageRepository *api.ImageRepository) error {
+	_, _, err := s.status.Update(ctx, imageRepository)
 	return err
 }
 

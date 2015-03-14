@@ -357,8 +357,8 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	imageStorage := imageetcd.NewREST(etcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
 
-	imageRepositoryStorage := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 
 	deployEtcd := deployetcd.New(etcdHelper)
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
@@ -375,6 +375,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	storage := map[string]apiserver.RESTStorage{
 		"images":                    imageStorage,
 		"imageRepositories":         imageRepositoryStorage,
+		"imageRepositories/status":  imageRepositoryStatus,
 		"imageRepositoryMappings":   imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry),
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
