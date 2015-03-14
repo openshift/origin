@@ -46,6 +46,10 @@ class OpenshiftTagger(VersionTagger):
   Requires that your ldflags global is written on one single line like this:
   %global ldflags -X foo -X bar
 
+  NOTE: Does not work with --use-version as tito does not provide a way to
+  override the forced version tagger, see
+  https://github.com/dgoodwin/tito/pull/163
+
 
   Used For:
     - Openshift v3, probably not much else
@@ -196,3 +200,22 @@ class OpenshiftTagger(VersionTagger):
       print
       undo_tag(tag)
 
+# This won't do anything until tito supports configuring the forcedversion tagger
+# See https://github.com/dgoodwin/tito/pull/163
+class OpenshiftForceVersionTagger(OpenshiftTagger):
+    """
+    Tagger which forcibly updates the spec file to a version provided on the
+    command line by the --use-version option.
+    TODO: could this be merged into main taggers?
+    """
+
+    def _tag_release(self):
+        """
+        Tag a new release of the package.
+        """
+        self._make_changelog()
+        new_version = self._bump_version(force=True)
+        self._check_tag_does_not_exist(self._get_new_tag(new_version))
+        self._update_changelog(new_version)
+        self._update_setup_py(new_version)
+        self._update_package_metadata(new_version)
