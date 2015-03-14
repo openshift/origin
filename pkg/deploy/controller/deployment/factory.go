@@ -68,15 +68,21 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 	}
 
 	return &controller.RetryController{
-		Queue:        deploymentQueue,
-		RetryManager: controller.NewQueueRetryManager(deploymentQueue, cache.MetaNamespaceKeyFunc, 1),
-		ShouldRetry: func(obj interface{}, err error) bool {
-			if _, isFatal := err.(fatalError); isFatal {
-				kutil.HandleError(err)
-				return false
-			}
-			return true
-		},
+		Queue: deploymentQueue,
+		RetryManager: controller.NewQueueRetryManager(
+			deploymentQueue,
+			cache.MetaNamespaceKeyFunc,
+			func(obj interface{}, err error, count int) bool {
+				if _, isFatal := err.(fatalError); isFatal {
+					kutil.HandleError(err)
+					return false
+				}
+				if count > 1 {
+					return false
+				}
+				return true
+			},
+		),
 		Handle: func(obj interface{}) error {
 			deployment := obj.(*kapi.ReplicationController)
 			return deployController.Handle(deployment)

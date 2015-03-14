@@ -23,6 +23,12 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// logAndRetry retries forever - BuildPodController currently has no fatal errors
+func logAndRetry(obj interface{}, err error, _ int) bool {
+	kutil.HandleError(err)
+	return true
+}
+
 // BuildControllerFactory constructs BuildController objects
 type BuildControllerFactory struct {
 	OSClient            osclient.Interface
@@ -54,12 +60,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 
 	return &controller.RetryController{
 		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, -1),
-		ShouldRetry: func(obj interface{}, err error) bool {
-			kutil.HandleError(err)
-			// BuildController currently has no fatal errors.
-			return true
-		},
+		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, logAndRetry),
 		Handle: func(obj interface{}) error {
 			build := obj.(*buildapi.Build)
 			return buildController.HandleBuild(build)
@@ -103,12 +104,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 
 	return &controller.RetryController{
 		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, -1),
-		ShouldRetry: func(obj interface{}, err error) bool {
-			kutil.HandleError(err)
-			// BuildPodController currently has no fatal errors.
-			return true
-		},
+		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, logAndRetry),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
 			return buildPodController.HandlePod(pod)
@@ -143,15 +139,18 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 	}
 
 	return &controller.RetryController{
-		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, -1),
-		ShouldRetry: func(obj interface{}, err error) bool {
-			kutil.HandleError(err)
-			if _, isFatal := err.(buildcontroller.ImageChangeControllerFatalError); isFatal {
-				return false
-			}
-			return true
-		},
+		Queue: queue,
+		RetryManager: controller.NewQueueRetryManager(
+			queue,
+			cache.MetaNamespaceKeyFunc,
+			func(obj interface{}, err error, _ int) bool {
+				kutil.HandleError(err)
+				if _, isFatal := err.(buildcontroller.ImageChangeControllerFatalError); isFatal {
+					return false
+				}
+				return true
+			},
+		),
 		Handle: func(obj interface{}) error {
 			imageRepo := obj.(*imageapi.ImageRepository)
 			return imageChangeController.HandleImageRepo(imageRepo)

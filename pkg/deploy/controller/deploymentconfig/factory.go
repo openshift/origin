@@ -54,15 +54,21 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 	}
 
 	return &controller.RetryController{
-		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, 1),
-		ShouldRetry: func(obj interface{}, err error) bool {
-			if _, isFatal := err.(fatalError); isFatal {
+		Queue: queue,
+		RetryManager: controller.NewQueueRetryManager(
+			queue,
+			cache.MetaNamespaceKeyFunc,
+			func(obj interface{}, err error, count int) bool {
 				kutil.HandleError(err)
-				return false
-			}
-			return true
-		},
+				if _, isFatal := err.(fatalError); isFatal {
+					return false
+				}
+				if count > 0 {
+					return false
+				}
+				return true
+			},
+		),
 		Handle: func(obj interface{}) error {
 			config := obj.(*deployapi.DeploymentConfig)
 			return configController.Handle(config)

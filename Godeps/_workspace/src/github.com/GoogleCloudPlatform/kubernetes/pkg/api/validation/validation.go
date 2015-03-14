@@ -44,6 +44,8 @@ var dns952LabelErrorMsg string = fmt.Sprintf("must have at most %d characters an
 var pdPartitionErrorMsg string = intervalErrorMsg(0, 255)
 var portRangeErrorMsg string = intervalErrorMsg(0, 65536)
 
+const totalAnnotationSizeLimitB int = 64 * (1 << 10) // 64 kB
+
 // ValidateLabels validates that a set of labels are correctly defined.
 func ValidateLabels(labels map[string]string, field string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -58,11 +60,6 @@ func ValidateLabels(labels map[string]string, field string) errs.ValidationError
 // ValidateAnnotations validates that a set of annotations are correctly defined.
 func ValidateAnnotations(annotations map[string]string, field string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	for k := range annotations {
-		if !util.IsQualifiedName(strings.ToLower(k)) {
-			allErrs = append(allErrs, errs.NewFieldInvalid(field, k, qualifiedNameErrorMsg))
-		}
-	}
 	return allErrs
 }
 

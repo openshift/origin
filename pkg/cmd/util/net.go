@@ -38,9 +38,7 @@ func WaitForSuccessfulDial(https bool, network, address string, timeout, interva
 			continue
 		}
 		conn.Close()
-		glog.V(4).Infof("Got success: %#v\n", address)
 		return nil
 	}
-	glog.V(4).Infof("Got error, failing: %#v\n", address)
 	return err
 }
