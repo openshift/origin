@@ -11,7 +11,6 @@ import (
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
@@ -37,6 +36,11 @@ func StartTestServer(args ...string) (start.Config, error) {
 	startConfig.EtcdDir = path.Join(basedir, "etcd")
 	startConfig.CertDir = path.Join(basedir, "cert")
 
+	// don't wait for nodes to come up
+	if len(args) > 0 && args[0] == "master" {
+		startConfig.NodeList = nil
+	}
+
 	masterAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
 	fmt.Printf("masterAddr: %#v\n", masterAddr)
 	startConfig.MasterAddr.Set(masterAddr)
@@ -50,39 +54,42 @@ func StartTestServer(args ...string) (start.Config, error) {
 
 	startConfig.Complete(args)
 
-	var startError error
+	errCh := make(chan error)
 	go func() {
-		err := startConfig.Start(args)
-		if err != nil {
-			startError = err
-			fmt.Printf("ERROR STARTING SERVER! %v", err)
-		}
+		errCh <- startConfig.Start(args)
+		close(errCh)
 	}()
 
 	// wait for the server to come up: 35 seconds
 	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", masterAddr, 100*time.Millisecond, 1*time.Second, 35); err != nil {
+		select {
+		case err := <-errCh:
+			if err != nil {
+				return *startConfig, err
+			}
+		default:
+		}
 		return *startConfig, err
 	}
 
-	stopChannel := make(chan struct{})
-	util.Until(
-		func() {
-			if startError != nil {
-				close(stopChannel)
-				return
-			}
-
-			// confirm that we can actually query from the api server
-			client, _, err := startConfig.GetOpenshiftClient()
+	// try to get a client
+	for {
+		select {
+		case err := <-errCh:
 			if err != nil {
-				return
+				return *startConfig, err
 			}
+		default:
+		}
+		// confirm that we can actually query from the api server
+		if client, _, err := startConfig.GetOpenshiftClient(); err == nil {
 			if _, err := client.Policies("master").List(labels.Everything(), labels.Everything()); err == nil {
-				close(stopChannel)
+				break
 			}
-		}, 100*time.Millisecond, stopChannel)
-
-	return *startConfig, startError
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return *startConfig, nil
 }
 
 // StartTestMaster starts up a test master and returns back the startConfig so you can get clients and certs
