@@ -300,3 +300,12 @@ both of these changes with message `bump(<pkgname>): <pkgcommit>`.
 
 If you run into difficulties running OpenShift, start by reading through the
 [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
+
+## RPM Packaging
+
+A specfile is included in this repo which can be used to produce RPMs including
+the openshift binary. While the specfile will be kept up to date with build
+requirements the version is not updated. You will need to either update the
+Version, %commit, and %ldflags values on your own or you may use
+[tito](https://github.com/dgoodwin/tito) to build
+and tag releases.
