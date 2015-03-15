@@ -15,8 +15,8 @@ func TestReplaceValidCmd(t *testing.T) {
 		cmd            string
 		replaceArgs    string
 		fileData       []byte
-		edited         bool
 		expectedOutput string
+		expectedDiffs  int
 		expectedErr    error
 	}{
 		{
@@ -24,8 +24,8 @@ func TestReplaceValidCmd(t *testing.T) {
 			cmd:            dockercmd.From,
 			replaceArgs:    "other/image",
 			fileData:       []byte(dockerFile),
-			edited:         true,
 			expectedOutput: expectedFROM,
+			expectedDiffs:  1,
 			expectedErr:    nil,
 		},
 		{
@@ -33,7 +33,6 @@ func TestReplaceValidCmd(t *testing.T) {
 			cmd:            dockercmd.Run,
 			replaceArgs:    "This test kind-of-fails before string replacement so this string won't be used",
 			fileData:       []byte(dockerFile),
-			edited:         false,
 			expectedOutput: "",
 			expectedErr:    replaceCmdErr,
 		},
@@ -42,7 +41,6 @@ func TestReplaceValidCmd(t *testing.T) {
 			cmd:            "blabla",
 			replaceArgs:    "This test fails at start so this string won't be used",
 			fileData:       []byte(dockerFile),
-			edited:         false,
 			expectedOutput: "",
 			expectedErr:    invalidCmdErr,
 		},
@@ -51,7 +49,6 @@ func TestReplaceValidCmd(t *testing.T) {
 			cmd:            dockercmd.Cmd,
 			replaceArgs:    "runme.sh",
 			fileData:       []byte(dockerFile),
-			edited:         false,
 			expectedOutput: "",
 			expectedErr:    replaceCmdErr,
 		},
@@ -60,8 +57,8 @@ func TestReplaceValidCmd(t *testing.T) {
 			cmd:            dockercmd.From,
 			replaceArgs:    "rhel",
 			fileData:       []byte(trSlashFile),
-			edited:         true,
 			expectedOutput: expectedtrSlashFile,
+			expectedDiffs:  1,
 			expectedErr:    nil,
 		},
 		{
@@ -69,8 +66,8 @@ func TestReplaceValidCmd(t *testing.T) {
 			cmd:            dockercmd.From,
 			replaceArgs:    "scratch",
 			fileData:       []byte(trickierFile),
-			edited:         true,
 			expectedOutput: expectedTrickierFile,
+			expectedDiffs:  1,
 			expectedErr:    nil,
 		},
 	}
@@ -106,12 +103,8 @@ func TestReplaceValidCmd(t *testing.T) {
 
 		diff := cmpASTs(original, edited)
 
-		// Note that these tests will probably fail for Dockerfiles where we have replaced
-		// multiline command arguments
-		if test.edited && diff != 1 {
-			t.Errorf("%s: Edit mismatch, expected one edit, got %d", test.name, diff)
-		} else if !test.edited && diff > 0 {
-			t.Errorf("%s: Edit mismatch, expected no edit, got %d", test.name, diff)
+		if diff != test.expectedDiffs {
+			t.Errorf("%s: Edit mismatch, expected %d edit(s), got %d", test.name, test.expectedDiffs, diff)
 		}
 	}
 }
