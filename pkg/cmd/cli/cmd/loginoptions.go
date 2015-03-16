@@ -198,17 +198,20 @@ func (o *LoginOptions) GatherProjectInfo() error {
 
 	switch len(projectsItems) {
 	case 0:
-		if me, err := o.Whoami(); err == nil {
-			// TODO most users will not be allowed to run the suggested commands below, so we should check it and/or
-			// have a server endpoint that allows an admin to describe to users how to request projects
-			return fmt.Errorf(`You don't have any project.
-To create a new project, run 'openshift ex new-project <projectname> --admin=%s'.
-To be added as an admin to an existing project, run 'openshift ex policy add-user admin %s -n <projectname>'.`, me.Name, me.Name)
+		me, err := o.Whoami()
+		if err != nil {
+			return err
 		}
-		return err
+		// TODO most users will not be allowed to run the suggested commands below, so we should check it and/or
+		// have a server endpoint that allows an admin to describe to users how to request projects
+		fmt.Printf(`You don't have any project.
+To create a new project, run 'openshift ex new-project <projectname> --admin=%s'.
+To be added as an admin to an existing project, run 'openshift ex policy add-user admin %s -n <projectname>'.
+`, me.Name, me.Name)
 
 	case 1:
 		o.Project = projectsItems[0].Name
+		fmt.Printf("Using project '%v'.\n", o.Project)
 
 	default:
 		projects := []string{}
@@ -239,9 +242,8 @@ To be added as an admin to an existing project, run 'openshift ex policy add-use
 		var sortedProjects sort.StringSlice = projects
 		sortedProjects.Sort()
 		fmt.Printf("Your projects are: %v. You can switch between them at any time using 'osc project <project-name>'.\n", strings.Join(projects, ", "))
+		fmt.Printf("Using project '%v'.\n", o.Project)
 	}
-
-	fmt.Printf("Using project '%v'.\n", o.Project)
 
 	o.gatherProjectInfo = true
 	return nil
@@ -252,7 +254,7 @@ To be added as an admin to an existing project, run 'openshift ex policy add-use
 // loading rules. Will create a new config file if one can't be found at all. Will only
 // succeed if all required info is present.
 func (o *LoginOptions) SaveConfig() (created bool, err error) {
-	if len(o.Project) == 0 || len(o.Username) == 0 {
+	if len(o.Username) == 0 {
 		return false, fmt.Errorf("Insufficient data to merge configuration.")
 	}
 
