@@ -11,7 +11,6 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/api/validation"
-	//"github.com/openshift/origin/pkg/oauth/api/validation"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
