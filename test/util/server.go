@@ -1,6 +1,4 @@
-// +build integration,!no-etcd
-
-package integration
+package util
 
 import (
 	"fmt"
@@ -12,7 +10,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -23,13 +20,29 @@ import (
 )
 
 func init() {
-	requireEtcd()
+	RequireEtcd()
+}
+
+// RequireServer verifies if the etcd, docker and the OpenShift server are
+// available and you can successfully connected to them.
+func RequireServer() {
+	RequireEtcd()
+	RequireDocker()
+	if _, err := GetClusterAdminClient(KubeConfigPath()); err != nil {
+		os.Exit(1)
+	}
+}
+
+// GetBaseDir returns the base directory used for test.
+func GetBaseDir() string {
+	return cmdutil.Env("BASETMPDIR", path.Join(os.TempDir(), "openshift-"+Namespace()))
 }
 
 func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs, *start.CertArgs) {
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs := start.GetAllInOneArgs()
 
-	basedir := path.Join(os.TempDir(), "openshift-integration-tests")
+	basedir := GetBaseDir()
+
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
 	masterArgs.EtcdDir = path.Join(basedir, "etcd")
 	masterArgs.PolicyArgs.PolicyFile = path.Join(basedir, "policy", "policy.json")
@@ -38,29 +51,36 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	// don't wait for nodes to come up
 
 	masterAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	if len(os.Getenv("OS_MASTER_ADDR")) > 0 {
+		masterAddr = os.Getenv("OS_MASTER_ADDR")
+	}
 	fmt.Printf("masterAddr: %#v\n", masterAddr)
+
 	masterArgs.MasterAddr.Set(masterAddr)
 	listenArg.ListenAddr.Set(masterAddr)
-	masterArgs.EtcdAddr.Set(getEtcdURL())
+	masterArgs.EtcdAddr.Set(GetEtcdURL())
 
 	assetAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	if len(os.Getenv("OS_ASSETS_ADDR")) > 0 {
+		assetAddr = os.Getenv("OS_ASSETS_ADDR")
+	}
+
 	fmt.Printf("assetAddr: %#v\n", assetAddr)
 	masterArgs.AssetBindAddr.Set(assetAddr)
 	masterArgs.AssetPublicAddr.Set(assetAddr)
 
 	dnsAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	if len(os.Getenv("OS_DNS_ADDR")) > 0 {
+		dnsAddr = os.Getenv("OS_DNS_ADDR")
+	}
 	fmt.Printf("dnsAddr: %#v\n", dnsAddr)
 	masterArgs.DNSBindAddr.Set(dnsAddr)
 
 	return masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs
 }
 
-func getAdminKubeConfigFile(certArgs start.CertArgs) string {
-	return path.Clean(path.Join(certArgs.CertDir, "admin/.kubeconfig"))
-}
-
 func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
-	deleteAllEtcdKeys()
+	DeleteAllEtcdKeys()
 
 	masterArgs, nodeArgs, _, _, _, _ := setupStartOptions()
 	masterArgs.NodeList = nil
@@ -105,7 +125,7 @@ func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
 		}
 		// confirm that we can actually query from the api server
 
-		if client, _, _, err := GetClusterAdminClient(adminKubeConfigFile); err == nil {
+		if client, err := GetClusterAdminClient(adminKubeConfigFile); err == nil {
 			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err == nil {
 				break
 			}
@@ -119,7 +139,7 @@ func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
 
 // StartTestMaster starts up a test master and returns back the startOptions so you can get clients and certs
 func StartTestMaster() (*configapi.MasterConfig, string, error) {
-	deleteAllEtcdKeys()
+	DeleteAllEtcdKeys()
 
 	masterArgs, _, _, _, _, _ := setupStartOptions()
 
@@ -157,7 +177,7 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 			}
 
 			// confirm that we can actually query from the api server
-			client, _, _, err := GetClusterAdminClient(adminKubeConfigFile)
+			client, err := GetClusterAdminClient(adminKubeConfigFile)
 			if err != nil {
 				return
 			}
@@ -205,18 +225,4 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 	}
 
 	return adminClient, nil
-}
-
-func GetClusterAdminClient(adminKubeConfigFile string) (*client.Client, *kclient.Client, *kclient.Config, error) {
-	kclient, clientConfig, err := configapi.GetKubeClient(adminKubeConfigFile)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	osclient, err := client.New(clientConfig)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return osclient, kclient, clientConfig, nil
 }

@@ -12,6 +12,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/test/util"
 )
 
 var (
@@ -104,12 +105,12 @@ func TestOAuthRequestHeader(t *testing.T) {
 	os.Setenv("OPENSHIFT_OAUTH_REQUEST_HEADER_CA_FILE", caFile.Name())
 
 	// Start server
-	_, clusterAdminKubeConfig, err := StartTestAllInOne()
+	_, clusterAdminKubeConfig, err := util.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, _, clientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clientConfig, err := util.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

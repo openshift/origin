@@ -15,15 +15,19 @@ os::build::setup_env
 
 function cleanup()
 {
-    set +e
-    kill ${ETCD_PID} 1>&2 2>/dev/null
-    rm -rf ${ETCD_DIR} 1>&2 2>/dev/null
-    echo
-    echo "Complete"
+  [ ! -z "${ETCD_STARTED-}" ] && return
+  set +e
+  kill ${ETCD_PID} 1>&2 2>/dev/null
+  rm -rf ${ETCD_DIR} 1>&2 2>/dev/null
+  echo
+  echo "Complete"
 }
 
 package="${OS_TEST_PACKAGE:-test/integration}"
 tags="${OS_TEST_TAGS:-integration no-docker}"
+
+TMPDIR=${TMPDIR:-/tmp}
+export BASETMPDIR=${BASETMPDIR:-"${TMPDIR}/openshift-integration"}
 
 echo
 echo "Test ${package} -tags='${tags}' ..."
@@ -37,7 +41,7 @@ mkdir -p "${testdir}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
 pushd "${testdir}" 2>&1 >/dev/null
-CGO_ENABLED=0 go test -v -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
+CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd 2>&1 >/dev/null
 
 start_etcd

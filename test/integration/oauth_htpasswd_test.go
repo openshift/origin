@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	"github.com/openshift/origin/test/util"
 )
 
 func TestHTPasswd(t *testing.T) {
@@ -25,12 +26,12 @@ func TestHTPasswd(t *testing.T) {
 	os.Setenv("OPENSHIFT_OAUTH_PASSWORD_AUTH", "htpasswd")
 	os.Setenv("OPENSHIFT_OAUTH_HTPASSWD_FILE", htpasswdFile.Name())
 
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := util.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, _, clientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clientConfig, err := util.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

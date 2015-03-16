@@ -197,6 +197,8 @@ function validate_response {
 # $1 - Optional host (Default: 127.0.0.1)
 # $2 - Optional port (Default: 4001)
 function start_etcd {
+  [ ! -z "${ETCD_STARTED-}" ] && return
+
   host=${ETCD_HOST:-127.0.0.1}
   port=${ETCD_PORT:-4001}
 
@@ -228,7 +230,7 @@ function start_etcd {
   etcd -name test -data-dir ${ETCD_DIR} -bind-addr ${host}:${port} ${initial_cluster} >/dev/null 2>/dev/null &
   export ETCD_PID=$!
 
-  wait_for_url "http://127.0.0.1:4001/version" "etcd: "
+  wait_for_url "http://${host}:${port}/version" "etcd: "
 }
 
 # stop_openshift_server utility function to terminate an
