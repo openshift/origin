@@ -1,20 +1,23 @@
 package util
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/golang/glog"
 )
 
+// Takes an io.Reader and prompt for user input if it's a terminal, returning the result.
 func PromptForString(r io.Reader, format string, a ...interface{}) string {
 	fmt.Printf(format, a...)
 	return readInput(r)
 }
 
-// TODO not tested on other platforms
+// Prompt for user input by disabling echo in terminal, useful for password prompt.
 func PromptForPasswordString(r io.Reader, format string, a ...interface{}) string {
 	if file, ok := r.(*os.File); ok {
 		inFd := file.Fd()
@@ -37,18 +40,50 @@ func PromptForPasswordString(r io.Reader, format string, a ...interface{}) strin
 			fmt.Printf("\n")
 
 			return input
-		} else {
-			glog.V(3).Infof("Stdin is not a terminal")
-			return PromptForString(r, format, a...)
 		}
-	} else {
-		glog.V(3).Infof("Unable to use a TTY")
+		glog.V(3).Infof("Stdin is not a terminal")
 		return PromptForString(r, format, a...)
 	}
+	return PromptForString(r, format, a...)
+}
+
+// Prompt for user input of a boolean value. The accepted values are:
+//   yes, y, true, 	t, 1 (not case sensitive)
+//   no, 	n, false, f, 0 (not case sensitive)
+// A valid answer is mandatory so it will keep asking until an answer is provided.
+func PromptForBool(r io.Reader, format string, a ...interface{}) bool {
+	str := PromptForString(r, format, a...)
+	switch strings.ToLower(str) {
+	case "1", "t", "true", "y", "yes":
+		return true
+	case "0", "f", "false", "n", "no":
+		return false
+	}
+	fmt.Println("Please enter 'yes' or 'no'.")
+	return PromptForBool(r, format, a...)
+}
+
+// Prompt for user input but take a default in case nothing is provided.
+func PromptForStringWithDefault(r io.Reader, def string, format string, a ...interface{}) string {
+	s := PromptForString(r, format, a...)
+	if len(s) == 0 {
+		return def
+	}
+	return s
 }
 
 func readInput(r io.Reader) string {
+	if IsTerminal(r) {
+		reader := bufio.NewReader(r)
+		result, _ := reader.ReadString('\n')
+		return strings.TrimSuffix(result, "\n")
+	}
 	var result string
 	fmt.Fscan(r, &result)
 	return result
+}
+
+func IsTerminal(r io.Reader) bool {
+	file, ok := r.(*os.File)
+	return ok && term.IsTerminal(file.Fd())
 }

@@ -40,7 +40,7 @@ func (client *challengingClient) Do(req *http.Request) (*http.Response, error) {
 			missingUsername := len(username) == 0
 			missingPassword := len(password) == 0
 
-			if (missingUsername || missingPassword) && (client.reader != nil) {
+			if (missingUsername || missingPassword) && client.reader != nil {
 				fmt.Printf("Authenticate for \"%v\"\n", realm)
 				if missingUsername {
 					username = util.PromptForString(client.reader, "Username: ")

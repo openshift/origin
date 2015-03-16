@@ -1,4 +1,4 @@
-package login
+package config
 
 import (
 	"fmt"
@@ -139,4 +139,19 @@ func getMapKeys(theMap reflect.Value) (*util.StringSet, error) {
 
 	return ret, nil
 
+}
+
+func getUniqueName(basename string, existingNames *util.StringSet) string {
+	if !existingNames.Has(basename) {
+		return basename
+	}
+
+	for i := 0; i < 100; i++ {
+		trialName := fmt.Sprintf("%v-%d", basename, i)
+		if !existingNames.Has(trialName) {
+			return trialName
+		}
+	}
+
+	return string(util.NewUUID())
 }

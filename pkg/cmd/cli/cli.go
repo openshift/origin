@@ -56,11 +56,13 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
+	in := os.Stdin
 	out := os.Stdout
 
 	cmds.SetUsageTemplate(templates.CliUsageTemplate())
 	cmds.SetHelpTemplate(templates.CliHelpTemplate())
 
+	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
 	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStartBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdCancelBuild(fullName, f, out))
@@ -76,6 +78,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
 	cmds.AddCommand(f.NewCmdProxy(out))
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
+	cmds.AddCommand(cmd.NewCmdProject(f, out))
 	cmds.AddCommand(cmd.NewCmdOptions(f, out))
 	cmds.AddCommand(version.NewVersionCommand(fullName))
 
