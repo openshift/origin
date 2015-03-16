@@ -67,7 +67,13 @@ func TestSimpleBuildConfig(t *testing.T) {
 		t.Errorf("unexpected name: %#v", config)
 	}
 
-	output := &ImageRef{Registry: "myregistry", Namespace: "openshift", Name: "origin"}
+	output := &ImageRef{
+		DockerImageReference: imageapi.DockerImageReference{
+			Registry:  "myregistry",
+			Namespace: "openshift",
+			Name:      "origin",
+		},
+	}
 	build = &BuildRef{Source: source, Output: output}
 	config, err = build.BuildConfig()
 	if err != nil {
@@ -79,13 +85,21 @@ func TestSimpleBuildConfig(t *testing.T) {
 }
 
 func TestSimpleDeploymentConfig(t *testing.T) {
-	image := &ImageRef{Registry: "myregistry", Namespace: "openshift", Name: "origin", Info: testImageInfo(), AsImageRepository: true}
+	image := &ImageRef{
+		DockerImageReference: imageapi.DockerImageReference{
+			Registry:  "myregistry",
+			Namespace: "openshift",
+			Name:      "origin",
+		},
+		Info:              testImageInfo(),
+		AsImageRepository: true,
+	}
 	deploy := &DeploymentConfigRef{Images: []*ImageRef{image}}
 	config, err := deploy.DeploymentConfig()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.Template.Spec.Containers[0].Image != image.pullSpec() {
+	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.Template.Spec.Containers[0].Image != image.String() {
 		t.Errorf("unexpected value: %#v", config)
 	}
 }
@@ -160,9 +174,11 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 	}
 	for _, test := range tests {
 		imageRef := &ImageRef{
-			Namespace: "test",
-			Name:      "image",
-			Tag:       "latest",
+			DockerImageReference: imageapi.DockerImageReference{
+				Namespace: "test",
+				Name:      "image",
+				Tag:       "latest",
+			},
 			Info: &imageapi.DockerImage{
 				Config: imageapi.DockerConfig{
 					ExposedPorts: test.inputPorts,
@@ -199,6 +215,35 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 	}
 }
 
+func TestSourceRefBuildSourceURI(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "URL without hash",
+			input:    "https://github.com/openshift/ruby-hello-world.git",
+			expected: "https://github.com/openshift/ruby-hello-world.git",
+		},
+		{
+			name:     "URL with hash",
+			input:    "https://github.com/openshift/ruby-hello-world.git#testref",
+			expected: "https://github.com/openshift/ruby-hello-world.git",
+		},
+	}
+	for _, tst := range tests {
+		u, _ := url.Parse(tst.input)
+		s := SourceRef{
+			URL: u,
+		}
+		buildSource, _ := s.BuildSource()
+		if buildSource.Git.URI != tst.expected {
+			t.Errorf("%s: unexpected build source URI: %s. Expected: %s", tst.name, buildSource.Git.URI, tst.expected)
+		}
+	}
+}
+
 func ExampleGenerateSimpleDockerApp() {
 	// TODO: determine if the repo is secured prior to fetching
 	// TODO: determine whether we want to clone this repo, or use it directly. Using it directly would require setting hooks
@@ -213,7 +258,12 @@ func ExampleGenerateSimpleDockerApp() {
 	// QUESTION: Is it ok for generation to require a namespace?  Do we want to be able to create apps with builds, image repos, and
 	// deployment configs in templates (hint: yes).
 	// SOLUTION? Make deployment config accept unqualified image repo names (foo) and then prior to creating the RC resolve those.
-	output := &ImageRef{Name: name, AsImageRepository: true}
+	output := &ImageRef{
+		DockerImageReference: imageapi.DockerImageReference{
+			Name: name,
+		},
+		AsImageRepository: true,
+	}
 	// create our build based on source and input
 	// TODO: we might need to pick a base image if this is STI
 	build := &BuildRef{Source: source, Output: output}

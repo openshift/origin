@@ -7,24 +7,21 @@ import (
 )
 
 func ImageFromName(name string, tag string) (*ImageRef, error) {
-	registry, namespace, name, repoTag, err := image.SplitDockerPullSpec(name)
+	ref, err := image.ParseDockerImageReference(name)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(tag) == 0 {
-		if len(repoTag) != 0 {
-			tag = repoTag
+		if len(ref.Tag) != 0 {
+			tag = ref.Tag
 		} else {
 			tag = "latest"
 		}
 	}
 
 	return &ImageRef{
-		Registry:  registry,
-		Namespace: namespace,
-		Name:      name,
-		Tag:       tag,
+		DockerImageReference: ref,
 	}, nil
 }
 
@@ -34,25 +31,12 @@ func ImageFromRepository(repo *image.ImageRepository, tag string) (*ImageRef, er
 		// need to know the default OpenShift registry
 		return nil, fmt.Errorf("the repository does not resolve to a pullable Docker repository")
 	}
-	registry, namespace, name, repoTag, err := image.SplitDockerPullSpec(pullSpec)
+
+	ref, err := ImageFromName(pullSpec, tag)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(tag) == 0 {
-		if len(repoTag) != 0 {
-			tag = repoTag
-		} else {
-			tag = "latest"
-		}
-	}
-
-	return &ImageRef{
-		Registry:  registry,
-		Namespace: namespace,
-		Name:      name,
-		Tag:       tag,
-
-		Repository: repo,
-	}, nil
+	ref.Repository = repo
+	return ref, nil
 }

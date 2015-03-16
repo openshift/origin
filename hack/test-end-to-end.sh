@@ -235,6 +235,8 @@ DOCKER_REGISTRY=$(osc get --output-version=v1beta1 --template="{{ .portalIP }}:{
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 wait_for_url_timed "http://${DOCKER_REGISTRY}" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
+[ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
+
 docker tag -f centos:centos7 ${DOCKER_REGISTRY}/cached/centos:centos7
 docker push ${DOCKER_REGISTRY}/cached/centos:centos7
 echo "[INFO] Pushed centos7"

@@ -65,8 +65,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 					glog.V(2).Infof("Build %v has not yet generated any logs.", buildName)
 
 				} else {
-					// TODO: add a build log client method
-					response, err := client.Get().Namespace(namespace).Prefix("redirect").Resource("buildLogs").Name(buildName).Do().Raw()
+					response, err := client.BuildLogs(namespace).Redirect(buildName).Do().Raw()
 					if err != nil {
 						glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
 					} else {

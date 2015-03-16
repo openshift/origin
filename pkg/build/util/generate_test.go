@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -552,6 +553,16 @@ func (m *mockImageRepositoryNamespaceGetter) GetByNamespace(namespace, name stri
 		ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
 		Status: imageapi.ImageRepositoryStatus{
 			DockerImageRepository: originalImage,
+			Tags: map[string]imageapi.TagEventList{
+				tagName: {
+					Items: []imageapi.TagEvent{
+						{
+							DockerImageReference: fmt.Sprintf("%s:%s", originalImage, newTag),
+							Image:                newTag,
+						},
+					},
+				},
+			},
 		},
 		Tags: map[string]string{tagName: newTag},
 	}, nil

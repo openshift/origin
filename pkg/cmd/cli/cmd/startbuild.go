@@ -74,7 +74,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 				selector := labels.SelectorFromSet(set)
 
 				// Add a watcher for the build about to start
-				watcher, err := client.Builds(namespace).Watch(selector, labels.Everything(), cmdutil.GetFlagString(cmd, "api-version"))
+				watcher, err := client.Builds(namespace).Watch(selector, labels.Everything(), newBuild.ResourceVersion)
 				checkErr(err)
 				defer watcher.Stop()
 
@@ -83,17 +83,25 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 					if !ok {
 						checkErr(fmt.Errorf("cannot convert input to Build"))
 					}
+
 					// Iterate over watcher's results and search for
 					// the build we just started. Also make sure that
-					// the build is running
-					if build.Name == newBuild.Name && build.Status == buildapi.BuildStatusRunning {
-						rd, err := client.Get().Namespace(namespace).Prefix("redirect").Resource("buildLogs").Name(newBuild.Name).Stream()
-						checkErr(err)
-						defer rd.Close()
+					// the build is running, complete, or has failed
+					if build.Name == newBuild.Name {
+						switch build.Status {
+						case buildapi.BuildStatusRunning, buildapi.BuildStatusComplete, buildapi.BuildStatusFailed:
+							rd, err := client.BuildLogs(namespace).Redirect(newBuild.Name).Stream()
+							checkErr(err)
+							defer rd.Close()
 
-						_, err = io.Copy(out, rd)
-						checkErr(err)
-						break
+							_, err = io.Copy(out, rd)
+							checkErr(err)
+							break
+						}
+
+						if build.Status == buildapi.BuildStatusComplete || build.Status == buildapi.BuildStatusFailed {
+							break
+						}
 					}
 				}
 			}

@@ -22,9 +22,10 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	imageetcd "github.com/openshift/origin/pkg/image/registry/etcd"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
+	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
 )
@@ -129,11 +130,11 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 			},
 		},
 	}
-	if _, err := openshift.Client.Images(testNamespace).Create(image); err == nil {
+	if _, err := openshift.Client.Images().Create(image); err == nil {
 		t.Error("unexpected non-error")
 	}
 	image.DockerImageReference = "some/other/name" // can reuse references across multiple images
-	actual, err := openshift.Client.Images(testNamespace).Create(image)
+	actual, err := openshift.Client.Images().Create(image)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -151,7 +152,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	image, err = openshift.Client.Images(testNamespace).Get(image.Name)
+	image, err = openshift.Client.Images().Get(image.Name)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -185,6 +186,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	}
 
 	// verify that image repository mappings can use the same image for different tags
+	image.ResourceVersion = ""
 	mapping = &imageapi.ImageRepositoryMapping{
 		ObjectMeta: kapi.ObjectMeta{Name: repo.Name},
 		Tag:        "anothertag",
@@ -291,13 +293,17 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
-	imageEtcd := imageetcd.New(etcdHelper, imageetcd.DefaultRegistryFunc(func() (string, bool) { return openshift.dockerServer.URL, true }))
+	imageStorage := imageetcd.NewREST(etcdHelper)
+	imageRegistry := image.NewRegistry(imageStorage)
+
+	imageRepositoryStorage := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return openshift.dockerServer.URL, true }))
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
 
 	storage := map[string]apiserver.RESTStorage{
-		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd),
-		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
-		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
+		"images":                  imageStorage,
+		"imageRepositories":       imageRepositoryStorage,
+		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry),
+		"imageRepositoryTags":     imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry),
 	}
 
 	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")

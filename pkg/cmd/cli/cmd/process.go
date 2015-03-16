@@ -85,6 +85,10 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 
 			if len(storedTemplate) > 0 {
 				templateObj, err = client.Templates(namespace).Get(storedTemplate)
+				if err != nil {
+					checkErr(fmt.Errorf("Error retrieving template \"%s/%s\", please confirm it exists", namespace, storedTemplate))
+				}
+
 				version, kind, err := mapper.VersionAndKindForResource("template")
 				if mapping, err = mapper.RESTMapping(kind, version); err != nil {
 					checkErr(err)

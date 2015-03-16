@@ -90,9 +90,13 @@ func init() {
 			out.Tag = in.Tag
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
-				registry, namespace, name, tag, _ := image.SplitDockerPullSpec(in.DockerImageReference)
-				out.Registry = registry
-				out.ImageTag = image.JoinDockerPullSpec("", namespace, name, tag)
+				ref, err := image.ParseDockerImageReference(in.DockerImageReference)
+				if err != nil {
+					return err
+				}
+				out.Registry = ref.Registry
+				ref.Registry = ""
+				out.ImageTag = ref.String()
 			}
 			return nil
 		},
@@ -106,11 +110,12 @@ func init() {
 				return nil
 			}
 			if len(in.ImageTag) != 0 {
-				_, namespace, name, tag, err := image.SplitDockerPullSpec(in.ImageTag)
+				ref, err := image.ParseDockerImageReference(in.ImageTag)
 				if err != nil {
 					return err
 				}
-				out.DockerImageReference = image.JoinDockerPullSpec(in.Registry, namespace, name, tag)
+				ref.Registry = in.Registry
+				out.DockerImageReference = ref.String()
 			}
 			return nil
 		},

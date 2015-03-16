@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
@@ -17,13 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-)
-
-const (
-	unauthenticatedUsername = "system:anonymous"
-
-	authenticatedGroup   = "system:authenticated"
-	unauthenticatedGroup = "system:unauthenticated"
 )
 
 func (cfg Config) startMaster() error {
@@ -40,12 +34,13 @@ func (cfg Config) startMaster() error {
 	if cfg.StartKube {
 		cfg.MintSystemClientCert("kube-client")
 	}
-	glog.Infof("  Client certificates and .kubeconfig files generated in %v", cfg.CertDir)
+	glog.Infof("Client certificates and .kubeconfig files generated in %v", cfg.CertDir)
 
 	openshiftConfig, err := cfg.BuildOriginMasterConfig()
 	if err != nil {
 		return err
 	}
+
 	//	 must start policy caching immediately
 	openshiftConfig.RunPolicyCache()
 
@@ -54,7 +49,11 @@ func (cfg Config) startMaster() error {
 		return err
 	}
 
-	glog.Infof("  Nodes: %v", cfg.NodeList)
+	glog.Infof("Nodes: %v", cfg.NodeList)
+
+	if strings.Contains(openshiftConfig.MasterAddr, "127.0.0.1") {
+		glog.Infof("WARNING: Your server is being advertised only to the host - containers will not be able to communicate with the master without a proxy")
+	}
 
 	if cfg.StartKube {
 		kubeConfig, err := cfg.BuildKubernetesMasterConfig(openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())

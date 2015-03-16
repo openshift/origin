@@ -9,13 +9,22 @@ mkdir -p "${OS_ROOT}/_output"
 cd "${OS_ROOT}/_output"
 
 if [ -d etcd ]; then
-    cd etcd
-    git fetch origin
-else
-    git clone https://github.com/coreos/etcd.git
-    cd etcd
+    pushd etcd >/dev/null
+    ./build
+    popd >/dev/null
+    exit
 fi
 
-git checkout $(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json github.com/coreos/etcd/server)
-./build
+etcd_version=$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json \
+  github.com/coreos/etcd/server)
 
+mkdir -p etcd && cd etcd
+
+curl -s -L https://github.com/coreos/etcd/tarball/${etcd_version} | \
+  tar xz --strip-components 1 2>/dev/null
+
+if [ "$?" != "0" ]; then
+  echo "Failed to download coreos/etcd." && exit 1
+fi
+
+./build

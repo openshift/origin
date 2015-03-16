@@ -2,7 +2,9 @@ package image
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -15,10 +17,59 @@ type Registry interface {
 	GetImage(ctx kapi.Context, id string) (*api.Image, error)
 	// CreateImage creates a new image.
 	CreateImage(ctx kapi.Context, image *api.Image) error
-	// UpdateImage updates an image.
-	UpdateImage(ctx kapi.Context, image *api.Image) error
 	// DeleteImage deletes an image.
 	DeleteImage(ctx kapi.Context, id string) error
 	// WatchImages watches for new or deleted images.
 	WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+}
+
+// Storage is an interface for a standard REST Storage backend
+type Storage interface {
+	apiserver.RESTDeleter
+	apiserver.RESTLister
+	apiserver.RESTGetter
+	apiserver.ResourceWatcher
+
+	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
+}
+
+// storage puts strong typing around storage calls
+type storage struct {
+	Storage
+}
+
+// NewRegistry returns a new Registry interface for the given Storage. Any mismatched
+// types will panic.
+func NewRegistry(s Storage) Registry {
+	return &storage{s}
+}
+
+func (s *storage) ListImages(ctx kapi.Context, label labels.Selector) (*api.ImageList, error) {
+	obj, err := s.List(ctx, label, labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*api.ImageList), nil
+}
+
+func (s *storage) GetImage(ctx kapi.Context, imageID string) (*api.Image, error) {
+	obj, err := s.Get(ctx, imageID)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*api.Image), nil
+}
+
+func (s *storage) CreateImage(ctx kapi.Context, image *api.Image) error {
+	_, err := s.Create(ctx, image)
+	return err
+}
+
+func (s *storage) DeleteImage(ctx kapi.Context, imageID string) error {
+	_, err := s.Delete(ctx, imageID)
+	return err
+}
+
+func (s *storage) WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+	return s.Watch(ctx, label, field, resourceVersion)
 }

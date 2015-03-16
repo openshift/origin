@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -103,14 +102,7 @@ func NewDefaultConfig() *Config {
 	}
 
 	// TODO: allow DNS binding to be disabled.
-	dnsAddr := flagtypes.Addr{Value: config.BindAddr.Host, DefaultPort: 53}.Default()
-	if !cmdutil.TryListen(dnsAddr.URL.Host) {
-		original := dnsAddr.URL.Host
-		dnsAddr.DefaultPort = 8053
-		dnsAddr = dnsAddr.Default()
-		glog.Warningf("Unable to bind DNS as %s (you may need to run as root), using %s which will not resolve from all locations", original, dnsAddr.URL.Host)
-	}
-	config.DNSBindAddr = dnsAddr
+	config.DNSBindAddr = flagtypes.Addr{Value: config.BindAddr.Host, DefaultPort: 53}.Default()
 
 	config.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&config.ClientConfigLoadingRules, &clientcmd.ConfigOverrides{})
 
@@ -138,12 +130,16 @@ func (cfg Config) GetMasterAddress() (*url.URL, error) {
 	}
 
 	// use the default ip address for the system
-	addr, err := util.DefaultLocalIP4()
-	if err != nil {
+	addr := ""
+	if ip, err := util.DefaultLocalIP4(); err == nil {
+		addr = ip.String()
+	} else if err == util.ErrorNoDefaultIP {
+		addr = "127.0.0.1"
+	} else if err != nil {
 		return nil, fmt.Errorf("Unable to find a public IP address: %v", err)
 	}
 
-	masterAddr := scheme + "://" + net.JoinHostPort(addr.String(), strconv.Itoa(port))
+	masterAddr := scheme + "://" + net.JoinHostPort(addr, strconv.Itoa(port))
 	return url.Parse(masterAddr)
 }
 

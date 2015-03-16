@@ -213,6 +213,10 @@ func referencesByIndex(refs triggersByRef, legacy triggersByName) reposByIndex {
 func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (changed bool, errs errors.ValidationErrorList) {
 	template := dc.Template.ControllerTemplate.Template
 	for i, repo := range repos {
+		if len(repo.Status.DockerImageRepository) == 0 {
+			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, fmt.Sprintf("image repository %s/%s does not have a Docker image repository reference set and can't be used in a deployment config trigger", repo.Namespace, repo.Name)))
+			continue
+		}
 		params := dc.Triggers[i].ImageChangeParams
 
 		// lookup image id
@@ -221,17 +225,14 @@ func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (chan
 			// TODO: replace with "preferred tag" from repo
 			tag = "latest"
 		}
-		id, ok := repo.Tags[tag]
-		if !ok {
-			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, fmt.Sprintf("image repository %s/%s does not have tag %q", repo.Namespace, repo.Name, tag)))
+
+		// get the image ref from the repo's tag history
+		latest, err := imageapi.LatestTaggedImage(*repo, tag)
+		if err != nil {
+			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, err.Error()))
 			continue
 		}
-		if len(repo.Status.DockerImageRepository) == 0 {
-			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, fmt.Sprintf("image repository %s/%s does not have a Docker image repository reference set and can't be used in a deployment config trigger", repo.Namespace, repo.Name)))
-			continue
-		}
-		// TODO: this assumes that tag value is the image id
-		image := fmt.Sprintf("%s:%s", repo.Status.DockerImageRepository, id)
+		image := latest.DockerImageReference
 
 		// update containers
 		names := util.NewStringSet(params.ContainerNames...)

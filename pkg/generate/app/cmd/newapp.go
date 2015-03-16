@@ -70,9 +70,9 @@ func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
 	c.imageStreamResolver = app.ImageStreamResolver{
-		Client:     osclient,
-		Images:     osclient,
-		Namespaces: []string{originNamespace, "default"},
+		Client:            osclient,
+		ImageStreamImages: osclient,
+		Namespaces:        []string{originNamespace, "default"},
 	}
 }
 
@@ -402,16 +402,9 @@ func (s *simpleSearcher) Search(terms []string) ([]*app.ComponentMatch, error) {
 	if len(terms) == 0 {
 		return nil, fmt.Errorf("No search terms were specified.")
 	}
-	term := strings.ToLower(terms[0])
-	builder := ""
-	switch term {
-	case "jee":
-		builder = "openshift/wildfly-8-centos"
-	case "ruby":
-		builder = "openshift/ruby-20-centos7"
-	case "nodejs":
-		builder = "openshift/node-0-10-centos"
-	default:
+	term := terms[0]
+	builder := app.BuilderForPlatform(term)
+	if len(builder) == 0 {
 		return nil, fmt.Errorf("No matching image found for %s", term)
 	}
 	match, err := s.resolver.Resolve(builder)

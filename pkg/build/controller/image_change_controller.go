@@ -62,16 +62,17 @@ func (c *ImageChangeController) HandleImageRepo(imageRepo *imageapi.ImageReposit
 			if len(tag) == 0 {
 				tag = buildapi.DefaultImageTag
 			}
-			imageID, hasTag := imageRepo.Tags[tag]
-			if !hasTag {
+			latest, err := imageapi.LatestTaggedImage(*imageRepo, tag)
+			if err != nil {
+				glog.V(2).Info(err)
 				continue
 			}
 
 			// (must be different) to trigger a build
-			if icTrigger.LastTriggeredImageID != imageID {
-				imageSubstitutions[icTrigger.Image] = imageRepo.Status.DockerImageRepository + ":" + imageID
+			if icTrigger.LastTriggeredImageID != latest.Image {
+				imageSubstitutions[icTrigger.Image] = latest.DockerImageReference
 				shouldTriggerBuild = true
-				icTrigger.LastTriggeredImageID = imageID
+				icTrigger.LastTriggeredImageID = latest.Image
 			}
 		}
 

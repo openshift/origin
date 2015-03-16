@@ -6,6 +6,7 @@ Requires=network.target
 
 [Service]
 Type=notify
+TimeoutStartSec=300s
 EnvironmentFile=-/etc/sysconfig/openshift-master
 ExecStart=/usr/bin/openshift start $ROLE --images=${IMAGES} $OPTIONS
 WorkingDirectory=/var/lib/openshift/

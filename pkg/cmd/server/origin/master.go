@@ -3,11 +3,11 @@ package origin
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -18,6 +18,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -52,17 +53,20 @@ import (
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
 	"github.com/openshift/origin/pkg/dns"
-	imageetcd "github.com/openshift/origin/pkg/image/registry/etcd"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
+	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/accesstoken"
 	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/service"
@@ -75,7 +79,6 @@ import (
 	"github.com/openshift/origin/pkg/version"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -83,12 +86,15 @@ import (
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
 const (
 	OpenShiftAPIPrefix        = "/osapi"
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
+	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
@@ -182,19 +188,27 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 
 	buildEtcd := buildetcd.New(c.EtcdHelper)
-	imageEtcd := imageetcd.New(c.EtcdHelper, imageetcd.DefaultRegistryFunc(defaultRegistryFunc))
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
+	imageStorage := imageetcd.NewREST(c.EtcdHelper)
+	imageRegistry := image.NewRegistry(imageStorage)
+	imageRepositoryStorage := imagerepositoryetcd.NewREST(c.EtcdHelper, imagerepository.DefaultRegistryFunc(defaultRegistryFunc))
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
+	routeAllocator := c.RouteAllocator()
+
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
 			DCFn:   deployEtcd.GetDeploymentConfig,
-			IRFn:   imageEtcd.GetImageRepository,
-			LIRFn2: imageEtcd.ListImageRepositories,
+			IRFn:   imageRepositoryRegistry.GetImageRepository,
+			LIRFn2: imageRepositoryRegistry.ListImageRepositories,
 		},
 		Codec: latest.Codec,
 	}
@@ -212,10 +226,14 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
 		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
 
-		"images":                  image.NewREST(imageEtcd),
-		"imageRepositories":       imagerepository.NewREST(imageEtcd),
-		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageEtcd, imageEtcd),
-		"imageRepositoryTags":     imagerepositorytag.NewREST(imageEtcd, imageEtcd),
+		"images":                  imageStorage,
+		"imageStreams":            imageRepositoryStorage,
+		"imageStreamImages":       imageStreamImageStorage,
+		"imageStreamMappings":     imageRepositoryMappingStorage,
+		"imageStreamTags":         imageRepositoryTagStorage,
+		"imageRepositories":       imageRepositoryStorage,
+		"imageRepositoryMappings": imageRepositoryMappingStorage,
+		"imageRepositoryTags":     imageRepositoryTagStorage,
 
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
@@ -225,7 +243,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"templateConfigs": templateregistry.NewREST(),
 		"templates":       templateetcd.NewREST(c.EtcdHelper),
 
-		"routes": routeregistry.NewREST(routeEtcd),
+		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
 		"projects": projectregistry.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
 
@@ -411,35 +429,60 @@ func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
 // ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	registry := authorizationetcd.New(c.EtcdHelper)
-	ctx := kapi.WithNamespace(kapi.NewContext(), c.MasterAuthorizationNamespace)
 
-	if existing, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); err == nil || strings.Contains(err.Error(), " not found") {
-		if existing != nil && existing.Name == authorizationapi.PolicyName {
-			return
+	roleRegistry := roleregistry.NewVirtualRegistry(registry)
+	for _, role := range bootstrappolicy.GetBootstrapRoles(c.MasterAuthorizationNamespace, c.OpenshiftSharedResourcesNamespace) {
+		ctx := kapi.WithNamespace(kapi.NewContext(), role.Namespace)
+
+		if _, err := roleRegistry.GetRole(ctx, role.Name); kapierror.IsNotFound(err) {
+			if err := roleRegistry.CreateRole(ctx, &role); err != nil {
+				glog.Errorf("Error creating role: %#v due to %v\n", role, err)
+			}
+
+		} else if err != nil {
+			glog.Errorf("Error get role: %#v due to %v\n", role, err)
 		}
-
-		bootstrapGlobalPolicy := authorizer.GetBootstrapPolicy(c.MasterAuthorizationNamespace)
-		if err = registry.CreatePolicy(ctx, bootstrapGlobalPolicy); err != nil {
-			glog.Errorf("Error creating policy: %v due to %v\n", bootstrapGlobalPolicy, err)
-		}
-
-	} else {
-		glog.Errorf("Error getting policy: %v due to %v\n", authorizationapi.PolicyName, err)
 	}
 
-	if existing, err := registry.GetPolicyBinding(ctx, c.MasterAuthorizationNamespace); err == nil || strings.Contains(err.Error(), " not found") {
-		if existing != nil && existing.Name == c.MasterAuthorizationNamespace {
-			return
-		}
+	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(registry, registry, c.MasterAuthorizationNamespace)
+	for _, roleBinding := range bootstrappolicy.GetBootstrapRoleBindings(c.MasterAuthorizationNamespace, c.OpenshiftSharedResourcesNamespace) {
+		ctx := kapi.WithNamespace(kapi.NewContext(), roleBinding.Namespace)
 
-		bootstrapGlobalPolicyBinding := authorizer.GetBootstrapPolicyBinding(c.MasterAuthorizationNamespace)
-		if err = registry.CreatePolicyBinding(ctx, bootstrapGlobalPolicyBinding); err != nil {
-			glog.Errorf("Error creating policy: %v due to %v\n", bootstrapGlobalPolicyBinding, err)
-		}
+		if _, err := roleBindingRegistry.GetRoleBinding(ctx, roleBinding.Name); kapierror.IsNotFound(err) {
+			// if this is a binding for a non-master namespaced role.  That means that the policy binding must be provisioned
+			if roleBinding.RoleRef.Namespace != c.MasterAuthorizationNamespace {
+				policyBindingName := roleBinding.RoleRef.Namespace
+				if _, err := registry.GetPolicyBinding(ctx, policyBindingName); kapierror.IsNotFound(err) {
+					policyBinding := &authorizationapi.PolicyBinding{
+						ObjectMeta: kapi.ObjectMeta{
+							Namespace: roleBinding.Namespace,
+							Name:      policyBindingName,
+						},
 
-	} else {
-		glog.Errorf("Error getting policy: %v due to %v\n", c.MasterAuthorizationNamespace, err)
+						PolicyRef: kapi.ObjectReference{
+							Namespace: roleBinding.RoleRef.Namespace,
+							Name:      authorizationapi.PolicyName,
+						},
+					}
+
+					if err := registry.CreatePolicyBinding(ctx, policyBinding); err != nil {
+						glog.Errorf("Error creating policyBinding: %#v due to %v\n", policyBinding, err)
+					}
+
+				} else if err != nil {
+					glog.Errorf("Error getting policyBinding: %#v due to %v\n", policyBindingName, err)
+				}
+			}
+
+			if err := roleBindingRegistry.CreateRoleBinding(ctx, &roleBinding, true); err != nil {
+				glog.Errorf("Error creating roleBinding: %#v due to %v\n", roleBinding, err)
+			}
+
+		} else if err != nil {
+			glog.Errorf("Error getting roleBinding: %#v due to %v\n", roleBinding, err)
+		}
 	}
+
 }
 
 func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
@@ -577,6 +620,13 @@ func (c *MasterConfig) RunDNSServer() {
 	if err != nil {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
+
+	if _, port, err := net.SplitHostPort(c.DNSBindAddr); err == nil {
+		if len(port) != 0 && port != "53" {
+			glog.Warningf("Unable to bind DNS on port 53 (you may need to run as root), using %s which will not resolve from all locations", c.DNSBindAddr)
+		}
+	}
+
 	config.DnsAddr = c.DNSBindAddr
 	go func() {
 		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdHelper.Client.(*etcdclient.Client))
@@ -701,6 +751,26 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	controller.Run()
 }
 
+// RouteAllocator returns a route allocation controller.
+func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
+	factory := routeallocationcontroller.RouteAllocationControllerFactory{
+		OSClient:   c.OSClient,
+		KubeClient: c.KubeClient(),
+	}
+
+	subdomain := os.Getenv("OPENSHIFT_ROUTE_SUBDOMAIN")
+	if len(subdomain) == 0 {
+		subdomain = OpenShiftRouteSubdomain
+	}
+
+	plugin, err := routeplugin.NewSimpleAllocationPlugin(subdomain)
+	if err != nil {
+		glog.Fatalf("Route plugin initialization failed: %v", err)
+	}
+
+	return factory.Create(plugin)
+}
+
 // ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
 // regexes, or exits if it cannot.
 func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
@@ -771,7 +841,6 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 
 				ctx = kapi.WithNamespace(ctx, namespace)
 				contextMapper.Update(req, ctx)
-				glog.V(4).Infof("set namespace on context to %v", requestInfo.Namespace)
 			}
 		}
 

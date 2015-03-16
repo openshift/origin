@@ -4,7 +4,7 @@ IFS=$'\n\t'
 USERNAME="${1:-vagrant}"
 
 yum update -y
-yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg
+yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils
 
 if [[ ! -d /data/src/github.com/openshift/origin ]]; then
   mkdir -p /data/src/github.com/openshift/origin
@@ -18,6 +18,9 @@ function set_env {
     echo "export GOPATH=/data" >> $USER_DIR/.bash_profile
     echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/local/go/bin:\$GOPATH/bin:\$PATH" >> $USER_DIR/.bash_profile
     echo "cd \$GOPATH/src/github.com/openshift/origin" >> $USER_DIR/.bash_profile
+
+    echo "bind '\"\e[A\":history-search-backward'" >> $USER_DIR/.bashrc
+    echo "bind '\"\e[B\":history-search-forward'" >> $USER_DIR/.bashrc
   else
     echo "path variables for $USER_DIR already configured"
   fi

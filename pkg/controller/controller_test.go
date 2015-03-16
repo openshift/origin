@@ -10,16 +10,17 @@ import (
 
 func TestRetryController_handleOneRetryableError(t *testing.T) {
 	retried := false
+	retryErr := fmt.Errorf("retryable error")
 
 	controller := &RetryController{
 		Handle: func(obj interface{}) error {
-			return fmt.Errorf("retryable error")
-		},
-		ShouldRetry: func(interface{}, error) bool {
-			return true
+			return retryErr
 		},
 		RetryManager: &testRetryManager{
-			RetryFunc: func(resource interface{}) {
+			RetryFunc: func(resource interface{}, err error) {
+				if err != retryErr {
+					t.Fatalf("unexpected error: %v", err)
+				}
 				retried = true
 			},
 			ForgetFunc: func(resource interface{}) {
@@ -35,33 +36,6 @@ func TestRetryController_handleOneRetryableError(t *testing.T) {
 	}
 }
 
-func TestRetryController_handleOneFatalError(t *testing.T) {
-	forgotten := false
-
-	controller := &RetryController{
-		Handle: func(obj interface{}) error {
-			return fmt.Errorf("fatal error")
-		},
-		ShouldRetry: func(interface{}, error) bool {
-			return false
-		},
-		RetryManager: &testRetryManager{
-			RetryFunc: func(resource interface{}) {
-				t.Fatalf("unexpected call to retry %v", resource)
-			},
-			ForgetFunc: func(resource interface{}) {
-				forgotten = true
-			},
-		},
-	}
-
-	controller.handleOne(struct{}{})
-
-	if !forgotten {
-		t.Fatalf("expected to forget")
-	}
-}
-
 func TestRetryController_handleOneNoError(t *testing.T) {
 	forgotten := false
 
@@ -69,12 +43,8 @@ func TestRetryController_handleOneNoError(t *testing.T) {
 		Handle: func(obj interface{}) error {
 			return nil
 		},
-		ShouldRetry: func(interface{}, error) bool {
-			t.Fatalf("unexpected retry check")
-			return true
-		},
 		RetryManager: &testRetryManager{
-			RetryFunc: func(resource interface{}) {
+			RetryFunc: func(resource interface{}, err error) {
 				t.Fatalf("unexpected call to retry %v", resource)
 			},
 			ForgetFunc: func(resource interface{}) {
@@ -109,8 +79,13 @@ func TestQueueRetryManager_retries(t *testing.T) {
 		keyFunc: func(obj interface{}) (string, error) {
 			return obj.(testObj).id, nil
 		},
-		maxRetries: retries,
-		retries:    make(map[string]int),
+		retryFunc: func(obj interface{}, err error, count int) bool {
+			if count > 4 {
+				return false
+			}
+			return true
+		},
+		retries: make(map[string]int),
 	}
 
 	objects := []testObj{
@@ -122,7 +97,7 @@ func TestQueueRetryManager_retries(t *testing.T) {
 	// Retry one more than the max
 	for _, obj := range objects {
 		for i := 0; i < retries+1; i++ {
-			manager.Retry(obj)
+			manager.Retry(obj, nil)
 		}
 	}
 
@@ -154,10 +129,7 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 
 	controller := &RetryController{
 		Queue:        fifo,
-		RetryManager: NewQueueRetryManager(fifo, keyFunc, 1),
-		ShouldRetry: func(interface{}, error) bool {
-			return true
-		},
+		RetryManager: NewQueueRetryManager(fifo, keyFunc, func(_ interface{}, _ error, _ int) bool { return true }),
 		Handle: func(obj interface{}) error {
 			if e, a := 1, obj.(testObj).value; e != a {
 				t.Fatalf("expected to handle test value %d, got %d")
@@ -204,12 +176,12 @@ func (t *testFifo) Pop() interface{} {
 }
 
 type testRetryManager struct {
-	RetryFunc  func(resource interface{})
+	RetryFunc  func(resource interface{}, err error)
 	ForgetFunc func(resource interface{})
 }
 
-func (m *testRetryManager) Retry(resource interface{}) {
-	m.RetryFunc(resource)
+func (m *testRetryManager) Retry(resource interface{}, err error) {
+	m.RetryFunc(resource, err)
 }
 
 func (m *testRetryManager) Forget(resource interface{}) {

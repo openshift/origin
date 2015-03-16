@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"strings"
+
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kval "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -20,6 +22,10 @@ func ValidateRoute(route *routeapi.Route) errs.ValidationErrorList {
 		if !util.IsDNSSubdomain(route.Host) {
 			result = append(result, errs.NewFieldInvalid("host", route.Host, "Host must conform to DNS 952 subdomain conventions"))
 		}
+	}
+
+	if len(route.Path) > 0 && !strings.HasPrefix(route.Path, "/") {
+		result = append(result, errs.NewFieldInvalid("path", route.Path, "Path must begin with /"))
 	}
 
 	if len(route.ServiceName) == 0 {

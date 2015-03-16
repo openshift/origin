@@ -72,7 +72,8 @@ type MasterConfigParameters struct {
 	// APIClientCAs is used to verify client certificates presented for API auth
 	APIClientCAs *x509.CertPool
 
-	MasterAuthorizationNamespace string
+	MasterAuthorizationNamespace      string
+	OpenshiftSharedResourcesNamespace string
 
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string

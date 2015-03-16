@@ -24,6 +24,7 @@ func NewTestHttpService() *TestHttpService {
 		PodHttpAddr:      "0.0.0.0:8888",
 		PodHttpsAddr:     "0.0.0.0:8443",
 		PodWebSocketPath: "echo",
+		PodTestPath:      "test",
 		PodHttpsCert:     []byte(Example2Cert),
 		PodHttpsKey:      []byte(Example2Key),
 		PodHttpsCaCert:   []byte(ExampleCACert),
@@ -48,6 +49,7 @@ type TestHttpService struct {
 	PodHttpsKey      []byte
 	PodHttpsCaCert   []byte
 	PodWebSocketPath string
+	PodTestPath      string
 	EndpointChannel  chan string
 	RouteChannel     chan string
 
@@ -59,6 +61,8 @@ const (
 	HelloMaster = "Hello OpenShift!"
 	// HelloPod is the expected response to a call to PodHttpAddr (usually called through a route)
 	HelloPod = "Hello Pod!"
+	// HelloPod is the expected response to a call to PodHttpAddr (usually called through a route)
+	HelloPodPath = "Hello Pod Path!"
 	// HelloPodSecure is the expected response to a call to PodHttpsAddr (usually called through a route)
 	HelloPodSecure = "Hello Pod Secure!"
 )
@@ -71,6 +75,11 @@ func (s *TestHttpService) handleHelloMaster(w http.ResponseWriter, r *http.Reque
 // handleHelloPod handles calls to PodHttpAddr (usually called through a route)
 func (s *TestHttpService) handleHelloPod(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, HelloPod)
+}
+
+// handleHelloPodTest handles calls to PodHttpAddr (usually called through a route) with the /test/ path
+func (s *TestHttpService) handleHelloPodTest(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, HelloPodPath)
 }
 
 // handleHelloPodSecure handles calls to PodHttpsAddr (usually called through a route)
@@ -155,6 +164,7 @@ func (s *TestHttpService) startMaster() error {
 func (s *TestHttpService) startPod() error {
 	unsecurePodServer := http.NewServeMux()
 	unsecurePodServer.HandleFunc("/", s.handleHelloPod)
+	unsecurePodServer.HandleFunc("/"+s.PodTestPath, s.handleHelloPodTest)
 	unsecurePodServer.Handle("/"+s.PodWebSocketPath, websocket.Handler(s.handleWebSocket))
 
 	if err := s.startServing(s.PodHttpAddr, unsecurePodServer); err != nil {

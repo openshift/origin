@@ -6,9 +6,9 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// ImagesNamespacer has methods to work with Image resources in a namespace
-type ImagesNamespacer interface {
-	Images(namespace string) ImageInterface
+// ImagesInterfacer has methods to work with Image resources
+type ImagesInterfacer interface {
+	Images() ImageInterface
 }
 
 // ImageInterface exposes methods on Image resources.
@@ -19,17 +19,15 @@ type ImageInterface interface {
 	Delete(name string) error
 }
 
-// images implements ImagesNamespacer interface
+// images implements ImagesInterface.
 type images struct {
-	r  *Client
-	ns string
+	r *Client
 }
 
 // newImages returns an images
-func newImages(c *Client, namespace string) ImageInterface {
+func newImages(c *Client) ImageInterface {
 	return &images{
-		r:  c,
-		ns: namespace,
+		r: c,
 	}
 }
 
@@ -37,7 +35,6 @@ func newImages(c *Client, namespace string) ImageInterface {
 func (c *images) List(label, field labels.Selector) (result *imageapi.ImageList, err error) {
 	result = &imageapi.ImageList{}
 	err = c.r.Get().
-		Namespace(c.ns).
 		Resource("images").
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).
@@ -49,19 +46,19 @@ func (c *images) List(label, field labels.Selector) (result *imageapi.ImageList,
 // Get returns information about a particular image and error if one occurs.
 func (c *images) Get(name string) (result *imageapi.Image, err error) {
 	result = &imageapi.Image{}
-	err = c.r.Get().Namespace(c.ns).Resource("images").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("images").Name(name).Do().Into(result)
 	return
 }
 
 // Create creates a new image. Returns the server's representation of the image and error if one occurs.
 func (c *images) Create(image *imageapi.Image) (result *imageapi.Image, err error) {
 	result = &imageapi.Image{}
-	err = c.r.Post().Namespace(c.ns).Resource("images").Body(image).Do().Into(result)
+	err = c.r.Post().Resource("images").Body(image).Do().Into(result)
 	return
 }
 
 // Delete deletes an image, returns error if one occurs.
 func (c *images) Delete(name string) (err error) {
-	err = c.r.Delete().Namespace(c.ns).Resource("images").Name(name).Do().Error()
+	err = c.r.Delete().Resource("images").Name(name).Do().Error()
 	return
 }

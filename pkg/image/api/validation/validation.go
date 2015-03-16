@@ -2,6 +2,7 @@ package validation
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -14,14 +15,10 @@ func ValidateImage(image *api.Image) errors.ValidationErrorList {
 	if len(image.Name) == 0 {
 		result = append(result, errors.NewFieldRequired("name", image.Name))
 	}
-	if !util.IsDNSSubdomain(image.Namespace) {
-		result = append(result, errors.NewFieldInvalid("namespace", image.Namespace, ""))
-	}
 	if len(image.DockerImageReference) == 0 {
 		result = append(result, errors.NewFieldRequired("dockerImageReference", image.DockerImageReference))
 	} else {
-		_, _, _, _, err := api.SplitDockerPullSpec(image.DockerImageReference)
-		if err != nil {
+		if _, err := api.ParseDockerImageReference(image.DockerImageReference); err != nil {
 			result = append(result, errors.NewFieldInvalid("dockerImageReference", image.DockerImageReference, err.Error()))
 		}
 	}
@@ -43,11 +40,19 @@ func ValidateImageRepository(repo *api.ImageRepository) errors.ValidationErrorLi
 		result = append(result, errors.NewFieldInvalid("namespace", repo.Namespace, ""))
 	}
 	if len(repo.DockerImageRepository) != 0 {
-		_, _, _, _, err := api.SplitDockerPullSpec(repo.DockerImageRepository)
-		if err != nil {
+		if _, err := api.ParseDockerImageReference(repo.DockerImageRepository); err != nil {
 			result = append(result, errors.NewFieldInvalid("dockerImageRepository", repo.DockerImageRepository, err.Error()))
 		}
 	}
+
+	return result
+}
+
+func ValidateImageRepositoryUpdate(newRepo, oldRepo *api.ImageRepository) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
+
+	result = append(result, validation.ValidateObjectMetaUpdate(&oldRepo.ObjectMeta, &newRepo.ObjectMeta).Prefix("metadata")...)
+	result = append(result, ValidateImageRepository(newRepo)...)
 
 	return result
 }
@@ -60,8 +65,7 @@ func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.
 	hasName := len(mapping.Name) != 0
 	switch {
 	case hasRepository:
-		_, _, _, _, err := api.SplitDockerPullSpec(mapping.DockerImageRepository)
-		if err != nil {
+		if _, err := api.ParseDockerImageReference(mapping.DockerImageRepository); err != nil {
 			result = append(result, errors.NewFieldInvalid("dockerImageRepository", mapping.DockerImageRepository, err.Error()))
 		}
 	case hasName:
@@ -75,9 +79,6 @@ func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.
 	}
 	if len(mapping.Tag) == 0 {
 		result = append(result, errors.NewFieldRequired("tag", mapping.Tag))
-	}
-	if len(mapping.Image.Namespace) == 0 {
-		mapping.Image.Namespace = mapping.Namespace
 	}
 	if errs := ValidateImage(&mapping.Image).Prefix("image"); len(errs) != 0 {
 		result = append(result, errs...)

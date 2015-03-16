@@ -152,9 +152,9 @@ func newImageResolver(namespace string, osClient osclient.Interface, dockerClien
 		}
 		namespaces = append(namespaces, "default")
 		imageStreamResolver := &genapp.ImageStreamResolver{
-			Client:     osClient,
-			Images:     osClient,
-			Namespaces: namespaces,
+			Client:            osClient,
+			ImageStreamImages: osClient,
+			Namespaces:        namespaces,
 		}
 		resolver = append(resolver, genapp.WeightedResolver{imageStreamResolver, 0.0})
 	}

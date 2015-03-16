@@ -201,7 +201,7 @@ type ImageDescriber struct {
 }
 
 func (d *ImageDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Images(namespace)
+	c := d.Images()
 	image, err := c.Get(name)
 	if err != nil {
 		return "", err
