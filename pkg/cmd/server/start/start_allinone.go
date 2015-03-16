@@ -47,8 +47,9 @@ Note: starting OpenShift without passing the --master address will attempt to fi
 address that will be visible inside running Docker containers. This is not always successful,
 so if you have problems tell OpenShift what public address it will be via --master=<ip>.
 
-You may also pass --etcd=<address> to connect to an external etcd server instead of running an
-integrated instance or --kubeconfig=<path> to connect to an existing Kubernetes cluster.
+You may also pass --etcd=<address> to connect to an external etcd server.
+
+You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.
 `
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
@@ -79,9 +80,9 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 
 	flags := cmd.Flags()
 
-	flags.BoolVar(&options.WriteConfigOnly, "write-config", false, "Indicates that the command should build the config that would be used to start OpenShift and do nothing else.")
-	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Indicates that the command use the config file from a certain location.  If this is specified, all other options are ignored except --write-config.")
-	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Indicates that the command use the config file from a certain location.  If this is specified, all other options are ignored except --write-config.")
+	flags.BoolVar(&options.WriteConfigOnly, "write-config", false, "Indicates that the command should build the configuration from command-line arguments, write it to the locations specified by --master-config and --node-config, and exit.")
+	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
+	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
 
 	masterArgs, nodeArgs, bindAddrArg, imageFormatArgs, kubeConnectionArgs, certArgs := GetAllInOneArgs()
 	options.MasterArgs, options.NodeArgs = masterArgs, nodeArgs

@@ -56,8 +56,9 @@ following roles:
       Launches the server and control plane for OpenShift. You may pass a list of the node
       hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
 
-You may also pass --etcd=<address> to connect to an external etcd server instead of running an
-integrated instance or --kubeconfig=<path> to connect to an existing Kubernetes cluster.
+You may also pass --etcd=<address> to connect to an external etcd server.
+
+You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.
 `
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
@@ -89,8 +90,8 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 
 	flags := cmd.Flags()
 
-	flags.BoolVar(&options.WriteConfigOnly, "write-config", false, "Indicates that the command should build the config that would be used to start OpenShift and do nothing else.")
-	flags.StringVar(&options.ConfigFile, "config", "", "Indicates that the command use the config file from a certain location.  If this is specified, all other options are ignored except --write-config.")
+	flags.BoolVar(&options.WriteConfigOnly, "write-config", false, "Indicates that the command should build the configuration from command-line arguments, write it to the location specified by --config, and exit.")
+	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from, or write to (when used with --write-config). When running from a configuration file, all other command-line arguments are ignored.")
 
 	options.MasterArgs = NewDefaultMasterArgs()
 	// make sure that KubeConnectionArgs and MasterArgs use the same CertArgs for this command
