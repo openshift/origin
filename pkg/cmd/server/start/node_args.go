@@ -5,8 +5,10 @@ import (
 	"net"
 	"net/url"
 	"os/exec"
+	"strconv"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -77,7 +79,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		NodeName: args.NodeName,
 
 		ServingInfo: configapi.ServingInfo{
-			BindAddress: args.BindAddrArg.BindAddr.URL.Host,
+			BindAddress: net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(ports.KubeletPort)),
 			ServerCert:  certs.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName),
 		},
 

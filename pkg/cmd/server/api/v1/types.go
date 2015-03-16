@@ -61,13 +61,17 @@ type OpenShiftMasterConfig struct {
 	// MasterClients holds all the client connection information for controllers and other system components
 	MasterClients MasterClients `json:"masterClients"`
 
+	ImageConfig ImageConfig `json:"imageConfig"`
+
 	// MasterAuthorizationNamespace is the global namespace for Policy
 	MasterAuthorizationNamespace string `json:"masterAuthorizationNamespace"`
 	// OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)
 	OpenShiftSharedResourcesNamespace string `json:"openshiftSharedResourcesNamespace"`
+}
 
-	ImageFormat     string `json:"imageFormat"`
-	UseLatestImages bool   `json:"useLatestImages"`
+type ImageConfig struct {
+	Format string `json:"format"`
+	Latest bool   `json:"latest"`
 }
 
 type RemoteConnectionInfo struct {

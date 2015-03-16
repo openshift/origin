@@ -119,8 +119,8 @@ func BuildMasterConfig(options configapi.OpenShiftMasterConfig) (*MasterConfig, 
 	}
 
 	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = options.ImageFormat
-	imageTemplate.Latest = options.UseLatestImages
+	imageTemplate.Format = options.ImageConfig.Format
+	imageTemplate.Latest = options.ImageConfig.Latest
 
 	policyCache := newPolicyCache(etcdHelper)
 	requestContextMapper := kapi.NewRequestContextMapper()

@@ -14,7 +14,7 @@ import (
 // through Kubernetes. All fields are required.
 type NodeConfig struct {
 	// The address to bind to
-	BindHost string
+	BindAddress string
 	// The name of this node that will be used to identify the node in the master.
 	// This value must match the value provided to the master on startup.
 	NodeHost string
@@ -54,14 +54,9 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, err
 	}
 
-	host, _, err := net.SplitHostPort(options.ServingInfo.BindAddress)
-	if err != nil {
-		return nil, err
-	}
-
 	config := &NodeConfig{
-		NodeHost: options.NodeName,
-		BindHost: host,
+		NodeHost:    options.NodeName,
+		BindAddress: options.ServingInfo.BindAddress,
 
 		ClusterDomain: options.DNSDomain,
 		ClusterDNS:    net.ParseIP(options.DNSAddress),

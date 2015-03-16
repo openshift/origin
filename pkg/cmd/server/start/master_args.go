@@ -183,8 +183,10 @@ func (args MasterArgs) BuildSerializeableOpenShiftMasterConfig() (*configapi.Ope
 		MasterAuthorizationNamespace:      "master",
 		OpenShiftSharedResourcesNamespace: "openshift",
 
-		ImageFormat:     args.ImageFormatArgs.ImageTemplate.Format,
-		UseLatestImages: args.ImageFormatArgs.ImageTemplate.Latest,
+		ImageConfig: configapi.ImageConfig{
+			Format: args.ImageFormatArgs.ImageTemplate.Format,
+			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
+		},
 	}
 
 	return config, nil
