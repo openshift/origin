@@ -117,9 +117,9 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 // ImageChangeControllerFactory can create an ImageChangeController which obtains ImageRepositories
 // from a queue populated from a watch of all ImageRepositories.
 type ImageChangeControllerFactory struct {
-	Client             osclient.Interface
-	BuildCreator       buildclient.BuildCreator
-	BuildConfigUpdater buildclient.BuildConfigUpdater
+	Client                  osclient.Interface
+	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+	BuildConfigUpdater      buildclient.BuildConfigUpdater
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -134,10 +134,10 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store, 2*time.Minute).Run()
 
 	imageChangeController := &buildcontroller.ImageChangeController{
-		BuildConfigStore:   store,
-		BuildConfigUpdater: factory.BuildConfigUpdater,
-		BuildCreator:       factory.BuildCreator,
-		Stop:               factory.Stop,
+		BuildConfigStore:        store,
+		BuildConfigUpdater:      factory.BuildConfigUpdater,
+		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+		Stop: factory.Stop,
 	}
 
 	return &controller.RetryController{

@@ -141,7 +141,7 @@ func mockBuildPodController(build *buildapi.Build) *BuildPodController {
 
 func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "pod-name"},
+		ObjectMeta: kapi.ObjectMeta{Name: "name"},
 		Status: kapi.PodStatus{
 			Phase: status,
 			Info: kapi.PodInfo{

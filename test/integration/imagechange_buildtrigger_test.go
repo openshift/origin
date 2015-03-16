@@ -87,7 +87,7 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 	// the first tag did not have an image id, so the last trigger field is the pull spec
 	if updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID != "registry:8080/openshift/test-image-trigger:latest" {
-		t.Errorf("Expected imageID equal to pull spec, got %s", updatedConfig.Triggers[0].ImageChange)
+		t.Errorf("Expected imageID equal to pull spec, got %#v", updatedConfig.Triggers[0].ImageChange)
 	}
 
 	// trigger a build by posting a new image
@@ -247,6 +247,7 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
 	}
 
+	// wait for build config to be updated
 	<-watch2.ResultChan()
 	updatedConfig, err = openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
 	if err != nil {

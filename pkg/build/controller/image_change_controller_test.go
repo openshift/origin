@@ -2,12 +2,14 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildtest "github.com/openshift/origin/pkg/build/controller/test"
+	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -18,16 +20,6 @@ type mockBuildConfigUpdater struct {
 
 func (m *mockBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 	m.buildcfg = buildcfg
-	return m.err
-}
-
-type mockBuildCreator struct {
-	build *buildapi.Build
-	err   error
-}
-
-func (m *mockBuildCreator) Create(namespace string, build *buildapi.Build) error {
-	m.build = build
 	return m.err
 }
 
@@ -97,11 +89,48 @@ func mockImageRepo(repoName, dockerImageRepo string, tags map[string]string) *im
 	}
 }
 
-func mockImageChangeController(buildcfg *buildapi.BuildConfig) *ImageChangeController {
+type buildConfigInstantiator struct {
+	generator buildgenerator.BuildGenerator
+	name      string
+	newBuild  *buildapi.Build
+	err       error
+}
+
+func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	i.name = request.Name
+	return i.generator.Instantiate(kapi.WithNamespace(kapi.NewContext(), namespace), request)
+}
+
+func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imagerepo *imageapi.ImageRepository) *buildConfigInstantiator {
+	instantiator := &buildConfigInstantiator{}
+	generator := buildgenerator.BuildGenerator{
+		Client: buildgenerator.Client{
+			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return buildcfg, nil
+			},
+			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+				return nil
+			},
+			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+				instantiator.newBuild = build
+				return instantiator.err
+			},
+			GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+				return instantiator.newBuild, nil
+			},
+			GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+				return imagerepo, nil
+			},
+		}}
+	instantiator.generator = generator
+	return instantiator
+}
+
+func mockImageChangeController(buildcfg *buildapi.BuildConfig, imagerepo *imageapi.ImageRepository) *ImageChangeController {
 	return &ImageChangeController{
-		BuildConfigStore:   buildtest.NewFakeBuildConfigStore(buildcfg),
-		BuildCreator:       &mockBuildCreator{},
-		BuildConfigUpdater: &mockBuildConfigUpdater{},
+		BuildConfigStore:        buildtest.NewFakeBuildConfigStore(buildcfg),
+		BuildConfigInstantiator: mockBuildConfigInstantiator(buildcfg, imagerepo),
+		BuildConfigUpdater:      &mockBuildConfigUpdater{},
 	}
 }
 
@@ -109,25 +138,26 @@ func TestNewImageID(t *testing.T) {
 	// valid configuration, new build should be triggered.
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	imagerepo := mockImageRepo("testImageRepo", "registry.com/namespace/imagename", map[string]string{"testTag": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build == nil {
-		t.Fatal("Expected new build when new image was created!")
+
+	if len(bcInstantiator.name) == 0 {
+		t.Error("Expected build generation when new image was created!")
 	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
+	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.Image, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
-	if buildConfigUpdater.buildcfg == nil {
-		t.Fatal("Expected buildConfig update when new image was created!")
+	if bcUpdater.buildcfg == nil {
+		t.Fatalf("Expected buildConfig update when new image was created!")
 	}
-	if buildConfigUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID != "newImageID123" {
-		t.Errorf("Expected imageID newImageID123, got %s", buildConfigUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID)
+	if actual, expected := bcUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID, "newImageID123"; actual != expected {
+		t.Errorf("Expected imageID %s, got %s", expected, actual)
 	}
 }
 
@@ -135,25 +165,25 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 	// valid configuration using default tag, new build should be triggered.
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "")
 	imagerepo := mockImageRepo("testImageRepo", "registry.com/namespace/imagename", map[string]string{buildapi.DefaultImageTag: "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build == nil {
-		t.Fatal("Expected new build when new image was created!")
+	if len(bcInstantiator.name) == 0 {
+		t.Error("Expected build generation when new image was created!")
 	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
+	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.Image, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
-	if buildConfigUpdater.buildcfg == nil {
+	if bcUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
 	}
-	if buildConfigUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID != "newImageID123" {
-		t.Errorf("Expected imageID newImageID123, got %s", buildConfigUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID)
+	if actual, expected := bcUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID, "newImageID123"; actual != expected {
+		t.Errorf("Expected imageID %s, got %s", expected, actual)
 	}
 }
 
@@ -162,18 +192,18 @@ func TestNonExistentImageRepository(t *testing.T) {
 	// trigger a build here.
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	imagerepo := mockImageRepo("otherImageRepo", "registry.com/namespace/imagename", map[string]string{"testTag": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build != nil {
-		t.Error("New build created when a different repository was updated!")
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when a different repository was updated!")
 	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
 	}
 }
@@ -182,18 +212,18 @@ func TestNewImageDifferentTagUpdate(t *testing.T) {
 	// this buildconfig references a different tag than the one that will be updated
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	imagerepo := mockImageRepo("testImageRepo", "registry.com/namespace/imagename", map[string]string{"otherTag": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build != nil {
-		t.Error("New build created when a different repository was updated!")
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when a different repository was updated!")
 	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
 	}
 }
@@ -204,18 +234,18 @@ func TestNewImageDifferentTagUpdate2(t *testing.T) {
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	buildcfg.Triggers[0].ImageChange.LastTriggeredImageID = "testTagID123"
 	imagerepo := mockImageRepo("testImageRepo", "registry.com/namespace/imagename", map[string]string{"otherTag": "newImageID123", "testTag": "testTagID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build != nil {
-		t.Error("New build created when a different repository was updated!")
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when a different repository was updated!")
 	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
 	}
 }
@@ -224,18 +254,18 @@ func TestNewDifferentImageUpdate(t *testing.T) {
 	// this buildconfig references a different image than the one that will be updated
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename1", "registry.com/namespace/imagename1", "testImageRepo1", "testTag1")
 	imagerepo := mockImageRepo("testImageRepo2", "registry.com/namespace/imagename2", map[string]string{"testTag2": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build != nil {
-		t.Error("New build created when a different repository was updated!")
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when a different repository was updated!")
 	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different repository was updated!")
 	}
 }
@@ -245,26 +275,22 @@ func TestMultipleTriggers(t *testing.T) {
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename1", "registry.com/namespace/imagename1", "testImageRepo1", "testTag1")
 	appendTrigger(buildcfg, "registry.com/namespace/imagename2", "testImageRepo2", "testTag2")
 	imagerepo := mockImageRepo("testImageRepo2", "registry.com/namespace/imagename2", map[string]string{"testTag2": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build == nil {
-		t.Fatal("Expected new build when new image was created!")
+	if len(bcInstantiator.name) == 0 {
+		t.Error("Expected build generation when new image was created!")
 	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename1" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename1", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
-	}
-
-	if buildConfigUpdater.buildcfg == nil {
+	if bcUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
 	}
-	if buildConfigUpdater.buildcfg.Triggers[1].ImageChange.LastTriggeredImageID != "newImageID123" {
-		t.Errorf("Expected imageID newImageID123, got %s", buildConfigUpdater.buildcfg.Triggers[1].ImageChange.LastTriggeredImageID)
+	if actual, expected := bcUpdater.buildcfg.Triggers[1].ImageChange.LastTriggeredImageID, "newImageID123"; actual != expected {
+		t.Errorf("Expected imageID %s, got %s", expected, actual)
 	}
 }
 
@@ -273,18 +299,18 @@ func TestBuildConfigWithDifferentTriggerType(t *testing.T) {
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename1", "", "", "")
 	buildcfg.Triggers[0].Type = buildapi.GenericWebHookBuildTriggerType
 	imagerepo := mockImageRepo("testImageRepo2", "registry.com/namespace/imagename2", map[string]string{"testTag2": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build != nil {
-		t.Error("New build created when a different trigger type was defined!")
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when a different repository was updated!")
 	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when a different trigger was defined!")
 	}
 }
@@ -295,67 +321,58 @@ func TestNoImageIDChange(t *testing.T) {
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	buildcfg.Triggers[0].ImageChange.LastTriggeredImageID = "imageID123"
 	imagerepo := mockImageRepo("testImageRepo", "registry.com/namespace/imagename", map[string]string{"testTag": "imageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build != nil {
-		t.Error("New build created when no change happened!")
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when no change happened!")
 	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when no change happened!")
 	}
 }
 
-func TestBuildCreateError(t *testing.T) {
+func TestBuildConfigInstantiatorError(t *testing.T) {
 	// valid configuration, but build creation fails, in that situation the buildconfig should not be updated
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	imagerepo := mockImageRepo("testImageRepo", "registry.com/namespace/imagename", map[string]string{"testTag": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildCreator.err = fmt.Errorf("error")
-	err := controller.HandleImageRepo(imagerepo)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcInstantiator.err = fmt.Errorf("instantiating error")
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
-	if err == nil {
+	err := controller.HandleImageRepo(imagerepo)
+	if err == nil || !strings.Contains(err.Error(), "instantiating error") {
 		t.Error("Expected error from HandleImageRepo")
 	}
-	if _, ok := err.(ImageChangeControllerFatalError); ok {
-		t.Error("Expected retryable error from HandleImageRepo")
+	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.Image, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
-	if buildCreator.build == nil {
-		t.Fatal("Expected new build when new image was created!")
-	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
-	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Fatal("Expected no buildConfig update on BuildCreate error!")
 	}
 }
 
-func TestBuildUpdateError(t *testing.T) {
+func TestBuildConfigUpdateError(t *testing.T) {
 	// valid configuration, but build creation fails, in that situation the buildconfig should not be updated
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	imagerepo := mockImageRepo("testImageRepo", "registry.com/namespace/imagename", map[string]string{"testTag": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
-	buildConfigUpdater.err = fmt.Errorf("error")
-	err := controller.HandleImageRepo(imagerepo)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater.err = fmt.Errorf("error")
 
+	err := controller.HandleImageRepo(imagerepo)
+	if len(bcInstantiator.name) == 0 {
+		t.Error("Expected build generation when new image was created!")
+	}
 	if _, ok := err.(ImageChangeControllerFatalError); !ok {
 		t.Error("Expected fatal error from HandleImageRepo")
-	}
-	if buildCreator.build == nil {
-		t.Fatal("Expected new build when new image was created!")
-	}
-	if buildCreator.build.Parameters.Strategy.DockerStrategy.Image != "registry.com/namespace/imagename:newImageID123" {
-		t.Errorf("Image substitutions not properly setup for new build.  Expected %s, got %s |", "registry.com/namespace/imagename:newImageID123", buildCreator.build.Parameters.Strategy.DockerStrategy.Image)
 	}
 }
 
@@ -363,18 +380,18 @@ func TestNewImageIDNoDockerRepo(t *testing.T) {
 	// No docker repository associated with the imagerepo, so no build can be created
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageRepo", "testTag")
 	imagerepo := mockImageRepo("testImageRepo", "", map[string]string{"testTag": "newImageID123"})
-	controller := mockImageChangeController(buildcfg)
-	err := controller.HandleImageRepo(imagerepo)
-	buildCreator := controller.BuildCreator.(*mockBuildCreator)
-	buildConfigUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	controller := mockImageChangeController(buildcfg, imagerepo)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 
+	err := controller.HandleImageRepo(imagerepo)
 	if err != nil {
 		t.Errorf("Unexpected error %v from HandleImageRepo", err)
 	}
-	if buildCreator.build != nil {
-		t.Error("New build created when no change happened!")
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when no change happened!")
 	}
-	if buildConfigUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil {
 		t.Error("BuildConfig was updated when no change happened!")
 	}
 }

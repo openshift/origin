@@ -44,3 +44,8 @@ func (c *FakeBuilds) Watch(label labels.Selector, field fields.Selector, resourc
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-builds"})
 	return nil, nil
 }
+
+func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "clone-build"})
+	return nil, nil
+}

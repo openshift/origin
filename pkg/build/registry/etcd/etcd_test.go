@@ -294,7 +294,7 @@ func TestEtcdListBuilds(t *testing.T) {
 func TestEtcdWatchBuilds(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := fields.SelectorFromSet(fields.Set{"name": "foo", "status": string(api.BuildStatusRunning), "podName": "pod-foo"})
+	filterFields := fields.SelectorFromSet(fields.Set{"name": "foo", "status": string(api.BuildStatusRunning), "podName": "foo"})
 
 	watching, err := registry.WatchBuilds(kapi.NewContext(), labels.Everything(), filterFields, "1")
 	if err != nil {

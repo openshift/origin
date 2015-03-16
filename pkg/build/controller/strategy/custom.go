@@ -45,17 +45,11 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		containerEnv = append(containerEnv, kapi.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
 	}
 
-	podLabels := make(map[string]string)
-	for k, v := range build.Labels {
-		podLabels[k] = v
-	}
-	podLabels[buildapi.BuildLabel] = build.Name
-
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
-			Labels:    podLabels,
+			Labels:    getPodLabels(build),
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{

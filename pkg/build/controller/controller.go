@@ -18,10 +18,9 @@ import (
 
 // BuildController watches build resources and manages their state
 type BuildController struct {
-	BuildUpdater  buildclient.BuildUpdater
-	PodManager    podManager
-	BuildStrategy BuildStrategy
-
+	BuildUpdater          buildclient.BuildUpdater
+	PodManager            podManager
+	BuildStrategy         BuildStrategy
 	ImageRepositoryClient imageRepositoryClient
 }
 

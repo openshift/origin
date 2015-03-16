@@ -386,3 +386,12 @@ type BuildLog struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
 }
+
+// BuildRequest is the resource used to pass parameters to build generator
+type BuildRequest struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// Revision is the information from the source for a specific repo snapshot.
+	Revision *SourceRevision `json:"revision,omitempty"`
+}

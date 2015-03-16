@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -89,8 +89,10 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 
 			// Create a new build with the same configuration.
 			if cmdutil.GetFlagBool(cmd, "restart") {
-				newBuild := util.GenerateBuildFromBuild(build)
-				newBuild, err = buildClient.Create(newBuild)
+				request := &buildapi.BuildRequest{
+					ObjectMeta: kapi.ObjectMeta{Name: build.Name},
+				}
+				newBuild, err := client.Builds(namespace).Clone(request)
 				checkErr(err)
 				glog.V(2).Infof("Restarted build %s.", buildName)
 				fmt.Fprintf(out, "%s\n", newBuild.Name)

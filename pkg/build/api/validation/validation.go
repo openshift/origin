@@ -51,6 +51,17 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ValidationErrorList 
 	return allErrs
 }
 
+func ValidateBuildRequest(request *buildapi.BuildRequest) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if len(request.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
+	}
+	if request.Revision != nil {
+		allErrs = append(allErrs, validateRevision(request.Revision).Prefix("revision")...)
+	}
+	return allErrs
+}
+
 func validateBuildParameters(params *buildapi.BuildParameters) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	isCustomBuild := params.Strategy.Type == buildapi.CustomBuildStrategyType

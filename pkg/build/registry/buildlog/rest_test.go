@@ -17,15 +17,15 @@ type podControl struct{}
 func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
 	pod := &kapi.Pod{}
 	switch podName {
-	case "pod-pending":
+	case "pending":
 		pod = mockPod(kapi.PodPending)
-	case "pod-running":
+	case "running":
 		pod = mockPod(kapi.PodRunning)
-	case "pod-succeeded":
+	case "succeeded":
 		pod = mockPod(kapi.PodSucceeded)
-	case "pod-failed":
+	case "failed":
 		pod = mockPod(kapi.PodFailed)
-	case "pod-unknown":
+	case "unknown":
 		pod = mockPod(kapi.PodUnknown)
 	}
 	return pod, nil
@@ -37,11 +37,11 @@ func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
-		api.BuildStatusComplete: fmt.Sprintf("foo-host:%d/containerLogs/%s/pod-running/foo-container",
+		api.BuildStatusComplete: fmt.Sprintf("foo-host:%d/containerLogs/%s/running/foo-container",
 			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusFailed: fmt.Sprintf("foo-host:%d/containerLogs/%s/pod-running/foo-container",
+		api.BuildStatusFailed: fmt.Sprintf("foo-host:%d/containerLogs/%s/running/foo-container",
 			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusRunning: fmt.Sprintf("foo-host:%d/containerLogs/%s/pod-running/foo-container?follow=1",
+		api.BuildStatusRunning: fmt.Sprintf("foo-host:%d/containerLogs/%s/running/foo-container?follow=1",
 			kubernetes.NodePort, kapi.NamespaceDefault),
 		api.BuildStatusNew:       "",
 		api.BuildStatusPending:   "",

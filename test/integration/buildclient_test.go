@@ -23,6 +23,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
@@ -194,10 +195,24 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			return "registry:3000", true
 		}),
 	)
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
+
+	buildGenerator := &buildgenerator.BuildGenerator{
+		Client: buildgenerator.Client{
+			GetBuildConfigFunc:     buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc:  buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:           buildEtcd.GetBuild,
+			CreateBuildFunc:        buildEtcd.CreateBuild,
+			GetImageRepositoryFunc: imageRepositoryRegistry.GetImageRepository,
+		},
+	}
+	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	storage := map[string]apiserver.RESTStorage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
+		"builds/clone":             buildClone,
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs/instantiate": buildConfigInstantiate,
 		"imageRepositories":        imageRepositoryStorage,
 		"imageRepositories/status": imageRepositoryStatus,
 	}
@@ -225,7 +240,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
 	bcClient := buildclient.NewOSClientBuildConfigClient(osClient)
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(bcClient, bcClient, buildclient.NewOSClientBuildClient(osClient),
+		webhook.NewController(bcClient, buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
 			osClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter), map[string]webhook.Plugin{
 				"github": github.New(),
 			})))

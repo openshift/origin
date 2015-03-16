@@ -8,9 +8,8 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 )
 
@@ -22,16 +21,15 @@ type Plugin interface {
 	// - newly created build object or nil if default is to be created
 	// - information whether to trigger the build itself
 	// - eventual error.
-	Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, bool, error)
+	Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, bool, error)
 }
 
 // controller used for processing webhook requests.
 type controller struct {
-	buildCreator       buildclient.BuildCreator
-	buildConfigGetter  buildclient.BuildConfigGetter
-	buildConfigUpdater buildclient.BuildConfigUpdater
-	imageRepoGetter    osclient.ImageRepositoryNamespaceGetter
-	plugins            map[string]Plugin
+	buildConfigInstantiator buildclient.BuildConfigInstantiator
+	buildConfigGetter       buildclient.BuildConfigGetter
+	imageRepoGetter         osclient.ImageRepositoryNamespaceGetter
+	plugins                 map[string]Plugin
 }
 
 // urlVars holds parsed URL parts.
@@ -44,14 +42,13 @@ type urlVars struct {
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
-func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildConfigUpdater buildclient.BuildConfigUpdater,
-	buildCreator buildclient.BuildCreator, imageRepoGetter osclient.ImageRepositoryNamespaceGetter, plugins map[string]Plugin) http.Handler {
+func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildConfigInstantiator buildclient.BuildConfigInstantiator,
+	imageRepoGetter osclient.ImageRepositoryNamespaceGetter, plugins map[string]Plugin) http.Handler {
 	return &controller{
-		buildConfigGetter:  buildConfigGetter,
-		buildConfigUpdater: buildConfigUpdater,
-		buildCreator:       buildCreator,
-		imageRepoGetter:    imageRepoGetter,
-		plugins:            plugins,
+		buildConfigGetter:       buildConfigGetter,
+		buildConfigInstantiator: buildConfigInstantiator,
+		imageRepoGetter:         imageRepoGetter,
+		plugins:                 plugins,
 	}
 }
 
@@ -86,17 +83,12 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !proceed {
 		return
 	}
-	build, err := buildutil.GenerateBuildWithImageTag(buildCfg, revision, c.imageRepoGetter)
-	if err != nil {
+	request := &buildapi.BuildRequest{
+		ObjectMeta: kapi.ObjectMeta{Name: buildCfg.Name},
+		Revision:   revision,
+	}
+	if _, err := c.buildConfigInstantiator.Instantiate(uv.namespace, request); err != nil {
 		glog.V(4).Infof("Failed generating new build: %v", err)
-		badRequest(w, err.Error())
-		return
-	}
-	if err := c.buildCreator.Create(uv.namespace, build); err != nil {
-		glog.V(4).Infof("Failed creating new build: %v", err)
-		badRequest(w, err.Error())
-	}
-	if err := c.buildConfigUpdater.Update(buildCfg); err != nil {
 		badRequest(w, err.Error())
 	}
 }
