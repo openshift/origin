@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -146,7 +145,7 @@ func (c *NodeConfig) RunKubelet() {
 	handler := kubelet.NewServer(k, true)
 
 	server := &http.Server{
-		Addr:           net.JoinHostPort(c.BindHost, strconv.Itoa(NodePort)),
+		Addr:           c.BindAddress,
 		Handler:        &handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
@@ -154,7 +153,7 @@ func (c *NodeConfig) RunKubelet() {
 	}
 
 	go util.Forever(func() {
-		glog.Infof("Started Kubelet for node %s, server at %s:%d", c.NodeHost, c.BindHost, NodePort)
+		glog.Infof("Started Kubelet for node %s, server at %s", c.NodeHost, c.BindAddress)
 		if clusterDNS != nil {
 			glog.Infof("  Kubelet is setting %s as a DNS nameserver for domain %q", clusterDNS, c.ClusterDomain)
 		}
@@ -205,9 +204,13 @@ func (c *NodeConfig) RunProxy() {
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
 
-	ip := net.ParseIP(c.BindHost)
+	host, _, err := net.SplitHostPort(c.BindAddress)
+	if err != nil {
+		glog.Fatalf("The provided value to bind to must be an ip:port %q", c.BindAddress)
+	}
+	ip := net.ParseIP(host)
 	if ip == nil {
-		glog.Fatalf("The provided value to bind to must be an IP: %q", c.BindHost)
+		glog.Fatalf("The provided value to bind to must be an ip:port: %q", c.BindAddress)
 	}
 
 	protocol := iptables.ProtocolIpv4
@@ -223,5 +226,5 @@ func (c *NodeConfig) RunProxy() {
 	}
 	serviceConfig.RegisterHandler(proxier)
 
-	glog.Infof("Started Kubernetes Proxy on %s", c.BindHost)
+	glog.Infof("Started Kubernetes Proxy on %s", host)
 }
