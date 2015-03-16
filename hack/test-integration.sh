@@ -37,22 +37,28 @@ mkdir -p "${testdir}"
 
 # build the test executable (cgo must be disabled to have the symbol table available)
 pushd "${testdir}" 2>&1 >/dev/null
-CGO_ENABLED=0 go test -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
+CGO_ENABLED=0 go test -v -c -tags="${tags}" "${OS_GO_PACKAGE}/${package}"
 popd 2>&1 >/dev/null
 
 start_etcd
 trap cleanup EXIT SIGINT
 
 function exectest() {
-  echo "running $1..."
+  echo "Running $1..."
 
-  out=$("${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+  result=1
+  if [ ! -z "${VERBOSE-}" ]; then
+    out=$("${testexec}" -test.v=true -v ${VERBOSE-} -test.run="^$1$" "${@:2}" 2>&1)
+    result=$?
+  else
+    out=$("${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+    result=$?
+  fi
 
   tput cuu 1 # Move up one line
   tput el    # Clear "running" line
 
-  res=$?
-  if [[ ${res} -eq 0 ]]; then
+  if [[ ${result} -eq 0 ]]; then
     tput setaf 2 # green
     echo "ok      $1"
     tput sgr0    # reset
@@ -65,6 +71,7 @@ function exectest() {
     exit 1
   fi
 }
+
 export -f exectest
 export testexec
 export childargs
