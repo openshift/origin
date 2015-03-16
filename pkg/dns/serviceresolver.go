@@ -45,9 +45,8 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 	}
 	prefix := strings.Trim(strings.TrimSuffix(name, b.base), ".")
 	segments := strings.Split(prefix, ".")
-	switch len(segments) {
-	case 0:
-	case 1:
+	switch c := len(segments); {
+	case c == 1:
 		items, err := b.accessor.Services(segments[0]).List(labels.Everything())
 		if err != nil {
 			return nil, err
@@ -67,8 +66,8 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 			})
 		}
 		return services, nil
-	case 2:
-		svc, err := b.accessor.Services(segments[1]).Get(segments[0])
+	case c >= 2:
+		svc, err := b.accessor.Services(segments[c-1]).Get(segments[c-2])
 		if err != nil {
 			return nil, err
 		}
@@ -85,8 +84,6 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 				Key:  msg.Path(name),
 			},
 		}, nil
-	default:
-		return nil, nil
 	}
 	return nil, nil
 }

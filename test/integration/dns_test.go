@@ -50,9 +50,30 @@ func TestDNS(t *testing.T) {
 	// verify recursive DNS lookup is visible
 	m1 := &dns.Msg{
 		MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
-		Question: []dns.Question{{"www.google.com.", dns.TypeA, dns.ClassINET}},
+		Question: []dns.Question{{"foo.kubernetes.default.local.", dns.TypeA, dns.ClassINET}},
 	}
 	in, err := dns.Exchange(m1, server)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(in.Answer) != 1 {
+		t.Fatalf("unexpected response: %#v", in)
+	}
+	if a, ok := in.Answer[0].(*dns.A); ok {
+		if a.A == nil {
+			t.Errorf("expected an A record with an IP: %#v", a)
+		}
+	} else {
+		t.Errorf("expected an A record: %#v", in)
+	}
+	t.Log(in)
+
+	// verify recursive DNS lookup is visible
+	m1 = &dns.Msg{
+		MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
+		Question: []dns.Question{{"www.google.com.", dns.TypeA, dns.ClassINET}},
+	}
+	in, err = dns.Exchange(m1, server)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
