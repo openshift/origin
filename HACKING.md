@@ -26,7 +26,7 @@ Once a release has been created, it can be pushed:
 To cut an official tag release, we generally use the images built by [ci.openshift.redhat.com](https://ci.openshift.redhat.com)
 under the openshift3_ami job.
 
-1. Create a new git tag `git tag v0.X.X -a -m "v0.X.X" HEAD`
+1. Create a new git tag `hack/tag-release.sh v0.X.X`
 2. Push the tag to GitHub `git push origin --tags` where `origin` is `github.com/openshift/origin.git`
 3. Run the "openshift3_ami" job
 4. Once the images are pushed to the repository, run `OS_PUSH_TAG="v0.X.X" hack/push-release.sh`. Your tag must match the Git tag.
