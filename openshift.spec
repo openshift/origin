@@ -3,7 +3,7 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit 21fb40637c4e3507cca1fcab6c4d56b06950a149
+%global commit 86b5e46426ba828f49195af21c56f7c6674b48f7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
@@ -23,9 +23,9 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.2.2
+Version:        0.4.1
 #Release:        1git%{shortcommit}%{?dist}
-Release:        4%{?dist}
+Release:        1%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -70,7 +70,7 @@ Requires:       tuned >= 2.3
 
 
 %prep
-%setup -q
+%setup -q -n origin-%{version}
 
 %build
 
@@ -180,6 +180,12 @@ fi
 
 
 %changelog
+* Tue Mar 10 2015 Adam Miller <admiller@redhat.com> - 0.4.1-1
+- Update to v0.4.1 upstream release
+
+* Thu Feb 12 2015 Adam Miller <admiller@redhat.com> - 0.3-1
+- Update to v0.3 (Beta1)
+
 * Fri Feb 06 2015 Scott Dodson <sdodson@redhat.com>
 - new package built with tito
 
