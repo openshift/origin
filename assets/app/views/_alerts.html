@@ -5,22 +5,22 @@
         <span class="pficon pficon-error-octagon"></span>
         <span class="pficon pficon-error-exclamation"></span>
       </span>
-      <strong ng-if="alert.message">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
+      <strong ng-if="alert.message" style="margin-right: 5px;">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
     </div>  
     <div ng-switch-when="warning" class="alert alert-warning">
       <span class="pficon-layered">
         <span class="pficon pficon-warning-triangle"></span>
         <span class="pficon pficon-warning-exclamation"></span>
       </span>
-      <strong ng-if="alert.message">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
+      <strong ng-if="alert.message" style="margin-right: 5px;">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
     </div>  
     <div ng-switch-when="success" class="alert alert-success">
       <span class="pficon pficon-ok"></span>
-      <strong ng-if="alert.message">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
+      <strong ng-if="alert.message" style="margin-right: 5px;">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
     </div>  
     <div ng-switch-default class="alert alert-info">
       <span class="pficon pficon-info"></span>
-      <strong ng-if="alert.message">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
+      <strong ng-if="alert.message" style="margin-right: 5px;">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
     </div>
   </div>
 </div>

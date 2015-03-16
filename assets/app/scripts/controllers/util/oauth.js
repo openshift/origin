@@ -26,7 +26,7 @@ angular.module('openshiftConsole')
       }
 
       // Try to fetch the user
-      var opts = {http: {auth: {token: token, triggerLogin: false}}};
+      var opts = {errorNotification: false, http: {auth: {token: token, triggerLogin: false}}};
       if (debug) { console.log("OAuthController, got token, fetching user", opts); }
 
       DataService.get("users", "~", {}, opts)

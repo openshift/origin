@@ -177,7 +177,13 @@ module.exports = function (grunt) {
           'bower_components/uri.js/src/punycode.js',
           'bower_components/uri.js/src/URI.min.js',
           'bower_components/uri.js/src/jquery.URI.min.js',
-          'bower_components/uri.js/src/URI.fragmentQuery.js'
+          'bower_components/uri.js/src/URI.fragmentQuery.js',
+          'bower_components/messenger/build/css/messenger-theme-future.css',
+          'bower_components/messenger/build/css/messenger-theme-flat.css',
+          'bower_components/messenger/build/css/messenger-theme-air.css',
+          'bower_components/messenger/build/css/messenger-theme-ice.css',
+          'bower_components/messenger/build/js/messenger-theme-future.js',
+          'bower_components/messenger/build/js/messenger-theme-flat.js'
         ]
       }
     },

@@ -34,11 +34,12 @@ angular.module('openshiftConsole')
 
       if (debug) { console.log("$ws (pre-intercept)", config.url.toString()); }
       var serverRequest = function(config) {
-      	if (debug) { console.log("$ws (post-intercept)", config.url.toString()); }
-      	var ws = new WebSocket(config.url);
-      	if (config.onclose)   { ws.onclose   = config.onclose;   }
-      	if (config.onmessage) { ws.onmessage = config.onmessage; }
-      	return ws;
+        if (debug) { console.log("$ws (post-intercept)", config.url.toString()); }
+        var ws = new WebSocket(config.url);
+        if (config.onclose)   { ws.onclose   = config.onclose;   }
+        if (config.onmessage) { ws.onmessage = config.onmessage; }
+        if (config.onopen) { ws.onopen = config.onopen; }
+        return ws;
       };
 
       // Apply interceptors to request config
