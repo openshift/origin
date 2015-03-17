@@ -12,13 +12,10 @@ import (
 )
 
 func TestDNS(t *testing.T) {
-	_, err := StartTestAllInOne()
+	masterConfig, _, err := StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	// ugly...
-	server := "127.0.0.1:8053"
 
 	// verify service DNS entry is visible
 	stop := make(chan struct{})
@@ -27,7 +24,7 @@ func TestDNS(t *testing.T) {
 			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
 			Question: []dns.Question{{"kubernetes.default.local.", dns.TypeA, dns.ClassINET}},
 		}
-		in, err := dns.Exchange(m1, server)
+		in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
 		if err != nil {
 			t.Logf("unexpected error: %v", err)
 			return
@@ -52,7 +49,7 @@ func TestDNS(t *testing.T) {
 		MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
 		Question: []dns.Question{{"foo.kubernetes.default.local.", dns.TypeA, dns.ClassINET}},
 	}
-	in, err := dns.Exchange(m1, server)
+	in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +70,7 @@ func TestDNS(t *testing.T) {
 		MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
 		Question: []dns.Question{{"www.google.com.", dns.TypeA, dns.ClassINET}},
 	}
-	in, err = dns.Exchange(m1, server)
+	in, err = dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

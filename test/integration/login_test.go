@@ -20,12 +20,12 @@ func init() {
 }
 
 func TestLogin(t *testing.T) {
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	openshiftClient, openshiftClientConfig, err := startConfig.GetOpenshiftClient()
+	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestLogin(t *testing.T) {
 	username := "joe"
 	password := "pass"
 	project := "the-singularity-is-near"
-	server := openshiftClientConfig.Host
+	server := clusterAdminClientConfig.Host
 
 	loginOptions = newLoginOptions(server, username, password, "", true)
 
@@ -61,7 +61,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:                openshiftClient,
+		Client:                clusterAdminClient,
 		ProjectName:           project,
 		AdminRole:             "admin",
 		MasterPolicyNamespace: "master",

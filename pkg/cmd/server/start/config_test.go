@@ -1,4 +1,4 @@
-package server
+package start
 
 import (
 	"testing"
@@ -11,10 +11,10 @@ import (
 func TestMasterPublicAddressDefaulting(t *testing.T) {
 	expected := "http://example.com:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(expected)
 
-	actual, err := cfg.GetMasterPublicAddress()
+	actual, err := masterArgs.GetMasterPublicAddress()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -26,11 +26,11 @@ func TestMasterPublicAddressDefaulting(t *testing.T) {
 func TestMasterPublicAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set("http://internal.com:9012")
-	cfg.MasterPublicAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set("http://internal.com:9012")
+	masterArgs.MasterPublicAddr.Set(expected)
 
-	actual, err := cfg.GetMasterPublicAddress()
+	actual, err := masterArgs.GetMasterPublicAddress()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -43,10 +43,10 @@ func TestAssetPublicAddressDefaulting(t *testing.T) {
 	master := "http://example.com:9011"
 	expected := "http://example.com:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set(master)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(master)
 
-	actual, err := cfg.GetAssetPublicAddress()
+	actual, err := masterArgs.GetAssetPublicAddress()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -59,11 +59,11 @@ func TestAssetPublicAddressExplicit(t *testing.T) {
 	master := "http://example.com:9011"
 	expected := "https://example.com:9014"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set(master)
-	cfg.AssetPublicAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(master)
+	masterArgs.AssetPublicAddr.Set(expected)
 
-	actual, err := cfg.GetAssetPublicAddress()
+	actual, err := masterArgs.GetAssetPublicAddress()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -76,10 +76,10 @@ func TestAssetBindAddressDefaulting(t *testing.T) {
 	bind := "1.2.3.4:9011"
 	expected := "1.2.3.4:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.BindAddr.Set(bind)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.BindAddrArg.BindAddr.Set(bind)
 
-	actual := cfg.GetAssetBindAddress()
+	actual := masterArgs.GetAssetBindAddress()
 	if expected != actual {
 		t.Errorf("expected %v, got %v", expected, actual)
 	}
@@ -89,11 +89,11 @@ func TestAssetBindAddressExplicit(t *testing.T) {
 	bind := "1.2.3.4:9011"
 	expected := "2.3.4.5:1234"
 
-	cfg := NewDefaultConfig()
-	cfg.BindAddr.Set(bind)
-	cfg.AssetBindAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.BindAddrArg.BindAddr.Set(bind)
+	masterArgs.AssetBindAddr.Set(expected)
 
-	actual := cfg.GetAssetBindAddress()
+	actual := masterArgs.GetAssetBindAddress()
 	if expected != actual {
 		t.Errorf("expected %v, got %v", expected, actual)
 	}
@@ -102,12 +102,12 @@ func TestAssetBindAddressExplicit(t *testing.T) {
 func TestKubernetesPublicAddressDefaultToKubernetesAddress(t *testing.T) {
 	expected := "http://example.com:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.KubernetesAddr.Set(expected)
-	cfg.MasterPublicAddr.Set("unexpectedpublicmaster")
-	cfg.MasterAddr.Set("unexpectedmaster")
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.KubeConnectionArgs.KubernetesAddr.Set(expected)
+	masterArgs.MasterPublicAddr.Set("unexpectedpublicmaster")
+	masterArgs.MasterAddr.Set("unexpectedmaster")
 
-	actual, err := cfg.GetKubernetesPublicAddress()
+	actual, err := masterArgs.GetKubernetesPublicAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -119,11 +119,11 @@ func TestKubernetesPublicAddressDefaultToKubernetesAddress(t *testing.T) {
 func TestKubernetesPublicAddressDefaultToPublicMasterAddress(t *testing.T) {
 	expected := "http://example.com:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterPublicAddr.Set(expected)
-	cfg.MasterAddr.Set("unexpectedmaster")
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterPublicAddr.Set(expected)
+	masterArgs.MasterAddr.Set("unexpectedmaster")
 
-	actual, err := cfg.GetKubernetesPublicAddress()
+	actual, err := masterArgs.GetKubernetesPublicAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,10 +135,10 @@ func TestKubernetesPublicAddressDefaultToPublicMasterAddress(t *testing.T) {
 func TestKubernetesPublicAddressDefaultToMasterAddress(t *testing.T) {
 	expected := "http://example.com:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(expected)
 
-	actual, err := cfg.GetKubernetesPublicAddress()
+	actual, err := masterArgs.GetKubernetesPublicAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -150,13 +150,13 @@ func TestKubernetesPublicAddressDefaultToMasterAddress(t *testing.T) {
 func TestKubernetesPublicAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set("http://internal.com:9012")
-	cfg.KubernetesAddr.Set("http://internal.com:9013")
-	cfg.MasterPublicAddr.Set("http://internal.com:9014")
-	cfg.KubernetesPublicAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set("http://internal.com:9012")
+	masterArgs.KubeConnectionArgs.KubernetesAddr.Set("http://internal.com:9013")
+	masterArgs.MasterPublicAddr.Set("http://internal.com:9014")
+	masterArgs.KubernetesPublicAddr.Set(expected)
 
-	actual, err := cfg.GetKubernetesPublicAddress()
+	actual, err := masterArgs.GetKubernetesPublicAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -168,10 +168,11 @@ func TestKubernetesPublicAddressExplicit(t *testing.T) {
 func TestKubernetesAddressDefaulting(t *testing.T) {
 	expected := "http://example.com:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(expected)
+	masterAddr, _ := masterArgs.GetMasterAddress()
 
-	actual, err := cfg.GetKubernetesAddress()
+	actual, err := masterArgs.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -183,11 +184,12 @@ func TestKubernetesAddressDefaulting(t *testing.T) {
 func TestKubernetesAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set("http://internal.com:9012")
-	cfg.KubernetesAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set("http://internal.com:9012")
+	masterArgs.KubeConnectionArgs.KubernetesAddr.Set(expected)
+	masterAddr, _ := masterArgs.GetMasterAddress()
 
-	actual, err := cfg.GetKubernetesAddress()
+	actual, err := masterArgs.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -200,10 +202,10 @@ func TestEtcdAddressDefaulting(t *testing.T) {
 	expected := "http://example.com:4001"
 	master := "https://example.com:9012"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set(master)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(master)
 
-	actual, err := cfg.GetEtcdAddress()
+	actual, err := masterArgs.GetEtcdAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -215,11 +217,11 @@ func TestEtcdAddressDefaulting(t *testing.T) {
 func TestEtcdAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set("http://internal.com:9012")
-	cfg.EtcdAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set("http://internal.com:9012")
+	masterArgs.EtcdAddr.Set(expected)
 
-	actual, err := cfg.GetEtcdAddress()
+	actual, err := masterArgs.GetEtcdAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -231,8 +233,8 @@ func TestEtcdAddressExplicit(t *testing.T) {
 func TestEtcdBindAddressDefault(t *testing.T) {
 	expected := "0.0.0.0:4001"
 
-	cfg := NewDefaultConfig()
-	actual := cfg.GetEtcdBindAddress()
+	masterArgs := NewDefaultMasterArgs()
+	actual := masterArgs.GetEtcdBindAddress()
 	if expected != actual {
 		t.Fatalf("expected %v, got %v", expected, actual)
 	}
@@ -241,8 +243,8 @@ func TestEtcdBindAddressDefault(t *testing.T) {
 func TestEtcdPeerAddressDefault(t *testing.T) {
 	expected := "0.0.0.0:7001"
 
-	cfg := NewDefaultConfig()
-	actual := cfg.GetEtcdPeerBindAddress()
+	masterArgs := NewDefaultMasterArgs()
+	actual := masterArgs.GetEtcdPeerBindAddress()
 	if expected != actual {
 		t.Fatalf("expected %v, got %v", expected, actual)
 	}
@@ -251,10 +253,10 @@ func TestEtcdPeerAddressDefault(t *testing.T) {
 func TestEtcdBindAddressDefaultToBind(t *testing.T) {
 	expected := "1.2.3.4:4001"
 
-	cfg := NewDefaultConfig()
-	cfg.BindAddr.Set("https://1.2.3.4:8080")
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.BindAddrArg.BindAddr.Set("https://1.2.3.4:8080")
 
-	actual := cfg.GetEtcdBindAddress()
+	actual := masterArgs.GetEtcdBindAddress()
 	if expected != actual {
 		t.Fatalf("expected %v, got %v", expected, actual)
 	}
@@ -267,11 +269,10 @@ func TestMasterAddressDefaultingToBindValues(t *testing.T) {
 	}
 	expected := "http://" + defaultIP.String() + ":9012"
 
-	cfg := NewDefaultConfig()
-	cfg.StartMaster = true
-	cfg.BindAddr.Set("http://0.0.0.0:9012")
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.BindAddrArg.BindAddr.Set("http://0.0.0.0:9012")
 
-	actual, err := cfg.GetMasterAddress()
+	actual, err := masterArgs.GetMasterAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -283,10 +284,10 @@ func TestMasterAddressDefaultingToBindValues(t *testing.T) {
 func TestMasterAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	cfg := NewDefaultConfig()
-	cfg.MasterAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(expected)
 
-	actual, err := cfg.GetMasterAddress()
+	actual, err := masterArgs.GetMasterAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -298,48 +299,32 @@ func TestMasterAddressExplicit(t *testing.T) {
 func TestKubeClientForExternalKubernetesMasterWithNoConfig(t *testing.T) {
 	expected := "https://localhost:8443"
 
-	cfg := NewDefaultConfig()
-	cfg.StartMaster = true
-	cfg.MasterAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(expected)
+	masterAddr, _ := masterArgs.GetMasterAddress()
 
-	actual, err := cfg.GetKubernetesAddress()
+	actual, err := masterArgs.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if expected != actual.String() {
 		t.Fatalf("expected %v, got %v", expected, actual)
-	}
-
-	_, config, err := cfg.GetKubeClient()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if expected != config.Host {
-		t.Fatalf("expected %v, got %v", expected, config.Host)
 	}
 }
 
 func TestKubeClientForNodeWithNoConfig(t *testing.T) {
 	expected := "https://localhost:8443"
 
-	cfg := NewDefaultConfig()
-	cfg.StartNode = true
-	cfg.MasterAddr.Set(expected)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set(expected)
+	masterAddr, _ := masterArgs.GetMasterAddress()
 
-	actual, err := cfg.GetKubernetesAddress()
+	actual, err := masterArgs.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if expected != actual.String() {
 		t.Fatalf("expected %v, got %v", expected, actual)
-	}
-
-	_, config, err := cfg.GetKubeClient()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if expected != config.Host {
-		t.Fatalf("expected %v, got %v", expected, config.Host)
 	}
 }
 
@@ -347,11 +332,10 @@ func TestKubeClientForExternalKubernetesMasterWithConfig(t *testing.T) {
 	expectedServer := "https://some-other-server:1234"
 	expectedUser := "myuser"
 
-	cfg := NewDefaultConfig()
-	cfg.StartMaster = true
-	cfg.ClientConfigLoadingRules, cfg.ClientConfig = makeKubeconfig(expectedServer, expectedUser)
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.KubeConnectionArgs.ClientConfigLoadingRules, masterArgs.KubeConnectionArgs.ClientConfig = makeKubeconfig(expectedServer, expectedUser)
 
-	actualPublic, err := cfg.GetKubernetesPublicAddress()
+	actualPublic, err := masterArgs.GetKubernetesPublicAddress()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -359,23 +343,14 @@ func TestKubeClientForExternalKubernetesMasterWithConfig(t *testing.T) {
 		t.Fatalf("expected %v, got %v", expectedServer, actualPublic)
 	}
 
-	actual, err := cfg.GetKubernetesAddress()
+	masterAddr, _ := masterArgs.GetMasterAddress()
+
+	actual, err := masterArgs.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if expectedServer != actual.String() {
 		t.Fatalf("expected %v, got %v", expectedServer, actual)
-	}
-
-	_, config, err := cfg.GetKubeClient()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if config.Host != expectedServer {
-		t.Fatalf("expected %v, got %v", expectedServer, config.Host)
-	}
-	if config.Username != expectedUser {
-		t.Fatalf("expected %v, got %v", expectedUser, config.Username)
 	}
 }
 
@@ -383,57 +358,32 @@ func TestKubeClientForNodeWithConfig(t *testing.T) {
 	expectedServer := "https://some-other-server:1234"
 	expectedUser := "myuser"
 
-	cfg := NewDefaultConfig()
-	cfg.StartNode = true
-	cfg.ClientConfigLoadingRules, cfg.ClientConfig = makeKubeconfig(expectedServer, expectedUser)
+	nodeArgs := NewDefaultNodeArgs()
+	nodeArgs.KubeConnectionArgs.ClientConfigLoadingRules, nodeArgs.KubeConnectionArgs.ClientConfig = makeKubeconfig(expectedServer, expectedUser)
 
-	actualPublic, err := cfg.GetKubernetesPublicAddress()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if expectedServer != actualPublic.String() {
-		t.Fatalf("expected %v, got %v", expectedServer, actualPublic)
-	}
-
-	actual, err := cfg.GetKubernetesAddress()
+	actual, err := nodeArgs.KubeConnectionArgs.GetKubernetesAddress(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if expectedServer != actual.String() {
 		t.Fatalf("expected %v, got %v", expectedServer, actual)
 	}
-
-	_, config, err := cfg.GetKubeClient()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if config.Host != expectedServer {
-		t.Fatalf("expected %v, got %v", expectedServer, config.Host)
-	}
-	if config.Username != expectedUser {
-		t.Fatalf("expected %v, got %v", expectedUser, config.Username)
-	}
 }
 
 func TestKubeClientForExternalKubernetesMasterWithErrorKubeconfig(t *testing.T) {
-	cfg := NewDefaultConfig()
-	cfg.StartMaster = true
-	cfg.ClientConfigLoadingRules, cfg.ClientConfig = makeErrorKubeconfig()
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.KubeConnectionArgs.ClientConfigLoadingRules, masterArgs.KubeConnectionArgs.ClientConfig = makeErrorKubeconfig()
 
 	// GetKubernetesPublicAddress hits the invalid kubeconfig in the fallback chain
-	_, err := cfg.GetKubernetesPublicAddress()
+	_, err := masterArgs.GetKubernetesPublicAddress()
 	if err == nil {
 		t.Fatalf("expected error, got none")
 	}
 
 	// GetKubernetesAddress hits the invalid kubeconfig in the fallback chain
-	_, err = cfg.GetKubernetesAddress()
+	masterAddr, _ := masterArgs.GetMasterAddress()
+	_, err = masterArgs.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
 	if err == nil {
-		t.Fatalf("expected error, got none")
-	}
-
-	// Should not get a client
-	if _, _, err = cfg.GetKubeClient(); err == nil {
 		t.Fatalf("expected error, got none")
 	}
 }
@@ -442,24 +392,19 @@ func TestKubeClientForExternalKubernetesMasterWithConflictingKubernetesAddress(t
 	expectedServer := "https://some-other-server:1234"
 	expectedUser := "myuser"
 
-	cfg := NewDefaultConfig()
-	cfg.StartMaster = true
+	masterArgs := NewDefaultMasterArgs()
 	// Explicitly set --kubernetes must match --kubeconfig or return an error
-	cfg.KubernetesAddr.Set(expectedServer)
-	cfg.ClientConfigLoadingRules, cfg.ClientConfig = makeKubeconfig("https://another-server:2345", expectedUser)
+	masterArgs.KubeConnectionArgs.KubernetesAddr.Set(expectedServer)
+	masterArgs.KubeConnectionArgs.ClientConfigLoadingRules, masterArgs.KubeConnectionArgs.ClientConfig = makeKubeconfig("https://another-server:2345", expectedUser)
 
 	// GetKubernetesAddress returns the explicitly set address
-	actual, err := cfg.GetKubernetesAddress()
+	masterAddr, _ := masterArgs.GetMasterAddress()
+	actual, err := masterArgs.KubeConnectionArgs.GetKubernetesAddress(masterAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if expectedServer != actual.String() {
 		t.Fatalf("expected %v, got %v", expectedServer, actual)
-	}
-
-	// Should not get a client that might let us send credentials to the wrong server
-	if _, _, err := cfg.GetKubeClient(); err == nil {
-		t.Fatalf("expected error, got none")
 	}
 }
 
@@ -467,23 +412,17 @@ func TestKubeClientForNodeWithConflictingKubernetesAddress(t *testing.T) {
 	expectedServer := "https://some-other-server:1234"
 	expectedUser := "myuser"
 
-	cfg := NewDefaultConfig()
-	cfg.StartNode = true
-	cfg.KubernetesAddr.Set(expectedServer)
-	cfg.ClientConfigLoadingRules, cfg.ClientConfig = makeKubeconfig("https://another-server:2345", expectedUser)
+	nodeArgs := NewDefaultNodeArgs()
+	nodeArgs.KubeConnectionArgs.KubernetesAddr.Set(expectedServer)
+	nodeArgs.KubeConnectionArgs.ClientConfigLoadingRules, nodeArgs.KubeConnectionArgs.ClientConfig = makeKubeconfig("https://another-server:2345", expectedUser)
 
 	// GetKubernetesAddress returns the explicitly set address
-	actualServer, err := cfg.GetKubernetesAddress()
+	actualServer, err := nodeArgs.KubeConnectionArgs.GetKubernetesAddress(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if expectedServer != actualServer.String() {
 		t.Fatalf("expected %v, got %v", expectedServer, actualServer)
-	}
-
-	// Should not get a client that might let us send credentials to the wrong server
-	if _, _, err := cfg.GetKubeClient(); err == nil {
-		t.Fatalf("expected error, got none")
 	}
 }
 

@@ -75,7 +75,7 @@ OPENSHIFT_ON_PANIC=crash openshift start --master="${API_SCHEME}://${API_HOST}:$
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${CERT_DIR}/admin/root.crt"
+    export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
     export CURL_CERT="${CERT_DIR}/admin/cert.crt"
     export CURL_KEY="${CERT_DIR}/admin/key.key"
 fi
@@ -174,14 +174,18 @@ echo "templates: ok"
 [ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift start --help 2>&1 | grep 'Start an OpenShift server')" ]
+[ "$(openshift start --help 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
+[ "$(openshift start master --help 2>&1 | grep 'Start an OpenShift master')" ]
+[ "$(openshift start node --help 2>&1 | grep 'Start an OpenShift node')" ]
 [ "$(osc get --help 2>&1 | grep 'osc')" ]
 
 # help for given command through help command must be consistent
 [ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift help start 2>&1 | grep 'Start an OpenShift server')" ]
+[ "$(openshift help start 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
+[ "$(openshift help start master 2>&1 | grep 'Start an OpenShift master')" ]
+[ "$(openshift help start node 2>&1 | grep 'Start an OpenShift node')" ]
 [ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
 
 # runnable commands with required flags must error consistently
