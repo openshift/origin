@@ -76,6 +76,8 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdUpdate(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdDelete(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr))
+	cmds.AddCommand(cmd.NewCmdPortForward(fullName, f))
 	cmds.AddCommand(f.NewCmdProxy(out))
 	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
 	cmds.AddCommand(cmd.NewCmdProject(f, out))
