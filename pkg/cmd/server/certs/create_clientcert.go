@@ -77,7 +77,7 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 }
 
 func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfig, error) {
-	glog.V(2).Infof("Createing a client cert with: %#v and %#v", o, o.GetSignerCertOptions)
+	glog.V(2).Infof("Creating a client cert with: %#v and %#v", o, o.GetSignerCertOptions)
 
 	signerCert, err := o.GetSignerCertOptions.GetSignerCert()
 	if err != nil {

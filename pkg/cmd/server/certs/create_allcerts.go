@@ -146,12 +146,13 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 			return err
 		}
 
-		username := "node-" + nodeName
+		clientCertInfo := DefaultNodeClientCertInfo(o.CertDir, nodeName)
+
 		nodeCertOptions := CreateNodeClientCertOptions{
 			GetSignerCertOptions: &getSignerCertOptions,
 
-			CertFile: DefaultCertFilename(o.CertDir, username),
-			KeyFile:  DefaultKeyFilename(o.CertDir, username),
+			CertFile: clientCertInfo.CertFile,
+			KeyFile:  clientCertInfo.KeyFile,
 
 			NodeName:  nodeName,
 			Overwrite: o.Overwrite,
@@ -168,9 +169,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 
 			CertFile: nodeCertOptions.CertFile,
 			KeyFile:  nodeCertOptions.KeyFile,
-			UserNick: username,
+			UserNick: nodeName,
 
-			KubeConfigFile: path.Join(filepath.Dir(nodeCertOptions.CertFile), ".kubeconfig"),
+			KubeConfigFile: DefaultNodeKubeConfigFile(o.CertDir, nodeName),
 		}
 		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 			return err

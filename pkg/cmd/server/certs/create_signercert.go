@@ -73,7 +73,7 @@ func (o CreateSignerCertOptions) Validate(args []string) error {
 }
 
 func (o CreateSignerCertOptions) CreateSignerCert() (*crypto.CA, error) {
-	glog.V(2).Infof("Createing a signer cert with: %#v", o)
+	glog.V(2).Infof("Creating a signer cert with: %#v", o)
 
 	if o.Overwrite {
 		return crypto.MakeCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)

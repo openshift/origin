@@ -7,7 +7,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -205,7 +204,6 @@ func (o NodeOptions) RunNode() error {
 }
 
 func (o NodeOptions) CreateCerts() error {
-	username := "node-" + o.NodeArgs.NodeName
 	signerOptions := &certs.CreateSignerCertOptions{
 		CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
 		KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
@@ -235,10 +233,11 @@ func (o NodeOptions) CreateCerts() error {
 		return err
 	}
 
+	clientCertInfo := certs.DefaultNodeClientCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
 	mintNodeClientCert := certs.CreateNodeClientCertOptions{
 		GetSignerCertOptions: getSignerOptions,
-		CertFile:             certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, username),
-		KeyFile:              certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, username),
+		CertFile:             clientCertInfo.CertFile,
+		KeyFile:              clientCertInfo.KeyFile,
 		NodeName:             o.NodeArgs.NodeName,
 	}
 	if _, err := mintNodeClientCert.CreateNodeClientCert(); err != nil {
@@ -257,9 +256,9 @@ func (o NodeOptions) CreateCerts() error {
 
 		CertFile: mintNodeClientCert.CertFile,
 		KeyFile:  mintNodeClientCert.KeyFile,
-		UserNick: username,
+		UserNick: o.NodeArgs.NodeName,
 
-		KubeConfigFile: path.Join(filepath.Dir(mintNodeClientCert.CertFile), ".kubeconfig"),
+		KubeConfigFile: certs.DefaultNodeKubeConfigFile(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName),
 	}
 	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 		return err

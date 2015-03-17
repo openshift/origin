@@ -95,7 +95,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSDomain: args.ClusterDomain,
 		DNSIP:     dnsIP,
 
-		MasterKubeConfig: certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "node-"+args.NodeName),
+		MasterKubeConfig: certs.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
 	}
 
 	return config, nil
