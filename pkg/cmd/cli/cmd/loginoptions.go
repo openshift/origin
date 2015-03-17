@@ -226,7 +226,7 @@ To be added as an admin to an existing project, run 'openshift ex policy add-use
 		}
 
 		if current, err := oClient.Projects().Get(namespace); err != nil {
-			if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
+			if kerrors.IsNotFound(err) || clientcmd.IsForbidden(err) {
 				o.Project = projects[0]
 			} else {
 				return err
