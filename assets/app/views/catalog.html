@@ -21,7 +21,7 @@
       <div ng-if="templates.length">
         <h2>All templates</h2>
         <div class="row">
-          <catalog-template template="template" project="projectName" ng-repeat="template in templates | orderBy : 'metadata.name'" ng-if="(template | tags).includes('instant-app')"></catalog-template>
+          <catalog-template template="template" project="projectName" ng-repeat="template in templates | orderBy : 'metadata.name'"></catalog-template>
         </div>
       </div>
     </div>
