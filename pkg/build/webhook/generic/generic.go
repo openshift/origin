@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
@@ -40,11 +41,12 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 			return nil, false, err
 		}
 		if len(body) == 0 {
-			return revision, true, nil
+			return nil, true, nil
 		}
 		var data api.GenericWebHookEvent
 		if err = json.Unmarshal(body, &data); err != nil {
-			return nil, false, err
+			glog.V(4).Infof("Error unmarshaling json %v, but continuing", err)
+			return nil, true, nil
 		}
 		if !webhook.GitRefMatches(data.Git.Ref, buildCfg.Parameters.Source.Git.Ref) {
 			glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, data)

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -54,23 +56,27 @@ func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildCreator
 func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	uv, err := parseURL(req)
 	if err != nil {
+		glog.V(4).Infof("Failed parsing request URL: %v", err)
 		notFound(w, err.Error())
 		return
 	}
 
 	buildCfg, err := c.buildConfigGetter.Get(uv.namespace, uv.buildConfigName)
 	if err != nil {
+		glog.V(4).Infof("Failed getting BuildConfig: %v", err)
 		badRequest(w, err.Error())
 		return
 	}
 
 	plugin, ok := c.plugins[uv.plugin]
 	if !ok {
+		glog.V(4).Infof("Plugin %s not found", uv.plugin)
 		notFound(w, "Plugin ", uv.plugin, " not found")
 		return
 	}
 	revision, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
 	if err != nil {
+		glog.V(4).Infof("Failed extracting information from webhook: %v", err)
 		badRequest(w, err.Error())
 		return
 	}
@@ -79,10 +85,12 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	build, err := buildutil.GenerateBuildWithImageTag(buildCfg, revision, c.imageRepoGetter)
 	if err != nil {
+		glog.V(4).Infof("Failed generating new build: %v", err)
 		badRequest(w, err.Error())
 		return
 	}
 	if err := c.buildCreator.Create(uv.namespace, build); err != nil {
+		glog.V(4).Infof("Failed creating new build: %v", err)
 		badRequest(w, err.Error())
 	}
 }
