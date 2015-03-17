@@ -44,12 +44,23 @@ start_etcd
 trap cleanup EXIT SIGINT
 
 function exectest() {
+  echo "running $1..."
+
   out=$("${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+
+  tput cuu 1 # Move up one line
+  tput el    # Clear "running" line
+
   res=$?
   if [[ ${res} -eq 0 ]]; then
-    echo ok $1
+    tput setaf 2 # green
+    echo "ok      $1"
+    tput sgr0    # reset
     exit 0
   else
+    tput setaf 1 # red
+    echo "failed  $1"
+    tput sgr0    # reset
     echo "${out}"
     exit 1
   fi

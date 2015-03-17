@@ -11,12 +11,16 @@ import (
 )
 
 type ProxyConfig struct {
-	KubernetesAddr *url.URL
-	ClientConfig   *kclient.Config
+	ClientConfig *kclient.Config
 }
 
 func (c *ProxyConfig) InstallAPI(container *restful.Container) []string {
-	proxy, err := httpproxy.NewUpgradeAwareSingleHostReverseProxy(c.ClientConfig, c.KubernetesAddr)
+	kubeAddr, err := url.Parse(c.ClientConfig.Host)
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	proxy, err := httpproxy.NewUpgradeAwareSingleHostReverseProxy(c.ClientConfig, kubeAddr)
 	if err != nil {
 		glog.Fatalf("Unable to initialize the Kubernetes proxy: %v", err)
 	}
