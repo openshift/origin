@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -148,6 +149,24 @@ func (o NodeOptions) RunNode() error {
 	}
 
 	if o.WriteConfigOnly {
+		// Resolve relative to CWD
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		if err := configapi.ResolveNodeConfigPaths(nodeConfig, cwd); err != nil {
+			return err
+		}
+
+		// Relativize to config file dir
+		base, err := cmdutil.MakeAbs(filepath.Dir(o.ConfigFile), cwd)
+		if err != nil {
+			return err
+		}
+		if err := configapi.RelativizeNodeConfigPaths(nodeConfig, base); err != nil {
+			return err
+		}
+
 		content, err := WriteNode(nodeConfig)
 		if err != nil {
 			return err
@@ -239,6 +258,15 @@ func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
 	if err := configapilatest.Codec.DecodeInto(data, config); err != nil {
 		return nil, err
 	}
+
+	base, err := cmdutil.MakeAbs(filepath.Dir(filename), "")
+	if err != nil {
+		return nil, err
+	}
+	if err := configapi.ResolveNodeConfigPaths(config, base); err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
