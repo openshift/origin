@@ -15,12 +15,14 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/certs"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -202,6 +204,11 @@ func (o MasterOptions) RunMaster() error {
 			return err
 		}
 		return nil
+	}
+
+	errs := validation.ValidateMasterConfig(masterConfig)
+	if len(errs) != 0 {
+		return kerrors.NewInvalid("masterConfig", "", errs)
 	}
 
 	if err := StartMaster(masterConfig); err != nil {

@@ -131,6 +131,21 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 	}
 
 	for _, nodeName := range o.NodeList {
+		serverCertInfo := DefaultNodeServingCertInfo(o.CertDir, nodeName)
+		nodeServerCertOptions := CreateServerCertOptions{
+			GetSignerCertOptions: &getSignerCertOptions,
+
+			CertFile: serverCertInfo.CertFile,
+			KeyFile:  serverCertInfo.KeyFile,
+
+			Hostnames: []string{nodeName},
+			Overwrite: o.Overwrite,
+		}
+
+		if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
+			return err
+		}
+
 		username := "node-" + nodeName
 		nodeCertOptions := CreateNodeClientCertOptions{
 			GetSignerCertOptions: &getSignerCertOptions,

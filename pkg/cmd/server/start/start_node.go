@@ -16,11 +16,13 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/certs"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
@@ -177,6 +179,11 @@ func (o NodeOptions) RunNode() error {
 		return nil
 	}
 
+	errs := validation.ValidateNodeConfig(nodeConfig)
+	if len(errs) != 0 {
+		return kerrors.NewInvalid("nodeConfig", "", errs)
+	}
+
 	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
 	if err != nil {
 		return err
@@ -212,6 +219,20 @@ func (o NodeOptions) CreateCerts() error {
 		CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
 		KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
 		SerialFile: certs.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+	}
+
+	serverCertInfo := certs.DefaultNodeServingCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
+	nodeServerCertOptions := certs.CreateServerCertOptions{
+		GetSignerCertOptions: getSignerOptions,
+
+		CertFile: serverCertInfo.CertFile,
+		KeyFile:  serverCertInfo.KeyFile,
+
+		Hostnames: []string{o.NodeArgs.NodeName},
+	}
+
+	if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
+		return err
 	}
 
 	mintNodeClientCert := certs.CreateNodeClientCertOptions{
