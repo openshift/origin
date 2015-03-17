@@ -125,37 +125,47 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 			return c.done(repo, err.Error())
 		}
 
-		// if there is a tag for the image by its id (tag=tag), we can pull by id
-		tag := tags[0]
-		if hasTag(tags, id) {
-			tag = id
+		idTagPresent := false
+		if len(tags) > 1 && hasTag(tags, id) {
+			// only set to true if we have at least 1 tag that isn't the image id
+			idTagPresent = true
 		}
-		pullRef := api.DockerImageReference{
-			Registry:  ref.Registry,
-			Namespace: ref.Namespace,
-			Name:      ref.Name,
-			Tag:       tag,
-		}
-
-		mapping := &api.ImageRepositoryMapping{
-			ObjectMeta: kapi.ObjectMeta{
-				Name:      repo.Name,
-				Namespace: repo.Namespace,
-			},
-			Tag: tag,
-			Image: api.Image{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: id,
-				},
-				DockerImageReference: pullRef.String(),
-				DockerImageMetadata:  image,
-			},
-		}
-		if err := c.mappings.ImageRepositoryMappings(repo.Namespace).Create(mapping); err != nil {
-			if errors.IsNotFound(err) {
-				return c.done(repo, err.Error())
+		for _, tag := range tags {
+			if idTagPresent && id == tag {
+				continue
 			}
-			return err
+			pullRefTag := tag
+			if idTagPresent {
+				// if there is a tag for the image by its id (tag=tag), we can pull by id
+				pullRefTag = id
+			}
+			pullRef := api.DockerImageReference{
+				Registry:  ref.Registry,
+				Namespace: ref.Namespace,
+				Name:      ref.Name,
+				Tag:       pullRefTag,
+			}
+
+			mapping := &api.ImageRepositoryMapping{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      repo.Name,
+					Namespace: repo.Namespace,
+				},
+				Tag: tag,
+				Image: api.Image{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: id,
+					},
+					DockerImageReference: pullRef.String(),
+					DockerImageMetadata:  image,
+				},
+			}
+			if err := c.mappings.ImageRepositoryMappings(repo.Namespace).Create(mapping); err != nil {
+				if errors.IsNotFound(err) {
+					return c.done(repo, err.Error())
+				}
+				return err
+			}
 		}
 	}
 
