@@ -175,7 +175,7 @@ type tarAppender struct {
 // canonicalTarName provides a platform-independent and consistent posix-style
 //path for files and directories to be archived regardless of the platform.
 func canonicalTarName(name string, isDir bool) (string, error) {
-	name, err := canonicalTarNameForPath(name)
+	name, err := CanonicalTarNameForPath(name)
 	if err != nil {
 		return "", err
 	}
@@ -204,6 +204,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	if err != nil {
 		return err
 	}
+	hdr.Mode = int64(chmodTarEntry(os.FileMode(hdr.Mode)))
 
 	name, err = canonicalTarName(name, fi.IsDir())
 	if err != nil {
@@ -696,6 +697,8 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 			return err
 		}
 		hdr.Name = filepath.Base(dst)
+		hdr.Mode = int64(chmodTarEntry(os.FileMode(hdr.Mode)))
+
 		tw := tar.NewWriter(w)
 		defer tw.Close()
 		if err := tw.WriteHeader(hdr); err != nil {
