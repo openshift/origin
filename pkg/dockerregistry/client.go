@@ -18,6 +18,12 @@ type Client interface {
 
 // Connection allows you to retrieve data from a Docker V1 registry.
 type Connection interface {
+	// ImageTags will return a map of the tags for the image by namespace (if not
+	// specified, will be "library") and name.
+	ImageTags(namespace, name string) (map[string]string, error)
+	// ImageByID will return the requested image by namespace (if not specified,
+	// will be "library"), name, and ID.
+	ImageByID(namespace, name, id string) (*docker.Image, error)
 	// ImageByTag will return the requested image by namespace (if not specified,
 	// will be "library"), name, and tag (if not specified, "latest").
 	ImageByTag(namespace, name, tag string) (*docker.Image, error)
@@ -60,12 +66,14 @@ func convertConnectionError(registry string, err error) error {
 type connection struct {
 	client *http.Client
 	host   string
+	cached map[string]*repository
 }
 
 func newConnection(name string) connection {
 	return connection{
 		host:   name,
 		client: http.DefaultClient,
+		cached: make(map[string]*repository),
 	}
 }
 
@@ -75,6 +83,41 @@ type repository struct {
 	token    string
 }
 
+// ImageTags returns the tags for the named Docker image repository.
+func (c connection) ImageTags(namespace, name string) (map[string]string, error) {
+	if len(namespace) == 0 {
+		namespace = "library"
+	}
+	if len(name) == 0 {
+		return nil, fmt.Errorf("image name must be specified")
+	}
+
+	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.getTags(repo)
+}
+
+// ImageByID returns the specified image within the named Docker image repository
+func (c connection) ImageByID(namespace, name, imageID string) (*docker.Image, error) {
+	if len(namespace) == 0 {
+		namespace = "library"
+	}
+	if len(name) == 0 {
+		return nil, fmt.Errorf("image name must be specified")
+	}
+
+	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.getImage(repo, imageID, "")
+}
+
+// ImageByTag returns the specified image within the named Docker image repository
 func (c connection) ImageByTag(namespace, name, tag string) (*docker.Image, error) {
 	if len(namespace) == 0 {
 		namespace = "library"
@@ -87,7 +130,7 @@ func (c connection) ImageByTag(namespace, name, tag string) (*docker.Image, erro
 		searchTag = "latest"
 	}
 
-	repo, err := c.getRepository(fmt.Sprintf("%s/%s", namespace, name))
+	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +141,18 @@ func (c connection) ImageByTag(namespace, name, tag string) (*docker.Image, erro
 	}
 
 	return c.getImage(repo, imageID, tag)
+}
+
+func (c connection) getCachedRepository(name string) (*repository, error) {
+	if cached, ok := c.cached[name]; ok {
+		return cached, nil
+	}
+	repo, err := c.getRepository(name)
+	if err != nil {
+		return nil, err
+	}
+	c.cached[name] = repo
+	return repo, nil
 }
 
 func (c connection) getRepository(name string) (*repository, error) {
@@ -121,6 +176,29 @@ func (c connection) getRepository(name string) (*repository, error) {
 		endpoint: resp.Header.Get("X-Docker-Endpoints"),
 		token:    resp.Header.Get("X-Docker-Token"),
 	}, nil
+}
+
+func (c connection) getTags(repo *repository) (map[string]string, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/v1/repositories/%s/tags", repo.endpoint, repo.name), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	req.Header.Add("Authorization", "Token "+repo.token)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, convertConnectionError(c.host, fmt.Errorf("error getting image tags for %s: %v", repo.name, err))
+	}
+	switch code := resp.StatusCode; {
+	case code == http.StatusNotFound:
+		return nil, errRepositoryNotFound{repo.name}
+	case code >= 300 || resp.StatusCode < 200:
+		return nil, fmt.Errorf("error retrieving tags: server returned %d", resp.StatusCode)
+	}
+	tags := make(map[string]string)
+	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
+		return nil, fmt.Errorf("error decoding image %s tags: %v", repo.name, err)
+	}
+	return tags, nil
 }
 
 func (c connection) getTag(repo *repository, tag, userTag string) (string, error) {
@@ -158,7 +236,7 @@ func (c connection) getImage(repo *repository, image, userTag string) (*docker.I
 	}
 	switch code := resp.StatusCode; {
 	case code == http.StatusNotFound:
-		return nil, errImageNotFound{userTag, image, repo.name}
+		return nil, NewImageNotFoundError(repo.name, image, userTag)
 	case code >= 300 || resp.StatusCode < 200:
 		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
 	}
@@ -197,8 +275,15 @@ type errImageNotFound struct {
 	repository string
 }
 
+func NewImageNotFoundError(repository, image, tag string) error {
+	return errImageNotFound{tag, image, repository}
+}
+
 func (e errImageNotFound) Error() string {
-	return fmt.Sprintf("the image %q in repository %q with tag %q was not found and may have been deleted", e.tag, e.image, e.repository)
+	if len(e.tag) == 0 {
+		return fmt.Sprintf("the image %q in repository %q was not found and may have been deleted", e.image, e.repository)
+	}
+	return fmt.Sprintf("the image %q in repository %q with tag %q was not found and may have been deleted", e.image, e.repository, e.tag)
 }
 
 type errRegistryNotFound struct {

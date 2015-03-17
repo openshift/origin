@@ -53,6 +53,7 @@ import (
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
 	"github.com/openshift/origin/pkg/dns"
+	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
@@ -159,6 +160,11 @@ func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
 	return c.OSClient
 }
 
+// ImageImportControllerClient returns the deployment client object
+func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
+	return c.OSClient
+}
+
 // DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.OSClient, c.KubernetesClient
@@ -197,8 +203,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage := imagerepositoryetcd.NewREST(c.EtcdHelper, imagerepository.DefaultRegistryFunc(defaultRegistryFunc))
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(c.EtcdHelper, imagerepository.DefaultRegistryFunc(defaultRegistryFunc))
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
 	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
@@ -227,14 +233,15 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
 		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
 
-		"images":                  imageStorage,
-		"imageStreams":            imageRepositoryStorage,
-		"imageStreamImages":       imageStreamImageStorage,
-		"imageStreamMappings":     imageRepositoryMappingStorage,
-		"imageStreamTags":         imageRepositoryTagStorage,
-		"imageRepositories":       imageRepositoryStorage,
-		"imageRepositoryMappings": imageRepositoryMappingStorage,
-		"imageRepositoryTags":     imageRepositoryTagStorage,
+		"images":                   imageStorage,
+		"imageStreams":             imageRepositoryStorage,
+		"imageStreamImages":        imageStreamImageStorage,
+		"imageStreamMappings":      imageRepositoryMappingStorage,
+		"imageStreamTags":          imageRepositoryTagStorage,
+		"imageRepositories":        imageRepositoryStorage,
+		"imageRepositories/status": imageRepositoryStatus,
+		"imageRepositoryMappings":  imageRepositoryMappingStorage,
+		"imageRepositoryTags":      imageRepositoryTagStorage,
 
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
@@ -774,10 +781,7 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 		KubeClient: c.KubeClient(),
 	}
 
-	subdomain := os.Getenv("OPENSHIFT_ROUTE_SUBDOMAIN")
-	if len(subdomain) == 0 {
-		subdomain = OpenShiftRouteSubdomain
-	}
+	subdomain := env("OPENSHIFT_ROUTE_SUBDOMAIN", OpenShiftRouteSubdomain)
 
 	plugin, err := routeplugin.NewSimpleAllocationPlugin(subdomain)
 	if err != nil {
@@ -785,6 +789,15 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 	}
 
 	return factory.Create(plugin)
+}
+
+func (c *MasterConfig) RunImageImportController() {
+	osclient := c.ImageImportControllerClient()
+	factory := imagecontroller.ImportControllerFactory{
+		Client: osclient,
+	}
+	controller := factory.Create()
+	controller.Run()
 }
 
 // ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin

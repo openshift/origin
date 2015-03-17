@@ -265,7 +265,7 @@ osc create -n test -f "${STI_CONFIG_FILE}"
 
 # Trigger build
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
-osc start-build -n test ruby-sample-build --follow
+#osc start-build -n test ruby-sample-build --follow
 wait_for_build "test"
 wait_for_app "test"
 

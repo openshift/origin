@@ -60,21 +60,28 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, err
 	}
 
-	if repo.Tags == nil {
-		return nil, errors.NewNotFound("imageRepositoryTag", tag)
-	}
-
-	imageName, ok := repo.Tags[tag]
-	if !ok {
-		return nil, errors.NewNotFound("imageRepositoryTag", tag)
-	}
-
-	image, err := r.imageRegistry.GetImage(ctx, imageName)
+	event, err := api.LatestTaggedImage(repo, tag)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewNotFound("imageRepositoryTag", tag)
 	}
 
-	return api.ImageWithMetadata(*image)
+	if len(event.Image) != 0 {
+		image, err := r.imageRegistry.GetImage(ctx, event.Image)
+		if err != nil {
+			return nil, err
+		}
+		return api.ImageWithMetadata(*image)
+	}
+	if len(event.DockerImageReference) == 0 {
+		return nil, errors.NewNotFound("imageRepositoryTag", tag)
+	}
+
+	return &api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			CreationTimestamp: event.Created,
+		},
+		DockerImageReference: event.DockerImageReference,
+	}, nil
 }
 
 // Delete removes a tag from a repo. `id` is of the format <repo name>:<tag>.

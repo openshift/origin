@@ -271,18 +271,17 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 			return nil, err
 		}
 		searchTag := ref.Tag
-		// TODO: move to a lookup function on repo, or better yet, have the repo.Status.Tags field automatically infer latest
 		if len(searchTag) == 0 {
 			searchTag = "latest"
 		}
-		latest, err := imageapi.LatestTaggedImage(*repo, searchTag)
+		latest, err := imageapi.LatestTaggedImage(repo, searchTag)
 		if err != nil {
 			return nil, ErrNoMatch{value: value, qualifier: err.Error()}
 		}
 		imageData, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", ref.Tag, latest.Image)}
+				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", searchTag, latest.Image)}
 			}
 			return nil, err
 		}

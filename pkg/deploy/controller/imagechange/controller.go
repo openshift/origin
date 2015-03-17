@@ -64,7 +64,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) erro
 					continue
 				}
 
-				latest, err := imageapi.LatestTaggedImage(*imageRepo, params.Tag)
+				latest, err := imageapi.LatestTaggedImage(imageRepo, params.Tag)
 				if err != nil {
 					glog.V(4).Infof("Skipping container %s for config %s; %s", container.Name, labelFor(config), err)
 					continue
@@ -146,7 +146,7 @@ func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, 
 				continue
 			}
 
-			latest, err := imageapi.LatestTaggedImage(*imageRepo, trigger.Tag)
+			latest, err := imageapi.LatestTaggedImage(imageRepo, trigger.Tag)
 			if err != nil {
 				return fmt.Errorf("error generating new version of deploymentConfig: %s: %s", labelFor(config), err)
 			}

@@ -165,7 +165,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(updated.Tags, map[string]string{"newer": "image1", "newest": "image2"}) {
+	if updated.Tags != nil {
 		t.Errorf("unexpected object: %#v", updated.Tags)
 	}
 
@@ -200,7 +200,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(updated.Tags, map[string]string{"newer": "image1", "newest": "image2", "anothertag": "image2"}) {
+	if updated.Tags != nil {
 		t.Errorf("unexpected object: %#v", updated.Tags)
 	}
 
@@ -296,14 +296,15 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 	imageStorage := imageetcd.NewREST(etcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
 
-	imageRepositoryStorage := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return openshift.dockerServer.URL, true }))
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return openshift.dockerServer.URL, true }))
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 
 	storage := map[string]apiserver.RESTStorage{
-		"images":                  imageStorage,
-		"imageRepositories":       imageRepositoryStorage,
-		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry),
-		"imageRepositoryTags":     imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry),
+		"images":                   imageStorage,
+		"imageRepositories":        imageRepositoryStorage,
+		"imageRepositories/status": imageRepositoryStatus,
+		"imageRepositoryMappings":  imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry),
+		"imageRepositoryTags":      imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry),
 	}
 
 	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")

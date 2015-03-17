@@ -3,8 +3,10 @@ package controller
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -33,63 +35,62 @@ type ImageChangeController struct {
 }
 
 // HandleImageRepo processes the next ImageRepository event.
-func (c *ImageChangeController) HandleImageRepo(imageRepo *imageapi.ImageRepository) error {
-	glog.V(4).Infof("Build image change controller detected imagerepo change %s", imageRepo.DockerImageRepository)
-	imageSubstitutions := make(map[string]string)
+func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageRepository) error {
+	glog.V(4).Infof("Build image change controller detected imagerepo change %s", repo.Status.DockerImageRepository)
+	subs := make(map[string]string)
 
 	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
-		glog.V(4).Infof("Detecting changed images for buildConfig %s", config.Name)
 
-		// Extract relevant triggers for this imageRepo for this config
-		shouldTriggerBuild := false
+		shouldBuild := false
+		// For every ImageChange trigger find the latest tagged image from the image repository and replace that value
+		// throughout the build strategies. A new build is triggered only if the latest tagged image id or pull spec
+		// differs from the last triggered build recorded on the build config.
 		for _, trigger := range config.Triggers {
 			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 				continue
 			}
-			icTrigger := trigger.ImageChange
+			change := trigger.ImageChange
 			// only trigger a build if this image repo matches the name and namespace of the ref in the build trigger
 			// also do not trigger if the imagerepo does not have a valid DockerImageRepository value for us to pull
 			// the image from
-			if imageRepo.Status.DockerImageRepository == "" || icTrigger.From.Name != imageRepo.Name || (len(icTrigger.From.Namespace) != 0 && icTrigger.From.Namespace != imageRepo.Namespace) {
+			if repo.Status.DockerImageRepository == "" || change.From.Name != repo.Name || (len(change.From.Namespace) != 0 && change.From.Namespace != repo.Namespace) {
 				continue
 			}
-			// for every ImageChange trigger, record the image it substitutes for and get the latest
-			// image id from the imagerepository.  We will substitute all images in the buildconfig
-			// with the latest values from the imagerepositories.
-			tag := icTrigger.Tag
-			if len(tag) == 0 {
-				tag = buildapi.DefaultImageTag
-			}
-			latest, err := imageapi.LatestTaggedImage(*imageRepo, tag)
+			latest, err := imageapi.LatestTaggedImage(repo, change.Tag)
 			if err != nil {
-				glog.V(2).Info(err)
+				util.HandleError(fmt.Errorf("unable to find tagged image: %v", err))
 				continue
 			}
 
 			// (must be different) to trigger a build
-			if icTrigger.LastTriggeredImageID != latest.Image {
-				imageSubstitutions[icTrigger.Image] = latest.DockerImageReference
-				shouldTriggerBuild = true
-				icTrigger.LastTriggeredImageID = latest.Image
+			last := change.LastTriggeredImageID
+			next := latest.Image
+			if len(next) == 0 {
+				// tags without images should still trigger builds (when going from a pure tag to an image
+				// based tag, we should rebuild)
+				next = latest.DockerImageReference
+			}
+			if len(last) == 0 || next != last {
+				subs[change.Image] = latest.DockerImageReference
+				change.LastTriggeredImageID = next
+				shouldBuild = true
 			}
 		}
 
-		if shouldTriggerBuild {
+		if shouldBuild {
 			glog.V(4).Infof("Running build for buildConfig %s in namespace %s", config.Name, config.Namespace)
-			b := buildutil.GenerateBuildFromConfig(config, nil, imageSubstitutions)
+			b := buildutil.GenerateBuildFromConfig(config, nil, subs)
 			if err := c.BuildCreator.Create(config.Namespace, b); err != nil {
-				return fmt.Errorf("Error starting build for buildConfig %s: %v", config.Name, err)
-			} else {
-				if err := c.BuildConfigUpdater.Update(config); err != nil {
-					// This is not a retryable error because the build has been created.  The worst case
-					// outcome of not updating the buildconfig is that we might rerun a build for the
-					// same "new" imageid change in the future, which is better than guaranteeing we
-					// run the build 2+ times by retrying it here.
-					glog.V(2).Infof("Error updating buildConfig %v: %v", config.Name, err)
-					return ImageChangeControllerFatalError{Reason: fmt.Sprintf("Error updating buildConfig %s with new LastTriggeredImageID", config.Name), Err: err}
-				}
+				return fmt.Errorf("error starting build for buildConfig %s: %v", config.Name, err)
+			}
+			if err := c.BuildConfigUpdater.Update(config); err != nil {
+				// This is not a retryable error because the build has been created.  The worst case
+				// outcome of not updating the buildconfig is that we might rerun a build for the
+				// same "new" imageid change in the future, which is better than running the build
+				// 2+ times by retrying it here.
+				return ImageChangeControllerFatalError{Reason: fmt.Sprintf("Error updating buildConfig %s with new LastTriggeredImageID", config.Name), Err: err}
 			}
 		}
 	}

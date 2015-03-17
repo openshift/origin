@@ -219,15 +219,8 @@ func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (chan
 		}
 		params := dc.Triggers[i].ImageChangeParams
 
-		// lookup image id
-		tag := params.Tag
-		if len(tag) == 0 {
-			// TODO: replace with "preferred tag" from repo
-			tag = "latest"
-		}
-
 		// get the image ref from the repo's tag history
-		latest, err := imageapi.LatestTaggedImage(*repo, tag)
+		latest, err := imageapi.LatestTaggedImage(repo, params.Tag)
 		if err != nil {
 			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, err.Error()))
 			continue

@@ -2,21 +2,19 @@ package imagerepository
 
 import (
 	"fmt"
-	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 )
 
-// imageRepositoryStrategy implements behavior for ImageRepositories.
-type imageRepositoryStrategy struct {
+// Strategy implements behavior for ImageRepositories.
+type Strategy struct {
 	runtime.ObjectTyper
 	kapi.NameGenerator
 	defaultRegistry DefaultRegistry
@@ -24,34 +22,33 @@ type imageRepositoryStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating
 // ImageRepository objects via the REST API.
-func NewStrategy(defaultRegistry DefaultRegistry) imageRepositoryStrategy {
-	return imageRepositoryStrategy{kapi.Scheme, kapi.SimpleNameGenerator, defaultRegistry}
+func NewStrategy(defaultRegistry DefaultRegistry) Strategy {
+	return Strategy{kapi.Scheme, kapi.SimpleNameGenerator, defaultRegistry}
 }
 
 // NamespaceScoped is true for image repositories.
-func (s imageRepositoryStrategy) NamespaceScoped() bool {
+func (s Strategy) NamespaceScoped() bool {
 	return true
 }
 
 // ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
-func (s imageRepositoryStrategy) ResetBeforeCreate(obj runtime.Object) {
-	ir := obj.(*api.ImageRepository)
-	ir.Status = api.ImageRepositoryStatus{
-		DockerImageRepository: "",
+func (s Strategy) ResetBeforeCreate(obj runtime.Object) {
+	repo := obj.(*api.ImageRepository)
+	repo.Status = api.ImageRepositoryStatus{
+		DockerImageRepository: s.dockerImageRepository(repo),
 		Tags: make(map[string]api.TagEventList),
 	}
+	tagsChanged(nil, repo)
 }
 
 // Validate validates a new image repository.
-func (s imageRepositoryStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (s Strategy) Validate(obj runtime.Object) errors.ValidationErrorList {
 	ir := obj.(*api.ImageRepository)
-	ir.Status.DockerImageRepository = s.dockerImageRepository(ir)
-	updateTagHistory(ir)
 	return validation.ValidateImageRepository(ir)
 }
 
 // AllowCreateOnUpdate is false for image repositories.
-func (s imageRepositoryStrategy) AllowCreateOnUpdate() bool {
+func (s Strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
@@ -59,7 +56,7 @@ func (s imageRepositoryStrategy) AllowCreateOnUpdate() bool {
 // If repo.DockerImageRepository is set, that value is returned. Otherwise,
 // if a default registry exists, the value returned is of the form
 // <default registry>/<namespace>/<repo name>.
-func (s imageRepositoryStrategy) dockerImageRepository(repo *api.ImageRepository) string {
+func (s Strategy) dockerImageRepository(repo *api.ImageRepository) string {
 	if len(repo.DockerImageRepository) != 0 {
 		return repo.DockerImageRepository
 	}
@@ -80,63 +77,77 @@ func (s imageRepositoryStrategy) dockerImageRepository(repo *api.ImageRepository
 	return ref.String()
 }
 
-// updateTagHistory updates repo.Status.Tags to add any new or updated tags
-// to the history.
-func updateTagHistory(repo *api.ImageRepository) {
-	// add new tags
-	for tag, imageRef := range repo.Tags {
-		_, ok := repo.Status.Tags[tag]
-		if !ok {
-			repo.Status.Tags[tag] = api.TagEventList{}
-		}
-
-		var pullSpec string
-		if strings.Contains(imageRef, ":") {
-			// v2 registry with pull by digest
-			pullSpec = fmt.Sprintf("%s@%s", repo.Status.DockerImageRepository, imageRef)
-		} else {
-			// v1 registry with fake pull by id
-			pullSpec = fmt.Sprintf("%s:%s", repo.Status.DockerImageRepository, imageRef)
-		}
-
-		entry := repo.Status.Tags[tag]
-		if len(entry.Items) == 0 || entry.Items[0].DockerImageReference != pullSpec {
-			newTagEvent := api.TagEvent{
-				Created:              util.Now(),
-				Image:                imageRef,
-				DockerImageReference: pullSpec,
-			}
-
-			entry.Items = append([]api.TagEvent{newTagEvent}, entry.Items...)
-		}
-		repo.Status.Tags[tag] = entry
+// tagsChanged updates repo.Status.Tags based on the old and new image repository.
+// if the old repository is nil, all tags are considered additions.
+func tagsChanged(old, repo *api.ImageRepository) {
+	oldTags := map[string]string{}
+	if old != nil && old.Tags != nil {
+		oldTags = old.Tags
 	}
-
-	// TODO should we remove tags deleted from repo.Tags from repo.Status.Tags?
+	for tag, value := range repo.Tags {
+		if oldValue, ok := oldTags[tag]; ok && value != oldValue {
+			// tag changed
+			if len(value) > 0 {
+				if event, err := api.TagValueToTagEvent(repo, value); err == nil {
+					api.AddTagEventToImageRepository(repo, tag, *event)
+				}
+			}
+		}
+	}
+	for tag, value := range repo.Tags {
+		if _, ok := oldTags[tag]; !ok {
+			// tag added
+			if len(value) > 0 {
+				if event, err := api.TagValueToTagEvent(repo, value); err == nil {
+					api.AddTagEventToImageRepository(repo, tag, *event)
+				}
+			}
+		}
+	}
+	// use a consistent timestamp on creation
+	if old == nil && !repo.CreationTimestamp.IsZero() {
+		for tag, list := range repo.Status.Tags {
+			for _, event := range list.Items {
+				event.Created = repo.CreationTimestamp
+			}
+			repo.Status.Tags[tag] = list
+		}
+	}
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (s imageRepositoryStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (s Strategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
 	repo := obj.(*api.ImageRepository)
 	oldRepo := old.(*api.ImageRepository)
 
 	repo.Status = oldRepo.Status
-	if repo.Status.Tags == nil {
-		repo.Status.Tags = make(map[string]api.TagEventList)
-	}
-
 	repo.Status.DockerImageRepository = s.dockerImageRepository(repo)
-	updateTagHistory(repo)
 
+	tagsChanged(oldRepo, repo)
 	return validation.ValidateImageRepositoryUpdate(repo, oldRepo)
 }
 
 // Decorate decorates repo.Status.DockerImageRepository using the logic from
 // dockerImageRepository().
-func (s imageRepositoryStrategy) Decorate(obj runtime.Object) error {
+func (s Strategy) Decorate(obj runtime.Object) error {
 	ir := obj.(*api.ImageRepository)
 	ir.Status.DockerImageRepository = s.dockerImageRepository(ir)
 	return nil
+}
+
+type StatusStrategy struct {
+	Strategy
+}
+
+// NewStatusStrategy creates a status update strategy around an existing repository
+// strategy.
+func NewStatusStrategy(strategy Strategy) StatusStrategy {
+	return StatusStrategy{strategy}
+}
+
+func (StatusStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+	// TODO: merge valid fields after update
+	return validation.ValidateImageRepositoryStatusUpdate(obj.(*api.ImageRepository), old.(*api.ImageRepository))
 }
 
 // MatchImageRepository returns a generic matcher for a given label and field selector.

@@ -57,6 +57,14 @@ func ValidateImageRepositoryUpdate(newRepo, oldRepo *api.ImageRepository) errors
 	return result
 }
 
+func ValidateImageRepositoryStatusUpdate(newRepo, oldRepo *api.ImageRepository) errors.ValidationErrorList {
+	result := errors.ValidationErrorList{}
+	result = append(result, validation.ValidateObjectMetaUpdate(&oldRepo.ObjectMeta, &newRepo.ObjectMeta).Prefix("metadata")...)
+	newRepo.Tags = oldRepo.Tags
+	newRepo.DockerImageRepository = oldRepo.DockerImageRepository
+	return result
+}
+
 // ValidateImageRepositoryMapping tests required fields for an ImageRepositoryMapping.
 func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
