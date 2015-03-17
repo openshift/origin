@@ -42,11 +42,11 @@ func NewBuildStrategyRefGenerator(sourceDetectors source.Detectors, resolver app
 }
 
 // FromSourceRef creates a build strategy from a source reference
-func (g *BuildStrategyRefGenerator) FromSourceRef(srcRef app.SourceRef) (*app.BuildStrategyRef, error) {
+func (g *BuildStrategyRefGenerator) FromSourceRef(srcRef *app.SourceRef) (*app.BuildStrategyRef, error) {
 
 	// Download source locally first if not available
 	if len(srcRef.Dir) == 0 {
-		if err := g.getSource(&srcRef); err != nil {
+		if err := g.getSource(srcRef); err != nil {
 			return nil, err
 		}
 	}
@@ -73,10 +73,10 @@ func (g *BuildStrategyRefGenerator) FromSourceRef(srcRef app.SourceRef) (*app.Bu
 }
 
 // FromSourceRefAndDockerContext generates a BuildStrategyRef from a source ref and context path
-func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef app.SourceRef, context string) (*app.BuildStrategyRef, error) {
+func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef *app.SourceRef, context string) (*app.BuildStrategyRef, error) {
 	// Download source locally first if not available
 	if len(srcRef.Dir) == 0 {
-		if err := g.getSource(&srcRef); err != nil {
+		if err := g.getSource(srcRef); err != nil {
 			return nil, err
 		}
 	}
