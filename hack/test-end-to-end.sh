@@ -50,9 +50,12 @@ LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
 mkdir -p $LOG_DIR
 mkdir -p $ARTIFACT_DIR
+
+DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | awk '{print $2}'`
+API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
 API_PORT="${API_PORT:-8443}"
 API_SCHEME="${API_SCHEME:-https}"
-API_HOST="${API_HOST:-localhost}"
+MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 KUBELET_SCHEME="${KUBELET_SCHEME:-http}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
@@ -168,24 +171,31 @@ echo "[INFO] Using images:              ${USE_IMAGES}"
 
 # Start All-in-one server and wait for health
 # Specify the scheme and port for the listen address, but let the IP auto-discover.	Set --public-master to localhost, for a stable link to the console.
+echo "[INFO] Create certificates for the OpenShift server"
+# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
+ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
+SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
+while read -r IP_ADDRESS
+do
+	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
+done <<< "${ALL_IP_ADDRESSES}"
+
+openshift admin create-all-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --nodes="127.0.0.1" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+
+
 echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start \
-     --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
+     --listen="${API_SCHEME}://0.0.0.0:${API_PORT}"  --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
      --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" \
      --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 \
-     --images="${USE_IMAGES}" \
+     --images="${USE_IMAGES}" --create-certs=false\
      &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-	export CURL_CA_BUNDLE="${CERT_DIR}/master/root.crt"
+	export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
 	export CURL_CERT="${CERT_DIR}/admin/cert.crt"
 	export CURL_KEY="${CERT_DIR}/admin/key.key"
-
-	# Generate the certs first
-	wait_for_file "${CERT_DIR}/openshift-client/key.key" 0.5 80
-	wait_for_file "${CERT_DIR}/admin/key.key" 0.5 80
-	wait_for_file "${CURL_CA_BUNDLE}" 0.5 80
 
 	# Read client cert data in to send to containerized components
 	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
@@ -203,6 +213,9 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.
 
 # Set KUBERNETES_MASTER for osc
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
+
+# add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
+openshift ex policy add-user view anypassword:e2e-user --namespace=default
 
 # create test project so that this shows up in the console
 openshift ex new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="anypassword:e2e-user"
@@ -276,6 +289,14 @@ wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .
 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
+
+# Remote command execution
+registry_pod=$(osc get pod | grep docker-registry | awk '{print $1}')
+osc exec -p ${registry_pod} whoami | grep root
+
+# Port forwarding
+osc port-forward -p ${registry_pod} 5001:5000 &
+wait_for_url_timed "http://localhost:5001/" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then

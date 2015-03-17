@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
 	"github.com/openshift/origin/pkg/cmd/experimental/generate"
-	"github.com/openshift/origin/pkg/cmd/experimental/login"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/experimental/project"
 	exregistry "github.com/openshift/origin/pkg/cmd/experimental/registry"
@@ -19,7 +18,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
-	"github.com/openshift/origin/pkg/cmd/server"
+	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
@@ -79,8 +79,9 @@ func NewCommandOpenShift() *cobra.Command {
 	root.SetUsageTemplate(templates.MainUsageTemplate())
 	root.SetHelpTemplate(templates.MainHelpTemplate())
 
-	openshiftStartCommand, _ := server.NewCommandStartServer("start")
-	root.AddCommand(openshiftStartCommand)
+	startAllInOne, _ := start.NewCommandStartAllInOne()
+	root.AddCommand(startAllInOne)
+	root.AddCommand(certs.NewCommandAdmin())
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
 	root.AddCommand(newExperimentalCommand("openshift", "ex"))
@@ -121,8 +122,7 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(config.NewCmdConfig(subName, "config"))
 	experimental.AddCommand(tokens.NewCmdTokens(f, subName, "tokens"))
 	experimental.AddCommand(policy.NewCommandPolicy(f, subName, "policy"))
-	experimental.AddCommand(generate.NewCmdGenerate(f, subName, "generate"))
-	experimental.AddCommand(login.NewCmdLogin(f, subName, "login"))
+	experimental.AddCommand(generate.NewCmdGenerate(f, subName, "generate", os.Stdout))
 	experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
 	experimental.AddCommand(exregistry.NewCmdRegistry(f, subName, "registry", os.Stdout))
 	return experimental

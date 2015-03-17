@@ -21,7 +21,6 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	dapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
-	//imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 const longDesc = `
@@ -148,7 +147,9 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 				if len(cfg.Credentials) == 0 {
 					glog.Fatalf("You must specify a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
 				}
-				credentials, err := (&kclientcmd.ClientConfigLoadingRules{CommandLinePath: cfg.Credentials}).Load()
+
+				clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{cfg.Credentials, []string{}}
+				credentials, err := clientConfigLoadingRules.Load()
 				if err != nil {
 					glog.Fatalf("The provided credentials %q could not be loaded: %v", cfg.Credentials, err)
 				}

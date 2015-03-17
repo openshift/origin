@@ -165,13 +165,14 @@ func makeValidServiceName(name string) (string, string) {
 	return name, ""
 }
 
-func sortedPorts(ports []kapi.Port) []int {
-	result := []int{}
-	for _, p := range ports {
-		result = append(result, p.ContainerPort)
-	}
-	sort.Ints(result)
-	return result
+type sortablePorts []kapi.Port
+
+func (s sortablePorts) Len() int           { return len(s) }
+func (s sortablePorts) Less(i, j int) bool { return s[i].ContainerPort < s[j].ContainerPort }
+func (s sortablePorts) Swap(i, j int) {
+	p := s[i]
+	s[i] = s[j]
+	s[j] = p
 }
 
 func AddServices(objects Objects) Objects {
@@ -180,7 +181,8 @@ func AddServices(objects Objects) Objects {
 		switch t := o.(type) {
 		case *deploy.DeploymentConfig:
 			for _, container := range t.Template.ControllerTemplate.Template.Spec.Containers {
-				ports := sortedPorts(container.Ports)
+				ports := sortablePorts(container.Ports)
+				sort.Sort(&ports)
 				for _, p := range ports {
 					name, generateName := makeValidServiceName(t.Name)
 					svcs = append(svcs, &kapi.Service{
@@ -190,9 +192,10 @@ func AddServices(objects Objects) Objects {
 							Labels:       t.Labels,
 						},
 						Spec: kapi.ServiceSpec{
-							ContainerPort: kutil.NewIntOrStringFromInt(p),
-							Port:          p,
+							ContainerPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
+							Port:          p.ContainerPort,
 							Selector:      t.Template.ControllerTemplate.Selector,
+							Protocol:      p.Protocol,
 						},
 					})
 					break

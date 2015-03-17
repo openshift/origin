@@ -2,26 +2,23 @@ package kubernetes
 
 import (
 	"fmt"
-	"net"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
+	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
-	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
 )
 
 const (
@@ -30,22 +27,6 @@ const (
 	KubeAPIPrefixV1Beta2 = "/api/v1beta2"
 	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
 )
-
-// MasterConfig defines the required values to start a Kubernetes master
-type MasterConfig struct {
-	MasterIP   net.IP
-	MasterPort int
-	NodeHosts  []string
-	PortalNet  *net.IPNet
-
-	RequestContextMapper kapi.RequestContextMapper
-
-	EtcdHelper tools.EtcdHelper
-	KubeClient *kclient.Client
-
-	Authorizer       authorizer.Authorizer
-	AdmissionControl admission.Interface
-}
 
 // TODO: Longer term we should read this from some config store, rather than a flag.
 func (c *MasterConfig) EnsurePortalFlags() {

@@ -25,13 +25,14 @@ func TestHTPasswd(t *testing.T) {
 	os.Setenv("OPENSHIFT_OAUTH_PASSWORD_AUTH", "htpasswd")
 	os.Setenv("OPENSHIFT_OAUTH_HTPASSWD_FILE", htpasswdFile.Name())
 
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, clientConfig, err := startConfig.GetOpenshiftClient()
+
+	_, _, clientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	// Use the server and CA info

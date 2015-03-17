@@ -9,14 +9,14 @@ import (
 )
 
 // TryListen tries to open a connection on the given port and returns true if it succeeded.
-func TryListen(hostPort string) bool {
+func TryListen(hostPort string) (bool, error) {
 	l, err := net.Listen("tcp", hostPort)
 	if err != nil {
 		glog.V(5).Infof("Failure while checking listen on %s: %v", err)
-		return false
+		return false, err
 	}
 	defer l.Close()
-	return true
+	return true, nil
 }
 
 // WaitForDial attempts to connect to the given address, closing and returning nil on the first successful connection.

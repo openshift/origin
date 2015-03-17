@@ -45,7 +45,8 @@ TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
 ETCD_DATA_DIR="${TEMP_DIR}/etcd"
 VOLUME_DIR="${TEMP_DIR}/volumes"
 CERT_DIR="${TEMP_DIR}/certs"
-mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${CERT_DIR}"
+CONFIG_DIR="${TEMP_DIR}/configs"
+mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${CERT_DIR}" "${CONFIG_DIR}"
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -74,7 +75,7 @@ OPENSHIFT_ON_PANIC=crash openshift start --master="${API_SCHEME}://${API_HOST}:$
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${CERT_DIR}/admin/root.crt"
+    export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
     export CURL_CERT="${CERT_DIR}/admin/cert.crt"
     export CURL_KEY="${CERT_DIR}/admin/key.key"
 fi
@@ -83,20 +84,55 @@ wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
-# Set KUBERNETES_MASTER for osc
-export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
-if [[ "${API_SCHEME}" == "https" ]]; then
-	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
-	export HOME="${CERT_DIR}/admin"
-	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
-fi
-
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 
 #
 # Begin tests
 #
+
+# test client not configured
+[ "$(osc get services 2>&1 | grep 'no server found')" ]
+
+# Set KUBERNETES_MASTER for osc from now on
+export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
+
+# Set certificates for osc from now on
+if [[ "${API_SCHEME}" == "https" ]]; then
+    # test bad certificate
+    [ "$(osc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
+
+    # ignore anything in the running user's $HOME dir
+    export HOME="${CERT_DIR}/admin"
+fi
+
+# test config files from the --config flag
+osc get services --config="${CERT_DIR}/admin/.kubeconfig"
+
+# test config files from env vars
+OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
+KUBECONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
+
+# test config files in the current directory
+TEMP_PWD=`pwd` 
+pushd ${CONFIG_DIR} >/dev/null
+    cp ${CERT_DIR}/admin/.kubeconfig .openshiftconfig
+    ${TEMP_PWD}/${GO_OUT}/osc get services
+    mv .openshiftconfig .kubeconfig 
+    ${TEMP_PWD}/${GO_OUT}/osc get services
+popd 
+
+# test config files in the home directory
+mv ${CONFIG_DIR} ${HOME}/.kube
+osc get services
+mkdir -p ${HOME}/.config
+mv ${HOME}/.kube ${HOME}/.config/openshift
+mv ${HOME}/.config/openshift/.kubeconfig ${HOME}/.config/openshift/.config
+osc get services
+echo "config files: ok"
+export OPENSHIFTCONFIG="${HOME}/.config/openshift/.config"
+
+# from this point every command will use config from the OPENSHIFTCONFIG env var
 
 osc get templates
 osc create -f examples/sample-app/application-template-dockerbuild.json
@@ -138,14 +174,18 @@ echo "templates: ok"
 [ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift start --help 2>&1 | grep 'Start an OpenShift server')" ]
+[ "$(openshift start --help 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
+[ "$(openshift start master --help 2>&1 | grep 'Start an OpenShift master')" ]
+[ "$(openshift start node --help 2>&1 | grep 'Start an OpenShift node')" ]
 [ "$(osc get --help 2>&1 | grep 'osc')" ]
 
 # help for given command through help command must be consistent
 [ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift help start 2>&1 | grep 'Start an OpenShift server')" ]
+[ "$(openshift help start 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
+[ "$(openshift help start master 2>&1 | grep 'Start an OpenShift master')" ]
+[ "$(openshift help start node 2>&1 | grep 'Start an OpenShift node')" ]
 [ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
 
 # runnable commands with required flags must error consistently
@@ -273,14 +313,14 @@ osc describe policybinding master -n recreated-project | grep anypassword:create
 echo "ex new-project: ok"
 
 [ ! "$(openshift ex router | grep 'does not exist')"]
-[ "$(openshift ex router -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-haproxy-')" ]
-openshift ex router --create --credentials="${KUBECONFIG}"
+[ "$(openshift ex router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
+openshift ex router --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(openshift ex router | grep 'service exists')" ]
 echo "ex router: ok"
 
 [ ! "$(openshift ex registry | grep 'does not exist')"]
-[ "$(openshift ex registry -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-docker-registry')" ]
-openshift ex registry --create --credentials="${KUBECONFIG}"
+[ "$(openshift ex registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
+openshift ex registry --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(openshift ex registry | grep 'service exists')" ]
 echo "ex registry: ok"
 

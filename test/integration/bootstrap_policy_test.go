@@ -15,17 +15,17 @@ import (
 )
 
 func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
-	startConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, openshiftClientConfig, err := startConfig.GetOpenshiftClient()
+	_, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig := *openshiftClientConfig
+	valerieClientConfig := *clusterAdminClientConfig
 	valerieClientConfig.Username = ""
 	valerieClientConfig.Password = ""
 	valerieClientConfig.BearerToken = ""

@@ -7,10 +7,10 @@ import (
 	"regexp"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/golang/glog"
-
-	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/oauth/server/osinserver"
+
+	server "github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
 const accessTokenRedirectPattern = `#access_token=([\w]+)&`
@@ -45,15 +45,10 @@ func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername s
 
 	osClient.Client = &challengingClient{httpClient, reader, defaultUsername, defaultPassword}
 
-	result := osClient.Get().AbsPath("oauth", "authorize").Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
+	result := osClient.Get().AbsPath(server.OpenShiftOAuthAPIPrefix, osinserver.AuthorizePath).Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
 
 	if len(tokenGetter.accessToken) == 0 {
-		if result.Error() != nil {
-			glog.Errorf("Error making server request: %v", result.Error())
-		}
-
-		requestTokenURL := clientCfg.Host + "/oauth" /* clean up after auth.go dies */ + tokenrequest.RequestTokenEndpoint
-		return "", errors.New("Unable to get token.  Try visiting " + requestTokenURL + " for a new token.")
+		return "", result.Error()
 	}
 
 	return tokenGetter.accessToken, nil

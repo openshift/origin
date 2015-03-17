@@ -107,7 +107,7 @@ Examples:
 func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := f.NewCmdCreate(out)
 	longDesc := `Create a resource by filename or stdin.
-	
+
 JSON and YAML formats are accepted.
 
 Examples:
@@ -117,6 +117,44 @@ Examples:
 
 	# Create a pod based on the JSON passed into stdin.
 	$ cat pod.json | %[1]s create -f -
+`
+	cmd.Long = fmt.Sprintf(longDesc, fullName)
+	return cmd
+}
+
+func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
+	cmd := f.NewCmdExec(cmdIn, cmdOut, cmdErr)
+	longDesc := `Execute a command in a container.
+
+Examples:
+
+	# get output from running 'date' in ruby-container from pod 123456-7890
+	$ %[1]s exec -p 123456-7890 -c ruby-container date
+
+	# switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
+	$ %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il
+`
+	cmd.Long = fmt.Sprintf(longDesc, fullName)
+	return cmd
+}
+
+func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
+	cmd := f.NewCmdPortForward()
+	longDesc := `Forward 1 or more local ports to a pod.
+
+Examples:
+
+	# listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
+	$ %[1]s port-forward -p mypod 5000 6000
+
+	# listens on port 8888 locally, forwarding to 5000 in the pod
+	$ %[1]s port-forward -p mypod 8888:5000
+
+	# listens on a random port locally, forwarding to 5000 in the pod
+	$ %[1]s port-forward -p mypod :5000
+
+	# listens on a random port locally, forwarding to 5000 in the pod
+	$ %[1]s port-forward -p mypod 0:5000
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd

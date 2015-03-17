@@ -33,7 +33,7 @@ func TestSubjects(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:kube-client", "system:openshift-client", "system:openshift-deployer"),
-		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins"),
+		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins", "system:nodes"),
 	}
 	test.policies = newDefaultGlobalPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)

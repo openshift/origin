@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG) {
+.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification) {
   function Data(array) {
     this._data = {};
     this._objectsByAttribute(array, "metadata.name", this._data);
@@ -84,6 +84,12 @@ angular.module('openshiftConsole')
     this._watchOptionsMap = {};
     this._watchWebsocketsMap = {};
     this._watchPollTimeoutsMap = {};
+    this._watchWebsocketRetriesMap = {};
+
+    var self = this;
+    $rootScope.$on( "$routeChangeStart", function(event, next, current) {
+      self._watchWebsocketRetriesMap = {};
+    });    
   }
 
 // type:      API type (e.g. "pods")
@@ -213,6 +219,7 @@ angular.module('openshiftConsole')
 // context:   API context (e.g. {project: "..."})
 // opts:      force - always request (default is false)
 //            http - options to pass to the inner $http call
+//            errorNotification - will popup an error notification if the API request fails (default true)
   DataService.prototype.get = function(type, name, context, opts) {
     opts = opts || {};
 
@@ -251,6 +258,13 @@ angular.module('openshiftConsole')
           deferred.resolve(data);
         })
         .error(function(data, status, headers, config) {
+          if (opts.errorNotification !== false) {
+            var msg = "Failed to get " + type + "/" + name;
+            if (status !== 0) {
+              msg += " (" + status + ")"
+            }            
+            Notification.error(msg);
+          }
           deferred.reject({
             data: data,
             status: status,
@@ -331,7 +345,8 @@ angular.module('openshiftConsole')
         clearTimeout(this._watchPollTimeouts(type, context));
         this._watchPollTimeouts(type, context, null);
       }
-      else {
+      else if (this._watchWebsockets(type, context)){
+        // watchWebsockets may not have been set up yet if the projectPromise never resolves
         this._watchWebsockets(type, context).close();
         this._watchWebsockets(type, context, null);
       }
@@ -435,6 +450,16 @@ angular.module('openshiftConsole')
     }
   };
 
+  DataService.prototype._watchWebsocketRetries = function(type, context, retry) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    if (retry === undefined) {
+      return this._watchWebsocketRetriesMap[key];
+    }
+    else {
+      this._watchWebsocketRetriesMap[key] = retry;
+    }
+  };
+
   DataService.prototype._uniqueKeyForTypeContext = function(type, context) {
     // Note: when we start handling selecting multiple projects this
     // will change to include all relevant scope
@@ -453,6 +478,13 @@ angular.module('openshiftConsole')
           url: self._urlForType(type, null, context, false, {namespace: project.metadata.name})
         }).success(function(data, status, headerFunc, config, statusText) {
           self._listOpComplete(type, context, data);
+        }).error(function(data, status, headers, config) {
+          var msg = "Failed to list " + type;
+          if (status !== 0) {
+            msg += " (" + status + ")"
+          }
+          // TODO would like to make this optional with an errorNotification option, see get for an example
+          Notification.error(msg);
         });
       });
     }
@@ -462,6 +494,13 @@ angular.module('openshiftConsole')
         url: this._urlForType(type, null, context),
       }).success(function(data, status, headerFunc, config, statusText) {
         self._listOpComplete(type, context, data);
+      }).error(function(data, status, headers, config) {
+        var msg = "Failed to list " + type;
+        if (status !== 0) {
+          msg += " (" + status + ")"
+        }
+        // TODO would like to make this optional with an errorNotification option, see get for an example
+        Notification.error(msg);
       });
     }
   };
@@ -508,7 +547,8 @@ angular.module('openshiftConsole')
             method: "WATCH",
             url: self._urlForType(type, null, context, true, params),
             onclose: $.proxy(self, "_watchOpOnClose", type, context),
-            onmessage: $.proxy(self, "_watchOpOnMessage", type, context)
+            onmessage: $.proxy(self, "_watchOpOnMessage", type, context),
+            onopen: $.proxy(self, "_watchOpOnOpen", type, context)
           }).then(function(ws) {
             console.log("Watching", ws);
             self._watchWebsockets(type, context, ws);
@@ -520,13 +560,19 @@ angular.module('openshiftConsole')
           method: "WATCH",
           url: self._urlForType(type, null, context, true, params),
           onclose: $.proxy(self, "_watchOpOnClose", type, context),
-          onmessage: $.proxy(self, "_watchOpOnMessage", type, context)
+          onmessage: $.proxy(self, "_watchOpOnMessage", type, context),
+          onopen: $.proxy(self, "_watchOpOnOpen", type, context)
         }).then(function(ws){
           console.log("Watching", ws);
           self._watchWebsockets(type, context, ws);
         });
       }
     }
+  };
+
+  DataService.prototype._watchOpOnOpen = function(type, context, event) {
+    // If we opened the websocket cleanly, set retries to 0
+    this._watchWebsocketRetries(type, context, 0);
   };
 
   DataService.prototype._watchOpOnMessage = function(type, context, event) {
@@ -552,8 +598,32 @@ angular.module('openshiftConsole')
     // Attempt to re-establish the connection in cases
     // where the socket close was unexpected, i.e. the event's
     // wasClean attribute is false
+    var retry = this._watchWebsocketRetries(type, context) || 0;
     if (!event.wasClean && this._watchCallbacks(type, context).has()) {
-      this._startWatchOp(type, context, this._resourceVersion(type, context));
+      if (retry < 5) {
+        this._watchWebsocketRetries(type, context, retry + 1);
+        setTimeout(
+          $.proxy(this, "_startWatchOp", type, context, this._resourceVersion(type, context)),
+          1000
+        );
+      }
+      else {
+        Notification.error(
+          "Server connection interrupted.", 
+          {
+            id: "websocket_retry_halted",
+            mustDismiss: true,
+            actions: {
+              "refresh" : {
+                label: "Refresh",
+                action: function() {
+                  window.location.reload();
+                }
+              }
+            }
+          }
+        );
+      }
     }
   };
 

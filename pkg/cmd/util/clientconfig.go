@@ -1,18 +1,16 @@
 package util
 
 import (
-	"os"
-
 	"github.com/spf13/pflag"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/cli/config"
 )
 
-// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
 func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewClientConfigLoadingRules()
-	loadingRules.EnvVarPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	flags.StringVar(&loadingRules.CommandLinePath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
+	loadingRules := config.NewOpenShiftClientConfigLoadingRules()
+
+	flags.StringVar(&loadingRules.CommandLinePath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
