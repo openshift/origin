@@ -75,6 +75,11 @@ func NewDefaultNodeArgs() *NodeArgs {
 // BuildSerializeableNodeConfig takes the NodeArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified
 // config object for starting the node
 func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, error) {
+	var dnsIP string
+	if len(args.ClusterDNS) > 0 {
+		dnsIP = args.ClusterDNS.String()
+	}
+
 	config := &configapi.NodeConfig{
 		NodeName: args.NodeName,
 
@@ -88,6 +93,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		AllowDisabledDocker:   args.AllowDisabledDocker,
 
 		DNSDomain: args.ClusterDomain,
+		DNSIP:     dnsIP,
 
 		MasterKubeConfig: certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "node-"+args.NodeName),
 	}

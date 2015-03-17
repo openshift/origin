@@ -18,9 +18,10 @@ type NodeConfig struct {
 	// MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master
 	MasterKubeConfig string `json:"masterKubeConfig"`
 
+	// domain suffix
 	DNSDomain string `json:"dnsDomain"`
-	// ip:port
-	DNSAddress string `json:"dnsAddress"`
+	// ip
+	DNSIP string `json:"dnsIP"`
 
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`

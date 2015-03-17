@@ -3,6 +3,7 @@ package start
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -189,7 +190,17 @@ func (o AllInOneOptions) StartAllInOne() error {
 	if err != nil {
 		return nil
 	}
+
+	// in the all-in-one, default kubernetes URL to the master's address
 	o.NodeArgs.DefaultKubernetesURL = *masterAddr
+
+	// in the all-in-one, default ClusterDNS to the master's address
+	if host, _, err := net.SplitHostPort(masterAddr.Host); err == nil {
+		if ip := net.ParseIP(host); ip != nil {
+			o.NodeArgs.ClusterDNS = ip
+		}
+	}
+
 	nodeOptions := NodeOptions{o.NodeArgs, o.WriteConfigOnly, o.NodeConfigFile}
 
 	if err := masterOptions.RunMaster(); err != nil {

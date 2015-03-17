@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"crypto/x509"
+	"fmt"
 	"net"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -54,12 +55,20 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, err
 	}
 
+	var dnsIP net.IP
+	if len(options.DNSIP) > 0 {
+		dnsIP = net.ParseIP(options.DNSIP)
+		if dnsIP == nil {
+			return nil, fmt.Errorf("Invalid DNS IP: %s", options.DNSIP)
+		}
+	}
+
 	config := &NodeConfig{
 		NodeHost:    options.NodeName,
 		BindAddress: options.ServingInfo.BindAddress,
 
 		ClusterDomain: options.DNSDomain,
-		ClusterDNS:    net.ParseIP(options.DNSAddress),
+		ClusterDNS:    dnsIP,
 
 		VolumeDir:             options.VolumeDirectory,
 		NetworkContainerImage: options.NetworkContainerImage,
