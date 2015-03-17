@@ -205,7 +205,7 @@ func (o *LoginOptions) GatherProjectInfo() error {
 		// TODO most users will not be allowed to run the suggested commands below, so we should check it and/or
 		// have a server endpoint that allows an admin to describe to users how to request projects
 		fmt.Printf(`You don't have any project.
-To create a new project, run 'openshift ex new-project <projectname> --admin=%s'.
+If you have access to create a new project, run 'openshift ex new-project <projectname> --admin=%s'.
 To be added as an admin to an existing project, run 'openshift ex policy add-user admin %s -n <projectname>'.
 `, me.Name, me.Name)
 
