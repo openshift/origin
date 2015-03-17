@@ -64,6 +64,13 @@ type MasterConfig struct {
 
 	ImageConfig ImageConfig `json:"imageConfig"`
 
+	PolicyConfig PolicyConfig
+}
+
+type PolicyConfig struct {
+	// BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace
+	BootstrapPolicyFile string `json:"bootstrapPolicyFile"`
+
 	// MasterAuthorizationNamespace is the global namespace for Policy
 	MasterAuthorizationNamespace string `json:"masterAuthorizationNamespace"`
 	// OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)

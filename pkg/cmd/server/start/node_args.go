@@ -13,9 +13,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -94,11 +94,11 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSDomain: args.ClusterDomain,
 		DNSIP:     dnsIP,
 
-		MasterKubeConfig: certs.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
+		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = certs.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName)
+		config.ServingInfo.ServerCert = admin.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName)
 	}
 
 	return config, nil

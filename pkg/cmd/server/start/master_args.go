@@ -12,9 +12,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -43,6 +44,7 @@ type MasterArgs struct {
 	CORSAllowedOrigins util.StringList
 
 	ListenArg          *ListenArg
+	PolicyArgs         *PolicyArgs
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
 	CertArgs           *CertArgs
@@ -75,6 +77,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		DNSBindAddr:          flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
 
 		ListenArg:          NewDefaultListenArg(),
+		PolicyArgs:         NewDefaultPolicyArgs(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
 		CertArgs:           NewDefaultCertArgs(),
@@ -168,9 +171,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		MasterClients: configapi.MasterClients{
-			DeployerKubeConfig:          certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-deployer"),
-			OpenShiftLoopbackKubeConfig: certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-client"),
-			KubernetesKubeConfig:        certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "kube-client"),
+			DeployerKubeConfig:          admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-deployer"),
+			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-client"),
+			KubernetesKubeConfig:        admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "kube-client"),
 		},
 
 		EtcdClientInfo: configapi.RemoteConnectionInfo{
@@ -180,8 +183,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			ClientCert: configapi.CertInfo{},
 		},
 
-		MasterAuthorizationNamespace:      "master",
-		OpenShiftSharedResourcesNamespace: "openshift",
+		PolicyConfig: configapi.PolicyConfig{
+			BootstrapPolicyFile:               args.PolicyArgs.PolicyFile,
+			MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
+		},
 
 		ImageConfig: configapi.ImageConfig{
 			Format: args.ImageFormatArgs.ImageTemplate.Format,
@@ -190,11 +196,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = certs.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
-		config.ServingInfo.ClientCA = certs.DefaultRootCAFile(args.CertArgs.CertDir)
+		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
+		config.ServingInfo.ClientCA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
 
-		config.AssetConfig.ServingInfo.ServerCert = certs.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
-		config.AssetConfig.ServingInfo.ClientCA = certs.DefaultRootCAFile(args.CertArgs.CertDir)
+		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
+		config.AssetConfig.ServingInfo.ClientCA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
 	}
 
 	return config, nil

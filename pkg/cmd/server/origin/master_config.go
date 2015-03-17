@@ -133,11 +133,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Options: options,
 
 		Authenticator:                 newAuthenticator(options.ServingInfo, etcdHelper, apiClientCAs),
-		Authorizer:                    newAuthorizer(policyCache, options.MasterAuthorizationNamespace),
+		Authorizer:                    newAuthorizer(policyCache, options.PolicyConfig.MasterAuthorizationNamespace),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(options.MasterAuthorizationNamespace, openshiftClient, kubeClient),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(options.PolicyConfig.MasterAuthorizationNamespace, openshiftClient, kubeClient),
 
 		RequestContextMapper: requestContextMapper,
 

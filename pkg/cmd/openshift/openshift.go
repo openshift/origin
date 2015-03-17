@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -81,7 +81,7 @@ func NewCommandOpenShift() *cobra.Command {
 
 	startAllInOne, _ := start.NewCommandStartAllInOne()
 	root.AddCommand(startAllInOne)
-	root.AddCommand(certs.NewCommandAdmin())
+	root.AddCommand(admin.NewCommandAdmin())
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
 	root.AddCommand(newExperimentalCommand("openshift", "ex"))

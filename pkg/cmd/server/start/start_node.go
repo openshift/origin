@@ -19,10 +19,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 )
@@ -204,23 +204,23 @@ func (o NodeOptions) RunNode() error {
 }
 
 func (o NodeOptions) CreateCerts() error {
-	signerOptions := &certs.CreateSignerCertOptions{
-		CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		SerialFile: certs.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		Name:       certs.DefaultSignerName(),
+	signerOptions := &admin.CreateSignerCertOptions{
+		CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		Name:       admin.DefaultSignerName(),
 	}
 	if _, err := signerOptions.CreateSignerCert(); err != nil {
 		return err
 	}
-	getSignerOptions := &certs.GetSignerCertOptions{
-		CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		SerialFile: certs.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+	getSignerOptions := &admin.GetSignerCertOptions{
+		CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
 	}
 
-	serverCertInfo := certs.DefaultNodeServingCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
-	nodeServerCertOptions := certs.CreateServerCertOptions{
+	serverCertInfo := admin.DefaultNodeServingCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
+	nodeServerCertOptions := admin.CreateServerCertOptions{
 		GetSignerCertOptions: getSignerOptions,
 
 		CertFile: serverCertInfo.CertFile,
@@ -233,8 +233,8 @@ func (o NodeOptions) CreateCerts() error {
 		return err
 	}
 
-	clientCertInfo := certs.DefaultNodeClientCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
-	mintNodeClientCert := certs.CreateNodeClientCertOptions{
+	clientCertInfo := admin.DefaultNodeClientCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
+	mintNodeClientCert := admin.CreateNodeClientCertOptions{
 		GetSignerCertOptions: getSignerOptions,
 		CertFile:             clientCertInfo.CertFile,
 		KeyFile:              clientCertInfo.KeyFile,
@@ -249,7 +249,7 @@ func (o NodeOptions) CreateCerts() error {
 		return err
 	}
 
-	createKubeConfigOptions := certs.CreateKubeConfigOptions{
+	createKubeConfigOptions := admin.CreateKubeConfigOptions{
 		APIServerURL:    masterAddr.String(),
 		APIServerCAFile: getSignerOptions.CertFile,
 		ServerNick:      "master",
@@ -258,7 +258,7 @@ func (o NodeOptions) CreateCerts() error {
 		KeyFile:  mintNodeClientCert.KeyFile,
 		UserNick: o.NodeArgs.NodeName,
 
-		KubeConfigFile: certs.DefaultNodeKubeConfigFile(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName),
+		KubeConfigFile: admin.DefaultNodeKubeConfigFile(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName),
 	}
 	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 		return err

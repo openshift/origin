@@ -11,10 +11,13 @@ type CertArgs struct {
 }
 
 func BindCertArgs(args *CertArgs, flags *pflag.FlagSet, prefix string) {
-	flags.BoolVar(&args.CreateCerts, prefix+"create-certs", true, "Create any missing certificates required for launch or for writing the config file.")
-	flags.StringVar(&args.CertDir, prefix+"cert-dir", "openshift.local.certificates", "The certificate data directory.")
+	flags.BoolVar(&args.CreateCerts, prefix+"create-certs", args.CreateCerts, "Create any missing certificates required for launch or for writing the config file.")
+	flags.StringVar(&args.CertDir, prefix+"cert-dir", args.CertDir, "The certificate data directory.")
 }
 
 func NewDefaultCertArgs() *CertArgs {
-	return &CertArgs{CreateCerts: true}
+	return &CertArgs{
+		CreateCerts: true,
+		CertDir:     "openshift.local.certificates",
+	}
 }
