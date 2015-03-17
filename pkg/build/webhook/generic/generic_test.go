@@ -2,6 +2,7 @@ package generic
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -189,5 +190,39 @@ func TestExtractWithGitPayload(t *testing.T) {
 	}
 	if revision == nil {
 		t.Error("Expected the 'revision' return value to not be nil")
+	}
+}
+
+type errJSON struct{}
+
+func (*errJSON) Read(p []byte) (n int, err error) {
+	p = []byte("{")
+	return len(p), io.EOF
+}
+
+func TestExtractWithUnmarshalError(t *testing.T) {
+	req, _ := http.NewRequest("POST", "http://someurl.com", &errJSON{})
+	req.Header.Add("User-Agent", "Some User Agent")
+	req.Header.Add("Content-Type", "application/json")
+	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookBuildTriggerType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
+	}
+	plugin := New()
+	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	if err != nil {
+		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
 	}
 }
