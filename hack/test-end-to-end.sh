@@ -187,7 +187,6 @@ done <<< "${ALL_IP_ADDRESSES}"
 openshift admin create-master-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
 openshift admin create-node-config --listen="https://0.0.0.0:10250" --node-dir="${CERT_DIR}/node-127.0.0.1" --node="127.0.0.1" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}"  --certificate-authority="${CERT_DIR}/ca/cert.crt" --signer-cert="${CERT_DIR}/ca/cert.crt" --signer-key="${CERT_DIR}/ca/key.key" --signer-serial="${CERT_DIR}/ca/serial.txt"
 
-
 echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
      --listen="${API_SCHEME}://0.0.0.0:${API_PORT}"  --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
@@ -204,16 +203,14 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 
 	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
 	export HOME="${CERT_DIR}/admin"
-	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
-	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
+	sudo chmod -R a+rwX "${HOME}"
+	export OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig"
+	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
 
 wait_for_url "${KUBELET_SCHEME}://127.0.0.1:${KUBELET_PORT}/healthz" "kubelet: " 0.5 60
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
-
-# Set KUBERNETES_MASTER for osc
-export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift ex policy add-role-to-user view e2e-user --namespace=default
@@ -261,8 +258,13 @@ osc process -n test -f examples/sample-app/application-template-stibuild.json > 
 osc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
 osc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
 
+# Client setup (log in as e2e-user and set 'test' as the default project)
+echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
+osc login -u e2e-user -p pass
+osc project test
+
 echo "[INFO] Applying STI application config"
-osc create -n test -f "${STI_CONFIG_FILE}"
+osc create -f "${STI_CONFIG_FILE}"
 
 # Trigger build
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
@@ -286,6 +288,9 @@ wait_for_app "test"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
+echo "[INFO] Back to 'master' context with 'admin' user..."
+osc project master
+
 wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
