@@ -33,16 +33,11 @@ html, body {
   .navbar-pf {
     background: @navbar-os-bg-color;
     .navbar-header {
-      border-bottom-color: darken(@navbar-os-bg-color, 3%);
+      border-bottom-color: lighten(@navbar-pf-bg-color, 62%);
     }
     .navbar-utility > li {
-      &.dropdown > .dropdown-toggle .pficon-user {
-        left: 10px;
-        top: 20px;
-      }
       > a {
         border: 0;
-        padding: 20px;
         font-size: 12px;
         &:hover {
         }
@@ -50,15 +45,9 @@ html, body {
     }
     .navbar-brand { 
       border: 0;
-      padding: 12px 0 1px;
       img {
-        height: 38px;
+        height: 11px;
       }
-    }
-    .navbar-toggle {
-      border: 0;
-      margin: 0;
-      padding: 19px 20px;
     }
   }
 }
@@ -278,6 +267,9 @@ html, body {
 .btn-xs {
   padding: 0 4px;
 }
+.btn-lg, .btn-group-lg > .btn {
+  line-height: 1.334; // needed to make same height as inputs 
+}
 .gutter-top-bottom {
   padding: 15px 0;
 }
@@ -303,3 +295,26 @@ select:invalid {
     }
   }
 }
+
+
+.attention-message {
+  background-color: lighten(@brand-primary, 20%);
+  border: 1px solid darken(@brand-primary, 10%);
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1em 1em 2em;
+  min-width: 85%;
+  h1,p {
+    text-align: center;
+  }
+}
+
+.learn-more-block {
+  display: block;
+  font-size: @font-size-small;
+  font-weight: normal;
+}
+
+

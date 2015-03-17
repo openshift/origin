@@ -11,62 +11,93 @@
       <div class="tile" ng-repeat="(buildConfigName, buildConfig) in buildConfigs">
         <div>
           <h2>{{buildConfigName}}</h2>
-          <div>Build strategy: {{buildConfig.parameters.strategy.type}}</div>
+          <div>
+            <dl class="dl-horizontal">
+              <dt>Build strategy:</dt>
+              <dd>{{buildConfig.parameters.strategy.type}}</dd>
+            </dl>
+          </div>
           <div ng-switch="buildConfig.parameters.strategy.type">
             <div ng-switch-when="STI">
-              Builder image: {{buildConfig.parameters.strategy.stiStrategy.image}}
+              <dl class="dl-horizontal">
+                <dt>Builder image:</dt>
+                <dd>{{buildConfig.parameters.strategy.stiStrategy.image}}</dd>
+              </dl>
             </div>
             <div ng-switch-when="Docker">
               <div ng-if="buildConfig.parameters.strategy.dockerStrategy.image">
-                Builder image: {{buildConfig.parameters.strategy.dockerStrategy.image}}
+                <dl class="dl-horizontal">
+                  <dt>Builder image:</dt>
+                  <dd>{{buildConfig.parameters.strategy.dockerStrategy.image}}</dd>
+                </dl>
               </div>
             </div>
             <div ng-switch-when="Custom">
-              Builder image: {{buildConfig.parameters.strategy.customStrategy.image}}
+              <dl class="dl-horizontal">
+                <dt>Builder image:</dt>
+                <dd>{{buildConfig.parameters.strategy.customStrategy.image}}</dd>
+              </dl>
             </div>
           </div>
           <div ng-if="buildConfig.parameters.source">
-            <div ng-if="buildConfig.parameters.source.type == 'Git'">Source repo: {{buildConfig.parameters.source.git.uri}}</div>
+            <div ng-if="buildConfig.parameters.source.type == 'Git'">
+              <dl class="dl-horizontal">
+                <dt>Source repo:</dt>
+                <dd>{{buildConfig.parameters.source.git.uri}}</dd>
+              </dl>
+            </div>
           </div>
           <div ng-if="buildConfig.parameters.output">
             <div ng-switch="buildConfig.parameters.output.to.kind">
               <div ng-switch-when="ImageRepository">
-                Output image: {{buildConfig.parameters.output.to.name}}
+                <dl class="dl-horizontal">
+                  <dt>Output image:</dt>
+                  <dd>{{buildConfig.parameters.output.to.name}}</dd>
+                </dl>
               </div>
             </div>
             <div ng-if="!buildConfig.parameters.output.to && buildConfig.parameters.output.dockerImageReference">
-              Output image: {{buildConfig.parameters.output.dockerImageReference}}
+              <dl class="dl-horizontal">
+                <dt>Output image:</dt>
+                <dd>{{buildConfig.parameters.output.dockerImageReference}}</dd>
+              </dl>
             </div>
           </div>
           <div>
-            Triggers: 
-            <ul>
-              <li ng-repeat="trigger in buildConfig.triggers">
+            <h3>Triggers:</h3>
+              <div ng-repeat="trigger in buildConfig.triggers">
                 <span ng-switch="trigger.type">
                   <span ng-switch-when="github">
-                    <span style="margin-right: 5px;">GitHub webhook URL</span>
-                    <a href="{{'webhooks' | helpLink}}" target="_blank"><i class="pficon pficon-help"></i></a>
-                    <div>
-                      <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
-                      <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
-                    </div>
+                    <dl class="dl-horizontal">
+                      <dt>GitHub webhook URL
+                      <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
+                      <i class="fa fa-external-link"></i></span></a>
+                      </dt>
+                      <dd>
+                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
+                        <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
+                      </dd>
+                    </dl>
                   </span>
                   <span ng-switch-when="generic">
-                    <span style="margin-right: 5px;">Generic webhook URL</span>
-                    <a href="{{'webhooks' | helpLink}}" target="_blank"><i class="pficon pficon-help"></i></a>
-                    <div>
-                      <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
-                      <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>                    
-                    </div>
+                    <dl class="dl-horizontal">
+                      <dt>Generic webhook URL
+                        <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
+                      <dd>
+                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
+                        <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>                   
+                      </dd>
+                    </dl>
                   </span>
                   <span ng-switch-when="imageChange">
                     Image change on image repository {{trigger.imageChange.from.name}}:{{trigger.imageChange.tag}}
                   </span>
                   <span ng-switch-default>{{trigger.type}}</span>
                 </span>
-              </li>
-              <li>Manual: <code>osc start-build {{buildConfigName}} -n {{project.metadata.name}}</code></li>
-            </ul>
+              </div>
+                <dl class="dl-horizontal">
+                  <dt>Manual:</dt>
+                  <dd><code>osc start-build {{buildConfigName}} -n {{project.metadata.name}}</code></dd>
           </div>
         </div>
         <div class="well" style="margin-bottom: 10px;" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
@@ -118,6 +149,12 @@
           </div>
         </div>
       </div>
+
+
+
+
+        
+    </div>
       <!-- render any builds whose build configs no longer exist -->
       <div class="tile" ng-repeat="(buildConfigName, blds) in buildsByBuildConfig" ng-if="!buildConfigs[buildConfigName]">
         <h2 ng-if="buildConfigName != ''">

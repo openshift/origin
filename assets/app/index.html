@@ -12,7 +12,7 @@
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" type="text/css" href="styles/main.css">
     <!-- endbuild -->
      <style type="text/css">
 
@@ -30,7 +30,7 @@
           <span class="icon-bar"></span>
         </button>
         <a class="navbar-brand" href="/">
-          <img src="images/logo-origin.svg" alt="OpenShift Origin">
+          <img src="images/logo-origin-thin.svg" alt="OpenShift Origin">
         </a>
       </div>
       <div class="collapse navbar-collapse navbar-collapse-1">
@@ -64,6 +64,8 @@
     </nav>
 
     <div ng-view id="content-wrap"></div>
+
+    <noscript class="attention-message"><h1>To use OpenShift, please enable JavaScript.</h1></noscript>
 
     <script src="config.js"></script>
 
