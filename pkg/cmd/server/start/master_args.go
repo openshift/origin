@@ -27,11 +27,14 @@ type MasterArgs struct {
 	EtcdAddr   flagtypes.Addr
 	PortalNet  flagtypes.IPNet
 	// addresses for external clients
-	MasterPublicAddr flagtypes.Addr
-	// addresses for asset server
-	AssetBindAddr        flagtypes.Addr
+	MasterPublicAddr     flagtypes.Addr
 	AssetPublicAddr      flagtypes.Addr
 	KubernetesPublicAddr flagtypes.Addr
+
+	// AssetBindAddr exposed for integration tests to set
+	AssetBindAddr flagtypes.Addr
+	// DNSBindAddr exposed for integration tests to set
+	DNSBindAddr flagtypes.Addr
 
 	EtcdDir string
 
@@ -69,6 +72,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		AssetPublicAddr:      flagtypes.Addr{Value: "localhost:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
 		AssetBindAddr:        flagtypes.Addr{Value: "0.0.0.0:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
+		DNSBindAddr:          flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
 
 		BindAddrArg:        NewDefaultBindAddrArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
@@ -293,12 +297,10 @@ func (args MasterArgs) GetMasterAddress() (*url.URL, error) {
 }
 
 func (args MasterArgs) GetDNSBindAddress() (flagtypes.Addr, error) {
-	dnsAddr := flagtypes.Addr{Value: args.BindAddrArg.BindAddr.Host, DefaultPort: 53}.Default()
-	if !cmdutil.TryListen(dnsAddr.URL.Host) {
-		dnsAddr.DefaultPort = 8053
-		dnsAddr = dnsAddr.Default()
+	if args.DNSBindAddr.Provided {
+		return args.DNSBindAddr, nil
 	}
-
+	dnsAddr := flagtypes.Addr{Value: args.BindAddrArg.BindAddr.Host, DefaultPort: 53}.Default()
 	return dnsAddr, nil
 }
 

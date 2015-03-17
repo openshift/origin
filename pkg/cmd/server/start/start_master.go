@@ -327,8 +327,12 @@ func StartMaster(openshiftMasterConfig *configapi.OpenShiftMasterConfig) error {
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 
-	openshiftConfig.RunDNSServer()
-	openshiftConfig.RunAssetServer()
+	if openshiftMasterConfig.DNSConfig != nil {
+		openshiftConfig.RunDNSServer()
+	}
+	if openshiftMasterConfig.AssetConfig != nil {
+		openshiftConfig.RunAssetServer()
+	}
 	openshiftConfig.RunBuildController()
 	openshiftConfig.RunBuildPodController()
 	openshiftConfig.RunBuildImageChangeTriggerController()

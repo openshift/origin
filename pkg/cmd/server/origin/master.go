@@ -631,6 +631,11 @@ func (c *MasterConfig) RunDNSServer() {
 		glog.Warningf("Binding DNS on port %v instead of 53 (you may need to run as root and update your config), using %s which will not resolve from all locations", port, c.Options.DNSConfig.BindAddress)
 	}
 
+	if ok, err := cmdutil.TryListen(c.Options.DNSConfig.BindAddress); !ok {
+		glog.Warningf("Could not start DNS: %v", err)
+		return
+	}
+
 	go func() {
 		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdHelper.Client.(*etcdclient.Client))
 		glog.Fatalf("Could not start DNS: %v", err)
