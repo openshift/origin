@@ -77,7 +77,7 @@ func TestAssetBindAddressDefaulting(t *testing.T) {
 	expected := "1.2.3.4:9012"
 
 	masterArgs := NewDefaultMasterArgs()
-	masterArgs.BindAddrArg.BindAddr.Set(bind)
+	masterArgs.ListenArg.ListenAddr.Set(bind)
 
 	actual := masterArgs.GetAssetBindAddress()
 	if expected != actual {
@@ -90,7 +90,7 @@ func TestAssetBindAddressExplicit(t *testing.T) {
 	expected := "2.3.4.5:1234"
 
 	masterArgs := NewDefaultMasterArgs()
-	masterArgs.BindAddrArg.BindAddr.Set(bind)
+	masterArgs.ListenArg.ListenAddr.Set(bind)
 	masterArgs.AssetBindAddr.Set(expected)
 
 	actual := masterArgs.GetAssetBindAddress()
@@ -254,7 +254,7 @@ func TestEtcdBindAddressDefaultToBind(t *testing.T) {
 	expected := "1.2.3.4:4001"
 
 	masterArgs := NewDefaultMasterArgs()
-	masterArgs.BindAddrArg.BindAddr.Set("https://1.2.3.4:8080")
+	masterArgs.ListenArg.ListenAddr.Set("https://1.2.3.4:8080")
 
 	actual := masterArgs.GetEtcdBindAddress()
 	if expected != actual {
@@ -270,7 +270,7 @@ func TestMasterAddressDefaultingToBindValues(t *testing.T) {
 	expected := "http://" + defaultIP.String() + ":9012"
 
 	masterArgs := NewDefaultMasterArgs()
-	masterArgs.BindAddrArg.BindAddr.Set("http://0.0.0.0:9012")
+	masterArgs.ListenArg.ListenAddr.Set("http://0.0.0.0:9012")
 
 	actual, err := masterArgs.GetMasterAddress()
 	if err != nil {

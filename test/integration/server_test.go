@@ -25,8 +25,8 @@ func init() {
 	requireEtcd()
 }
 
-func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.BindAddrArg, *start.ImageFormatArgs, *start.KubeConnectionArgs, *start.CertArgs) {
-	masterArgs, nodeArgs, bindAddrArg, imageFormatArgs, kubeConnectionArgs, certArgs := start.GetAllInOneArgs()
+func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs, *start.CertArgs) {
+	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs := start.GetAllInOneArgs()
 
 	basedir := path.Join(os.TempDir(), "openshift-integration-tests")
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
@@ -38,7 +38,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.BindAddrArg
 	masterAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
 	fmt.Printf("masterAddr: %#v\n", masterAddr)
 	masterArgs.MasterAddr.Set(masterAddr)
-	bindAddrArg.BindAddr.Set(masterAddr)
+	listenArg.ListenAddr.Set(masterAddr)
 	masterArgs.EtcdAddr.Set(getEtcdURL())
 
 	assetAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
@@ -50,7 +50,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.BindAddrArg
 	fmt.Printf("dnsAddr: %#v\n", dnsAddr)
 	masterArgs.DNSBindAddr.Set(dnsAddr)
 
-	return masterArgs, nodeArgs, bindAddrArg, imageFormatArgs, kubeConnectionArgs, certArgs
+	return masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs
 }
 
 func getAdminKubeConfigFile(certArgs start.CertArgs) string {

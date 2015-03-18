@@ -36,11 +36,11 @@ func TestCommandBindingListenHttp(t *testing.T) {
 		t.Errorf("Unexpected TLS: %v", nodeCfg.ServingInfo)
 	}
 
-	if masterArgs.BindAddrArg.BindAddr.String() != valueToSet {
-		t.Errorf("Expected %v, got %v", valueToSet, masterArgs.BindAddrArg.BindAddr.String())
+	if masterArgs.ListenArg.ListenAddr.String() != valueToSet {
+		t.Errorf("Expected %v, got %v", valueToSet, masterArgs.ListenArg.ListenAddr.String())
 	}
-	if nodeArgs.BindAddrArg.BindAddr.String() != valueToSet {
-		t.Errorf("Expected %v, got %v", valueToSet, nodeArgs.BindAddrArg.BindAddr.String())
+	if nodeArgs.ListenArg.ListenAddr.String() != valueToSet {
+		t.Errorf("Expected %v, got %v", valueToSet, nodeArgs.ListenArg.ListenAddr.String())
 	}
 
 	// Ensure there are no errors other than missing client kubeconfig files
@@ -64,10 +64,10 @@ func TestCommandBindingListen(t *testing.T) {
 	actualCfg := executeMasterCommand([]string{"--listen=" + valueToSet})
 
 	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.BindAddrArg.BindAddr.Set(valueToSet)
+	expectedArgs.ListenArg.ListenAddr.Set(valueToSet)
 
-	if expectedArgs.BindAddrArg.BindAddr.String() != actualCfg.BindAddrArg.BindAddr.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.BindAddrArg.BindAddr.String(), actualCfg.BindAddrArg.BindAddr.String())
+	if expectedArgs.ListenArg.ListenAddr.String() != actualCfg.ListenArg.ListenAddr.String() {
+		t.Errorf("expected %v, got %v", expectedArgs.ListenArg.ListenAddr.String(), actualCfg.ListenArg.ListenAddr.String())
 	}
 }
 

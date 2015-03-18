@@ -42,7 +42,7 @@ type MasterArgs struct {
 
 	CORSAllowedOrigins util.StringList
 
-	BindAddrArg        *BindAddrArg
+	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
 	CertArgs           *CertArgs
@@ -74,7 +74,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		AssetBindAddr:        flagtypes.Addr{Value: "0.0.0.0:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
 		DNSBindAddr:          flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
 
-		BindAddrArg:        NewDefaultBindAddrArg(),
+		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
 		CertArgs:           NewDefaultCertArgs(),
@@ -138,7 +138,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	config := &configapi.MasterConfig{
 		ServingInfo: configapi.ServingInfo{
-			BindAddress: args.BindAddrArg.BindAddr.URL.Host,
+			BindAddress: args.ListenArg.ListenAddr.URL.Host,
 		},
 		CORSAllowedOrigins: corsAllowedOrigins,
 
@@ -189,7 +189,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 	}
 
-	if args.BindAddrArg.BindAddr.URL.Scheme == "https" {
+	if args.ListenArg.UseTLS() {
 		config.ServingInfo.ServerCert = certs.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
 		config.ServingInfo.ClientCA = certs.DefaultRootCAFile(args.CertArgs.CertDir)
 
@@ -277,14 +277,14 @@ func (args MasterArgs) GetMasterAddress() (*url.URL, error) {
 
 	// If the user specifies a bind address, and the master is not provided, use the bind port by default
 	port := args.MasterAddr.Port
-	if args.BindAddrArg.BindAddr.Provided {
-		port = args.BindAddrArg.BindAddr.Port
+	if args.ListenArg.ListenAddr.Provided {
+		port = args.ListenArg.ListenAddr.Port
 	}
 
 	// If the user specifies a bind address, and the master is not provided, use the bind scheme by default
 	scheme := args.MasterAddr.URL.Scheme
-	if args.BindAddrArg.BindAddr.Provided {
-		scheme = args.BindAddrArg.BindAddr.URL.Scheme
+	if args.ListenArg.ListenAddr.Provided {
+		scheme = args.ListenArg.ListenAddr.URL.Scheme
 	}
 
 	addr := ""
@@ -304,7 +304,7 @@ func (args MasterArgs) GetDNSBindAddress() (flagtypes.Addr, error) {
 	if args.DNSBindAddr.Provided {
 		return args.DNSBindAddr, nil
 	}
-	dnsAddr := flagtypes.Addr{Value: args.BindAddrArg.BindAddr.Host, DefaultPort: 53}.Default()
+	dnsAddr := flagtypes.Addr{Value: args.ListenArg.ListenAddr.Host, DefaultPort: 53}.Default()
 	return dnsAddr, nil
 }
 
@@ -318,12 +318,12 @@ func (args MasterArgs) GetMasterPublicAddress() (*url.URL, error) {
 
 func (args MasterArgs) GetEtcdBindAddress() string {
 	// Derive the etcd bind address by using the bind address and the default etcd port
-	return net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(args.EtcdAddr.DefaultPort))
+	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(args.EtcdAddr.DefaultPort))
 }
 
 func (args MasterArgs) GetEtcdPeerBindAddress() string {
 	// Derive the etcd peer address by using the bind address and the default etcd peering port
-	return net.JoinHostPort(args.BindAddrArg.BindAddr.Host, "7001")
+	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, "7001")
 }
 
 func (args MasterArgs) GetEtcdAddress() (*url.URL, error) {
@@ -380,7 +380,7 @@ func (args MasterArgs) GetAssetBindAddress() string {
 		return args.AssetBindAddr.URL.Host
 	}
 	// Derive the asset bind address by incrementing the master bind address port by 1
-	return net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(args.BindAddrArg.BindAddr.Port+1))
+	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(args.ListenArg.ListenAddr.Port+1))
 }
 
 func getHost(theURL url.URL) string {
