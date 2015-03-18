@@ -1,4 +1,4 @@
-package certs
+package admin
 
 import (
 	"github.com/spf13/cobra"
@@ -13,6 +13,8 @@ func NewCommandAdmin() *cobra.Command {
 		},
 	}
 
+	cmd.AddCommand(NewCommandOverwriteBootstrapPolicy())
+	cmd.AddCommand(NewCommandCreateBootstrapPolicyFile())
 	cmd.AddCommand(NewCommandCreateKubeConfig())
 	cmd.AddCommand(NewCommandCreateAllCerts())
 	cmd.AddCommand(NewCommandCreateClientCert())

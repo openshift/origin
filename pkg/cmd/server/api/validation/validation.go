@@ -59,11 +59,7 @@ func ValidateServingInfo(info api.ServingInfo) errs.ValidationErrorList {
 func ValidateKubeConfig(path string, field string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
-	if len(path) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired(field, path))
-	} else if _, err := os.Stat(path); err != nil {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, path, "could not read file"))
-	}
+	allErrs = append(allErrs, ValidateFile(path, field)...)
 	// TODO: load and parse
 
 	return allErrs
@@ -82,15 +78,33 @@ func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 		allErrs = append(allErrs, ValidateBindAddress(config.DNSConfig.BindAddress).Prefix("dnsConfig")...)
 	}
 
-	if len(config.MasterAuthorizationNamespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("masterAuthorizationNamespace", config.MasterAuthorizationNamespace))
-	} else if ok, _ := kvalidation.ValidateNamespaceName(config.MasterAuthorizationNamespace, false); !ok {
-		allErrs = append(allErrs, errs.NewFieldInvalid("masterAuthorizationNamespace", config.MasterAuthorizationNamespace, "must be a valid namespace"))
-	}
+	allErrs = append(allErrs, ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
 
 	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.DeployerKubeConfig, "deployerKubeConfig").Prefix("masterClients")...)
 	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
 	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.KubernetesKubeConfig, "kubernetesKubeConfig").Prefix("masterClients")...)
+
+	return allErrs
+}
+
+func ValidatePolicyConfig(config api.PolicyConfig) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, "bootstrapPolicyFile")...)
+	allErrs = append(allErrs, ValidateNamespace(config.MasterAuthorizationNamespace, "masterAuthorizationNamespace")...)
+	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, "openShiftSharedResourcesNamespace")...)
+
+	return allErrs
+}
+
+func ValidateNamespace(namespace, field string) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	if len(namespace) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired(field, namespace))
+	} else if ok, _ := kvalidation.ValidateNamespaceName(namespace, false); !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, namespace, "must be a valid namespace"))
+	}
 
 	return allErrs
 }
@@ -107,6 +121,18 @@ func ValidateNodeConfig(config *api.NodeConfig) errs.ValidationErrorList {
 
 	if len(config.NetworkContainerImage) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("networkContainerImage", config.NetworkContainerImage))
+	}
+
+	return allErrs
+}
+
+func ValidateFile(path string, field string) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	if len(path) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired(field, path))
+	} else if _, err := os.Stat(path); err != nil {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, path, "could not read file"))
 	}
 
 	return allErrs

@@ -87,8 +87,8 @@ import (
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
@@ -266,7 +266,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"policies":              policyregistry.NewREST(authorizationEtcd),
 		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
 		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
-		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.MasterAuthorizationNamespace)),
+		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
 	}
@@ -406,7 +406,6 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	c.ensureComponentAuthorizationRules()
 	c.ensureMasterAuthorizationNamespace()
 	go util.Forever(func() {
-		c.ensureComponentAuthorizationRules()
 		c.ensureMasterAuthorizationNamespace()
 	}, 10*time.Second)
 }
@@ -423,9 +422,9 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
 
 	// ensure that master namespace actually exists
-	namespace, err := c.KubeClient().Namespaces().Get(c.Options.MasterAuthorizationNamespace)
+	namespace, err := c.KubeClient().Namespaces().Get(c.Options.PolicyConfig.MasterAuthorizationNamespace)
 	if err != nil {
-		namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Options.MasterAuthorizationNamespace}}
+		namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.MasterAuthorizationNamespace}}
 		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
 		_, err = c.KubeClient().Namespaces().Create(namespace)
 		if err != nil {
@@ -437,60 +436,18 @@ func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
 // ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	registry := authorizationetcd.New(c.EtcdHelper)
+	ctx := kapi.WithNamespace(kapi.NewContext(), c.Options.PolicyConfig.MasterAuthorizationNamespace)
 
-	roleRegistry := roleregistry.NewVirtualRegistry(registry)
-	for _, role := range bootstrappolicy.GetBootstrapRoles(c.Options.MasterAuthorizationNamespace, c.Options.OpenShiftSharedResourcesNamespace) {
-		ctx := kapi.WithNamespace(kapi.NewContext(), role.Namespace)
+	if _, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+		glog.Infof("No master policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
-		if _, err := roleRegistry.GetRole(ctx, role.Name); kapierror.IsNotFound(err) {
-			if err := roleRegistry.CreateRole(ctx, &role); err != nil {
-				glog.Errorf("Error creating role: %#v due to %v\n", role, err)
-			}
-
-		} else if err != nil {
-			glog.Errorf("Error get role: %#v due to %v\n", role, err)
+		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile); err != nil {
+			glog.Errorf("Error creating bootstrap policy: %v", err)
 		}
+
+	} else {
+		glog.V(2).Infof("Ignoring bootstrap policy file because master policy found")
 	}
-
-	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(registry, registry, c.Options.MasterAuthorizationNamespace)
-	for _, roleBinding := range bootstrappolicy.GetBootstrapRoleBindings(c.Options.MasterAuthorizationNamespace, c.Options.OpenShiftSharedResourcesNamespace) {
-		ctx := kapi.WithNamespace(kapi.NewContext(), roleBinding.Namespace)
-
-		if _, err := roleBindingRegistry.GetRoleBinding(ctx, roleBinding.Name); kapierror.IsNotFound(err) {
-			// if this is a binding for a non-master namespaced role.  That means that the policy binding must be provisioned
-			if roleBinding.RoleRef.Namespace != c.Options.MasterAuthorizationNamespace {
-				policyBindingName := roleBinding.RoleRef.Namespace
-				if _, err := registry.GetPolicyBinding(ctx, policyBindingName); kapierror.IsNotFound(err) {
-					policyBinding := &authorizationapi.PolicyBinding{
-						ObjectMeta: kapi.ObjectMeta{
-							Namespace: roleBinding.Namespace,
-							Name:      policyBindingName,
-						},
-
-						PolicyRef: kapi.ObjectReference{
-							Namespace: roleBinding.RoleRef.Namespace,
-							Name:      authorizationapi.PolicyName,
-						},
-					}
-
-					if err := registry.CreatePolicyBinding(ctx, policyBinding); err != nil {
-						glog.Errorf("Error creating policyBinding: %#v due to %v\n", policyBinding, err)
-					}
-
-				} else if err != nil {
-					glog.Errorf("Error getting policyBinding: %#v due to %v\n", policyBindingName, err)
-				}
-			}
-
-			if err := roleBindingRegistry.CreateRoleBinding(ctx, &roleBinding, true); err != nil {
-				glog.Errorf("Error creating roleBinding: %#v due to %v\n", roleBinding, err)
-			}
-
-		} else if err != nil {
-			glog.Errorf("Error getting roleBinding: %#v due to %v\n", roleBinding, err)
-		}
-	}
-
 }
 
 func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {

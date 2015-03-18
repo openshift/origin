@@ -12,7 +12,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
@@ -93,6 +93,7 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	BindMasterArgs(masterArgs, flags, "")
 	BindNodeArgs(nodeArgs, flags, "")
 	BindListenArg(listenArg, flags, "")
+	BindPolicyArgs(options.MasterArgs.PolicyArgs, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 	BindKubeConnectionArgs(kubeConnectionArgs, flags, "")
 	BindCertArgs(certArgs, flags, "")
@@ -172,11 +173,11 @@ func (o AllInOneOptions) StartAllInOne() error {
 
 	// if either one of these wants to mint certs, make sure the signer is present BEFORE they start up to make sure they always share
 	if o.MasterArgs.CertArgs.CreateCerts || o.NodeArgs.CertArgs.CreateCerts {
-		signerOptions := &certs.CreateSignerCertOptions{
-			CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			SerialFile: certs.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			Name:       certs.DefaultSignerName(),
+		signerOptions := &admin.CreateSignerCertOptions{
+			CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+			KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+			SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+			Name:       admin.DefaultSignerName(),
 		}
 
 		if _, err := signerOptions.CreateSignerCert(); err != nil {

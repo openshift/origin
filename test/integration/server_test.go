@@ -31,6 +31,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	basedir := path.Join(os.TempDir(), "openshift-integration-tests")
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
 	masterArgs.EtcdDir = path.Join(basedir, "etcd")
+	masterArgs.PolicyArgs.PolicyFile = path.Join(basedir, "policy", "policy.json")
 	certArgs.CertDir = path.Join(basedir, "cert")
 
 	// don't wait for nodes to come up

@@ -20,10 +20,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -103,6 +104,7 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 
 	BindMasterArgs(options.MasterArgs, flags, "")
 	BindListenArg(options.MasterArgs.ListenArg, flags, "")
+	BindPolicyArgs(options.MasterArgs.PolicyArgs, flags, "")
 	BindImageFormatArgs(options.MasterArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.MasterArgs.KubeConnectionArgs, flags, "")
 	BindCertArgs(options.MasterArgs.CertArgs, flags, "")
@@ -159,9 +161,15 @@ func (o MasterOptions) StartMaster() error {
 func (o MasterOptions) RunMaster() error {
 	startUsingConfigFile := !o.WriteConfigOnly && (len(o.ConfigFile) > 0)
 	mintCerts := o.MasterArgs.CertArgs.CreateCerts && !startUsingConfigFile
+	writeBootstrapPolicy := o.MasterArgs.PolicyArgs.CreatePolicyFile && !startUsingConfigFile
 
 	if mintCerts {
 		if err := o.CreateCerts(); err != nil {
+			return nil
+		}
+	}
+	if writeBootstrapPolicy {
+		if err := o.CreateBootstrapPolicy(); err != nil {
 			return nil
 		}
 	}
@@ -218,13 +226,23 @@ func (o MasterOptions) RunMaster() error {
 	return nil
 }
 
+func (o MasterOptions) CreateBootstrapPolicy() error {
+	writeBootstrapPolicy := admin.CreateBootstrapPolicyFileOptions{
+		File: o.MasterArgs.PolicyArgs.PolicyFile,
+		MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
+	}
+
+	return writeBootstrapPolicy.CreateBootstrapPolicyFile()
+}
+
 func (o MasterOptions) CreateCerts() error {
-	signerName := certs.DefaultSignerName()
+	signerName := admin.DefaultSignerName()
 	hostnames, err := o.MasterArgs.GetServerCertHostnames()
 	if err != nil {
 		return err
 	}
-	mintAllCertsOptions := certs.CreateAllCertsOptions{
+	mintAllCertsOptions := admin.CreateAllCertsOptions{
 		CertDir:    o.MasterArgs.CertArgs.CertDir,
 		SignerName: signerName,
 		Hostnames:  hostnames.List(),
@@ -234,7 +252,7 @@ func (o MasterOptions) CreateCerts() error {
 		return err
 	}
 
-	rootCAFile := certs.DefaultRootCAFile(o.MasterArgs.CertArgs.CertDir)
+	rootCAFile := admin.DefaultRootCAFile(o.MasterArgs.CertArgs.CertDir)
 	masterAddr, err := o.MasterArgs.GetMasterAddress()
 	if err != nil {
 		return err
@@ -243,8 +261,8 @@ func (o MasterOptions) CreateCerts() error {
 	if err != nil {
 		return err
 	}
-	for _, clientCertInfo := range certs.DefaultClientCerts(o.MasterArgs.CertArgs.CertDir) {
-		createKubeConfigOptions := certs.CreateKubeConfigOptions{
+	for _, clientCertInfo := range admin.DefaultClientCerts(o.MasterArgs.CertArgs.CertDir) {
+		createKubeConfigOptions := admin.CreateKubeConfigOptions{
 			APIServerURL:       masterAddr.String(),
 			PublicAPIServerURL: publicMasterAddr.String(),
 			APIServerCAFile:    rootCAFile,
@@ -254,7 +272,7 @@ func (o MasterOptions) CreateCerts() error {
 			KeyFile:  clientCertInfo.CertLocation.KeyFile,
 			UserNick: clientCertInfo.SubDir,
 
-			KubeConfigFile: certs.DefaultKubeConfigFilename(o.MasterArgs.CertArgs.CertDir, clientCertInfo.SubDir),
+			KubeConfigFile: admin.DefaultKubeConfigFilename(o.MasterArgs.CertArgs.CertDir, clientCertInfo.SubDir),
 		}
 
 		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {

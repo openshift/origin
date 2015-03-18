@@ -8,6 +8,11 @@ import (
 )
 
 const (
+	DefaultMasterAuthorizationNamespace      = "master"
+	DefaultOpenShiftSharedResourcesNamespace = "openshift"
+)
+
+const (
 	UnauthenticatedUsername       = "system:anonymous"
 	InternalComponentUsername     = "system:openshift-client"
 	InternalComponentKubeUsername = "system:kube-client"
