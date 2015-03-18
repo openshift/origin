@@ -19,20 +19,43 @@ package kubectl
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
 )
 
 // Describer generates output for the named resource or an error
-// if the output could not be generated.
+// if the output could not be generated. Implementors typically
+// abstract the retrieval of the named object from a remote server.
 type Describer interface {
 	Describe(namespace, name string) (output string, err error)
+}
+
+// ObjectDescriber is an interface for displaying arbitrary objects with extra
+// information. Use when an object is in hand (on disk, or already retrieved).
+// Implementors may ignore the additional information passed on extra, or use it
+// by default. ObjectDescribers may return ErrNoDescriber if no suitable describer
+// is found.
+type ObjectDescriber interface {
+	DescribeObject(object interface{}, extra ...interface{}) (output string, err error)
+}
+
+// ErrNoDescriber is a structured error indicating the provided object or objects
+// cannot be described.
+type ErrNoDescriber struct {
+	Types []string
+}
+
+// Error implements the error interface.
+func (e ErrNoDescriber) Error() string {
+	return fmt.Sprintf("no describer has been defined for %v", e.Types)
 }
 
 // Describer returns the default describe functions for each of the standard
@@ -46,13 +69,32 @@ func DescriberFor(kind string, c *client.Client) (Describer, bool) {
 	case "Service":
 		return &ServiceDescriber{c}, true
 	case "Minion", "Node":
-		return &MinionDescriber{c}, true
+		return &NodeDescriber{c}, true
 	case "LimitRange":
 		return &LimitRangeDescriber{c}, true
 	case "ResourceQuota":
 		return &ResourceQuotaDescriber{c}, true
 	}
 	return nil, false
+}
+
+// DefaultObjectDescriber can describe the default Kubernetes objects.
+var DefaultObjectDescriber ObjectDescriber
+
+func init() {
+	d := &Describers{}
+	err := d.Add(
+		describeLimitRange,
+		describeQuota,
+		describePod,
+		describeService,
+		describeReplicationController,
+		describeNode,
+	)
+	if err != nil {
+		glog.Fatalf("Cannot register describers: %v", err)
+	}
+	DefaultObjectDescriber = d
 }
 
 // LimitRangeDescriber generates information about a limit range
@@ -67,7 +109,10 @@ func (d *LimitRangeDescriber) Describe(namespace, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return describeLimitRange(limitRange)
+}
 
+func describeLimitRange(limitRange *api.LimitRange) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", limitRange.Name)
 		fmt.Fprintf(out, "Type\tResource\tMin\tMax\n")
@@ -121,6 +166,10 @@ func (d *ResourceQuotaDescriber) Describe(namespace, name string) (string, error
 		return "", err
 	}
 
+	return describeQuota(resourceQuota)
+}
+
+func describeQuota(resourceQuota *api.ResourceQuota) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", resourceQuota.Name)
 		fmt.Fprintf(out, "Resource\tUsed\tHard\n")
@@ -157,7 +206,7 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 	if err != nil {
 		events, err2 := d.Events(namespace).List(
 			labels.Everything(),
-			labels.Set{
+			fields.Set{
 				"involvedObject.name":      name,
 				"involvedObject.namespace": namespace,
 			}.AsSelector(),
@@ -172,32 +221,35 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
-	// TODO: remove me when pods are converted
-	spec := &api.PodSpec{}
-	if err := api.Scheme.Convert(&pod.Spec, spec); err != nil {
-		glog.Errorf("Unable to convert pod manifest: %v", err)
-	}
-
 	var events *api.EventList
 	if ref, err := api.GetReference(pod); err != nil {
 		glog.Errorf("Unable to construct reference to '%#v': %v", pod, err)
 	} else {
-		ref.Kind = "" // Find BoundPod objects, too!
+		ref.Kind = ""
 		events, _ = d.Events(namespace).Search(ref)
 	}
 
+	rcs, err := getReplicationControllersForLabels(rc, labels.Set(pod.Labels))
+	if err != nil {
+		return "", err
+	}
+
+	return describePod(pod, rcs, events)
+}
+
+func describePod(pod *api.Pod, rcs []api.ReplicationController, events *api.EventList) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", pod.Name)
-		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(spec))
+		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&pod.Spec))
 		fmt.Fprintf(out, "Host:\t%s\n", pod.Status.Host+"/"+pod.Status.HostIP)
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(pod.Labels))
 		fmt.Fprintf(out, "Status:\t%s\n", string(pod.Status.Phase))
-		fmt.Fprintf(out, "Replication Controllers:\t%s\n", getReplicationControllersForLabels(rc, labels.Set(pod.Labels)))
+		fmt.Fprintf(out, "Replication Controllers:\t%s\n", printReplicationControllersByLabels(rcs))
 		if len(pod.Status.Conditions) > 0 {
-			fmt.Fprint(out, "Conditions:\n  Kind\tStatus\n")
+			fmt.Fprint(out, "Conditions:\n  Type\tStatus\n")
 			for _, c := range pod.Status.Conditions {
 				fmt.Fprintf(out, "  %v \t%v \n",
-					c.Kind,
+					c.Type,
 					c.Status)
 			}
 		}
@@ -230,9 +282,17 @@ func (d *ReplicationControllerDescriber) Describe(namespace, name string) (strin
 
 	events, _ := d.Events(namespace).Search(controller)
 
+	return describeReplicationController(controller, events, running, waiting, succeeded, failed)
+}
+
+func describeReplicationController(controller *api.ReplicationController, events *api.EventList, running, waiting, succeeded, failed int) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", controller.Name)
-		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&controller.Spec.Template.Spec))
+		if controller.Spec.Template != nil {
+			fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&controller.Spec.Template.Spec))
+		} else {
+			fmt.Fprintf(out, "Image(s):\t%s\n", "<no template>")
+		}
 		fmt.Fprintf(out, "Selector:\t%s\n", formatLabels(controller.Spec.Selector))
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(controller.Labels))
 		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", controller.Status.Replicas, controller.Spec.Replicas)
@@ -257,13 +317,16 @@ func (d *ServiceDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
-	endpoints, err := d.Endpoints(namespace).Get(name)
-	if err != nil {
-		endpoints = &api.Endpoints{}
-	}
-
+	endpoints, _ := d.Endpoints(namespace).Get(name)
 	events, _ := d.Events(namespace).Search(service)
 
+	return describeService(service, endpoints, events)
+}
+
+func describeService(service *api.Service, endpoints *api.Endpoints, events *api.EventList) (string, error) {
+	if endpoints == nil {
+		endpoints = &api.Endpoints{}
+	}
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", service.Name)
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(service.Labels))
@@ -283,14 +346,14 @@ func (d *ServiceDescriber) Describe(namespace, name string) (string, error) {
 	})
 }
 
-// MinionDescriber generates information about a minion.
-type MinionDescriber struct {
+// NodeDescriber generates information about a node.
+type NodeDescriber struct {
 	client.Interface
 }
 
-func (d *MinionDescriber) Describe(namespace, name string) (string, error) {
+func (d *NodeDescriber) Describe(namespace, name string) (string, error) {
 	mc := d.Nodes()
-	minion, err := mc.Get(name)
+	node, err := mc.Get(name)
 	if err != nil {
 		return "", err
 	}
@@ -307,15 +370,19 @@ func (d *MinionDescriber) Describe(namespace, name string) (string, error) {
 		pods = append(pods, pod)
 	}
 
-	events, _ := d.Events(namespace).Search(minion)
+	events, _ := d.Events(namespace).Search(node)
 
+	return describeNode(node, pods, events)
+}
+
+func describeNode(node *api.Node, pods []api.Pod, events *api.EventList) (string, error) {
 	return tabbedString(func(out io.Writer) error {
-		fmt.Fprintf(out, "Name:\t%s\n", minion.Name)
-		if len(minion.Status.Conditions) > 0 {
-			fmt.Fprint(out, "Conditions:\n  Kind\tStatus\tLastProbeTime\tLastTransitionTime\tReason\tMessage\n")
-			for _, c := range minion.Status.Conditions {
+		fmt.Fprintf(out, "Name:\t%s\n", node.Name)
+		if len(node.Status.Conditions) > 0 {
+			fmt.Fprint(out, "Conditions:\n  Type\tStatus\tLastProbeTime\tLastTransitionTime\tReason\tMessage\n")
+			for _, c := range node.Status.Conditions {
 				fmt.Fprintf(out, "  %v \t%v \t%s \t%s \t%v \t%v\n",
-					c.Kind,
+					c.Type,
 					c.Status,
 					c.LastProbeTime.Time.Format(time.RFC1123Z),
 					c.LastTransitionTime.Time.Format(time.RFC1123Z),
@@ -323,11 +390,25 @@ func (d *MinionDescriber) Describe(namespace, name string) (string, error) {
 					c.Message)
 			}
 		}
+		var addresses []string
+		for _, address := range node.Status.Addresses {
+			addresses = append(addresses, address.Address)
+		}
+		fmt.Fprintf(out, "Addresses:\t%s\n", strings.Join(addresses, ","))
+		if len(node.Spec.Capacity) > 0 {
+			fmt.Fprintf(out, "Capacity:\n")
+			for resource, value := range node.Spec.Capacity {
+				fmt.Fprintf(out, " %s:\t%s\n", resource, value.String())
+			}
+		}
+		if len(node.Spec.PodCIDR) > 0 {
+			fmt.Fprintf(out, "PodCIDR:\t%s\n", node.Spec.PodCIDR)
+		}
+		if len(node.Spec.ExternalID) > 0 {
+			fmt.Fprintf(out, "ExternalID:\t%s\n", node.Spec.ExternalID)
+		}
 		fmt.Fprintf(out, "Pods:\t(%d in total)\n", len(pods))
 		for _, pod := range pods {
-			if pod.Status.Host != name {
-				continue
-			}
 			fmt.Fprintf(out, "  %s\n", pod.Name)
 		}
 		if events != nil {
@@ -360,12 +441,12 @@ func describeEvents(el *api.EventList, w io.Writer) {
 // labels.
 // TODO Move this to pkg/client and ideally implement it server-side (instead
 // of getting all RC's and searching through them manually).
-func getReplicationControllersForLabels(c client.ReplicationControllerInterface, labelsToMatch labels.Labels) string {
+func getReplicationControllersForLabels(c client.ReplicationControllerInterface, labelsToMatch labels.Labels) ([]api.ReplicationController, error) {
 	// Get all replication controllers.
 	// TODO this needs a namespace scope as argument
 	rcs, err := c.List(labels.Everything())
 	if err != nil {
-		glog.Fatalf("Error getting replication controllers: %v\n", err)
+		return nil, fmt.Errorf("error getting replication controllers: %v", err)
 	}
 
 	// Find the ones that match labelsToMatch.
@@ -376,7 +457,10 @@ func getReplicationControllersForLabels(c client.ReplicationControllerInterface,
 			matchingRCs = append(matchingRCs, controller)
 		}
 	}
+	return matchingRCs, nil
+}
 
+func printReplicationControllersByLabels(matchingRCs []api.ReplicationController) string {
 	// Format the matching RC's into strings.
 	var rcStrings []string
 	for _, controller := range matchingRCs {
@@ -408,4 +492,139 @@ func getPodStatusForReplicationController(c client.PodInterface, controller *api
 		}
 	}
 	return
+}
+
+// newErrNoDescriber creates a new ErrNoDescriber with the names of the provided types.
+func newErrNoDescriber(types ...reflect.Type) error {
+	names := []string{}
+	for _, t := range types {
+		names = append(names, t.String())
+	}
+	return ErrNoDescriber{Types: names}
+}
+
+// Describers implements ObjectDescriber against functions registered via Add. Those functions can
+// be strongly typed. Types are exactly matched (no conversion or assignable checks).
+type Describers struct {
+	searchFns map[reflect.Type][]typeFunc
+}
+
+// DescribeObject implements ObjectDescriber and will attempt to print the provided object to a string,
+// if at least one describer function has been registered with the exact types passed, or if any
+// describer can print the exact object in its first argument (the remainder will be provided empty
+// values). If no function registered with Add can satisfy the passed objects, an ErrNoDescriber will
+// be returned
+// TODO: reorder and partial match extra.
+func (d *Describers) DescribeObject(exact interface{}, extra ...interface{}) (string, error) {
+	exactType := reflect.TypeOf(exact)
+	fns, ok := d.searchFns[exactType]
+	if !ok {
+		return "", newErrNoDescriber(exactType)
+	}
+	if len(extra) == 0 {
+		for _, typeFn := range fns {
+			if len(typeFn.Extra) == 0 {
+				return typeFn.Describe(exact, extra...)
+			}
+		}
+		typeFn := fns[0]
+		for _, t := range typeFn.Extra {
+			v := reflect.New(t).Elem()
+			extra = append(extra, v.Interface())
+		}
+		return fns[0].Describe(exact, extra...)
+	}
+
+	types := []reflect.Type{}
+	for _, obj := range extra {
+		types = append(types, reflect.TypeOf(obj))
+	}
+	for _, typeFn := range fns {
+		if typeFn.Matches(types) {
+			return typeFn.Describe(exact, extra...)
+		}
+	}
+	return "", newErrNoDescriber(append([]reflect.Type{exactType}, types...)...)
+}
+
+// Add adds one or more describer functions to the Describer. The passed function must
+// match the signature:
+//
+//     func(...) (string, error)
+//
+// Any number of arguments may be provided.
+func (d *Describers) Add(fns ...interface{}) error {
+	for _, fn := range fns {
+		fv := reflect.ValueOf(fn)
+		ft := fv.Type()
+		if ft.Kind() != reflect.Func {
+			return fmt.Errorf("expected func, got: %v", ft)
+		}
+		if ft.NumIn() == 0 {
+			return fmt.Errorf("expected at least one 'in' params, got: %v", ft)
+		}
+		if ft.NumOut() != 2 {
+			return fmt.Errorf("expected two 'out' params - (string, error), got: %v", ft)
+		}
+		types := []reflect.Type{}
+		for i := 0; i < ft.NumIn(); i++ {
+			types = append(types, ft.In(i))
+		}
+		if ft.Out(0) != reflect.TypeOf(string("")) {
+			return fmt.Errorf("expected string return, got: %v", ft)
+		}
+		var forErrorType error
+		// This convolution is necessary, otherwise TypeOf picks up on the fact
+		// that forErrorType is nil.
+		errorType := reflect.TypeOf(&forErrorType).Elem()
+		if ft.Out(1) != errorType {
+			return fmt.Errorf("expected error return, got: %v", ft)
+		}
+
+		exact := types[0]
+		extra := types[1:]
+		if d.searchFns == nil {
+			d.searchFns = make(map[reflect.Type][]typeFunc)
+		}
+		fns := d.searchFns[exact]
+		fn := typeFunc{Extra: extra, Fn: fv}
+		fns = append(fns, fn)
+		d.searchFns[exact] = fns
+	}
+	return nil
+}
+
+// typeFunc holds information about a describer function and the types it accepts
+type typeFunc struct {
+	Extra []reflect.Type
+	Fn    reflect.Value
+}
+
+// Matches returns true when the passed types exactly match the Extra list.
+// TODO: allow unordered types to be matched and reorderd.
+func (fn typeFunc) Matches(types []reflect.Type) bool {
+	if len(fn.Extra) != len(types) {
+		return false
+	}
+	for i := range types {
+		if fn.Extra[i] != types[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Describe invokes the nested function with the exact number of arguments.
+func (fn typeFunc) Describe(exact interface{}, extra ...interface{}) (string, error) {
+	values := []reflect.Value{reflect.ValueOf(exact)}
+	for _, obj := range extra {
+		values = append(values, reflect.ValueOf(obj))
+	}
+	out := fn.Fn.Call(values)
+	s := out[0].Interface().(string)
+	var err error
+	if !out[1].IsNil() {
+		err = out[1].Interface().(error)
+	}
+	return s, err
 }

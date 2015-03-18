@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -55,6 +56,9 @@ type PodControlInterface interface {
 type RealPodControl struct {
 	kubeClient client.Interface
 }
+
+// Time period of main replication controller sync loop
+const DefaultSyncPeriod = 10 * time.Second
 
 func (r RealPodControl) createReplica(namespace string, controller api.ReplicationController) {
 	desiredLabels := make(labels.Set)
@@ -119,7 +123,7 @@ func (rm *ReplicationManager) Run(period time.Duration) {
 func (rm *ReplicationManager) watchControllers(resourceVersion *string) {
 	watching, err := rm.kubeClient.ReplicationControllers(api.NamespaceAll).Watch(
 		labels.Everything(),
-		labels.Everything(),
+		fields.Everything(),
 		*resourceVersion,
 	)
 	if err != nil {
@@ -135,7 +139,7 @@ func (rm *ReplicationManager) watchControllers(resourceVersion *string) {
 		case event, open := <-watching.ResultChan():
 			if !open {
 				// watchChannel has been closed, or something else went
-				// wrong with our etcd watch call. Let the util.Forever()
+				// wrong with our watch call. Let the util.Forever()
 				// that called us call us again.
 				return
 			}
@@ -193,7 +197,8 @@ func (rm *ReplicationManager) syncReplicationController(controller api.Replicati
 		return err
 	}
 	filteredList := FilterActivePods(podList.Items)
-	diff := len(filteredList) - controller.Spec.Replicas
+	activePods := len(filteredList)
+	diff := activePods - controller.Spec.Replicas
 	if diff < 0 {
 		diff *= -1
 		wait := sync.WaitGroup{}
@@ -217,6 +222,13 @@ func (rm *ReplicationManager) syncReplicationController(controller api.Replicati
 			}(i)
 		}
 		wait.Wait()
+	}
+	if controller.Status.Replicas != activePods {
+		controller.Status.Replicas = activePods
+		_, err = rm.kubeClient.ReplicationControllers(controller.Namespace).Update(&controller)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

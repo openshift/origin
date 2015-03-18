@@ -18,7 +18,9 @@ package client
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
 // FakeLimitRanges implements PodsInterface. Meant to be embedded into a struct to get a default
@@ -51,4 +53,9 @@ func (c *FakeLimitRanges) Create(limitRange *api.LimitRange) (*api.LimitRange, e
 func (c *FakeLimitRanges) Update(limitRange *api.LimitRange) (*api.LimitRange, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-limitRange", Value: limitRange.Name})
 	return &api.LimitRange{}, nil
+}
+
+func (c *FakeLimitRanges) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-limitRange", Value: resourceVersion})
+	return c.Fake.Watch, nil
 }

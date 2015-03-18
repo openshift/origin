@@ -18,19 +18,20 @@ package generic
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
 // AttrFunc returns label and field sets for List or Watch to compare against, or an error.
-type AttrFunc func(obj runtime.Object) (label, field labels.Set, err error)
+type AttrFunc func(obj runtime.Object) (label labels.Set, field fields.Set, err error)
 
 // SelectionPredicate implements a generic predicate that can be passed to
 // GenericRegistry's List or Watch methods. Implements the Matcher interface.
 type SelectionPredicate struct {
 	Label    labels.Selector
-	Field    labels.Selector
+	Field    fields.Selector
 	GetAttrs AttrFunc
 }
 
@@ -75,12 +76,12 @@ type DecoratorFunc func(obj runtime.Object) error
 // layer.
 // DEPRECATED: replace with direct implementation of RESTStorage
 type Registry interface {
-	List(api.Context, Matcher) (runtime.Object, error)
+	ListPredicate(api.Context, Matcher) (runtime.Object, error)
 	CreateWithName(ctx api.Context, id string, obj runtime.Object) error
 	UpdateWithName(ctx api.Context, id string, obj runtime.Object) error
 	Get(ctx api.Context, id string) (runtime.Object, error)
-	Delete(ctx api.Context, id string) (runtime.Object, error)
-	Watch(ctx api.Context, m Matcher, resourceVersion string) (watch.Interface, error)
+	Delete(ctx api.Context, id string, options *api.DeleteOptions) (runtime.Object, error)
+	WatchPredicate(ctx api.Context, m Matcher, resourceVersion string) (watch.Interface, error)
 }
 
 // FilterList filters any list object that conforms to the api conventions,

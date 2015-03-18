@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -35,11 +36,12 @@ type EventNamespacer interface {
 type EventInterface interface {
 	Create(event *api.Event) (*api.Event, error)
 	Update(event *api.Event) (*api.Event, error)
-	List(label, field labels.Selector) (*api.EventList, error)
+	List(label labels.Selector, field fields.Selector) (*api.EventList, error)
 	Get(name string) (*api.Event, error)
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	// Search finds events about the specified object
 	Search(objOrRef runtime.Object) (*api.EventList, error)
+	Delete(name string) error
 }
 
 // events implements Events interface
@@ -95,13 +97,13 @@ func (e *events) Update(event *api.Event) (*api.Event, error) {
 }
 
 // List returns a list of events matching the selectors.
-func (e *events) List(label, field labels.Selector) (*api.EventList, error) {
+func (e *events) List(label labels.Selector, field fields.Selector) (*api.EventList, error) {
 	result := &api.EventList{}
 	err := e.client.Get().
 		NamespaceIfScoped(e.namespace, len(e.namespace) > 0).
 		Resource("events").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam(api.LabelSelectorQueryParam(e.client.APIVersion()), label).
+		FieldsSelectorParam(api.FieldSelectorQueryParam(e.client.APIVersion()), field).
 		Do().
 		Into(result)
 	return result, err
@@ -124,14 +126,14 @@ func (e *events) Get(name string) (*api.Event, error) {
 }
 
 // Watch starts watching for events matching the given selectors.
-func (e *events) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (e *events) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return e.client.Get().
 		Prefix("watch").
 		NamespaceIfScoped(e.namespace, len(e.namespace) > 0).
 		Resource("events").
 		Param("resourceVersion", resourceVersion).
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam(api.LabelSelectorQueryParam(e.client.APIVersion()), label).
+		FieldsSelectorParam(api.FieldSelectorQueryParam(e.client.APIVersion()), field).
 		Watch()
 }
 
@@ -146,7 +148,7 @@ func (e *events) Search(objOrRef runtime.Object) (*api.EventList, error) {
 	if e.namespace != "" && ref.Namespace != e.namespace {
 		return nil, fmt.Errorf("won't be able to find any events of namespace '%v' in namespace '%v'", ref.Namespace, e.namespace)
 	}
-	fields := labels.Set{}
+	fields := fields.Set{}
 	if ref.Kind != "" {
 		fields["involvedObject.kind"] = ref.Kind
 	}
@@ -160,4 +162,14 @@ func (e *events) Search(objOrRef runtime.Object) (*api.EventList, error) {
 		fields["involvedObject.uid"] = string(ref.UID)
 	}
 	return e.List(labels.Everything(), fields.AsSelector())
+}
+
+// Delete deletes an existing event.
+func (e *events) Delete(name string) error {
+	return e.client.Delete().
+		NamespaceIfScoped(e.namespace, len(e.namespace) > 0).
+		Resource("events").
+		Name(name).
+		Do().
+		Error()
 }

@@ -19,6 +19,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -26,66 +27,91 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/merge"
+	"github.com/evanphx/json-patch"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
-func checkErr(err error) {
+func CheckErr(err error) {
 	if err != nil {
-		glog.FatalDepth(1, err.Error())
+		if errors.IsStatusError(err) {
+			glog.FatalDepth(1, fmt.Sprintf("Error received from API: %s", err.Error()))
+		}
+		if errors.IsUnexpectedObjectError(err) {
+			glog.FatalDepth(1, fmt.Sprintf("Unexpected object received from server: %s", err.Error()))
+		}
+		if client.IsUnexpectedStatusError(err) {
+			glog.FatalDepth(1, fmt.Sprintf("Unexpected status received from server: %s", err.Error()))
+		}
+		glog.FatalDepth(1, fmt.Sprintf("Client error processing command: %s", err.Error()))
 	}
 }
 
-func usageError(cmd *cobra.Command, format string, args ...interface{}) {
-	glog.Errorf(format, args...)
-	glog.Errorf("See '%s -h' for help.", cmd.CommandPath())
-	os.Exit(1)
+func UsageError(cmd *cobra.Command, format string, args ...interface{}) error {
+	msg := fmt.Sprintf(format, args...)
+	return fmt.Errorf("%s\nsee '%s -h' for help.", msg, cmd.CommandPath())
+}
+
+func getFlag(cmd *cobra.Command, flag string) *pflag.Flag {
+	f := cmd.Flags().Lookup(flag)
+	if f == nil {
+		glog.Fatalf("flag accessed but not defined for command %s: %s", cmd.Name(), flag)
+	}
+	return f
 }
 
 func GetFlagString(cmd *cobra.Command, flag string) string {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
-	}
+	f := getFlag(cmd, flag)
 	return f.Value.String()
 }
 
 func GetFlagBool(cmd *cobra.Command, flag string) bool {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
+	f := getFlag(cmd, flag)
+	result, err := strconv.ParseBool(f.Value.String())
+	if err != nil {
+		glog.Fatalf("Invalid value for a boolean flag: %s", f.Value.String())
 	}
-	// Caseless compare.
-	if strings.ToLower(f.Value.String()) == "true" {
-		return true
-	}
-	return false
+	return result
 }
 
 // Assumes the flag has a default value.
 func GetFlagInt(cmd *cobra.Command, flag string) int {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
-	}
+	f := getFlag(cmd, flag)
 	v, err := strconv.Atoi(f.Value.String())
 	// This is likely not a sufficiently friendly error message, but cobra
 	// should prevent non-integer values from reaching here.
-	checkErr(err)
+	if err != nil {
+		glog.Fatalf("unable to convert flag value to int: %v", err)
+	}
 	return v
 }
 
 func GetFlagDuration(cmd *cobra.Command, flag string) time.Duration {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
-	}
+	f := getFlag(cmd, flag)
 	v, err := time.ParseDuration(f.Value.String())
-	checkErr(err)
+	if err != nil {
+		glog.Fatalf("unable to convert flag value to Duration: %v", err)
+	}
 	return v
+}
+
+func ReadConfigDataFromReader(reader io.Reader, source string) ([]byte, error) {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(data) == 0 {
+		return nil, fmt.Errorf(`Read from %s but no data found`, source)
+	}
+
+	return data, nil
 }
 
 // ReadConfigData reads the bytes from the specified filesytem or network
@@ -98,16 +124,7 @@ func ReadConfigData(location string) ([]byte, error) {
 
 	if location == "-" {
 		// Read from stdin.
-		data, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(data) == 0 {
-			return nil, fmt.Errorf(`Read from stdin specified ("-") but no data found`)
-		}
-
-		return data, nil
+		return ReadConfigDataFromReader(os.Stdin, "stdin ('-')")
 	}
 
 	// Use the location as a file path or URL.
@@ -126,17 +143,13 @@ func ReadConfigDataFromLocation(location string) ([]byte, error) {
 		if resp.StatusCode != 200 {
 			return nil, fmt.Errorf("unable to read URL, server reported %d %s", resp.StatusCode, resp.Status)
 		}
-		data, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read URL %s: %v\n", location, err)
-		}
-		return data, nil
+		return ReadConfigDataFromReader(resp.Body, location)
 	} else {
-		data, err := ioutil.ReadFile(location)
+		file, err := os.Open(location)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read %s: %v\n", location, err)
 		}
-		return data, nil
+		return ReadConfigDataFromReader(file, location)
 	}
 }
 
@@ -160,18 +173,21 @@ func Merge(dst runtime.Object, fragment, kind string) (runtime.Object, error) {
 	if !ok {
 		return nil, fmt.Errorf("apiVersion must be a string")
 	}
+	i, err := latest.InterfacesFor(versionString)
+	if err != nil {
+		return nil, err
+	}
 
-	codec := runtime.CodecFor(api.Scheme, versionString)
 	// encode dst into versioned json and apply fragment directly too it
-	target, err := codec.Encode(dst)
+	target, err := i.Codec.Encode(dst)
 	if err != nil {
 		return nil, err
 	}
-	patched, err := merge.MergeJSON(target, []byte(fragment))
+	patched, err := jsonpatch.MergePatch(target, []byte(fragment))
 	if err != nil {
 		return nil, err
 	}
-	out, err := codec.Decode(patched)
+	out, err := i.Codec.Decode(patched)
 	if err != nil {
 		return nil, err
 	}

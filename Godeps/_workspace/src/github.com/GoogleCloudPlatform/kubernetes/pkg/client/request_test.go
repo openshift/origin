@@ -27,7 +27,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	// "reflect"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -50,12 +50,11 @@ func TestRequestWithErrorWontChange(t *testing.T) {
 	original := Request{err: errors.New("test")}
 	r := original
 	changed := r.Param("foo", "bar").
-		SelectorParam("labels", labels.Set{"a": "b"}.AsSelector()).
+		LabelsSelectorParam(api.LabelSelectorQueryParam(testapi.Version()), labels.Set{"a": "b"}.AsSelector()).
 		UintParam("uint", 1).
 		AbsPath("/abs").
 		Prefix("test").
 		Suffix("testing").
-		ParseSelectorParam("foo", "a=b").
 		Namespace("new").
 		Resource("foos").
 		Name("bars").
@@ -64,7 +63,7 @@ func TestRequestWithErrorWontChange(t *testing.T) {
 	if changed != &r {
 		t.Errorf("returned request should point to the same object")
 	}
-	if !api.Semantic.DeepDerivative(changed, &original) {
+	if !reflect.DeepEqual(changed, &original) {
 		t.Errorf("expected %#v, got %#v", &original, changed)
 	}
 }
@@ -129,6 +128,16 @@ func TestRequestOrdersNamespaceInPath(t *testing.T) {
 	}
 }
 
+func TestRequestOrdersSubResource(t *testing.T) {
+	r := (&Request{
+		baseURL: &url.URL{},
+		path:    "/test/",
+	}).Name("bar").Resource("baz").Namespace("foo").Suffix("test").SubResource("a", "b")
+	if s := r.finalURL(); s != "/test/namespaces/foo/baz/bar/a/b/test" {
+		t.Errorf("namespace should be in order in path: %s", s)
+	}
+}
+
 func TestRequestSetTwiceError(t *testing.T) {
 	if (&Request{}).Name("bar").Name("baz").err == nil {
 		t.Errorf("setting name twice should result in error")
@@ -139,12 +148,8 @@ func TestRequestSetTwiceError(t *testing.T) {
 	if (&Request{}).Resource("bar").Resource("baz").err == nil {
 		t.Errorf("setting resource twice should result in error")
 	}
-}
-
-func TestRequestParseSelectorParam(t *testing.T) {
-	r := (&Request{}).ParseSelectorParam("foo", "a")
-	if r.err == nil || r.params != nil {
-		t.Errorf("should have set err and left params nil: %#v", r)
+	if (&Request{}).SubResource("bar").SubResource("baz").err == nil {
+		t.Errorf("setting subresource twice should result in error")
 	}
 }
 
@@ -229,11 +234,15 @@ func TestTransformResponse(t *testing.T) {
 		{Response: &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader(invalid))}, Data: invalid},
 	}
 	for i, test := range testCases {
-		r := NewRequest(nil, "", uri, testapi.Codec(), true, true)
+		r := NewRequest(nil, "", uri, testapi.Version(), testapi.Codec(), true, true)
 		if test.Response.Body == nil {
 			test.Response.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))
 		}
-		response, created, err := r.transformResponse(test.Response, &http.Request{})
+		body, err := ioutil.ReadAll(test.Response.Body)
+		if err != nil {
+			t.Errorf("failed to read body of response: %v", err)
+		}
+		response, created, err := r.transformResponse(body, test.Response, &http.Request{})
 		hasErr := err != nil
 		if hasErr != test.Error {
 			t.Errorf("%d: unexpected error: %t %v", i, test.Error, err)
@@ -307,7 +316,11 @@ func TestTransformUnstructuredError(t *testing.T) {
 			resourceName: testCase.Name,
 			resource:     testCase.Resource,
 		}
-		_, _, err := r.transformResponse(testCase.Res, testCase.Req)
+		body, err := ioutil.ReadAll(testCase.Res.Body)
+		if err != nil {
+			t.Errorf("failed to read body: %v", err)
+		}
+		_, _, err = r.transformResponse(body, testCase.Res, testCase.Req)
 		if !testCase.ErrFn(err) {
 			t.Errorf("unexpected error: %v", err)
 			continue
@@ -519,7 +532,7 @@ func TestRequestUpgrade(t *testing.T) {
 			Err: true,
 		},
 		{
-			Request: NewRequest(nil, "", uri, testapi.Codec(), true, true),
+			Request: NewRequest(nil, "", uri, testapi.Version(), testapi.Codec(), true, true),
 			Config: &Config{
 				Username: "u",
 				Password: "p",
@@ -528,7 +541,7 @@ func TestRequestUpgrade(t *testing.T) {
 			Err:             false,
 		},
 		{
-			Request: NewRequest(nil, "", uri, testapi.Codec(), true, true),
+			Request: NewRequest(nil, "", uri, testapi.Version(), testapi.Codec(), true, true),
 			Config: &Config{
 				BearerToken: "b",
 			},
@@ -617,7 +630,6 @@ func TestDoRequestNewWay(t *testing.T) {
 	obj, err := c.Verb("POST").
 		Prefix("foo", "bar").
 		Suffix("baz").
-		ParseSelectorParam("labels", "name=foo").
 		Timeout(time.Second).
 		Body([]byte(reqBody)).
 		Do().Get()
@@ -630,7 +642,7 @@ func TestDoRequestNewWay(t *testing.T) {
 	} else if !api.Semantic.DeepDerivative(expectedObj, obj) {
 		t.Errorf("Expected: %#v, got %#v", expectedObj, obj)
 	}
-	fakeHandler.ValidateRequest(t, "/api/v1beta2/foo/bar/baz?labels=name%3Dfoo&timeout=1s", "POST", &reqBody)
+	fakeHandler.ValidateRequest(t, "/api/v1beta2/foo/bar/baz?timeout=1s", "POST", &reqBody)
 	if fakeHandler.RequestReceived.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *fakeHandler.RequestReceived)
 	}
@@ -652,7 +664,7 @@ func TestDoRequestNewWayReader(t *testing.T) {
 		Resource("bar").
 		Name("baz").
 		Prefix("foo").
-		SelectorParam("labels", labels.Set{"name": "foo"}.AsSelector()).
+		LabelsSelectorParam(api.LabelSelectorQueryParam(c.APIVersion()), labels.Set{"name": "foo"}.AsSelector()).
 		Timeout(time.Second).
 		Body(bytes.NewBuffer(reqBodyExpected)).
 		Do().Get()
@@ -688,7 +700,7 @@ func TestDoRequestNewWayObj(t *testing.T) {
 		Suffix("baz").
 		Name("bar").
 		Resource("foo").
-		SelectorParam("labels", labels.Set{"name": "foo"}.AsSelector()).
+		LabelsSelectorParam(api.LabelSelectorQueryParam(c.APIVersion()), labels.Set{"name": "foo"}.AsSelector()).
 		Timeout(time.Second).
 		Body(reqObj).
 		Do().Get()
@@ -737,7 +749,6 @@ func TestDoRequestNewWayFile(t *testing.T) {
 	wasCreated := true
 	obj, err := c.Verb("POST").
 		Prefix("foo/bar", "baz").
-		ParseSelectorParam("labels", "name=foo").
 		Timeout(time.Second).
 		Body(file.Name()).
 		Do().WasCreated(&wasCreated).Get()
@@ -754,7 +765,7 @@ func TestDoRequestNewWayFile(t *testing.T) {
 		t.Errorf("expected object was not created")
 	}
 	tmpStr := string(reqBodyExpected)
-	fakeHandler.ValidateRequest(t, "/api/v1beta1/foo/bar/baz?labels=name%3Dfoo&timeout=1s", "POST", &tmpStr)
+	fakeHandler.ValidateRequest(t, "/api/v1beta1/foo/bar/baz?timeout=1s", "POST", &tmpStr)
 	if fakeHandler.RequestReceived.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *fakeHandler.RequestReceived)
 	}
@@ -779,7 +790,6 @@ func TestWasCreated(t *testing.T) {
 	wasCreated := false
 	obj, err := c.Verb("PUT").
 		Prefix("foo/bar", "baz").
-		ParseSelectorParam("labels", "name=foo").
 		Timeout(time.Second).
 		Body(reqBodyExpected).
 		Do().WasCreated(&wasCreated).Get()
@@ -797,7 +807,7 @@ func TestWasCreated(t *testing.T) {
 	}
 
 	tmpStr := string(reqBodyExpected)
-	fakeHandler.ValidateRequest(t, "/api/v1beta1/foo/bar/baz?labels=name%3Dfoo&timeout=1s", "PUT", &tmpStr)
+	fakeHandler.ValidateRequest(t, "/api/v1beta1/foo/bar/baz?timeout=1s", "PUT", &tmpStr)
 	if fakeHandler.RequestReceived.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *fakeHandler.RequestReceived)
 	}

@@ -32,7 +32,9 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 )
@@ -97,11 +99,11 @@ func (fn ResourcePrinterFunc) PrintObj(obj runtime.Object, w io.Writer) error {
 type VersionedPrinter struct {
 	printer   ResourcePrinter
 	convertor runtime.ObjectConvertor
-	version   string
+	version   []string
 }
 
 // NewVersionedPrinter wraps a printer to convert objects to a known API version prior to printing.
-func NewVersionedPrinter(printer ResourcePrinter, convertor runtime.ObjectConvertor, version string) ResourcePrinter {
+func NewVersionedPrinter(printer ResourcePrinter, convertor runtime.ObjectConvertor, version ...string) ResourcePrinter {
 	return &VersionedPrinter{
 		printer:   printer,
 		convertor: convertor,
@@ -114,11 +116,20 @@ func (p *VersionedPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	if len(p.version) == 0 {
 		return fmt.Errorf("no version specified, object cannot be converted")
 	}
-	converted, err := p.convertor.ConvertToVersion(obj, p.version)
-	if err != nil {
-		return err
+	for _, version := range p.version {
+		if len(version) == 0 {
+			continue
+		}
+		converted, err := p.convertor.ConvertToVersion(obj, version)
+		if conversion.IsNotRegisteredError(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		return p.printer.PrintObj(converted, w)
 	}
-	return p.printer.PrintObj(converted, w)
+	return fmt.Errorf("the object cannot be converted to any of the versions: %v", p.version)
 }
 
 // JSONPrinter is an implementation of ResourcePrinter which outputs an object as JSON.
@@ -217,7 +228,7 @@ func (h *HumanReadablePrinter) validatePrintHandlerFunc(printFunc reflect.Value)
 	return nil
 }
 
-var podColumns = []string{"POD", "IP", "CONTAINER(S)", "IMAGE(S)", "HOST", "LABELS", "STATUS"}
+var podColumns = []string{"POD", "IP", "CONTAINER(S)", "IMAGE(S)", "HOST", "LABELS", "STATUS", "CREATED"}
 var replicationControllerColumns = []string{"CONTROLLER", "CONTAINER(S)", "IMAGE(S)", "SELECTOR", "REPLICAS"}
 var serviceColumns = []string{"NAME", "LABELS", "SELECTOR", "IP", "PORT"}
 var endpointColumns = []string{"NAME", "ENDPOINTS"}
@@ -226,7 +237,7 @@ var statusColumns = []string{"STATUS"}
 var eventColumns = []string{"FIRSTSEEN", "LASTSEEN", "COUNT", "NAME", "KIND", "SUBOBJECT", "REASON", "SOURCE", "MESSAGE"}
 var limitRangeColumns = []string{"NAME"}
 var resourceQuotaColumns = []string{"NAME"}
-var namespaceColumns = []string{"NAME", "LABELS"}
+var namespaceColumns = []string{"NAME", "LABELS", "STATUS"}
 var secretColumns = []string{"NAME", "DATA"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
@@ -238,6 +249,7 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(serviceColumns, printService)
 	h.Handler(serviceColumns, printServiceList)
 	h.Handler(endpointColumns, printEndpoints)
+	h.Handler(endpointColumns, printEndpointsList)
 	h.Handler(nodeColumns, printNode)
 	h.Handler(nodeColumns, printNodeList)
 	h.Handler(statusColumns, printStatus)
@@ -295,20 +307,21 @@ func printPod(pod *api.Pod, w io.Writer) error {
 	if len(containers) > 0 {
 		firstContainer, containers = containers[0], containers[1:]
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 		pod.Name,
 		pod.Status.PodIP,
 		firstContainer.Name,
 		firstContainer.Image,
 		podHostString(pod.Status.Host, pod.Status.HostIP),
 		formatLabels(pod.Labels),
-		pod.Status.Phase)
+		pod.Status.Phase,
+		units.HumanDuration(time.Now().Sub(pod.CreationTimestamp.Time)))
 	if err != nil {
 		return err
 	}
 	// Lay out all the other containers on separate lines.
 	for _, container := range containers {
-		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", "", "", container.Name, container.Image, "", "", "")
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", "", "", container.Name, container.Image, "", "", "", "")
 		if err != nil {
 			return err
 		}
@@ -379,8 +392,17 @@ func printEndpoints(endpoint *api.Endpoints, w io.Writer) error {
 	return err
 }
 
+func printEndpointsList(list *api.EndpointsList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printEndpoints(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func printNamespace(item *api.Namespace, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\n", item.Name, formatLabels(item.Labels))
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", item.Name, formatLabels(item.Labels), item.Status.Phase)
 	return err
 }
 
@@ -409,19 +431,19 @@ func printSecretList(list *api.SecretList, w io.Writer) error {
 }
 
 func printNode(node *api.Node, w io.Writer) error {
-	conditionMap := make(map[api.NodeConditionKind]*api.NodeCondition)
-	NodeAllConditions := []api.NodeConditionKind{api.NodeReady, api.NodeReachable}
+	conditionMap := make(map[api.NodeConditionType]*api.NodeCondition)
+	NodeAllConditions := []api.NodeConditionType{api.NodeSchedulable, api.NodeReady, api.NodeReachable}
 	for i := range node.Status.Conditions {
 		cond := node.Status.Conditions[i]
-		conditionMap[cond.Kind] = &cond
+		conditionMap[cond.Type] = &cond
 	}
 	var status []string
 	for _, validCondition := range NodeAllConditions {
 		if condition, ok := conditionMap[validCondition]; ok {
 			if condition.Status == api.ConditionFull {
-				status = append(status, string(condition.Kind))
+				status = append(status, string(condition.Type))
 			} else {
-				status = append(status, "Not"+string(condition.Kind))
+				status = append(status, "Not"+string(condition.Type))
 			}
 		}
 	}

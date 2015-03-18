@@ -21,6 +21,7 @@ import (
 	"net/url"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -34,21 +35,22 @@ type FakeAction struct {
 // Fake implements Interface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the method you want to test easier.
 type Fake struct {
-	Actions            []FakeAction
-	PodsList           api.PodList
-	CtrlList           api.ReplicationControllerList
-	Ctrl               api.ReplicationController
-	ServiceList        api.ServiceList
-	EndpointsList      api.EndpointsList
-	MinionsList        api.NodeList
-	EventsList         api.EventList
-	LimitRangesList    api.LimitRangeList
-	ResourceQuotasList api.ResourceQuotaList
-	NamespacesList     api.NamespaceList
-	SecretList         api.SecretList
-	Secret             api.Secret
-	Err                error
-	Watch              watch.Interface
+	Actions             []FakeAction
+	PodsList            api.PodList
+	CtrlList            api.ReplicationControllerList
+	Ctrl                api.ReplicationController
+	ServiceList         api.ServiceList
+	EndpointsList       api.EndpointsList
+	MinionsList         api.NodeList
+	EventsList          api.EventList
+	LimitRangesList     api.LimitRangeList
+	ResourceQuotaStatus api.ResourceQuota
+	ResourceQuotasList  api.ResourceQuotaList
+	NamespacesList      api.NamespaceList
+	SecretList          api.SecretList
+	Secret              api.Secret
+	Err                 error
+	Watch               watch.Interface
 }
 
 func (c *Fake) LimitRanges(namespace string) LimitRangeInterface {
@@ -57,10 +59,6 @@ func (c *Fake) LimitRanges(namespace string) LimitRangeInterface {
 
 func (c *Fake) ResourceQuotas(namespace string) ResourceQuotaInterface {
 	return &FakeResourceQuotas{Fake: c, Namespace: namespace}
-}
-
-func (c *Fake) ResourceQuotaUsages(namespace string) ResourceQuotaUsageInterface {
-	return &FakeResourceQuotaUsages{Fake: c, Namespace: namespace}
 }
 
 func (c *Fake) ReplicationControllers(namespace string) ReplicationControllerInterface {
@@ -123,19 +121,19 @@ type FakeRESTClient struct {
 }
 
 func (c *FakeRESTClient) Get() *Request {
-	return NewRequest(c, "GET", &url.URL{Host: "localhost"}, c.Codec, c.Legacy, c.Legacy)
+	return NewRequest(c, "GET", &url.URL{Host: "localhost"}, testapi.Version(), c.Codec, c.Legacy, c.Legacy)
 }
 
 func (c *FakeRESTClient) Put() *Request {
-	return NewRequest(c, "PUT", &url.URL{Host: "localhost"}, c.Codec, c.Legacy, c.Legacy)
+	return NewRequest(c, "PUT", &url.URL{Host: "localhost"}, testapi.Version(), c.Codec, c.Legacy, c.Legacy)
 }
 
 func (c *FakeRESTClient) Post() *Request {
-	return NewRequest(c, "POST", &url.URL{Host: "localhost"}, c.Codec, c.Legacy, c.Legacy)
+	return NewRequest(c, "POST", &url.URL{Host: "localhost"}, testapi.Version(), c.Codec, c.Legacy, c.Legacy)
 }
 
 func (c *FakeRESTClient) Delete() *Request {
-	return NewRequest(c, "DELETE", &url.URL{Host: "localhost"}, c.Codec, c.Legacy, c.Legacy)
+	return NewRequest(c, "DELETE", &url.URL{Host: "localhost"}, testapi.Version(), c.Codec, c.Legacy, c.Legacy)
 }
 
 func (c *FakeRESTClient) Do(req *http.Request) (*http.Response, error) {

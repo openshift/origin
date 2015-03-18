@@ -350,17 +350,23 @@ func getAddressByName(api *gophercloud.ServiceClient, name string) (string, erro
 	return s, nil
 }
 
-func (i *Instances) IPAddress(name string) (net.IP, error) {
-	glog.V(2).Infof("IPAddress(%v) called", name)
+func (i *Instances) NodeAddresses(name string) ([]api.NodeAddress, error) {
+	glog.V(2).Infof("NodeAddresses(%v) called", name)
 
 	ip, err := getAddressByName(i.compute, name)
 	if err != nil {
 		return nil, err
 	}
 
-	glog.V(2).Infof("IPAddress(%v) => %v", name, ip)
+	glog.V(2).Infof("NodeAddresses(%v) => %v", name, ip)
 
-	return net.ParseIP(ip), err
+	// net.ParseIP().String() is to maintain compatibility with the old code
+	return []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: net.ParseIP(ip).String()}}, nil
+}
+
+// ExternalID returns the cloud provider ID of the specified instance.
+func (i *Instances) ExternalID(name string) (string, error) {
+	return "", fmt.Errorf("unimplemented")
 }
 
 func (i *Instances) GetNodeResources(name string) (*api.NodeResources, error) {
