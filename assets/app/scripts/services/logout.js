@@ -4,14 +4,16 @@ angular.module('openshiftConsole')
   
   var debug = true;
 
-  this.$get = function($q, $injector) {
+  this.$get = function($q, $injector, Logger) {
+    var authLogger = Logger.get("auth");
+
     return {
       logout: function(user, token) {
-        if (debug) { console.log("DeleteTokenLogoutService.logout()", user, token); }
+        authLogger.log("DeleteTokenLogoutService.logout()", user, token);
 
         // If we don't have a token, we're done
         if (!token) {
-          if (debug) { console.log("DeleteTokenLogoutService, no token, returning immediately"); }
+          authLogger.log("DeleteTokenLogoutService, no token, returning immediately");
           return $q.when({});
         }
 

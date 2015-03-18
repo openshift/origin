@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter) {
+  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.pods = {};
     $scope.unfilteredPods = {};
     $scope.images = {};
@@ -26,20 +26,20 @@ angular.module('openshiftConsole')
       $scope.pods = LabelFilter.getLabelSelector().select($scope.unfilteredPods);
       $scope.emptyMessage = "No pods to show";
       updateFilterWarning();
-      console.log("pods (subscribe)", $scope.unfilteredPods);
+      Logger.log("pods (subscribe)", $scope.unfilteredPods);
     }));    
 
     // Also load images and builds to fill out details in the pod template
     watches.push(DataService.watch("images", $scope, function(images) {
       $scope.images = images.by("metadata.name");
       $scope.imagesByDockerReference = images.by("dockerImageReference");
-      console.log("images (subscribe)", $scope.images);
-      console.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
+      Logger.log("images (subscribe)", $scope.images);
+      Logger.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
     }));    
 
     watches.push(DataService.watch("builds", $scope, function(builds) {
       $scope.builds = builds.by("metadata.name");
-      console.log("builds (subscribe)", $scope.builds);
+      Logger.log("builds (subscribe)", $scope.builds);
     }));   
 
     var updateFilterWarning = function() {

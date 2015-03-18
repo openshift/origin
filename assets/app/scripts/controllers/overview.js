@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter) {
+  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.pods = {};
     $scope.services = {};
     $scope.unfilteredServices = {};
@@ -45,7 +45,7 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.pods = pods.by("metadata.name");
       podRelationships();
-      console.log("pods", $scope.pods);
+      Logger.log("pods", $scope.pods);
     }, {poll: true}));
 
     watches.push(DataService.watch("services", $scope, function(services) {
@@ -61,7 +61,7 @@ angular.module('openshiftConsole')
 
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
-      console.log("services (list)", $scope.services);
+      Logger.log("services (list)", $scope.services);
     }));
 
     // Expects deploymentsByServiceByDeploymentConfig to be up to date
@@ -115,9 +115,9 @@ angular.module('openshiftConsole')
         }
       });
 
-      console.log("podsByDeployment", $scope.podsByDeployment);      
-      console.log("podsByService", $scope.podsByService); 
-      console.log("monopodsByService", $scope.monopodsByService); 
+      Logger.log("podsByDeployment", $scope.podsByDeployment);      
+      Logger.log("podsByService", $scope.podsByService); 
+      Logger.log("monopodsByService", $scope.monopodsByService); 
     };
 
     // Filter out monopods we know we don't want to see
@@ -206,7 +206,7 @@ angular.module('openshiftConsole')
           deployment.details = depConfig.details;
         }
         catch (e) {
-          console.log("Failed to parse encoded deployment config", e);
+          Logger.error("Failed to parse encoded deployment config", e);
         }
       }
     }
@@ -228,15 +228,15 @@ angular.module('openshiftConsole')
       // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
       deploymentsByService();
       podRelationships();
-      console.log("deployments (subscribe)", $scope.deployments);
+      Logger.log("deployments (subscribe)", $scope.deployments);
     }));
 
     // Sets up subscription for images and imagesByDockerReference
     watches.push(DataService.watch("images", $scope, function(images) {
       $scope.images = images.by("metadata.name");
       $scope.imagesByDockerReference = images.by("dockerImageReference");
-      console.log("images (subscribe)", $scope.images);
-      console.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
+      Logger.log("images (subscribe)", $scope.images);
+      Logger.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
     }));
 
 
@@ -294,7 +294,7 @@ angular.module('openshiftConsole')
 
       deploymentConfigsByService();      
 
-      console.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
+      Logger.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
     }));
 
     // Sets up subscription for builds, associates builds to triggers on deploymentConfigs
@@ -315,7 +315,7 @@ angular.module('openshiftConsole')
       else if (action === 'DELETED'){
         // TODO
       }
-      console.log("builds (subscribe)", $scope.builds);
+      Logger.log("builds (subscribe)", $scope.builds);
     }));
 
     var updateFilterWarning = function() {

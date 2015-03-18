@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectController', function ($scope, $routeParams, DataService, AuthService, $filter, LabelFilter, $location) {
+  .controller('ProjectController', function ($scope, $routeParams, DataService, AuthService, $filter, LabelFilter, $location, Logger) {
 
     $scope.projectName = $routeParams.project;
     $scope.project = {};
@@ -52,7 +52,7 @@ angular.module('openshiftConsole')
 
       DataService.list("projects", $scope, function(projects) {
         $scope.projects = projects.by("metadata.name");
-        console.log("projects", $scope.projects);
+        Logger.log("projects", $scope.projects);
       });
 
     });

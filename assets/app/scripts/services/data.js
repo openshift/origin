@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification) {
+.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger) {
   function Data(array) {
     this._data = {};
     this._objectsByAttribute(array, "metadata.name", this._data);
@@ -550,7 +550,7 @@ angular.module('openshiftConsole')
             onmessage: $.proxy(self, "_watchOpOnMessage", type, context),
             onopen: $.proxy(self, "_watchOpOnOpen", type, context)
           }).then(function(ws) {
-            console.log("Watching", ws);
+            Logger.log("Watching", ws);
             self._watchWebsockets(type, context, ws);
           });
         });
@@ -563,7 +563,7 @@ angular.module('openshiftConsole')
           onmessage: $.proxy(self, "_watchOpOnMessage", type, context),
           onopen: $.proxy(self, "_watchOpOnOpen", type, context)
         }).then(function(ws){
-          console.log("Watching", ws);
+          Logger.log("Watching", ws);
           self._watchWebsockets(type, context, ws);
         });
       }

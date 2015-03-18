@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildsController', function ($scope, DataService, $filter, LabelFilter) {
+  .controller('BuildsController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.builds = {};
     $scope.unfilteredBuilds = {};
     $scope.buildConfigs = {};
@@ -38,12 +38,12 @@ angular.module('openshiftConsole')
         $scope.buildsByBuildConfig[buildConfigName][buildName] = build;
       });
 
-      console.log("builds (subscribe)", $scope.unfilteredBuilds);
+      Logger.log("builds (subscribe)", $scope.unfilteredBuilds);
     }));
 
     watches.push(DataService.watch("buildConfigs", $scope, function(buildConfigs) {
       $scope.buildConfigs = buildConfigs.by("metadata.name");
-      console.log("buildConfigs (subscribe)", $scope.buildConfigs);
+      Logger.log("buildConfigs (subscribe)", $scope.buildConfigs);
     }));    
 
     var updateFilterWarning = function() {
