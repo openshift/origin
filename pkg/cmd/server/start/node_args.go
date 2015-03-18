@@ -85,7 +85,6 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 
 		ServingInfo: configapi.ServingInfo{
 			BindAddress: net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(ports.KubeletPort)),
-			ServerCert:  certs.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName),
 		},
 
 		VolumeDirectory:       args.VolumeDir,
@@ -96,6 +95,10 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSIP:     dnsIP,
 
 		MasterKubeConfig: certs.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
+	}
+
+	if args.BindAddrArg.BindAddr.URL.Scheme == "https" {
+		config.ServingInfo.ServerCert = certs.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName)
 	}
 
 	return config, nil

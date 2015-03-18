@@ -10,7 +10,54 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 )
+
+func TestCommandBindingListenHttp(t *testing.T) {
+	valueToSet := "http://example.org:9123"
+	masterArgs, masterCfg, masterErr, nodeArgs, nodeCfg, nodeErr := executeAllInOneCommandWithConfigs([]string{"--listen=" + valueToSet})
+
+	if masterErr != nil {
+		t.Fatalf("Unexpected error: %v", masterErr)
+	}
+	if nodeErr != nil {
+		t.Fatalf("Unexpected error: %v", nodeErr)
+	}
+
+	if configapi.UseTLS(masterCfg.ServingInfo) {
+		t.Errorf("Unexpected TLS: %v", masterCfg.ServingInfo)
+	}
+	if configapi.UseTLS(masterCfg.AssetConfig.ServingInfo) {
+		t.Errorf("Unexpected TLS: %v", masterCfg.AssetConfig.ServingInfo)
+	}
+	if configapi.UseTLS(nodeCfg.ServingInfo) {
+		t.Errorf("Unexpected TLS: %v", nodeCfg.ServingInfo)
+	}
+
+	if masterArgs.BindAddrArg.BindAddr.String() != valueToSet {
+		t.Errorf("Expected %v, got %v", valueToSet, masterArgs.BindAddrArg.BindAddr.String())
+	}
+	if nodeArgs.BindAddrArg.BindAddr.String() != valueToSet {
+		t.Errorf("Expected %v, got %v", valueToSet, nodeArgs.BindAddrArg.BindAddr.String())
+	}
+
+	// Ensure there are no errors other than missing client kubeconfig files
+	masterErrs := validation.ValidateMasterConfig(masterCfg).Filter(func(e error) bool {
+		return strings.Contains(e.Error(), "masterClients.")
+	})
+	if len(masterErrs) != 0 {
+		t.Errorf("Unexpected validation errors: %#v", masterErrs)
+	}
+
+	nodeErrs := validation.ValidateNodeConfig(nodeCfg).Filter(func(e error) bool {
+		return strings.Contains(e.Error(), "masterKubeConfig")
+	})
+	if len(nodeErrs) != 0 {
+		t.Errorf("Unexpected validation errors: %#v", nodeErrs)
+	}
+}
 
 func TestCommandBindingListen(t *testing.T) {
 	valueToSet := "http://example.org:9123"
@@ -279,6 +326,11 @@ func executeMasterCommand(args []string) *MasterArgs {
 }
 
 func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
+	masterArgs, _, _, nodeArgs, _, _ := executeAllInOneCommandWithConfigs(args)
+	return masterArgs, nodeArgs
+}
+
+func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.MasterConfig, error, *NodeArgs, *configapi.NodeConfig, error) {
 	fakeMasterConfigFile, _ := ioutil.TempFile("", "")
 	defer os.Remove(fakeMasterConfigFile.Name())
 	fakeNodeConfigFile, _ := ioutil.TempFile("", "")
@@ -306,7 +358,10 @@ func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
 	root.SetArgs(argsToUse)
 	root.Execute()
 
-	return cfg.MasterArgs, cfg.NodeArgs
+	masterCfg, masterErr := ReadMasterConfig(fakeMasterConfigFile.Name())
+	nodeCfg, nodeErr := ReadNodeConfig(fakeNodeConfigFile.Name())
+
+	return cfg.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
 }
 
 func executeNodeCommand(args []string) *NodeArgs {

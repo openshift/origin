@@ -154,6 +154,10 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 
 // GetAPIServerCertCAPool returns the cert pool containing the roots for the API server cert
 func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
+	if !UseTLS(options.ServingInfo) {
+		return x509.NewCertPool(), nil
+	}
+
 	caRoots, err := crypto.GetTLSCARoots(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err
@@ -166,6 +170,10 @@ func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 }
 
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
+	if !UseTLS(options.ServingInfo) {
+		return nil, nil
+	}
+
 	caFile := options.OAuthConfig.ProxyCA
 	if len(caFile) == 0 {
 		return nil, nil
@@ -182,6 +190,10 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
+	if !UseTLS(options.ServingInfo) {
+		return nil, nil
+	}
+
 	apiClientCertCAs, err := crypto.GetTLSCARoots(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err

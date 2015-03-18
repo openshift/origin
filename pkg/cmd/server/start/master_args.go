@@ -139,8 +139,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	config := &configapi.MasterConfig{
 		ServingInfo: configapi.ServingInfo{
 			BindAddress: args.BindAddrArg.BindAddr.URL.Host,
-			ServerCert:  certs.DefaultMasterServingCertInfo(args.CertArgs.CertDir),
-			ClientCA:    certs.DefaultRootCAFile(args.CertArgs.CertDir),
 		},
 		CORSAllowedOrigins: corsAllowedOrigins,
 
@@ -157,8 +155,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		AssetConfig: &configapi.AssetConfig{
 			ServingInfo: configapi.ServingInfo{
 				BindAddress: args.GetAssetBindAddress(),
-				ServerCert:  certs.DefaultAssetServingCertInfo(args.CertArgs.CertDir),
-				ClientCA:    certs.DefaultRootCAFile(args.CertArgs.CertDir),
 			},
 
 			LogoutURI:           cmdutil.Env("OPENSHIFT_LOGOUT_URI", ""),
@@ -191,6 +187,14 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			Format: args.ImageFormatArgs.ImageTemplate.Format,
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
+	}
+
+	if args.BindAddrArg.BindAddr.URL.Scheme == "https" {
+		config.ServingInfo.ServerCert = certs.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
+		config.ServingInfo.ClientCA = certs.DefaultRootCAFile(args.CertArgs.CertDir)
+
+		config.AssetConfig.ServingInfo.ServerCert = certs.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
+		config.AssetConfig.ServingInfo.ClientCA = certs.DefaultRootCAFile(args.CertArgs.CertDir)
 	}
 
 	return config, nil
