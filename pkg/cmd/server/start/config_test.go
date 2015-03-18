@@ -428,7 +428,8 @@ func TestKubeClientForNodeWithConflictingKubernetesAddress(t *testing.T) {
 
 func makeEmptyKubeconfig() (clientcmd.ClientConfigLoadingRules, clientcmd.ClientConfig) {
 	// Set a non-empty CommandLinePath to trigger loading
-	loadingRules := clientcmd.ClientConfigLoadingRules{CommandLinePath: "specified"}
+	loadingRules := clientcmd.ClientConfigLoadingRules{}
+	loadingRules.ExplicitPath = "specified"
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		// Set empty loading rules to avoid missing file errors
@@ -440,7 +441,8 @@ func makeEmptyKubeconfig() (clientcmd.ClientConfigLoadingRules, clientcmd.Client
 
 func makeErrorKubeconfig() (clientcmd.ClientConfigLoadingRules, clientcmd.ClientConfig) {
 	// Set a non-empty CommandLinePath to trigger loading
-	loadingRules := clientcmd.ClientConfigLoadingRules{CommandLinePath: "missing-file"}
+	loadingRules := clientcmd.ClientConfigLoadingRules{}
+	loadingRules.ExplicitPath = "missing-file"
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&loadingRules,
@@ -451,7 +453,8 @@ func makeErrorKubeconfig() (clientcmd.ClientConfigLoadingRules, clientcmd.Client
 
 func makeKubeconfig(server, user string) (clientcmd.ClientConfigLoadingRules, clientcmd.ClientConfig) {
 	// Set a non-empty CommandLinePath to trigger loading
-	loadingRules := clientcmd.ClientConfigLoadingRules{CommandLinePath: "specified"}
+	loadingRules := clientcmd.ClientConfigLoadingRules{}
+	loadingRules.ExplicitPath = "specified"
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		// Set empty loading rules to avoid missing file errors
