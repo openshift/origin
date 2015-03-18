@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Name of this router instance.
+ROUTER_NAME="OpenShift-Router"
+
+
+# List of virtual IP addresses grouped by instance.
+# For the simplest case, single router with failover we would need 1 VIP
+#   declare -A ROUTER_VIPS=([1]="10.245.2.100/24")
+# And on the 2 minions, make one minion serve as MASTER for this group and
+# the other as a SLAVE.
+#     PRIMARY_GROUPS=("11")   # e.g. on minion-1
+#     SLAVE_GROUPS=("11")     # e.g. on minion-2
+#
+# But what we really want is a Active-Active routing setup with one minion
+# serving as master for 1 group and and the other serving as slave for the
+# same group and vice-versa. 
+# Example: minion-1 is master for group 11 and slave for group 22   AND
+#          minion-2 is master for group 22 and slave for group 11
+#
+# This allows minion-1 to take over as the MASTER for group 22 if minion-2
+# goes down and vice-versa for group 11 if minion-1 goes down.
+#
+# The key is the id for the router instance - number between 0..255 and is
+# used to differentiate multiple instances of vrrpd running on the
+# same NIC (and so the same socket).
+# The value entries are of the form: <ipaddr>[/<mask>] [<ipaddr>[<mask>]]
+#
+declare -A ROUTER_VIPS=([11]="10.245.2.111/24"
+                        [22]="10.245.2.222/24 10.245.2.223/24"
+			 [9]="10.245.2.90")
+
+
+# Primary groups for which this minion will server as the default MASTER and
+# slave groups handled by this minion.
+# Make sure you balance how router groups are distributed on the other
+# minnions (vrrpd server[s]) properly so that you can get true failover
+# with minimal or no downtime.
+PRIMARY_GROUPS=("9" "11")
+SLAVE_GROUPS=("22")   #   or ("9" "22")
+
+
+# Interface (ethernet) to use - bound by vrrp.
+#   Default: "eth0"
+INTERFACE="enp0s8"
+
+
+# List of emails to send admin messages to. If the list of email ids is too
+# long, you can use a DL (distribution list) ala:
+#   ADMIN_EMAILS=("ramr@redhat.com" "cops@acme.org")
+ADMIN_EMAILS=("ramr@redhat.com" "me@example.org")
+
+# Email sender - the from address in the email headers.
+EMAIL_FROM="router-ha@openshift.org"
+
+#  IP address for SMTP server.
+SMTP_SERVER="127.0.0.1"
+
+# Password for accessing vrrpd - only first 8 characters are used. 
+VRRPD_PASS="OS-RouteR"
+
+
+# VRRP will preempt a lower priority machine when a higher priority one
+# comes back online. You can change the preemption strategy to either:
+#   "nopreempt"  - which allows the lower priority machine to maintain its
+#                  'MASTER' status.
+# OR
+#   "preempt_delay 300"  - waits 5 mins (in seconds) after startup to
+#                          preempt lower priority MASTERs.
+PREEMPTION="preempt_delay 300"
+
+
+# By default, the IP for binding vrrpd is the primary IP on the above
+# specified interface. If you want to hide the location of vrrpd, you can
+# specify a src_addr for multicast/unicast vrrp packets.
+#   MCAST_SRC_IP="1.2.3.4"
+#   UNICAST_SRC_IP="1.2.3.4"
+
+# If your environment doesn't support multicast, you can send VRRP adverts
+# to a list of IPv{4,6} addresses using unicast.
+#   UNICAST_PEER_IPS=( "5.6.7.8" "9.10.11.12" "13.14.15.16" )
