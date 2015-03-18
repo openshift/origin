@@ -8,6 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 const (
@@ -35,6 +36,32 @@ func DefaultClientCerts(certDir string) []ClientCertInfo {
 		DefaultOpenshiftLoopbackClientCertInfo(certDir),
 		DefaultKubeClientClientCertInfo(certDir),
 		DefaultClusterAdminClientCertInfo(certDir),
+		DefaultRouterClientCertInfo(certDir),
+		DefaultRegistryClientCertInfo(certDir),
+	}
+}
+
+func DefaultRouterClientCertInfo(certDir string) ClientCertInfo {
+	return ClientCertInfo{
+		CertLocation: configapi.CertInfo{
+			CertFile: DefaultCertFilename(certDir, bootstrappolicy.RouterUnqualifiedUsername),
+			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.RouterUnqualifiedUsername),
+		},
+		SubDir: bootstrappolicy.RouterUnqualifiedUsername,
+		User:   bootstrappolicy.RouterUsername,
+		Groups: util.NewStringSet(bootstrappolicy.RouterGroup),
+	}
+}
+
+func DefaultRegistryClientCertInfo(certDir string) ClientCertInfo {
+	return ClientCertInfo{
+		CertLocation: configapi.CertInfo{
+			CertFile: DefaultCertFilename(certDir, bootstrappolicy.RegistryUnqualifiedUsername),
+			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.RegistryUnqualifiedUsername),
+		},
+		SubDir: bootstrappolicy.RegistryUnqualifiedUsername,
+		User:   bootstrappolicy.RegistryUsername,
+		Groups: util.NewStringSet(bootstrappolicy.RegistryGroup),
 	}
 }
 

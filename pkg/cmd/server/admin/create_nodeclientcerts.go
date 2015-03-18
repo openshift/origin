@@ -9,6 +9,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
 
@@ -81,7 +82,7 @@ func (o CreateNodeClientCertOptions) CreateNodeClientCert() (*crypto.TLSCertific
 		KeyFile:  o.KeyFile,
 
 		User:      "system:node-" + o.NodeName,
-		Groups:    util.StringList([]string{"system:nodes"}),
+		Groups:    util.StringList([]string{bootstrappolicy.NodesGroup}),
 		Overwrite: o.Overwrite,
 	}
 
