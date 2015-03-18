@@ -56,6 +56,19 @@ func ValidateServingInfo(info api.ServingInfo) errs.ValidationErrorList {
 	return allErrs
 }
 
+func ValidateKubeConfig(path string, field string) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	if len(path) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired(field, path))
+	} else if _, err := os.Stat(path); err != nil {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, path, "could not read file"))
+	}
+	// TODO: load and parse
+
+	return allErrs
+}
+
 func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
@@ -75,6 +88,10 @@ func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 		allErrs = append(allErrs, errs.NewFieldInvalid("masterAuthorizationNamespace", config.MasterAuthorizationNamespace, "must be a valid namespace"))
 	}
 
+	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.DeployerKubeConfig, "deployerKubeConfig").Prefix("masterClients")...)
+	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
+	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.KubernetesKubeConfig, "kubernetesKubeConfig").Prefix("masterClients")...)
+
 	return allErrs
 }
 
@@ -86,12 +103,7 @@ func ValidateNodeConfig(config *api.NodeConfig) errs.ValidationErrorList {
 	}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
-
-	if len(config.MasterKubeConfig) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("masterKubeConfig", config.MasterKubeConfig))
-	} else if _, err := os.Stat(config.MasterKubeConfig); err != nil {
-		allErrs = append(allErrs, errs.NewFieldInvalid("masterKubeConfig", config.MasterKubeConfig, "could not read file"))
-	}
+	allErrs = append(allErrs, ValidateKubeConfig(config.MasterKubeConfig, "masterKubeConfig")...)
 
 	if len(config.NetworkContainerImage) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("networkContainerImage", config.NetworkContainerImage))

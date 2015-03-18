@@ -33,7 +33,7 @@ type NodeArgs struct {
 	ClusterDomain        string
 	ClusterDNS           net.IP
 
-	BindAddrArg        *BindAddrArg
+	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
 	CertArgs           *CertArgs
@@ -65,7 +65,7 @@ func NewDefaultNodeArgs() *NodeArgs {
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "local"),
 		ClusterDNS:    dnsIP,
 
-		BindAddrArg:        NewDefaultBindAddrArg(),
+		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
 		CertArgs:           NewDefaultCertArgs(),
@@ -84,8 +84,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		NodeName: args.NodeName,
 
 		ServingInfo: configapi.ServingInfo{
-			BindAddress: net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(ports.KubeletPort)),
-			ServerCert:  certs.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName),
+			BindAddress: net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(ports.KubeletPort)),
 		},
 
 		VolumeDirectory:       args.VolumeDir,
@@ -96,6 +95,10 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSIP:     dnsIP,
 
 		MasterKubeConfig: certs.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
+	}
+
+	if args.ListenArg.UseTLS() {
+		config.ServingInfo.ServerCert = certs.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName)
 	}
 
 	return config, nil

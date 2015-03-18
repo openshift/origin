@@ -102,7 +102,7 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 	options.MasterArgs.KubeConnectionArgs.CertArgs = options.MasterArgs.CertArgs
 
 	BindMasterArgs(options.MasterArgs, flags, "")
-	BindBindAddrArg(options.MasterArgs.BindAddrArg, flags, "")
+	BindListenArg(options.MasterArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.MasterArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.MasterArgs.KubeConnectionArgs, flags, "")
 	BindCertArgs(options.MasterArgs.CertArgs, flags, "")

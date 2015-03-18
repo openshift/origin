@@ -80,7 +80,7 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 	options.NodeArgs.KubeConnectionArgs.CertArgs = options.NodeArgs.CertArgs
 
 	BindNodeArgs(options.NodeArgs, flags, "")
-	BindBindAddrArg(options.NodeArgs.BindAddrArg, flags, "")
+	BindListenArg(options.NodeArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 	BindCertArgs(options.NodeArgs.CertArgs, flags, "")
