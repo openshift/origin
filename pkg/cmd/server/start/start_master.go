@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -13,12 +15,14 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/certs"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -174,6 +178,24 @@ func (o MasterOptions) RunMaster() error {
 	}
 
 	if o.WriteConfigOnly {
+		// Resolve relative to CWD
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		if err := configapi.ResolveMasterConfigPaths(masterConfig, cwd); err != nil {
+			return err
+		}
+
+		// Relativize to config file dir
+		base, err := cmdutil.MakeAbs(filepath.Dir(o.ConfigFile), cwd)
+		if err != nil {
+			return err
+		}
+		if err := configapi.RelativizeMasterConfigPaths(masterConfig, base); err != nil {
+			return err
+		}
+
 		content, err := WriteMaster(masterConfig)
 		if err != nil {
 			return err
@@ -182,6 +204,11 @@ func (o MasterOptions) RunMaster() error {
 			return err
 		}
 		return nil
+	}
+
+	errs := validation.ValidateMasterConfig(masterConfig)
+	if len(errs) != 0 {
+		return kerrors.NewInvalid("masterConfig", "", errs)
 	}
 
 	if err := StartMaster(masterConfig); err != nil {
@@ -249,6 +276,15 @@ func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
 	if err := configapilatest.Codec.DecodeInto(data, config); err != nil {
 		return nil, err
 	}
+
+	base, err := cmdutil.MakeAbs(filepath.Dir(filename), "")
+	if err != nil {
+		return nil, err
+	}
+	if err := configapi.ResolveMasterConfigPaths(config, base); err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
