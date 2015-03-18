@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func TestCreateValidationError(t *testing.T) {
@@ -31,8 +32,8 @@ func TestCreateStorageError(t *testing.T) {
 	storage := REST{registry: registry}
 
 	policyBinding := &authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "master"},
-		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.DefaultMasterAuthorizationNamespace},
+		PolicyRef:  kapi.ObjectReference{Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
@@ -47,8 +48,8 @@ func TestCreateValid(t *testing.T) {
 	storage := REST{registry: registry}
 
 	policyBinding := &authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
-		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.DefaultMasterAuthorizationNamespace, Namespace: "unittest"},
+		PolicyRef:  kapi.ObjectReference{Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
@@ -88,14 +89,14 @@ func TestGetError(t *testing.T) {
 
 func TestGetValid(t *testing.T) {
 	testBinding := authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
-		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.DefaultMasterAuthorizationNamespace, Namespace: "unittest"},
+		PolicyRef:  kapi.ObjectReference{Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{testBinding}, nil)
 	storage := REST{registry: registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	policyBinding, err := storage.Get(ctx, "master")
+	policyBinding, err := storage.Get(ctx, bootstrappolicy.DefaultMasterAuthorizationNamespace)
 	if err != nil {
 		t.Errorf("got unexpected error: %v", err)
 		return
@@ -148,8 +149,8 @@ func TestListEmpty(t *testing.T) {
 
 func TestList(t *testing.T) {
 	testBinding := authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "master", Namespace: "unittest"},
-		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.DefaultMasterAuthorizationNamespace, Namespace: "unittest"},
+		PolicyRef:  kapi.ObjectReference{Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{testBinding}, nil)
 	storage := REST{registry: registry}
@@ -189,7 +190,7 @@ func TestDeleteError(t *testing.T) {
 func TestDeleteValid(t *testing.T) {
 	testBinding := authorizationapi.PolicyBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "unittest"},
-		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+		PolicyRef:  kapi.ObjectReference{Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 	registry := test.NewPolicyBindingRegistry([]authorizationapi.PolicyBinding{testBinding}, nil)
 	storage := REST{registry: registry}

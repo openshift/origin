@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/spf13/pflag"
@@ -63,8 +64,8 @@ func TestLogin(t *testing.T) {
 	newProjectOptions := &newproject.NewProjectOptions{
 		Client:                clusterAdminClient,
 		ProjectName:           project,
-		AdminRole:             "admin",
-		MasterPolicyNamespace: "master",
+		AdminRole:             bootstrappolicy.AdminRoleName,
+		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		AdminUser:             "anypassword:" + username,
 	}
 	if err := newProjectOptions.Run(); err != nil {

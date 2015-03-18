@@ -55,7 +55,7 @@ func NewCommandCreateBootstrapPolicyFile() *cobra.Command {
 
 	flags.StringVar(&options.File, "filename", DefaultPolicyFile, "The policy template file that will be written with roles and bindings.")
 
-	flags.StringVar(&options.MasterAuthorizationNamespace, "master-namespace", "master", "Global authorization namespace.")
+	flags.StringVar(&options.MasterAuthorizationNamespace, "master-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "Global authorization namespace.")
 	flags.StringVar(&options.OpenShiftSharedResourcesNamespace, "openshift-namespace", "openshift", "Namespace for shared openshift resources.")
 
 	return cmd

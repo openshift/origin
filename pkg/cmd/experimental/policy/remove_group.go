@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -44,7 +45,7 @@ func NewCmdRemoveGroup(f *clientcmd.Factory) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "master", "namespace where the role is located.")
+	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "namespace where the role is located.")
 
 	return cmd
 }

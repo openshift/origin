@@ -13,9 +13,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
-
-const testMasterNamespace = "master"
 
 type authorizeTest struct {
 	policies             []authorizationapi.Policy
@@ -34,7 +33,7 @@ type authorizeTest struct {
 
 func TestResourceNameDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), testMasterNamespace), &user.DefaultInfo{Name: "just-a-user"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "just-a-user"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:         "get",
 			Resource:     "users",
@@ -50,7 +49,7 @@ func TestResourceNameDeny(t *testing.T) {
 
 func TestResourceNameAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), testMasterNamespace), &user.DefaultInfo{Name: "just-a-user"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "just-a-user"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:         "get",
 			Resource:     "users",
@@ -81,11 +80,11 @@ func TestDeniedWithError(t *testing.T) {
 	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "missing",
-			Namespace: testMasterNamespace,
+			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		},
 		RoleRef: kapi.ObjectReference{
 			Name:      "not-a-real-binding",
-			Namespace: testMasterNamespace,
+			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		},
 		Users: util.NewStringSet("Anna"),
 	}
@@ -111,11 +110,11 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "missing",
-			Namespace: testMasterNamespace,
+			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		},
 		RoleRef: kapi.ObjectReference{
 			Name:      "not-a-real-binding",
-			Namespace: testMasterNamespace,
+			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		},
 		Users: util.NewStringSet("Anna"),
 	}
@@ -193,7 +192,7 @@ func TestHealthDeny(t *testing.T) {
 
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), testMasterNamespace), &user.DefaultInfo{Name: "ClusterAdmin"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "ClusterAdmin"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "deploymentConfigs",
@@ -209,7 +208,7 @@ func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), testMasterNamespace), &user.DefaultInfo{Name: "SomeYahoo"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "SomeYahoo"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -376,7 +375,7 @@ func TestVerbRestrictionsWork(t *testing.T) {
 func (test *authorizeTest) test(t *testing.T) {
 	policyRegistry := testpolicyregistry.NewPolicyRegistry(test.policies, test.policyRetrievalError)
 	policyBindingRegistry := testpolicyregistry.NewPolicyBindingRegistry(test.bindings, test.bindingRetrievalError)
-	authorizer := NewAuthorizer(testMasterNamespace, rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry))
+	authorizer := NewAuthorizer(bootstrappolicy.DefaultMasterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry))
 
 	actualAllowed, actualReason, actualError := authorizer.Authorize(test.context, *test.attributes)
 
@@ -432,23 +431,23 @@ func matchError(expected string, actual error, field string, t *testing.T) {
 }
 
 func newDefaultGlobalPolicies() []authorizationapi.Policy {
-	return []authorizationapi.Policy{*GetBootstrapPolicy(testMasterNamespace)}
+	return []authorizationapi.Policy{*GetBootstrapPolicy(bootstrappolicy.DefaultMasterAuthorizationNamespace)}
 }
 func newDefaultGlobalBinding() []authorizationapi.PolicyBinding {
 	policyBinding := authorizationapi.PolicyBinding{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      testMasterNamespace,
-			Namespace: testMasterNamespace,
+			Name:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		},
 		RoleBindings: map[string]authorizationapi.RoleBinding{
 			"cluster-admins": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "cluster-admins",
-					Namespace: testMasterNamespace,
+					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 				},
 				RoleRef: kapi.ObjectReference{
 					Name:      "cluster-admin",
-					Namespace: testMasterNamespace,
+					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 				},
 				Users:  util.NewStringSet("ClusterAdmin"),
 				Groups: util.NewStringSet("RootUsers"),
@@ -456,17 +455,17 @@ func newDefaultGlobalBinding() []authorizationapi.PolicyBinding {
 			"user-only": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "user-only",
-					Namespace: testMasterNamespace,
+					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 				},
 				RoleRef: kapi.ObjectReference{
 					Name:      "basic-user",
-					Namespace: testMasterNamespace,
+					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 				},
 				Users: util.NewStringSet("just-a-user"),
 			},
 		},
 	}
-	for key, value := range GetBootstrapPolicyBinding(testMasterNamespace).RoleBindings {
+	for key, value := range GetBootstrapPolicyBinding(bootstrappolicy.DefaultMasterAuthorizationNamespace).RoleBindings {
 		policyBinding.RoleBindings[key] = value
 	}
 	return []authorizationapi.PolicyBinding{policyBinding}
@@ -498,7 +497,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      testMasterNamespace,
+				Name:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
 				Namespace: "adze",
 			},
 			RoleBindings: map[string]authorizationapi.RoleBinding{
@@ -508,8 +507,8 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 						Namespace: "adze",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      "admin",
-						Namespace: testMasterNamespace,
+						Name:      bootstrappolicy.AdminRoleName,
+						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 					},
 					Users: util.NewStringSet("Anna"),
 				},
@@ -519,8 +518,8 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 						Namespace: "adze",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      "view",
-						Namespace: testMasterNamespace,
+						Name:      bootstrappolicy.ViewRoleName,
+						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 					},
 					Users: util.NewStringSet("Valerie"),
 				},
@@ -530,8 +529,8 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 						Namespace: "adze",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      "edit",
-						Namespace: testMasterNamespace,
+						Name:      bootstrappolicy.EditRoleName,
+						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 					},
 					Users: util.NewStringSet("Ellen"),
 				},

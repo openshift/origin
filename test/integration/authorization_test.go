@@ -14,6 +14,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/experimental/policy"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func TestRestrictedAccessForProjectAdmins(t *testing.T) {
@@ -92,9 +93,9 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 	}
 
 	addValerie := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "view",
-		BindingNamespace: "master",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.ViewRoleName,
+		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
 		Users:            []string{"anypassword:valerie"},
 	}
@@ -102,14 +103,14 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err = clusterAdminClient.Roles("master").Delete("view"); err != nil {
+	if err = clusterAdminClient.Roles(bootstrappolicy.DefaultMasterAuthorizationNamespace).Delete(bootstrappolicy.ViewRoleName); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "edit",
-		BindingNamespace: "master",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.EditRoleName,
+		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
 		Users:            []string{"anypassword:edgar"},
 	}
@@ -176,8 +177,8 @@ func TestResourceAccessReview(t *testing.T) {
 	}
 
 	addValerie := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "view",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
 		Users:            []string{"anypassword:valerie"},
@@ -187,8 +188,8 @@ func TestResourceAccessReview(t *testing.T) {
 	}
 
 	addEdgar := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "edit",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
 		Users:            []string{"anypassword:edgar"},
@@ -298,8 +299,8 @@ func TestSubjectAccessReview(t *testing.T) {
 	}
 
 	addValerie := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "view",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
 		Users:            []string{"anypassword:valerie"},
@@ -309,8 +310,8 @@ func TestSubjectAccessReview(t *testing.T) {
 	}
 
 	addEdgar := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "edit",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
 		Users:            []string{"anypassword:edgar"},
