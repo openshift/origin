@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('SettingsController', function ($scope, DataService, $filter, LabelFilter, $timeout) {
+  .controller('SettingsController', function ($scope, DataService, $filter, LabelFilter, $timeout, Logger) {
     $scope.quotas = {};
     $scope.limitRanges = {};
     $scope.labelSuggestions = {};
@@ -22,7 +22,7 @@ angular.module('openshiftConsole')
     DataService.list("resourcequotas", $scope, function(quotas) {
       $scope.quotas = quotas.by("metadata.name");
       $scope.emptyMessageQuotas = "There are no resource quotas set on this project.";
-      console.log("quotas", $scope.quotas);
+      Logger.log("quotas", $scope.quotas);
     });
 
     DataService.list("limitranges", $scope, function(limitRanges) {
@@ -42,7 +42,7 @@ angular.module('openshiftConsole')
           });        
         });
       });
-      console.log("limitRanges", $scope.limitRanges);
+      Logger.log("limitRanges", $scope.limitRanges);
     });    
 
     $scope.$on('$destroy', function(){

@@ -22,10 +22,6 @@ angular.module('openshiftConsole')
 //   onUserChanged(callback)
 //     the given callback is called whenever the current user changes
 .provider('AuthService', function() {
-  var debug = true;
-
-  if (debug) { console.log('AuthServiceProvider()'); }
-
   var _userStore = "";
   this.UserStore = function(userStoreName) {
     if (userStoreName) {
@@ -58,8 +54,9 @@ angular.module('openshiftConsole')
   	}
   };
 
-  this.$get = function($q, $injector, $log, $rootScope) {
-    if (debug) { console.log('AuthServiceProvider.$get', arguments); }
+  this.$get = function($q, $injector, $log, $rootScope, Logger) {
+    var authLogger = Logger.get("auth");
+    authLogger.log('AuthServiceProvider.$get', arguments);
 
     var _loginCallbacks = $.Callbacks();
     var _logoutCallbacks = $.Callbacks();
@@ -83,16 +80,16 @@ angular.module('openshiftConsole')
         var user = userStore.getUser();
         if (user) {
           $rootScope.user = user;
-          if (debug) { console.log('AuthService.withUser()', user); }
+          authLogger.log('AuthService.withUser()', user);
           return $q.when(user);
         } else {
-          if (debug) { console.log('AuthService.withUser(), calling startLogin()'); }
+          authLogger.log('AuthService.withUser(), calling startLogin()');
           return this.startLogin();
         }
       },
   
       setUser: function(user, token) {
-        if (debug) { console.log('AuthService.setUser()', user, token); }
+        authLogger.log('AuthService.setUser()', user, token);
         var oldUser = userStore.getUser();
         userStore.setUser(user);
         userStore.setToken(token);
@@ -102,7 +99,7 @@ angular.module('openshiftConsole')
         var oldName = oldUser && oldUser.metadata && oldUser.metadata.name;
         var newName = user    && user.metadata    && user.metadata.name;
         if (oldName != newName) {
-          if (debug) { console.log('AuthService.setUser(), user changed', oldUser, user); }
+          authLogger.log('AuthService.setUser(), user changed', oldUser, user);
           _userChangedCallbacks.fire(user);
         }
       },
@@ -110,7 +107,7 @@ angular.module('openshiftConsole')
       requestRequiresAuth: function(config) {
         // TODO: replace with real implementation
         var requiresAuth = config.url.toString().indexOf("api/") > 0;
-        if (debug && requiresAuth) { console.log('AuthService.requestRequiresAuth()', config.url.toString()); }
+        authLogger.log('AuthService.requestRequiresAuth()', config.url.toString());
         return requiresAuth;
       },
       addAuthToRequest: function(config) {
@@ -118,30 +115,30 @@ angular.module('openshiftConsole')
         var token = "";
         if (config && config.auth && config.auth.token) {
           token = config.auth.token;
-          if (debug) { console.log('AuthService.addAuthToRequest(), using token from request config', token); }
+          authLogger.log('AuthService.addAuthToRequest(), using token from request config', token);
         } else {
           token = userStore.getToken();
-          if (debug) { console.log('AuthService.addAuthToRequest(), using token from user store', token); }
+          authLogger.log('AuthService.addAuthToRequest(), using token from user store', token);
         }
         if (!token) {
-          if (debug) { console.log('AuthService.addAuthToRequest(), no token available'); }
+          authLogger.log('AuthService.addAuthToRequest(), no token available');
           return false;
         }
   
         // Handle web socket requests with a parameter
         if (config.method == 'WATCH') {
           config.url = URI(config.url).addQuery({access_token: token}).toString();
-          if (debug) { console.log('AuthService.addAuthToRequest(), added token param', config.url); }
+          authLogger.log('AuthService.addAuthToRequest(), added token param', config.url);
         } else {
           config.headers["Authorization"] = "Bearer " + token;
-          if (debug) { console.log('AuthService.addAuthToRequest(), added token header', config.headers["Authorization"]); }
+          authLogger.log('AuthService.addAuthToRequest(), added token header', config.headers["Authorization"]);
         }
         return true;
       },
     
       startLogin: function() {
         if (_loginPromise) {
-          if (debug) { console.log("Login already in progress"); }
+          authLogger.log("Login already in progress");
           return _loginPromise;
         }
         var self = this;
@@ -149,7 +146,7 @@ angular.module('openshiftConsole')
           self.setUser(result.user, result.token);
           _loginCallbacks.fire(result.user);
         }).catch(function(err) {
-          console.log(err);
+          Logger.error(err);
         }).finally(function() {
           _loginPromise = null;
         });
@@ -158,7 +155,7 @@ angular.module('openshiftConsole')
 
       startLogout: function() {
         if (_logoutPromise) {
-          if (debug) { console.log("Logout already in progress"); }
+          authLogger.log("Logout already in progress");
           return _logoutPromise;
         }
         var self = this;
@@ -166,9 +163,9 @@ angular.module('openshiftConsole')
         var token = userStore.getToken();
         var wasLoggedIn = this.isLoggedIn();
         _logoutPromise = logoutService.logout(user, token).then(function() {
-          if (debug) { console.log("Logout service success"); }
+          authLogger.log("Logout service success");
         }).catch(function(err) {
-          if (debug) { console.log("Logout service error", err); }
+          authLogger.error("Logout service error", err);
         }).finally(function() {
           // Clear the user and token
           self.setUser(null, null);

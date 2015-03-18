@@ -19,6 +19,28 @@ Contributing
     echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
     ```
 
+#### Enable / disable console log output
+
+Debug logging can be enabled by opening your browser's JavaScript console, running the commands below, and then refreshing the page.
+
+```
+localStorage["OpenShiftLogLevel.main"] = "<log level>";
+localStorage["OpenShiftLogLevel.auth"] = "<log level>";
+```
+
+Loggers:
+* `OpenShiftLogLevel.main` - default logger for OpenShift
+* `OpenShiftLogLevel.auth` - auth specific logger, this includes login, logout, and oauth
+
+The supported log levels are:
+* OFF (default)
+* INFO
+* DEBUG
+* WARN
+* ERROR
+
+Note: currently most of our logging either goes to INFO or ERROR
+
 #### Before opening a pull request
 1. If needed, run `hack/build-assets.sh` to update bindata.go
 2. Run the test suite with `hack/test-assets.sh`
