@@ -229,7 +229,21 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.KubernetesMasterConfig, error) {
 	servicesSubnet := net.IPNet(args.PortalNet)
 
+	masterAddr, err := args.GetMasterAddress()
+	if err != nil {
+		return nil, err
+	}
+	masterHost, _, err := net.SplitHostPort(masterAddr.Host)
+	if err != nil {
+
+	}
+	masterIP := ""
+	if ip := net.ParseIP(masterHost); ip != nil {
+		masterIP = ip.String()
+	}
+
 	config := &configapi.KubernetesMasterConfig{
+		MasterIP:        masterIP,
 		ServicesSubnet:  servicesSubnet.String(),
 		StaticNodeNames: args.NodeList,
 	}

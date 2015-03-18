@@ -159,6 +159,7 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
+	MasterIP        string   `json:"masterIP"`
 	ServicesSubnet  string   `json:"servicesSubnet"`
 	StaticNodeNames []string `json:"staticNodeNames"`
 }

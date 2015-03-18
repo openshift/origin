@@ -3,6 +3,7 @@ package validation
 import (
 	"net"
 	"os"
+	"strings"
 
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
@@ -65,6 +66,35 @@ func ValidateKubeConfig(path string, field string) errs.ValidationErrorList {
 	return allErrs
 }
 
+func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	if len(config.MasterIP) > 0 {
+		allErrs = append(allErrs, ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
+	}
+
+	if len(config.ServicesSubnet) > 0 {
+		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
+			allErrs = append(allErrs, errs.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.17.0/24)"))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateSpecifiedIP(ipString string, field string) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	ip := net.ParseIP(ipString)
+	if ip == nil {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, ipString, "must be a valid IP"))
+	} else if ip.IsUnspecified() {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, ipString, "cannot be an unspecified IP"))
+	}
+
+	return allErrs
+}
+
 func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
@@ -76,6 +106,10 @@ func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 
 	if config.DNSConfig != nil {
 		allErrs = append(allErrs, ValidateBindAddress(config.DNSConfig.BindAddress).Prefix("dnsConfig")...)
+	}
+
+	if config.KubernetesMasterConfig != nil {
+		allErrs = append(allErrs, ValidateKubernetesMasterConfig(config.KubernetesMasterConfig).Prefix("kubernetesMasterConfig")...)
 	}
 
 	allErrs = append(allErrs, ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
@@ -118,6 +152,10 @@ func ValidateNodeConfig(config *api.NodeConfig) errs.ValidationErrorList {
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 	allErrs = append(allErrs, ValidateKubeConfig(config.MasterKubeConfig, "masterKubeConfig")...)
+
+	if len(config.DNSIP) > 0 {
+		allErrs = append(allErrs, ValidateSpecifiedIP(config.DNSIP, "dnsIP")...)
+	}
 
 	if len(config.NetworkContainerImage) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("networkContainerImage", config.NetworkContainerImage))
