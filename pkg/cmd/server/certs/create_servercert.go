@@ -42,7 +42,7 @@ func NewCommandCreateServerCert() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "signer-")
+	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
 
 	flags.StringVar(&options.CertFile, "cert", "openshift.local.certificates/user/cert.crt", "The certificate file.")
 	flags.StringVar(&options.KeyFile, "key", "openshift.local.certificates/user/key.key", "The key file.")
