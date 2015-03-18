@@ -39,12 +39,23 @@ func TestNewSimpleAllocationPlugin(t *testing.T) {
 			Name:             "yo!yo!@#$%%$%^&*(0){[]}:;',<>?/1.test",
 			ErrorExpectation: true,
 		},
+		{
+			Name:             "",
+			ErrorExpectation: false,
+		},
 	}
 
 	for _, tc := range tests {
-		_, err := NewSimpleAllocationPlugin(tc.Name)
+		sap, err := NewSimpleAllocationPlugin(tc.Name)
 		if err != nil && !tc.ErrorExpectation {
 			t.Errorf("Test case for %s got an error where none was expected", tc.Name)
+		}
+		if len(tc.Name) > 0 {
+			continue
+		}
+		dap := &SimpleAllocationPlugin{DNSSuffix: defaultDNSSuffix}
+		if sap.DNSSuffix != dap.DNSSuffix {
+			t.Errorf("Expected function to use defaultDNSSuffix for empty name argument.")
 		}
 	}
 }
@@ -89,6 +100,16 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 					Namespace: "foo",
 				},
 				Host:        "www.example.com",
+				ServiceName: "myservice",
+			},
+		},
+		{
+			name: "No host",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
 				ServiceName: "myservice",
 			},
 		},
