@@ -1,14 +1,12 @@
 #!/bin/bash
 
-SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-
+# Constants.
+readonly SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+readonly PACKAGES="keepalived nc"
 
 #  Sample and keepalived config files.
-readonly SAMPLE_CONFIG="router-HA.settings.example"
+readonly SAMPLE_CONFIG="$SCRIPT_DIR/conf/settings.example"
 readonly KEEPALIVED_CONFIG="/etc/keepalived/keepalived.conf"
-
-# Constants.
-readonly PACKAGES="keepalived nc"
 
 #  Config values.
 readonly OPENSHIFT_ROUTER="openshift-router"
@@ -27,21 +25,8 @@ readonly DEFAULT_PREEMPTION_STRATEGY="preempt_delay 300"
 
 
 function _install_packages() {
-  local pkgs=""
-
-  echo "  - Checking if packages $PACKAGES are installed ..."
-  for pkg in $PACKAGES; do
-    if yum list $pkg; then
-      echo "  - Package $pkg already installed."
-    else
-      pkgs="$pkgs $pkg" 
-    fi
-  done
-
-  if [ -n "$pkgs" ]; then
-    echo "  - Installing packages $pkgs ..."
-    yum -y install $pkgs
-  fi
+  echo "  - Checking/installing packages $PACKAGES ..."
+  yum -y install $PACKAGES
 
 }  #  End of function  _install_packages.
 
@@ -94,9 +79,9 @@ function _generate_authentication_info() {
 
 
 function _generate_track_script() {
-  echo "   ! track_script {"
-  echo "   !    $CHECK_SCRIPT_NAME"
-  echo "   ! }"
+  echo "   track_script {"
+  echo "      $CHECK_SCRIPT_NAME"
+  echo "   }"
 
 }  #  End of function  _generate_track_script.
 
