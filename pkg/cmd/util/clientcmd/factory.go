@@ -42,8 +42,7 @@ func New(flags *pflag.FlagSet) *Factory {
 // Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
 func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	loadingRules := config.NewOpenShiftClientConfigLoadingRules()
-
-	flags.StringVar(&loadingRules.CommandLinePath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	flags.StringVar(&loadingRules.ExplicitPath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
