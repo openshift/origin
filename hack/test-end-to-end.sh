@@ -148,6 +148,10 @@ function wait_for_app() {
 
 	echo "[INFO] Waiting for app to start..."
 	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))	
+
+	echo "[INFO] Testing app"
+	wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
+	wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
 }
 
 # Wait for builds to complete
