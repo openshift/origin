@@ -9,6 +9,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 type subjectsTest struct {
@@ -46,7 +47,7 @@ func TestSubjects(t *testing.T) {
 func (test *subjectsTest) test(t *testing.T) {
 	policyRegistry := testpolicyregistry.NewPolicyRegistry(test.policies, test.policyRetrievalError)
 	policyBindingRegistry := testpolicyregistry.NewPolicyBindingRegistry(test.bindings, test.bindingRetrievalError)
-	authorizer := NewAuthorizer(testMasterNamespace, rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry))
+	authorizer := NewAuthorizer(bootstrappolicy.DefaultMasterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry))
 
 	actualUsers, actualGroups, actualError := authorizer.GetAllowedSubjects(test.context, *test.attributes)
 

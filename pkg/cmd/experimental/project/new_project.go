@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -49,8 +50,8 @@ func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 	}
 
 	// TODO remove once we have global policy objects
-	cmd.Flags().StringVar(&options.MasterPolicyNamespace, "master-policy-namespace", "master", "master policy namespace")
-	cmd.Flags().StringVar(&options.AdminRole, "admin-role", "admin", "project admin role name in the master policy namespace")
+	cmd.Flags().StringVar(&options.MasterPolicyNamespace, "master-policy-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "master policy namespace")
+	cmd.Flags().StringVar(&options.AdminRole, "admin-role", bootstrappolicy.AdminRoleName, "project admin role name in the master policy namespace")
 	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "project admin username")
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "project description")

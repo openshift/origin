@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
@@ -105,7 +106,7 @@ func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
 		// confirm that we can actually query from the api server
 
 		if client, _, _, err := GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.Policies("master").List(labels.Everything(), labels.Everything()); err == nil {
+			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err == nil {
 				break
 			}
 		}
@@ -160,7 +161,7 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 			if err != nil {
 				return
 			}
-			if _, err := client.Policies("master").List(labels.Everything(), labels.Everything()); err == nil {
+			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err == nil {
 				close(stopChannel)
 			}
 		}, 100*time.Millisecond, stopChannel)
@@ -175,8 +176,8 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 	newProjectOptions := &newproject.NewProjectOptions{
 		Client:                clusterAdminClient,
 		ProjectName:           projectName,
-		AdminRole:             "admin",
-		MasterPolicyNamespace: "master",
+		AdminRole:             bootstrappolicy.AdminRoleName,
+		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		AdminUser:             qualifiedUser,
 	}
 
