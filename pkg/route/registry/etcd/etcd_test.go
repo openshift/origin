@@ -18,18 +18,23 @@ import (
 	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
 )
 
+const (
+	// TestRoutePath is the path to route image in etcd
+	TestRoutePath string = "/registry/routes"
+)
+
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we
 // expect it to. If someone changes the location of these resources by say moving all the resources to
 // "/origin/resources" (which is a really good idea), then they've made a breaking change and something should
 // fail to let them know they've change some significant change and that other dependent pieces may break.
 func makeTestRouteListKey(namespace string) string {
 	if len(namespace) != 0 {
-		return "/routes/" + namespace
+		return fmt.Sprintf("%s/%s", TestRoutePath, namespace)
 	}
-	return "/routes"
+	return TestRoutePath
 }
 func makeTestRouteKey(namespace, id string) string {
-	return "/routes/" + namespace + "/" + id
+	return fmt.Sprintf("%s/%s/%s", TestRoutePath, namespace, id)
 }
 func makeTestDefaultRouteKey(id string) string {
 	return makeTestRouteKey(kapi.NamespaceDefault, id)
@@ -312,7 +317,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Data["/routes/alfa"] = tools.EtcdResponseWithError{
+	fakeClient.Data[TestRoutePath+"/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -324,7 +329,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 		},
 		E: nil,
 	}
-	fakeClient.Data["/routes/bravo"] = tools.EtcdResponseWithError{
+	fakeClient.Data[TestRoutePath+"/bravo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -346,7 +351,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if len(routesAlfa.Items) != 1 || routesAlfa.Items[0].Name != "foo1" {
-		t.Errorf("Unexpected builds list: %#v", routesAlfa)
+		t.Errorf("Unexpected route list: %#v", routesAlfa)
 	}
 
 	routesBravo, err := registry.ListRoutes(namespaceBravo, labels.Everything())
@@ -354,7 +359,7 @@ func TestEtcdListRoutesInDifferentNamespaces(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if len(routesBravo.Items) != 2 || routesBravo.Items[0].Name != "foo2" || routesBravo.Items[1].Name != "bar2" {
-		t.Errorf("Unexpected builds list: %#v", routesBravo)
+		t.Errorf("Unexpected route list: %#v", routesBravo)
 	}
 }
 
@@ -362,8 +367,8 @@ func TestEtcdGetRouteInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/routes/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
-	fakeClient.Set("/routes/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(TestRoutePath+"/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(TestRoutePath+"/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetRoute(namespaceAlfa, "foo")
