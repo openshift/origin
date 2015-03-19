@@ -88,6 +88,7 @@ func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
 
 	startOptions := start.AllInOneOptions{}
 	startOptions.MasterArgs, startOptions.NodeArgs = masterArgs, nodeArgs
+	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.Complete()
 
 	errCh := make(chan error)
