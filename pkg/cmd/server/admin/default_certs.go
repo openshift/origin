@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	DefaultCADir = "ca"
+	DefaultCADir     = "ca"
+	DefaultMasterDir = "master"
 )
 
 type ClientCertInfo struct {
@@ -30,7 +31,51 @@ func DefaultRootCAFile(certDir string) string {
 	return DefaultCertFilename(certDir, DefaultCADir)
 }
 
-func DefaultClientCerts(certDir string) []ClientCertInfo {
+func DefaultKubeletClientCAFile(certDir string) string {
+	return DefaultRootCAFile(certDir)
+}
+
+func DefaultKubeletClientCerts(certDir string) []ClientCertInfo {
+	return []ClientCertInfo{
+		DefaultMasterKubeletClientCertInfo(certDir),
+	}
+}
+
+func DefaultMasterKubeletClientCertInfo(certDir string) ClientCertInfo {
+	return ClientCertInfo{
+		CertLocation: configapi.CertInfo{
+			CertFile: path.Join(certDir, DefaultMasterDir, "kubelet-client.crt"),
+			KeyFile:  path.Join(certDir, DefaultMasterDir, "kubelet-client.key"),
+		},
+		User: "system:master",
+	}
+}
+
+func DefaultEtcdClientCAFile(certDir string) string {
+	return DefaultRootCAFile(certDir)
+}
+
+func DefaultEtcdClientCerts(certDir string) []ClientCertInfo {
+	return []ClientCertInfo{
+		DefaultMasterEtcdClientCertInfo(certDir),
+	}
+}
+
+func DefaultMasterEtcdClientCertInfo(certDir string) ClientCertInfo {
+	return ClientCertInfo{
+		CertLocation: configapi.CertInfo{
+			CertFile: path.Join(certDir, DefaultMasterDir, "etcd-client.crt"),
+			KeyFile:  path.Join(certDir, DefaultMasterDir, "etcd-client.key"),
+		},
+		User: "system:master",
+	}
+}
+
+func DefaultAPIClientCAFile(certDir string) string {
+	return DefaultRootCAFile(certDir)
+}
+
+func DefaultAPIClientCerts(certDir string) []ClientCertInfo {
 	return []ClientCertInfo{
 		DefaultDeployerClientCertInfo(certDir),
 		DefaultOpenshiftLoopbackClientCertInfo(certDir),
@@ -115,13 +160,26 @@ func DefaultServerCerts(certDir string) []configapi.CertInfo {
 	return []configapi.CertInfo{
 		DefaultMasterServingCertInfo(certDir),
 		DefaultAssetServingCertInfo(certDir),
+		DefaultEtcdServingCertInfo(certDir),
 	}
 }
 
 func DefaultMasterServingCertInfo(certDir string) configapi.CertInfo {
 	return configapi.CertInfo{
-		CertFile: DefaultCertFilename(certDir, "master"),
-		KeyFile:  DefaultKeyFilename(certDir, "master"),
+		CertFile: path.Join(certDir, DefaultMasterDir, "server.crt"),
+		KeyFile:  path.Join(certDir, DefaultMasterDir, "server.key"),
+	}
+}
+
+func DefaultAssetServingCertInfo(certDir string) configapi.CertInfo {
+	// Use master certs for assets also
+	return DefaultMasterServingCertInfo(certDir)
+}
+
+func DefaultEtcdServingCertInfo(certDir string) configapi.CertInfo {
+	return configapi.CertInfo{
+		CertFile: path.Join(certDir, "etcd", "server.crt"),
+		KeyFile:  path.Join(certDir, "etcd", "server.key"),
 	}
 }
 
@@ -137,19 +195,12 @@ func DefaultNodeServingCertInfo(certDir, nodeName string) configapi.CertInfo {
 }
 func DefaultNodeClientCertInfo(certDir, nodeName string) configapi.CertInfo {
 	return configapi.CertInfo{
-		CertFile: path.Join(certDir, DefaultNodeDir(nodeName), "client.crt"),
-		KeyFile:  path.Join(certDir, DefaultNodeDir(nodeName), "client.key"),
+		CertFile: path.Join(certDir, DefaultNodeDir(nodeName), "master-client.crt"),
+		KeyFile:  path.Join(certDir, DefaultNodeDir(nodeName), "master-client.key"),
 	}
 }
 func DefaultNodeKubeConfigFile(certDir, nodeName string) string {
 	return path.Join(certDir, DefaultNodeDir(nodeName), ".kubeconfig")
-}
-
-func DefaultAssetServingCertInfo(certDir string) configapi.CertInfo {
-	return configapi.CertInfo{
-		CertFile: DefaultCertFilename(certDir, "master"),
-		KeyFile:  DefaultKeyFilename(certDir, "master"),
-	}
 }
 
 func DefaultCertDir(certDir, username string) string {

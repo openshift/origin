@@ -91,7 +91,7 @@ type MasterConfig struct {
 
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(options.EtcdClientInfo.URL)
+	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(options.EtcdClientInfo)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}

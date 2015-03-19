@@ -56,23 +56,24 @@ start_server() {
 
   echo "[INFO] Create certificates for the OpenShift master"
   env "PATH=${PATH}" openshift admin create-master-certs \
-  --overwrite=false \
-  --cert-dir="${CERT_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="https://${OS_MASTER_ADDR}" \
-  --public-master="https://${OS_MASTER_ADDR}"
+    --overwrite=false \
+    --cert-dir="${CERT_DIR}" \
+    --hostnames="${SERVER_HOSTNAME_LIST}" \
+    --master="https://${OS_MASTER_ADDR}" \
+    --public-master="https://${OS_MASTER_ADDR}"
 
   echo "[INFO] Create certificates for the OpenShift node"
   env "PATH=${PATH}" openshift admin create-node-config \
-  --listen="https://0.0.0.0:10250" \
-  --node-dir="${CERT_DIR}/node-127.0.0.1" \
-  --node="127.0.0.1" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="https://${OS_MASTER_ADDR}" \
-  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --signer-cert="${CERT_DIR}/ca/cert.crt" \
-  --signer-key="${CERT_DIR}/ca/key.key" \
-  --signer-serial="${CERT_DIR}/ca/serial.txt"
+    --listen="https://0.0.0.0:10250" \
+    --node-dir="${CERT_DIR}/node-127.0.0.1" \
+    --node="127.0.0.1" \
+    --hostnames="${SERVER_HOSTNAME_LIST}" \
+    --master="https://${OS_MASTER_ADDR}" \
+    --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
+    --certificate-authority="${CERT_DIR}/ca/cert.crt" \
+    --signer-cert="${CERT_DIR}/ca/cert.crt" \
+    --signer-key="${CERT_DIR}/ca/key.key" \
+    --signer-serial="${CERT_DIR}/ca/serial.txt"
 
   echo "[INFO] Starting OpenShift server"
   sudo env "PATH=${PATH}" openshift start \

@@ -44,7 +44,8 @@ API_PORT=${API_PORT:-8443}
 API_HOST=${API_HOST:-127.0.0.1}
 MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-KUBELET_SCHEME=${KUBELET_SCHEME:-http}
+KUBELET_SCHEME=${KUBELET_SCHEME:-https}
+KUBELET_HOST=${KUBELET_HOST:-127.0.0.1}
 KUBELET_PORT=${KUBELET_PORT:-10250}
 
 TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
@@ -86,11 +87,34 @@ do
     SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-openshift admin create-master-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
-openshift admin create-node-config --listen="https://0.0.0.0:10250" --node-dir="${CERT_DIR}/node-${API_HOST}" --node="${API_HOST}" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}" --certificate-authority="${CERT_DIR}/ca/cert.crt" --signer-cert="${CERT_DIR}/ca/cert.crt" --signer-key="${CERT_DIR}/ca/key.key" --signer-serial="${CERT_DIR}/ca/serial.txt"
+openshift admin create-master-certs \
+  --overwrite=false \
+  --cert-dir="${CERT_DIR}" \
+  --hostnames="${SERVER_HOSTNAME_LIST}" \
+  --master="${MASTER_ADDR}" \
+  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+
+openshift admin create-node-config \
+  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+  --node-dir="${CERT_DIR}/node-${KUBELET_HOST}" \
+  --node="${KUBELET_HOST}" \
+  --hostnames="${KUBELET_HOST}" \
+  --master="${MASTER_ADDR}" \
+  --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
+  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
+  --signer-cert="${CERT_DIR}/ca/cert.crt" \
+  --signer-key="${CERT_DIR}/ca/key.key" \
+  --signer-serial="${CERT_DIR}/ca/serial.txt"
 
 # Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" --hostname="${API_HOST}" --volume-dir="${VOLUME_DIR}" --cert-dir="${CERT_DIR}" --etcd-dir="${ETCD_DATA_DIR}" --create-certs=false 1>&2 &
+OPENSHIFT_ON_PANIC=crash openshift start \
+  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --hostname="${KUBELET_HOST}" \
+  --volume-dir="${VOLUME_DIR}" \
+  --cert-dir="${CERT_DIR}" \
+  --etcd-dir="${ETCD_DATA_DIR}" \
+  --create-certs=false 1>&2 &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
@@ -102,9 +126,9 @@ fi
 # set the home directory so we don't pick up the users .config
 export HOME="${CERT_DIR}/admin"
 
-wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
+wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"

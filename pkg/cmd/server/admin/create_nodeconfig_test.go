@@ -42,7 +42,7 @@ func TestNodeConfigTLS(t *testing.T) {
 	defer os.Remove(signerKey)
 	defer os.Remove(signerSerial)
 
-	configDirName := executeNodeConfig([]string{"--node=my-node", "--hostnames=example.org", "--listen=https://0.0.0.0", "--certificate-authority=" + signerCert, "--signer-cert=" + signerCert, "--signer-key=" + signerKey, "--signer-serial=" + signerSerial})
+	configDirName := executeNodeConfig([]string{"--node=my-node", "--hostnames=example.org", "--listen=https://0.0.0.0", "--certificate-authority=" + signerCert, "--node-client-certificate-authority=" + signerCert, "--signer-cert=" + signerCert, "--signer-key=" + signerKey, "--signer-serial=" + signerSerial})
 	defer os.Remove(configDirName)
 
 	configDir, err := os.Open(configDirName)
@@ -56,7 +56,7 @@ func TestNodeConfigTLS(t *testing.T) {
 	}
 	filenames := util.NewStringSet(fileNameSlice...)
 
-	expectedNames := util.NewStringSet("client.crt", "client.key", "server.crt", "server.key", ".kubeconfig", "node-config.yaml", "node-registration.json", "ca.crt")
+	expectedNames := util.NewStringSet("client.crt", "client.key", "server.crt", "server.key", "node-client-ca.crt", ".kubeconfig", "node-config.yaml", "node-registration.json", "ca.crt")
 	if !filenames.HasAll(expectedNames.List()...) || !expectedNames.HasAll(filenames.List()...) {
 		t.Errorf("expected %v, got %v", expectedNames.List(), filenames.List())
 	}

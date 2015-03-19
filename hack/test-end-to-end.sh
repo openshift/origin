@@ -57,7 +57,8 @@ API_PORT="${API_PORT:-8443}"
 API_SCHEME="${API_SCHEME:-https}"
 MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-KUBELET_SCHEME="${KUBELET_SCHEME:-http}"
+KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
+KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
@@ -96,7 +97,10 @@ function cleanup()
 	osc get -n test builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
 	osc get -n docker builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
 	osc get -n custom builds -o template -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
-	curl -L http://localhost:4001/v2/keys/?recursive=true > "${ARTIFACT_DIR}/etcd_dump.json"
+
+	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
+	set_curl_args 0 1
+	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:4001/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
 	echo
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
@@ -174,7 +178,6 @@ echo "[INFO] Certs dir is:              ${CERT_DIR}"
 echo "[INFO] Using images:              ${USE_IMAGES}"
 
 # Start All-in-one server and wait for health
-# Specify the scheme and port for the listen address, but let the IP auto-discover.	Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Create certificates for the OpenShift server"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
@@ -184,15 +187,37 @@ do
 	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-openshift admin create-master-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
-openshift admin create-node-config --listen="https://0.0.0.0:10250" --node-dir="${CERT_DIR}/node-127.0.0.1" --node="127.0.0.1" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}"  --certificate-authority="${CERT_DIR}/ca/cert.crt" --signer-cert="${CERT_DIR}/ca/cert.crt" --signer-key="${CERT_DIR}/ca/key.key" --signer-serial="${CERT_DIR}/ca/serial.txt"
+openshift admin create-master-certs \
+  --overwrite=false \
+  --cert-dir="${CERT_DIR}" \
+  --hostnames="${SERVER_HOSTNAME_LIST}" \
+  --master="${MASTER_ADDR}" \
+  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+
+openshift admin create-node-config \
+  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+  --node-dir="${CERT_DIR}/node-${KUBELET_HOST}" \
+  --node="${KUBELET_HOST}" \
+  --hostnames="${KUBELET_HOST}" \
+  --master="${MASTER_ADDR}" \
+  --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
+  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
+  --signer-cert="${CERT_DIR}/ca/cert.crt" \
+  --signer-key="${CERT_DIR}/ca/key.key" \
+  --signer-serial="${CERT_DIR}/ca/serial.txt"
 
 echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-     --listen="${API_SCHEME}://0.0.0.0:${API_PORT}"  --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
-     --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" \
-     --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 \
-     --images="${USE_IMAGES}" --create-certs=false\
+     --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+     --master="${MASTER_ADDR}" \
+     --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
+     --hostname="${KUBELET_HOST}" \
+     --volume-dir="${VOLUME_DIR}" \
+     --etcd-dir="${ETCD_DATA_DIR}" \
+     --cert-dir="${CERT_DIR}" \
+     --loglevel=4 \
+     --images="${USE_IMAGES}" \
+     --create-certs=false \
      &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
@@ -208,9 +233,9 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
 
-wait_for_url "${KUBELET_SCHEME}://127.0.0.1:${KUBELET_PORT}/healthz" "kubelet: " 0.5 60
+wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift ex policy add-role-to-user view e2e-user --namespace=default

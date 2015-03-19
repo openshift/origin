@@ -158,7 +158,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 		t.Fatalf("expected unsuccessful token request, got redirected to %v", redirect.String())
 	}
 
-	// Use the server  d CA info, with cert info
+	// Use the server and CA info, with cert info
 	authProxyConfig := anonConfig
 	authProxyConfig.CertData = clientCert
 	authProxyConfig.KeyData = clientKey
