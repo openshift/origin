@@ -38,8 +38,9 @@
       "apiVersion": "v1beta1",
       "kind": "ImageRepository",
       "metadata": {
-        "name": "custom-docker-builder"
-      }
+        "name": "origin-custom-docker-builder"
+      },
+      "dockerImageRepository": "openshift/origin-custom-docker-builder"
     },
     {
       "apiVersion": "v1beta1",
