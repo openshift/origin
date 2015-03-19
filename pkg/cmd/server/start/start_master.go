@@ -14,7 +14,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
@@ -382,7 +381,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}
 
 	// TODO: recording should occur in individual components
-	record.StartRecording(openshiftConfig.KubeClient().Events(""), kapi.EventSource{Component: "master"})
+	record.StartRecording(openshiftConfig.KubeClient().Events(""))
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 

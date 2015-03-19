@@ -10,7 +10,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	minionControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
+	minioncontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
@@ -129,8 +129,8 @@ func (c *MasterConfig) RunMinionController() {
 	if err != nil {
 		glog.Fatalf("Failure to create kubelet client: %v", err)
 	}
-	minionController := minionControllerPkg.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient, 10, 5*time.Minute)
-	minionController.Run(10*time.Second, true)
+	minionController := minioncontroller.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient, 10, 5*time.Minute)
+	minionController.Run(10*time.Second, true, true)
 
 	glog.Infof("Started Kubernetes Minion Controller")
 }

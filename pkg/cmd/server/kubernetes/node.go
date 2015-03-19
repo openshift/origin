@@ -12,7 +12,9 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/cadvisor"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
@@ -22,7 +24,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	cadvisor "github.com/google/cadvisor/client"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
@@ -113,30 +114,42 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 
+	cadvisorInterface, err := cadvisor.New(4194)
+	if err != nil {
+		glog.Errorf("WARNING: cAdvisor cannot be started: %v", err)
+	}
+
 	// initialize Kubelet
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
+	recorder := record.FromSource(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 	kubelet.SetupCapabilities(true)
-	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates)
+	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
 	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
+	gcPolicy := kubelet.ContainerGCPolicy{
+		MinAge:             10 * time.Second,
+		MaxPerPodContainer: 5,
+		MaxContainers:      100,
+	}
 	k, err := kubelet.NewMainKubelet(
 		c.NodeHost,
 		c.DockerClient,
-		nil,
 		c.Client,
 		c.VolumeDir,
 		c.NetworkContainerImage,
-		30*time.Second,
+		3*time.Second,
 		0.0,
 		10,
-		1*time.Second,
-		5,
-		cfg.IsSourceSeen,
+		gcPolicy,
+		cfg.SeenAllSources,
 		c.ClusterDomain,
 		clusterDNS,
 		kapi.NamespaceDefault,
 		app.ProbeVolumePlugins(),
-		5*time.Minute)
+		5*time.Minute,
+		recorder,
+		cadvisorInterface,
+		10*time.Second)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
 	}
@@ -172,22 +185,6 @@ func (c *NodeConfig) RunKubelet() {
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
-
-	go func() {
-		defer util.HandleCrash()
-		// TODO: Monitor this connection, reconnect if needed?
-		glog.V(1).Infof("Trying to create cadvisor client.")
-		// cAdvisor should be running on the local machine
-		cadvisorClient, err := cadvisor.NewClient("http://" + c.NodeHost + ":4194")
-		if err != nil {
-			glog.Errorf("Error on creating cadvisor client: %v", err)
-			return
-		}
-		glog.V(1).Infof("Successfully created cadvisor client.")
-		// this binds the cadvisor to the kubelet for later reference
-		k.SetCadvisorClient(cadvisorClient)
-	}()
-
 }
 
 // RunProxy starts the proxy

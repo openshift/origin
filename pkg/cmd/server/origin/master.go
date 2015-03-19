@@ -273,7 +273,24 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	admissionControl := admit.NewAlwaysAdmit()
 
-	if err := apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, OpenShiftAPIPrefix, OpenShiftAPIV1Beta1, latest.SelfLinker, admissionControl, c.getRequestContextMapper(), latest.RESTMapper).InstallREST(container, OpenShiftAPIPrefix, "v1beta1"); err != nil {
+	version := &apiserver.APIGroupVersion{
+		Root:    OpenShiftAPIPrefix,
+		Version: OpenShiftAPIV1Beta1,
+
+		Storage: storage,
+		Codec:   v1beta1.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: api.Scheme,
+		Typer:   api.Scheme,
+		Linker:  latest.SelfLinker,
+
+		Admit:   admissionControl,
+		Context: c.getRequestContextMapper(),
+	}
+
+	if err := version.InstallREST(container); err != nil {
 		glog.Fatalf("Unable to initialize API: %v", err)
 	}
 
