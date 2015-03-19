@@ -80,6 +80,20 @@
               <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
             </span>
           </div>
+          <div>
+            <span style="margin-right: 5px;">Duration: </span>
+            <span ng-switch="build.status" class="hide-ng-leave">
+              <span ng-switch-when="Complete">{{(build.startTimestamp || build.metadata.creationTimestamp) | duration : build.completionTimestamp}}</span>
+              <span ng-switch-when="Failed">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
+              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.startTimestamp"></duration-until-now></span>
+              <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+              <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+              <span ng-switch-default>
+                <span ng-if="build.startTimestamp">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
+                <span ng-if="!build.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.completionTimestamp}}</span>
+              </span>
+            </span>
+          </div>          
           <div ng-if="buildConfig.parameters.strategy.type != build.parameters.strategy.type">
             <div>Build strategy: {{build.parameters.strategy.type}}</div>
           </div>
@@ -138,6 +152,20 @@
               <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
             </span>
           </div>
+          <div>
+            <span style="margin-right: 5px;">Duration: </span>
+            <span ng-switch="build.status" class="hide-ng-leave">
+              <span ng-switch-when="Complete">{{(build.startTimestamp || build.metadata.creationTimestamp) | duration : build.completionTimestamp}}</span>
+              <span ng-switch-when="Failed">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
+              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.startTimestamp"></duration-until-now></span>
+              <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+              <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+              <span ng-switch-default>
+                <span ng-if="build.startTimestamp">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
+                <span ng-if="!build.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.completionTimestamp}}</span>
+              </span>
+            </span>
+          </div>          
           <div>Build strategy: {{build.parameters.strategy.type}}</div>
           <div ng-switch="build.parameters.strategy.type">
             <div ng-switch-when="STI">
