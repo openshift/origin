@@ -3,8 +3,6 @@ package controller
 import (
 	"time"
 
-	"github.com/golang/glog"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -28,11 +26,9 @@ type ImportControllerFactory struct {
 func (f *ImportControllerFactory) Create() controller.RunnableController {
 	lw := &cache.ListWatch{
 		ListFunc: func() (runtime.Object, error) {
-			glog.Infof("about to list IRs")
 			return f.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			glog.Infof("about to watch IRs: %s", resourceVersion)
 			return f.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
