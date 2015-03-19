@@ -43,8 +43,8 @@ func (c *buildConfigs) List(label labels.Selector, field fields.Selector) (resul
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("buildConfigs").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Do().
 		Into(result)
 	return
@@ -83,7 +83,7 @@ func (c *buildConfigs) Watch(label labels.Selector, field fields.Selector, resou
 		Namespace(c.ns).
 		Resource("buildConfigs").
 		Param("resourceVersion", resourceVersion).
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Watch()
 }

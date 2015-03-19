@@ -43,8 +43,8 @@ func (c *projects) List(label labels.Selector, field fields.Selector) (result *p
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
 		Resource("projects").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Do().
 		Into(result)
 	return

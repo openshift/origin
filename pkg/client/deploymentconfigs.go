@@ -45,8 +45,8 @@ func (c *deploymentConfigs) List(label labels.Selector, field fields.Selector) (
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("deploymentConfigs").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Do().
 		Into(result)
 	return
@@ -85,8 +85,8 @@ func (c *deploymentConfigs) Watch(label labels.Selector, field fields.Selector, 
 		Namespace(c.ns).
 		Resource("deploymentConfigs").
 		Param("resourceVersion", resourceVersion).
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Watch()
 }
 

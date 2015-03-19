@@ -37,8 +37,8 @@ func (c *images) List(label labels.Selector, field fields.Selector) (result *ima
 	result = &imageapi.ImageList{}
 	err = c.r.Get().
 		Resource("images").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Do().
 		Into(result)
 	return

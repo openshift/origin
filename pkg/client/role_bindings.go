@@ -38,7 +38,7 @@ func newRoleBindings(c *Client, namespace string) *roleBindings {
 // List returns a list of roleBindings that match the label and field selectors.
 func (c *roleBindings) List(label labels.Selector, field fields.Selector) (result *authorizationapi.RoleBindingList, err error) {
 	result = &authorizationapi.RoleBindingList{}
-	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").SelectorParam("labels", label).SelectorParam("fields", field).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").LabelsSelectorParam("labels", label).FieldsSelectorParam("fields", field).Do().Into(result)
 	return
 }
 
