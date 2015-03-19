@@ -1,6 +1,8 @@
 package configchange
 
 import (
+	"time"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
@@ -38,7 +40,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 		},
 	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue).Run()
+	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue, 2*time.Minute).Run()
 
 	changeController := &DeploymentConfigChangeController{
 		changeStrategy: &changeStrategyImpl{

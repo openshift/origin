@@ -45,7 +45,7 @@ type BuildControllerFactory struct {
 // Create constructs a BuildController
 func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue).Run()
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).Run()
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
@@ -83,7 +83,7 @@ type BuildPodControllerFactory struct {
 // Create constructs a BuildPodController
 func (factory *BuildPodControllerFactory) Create() controller.RunnableController {
 	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore).Run()
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore, 2*time.Minute).Run()
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)
@@ -127,10 +127,10 @@ type ImageChangeControllerFactory struct {
 // image is available
 func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue).Run()
+	cache.NewReflector(&imageRepositoryLW{factory.Client}, &imageapi.ImageRepository{}, queue, 2*time.Minute).Run()
 
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store).Run()
+	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store, 2*time.Minute).Run()
 
 	imageChangeController := &buildcontroller.ImageChangeController{
 		BuildConfigStore:   store,

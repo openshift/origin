@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"fmt"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -41,7 +42,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 		},
 	}
 	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue).Run()
+	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue, 2*time.Minute).Run()
 
 	deployController := &DeploymentController{
 		deploymentClient: &deploymentClientImpl{

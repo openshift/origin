@@ -37,10 +37,10 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 		},
 	}
 	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue).Run()
+	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue, 2*time.Minute).Run()
 
 	deploymentStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentStore).Run()
+	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentStore, 2*time.Minute).Run()
 
 	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
 	// states. Because of this, we can't receive events related to container (and thus Pod)

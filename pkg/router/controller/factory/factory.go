@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
@@ -23,10 +25,10 @@ type RouterControllerFactory struct {
 
 func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&routeLW{factory.OSClient}, &routeapi.Route{}, routeEventQueue).Run()
+	cache.NewReflector(&routeLW{factory.OSClient}, &routeapi.Route{}, routeEventQueue, 2*time.Minute).Run()
 
 	endpointsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&endpointsLW{factory.KClient}, &kapi.Endpoints{}, endpointsEventQueue).Run()
+	cache.NewReflector(&endpointsLW{factory.KClient}, &kapi.Endpoints{}, endpointsEventQueue, 2*time.Minute).Run()
 
 	return &controller.RouterController{
 		Plugin: plugin,

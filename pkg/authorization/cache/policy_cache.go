@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
@@ -88,6 +89,7 @@ func (c *PolicyCache) configureReflectors() (*cache.Reflector, *cache.Reflector)
 		},
 		&authorizationapi.PolicyBinding{},
 		c.policyBindingIndexer,
+		2*time.Minute,
 	)
 
 	policyReflector := cache.NewReflector(
@@ -101,6 +103,7 @@ func (c *PolicyCache) configureReflectors() (*cache.Reflector, *cache.Reflector)
 		},
 		&authorizationapi.Policy{},
 		c.policyIndexer,
+		2*time.Minute,
 	)
 
 	return policyBindingReflector, policyReflector

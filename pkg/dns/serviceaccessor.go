@@ -2,6 +2,7 @@ package dns
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -37,7 +38,7 @@ func NewCachedServiceAccessor(client *client.Client, stopCh <-chan struct{}) Ser
 		"portalIP":  indexServiceByPortalIP, // for reverse lookups
 		"namespace": cache.MetaNamespaceIndexFunc,
 	})
-	reflector := cache.NewReflector(lw, &api.Service{}, store)
+	reflector := cache.NewReflector(lw, &api.Service{}, store, 2*time.Minute)
 	if stopCh != nil {
 		reflector.RunUntil(stopCh)
 	} else {

@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"time"
+
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -35,7 +37,7 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 		},
 	}
 	q := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(lw, &api.ImageRepository{}, q).Run()
+	cache.NewReflector(lw, &api.ImageRepository{}, q, 2*time.Minute).Run()
 
 	c := &ImportController{
 		client:       dockerregistry.NewClient(),

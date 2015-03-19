@@ -1,6 +1,8 @@
 package imagechange
 
 import (
+	"time"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -34,7 +36,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		},
 	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(imageRepositoryLW, &imageapi.ImageRepository{}, queue).Run()
+	cache.NewReflector(imageRepositoryLW, &imageapi.ImageRepository{}, queue, 2*time.Minute).Run()
 
 	deploymentConfigLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
@@ -45,7 +47,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		},
 	}
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, store).Run()
+	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, store, 2*time.Minute).Run()
 
 	changeController := &ImageChangeController{
 		deploymentConfigClient: &deploymentConfigClientImpl{

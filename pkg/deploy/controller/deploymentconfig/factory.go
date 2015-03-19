@@ -1,6 +1,8 @@
 package deploymentconfig
 
 import (
+	"time"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
@@ -38,7 +40,7 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 		},
 	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue).Run()
+	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue, 2*time.Minute).Run()
 
 	configController := &DeploymentConfigController{
 		deploymentClient: &deploymentClientImpl{

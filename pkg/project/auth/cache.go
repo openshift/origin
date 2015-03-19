@@ -140,6 +140,7 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 		},
 		&kapi.Namespace{},
 		ac.namespaceStore,
+		2*time.Minute,
 	)
 	namespaceReflector.Run()
 
@@ -154,6 +155,7 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 		},
 		&authorizationapi.PolicyBinding{},
 		ac.policyBindingIndexer,
+		2*time.Minute,
 	)
 	policyBindingReflector.Run()
 
@@ -168,6 +170,7 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 		},
 		&authorizationapi.Policy{},
 		ac.policyIndexer,
+		2*time.Minute,
 	)
 	policyReflector.Run()
 
