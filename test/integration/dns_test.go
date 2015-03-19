@@ -45,45 +45,41 @@ func TestDNS(t *testing.T) {
 		close(stop)
 	}, 50*time.Millisecond, stop)
 
-	// verify recursive DNS lookup is visible
-	m1 := &dns.Msg{
-		MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
-		Question: []dns.Question{{"foo.kubernetes.default.local.", dns.TypeA, dns.ClassINET}},
+	// verify recursive DNS lookup is visible when expected
+	tests := []struct {
+		dnsQuestionName   string
+		recursionExpected bool
+	}{
+		{
+			dnsQuestionName:   "foo.kubernetes.default.local.",
+			recursionExpected: false,
+		},
+		{
+			dnsQuestionName:   "www.google.com.",
+			recursionExpected: true,
+		},
 	}
-	in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(in.Answer) != 1 {
-		t.Fatalf("unexpected response: %#v", in)
-	}
-	if a, ok := in.Answer[0].(*dns.A); ok {
-		if a.A == nil {
-			t.Errorf("expected an A record with an IP: %#v", a)
+	for _, tc := range tests {
+		m1 := &dns.Msg{
+			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
+			Question: []dns.Question{{tc.dnsQuestionName, dns.TypeA, dns.ClassINET}},
 		}
-	} else {
-		t.Errorf("expected an A record: %#v", in)
-	}
-	t.Log(in)
-
-	// verify recursive DNS lookup is visible
-	m1 = &dns.Msg{
-		MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
-		Question: []dns.Question{{"www.google.com.", dns.TypeA, dns.ClassINET}},
-	}
-	in, err = dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(in.Answer) == 0 {
-		t.Fatalf("unexpected response: %#v", in)
-	}
-	if a, ok := in.Answer[0].(*dns.A); ok {
-		if a.A == nil {
-			t.Errorf("expected an A record with an IP: %#v", a)
+		in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-	} else {
-		t.Errorf("expected an A record: %#v", in)
+		if !tc.recursionExpected && len(in.Answer) != 1 {
+			t.Fatalf("did not resolve or unexpected forward resolution: %#v", in)
+		} else if tc.recursionExpected && len(in.Answer) == 0 {
+			t.Fatalf("expected forward resolution: %#v", in)
+		}
+		if a, ok := in.Answer[0].(*dns.A); ok {
+			if a.A == nil {
+				t.Errorf("expected an A record with an IP: %#v", a)
+			}
+		} else {
+			t.Errorf("expected an A record: %#v", in)
+		}
+		t.Log(in)
 	}
-	t.Log(in)
 }
