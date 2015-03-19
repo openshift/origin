@@ -22,7 +22,7 @@ const (
 
 // Set up the rules and priorities for loading config files.
 func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
-	return clientcmd.NewClientConfigLoadingRules(FullClientConfigFilePriority())
+	return &clientcmd.ClientConfigLoadingRules{Precedence: FullClientConfigFilePriority()}
 }
 
 // File priority loading rules for OpenShift.

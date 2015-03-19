@@ -79,7 +79,8 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 }
 
 func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, error) {
-	loadingRules := &clientcmd.ClientConfigLoadingRules{CommandLinePath: kubeConfigFile}
+	loadingRules := &clientcmd.ClientConfigLoadingRules{}
+	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 
 	kubeConfig, err := loader.ClientConfig()
@@ -95,7 +96,8 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 }
 
 func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config, error) {
-	loadingRules := &clientcmd.ClientConfigLoadingRules{CommandLinePath: kubeConfigFile}
+	loadingRules := &clientcmd.ClientConfigLoadingRules{}
+	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 
 	kubeConfig, err := loader.ClientConfig()

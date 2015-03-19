@@ -132,7 +132,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		}
 	}
 	var kubernetesMasterConfig *configapi.KubernetesMasterConfig
-	if !args.KubeConnectionArgs.KubernetesAddr.Provided && len(args.KubeConnectionArgs.ClientConfigLoadingRules.CommandLinePath) == 0 {
+	if !args.KubeConnectionArgs.KubernetesAddr.Provided && len(args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) == 0 {
 		kubernetesMasterConfig, err = args.BuildSerializeableKubeMasterConfig()
 		if err != nil {
 			return nil, err
