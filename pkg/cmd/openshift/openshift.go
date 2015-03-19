@@ -76,8 +76,7 @@ func NewCommandOpenShift() *cobra.Command {
 		},
 	}
 
-	root.SetUsageTemplate(templates.MainUsageTemplate())
-	root.SetHelpTemplate(templates.MainHelpTemplate())
+	templates.UseMainTemplates(root)
 
 	startAllInOne, _ := start.NewCommandStartAllInOne()
 	root.AddCommand(startAllInOne)
