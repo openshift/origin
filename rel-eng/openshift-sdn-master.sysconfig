@@ -2,6 +2,8 @@
 # available for openshift-sdn:
 #
 #  -alsologtostderr=false: log to standard error as well as files
+#  -container-network="10.1.0.0/16": container network
+#  -container-subnet-length=8: container subnet length
 #  -etcd-cafile="": SSL Certificate Authority file used to secure etcd
 #    communication
 #  -etcd-certfile="": SSL certification file used to secure etcd
@@ -34,6 +36,9 @@
 # openshift-sdn runs in master mode by default, with any relevant
 # options set to the defaults documented above.
 #
+# The default subnet config yields provides for 254 hosts with 254 ips
+# each. ie: node1 = 10.1.0.0/24, node2 = 10.1.1.0/24, etc.
+#
 # Example:
-#   OPTIONS="-etcd-keyfile=/path/to/keyfile"
+#   OPTIONS=-etcd-keyfile=/path/to/keyfile
 OPTIONS=
