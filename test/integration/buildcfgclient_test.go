@@ -9,18 +9,19 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/test/util"
 )
 
 func init() {
-	requireEtcd()
+	util.RequireEtcd()
 }
 
 func TestListBuildConfigs(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
-	buildConfigs, err := openshift.Client.BuildConfigs(testNamespace).List(labels.Everything(), labels.Everything())
+	buildConfigs, err := openshift.Client.BuildConfigs(util.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -30,12 +31,12 @@ func TestListBuildConfigs(t *testing.T) {
 }
 
 func TestCreateBuildConfig(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
-	expected, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
+	expected, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -43,7 +44,7 @@ func TestCreateBuildConfig(t *testing.T) {
 		t.Errorf("Unexpected empty buildConfig ID %v", expected)
 	}
 
-	buildConfigs, err := openshift.Client.BuildConfigs(testNamespace).List(labels.Everything(), labels.Everything())
+	buildConfigs, err := openshift.Client.BuildConfigs(util.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -53,52 +54,52 @@ func TestCreateBuildConfig(t *testing.T) {
 }
 
 func TestUpdateBuildConfig(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
-	actual, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
+	actual, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	actual, err = openshift.Client.BuildConfigs(testNamespace).Get(actual.Name)
+	actual, err = openshift.Client.BuildConfigs(util.Namespace()).Get(actual.Name)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if _, err := openshift.Client.BuildConfigs(testNamespace).Update(actual); err != nil {
+	if _, err := openshift.Client.BuildConfigs(util.Namespace()).Update(actual); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
 
 func TestDeleteBuildConfig(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
-	actual, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
+	actual, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if err := openshift.Client.BuildConfigs(testNamespace).Delete(actual.Name); err != nil {
+	if err := openshift.Client.BuildConfigs(util.Namespace()).Delete(actual.Name); err != nil {
 		t.Fatalf("Unxpected error: %v", err)
 	}
 }
 
 func TestWatchBuildConfigs(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
-	watch, err := openshift.Client.BuildConfigs(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.BuildConfigs(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer watch.Stop()
 
-	expected, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
+	expected, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -147,11 +148,11 @@ func mockBuildConfig() *buildapi.BuildConfig {
 }
 
 func TestBuildConfigClient(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
-	buildConfigs, err := openshift.Client.BuildConfigs(testNamespace).List(labels.Everything(), labels.Everything())
+	buildConfigs, err := openshift.Client.BuildConfigs(util.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -186,7 +187,7 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// get a created buildConfig
-	got, err := openshift.Client.BuildConfigs(testNamespace).Create(buildConfig)
+	got, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -195,7 +196,7 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// get a list of buildConfigs
-	buildConfigs, err = openshift.Client.BuildConfigs(testNamespace).List(labels.Everything(), labels.Everything())
+	buildConfigs, err = openshift.Client.BuildConfigs(util.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -208,11 +209,11 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// delete a buildConfig
-	err = openshift.Client.BuildConfigs(testNamespace).Delete(got.Name)
+	err = openshift.Client.BuildConfigs(util.Namespace()).Delete(got.Name)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	buildConfigs, err = openshift.Client.BuildConfigs(testNamespace).List(labels.Everything(), labels.Everything())
+	buildConfigs, err = openshift.Client.BuildConfigs(util.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}

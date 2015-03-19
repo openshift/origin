@@ -15,15 +15,19 @@ os::build::setup_env
 
 function cleanup()
 {
-    set +e
-    kill ${ETCD_PID} 1>&2 2>/dev/null
-    rm -rf ${ETCD_DIR} 1>&2 2>/dev/null
-    echo
-    echo "Complete"
+  [ ! -z "${ETCD_STARTED-}" ] && return
+  set +e
+  kill ${ETCD_PID} 1>&2 2>/dev/null
+  rm -rf ${ETCD_DIR} 1>&2 2>/dev/null
+  echo
+  echo "Complete"
 }
 
 package="${OS_TEST_PACKAGE:-test/integration}"
 tags="${OS_TEST_TAGS:-integration no-docker}"
+
+TMPDIR=${TMPDIR:-/tmp}
+export BASETMPDIR=${BASETMPDIR:-"${TMPDIR}/openshift-integration"}
 
 echo
 echo "Test ${package} -tags='${tags}' ..."
@@ -44,15 +48,21 @@ start_etcd
 trap cleanup EXIT SIGINT
 
 function exectest() {
-  echo "running $1..."
+  echo "Running $1..."
 
-  out=$("${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+  result=1
+  if [ ! -z "${VERBOSE-}" ]; then
+    out=$("${testexec}" -test.v=true -v ${VERBOSE-} -test.run="^$1$" "${@:2}" 2>&1)
+    result=$?
+  else
+    out=$("${testexec}" -test.run="^$1$" "${@:2}" 2>&1)
+    result=$?
+  fi
 
   tput cuu 1 # Move up one line
   tput el    # Clear "running" line
 
-  res=$?
-  if [[ ${res} -eq 0 ]]; then
+  if [[ ${result} -eq 0 ]]; then
     tput setaf 2 # green
     echo "ok      $1"
     tput sgr0    # reset
@@ -65,6 +75,7 @@ function exectest() {
     exit 1
   fi
 }
+
 export -f exectest
 export testexec
 export childargs

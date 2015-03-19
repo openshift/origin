@@ -9,10 +9,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/miekg/dns"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func TestDNS(t *testing.T) {
-	masterConfig, _, err := StartTestAllInOne()
+	masterConfig, _, err := testutil.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

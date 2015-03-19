@@ -10,6 +10,7 @@ import (
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	testutil "github.com/openshift/origin/test/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -18,21 +19,26 @@ import (
 )
 
 func TestRestrictedAccessForProjectAdmins(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
+	haroldClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	markClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -82,12 +88,12 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 }
 
 func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, _, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -157,21 +163,27 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 }
 
 func TestResourceAccessReview(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
+	haroldClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	markClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -279,21 +291,27 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 }
 
 func TestSubjectAccessReview(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
+	haroldClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	markClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

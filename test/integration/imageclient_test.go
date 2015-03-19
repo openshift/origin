@@ -28,18 +28,19 @@ import (
 	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	requireEtcd()
+	testutil.RequireEtcd()
 }
 
 func TestImageRepositoryList(t *testing.T) {
-	deleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestImageOpenShift(t)
 	defer openshift.Close()
 
-	builds, err := openshift.Client.ImageRepositories(testNamespace).List(labels.Everything(), labels.Everything())
+	builds, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -53,16 +54,16 @@ func mockImageRepository() *imageapi.ImageRepository {
 }
 
 func TestImageRepositoryCreate(t *testing.T) {
-	deleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestImageOpenShift(t)
 	defer openshift.Close()
 	repo := mockImageRepository()
 
-	if _, err := openshift.Client.ImageRepositories(testNamespace).Create(&imageapi.ImageRepository{}); err == nil || !errors.IsInvalid(err) {
+	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(&imageapi.ImageRepository{}); err == nil || !errors.IsInvalid(err) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	expected, err := openshift.Client.ImageRepositories(testNamespace).Create(repo)
+	expected, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(repo)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestImageRepositoryCreate(t *testing.T) {
 		t.Errorf("Unexpected empty image Name %v", expected)
 	}
 
-	actual, err := openshift.Client.ImageRepositories(testNamespace).Get(repo.Name)
+	actual, err := openshift.Client.ImageRepositories(testutil.Namespace()).Get(repo.Name)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -78,7 +79,7 @@ func TestImageRepositoryCreate(t *testing.T) {
 		t.Errorf("unexpected object: %s", util.ObjectDiff(expected, actual))
 	}
 
-	repos, err := openshift.Client.ImageRepositories(testNamespace).List(labels.Everything(), labels.Everything())
+	repos, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -88,12 +89,12 @@ func TestImageRepositoryCreate(t *testing.T) {
 }
 
 func TestImageRepositoryMappingCreate(t *testing.T) {
-	deleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestImageOpenShift(t)
 	defer openshift.Close()
 	repo := mockImageRepository()
 
-	expected, err := openshift.Client.ImageRepositories(testNamespace).Create(repo)
+	expected, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(repo)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -112,12 +113,12 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 			DockerImageReference: "some/other/name",
 		},
 	}
-	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err != nil {
+	if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(mapping); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// verify we can tag a second time with the same data, and nothing changes
-	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err != nil {
+	if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(mapping); err != nil {
 		t.Fatalf("unexpected non-error or type: %v", err)
 	}
 
@@ -149,7 +150,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 		Image:      *image,
 	}
 	mapping.Image.DockerImageReference = "different"
-	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err != nil {
+	if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(mapping); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	image, err = openshift.Client.Images().Get(image.Name)
@@ -161,7 +162,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	}
 
 	// ensure the correct tags are set
-	updated, err := openshift.Client.ImageRepositories(testNamespace).Get(repo.Name)
+	updated, err := openshift.Client.ImageRepositories(testutil.Namespace()).Get(repo.Name)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -169,7 +170,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 		t.Errorf("unexpected object: %#v", updated.Tags)
 	}
 
-	fromTag, err := openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "newer")
+	fromTag, err := openshift.Client.ImageRepositoryTags(testutil.Namespace()).Get(repo.Name, "newer")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -177,7 +178,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
-	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "newest")
+	fromTag, err = openshift.Client.ImageRepositoryTags(testutil.Namespace()).Get(repo.Name, "newest")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -192,11 +193,11 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 		Tag:        "anothertag",
 		Image:      *image,
 	}
-	if err := openshift.Client.ImageRepositoryMappings(testNamespace).Create(mapping); err != nil {
+	if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(mapping); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// ensure the correct tags are set
-	updated, err = openshift.Client.ImageRepositories(testNamespace).Get(repo.Name)
+	updated, err = openshift.Client.ImageRepositories(testutil.Namespace()).Get(repo.Name)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -204,7 +205,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 		t.Errorf("unexpected object: %#v", updated.Tags)
 	}
 
-	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "newer")
+	fromTag, err = openshift.Client.ImageRepositoryTags(testutil.Namespace()).Get(repo.Name, "newer")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -212,14 +213,14 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
-	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "newest")
+	fromTag, err = openshift.Client.ImageRepositoryTags(testutil.Namespace()).Get(repo.Name, "newest")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
-	fromTag, err = openshift.Client.ImageRepositoryTags(testNamespace).Get(repo.Name, "anothertag")
+	fromTag, err = openshift.Client.ImageRepositoryTags(testutil.Namespace()).Get(repo.Name, "anothertag")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -230,19 +231,19 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 }
 
 func TestImageRepositoryDelete(t *testing.T) {
-	deleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestImageOpenShift(t)
 	defer openshift.Close()
 	repo := mockImageRepository()
 
-	if err := openshift.Client.ImageRepositories(testNamespace).Delete(repo.Name); err == nil || !errors.IsNotFound(err) {
+	if err := openshift.Client.ImageRepositories(testutil.Namespace()).Delete(repo.Name); err == nil || !errors.IsNotFound(err) {
 		t.Fatalf("Unxpected non-error or type: %v", err)
 	}
-	actual, err := openshift.Client.ImageRepositories(testNamespace).Create(repo)
+	actual, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(repo)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if err := openshift.Client.ImageRepositories(testNamespace).Delete(actual.Name); err != nil {
+	if err := openshift.Client.ImageRepositories(testutil.Namespace()).Delete(actual.Name); err != nil {
 		t.Fatalf("Unxpected error: %v", err)
 	}
 }
@@ -262,7 +263,7 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 		stop: make(chan struct{}),
 	}
 
-	etcdClient := newEtcdClient()
+	etcdClient := testutil.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 
 	osMux := http.NewServeMux()
