@@ -7,48 +7,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
-const (
-	DefaultMasterAuthorizationNamespace      = "master"
-	DefaultOpenShiftSharedResourcesNamespace = "openshift"
-)
-
-const (
-	UnauthenticatedUsername       = "system:anonymous"
-	InternalComponentUsername     = "system:openshift-client"
-	InternalComponentKubeUsername = "system:kube-client"
-	DeployerUsername              = "system:openshift-deployer"
-
-	AuthenticatedGroup   = "system:authenticated"
-	UnauthenticatedGroup = "system:unauthenticated"
-	ClusterAdminGroup    = "system:cluster-admins"
-	NodesGroup           = "system:nodes"
-)
-
-const (
-	ClusterAdminRoleName      = "cluster-admin"
-	AdminRoleName             = "admin"
-	EditRoleName              = "edit"
-	ViewRoleName              = "view"
-	BasicUserRoleName         = "basic-user"
-	StatusCheckerRoleName     = "cluster-status"
-	DeployerRoleName          = "system:deployer"
-	InternalComponentRoleName = "system:component"
-	DeleteTokensRoleName      = "system:delete-tokens"
-
-	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
-)
-
-const (
-	InternalComponentRoleBindingName = InternalComponentRoleName + "-binding"
-	DeployerRoleBindingName          = DeployerRoleName + "-binding"
-	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "-binding"
-	BasicUserRoleBindingName         = BasicUserRoleName + "-binding"
-	DeleteTokensRoleBindingName      = DeleteTokensRoleName + "-binding"
-	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
-
-	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "-binding"
-)
-
 func GetBootstrapRoles(masterNamespace, openshiftNamespace string) []authorizationapi.Role {
 	masterRoles := GetBootstrapMasterRoles(masterNamespace)
 	openshiftRoles := GetBootstrapOpenshiftRoles(openshiftNamespace)
@@ -194,6 +152,34 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 				},
 			},
 		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      RouterRoleName,
+				Namespace: masterNamespace,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("routes", "endpoints"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      RegistryRoleName,
+				Namespace: masterNamespace,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get", "delete"),
+					Resources: util.NewStringSet("images"),
+				},
+				{
+					Verbs:     util.NewStringSet("create"),
+					Resources: util.NewStringSet("imagerepositorymappings"),
+				},
+			},
+		},
 	}
 }
 
@@ -289,6 +275,28 @@ func GetBootstrapMasterRoleBindings(masterNamespace string) []authorizationapi.R
 				Namespace: masterNamespace,
 			},
 			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      RouterRoleBindingName,
+				Namespace: masterNamespace,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name:      RouterRoleName,
+				Namespace: masterNamespace,
+			},
+			Groups: util.NewStringSet(RouterGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      RegistryRoleBindingName,
+				Namespace: masterNamespace,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name:      RegistryRoleName,
+				Namespace: masterNamespace,
+			},
+			Groups: util.NewStringSet(RegistryGroup),
 		},
 	}
 }

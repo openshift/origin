@@ -201,11 +201,7 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CERT="${CERT_DIR}/admin/cert.crt"
 	export CURL_KEY="${CERT_DIR}/admin/key.key"
 
-	# Read client cert data in to send to containerized components
-	sudo chmod -R a+rX "${CERT_DIR}/openshift-client/"
-
 	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
-	sudo chmod -R a+rwX "${CERT_DIR}/admin/"
 	export HOME="${CERT_DIR}/admin"
 	export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
 	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
@@ -229,12 +225,12 @@ echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
 echo "[INFO] Installing the router"
-openshift ex router --create --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
+openshift ex router --create --credentials="${CERT_DIR}/openshift-router/.kubeconfig" --images="${USE_IMAGES}"
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
 # TODO: add --images="${USE_IMAGES}" when the Docker registry is built alongside OpenShift
-openshift ex registry --create --credentials="${KUBECONFIG}" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
+openshift ex registry --create --credentials="${CERT_DIR}/openshift-registry/.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
 
 echo "[INFO] Pre-pulling and pushing centos7"
 docker pull centos:centos7
@@ -299,7 +295,7 @@ registry_pod=$(osc get pod | grep docker-registry | awk '{print $1}')
 osc exec -p ${registry_pod} whoami | grep root
 
 # Port forwarding
-osc port-forward -p ${registry_pod} 5001:5000 &
+osc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:5001/" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
 # UI e2e tests can be found in assets/test/e2e
