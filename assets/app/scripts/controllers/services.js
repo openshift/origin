@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ServicesController', function ($scope, DataService, $filter, LabelFilter) {
+  .controller('ServicesController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.services = {};
     $scope.unfilteredServices = {};
     $scope.routesByService = {};
@@ -24,12 +24,12 @@ angular.module('openshiftConsole')
       $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
-      console.log("services (subscribe)", $scope.unfilteredServices);
+      Logger.log("services (subscribe)", $scope.unfilteredServices);
     }));
 
     watches.push(DataService.watch("routes", $scope, function(routes){
         $scope.routesByService = routesByService(routes.by("metadata.name"));
-        console.log("routes (subscribe)", $scope.routesByService);
+        Logger.log("routes (subscribe)", $scope.routesByService);
     }));
 
     var routesByService = function(routes) {

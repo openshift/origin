@@ -17,10 +17,9 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(h tools.EtcdHelper, defaultRegistry imagerepository.DefaultRegistry) *REST {
+func NewREST(h tools.EtcdHelper, defaultRegistry imagerepository.DefaultRegistry) (*REST, *StatusREST) {
 	prefix := "/imageRepositories"
-	strategy := imagerepository.NewStrategy(defaultRegistry)
-	store := &etcdgeneric.Etcd{
+	store := etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ImageRepository{} },
 		NewListFunc: func() runtime.Object { return &api.ImageRepositoryList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
@@ -34,17 +33,20 @@ func NewREST(h tools.EtcdHelper, defaultRegistry imagerepository.DefaultRegistry
 		},
 		EndpointName: "imageRepository",
 
-		CreateStrategy: strategy,
-
-		UpdateStrategy: strategy,
-
 		ReturnDeletedObject: false,
-
-		Decorator: strategy.Decorate,
-
-		Helper: h,
+		Helper:              h,
 	}
-	return &REST{store: store}
+
+	strategy := imagerepository.NewStrategy(defaultRegistry)
+
+	statusStore := store
+	statusStore.UpdateStrategy = imagerepository.NewStatusStrategy(strategy)
+
+	store.CreateStrategy = strategy
+	store.UpdateStrategy = strategy
+	store.Decorator = strategy.Decorate
+
+	return &REST{store: &store}, &StatusREST{store: &statusStore}
 }
 
 // New returns a new object
@@ -85,4 +87,18 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 // Delete deletes an existing image repository specified by its ID.
 func (r *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 	return r.store.Delete(ctx, name)
+}
+
+// StatusREST implements the REST endpoint for changing the status of an image repository.
+type StatusREST struct {
+	store *etcdgeneric.Etcd
+}
+
+func (r *StatusREST) New() runtime.Object {
+	return &api.ImageRepository{}
+}
+
+// Update alters the status subset of an object.
+func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }

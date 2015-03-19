@@ -14,8 +14,9 @@ angular.module('openshiftConsole')
   var debug = false;
 
   // $get method is called to build the $ws service
-  this.$get = function($q, $injector) {
-    if (debug) { console.log("$wsProvider.$get", arguments); }
+  this.$get = function($q, $injector, Logger) {
+    var authLogger = Logger.get("auth");
+    authLogger.log("$wsProvider.$get", arguments);
 
     // Build list of interceptors from $httpProvider when constructing the $ws service
     // Build in reverse-order, so the last interceptor added gets to handle the request first
@@ -32,9 +33,9 @@ angular.module('openshiftConsole')
     var $ws = function(config) {
       config.method = angular.uppercase(config.method || "WATCH");
 
-      if (debug) { console.log("$ws (pre-intercept)", config.url.toString()); }
+      authLogger.log("$ws (pre-intercept)", config.url.toString());
       var serverRequest = function(config) {
-        if (debug) { console.log("$ws (post-intercept)", config.url.toString()); }
+        authLogger.log("$ws (post-intercept)", config.url.toString());
         var ws = new WebSocket(config.url);
         if (config.onclose)   { ws.onclose   = config.onclose;   }
         if (config.onmessage) { ws.onmessage = config.onmessage; }
@@ -64,7 +65,12 @@ angular.module('openshiftConsole')
   
     // Implement $ws.available()
     $ws.available = function() {
-      return !!WebSocket;
+      try {
+        return !!WebSocket;
+      }
+      catch(e) {
+        return false;
+      }
     };
   
     return $ws;

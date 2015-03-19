@@ -12,7 +12,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
@@ -85,14 +85,15 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
 	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
 
-	masterArgs, nodeArgs, bindAddrArg, imageFormatArgs, kubeConnectionArgs, certArgs := GetAllInOneArgs()
+	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs := GetAllInOneArgs()
 	options.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
 	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precendence
 	options.NodeArgs.AllowDisabledDocker = true
 
 	BindMasterArgs(masterArgs, flags, "")
 	BindNodeArgs(nodeArgs, flags, "")
-	BindBindAddrArg(bindAddrArg, flags, "")
+	BindListenArg(listenArg, flags, "")
+	BindPolicyArgs(options.MasterArgs.PolicyArgs, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 	BindKubeConnectionArgs(kubeConnectionArgs, flags, "")
 	BindCertArgs(certArgs, flags, "")
@@ -106,13 +107,13 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 }
 
 // GetAllInOneArgs makes sure that the node and master args that should be shared, are shared
-func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *BindAddrArg, *ImageFormatArgs, *KubeConnectionArgs, *CertArgs) {
+func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *KubeConnectionArgs, *CertArgs) {
 	masterArgs := NewDefaultMasterArgs()
 	nodeArgs := NewDefaultNodeArgs()
 
-	bindAddrArg := NewDefaultBindAddrArg()
-	masterArgs.BindAddrArg = bindAddrArg
-	nodeArgs.BindAddrArg = bindAddrArg
+	listenArg := NewDefaultListenArg()
+	masterArgs.ListenArg = listenArg
+	nodeArgs.ListenArg = listenArg
 
 	imageFormatArgs := NewDefaultImageFormatArgs()
 	masterArgs.ImageFormatArgs = imageFormatArgs
@@ -127,7 +128,7 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *BindAddrArg, *ImageFormatArgs, 
 	nodeArgs.CertArgs = certArgs
 	kubeConnectionArgs.CertArgs = certArgs
 
-	return masterArgs, nodeArgs, bindAddrArg, imageFormatArgs, kubeConnectionArgs, certArgs
+	return masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs
 }
 
 func (o AllInOneOptions) Validate(args []string) error {
@@ -172,11 +173,11 @@ func (o AllInOneOptions) StartAllInOne() error {
 
 	// if either one of these wants to mint certs, make sure the signer is present BEFORE they start up to make sure they always share
 	if o.MasterArgs.CertArgs.CreateCerts || o.NodeArgs.CertArgs.CreateCerts {
-		signerOptions := &certs.CreateSignerCertOptions{
-			CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			SerialFile: certs.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			Name:       certs.DefaultSignerName(),
+		signerOptions := &admin.CreateSignerCertOptions{
+			CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+			KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+			SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+			Name:       admin.DefaultSignerName(),
 		}
 
 		if _, err := signerOptions.CreateSignerCert(); err != nil {

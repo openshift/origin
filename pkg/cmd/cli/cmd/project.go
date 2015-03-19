@@ -40,15 +40,20 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 				currentContext := rawCfg.Contexts[rawCfg.CurrentContext]
 				currentProject := currentContext.Namespace
 
-				_, err := oClient.Projects().Get(currentProject)
-				if err != nil {
-					if errors.IsNotFound(err) {
-						glog.Fatalf("The project '%v' specified in your config does not exist or you do not have rights to view it.", currentProject)
+				if len(currentProject) > 0 {
+					_, err := oClient.Projects().Get(currentProject)
+					if err != nil {
+						if errors.IsNotFound(err) {
+							glog.Fatalf("The project '%v' specified in your config does not exist or you do not have rights to view it.", currentProject)
+						}
+						checkErr(err)
 					}
-					checkErr(err)
-				}
 
-				fmt.Printf("Using project '%v'.\n", currentProject)
+					fmt.Printf("Using project '%v'.\n", currentProject)
+
+				} else {
+					fmt.Printf("No specific project in use.\n")
+				}
 				return
 
 			}

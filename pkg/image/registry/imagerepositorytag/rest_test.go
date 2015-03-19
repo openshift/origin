@@ -26,8 +26,8 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	helper := tools.EtcdHelper{Client: fakeEtcdClient, Codec: latest.Codec, ResourceVersioner: tools.RuntimeVersionAdapter{latest.ResourceVersioner}}
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 	storage := NewREST(imageRegistry, imageRepositoryRegistry)
 	return fakeEtcdClient, helper, storage
 }
@@ -99,10 +99,37 @@ func TestGetImageRepositoryTag(t *testing.T) {
 	}{
 		"happy path": {
 			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
-			repo:  &api.ImageRepository{Tags: map[string]string{"latest": "10"}},
+			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
+				Tags: map[string]api.TagEventList{
+					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+				},
+			}},
+		},
+		"synthetic image from partial tag": {
+			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: ""}, DockerImageReference: "test"},
+			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
+				Tags: map[string]api.TagEventList{
+					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: ""}}},
+				},
+			}},
+		},
+		"tag event reference required": {
+			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
+			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
+				Tags: map[string]api.TagEventList{
+					"latest": {Items: []api.TagEvent{{Image: "10"}}},
+				},
+			}},
+			expectError:     true,
+			errorTargetKind: "imageRepositoryTag",
+			errorTargetID:   "latest",
 		},
 		"missing image": {
-			repo:            &api.ImageRepository{Tags: map[string]string{"latest": "10"}},
+			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
+				Tags: map[string]api.TagEventList{
+					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+				},
+			}},
 			expectError:     true,
 			errorTargetKind: "image",
 			errorTargetID:   "10",
@@ -113,8 +140,12 @@ func TestGetImageRepositoryTag(t *testing.T) {
 			errorTargetID:   "test",
 		},
 		"missing tag": {
-			image:           &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
-			repo:            &api.ImageRepository{Tags: map[string]string{"other": "10"}},
+			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
+			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
+				Tags: map[string]api.TagEventList{
+					"other": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+				},
+			}},
 			expectError:     true,
 			errorTargetKind: "imageRepositoryTag",
 			errorTargetID:   "latest",

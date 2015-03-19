@@ -9,7 +9,6 @@
         "name": "ruby-20-centos7"
       },
       "tags": {
-        "latest": "latest"
       }
     },
     {
@@ -20,7 +19,6 @@
         "name": "nodejs-010-centos7"
       },
       "tags": {
-        "latest": "latest"
       }
     },
     {
@@ -31,7 +29,6 @@
         "name": "wildfly-8-centos"
       },
       "tags": {
-        "latest": "latest"
       }
     }
   ],

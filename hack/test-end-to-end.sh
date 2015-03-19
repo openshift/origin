@@ -62,7 +62,7 @@ KUBELET_PORT="${KUBELET_PORT:-10250}"
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
-# Used by the docker-registry and the router pods to call back to the API
+# used as a resolve IP to test routing
 CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 
 STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
@@ -148,6 +148,10 @@ function wait_for_app() {
 
 	echo "[INFO] Waiting for app to start..."
 	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))	
+
+	echo "[INFO] Testing app"
+	wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
+	wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
 }
 
 # Wait for builds to complete
@@ -265,7 +269,7 @@ osc create -n test -f "${STI_CONFIG_FILE}"
 
 # Trigger build
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
-osc start-build -n test ruby-sample-build --follow
+#osc start-build -n test ruby-sample-build --follow
 wait_for_build "test"
 wait_for_app "test"
 

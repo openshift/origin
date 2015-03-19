@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
-	"path"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,12 +15,14 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 )
@@ -78,7 +80,7 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 	options.NodeArgs.KubeConnectionArgs.CertArgs = options.NodeArgs.CertArgs
 
 	BindNodeArgs(options.NodeArgs, flags, "")
-	BindBindAddrArg(options.NodeArgs.BindAddrArg, flags, "")
+	BindListenArg(options.NodeArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 	BindCertArgs(options.NodeArgs.CertArgs, flags, "")
@@ -115,7 +117,6 @@ func (o NodeOptions) StartNode() error {
 		return nil
 	}
 
-	daemon.SdNotify("READY=1")
 	select {}
 
 	return nil
@@ -148,6 +149,24 @@ func (o NodeOptions) RunNode() error {
 	}
 
 	if o.WriteConfigOnly {
+		// Resolve relative to CWD
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		if err := configapi.ResolveNodeConfigPaths(nodeConfig, cwd); err != nil {
+			return err
+		}
+
+		// Relativize to config file dir
+		base, err := cmdutil.MakeAbs(filepath.Dir(o.ConfigFile), cwd)
+		if err != nil {
+			return err
+		}
+		if err := configapi.RelativizeNodeConfigPaths(nodeConfig, base); err != nil {
+			return err
+		}
+
 		content, err := WriteNode(nodeConfig)
 		if err != nil {
 			return err
@@ -156,6 +175,11 @@ func (o NodeOptions) RunNode() error {
 			return err
 		}
 		return nil
+	}
+
+	errs := validation.ValidateNodeConfig(nodeConfig)
+	if len(errs) != 0 {
+		return kerrors.NewInvalid("nodeConfig", "", errs)
 	}
 
 	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
@@ -179,26 +203,40 @@ func (o NodeOptions) RunNode() error {
 }
 
 func (o NodeOptions) CreateCerts() error {
-	username := "node-" + o.NodeArgs.NodeName
-	signerOptions := &certs.CreateSignerCertOptions{
-		CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		SerialFile: certs.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		Name:       certs.DefaultSignerName(),
+	signerOptions := &admin.CreateSignerCertOptions{
+		CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		Name:       admin.DefaultSignerName(),
 	}
 	if _, err := signerOptions.CreateSignerCert(); err != nil {
 		return err
 	}
-	getSignerOptions := &certs.GetSignerCertOptions{
-		CertFile:   certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		KeyFile:    certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		SerialFile: certs.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+	getSignerOptions := &admin.GetSignerCertOptions{
+		CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
 	}
 
-	mintNodeClientCert := certs.CreateNodeClientCertOptions{
+	serverCertInfo := admin.DefaultNodeServingCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
+	nodeServerCertOptions := admin.CreateServerCertOptions{
 		GetSignerCertOptions: getSignerOptions,
-		CertFile:             certs.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, username),
-		KeyFile:              certs.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, username),
+
+		CertFile: serverCertInfo.CertFile,
+		KeyFile:  serverCertInfo.KeyFile,
+
+		Hostnames: []string{o.NodeArgs.NodeName},
+	}
+
+	if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
+		return err
+	}
+
+	clientCertInfo := admin.DefaultNodeClientCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
+	mintNodeClientCert := admin.CreateNodeClientCertOptions{
+		GetSignerCertOptions: getSignerOptions,
+		CertFile:             clientCertInfo.CertFile,
+		KeyFile:              clientCertInfo.KeyFile,
 		NodeName:             o.NodeArgs.NodeName,
 	}
 	if _, err := mintNodeClientCert.CreateNodeClientCert(); err != nil {
@@ -210,16 +248,16 @@ func (o NodeOptions) CreateCerts() error {
 		return err
 	}
 
-	createKubeConfigOptions := certs.CreateKubeConfigOptions{
+	createKubeConfigOptions := admin.CreateKubeConfigOptions{
 		APIServerURL:    masterAddr.String(),
 		APIServerCAFile: getSignerOptions.CertFile,
 		ServerNick:      "master",
 
 		CertFile: mintNodeClientCert.CertFile,
 		KeyFile:  mintNodeClientCert.KeyFile,
-		UserNick: username,
+		UserNick: o.NodeArgs.NodeName,
 
-		KubeConfigFile: path.Join(filepath.Dir(mintNodeClientCert.CertFile), ".kubeconfig"),
+		KubeConfigFile: admin.DefaultNodeKubeConfigFile(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName),
 	}
 	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 		return err
@@ -239,6 +277,15 @@ func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
 	if err := configapilatest.Codec.DecodeInto(data, config); err != nil {
 		return nil, err
 	}
+
+	base, err := cmdutil.MakeAbs(filepath.Dir(filename), "")
+	if err != nil {
+		return nil, err
+	}
+	if err := configapi.ResolveNodeConfigPaths(config, base); err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
@@ -262,6 +309,7 @@ func StartNode(config configapi.NodeConfig) error {
 	nodeConfig.EnsureDocker(docker.NewHelper())
 	nodeConfig.RunProxy()
 	nodeConfig.RunKubelet()
+	go daemon.SdNotify("READY=1")
 
 	return nil
 }

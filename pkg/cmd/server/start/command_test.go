@@ -10,17 +10,65 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 )
+
+func TestCommandBindingListenHttp(t *testing.T) {
+	valueToSet := "http://example.org:9123"
+	masterArgs, masterCfg, masterErr, nodeArgs, nodeCfg, nodeErr := executeAllInOneCommandWithConfigs([]string{"--listen=" + valueToSet})
+
+	if masterErr != nil {
+		t.Fatalf("Unexpected error: %v", masterErr)
+	}
+	if nodeErr != nil {
+		t.Fatalf("Unexpected error: %v", nodeErr)
+	}
+
+	if configapi.UseTLS(masterCfg.ServingInfo) {
+		t.Errorf("Unexpected TLS: %v", masterCfg.ServingInfo)
+	}
+	if configapi.UseTLS(masterCfg.AssetConfig.ServingInfo) {
+		t.Errorf("Unexpected TLS: %v", masterCfg.AssetConfig.ServingInfo)
+	}
+	if configapi.UseTLS(nodeCfg.ServingInfo) {
+		t.Errorf("Unexpected TLS: %v", nodeCfg.ServingInfo)
+	}
+
+	if masterArgs.ListenArg.ListenAddr.String() != valueToSet {
+		t.Errorf("Expected %v, got %v", valueToSet, masterArgs.ListenArg.ListenAddr.String())
+	}
+	if nodeArgs.ListenArg.ListenAddr.String() != valueToSet {
+		t.Errorf("Expected %v, got %v", valueToSet, nodeArgs.ListenArg.ListenAddr.String())
+	}
+
+	// Ensure there are no errors other than missing client kubeconfig files and missing bootstrap policy files
+	masterErrs := validation.ValidateMasterConfig(masterCfg).Filter(func(e error) bool {
+		return strings.Contains(e.Error(), "masterClients.") || strings.Contains(e.Error(), "policyConfig.bootstrapPolicyFile")
+	})
+	if len(masterErrs) != 0 {
+		t.Errorf("Unexpected validation errors: %v", utilerrors.NewAggregate(masterErrs))
+	}
+
+	nodeErrs := validation.ValidateNodeConfig(nodeCfg).Filter(func(e error) bool {
+		return strings.Contains(e.Error(), "masterKubeConfig")
+	})
+	if len(nodeErrs) != 0 {
+		t.Errorf("Unexpected validation errors: %v", utilerrors.NewAggregate(nodeErrs))
+	}
+}
 
 func TestCommandBindingListen(t *testing.T) {
 	valueToSet := "http://example.org:9123"
 	actualCfg := executeMasterCommand([]string{"--listen=" + valueToSet})
 
 	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.BindAddrArg.BindAddr.Set(valueToSet)
+	expectedArgs.ListenArg.ListenAddr.Set(valueToSet)
 
-	if expectedArgs.BindAddrArg.BindAddr.String() != actualCfg.BindAddrArg.BindAddr.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.BindAddrArg.BindAddr.String(), actualCfg.BindAddrArg.BindAddr.String())
+	if expectedArgs.ListenArg.ListenAddr.String() != actualCfg.ListenArg.ListenAddr.String() {
+		t.Errorf("expected %v, got %v", expectedArgs.ListenArg.ListenAddr.String(), actualCfg.ListenArg.ListenAddr.String())
 	}
 }
 
@@ -258,6 +306,7 @@ func executeMasterCommand(args []string) *MasterArgs {
 	argsToUse = append(argsToUse, "master")
 	argsToUse = append(argsToUse, args...)
 	argsToUse = append(argsToUse, "--write-config")
+	argsToUse = append(argsToUse, "--create-policy-file=false")
 	argsToUse = append(argsToUse, "--create-certs=false")
 	argsToUse = append(argsToUse, "--config="+fakeConfigFile.Name())
 
@@ -279,6 +328,11 @@ func executeMasterCommand(args []string) *MasterArgs {
 }
 
 func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
+	masterArgs, _, _, nodeArgs, _, _ := executeAllInOneCommandWithConfigs(args)
+	return masterArgs, nodeArgs
+}
+
+func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.MasterConfig, error, *NodeArgs, *configapi.NodeConfig, error) {
 	fakeMasterConfigFile, _ := ioutil.TempFile("", "")
 	defer os.Remove(fakeMasterConfigFile.Name())
 	fakeNodeConfigFile, _ := ioutil.TempFile("", "")
@@ -289,6 +343,7 @@ func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
 	argsToUse = append(argsToUse, args...)
 	argsToUse = append(argsToUse, "--write-config")
 	argsToUse = append(argsToUse, "--create-certs=false")
+	argsToUse = append(argsToUse, "--create-policy-file=false")
 	argsToUse = append(argsToUse, "--master-config="+fakeMasterConfigFile.Name())
 	argsToUse = append(argsToUse, "--node-config="+fakeNodeConfigFile.Name())
 
@@ -306,7 +361,10 @@ func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
 	root.SetArgs(argsToUse)
 	root.Execute()
 
-	return cfg.MasterArgs, cfg.NodeArgs
+	masterCfg, masterErr := ReadMasterConfig(fakeMasterConfigFile.Name())
+	nodeCfg, nodeErr := ReadNodeConfig(fakeNodeConfigFile.Name())
+
+	return cfg.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
 }
 
 func executeNodeCommand(args []string) *NodeArgs {

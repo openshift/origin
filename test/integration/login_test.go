@@ -10,22 +10,29 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/user/api"
+	"github.com/openshift/origin/test/util"
 	"github.com/spf13/pflag"
 )
 
 func init() {
-	requireEtcd()
+	util.RequireEtcd()
 }
 
 func TestLogin(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := util.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := util.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := util.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -63,8 +70,8 @@ func TestLogin(t *testing.T) {
 	newProjectOptions := &newproject.NewProjectOptions{
 		Client:                clusterAdminClient,
 		ProjectName:           project,
-		AdminRole:             "admin",
-		MasterPolicyNamespace: "master",
+		AdminRole:             bootstrappolicy.AdminRoleName,
+		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		AdminUser:             "anypassword:" + username,
 	}
 	if err := newProjectOptions.Run(); err != nil {

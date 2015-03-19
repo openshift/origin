@@ -2,14 +2,6 @@ package templates
 
 import "strings"
 
-func decorate(template string, trim bool) string {
-	if trim && len(strings.Trim(template, " ")) > 0 {
-		trimmed := strings.Trim(template, "\n")
-		return funcs + trimmed
-	}
-	return funcs + template
-}
-
 func MainHelpTemplate() string {
 	return decorate(mainHelpTemplate, false)
 }
@@ -32,6 +24,14 @@ func OptionsHelpTemplate() string {
 
 func OptionsUsageTemplate() string {
 	return decorate(optionsUsageTemplate, false)
+}
+
+func decorate(template string, trim bool) string {
+	if trim && len(strings.Trim(template, " ")) > 0 {
+		trimmed := strings.Trim(template, "\n")
+		return funcs + trimmed
+	}
+	return funcs + template
 }
 
 const (
@@ -61,12 +61,12 @@ Use "{{.Root.Name}} <command> --help" for more information about a given command
 	cliHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-	cliUsageTemplate = `{{ $cmd := . }}{{ if .HasSubCommands}}
+	cliUsageTemplate = `{{ $cmd := . }}{{$exposedFlags := exposed .}}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
   {{rpad .Name 20 }}{{.Short}}{{end}}{{end}}{{end}}
 {{end}}
-{{ if .HasLocalFlags}}Options:
-{{.LocalFlags.FlagUsages}}
+{{ if or .HasLocalFlags $exposedFlags.HasFlags}}Options:
+{{ if .HasLocalFlags}}{{.LocalFlags.FlagUsages}}{{end}}{{ if $exposedFlags.HasFlags}}{{$exposedFlags.FlagUsages}}{{end}}
 {{end}}{{ if not $isRootCmd}}Use "{{template "rootCli" .}} --help" for a list of all commands available in {{template "rootCli" .}}.
 {{end}}{{ if .HasSubCommands }}Use "{{template "rootCli" .}} <command> --help" for more information about a given command.
 {{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).

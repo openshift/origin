@@ -10,6 +10,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 type subjectAccessTest struct {
@@ -66,7 +67,7 @@ func TestNoErrors(t *testing.T) {
 			reason:  "because good things",
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{
-			Groups:   util.NewStringSet("master"),
+			Groups:   util.NewStringSet(bootstrappolicy.DefaultMasterAuthorizationNamespace),
 			Verb:     "delete",
 			Resource: "deploymentConfigs",
 		},

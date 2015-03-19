@@ -377,7 +377,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      testMasterNamespace,
+				Name:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
 				Namespace: "mallet",
 			},
 			RoleBindings: map[string]authorizationapi.RoleBinding{
@@ -387,8 +387,8 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Namespace: "mallet",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      "admin",
-						Namespace: testMasterNamespace,
+						Name:      bootstrappolicy.AdminRoleName,
+						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 					},
 					Users: util.NewStringSet("Matthew"),
 				},
@@ -398,8 +398,8 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Namespace: "mallet",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      "view",
-						Namespace: testMasterNamespace,
+						Name:      bootstrappolicy.ViewRoleName,
+						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 					},
 					Users: util.NewStringSet("Victor"),
 				},
@@ -409,8 +409,8 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Namespace: "mallet",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      "edit",
-						Namespace: testMasterNamespace,
+						Name:      bootstrappolicy.EditRoleName,
+						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 					},
 					Users: util.NewStringSet("Edgar"),
 				},

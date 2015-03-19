@@ -10,12 +10,13 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func testNewBasePolicies() []authorizationapi.Policy {
 	return []authorizationapi.Policy{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "master"},
+			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 			Roles: map[string]authorizationapi.Role{
 				"cluster-admin": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},

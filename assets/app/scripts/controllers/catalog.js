@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CatalogController', function ($scope, DataService, $filter, LabelFilter) {
+  .controller('CatalogController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.projectTemplates = {};
     $scope.openshiftTemplates = {};
 
@@ -21,14 +21,14 @@ angular.module('openshiftConsole')
       $scope.projectTemplates = templates.by("metadata.name");
       allTemplates();
       templatesByTag();
-      console.log("project templates", $scope.projectTemplates);
+      Logger.log("project templates", $scope.projectTemplates);
     });
 
     DataService.list("templates", {namespace: "openshift"}, function(templates) {
       $scope.openshiftTemplates = templates.by("metadata.name");
       allTemplates();
       templatesByTag();
-      console.log("openshift templates", $scope.openshiftTemplates);
+      Logger.log("openshift templates", $scope.openshiftTemplates);
     });
 
     var allTemplates = function() {
@@ -55,6 +55,6 @@ angular.module('openshiftConsole')
         }
       });
 
-      console.log("templatesByTag", $scope.templatesByTag);
+      Logger.log("templatesByTag", $scope.templatesByTag);
     };
   });

@@ -93,7 +93,7 @@ func (m *VirtualRegistry) CreateRoleBinding(ctx kapi.Context, roleBinding *autho
 		}
 	}
 
-	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace)
+	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (m *VirtualRegistry) UpdateRoleBinding(ctx kapi.Context, roleBinding *autho
 		return fmt.Errorf("cannot change roleBinding.RoleRef.Namespace from %v to %v", existingRoleBinding.RoleRef.Namespace, roleBinding.RoleRef.Namespace)
 	}
 
-	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace)
+	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
 	if err != nil {
 		return err
 	}
@@ -210,20 +210,20 @@ func (m *VirtualRegistry) confirmNoEscalation(ctx kapi.Context, roleBinding *aut
 }
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.
-func (m *VirtualRegistry) ensurePolicyBindingToMaster(ctx kapi.Context) (*authorizationapi.PolicyBinding, error) {
-	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, m.masterAuthorizationNamespace)
+func (m *VirtualRegistry) ensurePolicyBindingToMaster(ctx kapi.Context, policyNamespace string) (*authorizationapi.PolicyBinding, error) {
+	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, policyNamespace)
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err
 		}
 
 		// if we have no policyBinding, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
-		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), m.masterAuthorizationNamespace)
+		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), policyNamespace)
 		if err := m.bindingRegistry.CreatePolicyBinding(ctx, policyBinding); err != nil {
 			return nil, err
 		}
 
-		policyBinding, err = m.bindingRegistry.GetPolicyBinding(ctx, m.masterAuthorizationNamespace)
+		policyBinding, err = m.bindingRegistry.GetPolicyBinding(ctx, policyNamespace)
 		if err != nil {
 			return nil, err
 		}
@@ -237,10 +237,11 @@ func (m *VirtualRegistry) ensurePolicyBindingToMaster(ctx kapi.Context) (*author
 }
 
 // Returns a PolicyBinding that points to the specified policyNamespace.  It will autocreate ONLY if policyNamespace equals the master namespace
-func (m *VirtualRegistry) getPolicyBindingForPolicy(ctx kapi.Context, policyNamespace string) (*authorizationapi.PolicyBinding, error) {
-	// we can autocreate a PolicyBinding object if the RoleBinding is for the master namespace
-	if policyNamespace == m.masterAuthorizationNamespace {
-		return m.ensurePolicyBindingToMaster(ctx)
+func (m *VirtualRegistry) getPolicyBindingForPolicy(ctx kapi.Context, policyNamespace string, allowAutoProvision bool) (*authorizationapi.PolicyBinding, error) {
+	// we can autocreate a PolicyBinding object if the RoleBinding is for the master namespace OR if we've been explicity told to create the policying binding.
+	// the latter happens during priming
+	if (policyNamespace == m.masterAuthorizationNamespace) || allowAutoProvision {
+		return m.ensurePolicyBindingToMaster(ctx, policyNamespace)
 	}
 
 	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, policyNamespace)

@@ -1,9 +1,6 @@
 // Login strategies
 angular.module('openshiftConsole')
 .provider('RedirectLoginService', function() {
-  
-  var debug = true;
-
   var _oauth_client_id = "";
   var _oauth_authorize_uri = "";
   var _oauth_redirect_uri = "";
@@ -27,7 +24,8 @@ angular.module('openshiftConsole')
   	return _oauth_redirect_uri;
   };
 
-  this.$get = function($location, $q) {
+  this.$get = function($location, $q, Logger) {
+    var authLogger = Logger.get("auth");
 
     return {
       // Returns a promise that resolves with {user:{...}, token:''}, or rejects with {error:'...'[,error_description:'...',error_uri:'...']}
@@ -50,7 +48,7 @@ angular.module('openshiftConsole')
           state: $location.url(), // TODO: get state working
           redirect_uri: _oauth_redirect_uri,
         });
-        if (debug) { console.log("RedirectLoginService.login(), redirecting", uri.toString()); }
+        authLogger.log("RedirectLoginService.login(), redirecting", uri.toString());
         window.location.href = uri.toString();
         // Return a promise we never intend to keep, because we're redirecting to another page
         return deferred.promise;
@@ -62,12 +60,12 @@ angular.module('openshiftConsole')
       // Example error codes: https://tools.ietf.org/html/rfc6749#section-5.2
       finish: function() {
       	// Get url
-      	var u = new URI(window.location.href);
+      	var u = new URI($location.url());
 
       	// Read params
       	var queryParams = u.query(true);
       	var fragmentParams = new URI("?" + u.fragment()).query(true); 
-      	if (debug) { console.log("RedirectLoginService.finish()", queryParams, fragmentParams); }
+      	authLogger.log("RedirectLoginService.finish()", queryParams, fragmentParams);
 
      	// Error codes can come in query params or fragment params
      	// Handle an error response from the OAuth server
@@ -75,7 +73,7 @@ angular.module('openshiftConsole')
      	if (error) {
      	  var error_description = queryParams.error_description || fragmentParams.error_description;
      	  var error_uri = queryParams.error_uri || fragmentParams.error_uri;
-      	  if (debug) { console.log("RedirectLoginService.finish(), error", error, error_description, error_uri); }
+      	  authLogger.log("RedirectLoginService.finish(), error", error, error_description, error_uri);
       	  return $q.reject({
       	    error: error,
       	    error_description: error_description,

@@ -10,7 +10,73 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
+
+func RelativizeMasterConfigPaths(config *MasterConfig, base string) error {
+	return cmdutil.RelativizePaths(GetMasterFileReferences(config), base)
+}
+
+func ResolveMasterConfigPaths(config *MasterConfig, base string) error {
+	return cmdutil.ResolvePaths(GetMasterFileReferences(config), base)
+}
+
+func GetMasterFileReferences(config *MasterConfig) []*string {
+	refs := []*string{}
+
+	refs = append(refs, &config.ServingInfo.ServerCert.CertFile)
+	refs = append(refs, &config.ServingInfo.ServerCert.KeyFile)
+	refs = append(refs, &config.ServingInfo.ClientCA)
+
+	refs = append(refs, &config.EtcdClientInfo.ClientCert.CertFile)
+	refs = append(refs, &config.EtcdClientInfo.ClientCert.KeyFile)
+	refs = append(refs, &config.EtcdClientInfo.CA)
+
+	if config.EtcdConfig != nil {
+		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.CertFile)
+		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.KeyFile)
+		refs = append(refs, &config.EtcdConfig.ServingInfo.ClientCA)
+		refs = append(refs, &config.EtcdConfig.StorageDir)
+	}
+
+	if config.OAuthConfig != nil {
+		refs = append(refs, &config.OAuthConfig.ProxyCA)
+	}
+
+	if config.AssetConfig != nil {
+		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.CertFile)
+		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.KeyFile)
+		refs = append(refs, &config.AssetConfig.ServingInfo.ClientCA)
+	}
+
+	refs = append(refs, &config.MasterClients.DeployerKubeConfig)
+	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
+	refs = append(refs, &config.MasterClients.KubernetesKubeConfig)
+
+	return refs
+}
+
+func RelativizeNodeConfigPaths(config *NodeConfig, base string) error {
+	return cmdutil.RelativizePaths(GetNodeFileReferences(config), base)
+}
+
+func ResolveNodeConfigPaths(config *NodeConfig, base string) error {
+	return cmdutil.ResolvePaths(GetNodeFileReferences(config), base)
+}
+
+func GetNodeFileReferences(config *NodeConfig) []*string {
+	refs := []*string{}
+
+	refs = append(refs, &config.ServingInfo.ServerCert.CertFile)
+	refs = append(refs, &config.ServingInfo.ServerCert.KeyFile)
+	refs = append(refs, &config.ServingInfo.ClientCA)
+
+	refs = append(refs, &config.MasterKubeConfig)
+
+	refs = append(refs, &config.VolumeDirectory)
+
+	return refs
+}
 
 func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{CommandLinePath: kubeConfigFile}
@@ -88,6 +154,10 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 
 // GetAPIServerCertCAPool returns the cert pool containing the roots for the API server cert
 func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
+	if !UseTLS(options.ServingInfo) {
+		return x509.NewCertPool(), nil
+	}
+
 	caRoots, err := crypto.GetTLSCARoots(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err
@@ -100,6 +170,10 @@ func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 }
 
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
+	if !UseTLS(options.ServingInfo) {
+		return nil, nil
+	}
+
 	caFile := options.OAuthConfig.ProxyCA
 	if len(caFile) == 0 {
 		return nil, nil
@@ -116,6 +190,10 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
+	if !UseTLS(options.ServingInfo) {
+		return nil, nil
+	}
+
 	apiClientCertCAs, err := crypto.GetTLSCARoots(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err

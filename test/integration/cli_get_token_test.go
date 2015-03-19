@@ -30,17 +30,18 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	"github.com/openshift/origin/test/util"
 )
 
 func init() {
-	requireEtcd()
+	util.RequireEtcd()
 }
 
 func TestGetToken(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 
 	// setup
-	etcdClient := newEtcdClient()
+	etcdClient := util.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 	oauthEtcd := oauthetcd.New(etcdHelper)
 	userRegistry := useretcd.New(etcdHelper, user.NewDefaultUserInitStrategy())

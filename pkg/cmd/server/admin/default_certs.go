@@ -1,4 +1,4 @@
-package certs
+package admin
 
 import (
 	"fmt"
@@ -98,11 +98,24 @@ func DefaultMasterServingCertInfo(certDir string) configapi.CertInfo {
 	}
 }
 
+func DefaultNodeDir(nodeName string) string {
+	return "node-" + nodeName
+}
+
 func DefaultNodeServingCertInfo(certDir, nodeName string) configapi.CertInfo {
 	return configapi.CertInfo{
-		CertFile: DefaultCertFilename(certDir, "node_serving-"+nodeName),
-		KeyFile:  DefaultKeyFilename(certDir, "node_serving-"+nodeName),
+		CertFile: path.Join(certDir, DefaultNodeDir(nodeName), "server.crt"),
+		KeyFile:  path.Join(certDir, DefaultNodeDir(nodeName), "server.key"),
 	}
+}
+func DefaultNodeClientCertInfo(certDir, nodeName string) configapi.CertInfo {
+	return configapi.CertInfo{
+		CertFile: path.Join(certDir, DefaultNodeDir(nodeName), "client.crt"),
+		KeyFile:  path.Join(certDir, DefaultNodeDir(nodeName), "client.key"),
+	}
+}
+func DefaultNodeKubeConfigFile(certDir, nodeName string) string {
+	return path.Join(certDir, DefaultNodeDir(nodeName), ".kubeconfig")
 }
 
 func DefaultAssetServingCertInfo(certDir string) configapi.CertInfo {

@@ -20,6 +20,7 @@ import (
 	dockerClient "github.com/fsouza/go-dockerclient"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	tr "github.com/openshift/origin/test/integration/router"
+	"github.com/openshift/origin/test/util"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 
 // init ensures docker exists for this test
 func init() {
-	requireDocker()
+	util.RequireDocker()
 }
 
 // TestRouter is the table based test for routers.  It will initialize a fake master/client and expect to deploy
@@ -54,7 +55,7 @@ func TestRouter(t *testing.T) {
 	}
 
 	//deploy router docker container
-	dockerCli, err := newDockerClient()
+	dockerCli, err := util.NewDockerClient()
 
 	if err != nil {
 		t.Fatalf("Unable to get docker client: %v", err)
@@ -301,7 +302,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 
 	validateServer(fakeMasterAndPod, t)
 
-	dockerCli, err := newDockerClient()
+	dockerCli, err := util.NewDockerClient()
 	if err != nil {
 		t.Fatalf("Unable to get docker client: %v", err)
 	}

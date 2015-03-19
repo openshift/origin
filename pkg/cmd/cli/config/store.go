@@ -117,9 +117,13 @@ func (c *ConfigStore) SaveToFile(credentialsName string, namespace string, clien
 	credentials := clientcmdapi.NewAuthInfo()
 	credentials.Token = clientCfg.BearerToken
 	credentials.ClientCertificate = clientCfg.TLSClientConfig.CertFile
-	credentials.ClientCertificateData = clientCfg.TLSClientConfig.CertData
+	if len(credentials.ClientCertificate) == 0 {
+		credentials.ClientCertificateData = clientCfg.TLSClientConfig.CertData
+	}
 	credentials.ClientKey = clientCfg.TLSClientConfig.KeyFile
-	credentials.ClientKeyData = clientCfg.TLSClientConfig.KeyData
+	if len(credentials.ClientKey) == 0 {
+		credentials.ClientKeyData = clientCfg.TLSClientConfig.KeyData
+	}
 	if len(credentialsName) == 0 {
 		credentialsName = "osc-login"
 	}
@@ -130,7 +134,9 @@ func (c *ConfigStore) SaveToFile(credentialsName string, namespace string, clien
 	cluster := clientcmdapi.NewCluster()
 	cluster.Server = clientCfg.Host
 	cluster.CertificateAuthority = clientCfg.CAFile
-	cluster.CertificateAuthorityData = clientCfg.CAData
+	if len(cluster.CertificateAuthority) == 0 {
+		cluster.CertificateAuthorityData = clientCfg.CAData
+	}
 	cluster.InsecureSkipTLSVerify = clientCfg.Insecure
 	config.Clusters[clusterName] = *cluster
 

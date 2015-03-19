@@ -39,7 +39,8 @@
       "kind": "ImageRepository",
       "metadata": {
         "name": "ruby-20-centos7"
-      }
+      },
+      "dockerImageRepository": "openshift/ruby-20-centos7"
     },
     {
       "apiVersion": "v1beta1",
@@ -114,8 +115,12 @@
                         "value": "${ADMIN_PASSWORD}"
                       },
                       {
-                        "name": "MYSQL_ROOT_PASSWORD",
-                        "value": "${MYSQL_ROOT_PASSWORD}"
+                        "name": "MYSQL_USER",
+                        "value": "${MYSQL_USER}"
+                      },
+                      {
+                        "name": "MYSQL_PASSWORD",
+                        "value": "${MYSQL_PASSWORD}"
                       },
                       {
                         "name": "MYSQL_DATABASE",
@@ -188,8 +193,12 @@
                   {
                     "env": [
                       {
-                        "name": "MYSQL_ROOT_PASSWORD",
-                        "value": "${MYSQL_ROOT_PASSWORD}"
+                        "name": "MYSQL_USER",
+                        "value": "${MYSQL_USER}"
+                      },
+                      {
+                        "name": "MYSQL_PASSWORD",
+                        "value": "${MYSQL_PASSWORD}"
                       },
                       {
                         "name": "MYSQL_DATABASE",
@@ -249,10 +258,16 @@
       "name": "ADMIN_PASSWORD"
     },
     {
+      "description": "database username",
+      "from": "user[A-Z0-9]{3}",
+      "generate": "expression",
+      "name": "MYSQL_USER"
+    },
+    {
       "description": "database password",
       "from": "[a-zA-Z0-9]{8}",
       "generate": "expression",
-      "name": "MYSQL_ROOT_PASSWORD"
+      "name": "MYSQL_PASSWORD"
     },
     {
       "description": "database name",

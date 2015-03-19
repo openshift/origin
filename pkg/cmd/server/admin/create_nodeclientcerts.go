@@ -1,4 +1,4 @@
-package certs
+package admin
 
 import (
 	"errors"
@@ -72,9 +72,7 @@ func (o CreateNodeClientCertOptions) Validate(args []string) error {
 }
 
 func (o CreateNodeClientCertOptions) CreateNodeClientCert() (*crypto.TLSCertificateConfig, error) {
-	glog.V(2).Infof("Createing a node client cert with: %#v and %#v", o, o.GetSignerCertOptions)
-
-	username := "node-" + o.NodeName
+	glog.V(2).Infof("Creating a node client cert with: %#v and %#v", o, o.GetSignerCertOptions)
 
 	nodeCertOptions := CreateClientCertOptions{
 		GetSignerCertOptions: o.GetSignerCertOptions,
@@ -82,7 +80,7 @@ func (o CreateNodeClientCertOptions) CreateNodeClientCert() (*crypto.TLSCertific
 		CertFile: o.CertFile,
 		KeyFile:  o.KeyFile,
 
-		User:      "system:" + username,
+		User:      "system:node-" + o.NodeName,
 		Groups:    util.StringList([]string{"system:nodes"}),
 		Overwrite: o.Overwrite,
 	}

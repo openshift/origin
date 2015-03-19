@@ -8,11 +8,12 @@ import (
 
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const longDescription = `Logs in to the OpenShift server and save the session
-information to a config file that will be used by every subsequent command.
+const longDescription = `Logs in to the OpenShift server and save the session information to a config file that 
+will be used by every subsequent command.
 
 First-time users of the OpenShift client must run this command to configure the server,
 establish a session against it and save it to a configuration file, usually in the
@@ -52,5 +53,13 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 	// Login is the only command that can negotiate a session token against the auth server.
 	cmds.Flags().StringVarP(&options.Username, "username", "u", "", "Username, will prompt if not provided")
 	cmds.Flags().StringVarP(&options.Password, "password", "p", "", "Password, will prompt if not provided")
+
+	templater := templates.Templater{
+		UsageTemplate: templates.CliUsageTemplate(),
+		Exposed:       []string{"server", "username", "password", "certificate-authority", "insecure-skip-tls-verify", "context"},
+	}
+	cmds.SetUsageFunc(templater.UsageFunc())
+	cmds.SetHelpTemplate(templates.CliHelpTemplate())
+
 	return cmds
 }

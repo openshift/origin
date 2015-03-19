@@ -20,16 +20,17 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	"github.com/openshift/origin/test/util"
 )
 
 func init() {
-	requireEtcd()
+	util.RequireEtcd()
 }
 
 // TestProjectIsNamespace verifies that a project is a namespace, and a namespace is a project
 func TestProjectIsNamespace(t *testing.T) {
-	deleteAllEtcdKeys()
-	etcdClient := newEtcdClient()
+	util.DeleteAllEtcdKeys()
+	etcdClient := util.NewEtcdClient()
 	etcdHelper, err := master.NewEtcdHelper(etcdClient, "")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

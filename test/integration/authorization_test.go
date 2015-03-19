@@ -10,28 +10,35 @@ import (
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	testutil "github.com/openshift/origin/test/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/experimental/policy"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func TestRestrictedAccessForProjectAdmins(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
+	haroldClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	markClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -81,20 +88,20 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 }
 
 func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, _, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addValerie := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "view",
-		BindingNamespace: "master",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.ViewRoleName,
+		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
 		Users:            []string{"anypassword:valerie"},
 	}
@@ -102,14 +109,14 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err = clusterAdminClient.Roles("master").Delete("view"); err != nil {
+	if err = clusterAdminClient.Roles(bootstrappolicy.DefaultMasterAuthorizationNamespace).Delete(bootstrappolicy.ViewRoleName); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "edit",
-		BindingNamespace: "master",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.EditRoleName,
+		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
 		Users:            []string{"anypassword:edgar"},
 	}
@@ -156,28 +163,34 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 }
 
 func TestResourceAccessReview(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
+	haroldClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	markClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addValerie := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "view",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
 		Users:            []string{"anypassword:valerie"},
@@ -187,8 +200,8 @@ func TestResourceAccessReview(t *testing.T) {
 	}
 
 	addEdgar := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "edit",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
 		Users:            []string{"anypassword:edgar"},
@@ -278,28 +291,34 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 }
 
 func TestSubjectAccessReview(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	markClient, err := CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
+	haroldClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	markClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addValerie := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "view",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
 		Users:            []string{"anypassword:valerie"},
@@ -309,8 +328,8 @@ func TestSubjectAccessReview(t *testing.T) {
 	}
 
 	addEdgar := &policy.AddUserOptions{
-		RoleNamespace:    "master",
-		RoleName:         "edit",
+		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
+		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
 		Users:            []string{"anypassword:edgar"},

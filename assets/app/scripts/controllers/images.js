@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ImagesController', function ($scope, DataService, $filter, LabelFilter) {
+  .controller('ImagesController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.images = {};
     $scope.unfilteredImages = {};
     $scope.builds = {};
@@ -24,13 +24,13 @@ angular.module('openshiftConsole')
       $scope.images = LabelFilter.getLabelSelector().select($scope.unfilteredImages);
       $scope.emptyMessage = "No images to show";
       updateFilterWarning();
-      console.log("images (subscribe)", $scope.images);
+      Logger.log("images (subscribe)", $scope.images);
     }));    
 
     // Also load builds so we can link out to builds associated with images
     watches.push(DataService.watch("builds", $scope, function(builds) {
       $scope.builds = builds.by("metadata.name");
-      console.log("builds (subscribe)", $scope.builds);
+      Logger.log("builds (subscribe)", $scope.builds);
     }));     
 
     var updateFilterWarning = function() {

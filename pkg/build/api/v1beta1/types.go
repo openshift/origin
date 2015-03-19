@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
@@ -24,6 +25,17 @@ type Build struct {
 
 	// Cancelled describes if a cancelling event was triggered for the build.
 	Cancelled bool `json:"cancelled,omitempty"`
+
+	// StartTimestamp is a timestamp representing the server time when this Build started
+	// running in a Pod.
+	// It is represented in RFC3339 form and is in UTC.
+	StartTimestamp *util.Time `json:"startTimestamp,omitempty"`
+
+	// CompletionTimestamp is a timestamp representing the server time when this Build was
+	// finished, whether that build failed or succeeded.  It reflects the time at which
+	// the Pod running the Build terminated.
+	// It is represented in RFC3339 form and is in UTC.
+	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
 }
 
 // BuildParameters encapsulates all the inputs necessary to represent a build.

@@ -30,19 +30,20 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
+	"github.com/openshift/origin/test/util"
 )
 
 func init() {
-	requireEtcd()
+	util.RequireEtcd()
 }
 
 func TestListBuilds(t *testing.T) {
 
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
-	builds, err := openshift.Client.Builds(testNamespace).List(labels.Everything(), labels.Everything())
+	builds, err := openshift.Client.Builds(util.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -53,12 +54,12 @@ func TestListBuilds(t *testing.T) {
 
 func TestCreateBuild(t *testing.T) {
 
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 	build := mockBuild()
 
-	expected, err := openshift.Client.Builds(testNamespace).Create(build)
+	expected, err := openshift.Client.Builds(util.Namespace()).Create(build)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -66,7 +67,7 @@ func TestCreateBuild(t *testing.T) {
 		t.Errorf("Unexpected empty build Name %v", expected)
 	}
 
-	builds, err := openshift.Client.Builds(testNamespace).List(labels.Everything(), labels.Everything())
+	builds, err := openshift.Client.Builds(util.Namespace()).List(labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -76,33 +77,33 @@ func TestCreateBuild(t *testing.T) {
 }
 
 func TestDeleteBuild(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 	build := mockBuild()
 
-	actual, err := openshift.Client.Builds(testNamespace).Create(build)
+	actual, err := openshift.Client.Builds(util.Namespace()).Create(build)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if err := openshift.Client.Builds(testNamespace).Delete(actual.Name); err != nil {
+	if err := openshift.Client.Builds(util.Namespace()).Delete(actual.Name); err != nil {
 		t.Fatalf("Unxpected error: %v", err)
 	}
 }
 
 func TestWatchBuilds(t *testing.T) {
-	deleteAllEtcdKeys()
+	util.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 	build := mockBuild()
 
-	watch, err := openshift.Client.Builds(testNamespace).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer watch.Stop()
 
-	expected, err := openshift.Client.Builds(testNamespace).Create(build)
+	expected, err := openshift.Client.Builds(util.Namespace()).Create(build)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -157,7 +158,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	openshift.lock.Lock()
 	defer openshift.lock.Unlock()
-	etcdClient := newEtcdClient()
+	etcdClient := util.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 
 	osMux := http.NewServeMux()
@@ -187,12 +188,18 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
 	buildEtcd := buildetcd.New(etcdHelper)
-	imageRepositoryStorage := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(
+		etcdHelper,
+		imagerepository.DefaultRegistryFunc(func() (string, bool) {
+			return "registry:3000", true
+		}),
+	)
 
 	storage := map[string]apiserver.RESTStorage{
-		"builds":            buildregistry.NewREST(buildEtcd),
-		"buildConfigs":      buildconfigregistry.NewREST(buildEtcd),
-		"imageRepositories": imageRepositoryStorage,
+		"builds":                   buildregistry.NewREST(buildEtcd),
+		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"imageRepositories":        imageRepositoryStorage,
+		"imageRepositories/status": imageRepositoryStatus,
 	}
 
 	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")

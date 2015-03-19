@@ -59,8 +59,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	in := os.Stdin
 	out := os.Stdout
 
-	cmds.SetUsageTemplate(templates.CliUsageTemplate())
-	cmds.SetHelpTemplate(templates.CliHelpTemplate())
+	templates.UseCliTemplates(cmds)
 
 	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
 	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))

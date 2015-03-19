@@ -38,7 +38,7 @@ func validNewRepo() *api.ImageRepository {
 
 func TestCreate(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 	test := resttest.New(t, storage, fakeEtcdClient.SetError)
 	repo := validNewRepo()
 	repo.ObjectMeta = kapi.ObjectMeta{}
@@ -53,7 +53,7 @@ func TestCreate(t *testing.T) {
 func TestGetImageRepositoryError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	image, err := storage.Get(kapi.NewDefaultContext(), "image1")
 	if image != nil {
@@ -66,7 +66,7 @@ func TestGetImageRepositoryError(t *testing.T) {
 
 func TestGetImageRepositoryOK(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	ctx := kapi.NewDefaultContext()
 	repoName := "foo"
@@ -89,7 +89,7 @@ func TestGetImageRepositoryOK(t *testing.T) {
 func TestListImageRepositoriesError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	imageRepositories, err := storage.List(kapi.NewDefaultContext(), nil, nil)
 	if err != fakeEtcdClient.Err {
@@ -108,7 +108,7 @@ func TestListImageRepositoriesEmptyList(t *testing.T) {
 		R: &etcd.Response{},
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	imageRepositories, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
 	if err != nil {
@@ -124,7 +124,7 @@ func TestListImageRepositoriesEmptyList(t *testing.T) {
 
 func TestListImageRepositoriesPopulatedList(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
@@ -151,7 +151,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 
 func TestCreateImageRepositoryOK(t *testing.T) {
 	_, helper := newHelper(t)
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	repo := &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}
 	_, err := storage.Create(kapi.NewDefaultContext(), repo)
@@ -180,7 +180,7 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 func TestCreateRegistryErrorSaving(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	_, err := storage.Create(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != fakeEtcdClient.Err {
@@ -190,7 +190,7 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 
 func TestUpdateImageRepositoryMissingID(t *testing.T) {
 	_, helper := newHelper(t)
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{})
 	if obj != nil || created {
@@ -204,7 +204,7 @@ func TestUpdateImageRepositoryMissingID(t *testing.T) {
 func TestUpdateRegistryErrorSaving(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	_, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "bar"}})
 	if err != fakeEtcdClient.Err || created {
@@ -224,7 +224,7 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 			},
 		},
 	}
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "bar", ResourceVersion: "1"}})
 	if err != nil || created {
@@ -251,7 +251,7 @@ func TestDeleteImageRepository(t *testing.T) {
 			},
 		},
 	}
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo")
 	if err != nil {
@@ -278,7 +278,7 @@ func TestUpdateImageRepositoryConflictingNamespace(t *testing.T) {
 			},
 		},
 	}
-	storage := NewREST(helper, noDefaultRegistry)
+	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	obj, created, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "some-value"},

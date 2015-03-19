@@ -10,17 +10,21 @@ import (
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	"github.com/openshift/origin/test/util"
 )
 
 func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
-	_, clusterAdminKubeConfig, err := StartTestMaster()
+	_, clusterAdminKubeConfig, err := util.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, _, clusterAdminClientConfig, err := GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := util.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -65,6 +69,39 @@ func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if _, err := valerieOpenshiftClient.ImageRepositoryTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestOverwritePolicyCommand(t *testing.T) {
+	masterConfig, clusterAdminKubeConfig, err := util.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	client, err := util.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).Delete(authorizationapi.PolicyName); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo.URL)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, masterConfig.PolicyConfig.BootstrapPolicyFile); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

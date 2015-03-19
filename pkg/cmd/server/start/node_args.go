@@ -13,9 +13,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -33,7 +33,7 @@ type NodeArgs struct {
 	ClusterDomain        string
 	ClusterDNS           net.IP
 
-	BindAddrArg        *BindAddrArg
+	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
 	CertArgs           *CertArgs
@@ -65,7 +65,7 @@ func NewDefaultNodeArgs() *NodeArgs {
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "local"),
 		ClusterDNS:    dnsIP,
 
-		BindAddrArg:        NewDefaultBindAddrArg(),
+		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
 		CertArgs:           NewDefaultCertArgs(),
@@ -84,8 +84,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		NodeName: args.NodeName,
 
 		ServingInfo: configapi.ServingInfo{
-			BindAddress: net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(ports.KubeletPort)),
-			ServerCert:  certs.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName),
+			BindAddress: net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(ports.KubeletPort)),
 		},
 
 		VolumeDirectory:       args.VolumeDir,
@@ -95,7 +94,11 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSDomain: args.ClusterDomain,
 		DNSIP:     dnsIP,
 
-		MasterKubeConfig: certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "node-"+args.NodeName),
+		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
+	}
+
+	if args.ListenArg.UseTLS() {
+		config.ServingInfo.ServerCert = admin.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName)
 	}
 
 	return config, nil

@@ -131,7 +131,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/admin/root.crt
         $ sudo chmod +r "$KUBECONFIG"
 
-4. Bind a user to the `view` role in the default namespace so you can observe progress in the web console
+4. Bind a user to the `view` role in the default namespace so you can observe progress in the web console (`anypassword` is an identity provider, `test-admin` is username)
 
         $ openshift ex policy add-user view anypassword:test-admin
 

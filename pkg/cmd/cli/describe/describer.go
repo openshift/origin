@@ -135,6 +135,26 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
 		formatString(out, "Status", bold(build.Status))
+		if build.StartTimestamp != nil {
+			formatString(out, "Started", build.StartTimestamp.Time)
+		}
+		if build.CompletionTimestamp != nil {
+			formatString(out, "Finished", build.CompletionTimestamp.Time)
+		}
+		// Create the time object with second-level precision so we don't get
+		// output like "duration: 1.2724395728934s"
+		t := util.Now().Rfc3339Copy()
+		if build.StartTimestamp != nil && build.CompletionTimestamp != nil {
+			// time a build ran from pod creation to build finish or cancel
+			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.StartTimestamp.Rfc3339Copy().Time))
+		} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {
+			// time a new build has been waiting for its pod to be created so it can run
+			formatString(out, "Duration", fmt.Sprintf("waiting for %s", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
+		} else if build.CompletionTimestamp == nil {
+			// time a still running build has been running in a pod
+			formatString(out, "Duration", fmt.Sprintf("running for %s", t.Sub(build.StartTimestamp.Rfc3339Copy().Time)))
+		}
+
 		formatString(out, "Build Pod", build.PodName)
 		d.DescribeParameters(build.Parameters, out)
 		return nil

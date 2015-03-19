@@ -12,9 +12,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/certs"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -42,7 +43,8 @@ type MasterArgs struct {
 
 	CORSAllowedOrigins util.StringList
 
-	BindAddrArg        *BindAddrArg
+	ListenArg          *ListenArg
+	PolicyArgs         *PolicyArgs
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
 	CertArgs           *CertArgs
@@ -74,7 +76,8 @@ func NewDefaultMasterArgs() *MasterArgs {
 		AssetBindAddr:        flagtypes.Addr{Value: "0.0.0.0:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
 		DNSBindAddr:          flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
 
-		BindAddrArg:        NewDefaultBindAddrArg(),
+		ListenArg:          NewDefaultListenArg(),
+		PolicyArgs:         NewDefaultPolicyArgs(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
 		CertArgs:           NewDefaultCertArgs(),
@@ -138,9 +141,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	config := &configapi.MasterConfig{
 		ServingInfo: configapi.ServingInfo{
-			BindAddress: args.BindAddrArg.BindAddr.URL.Host,
-			ServerCert:  certs.DefaultMasterServingCertInfo(args.CertArgs.CertDir),
-			ClientCA:    certs.DefaultRootCAFile(args.CertArgs.CertDir),
+			BindAddress: args.ListenArg.ListenAddr.URL.Host,
 		},
 		CORSAllowedOrigins: corsAllowedOrigins,
 
@@ -157,8 +158,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		AssetConfig: &configapi.AssetConfig{
 			ServingInfo: configapi.ServingInfo{
 				BindAddress: args.GetAssetBindAddress(),
-				ServerCert:  certs.DefaultAssetServingCertInfo(args.CertArgs.CertDir),
-				ClientCA:    certs.DefaultRootCAFile(args.CertArgs.CertDir),
 			},
 
 			LogoutURI:           cmdutil.Env("OPENSHIFT_LOGOUT_URI", ""),
@@ -172,9 +171,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		MasterClients: configapi.MasterClients{
-			DeployerKubeConfig:          certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-deployer"),
-			OpenShiftLoopbackKubeConfig: certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-client"),
-			KubernetesKubeConfig:        certs.DefaultKubeConfigFilename(args.CertArgs.CertDir, "kube-client"),
+			DeployerKubeConfig:          admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-deployer"),
+			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-client"),
+			KubernetesKubeConfig:        admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "kube-client"),
 		},
 
 		EtcdClientInfo: configapi.RemoteConnectionInfo{
@@ -184,13 +183,24 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			ClientCert: configapi.CertInfo{},
 		},
 
-		MasterAuthorizationNamespace:      "master",
-		OpenShiftSharedResourcesNamespace: "openshift",
+		PolicyConfig: configapi.PolicyConfig{
+			BootstrapPolicyFile:               args.PolicyArgs.PolicyFile,
+			MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
+		},
 
 		ImageConfig: configapi.ImageConfig{
 			Format: args.ImageFormatArgs.ImageTemplate.Format,
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
+	}
+
+	if args.ListenArg.UseTLS() {
+		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
+		config.ServingInfo.ClientCA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+
+		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
+		config.AssetConfig.ServingInfo.ClientCA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
 	}
 
 	return config, nil
@@ -219,7 +229,21 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.KubernetesMasterConfig, error) {
 	servicesSubnet := net.IPNet(args.PortalNet)
 
+	masterAddr, err := args.GetMasterAddress()
+	if err != nil {
+		return nil, err
+	}
+	masterHost, _, err := net.SplitHostPort(masterAddr.Host)
+	if err != nil {
+
+	}
+	masterIP := ""
+	if ip := net.ParseIP(masterHost); ip != nil {
+		masterIP = ip.String()
+	}
+
 	config := &configapi.KubernetesMasterConfig{
+		MasterIP:        masterIP,
 		ServicesSubnet:  servicesSubnet.String(),
 		StaticNodeNames: args.NodeList,
 	}
@@ -246,9 +270,7 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	// 172.17.42.1 enables the router to call back out to the master
-	// TODO: Remove 172.17.42.1 once we can figure out how to validate the master's cert from inside a pod, or tell pods the real IP for the master
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "172.17.42.1", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
+	allHostnames := util.NewStringSet("localhost", "127.0.0.1", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
 	certHostnames := util.StringSet{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {
@@ -273,14 +295,14 @@ func (args MasterArgs) GetMasterAddress() (*url.URL, error) {
 
 	// If the user specifies a bind address, and the master is not provided, use the bind port by default
 	port := args.MasterAddr.Port
-	if args.BindAddrArg.BindAddr.Provided {
-		port = args.BindAddrArg.BindAddr.Port
+	if args.ListenArg.ListenAddr.Provided {
+		port = args.ListenArg.ListenAddr.Port
 	}
 
 	// If the user specifies a bind address, and the master is not provided, use the bind scheme by default
 	scheme := args.MasterAddr.URL.Scheme
-	if args.BindAddrArg.BindAddr.Provided {
-		scheme = args.BindAddrArg.BindAddr.URL.Scheme
+	if args.ListenArg.ListenAddr.Provided {
+		scheme = args.ListenArg.ListenAddr.URL.Scheme
 	}
 
 	addr := ""
@@ -300,7 +322,7 @@ func (args MasterArgs) GetDNSBindAddress() (flagtypes.Addr, error) {
 	if args.DNSBindAddr.Provided {
 		return args.DNSBindAddr, nil
 	}
-	dnsAddr := flagtypes.Addr{Value: args.BindAddrArg.BindAddr.Host, DefaultPort: 53}.Default()
+	dnsAddr := flagtypes.Addr{Value: args.ListenArg.ListenAddr.Host, DefaultPort: 53}.Default()
 	return dnsAddr, nil
 }
 
@@ -314,12 +336,12 @@ func (args MasterArgs) GetMasterPublicAddress() (*url.URL, error) {
 
 func (args MasterArgs) GetEtcdBindAddress() string {
 	// Derive the etcd bind address by using the bind address and the default etcd port
-	return net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(args.EtcdAddr.DefaultPort))
+	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(args.EtcdAddr.DefaultPort))
 }
 
 func (args MasterArgs) GetEtcdPeerBindAddress() string {
 	// Derive the etcd peer address by using the bind address and the default etcd peering port
-	return net.JoinHostPort(args.BindAddrArg.BindAddr.Host, "7001")
+	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, "7001")
 }
 
 func (args MasterArgs) GetEtcdAddress() (*url.URL, error) {
@@ -376,7 +398,7 @@ func (args MasterArgs) GetAssetBindAddress() string {
 		return args.AssetBindAddr.URL.Host
 	}
 	// Derive the asset bind address by incrementing the master bind address port by 1
-	return net.JoinHostPort(args.BindAddrArg.BindAddr.Host, strconv.Itoa(args.BindAddrArg.BindAddr.Port+1))
+	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(args.ListenArg.ListenAddr.Port+1))
 }
 
 func getHost(theURL url.URL) string {

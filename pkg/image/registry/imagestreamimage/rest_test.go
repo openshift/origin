@@ -22,8 +22,8 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	helper := tools.EtcdHelper{Client: fakeEtcdClient, Codec: latest.Codec, ResourceVersioner: tools.RuntimeVersionAdapter{latest.ResourceVersioner}}
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage)
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 	storage := NewREST(imageRegistry, imageRepositoryRegistry)
 	return fakeEtcdClient, helper, storage
 }

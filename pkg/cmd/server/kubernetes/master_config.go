@@ -58,7 +58,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	admissionControlPluginNames := []string{"LimitRanger", "ResourceQuota"}
 	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
 
-	host, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
+	_, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	kmaster := &MasterConfig{
-		MasterIP:             net.ParseIP(host),
+		MasterIP:             net.ParseIP(options.KubernetesMasterConfig.MasterIP),
 		MasterPort:           port,
 		NodeHosts:            options.KubernetesMasterConfig.StaticNodeNames,
 		PortalNet:            &portalNet,
