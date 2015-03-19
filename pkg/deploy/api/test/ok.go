@@ -72,7 +72,7 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 					ImagePullPolicy: kapi.PullIfNotPresent,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicy{Always: &kapi.RestartPolicyAlways{}},
+			RestartPolicy: kapi.RestartPolicyAlways,
 			DNSPolicy:     kapi.DNSClusterFirst,
 		},
 		ObjectMeta: kapi.ObjectMeta{

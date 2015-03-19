@@ -116,9 +116,7 @@ func CreatePodFromImage(repo *imageapi.ImageRepository, ns string) *kapi.Pod {
 					Image: repo.Status.DockerImageRepository,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicy{
-				Never: &kapi.RestartPolicyNever{},
-			},
+			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
 	if pod, err := client.Pods(ns).Create(pod); err != nil {

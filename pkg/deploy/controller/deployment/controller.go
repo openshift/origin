@@ -132,9 +132,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 					Env:     envVars,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicy{
-				Never: &kapi.RestartPolicyNever{},
-			},
+			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
 

@@ -58,9 +58,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Privileged: true,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicy{
-				Never: &kapi.RestartPolicyNever{},
-			},
+			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
 

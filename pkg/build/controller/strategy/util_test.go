@@ -87,9 +87,7 @@ func TestSetupBuildEnvFails(t *testing.T) {
 					Privileged: true,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicy{
-				Never: &kapi.RestartPolicyNever{},
-			},
+			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
 	if err := setupBuildEnv(build, pod); err != nil {
