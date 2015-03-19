@@ -207,7 +207,7 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 fi
 
-wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+wait_for_url "${KUBELET_SCHEME}://127.0.0.1:${KUBELET_PORT}/healthz" "kubelet: " 0.5 60
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
