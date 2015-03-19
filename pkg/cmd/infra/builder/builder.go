@@ -25,8 +25,9 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 			cmd.RunSTIBuild()
 		},
 	}
-	cmd.SetUsageTemplate(templates.MainUsageTemplate())
-	cmd.SetHelpTemplate(templates.MainHelpTemplate())
+
+	templates.UseMainTemplates(cmd)
+
 	cmd.AddCommand(version.NewVersionCommand(name))
 	return cmd
 }

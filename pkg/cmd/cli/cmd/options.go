@@ -17,8 +17,7 @@ func NewCmdOptions(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.SetUsageTemplate(templates.OptionsUsageTemplate())
-	cmd.SetHelpTemplate(templates.OptionsHelpTemplate())
+	templates.UseOptionsTemplates(cmd)
 
 	return cmd
 }
