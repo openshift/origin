@@ -25,9 +25,11 @@ func TestDockerStrategyBuild(t *testing.T) {
 	build := util.GetBuildFixture("fixtures/docker-build.json")
 	client, _ := util.GetClusterAdminClient(util.KubeConfigPath())
 
+	repo := util.CreateSampleImageRepository(namespace)
 	if repo == nil {
 		t.Fatal("Failed to create ImageRepository")
 	}
+	defer util.DeleteSampleImageRepository(repo, namespace)
 
 	// TODO: Tweak the selector to match the build name
 	watcher, err := client.Builds(namespace).Watch(labels.Everything(), labels.Everything(), "0")
