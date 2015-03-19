@@ -26,7 +26,7 @@ Requires=openshift-master.service
 After=openshift-master.service
 
 [Service]
-ExecStart=/usr/bin/openshift-sdn -etcd-endpoints=http://${MASTER_IP}:4001 
+ExecStart=/usr/bin/openshift-sdn -etcd-endpoints=https://${MASTER_IP}:4001 -etcd-keyfile=${ETCD_KEYFILE} -etcd-certfile=${ETCD_CERTFILE} -etcd-cafile=${ETCD_CAFILE}
 
 [Install]
 WantedBy=multi-user.target
