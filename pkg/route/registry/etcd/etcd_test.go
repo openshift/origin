@@ -283,6 +283,7 @@ func TestEtcdDeleteOkRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 	key := makeTestDefaultRouteListKey() + "/foo"
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	err := registry.DeleteRoute(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)

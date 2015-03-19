@@ -97,7 +97,7 @@ func (registry *Etcd) DeleteRoute(ctx kapi.Context, routeID string) error {
 	if err != nil {
 		return err
 	}
-	err = registry.Delete(key, true)
+	err = registry.Delete(key, false)
 	return etcderr.InterpretDeleteError(err, "route", routeID)
 }
 

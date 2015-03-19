@@ -796,7 +796,7 @@ func expectedDeploymentConfig(name string, port int, proto kapi.Protocol, enviro
 							{
 								Name:  name,
 								Image: "library/" + name + ":latest",
-								Ports: []kapi.Port{
+								Ports: []kapi.ContainerPort{
 									{
 										Name:          portName(name, port, proto),
 										ContainerPort: port,

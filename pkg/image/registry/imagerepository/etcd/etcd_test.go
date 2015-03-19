@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -25,7 +26,7 @@ var (
 func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.EtcdHelper{Client: fakeEtcdClient, Codec: latest.Codec, ResourceVersioner: tools.RuntimeVersionAdapter{latest.ResourceVersioner}}
+	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
 	return fakeEtcdClient, helper
 }
 
@@ -228,6 +229,10 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "bar", ResourceVersion: "1"}})
+	if !errors.IsConflict(err) {
+		t.Fatalf("unexpected non-error: %v", err)
+	}
+	obj, created, err = storage.Update(kapi.NewDefaultContext(), &api.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "bar", ResourceVersion: "2"}})
 	if err != nil || created {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}
@@ -242,11 +247,11 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 
 func TestDeleteImageRepository(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data["/imageRepositories/default/bar"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imageRepositories/default/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
-					ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "default"},
+					ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "default"},
 				}),
 				ModifiedIndex: 2,
 			},
@@ -282,7 +287,7 @@ func TestUpdateImageRepositoryConflictingNamespace(t *testing.T) {
 	storage, _ := NewREST(helper, noDefaultRegistry)
 
 	obj, created, err := storage.Update(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &api.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "some-value"},
+		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "some-value", ResourceVersion: "2"},
 	})
 
 	if obj != nil || created {

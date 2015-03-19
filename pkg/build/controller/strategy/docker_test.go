@@ -32,7 +32,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if container.ImagePullPolicy != kapi.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
 	}
-	if actual.Spec.RestartPolicy.Never != kapi.RestartPolicyNever {
+	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	if len(container.Env) != 1 {

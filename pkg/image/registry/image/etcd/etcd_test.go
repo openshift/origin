@@ -59,7 +59,7 @@ func makeTestDefaultImageRepositoriesListKey() string {
 func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.EtcdHelper{Client: fakeEtcdClient, Codec: latest.Codec, ResourceVersioner: tools.RuntimeVersionAdapter{latest.ResourceVersioner}}
+	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
 	return fakeEtcdClient, helper
 }
 
@@ -233,7 +233,7 @@ func TestListFiltered(t *testing.T) {
 		E: nil,
 	}
 	storage := NewREST(helper)
-	list, err := storage.List(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything())
+	list, err := storage.List(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -343,6 +343,13 @@ func TestGetOK(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
+	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{}),
+			},
+		},
+	}
 	storage := NewREST(helper)
 
 	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo")
@@ -395,7 +402,7 @@ func TestWatchErrorWithFieldSet(t *testing.T) {
 	_, helper := newHelper(t)
 	storage := NewREST(helper)
 
-	_, err := storage.Watch(kapi.NewDefaultContext(), labels.Everything(), labels.SelectorFromSet(labels.Set{"foo": "bar"}), "1")
+	_, err := storage.Watch(kapi.NewDefaultContext(), labels.Everything(), fields.SelectorFromSet(fields.Set{"foo": "bar"}), "1")
 	if err == nil {
 		t.Fatal("unexpected nil error")
 	}
@@ -441,7 +448,7 @@ func TestWatchOK(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		watching, err := storage.Watch(kapi.NewDefaultContext(), tt.label, labels.Everything(), "1")
+		watching, err := storage.Watch(kapi.NewDefaultContext(), tt.label, fields.Everything(), "1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

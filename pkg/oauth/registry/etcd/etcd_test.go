@@ -6,19 +6,18 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/coreos/go-etcd/etcd"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
-	_ "github.com/openshift/origin/pkg/oauth/api/v1beta1"
 )
 
 func NewTestEtcdRegistry(client tools.EtcdGetSet) *Etcd {
-	return New(tools.NewEtcdHelper(client, v1beta1.Codec))
+	return New(tools.NewEtcdHelper(client, latest.Codec))
 }
 
 func TestGetAccessTokenNotFound(t *testing.T) {
@@ -35,7 +34,7 @@ func TestGetAccessTokenNotFound(t *testing.T) {
 func TestGetAccessToken(t *testing.T) {
 	key := makeAccessTokenKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	token, err := registry.GetAccessToken("foo")
 	if err != nil {
@@ -69,8 +68,8 @@ func TestListAccessTokens(t *testing.T) {
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthAccessToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -134,7 +133,7 @@ func TestDeleteAccessToken(t *testing.T) {
 		t.Fatalf("token was retrieved after deleting: %v", stored)
 		return
 	}
-	if err := registry.DeleteAccessToken("foo"); err != nil {
+	if err := registry.DeleteAccessToken("foo"); !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error deleting non-existent token")
 		return
 	}
@@ -154,7 +153,7 @@ func TestGetAuthorizeTokenNotFound(t *testing.T) {
 func TestGetAuthorizeToken(t *testing.T) {
 	key := makeAuthorizeTokenKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	token, err := registry.GetAuthorizeToken("foo")
 	if err != nil {
@@ -188,8 +187,8 @@ func TestListAuthorizeTokens(t *testing.T) {
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthAuthorizeToken{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -253,7 +252,7 @@ func TestDeleteAuthorizeToken(t *testing.T) {
 		t.Fatalf("token was retrieved after deleting: %v", stored)
 		return
 	}
-	if err := registry.DeleteAuthorizeToken("foo"); err != nil {
+	if err := registry.DeleteAuthorizeToken("foo"); !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error deleting non-existent token")
 		return
 	}
@@ -273,7 +272,7 @@ func TestGetClientNotFound(t *testing.T) {
 func TestGetClient(t *testing.T) {
 	key := makeClientKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	client, err := registry.GetClient("foo")
 	if err != nil {
@@ -307,8 +306,8 @@ func TestListClients(t *testing.T) {
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -372,7 +371,7 @@ func TestDeleteClient(t *testing.T) {
 		t.Fatalf("client was retrieved after deleting: %v", stored)
 		return
 	}
-	if err := registry.DeleteClient("foo"); err != nil {
+	if err := registry.DeleteClient("foo"); !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error deleting non-existent client")
 		return
 	}
@@ -392,7 +391,7 @@ func TestGetClientAuthorizationNotFound(t *testing.T) {
 func TestGetClientAuthorization(t *testing.T) {
 	key := makeClientAuthorizationKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Set(key, runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	clientAuth, err := registry.GetClientAuthorization("foo")
 	if err != nil {
@@ -426,8 +425,8 @@ func TestListClientAuthorizations(t *testing.T) {
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
-					{Value: runtime.EncodeOrDie(v1beta1.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "foo"}})},
+					{Value: runtime.EncodeOrDie(latest.Codec, &oapi.OAuthClientAuthorization{ObjectMeta: api.ObjectMeta{Name: "bar"}})},
 				},
 			},
 		},
@@ -491,7 +490,7 @@ func TestDeleteClientAuthorization(t *testing.T) {
 		t.Fatalf("client auth was retrieved after deleting: %v", stored)
 		return
 	}
-	if err := registry.DeleteClientAuthorization("foo"); err != nil {
+	if err := registry.DeleteClientAuthorization("foo"); !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error deleting non-existent client auth")
 		return
 	}

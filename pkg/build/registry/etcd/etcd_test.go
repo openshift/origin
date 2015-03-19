@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -238,7 +239,7 @@ func TestEtcdListBuilds(t *testing.T) {
 func TestEtcdWatchBuilds(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := labels.SelectorFromSet(labels.Set{"name": "foo", "status": string(api.BuildStatusRunning), "podName": "bar"})
+	filterFields := fields.SelectorFromSet(fields.Set{"name": "foo", "status": string(api.BuildStatusRunning), "podName": "bar"})
 
 	watching, err := registry.WatchBuilds(kapi.NewContext(), labels.Everything(), filterFields, "1")
 	if err != nil {

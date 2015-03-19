@@ -169,11 +169,11 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 	registry := NewTestEtcd(fakeClient)
 
 	testCase := selectorTest{
-		{labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything(), []string{"bar"}},
-		{labels.SelectorFromSet(labels.Set{"env": "stg"}), labels.Everything(), []string{"baz"}},
+		{labels.SelectorFromSet(labels.Set{"env": "dev"}), fields.Everything(), []string{"bar"}},
+		{labels.SelectorFromSet(labels.Set{"env": "stg"}), fields.Everything(), []string{"baz"}},
 		{labels.Everything(), fields.Everything(), []string{"foo", "bar", "baz"}},
-		{labels.Everything(), labels.SelectorFromSet(labels.Set{"name": "baz"}), []string{"baz"}},
-		{labels.Everything(), labels.SelectorFromSet(labels.Set{"status": string(api.DeploymentStatusRunning)}), []string{"bar", "baz"}},
+		{labels.Everything(), fields.SelectorFromSet(fields.Set{"name": "baz"}), []string{"baz"}},
+		{labels.Everything(), fields.SelectorFromSet(fields.Set{"status": string(api.DeploymentStatusRunning)}), []string{"bar", "baz"}},
 	}
 
 	testCase.validate(t, func(scenario selectorScenario) (runtime.Object, error) {
@@ -307,7 +307,14 @@ func TestEtcdDeleteOkDeployments(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 	key := makeTestDefaultDeploymentListKey() + "/foo"
-
+	fakeClient.Data[key] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value: runtime.EncodeOrDie(latest.Codec, &api.Deployment{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
+			},
+		},
+		E: nil,
+	}
 	err := registry.DeleteDeployment(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
@@ -393,10 +400,10 @@ func TestEtcdListFilteredDeploymentConfigs(t *testing.T) {
 	registry := NewTestEtcd(fakeClient)
 
 	testCase := selectorTest{
-		{labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything(), []string{"bar"}},
-		{labels.SelectorFromSet(labels.Set{"env": "prod"}), labels.Everything(), []string{"foo"}},
+		{labels.SelectorFromSet(labels.Set{"env": "dev"}), fields.Everything(), []string{"bar"}},
+		{labels.SelectorFromSet(labels.Set{"env": "prod"}), fields.Everything(), []string{"foo"}},
 		{labels.Everything(), fields.Everything(), []string{"foo", "bar"}},
-		{labels.Everything(), labels.SelectorFromSet(labels.Set{"name": "bar"}), []string{"bar"}},
+		{labels.Everything(), fields.SelectorFromSet(fields.Set{"name": "bar"}), []string{"bar"}},
 	}
 
 	testCase.validate(t, func(scenario selectorScenario) (runtime.Object, error) {
@@ -530,6 +537,14 @@ func TestEtcdDeleteErrorDeploymentConfig(t *testing.T) {
 func TestEtcdDeleteOkDeploymentConfig(t *testing.T) {
 	key := makeTestDefaultDeploymentConfigKey("foo")
 	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.Data[key] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value: runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}),
+			},
+		},
+		E: nil,
+	}
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteDeploymentConfig(kapi.NewDefaultContext(), "foo")
 	if err != nil {
@@ -724,7 +739,7 @@ func TestEtcdGetDeploymentInDifferentNamespaces(t *testing.T) {
 
 type selectorScenario struct {
 	label       labels.Selector
-	field       labels.Selector
+	field       fields.Selector
 	expectedIDs []string
 }
 
