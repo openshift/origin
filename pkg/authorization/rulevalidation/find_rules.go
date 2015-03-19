@@ -3,9 +3,9 @@ package rulevalidation
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -44,7 +44,7 @@ type BindingLister interface {
 
 func (a *DefaultRuleResolver) getPolicy(ctx kapi.Context) (*authorizationapi.Policy, error) {
 	policy, err := a.policyGetter.GetPolicy(ctx, authorizationapi.PolicyName)
-	if err != nil && !strings.Contains(err.Error(), "not found") {
+	if err != nil {
 		return nil, err
 	}
 
@@ -82,6 +82,9 @@ func (a *DefaultRuleResolver) GetRole(roleBinding authorizationapi.RoleBinding) 
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
 	policy, err := a.getPolicy(ctx)
+	if kapierror.IsNotFound(err) {
+		return nil, kapierror.NewNotFound("role", roleBinding.RoleRef.Name)
+	}
 	if err != nil {
 		return nil, err
 	}
