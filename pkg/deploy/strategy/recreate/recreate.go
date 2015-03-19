@@ -79,7 +79,7 @@ func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, repl
 	for {
 		select {
 		case <-timeout:
-			return fmt.Errorf("Couldn't successfully update deployment %s replica count to %d (timeout exceeded)", deployment.Name, replicaCount)
+			return fmt.Errorf("Couldn't successfully update deployment %s/%s replica count to %d (timeout exceeded)", namespace, name, replicaCount)
 		default:
 			if deployment, err = s.client.getReplicationController(namespace, name); err != nil {
 				glog.Errorf("Couldn't get deployment %s/%s: %v", namespace, name, err)
