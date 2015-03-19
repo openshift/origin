@@ -147,7 +147,6 @@ func (o MasterOptions) StartMaster() error {
 		return nil
 	}
 
-	daemon.SdNotify("READY=1")
 	select {}
 
 	return nil
@@ -356,6 +355,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		kubeConfig.EnsurePortalFlags()
 
 		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, []origin.APIInstaller{authConfig})
+		go daemon.SdNotify("READY=1")
 
 		kubeConfig.RunScheduler()
 		kubeConfig.RunReplicationController()
@@ -374,6 +374,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		}
 
 		openshiftConfig.Run([]origin.APIInstaller{proxy}, []origin.APIInstaller{authConfig})
+		go daemon.SdNotify("READY=1")
 	}
 
 	// TODO: recording should occur in individual components
