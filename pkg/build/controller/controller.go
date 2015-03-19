@@ -8,6 +8,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -180,6 +181,14 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	if build.Status != nextStatus {
 		glog.V(4).Infof("Updating build %s status %s -> %s", build.Name, build.Status, nextStatus)
 		build.Status = nextStatus
+		if build.Status == buildapi.BuildStatusComplete || build.Status == buildapi.BuildStatusFailed || build.Status == buildapi.BuildStatusCancelled {
+			dummy := util.Now()
+			build.CompletionTimestamp = &dummy
+		}
+		if build.Status == buildapi.BuildStatusRunning {
+			dummy := util.Now()
+			build.StartTimestamp = &dummy
+		}
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s: %#v", build.Name, err)
 		}
@@ -200,6 +209,8 @@ func (bc *BuildPodController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) 
 	}
 
 	build.Status = buildapi.BuildStatusCancelled
+	dummy := util.Now()
+	build.CompletionTimestamp = &dummy
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 		return err
 	}

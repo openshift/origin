@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -345,58 +346,73 @@ func TestHandleBuild(t *testing.T) {
 
 func TestHandlePod(t *testing.T) {
 	type handlePodTest struct {
-		matchID      bool
-		inStatus     buildapi.BuildStatus
-		outStatus    buildapi.BuildStatus
-		podStatus    kapi.PodPhase
-		exitCode     int
-		buildUpdater buildclient.BuildUpdater
-		podManager   podManager
+		matchID             bool
+		inStatus            buildapi.BuildStatus
+		outStatus           buildapi.BuildStatus
+		startTimestamp      *util.Time
+		completionTimestamp *util.Time
+		podStatus           kapi.PodPhase
+		exitCode            int
+		buildUpdater        buildclient.BuildUpdater
+		podManager          podManager
 	}
-
+	dummy := util.Now()
+	curtime := &dummy
 	tests := []handlePodTest{
 		{ // 0
-			matchID:   false,
-			inStatus:  buildapi.BuildStatusPending,
-			outStatus: buildapi.BuildStatusPending,
-			podStatus: kapi.PodPending,
-			exitCode:  0,
+			matchID:             false,
+			inStatus:            buildapi.BuildStatusPending,
+			outStatus:           buildapi.BuildStatusPending,
+			podStatus:           kapi.PodPending,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: nil,
 		},
 		{ // 1
-			matchID:   true,
-			inStatus:  buildapi.BuildStatusPending,
-			outStatus: buildapi.BuildStatusPending,
-			podStatus: kapi.PodPending,
-			exitCode:  0,
+			matchID:             true,
+			inStatus:            buildapi.BuildStatusPending,
+			outStatus:           buildapi.BuildStatusPending,
+			podStatus:           kapi.PodPending,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: nil,
 		},
 		{ // 2
-			matchID:   true,
-			inStatus:  buildapi.BuildStatusPending,
-			outStatus: buildapi.BuildStatusRunning,
-			podStatus: kapi.PodRunning,
-			exitCode:  0,
+			matchID:             true,
+			inStatus:            buildapi.BuildStatusPending,
+			outStatus:           buildapi.BuildStatusRunning,
+			podStatus:           kapi.PodRunning,
+			exitCode:            0,
+			startTimestamp:      curtime,
+			completionTimestamp: nil,
 		},
 		{ // 3
-			matchID:   true,
-			inStatus:  buildapi.BuildStatusRunning,
-			outStatus: buildapi.BuildStatusComplete,
-			podStatus: kapi.PodSucceeded,
-			exitCode:  0,
+			matchID:             true,
+			inStatus:            buildapi.BuildStatusRunning,
+			outStatus:           buildapi.BuildStatusComplete,
+			podStatus:           kapi.PodSucceeded,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: curtime,
 		},
 		{ // 4
-			matchID:   true,
-			inStatus:  buildapi.BuildStatusRunning,
-			outStatus: buildapi.BuildStatusFailed,
-			podStatus: kapi.PodFailed,
-			exitCode:  -1,
+			matchID:             true,
+			inStatus:            buildapi.BuildStatusRunning,
+			outStatus:           buildapi.BuildStatusFailed,
+			podStatus:           kapi.PodFailed,
+			exitCode:            -1,
+			startTimestamp:      nil,
+			completionTimestamp: curtime,
 		},
 		{ // 5
-			matchID:      true,
-			inStatus:     buildapi.BuildStatusRunning,
-			outStatus:    buildapi.BuildStatusComplete,
-			podStatus:    kapi.PodSucceeded,
-			exitCode:     0,
-			buildUpdater: &errBuildUpdater{},
+			matchID:             true,
+			inStatus:            buildapi.BuildStatusRunning,
+			outStatus:           buildapi.BuildStatusComplete,
+			podStatus:           kapi.PodSucceeded,
+			exitCode:            0,
+			buildUpdater:        &errBuildUpdater{},
+			startTimestamp:      nil,
+			completionTimestamp: curtime,
 		},
 	}
 
@@ -424,62 +440,100 @@ func TestHandlePod(t *testing.T) {
 		if build.Status != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)
 		}
+
+		if tc.startTimestamp == nil && build.StartTimestamp != nil {
+			t.Errorf("(%d) Expected nil start timestamp, got %v!", i, build.StartTimestamp)
+		}
+		if tc.startTimestamp != nil && build.StartTimestamp == nil {
+			t.Errorf("(%d) nil start timestamp!", i)
+		}
+		if tc.startTimestamp != nil && !tc.startTimestamp.Before(build.StartTimestamp.Time) && tc.startTimestamp.Time != build.StartTimestamp.Time {
+			t.Errorf("(%d) Expected build start timestamp %v to be equal to or later than %v!", i, build.StartTimestamp, tc.startTimestamp)
+		}
+
+		if tc.completionTimestamp == nil && build.CompletionTimestamp != nil {
+			t.Errorf("(%d) Expected nil completion timestamp, got %v!", i, build.CompletionTimestamp)
+		}
+		if tc.completionTimestamp != nil && build.CompletionTimestamp == nil {
+			t.Errorf("(%d) nil completion timestamp!", i)
+		}
+		if tc.completionTimestamp != nil && !tc.completionTimestamp.Before(build.CompletionTimestamp.Time) && tc.completionTimestamp.Time != build.CompletionTimestamp.Time {
+			t.Errorf("(%d) Expected build completion timestamp %v to be equal to or later than %v!", i, build.CompletionTimestamp, tc.completionTimestamp)
+		}
 	}
 }
 
 func TestCancelBuild(t *testing.T) {
 	type handleCancelBuildTest struct {
-		inStatus     buildapi.BuildStatus
-		outStatus    buildapi.BuildStatus
-		podStatus    kapi.PodPhase
-		exitCode     int
-		buildUpdater buildclient.BuildUpdater
-		podManager   podManager
+		inStatus            buildapi.BuildStatus
+		outStatus           buildapi.BuildStatus
+		podStatus           kapi.PodPhase
+		exitCode            int
+		buildUpdater        buildclient.BuildUpdater
+		podManager          podManager
+		startTimestamp      *util.Time
+		completionTimestamp *util.Time
 	}
+	dummy := util.Now()
+	curtime := &dummy
 
 	tests := []handleCancelBuildTest{
 		{ // 0
-			inStatus:  buildapi.BuildStatusNew,
-			outStatus: buildapi.BuildStatusCancelled,
-			exitCode:  0,
+			inStatus:            buildapi.BuildStatusNew,
+			outStatus:           buildapi.BuildStatusCancelled,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: curtime,
 		},
 		{ // 1
-			inStatus:  buildapi.BuildStatusPending,
-			outStatus: buildapi.BuildStatusCancelled,
-			podStatus: kapi.PodRunning,
-			exitCode:  0,
+			inStatus:            buildapi.BuildStatusPending,
+			outStatus:           buildapi.BuildStatusCancelled,
+			podStatus:           kapi.PodRunning,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: curtime,
 		},
 		{ // 2
-			inStatus:  buildapi.BuildStatusRunning,
-			outStatus: buildapi.BuildStatusCancelled,
-			podStatus: kapi.PodRunning,
-			exitCode:  0,
+			inStatus:            buildapi.BuildStatusRunning,
+			outStatus:           buildapi.BuildStatusCancelled,
+			podStatus:           kapi.PodRunning,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: curtime,
 		},
 		{ // 3
-			inStatus:  buildapi.BuildStatusComplete,
-			outStatus: buildapi.BuildStatusComplete,
-			podStatus: kapi.PodSucceeded,
-			exitCode:  0,
+			inStatus:            buildapi.BuildStatusComplete,
+			outStatus:           buildapi.BuildStatusComplete,
+			podStatus:           kapi.PodSucceeded,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: nil,
 		},
 		{ // 4
-			inStatus:  buildapi.BuildStatusFailed,
-			outStatus: buildapi.BuildStatusFailed,
-			podStatus: kapi.PodFailed,
-			exitCode:  1,
+			inStatus:            buildapi.BuildStatusFailed,
+			outStatus:           buildapi.BuildStatusFailed,
+			podStatus:           kapi.PodFailed,
+			exitCode:            1,
+			startTimestamp:      nil,
+			completionTimestamp: nil,
 		},
 		{ // 5
-			inStatus:   buildapi.BuildStatusNew,
-			outStatus:  buildapi.BuildStatusNew,
-			podStatus:  kapi.PodFailed,
-			exitCode:   1,
-			podManager: &errPodManager{},
+			inStatus:            buildapi.BuildStatusNew,
+			outStatus:           buildapi.BuildStatusNew,
+			podStatus:           kapi.PodFailed,
+			exitCode:            1,
+			podManager:          &errPodManager{},
+			startTimestamp:      nil,
+			completionTimestamp: nil,
 		},
 		{ // 6
-			inStatus:     buildapi.BuildStatusNew,
-			outStatus:    buildapi.BuildStatusNew,
-			podStatus:    kapi.PodFailed,
-			exitCode:     1,
-			buildUpdater: &errBuildUpdater{},
+			inStatus:            buildapi.BuildStatusNew,
+			outStatus:           buildapi.BuildStatusNew,
+			podStatus:           kapi.PodFailed,
+			exitCode:            1,
+			buildUpdater:        &errBuildUpdater{},
+			startTimestamp:      nil,
+			completionTimestamp: nil,
 		},
 	}
 
@@ -506,8 +560,28 @@ func TestCancelBuild(t *testing.T) {
 				t.Errorf("(%d) Expected error, got none", i)
 			}
 			// can't check tc.outStatus because the local build object does get updated
-			// in this test (but would not updated in etcd)
+			// in this test (but would not be updated in etcd)
 			continue
+		}
+
+		if tc.startTimestamp == nil && build.StartTimestamp != nil {
+			t.Errorf("(%d) Expected nil start timestamp, got %v!", i, build.StartTimestamp)
+		}
+		if tc.startTimestamp != nil && build.StartTimestamp == nil {
+			t.Errorf("(%d) nil start timestamp!", i)
+		}
+		if tc.startTimestamp != nil && !tc.startTimestamp.Before(build.StartTimestamp.Time) && tc.startTimestamp.Time != build.StartTimestamp.Time {
+			t.Errorf("(%d) Expected build start timestamp %v to be equal to or later than %v!", i, build.StartTimestamp, tc.startTimestamp)
+		}
+
+		if tc.completionTimestamp == nil && build.CompletionTimestamp != nil {
+			t.Errorf("(%d) Expected nil completion timestamp, got %v!", i, build.CompletionTimestamp)
+		}
+		if tc.completionTimestamp != nil && build.CompletionTimestamp == nil {
+			t.Errorf("(%d) nil start timestamp!", i)
+		}
+		if tc.completionTimestamp != nil && !tc.completionTimestamp.Before(build.CompletionTimestamp.Time) && tc.completionTimestamp.Time != build.CompletionTimestamp.Time {
+			t.Errorf("(%d) Expected build completion timestamp %v to be equal to or later than %v!", i, build.CompletionTimestamp, tc.completionTimestamp)
 		}
 
 		if build.Status != tc.outStatus {
