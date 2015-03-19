@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,12 +15,12 @@ type BuildConfigsNamespacer interface {
 
 // BuildConfigInterface exposes methods on BuildConfig resources
 type BuildConfigInterface interface {
-	List(label, field labels.Selector) (*buildapi.BuildConfigList, error)
+	List(label labels.Selector, field fields.Selector) (*buildapi.BuildConfigList, error)
 	Get(name string) (*buildapi.BuildConfig, error)
 	Create(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // buildConfigs implements BuildConfigsNamespacer interface
@@ -37,7 +38,7 @@ func newBuildConfigs(c *Client, namespace string) *buildConfigs {
 }
 
 // List returns a list of buildconfigs that match the label and field selectors.
-func (c *buildConfigs) List(label, field labels.Selector) (result *buildapi.BuildConfigList, err error) {
+func (c *buildConfigs) List(label labels.Selector, field fields.Selector) (result *buildapi.BuildConfigList, err error) {
 	result = &buildapi.BuildConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -76,7 +77,7 @@ func (c *buildConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested buildConfigs.
-func (c *buildConfigs) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *buildConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

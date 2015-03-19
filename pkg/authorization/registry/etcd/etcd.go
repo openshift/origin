@@ -5,7 +5,8 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
@@ -57,13 +58,13 @@ func New(helper tools.EtcdHelper) *Etcd {
 	}
 }
 
-func getAttrs(obj runtime.Object) (klabels.Set, klabels.Set, error) {
+func getAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	metaInterface, err := kmeta.Accessor(obj)
 	if err != nil {
-		return klabels.Set{}, klabels.Set{}, err
+		return labels.Set{}, fields.Set{}, err
 	}
 
-	return metaInterface.Labels(), klabels.Set{}, nil
+	return metaInterface.Labels(), fields.Set{}, nil
 }
 
 func (r *Etcd) GetPolicy(ctx kapi.Context, name string) (policy *authorizationapi.Policy, err error) {
@@ -79,7 +80,7 @@ func (r *Etcd) GetPolicy(ctx kapi.Context, name string) (policy *authorizationap
 	return ret, nil
 }
 
-func (r *Etcd) ListPolicies(ctx kapi.Context, label, field klabels.Selector) (*authorizationapi.PolicyList, error) {
+func (r *Etcd) ListPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
 	result, err := r.policyRegistry.List(ctx, &generic.SelectionPredicate{label, field, getAttrs})
 	if err != nil {
 		return nil, err
@@ -105,7 +106,7 @@ func (r *Etcd) DeletePolicy(ctx kapi.Context, name string) error {
 	return err
 }
 
-func (r *Etcd) WatchPolicies(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return r.policyRegistry.Watch(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
 }
 
@@ -130,7 +131,7 @@ func (r *Etcd) GetPolicyBinding(ctx kapi.Context, name string) (policyBinding *a
 	return ret, nil
 }
 
-func (r *Etcd) ListPolicyBindings(ctx kapi.Context, label, field klabels.Selector) (*authorizationapi.PolicyBindingList, error) {
+func (r *Etcd) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
 	result, err := r.policyBindingRegistry.List(ctx, &generic.SelectionPredicate{label, field, getAttrs})
 	if err != nil {
 		return nil, err
@@ -156,6 +157,6 @@ func (r *Etcd) DeletePolicyBinding(ctx kapi.Context, name string) error {
 	return err
 }
 
-func (r *Etcd) WatchPolicyBindings(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return r.policyBindingRegistry.Watch(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
 }

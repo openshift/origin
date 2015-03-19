@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,11 +15,11 @@ type PolicyBindingsNamespacer interface {
 
 // PolicyBindingInterface exposes methods on PolicyBinding resources.
 type PolicyBindingInterface interface {
-	List(label, field labels.Selector) (*authorizationapi.PolicyBindingList, error)
+	List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error)
 	Get(name string) (*authorizationapi.PolicyBinding, error)
 	Create(policyBinding *authorizationapi.PolicyBinding) (*authorizationapi.PolicyBinding, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // policyBindings implements PolicyBindingsNamespacer interface
@@ -36,7 +37,7 @@ func newPolicyBindings(c *Client, namespace string) *policyBindings {
 }
 
 // List returns a list of policyBindings that match the label and field selectors.
-func (c *policyBindings) List(label, field labels.Selector) (result *authorizationapi.PolicyBindingList, err error) {
+func (c *policyBindings) List(label labels.Selector, field fields.Selector) (result *authorizationapi.PolicyBindingList, err error) {
 	result = &authorizationapi.PolicyBindingList{}
 	err = c.r.Get().Namespace(c.ns).Resource("policyBindings").SelectorParam("labels", label).SelectorParam("fields", field).Do().Into(result)
 	return
@@ -63,6 +64,6 @@ func (c *policyBindings) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested policyBindings
-func (c *policyBindings) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *policyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policyBindings").Param("resourceVersion", resourceVersion).SelectorParam("labels", label).SelectorParam("fields", field).Watch()
 }

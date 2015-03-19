@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -106,7 +107,7 @@ func TestListBuildsError(t *testing.T) {
 func TestListEmptyBuildList(t *testing.T) {
 	mockRegistry := test.BuildRegistry{Builds: &api.BuildList{ListMeta: kapi.ListMeta{ResourceVersion: "1"}}}
 	storage := REST{&mockRegistry}
-	builds, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	builds, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -137,7 +138,7 @@ func TestListBuilds(t *testing.T) {
 		},
 	}
 	storage := REST{registry: &mockRegistry}
-	buildsObj, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	buildsObj, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	builds := buildsObj.(*api.BuildList)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

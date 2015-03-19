@@ -7,6 +7,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -37,9 +38,9 @@ func (*REST) NewList() runtime.Object {
 	return &api.Route{}
 }
 
-// List obtains a list of Routes that match selector.
-func (rs *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	list, err := rs.registry.ListRoutes(ctx, selector)
+// List obtains a list of Routes that match label.
+func (rs *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	list, err := rs.registry.ListRoutes(ctx, label)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 
 // Watch returns Routes events via a watch.Interface.
 // It implements apiserver.ResourceWatcher.
-func (rs *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (rs *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
 }
 

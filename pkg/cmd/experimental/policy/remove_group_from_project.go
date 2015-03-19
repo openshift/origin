@@ -4,7 +4,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	labels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -58,7 +59,7 @@ func (o *removeGroupFromProjectOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *removeGroupFromProjectOptions) run() error {
-	bindingList, err := o.client.PolicyBindings(o.bindingNamespace).List(labels.Everything(), labels.Everything())
+	bindingList, err := o.client.PolicyBindings(o.bindingNamespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}

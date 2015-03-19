@@ -10,6 +10,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -32,7 +33,7 @@ func TestWebhookGithubPush(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -111,7 +112,7 @@ func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -153,7 +154,7 @@ func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -185,7 +186,7 @@ func TestWebhookGithubPing(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}

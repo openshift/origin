@@ -6,7 +6,8 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -29,8 +30,8 @@ func NewVirtualRegistry(bindingRegistry policybindingregistry.Registry, policyRe
 }
 
 // TODO either add selector for fields ot eliminate the option
-func (m *VirtualRegistry) ListRoleBindings(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.RoleBindingList, error) {
-	policyBindingList, err := m.bindingRegistry.ListPolicyBindings(ctx, klabels.Everything(), klabels.Everything())
+func (m *VirtualRegistry) ListRoleBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.RoleBindingList, error) {
+	policyBindingList, err := m.bindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func (m *VirtualRegistry) ListRoleBindings(ctx kapi.Context, labels, fields klab
 
 	for _, policyBinding := range policyBindingList.Items {
 		for _, roleBinding := range policyBinding.RoleBindings {
-			if labels.Matches(klabels.Set(roleBinding.Labels)) {
+			if labels.Matches(labels.Set(roleBinding.Labels)) {
 				roleBindingList.Items = append(roleBindingList.Items, roleBinding)
 			}
 		}
@@ -257,7 +258,7 @@ func (m *VirtualRegistry) getPolicyBindingForPolicy(ctx kapi.Context, policyName
 }
 
 func (m *VirtualRegistry) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bindingName string) (*authorizationapi.PolicyBinding, error) {
-	policyBindingList, err := m.bindingRegistry.ListPolicyBindings(ctx, klabels.Everything(), klabels.Everything())
+	policyBindingList, err := m.bindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package etcd
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -60,12 +61,12 @@ func (r *REST) NewList() runtime.Object {
 }
 
 // List obtains a list of image repositories with labels that match selector.
-func (r *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	return r.store.List(ctx, imagerepository.MatchImageRepository(label, field))
 }
 
 // Watch begins watching for new, changed, or deleted image repositories.
-func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return r.store.Watch(ctx, imagerepository.MatchImageRepository(label, field), resourceVersion)
 }
 

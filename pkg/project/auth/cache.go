@@ -8,6 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
@@ -134,7 +135,7 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 				return ac.namespaceInterface.List(labels.Everything())
 			},
 			watchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return ac.namespaceInterface.Watch(labels.Everything(), labels.Everything(), resourceVersion)
+				return ac.namespaceInterface.Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
 		&kapi.Namespace{},
@@ -145,10 +146,10 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 	policyBindingReflector := cache.NewReflector(
 		&listWatch{
 			listFunc: func() (runtime.Object, error) {
-				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 			},
 			watchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
 		&authorizationapi.PolicyBinding{},
@@ -159,10 +160,10 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 	policyReflector := cache.NewReflector(
 		&listWatch{
 			listFunc: func() (runtime.Object, error) {
-				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 			},
 			watchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
 		&authorizationapi.Policy{},

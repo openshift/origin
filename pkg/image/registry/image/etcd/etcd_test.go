@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -145,7 +146,7 @@ func TestListError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("test error")
 	storage := NewREST(helper)
-	images, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	images, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != fakeEtcdClient.Err {
 		t.Fatalf("Expected %#v, Got %#v", fakeEtcdClient.Err, err)
 	}
@@ -162,7 +163,7 @@ func TestListEmptyList(t *testing.T) {
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
 	storage := NewREST(helper)
-	images, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	images, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -191,7 +192,7 @@ func TestListPopulatedList(t *testing.T) {
 
 	storage := NewREST(helper)
 
-	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}

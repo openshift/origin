@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,10 +15,10 @@ type PoliciesNamespacer interface {
 
 // PolicyInterface exposes methods on Policy resources.
 type PolicyInterface interface {
-	List(label, field labels.Selector) (*authorizationapi.PolicyList, error)
+	List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error)
 	Get(name string) (*authorizationapi.Policy, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // policies implements PoliciesNamespacer interface
@@ -35,7 +36,7 @@ func newPolicies(c *Client, namespace string) *policies {
 }
 
 // List returns a list of policies that match the label and field selectors.
-func (c *policies) List(label, field labels.Selector) (result *authorizationapi.PolicyList, err error) {
+func (c *policies) List(label labels.Selector, field fields.Selector) (result *authorizationapi.PolicyList, err error) {
 	result = &authorizationapi.PolicyList{}
 	err = c.r.Get().Namespace(c.ns).Resource("policies").SelectorParam("labels", label).SelectorParam("fields", field).Do().Into(result)
 	return
@@ -55,6 +56,6 @@ func (c *policies) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested policies
-func (c *policies) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *policies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Namespace(c.ns).Resource("policies").Param("resourceVersion", resourceVersion).SelectorParam("labels", label).SelectorParam("fields", field).Watch()
 }

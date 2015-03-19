@@ -3,7 +3,8 @@ package role
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -22,8 +23,8 @@ func NewVirtualRegistry(policyRegistry policyregistry.Registry) Registry {
 }
 
 // TODO either add selector for fields ot eliminate the option
-func (m *VirtualRegistry) ListRoles(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.RoleList, error) {
-	policyList, err := m.policyRegistry.ListPolicies(ctx, klabels.Everything(), klabels.Everything())
+func (m *VirtualRegistry) ListRoles(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.RoleList, error) {
+	policyList, err := m.policyRegistry.ListPolicies(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +33,7 @@ func (m *VirtualRegistry) ListRoles(ctx kapi.Context, labels, fields klabels.Sel
 
 	for _, policy := range policyList.Items {
 		for _, role := range policy.Roles {
-			if labels.Matches(klabels.Set(role.Labels)) {
+			if labels.Matches(labels.Set(role.Labels)) {
 				roleList.Items = append(roleList.Items, role)
 			}
 		}

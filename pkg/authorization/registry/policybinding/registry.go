@@ -2,7 +2,8 @@ package policybinding
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -11,7 +12,7 @@ import (
 // Registry is an interface for things that know how to store Policies.
 type Registry interface {
 	// ListPolicyBindings obtains list of policyBindings that match a selector.
-	ListPolicyBindings(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.PolicyBindingList, error)
+	ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error)
 	// GetPolicyBinding retrieves a specific policyBinding.
 	GetPolicyBinding(ctx kapi.Context, id string) (*authorizationapi.PolicyBinding, error)
 	// CreatePolicyBinding creates a new policyBinding.
@@ -21,5 +22,5 @@ type Registry interface {
 	// DeletePolicyBinding deletes a policyBinding.
 	DeletePolicyBinding(ctx kapi.Context, id string) error
 	// WatchPolicyBindings watches policyBindings.
-	WatchPolicyBindings(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error)
+	WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }

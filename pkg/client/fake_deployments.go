@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,7 +15,7 @@ type FakeDeployments struct {
 	Namespace string
 }
 
-func (c *FakeDeployments) List(label, field labels.Selector) (*deployapi.DeploymentList, error) {
+func (c *FakeDeployments) List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentList, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-deployment"})
 	return &deployapi.DeploymentList{}, nil
 }
@@ -39,7 +40,7 @@ func (c *FakeDeployments) Delete(name string) error {
 	return nil
 }
 
-func (c *FakeDeployments) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *FakeDeployments) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-deployments"})
 	return nil, nil
 }

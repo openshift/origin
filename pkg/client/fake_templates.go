@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,7 +15,7 @@ type FakeTemplates struct {
 	Namespace string
 }
 
-func (c *FakeTemplates) List(label, field labels.Selector) (*templateapi.TemplateList, error) {
+func (c *FakeTemplates) List(label labels.Selector, field fields.Selector) (*templateapi.TemplateList, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-templates"})
 	return &templateapi.TemplateList{}, nil
 }
@@ -39,7 +40,7 @@ func (c *FakeTemplates) Delete(name string) error {
 	return nil
 }
 
-func (c *FakeTemplates) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *FakeTemplates) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-templates"})
 	return nil, nil
 }

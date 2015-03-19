@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -21,7 +22,7 @@ func TestListBuildConfigs(t *testing.T) {
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
-	buildConfigs, err := openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	buildConfigs, err := openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -44,7 +45,7 @@ func TestCreateBuildConfig(t *testing.T) {
 		t.Errorf("Unexpected empty buildConfig ID %v", expected)
 	}
 
-	buildConfigs, err := openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	buildConfigs, err := openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -93,7 +94,7 @@ func TestWatchBuildConfigs(t *testing.T) {
 	defer openshift.Close()
 	buildConfig := mockBuildConfig()
 
-	watch, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -152,7 +153,7 @@ func TestBuildConfigClient(t *testing.T) {
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
-	buildConfigs, err := openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	buildConfigs, err := openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -196,7 +197,7 @@ func TestBuildConfigClient(t *testing.T) {
 	}
 
 	// get a list of buildConfigs
-	buildConfigs, err = openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	buildConfigs, err = openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -213,7 +214,7 @@ func TestBuildConfigClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	buildConfigs, err = openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	buildConfigs, err = openshift.Client.BuildConfigs(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}

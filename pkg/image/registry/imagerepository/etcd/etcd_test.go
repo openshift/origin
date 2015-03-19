@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -110,7 +111,7 @@ func TestListImageRepositoriesEmptyList(t *testing.T) {
 	}
 	storage, _ := NewREST(helper, noDefaultRegistry)
 
-	imageRepositories, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	imageRepositories, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}
@@ -137,7 +138,7 @@ func TestListImageRepositoriesPopulatedList(t *testing.T) {
 		},
 	}
 
-	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}

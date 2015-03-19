@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -57,12 +58,12 @@ func (r *REST) NewList() runtime.Object {
 }
 
 // List obtains a list of images with labels that match selector.
-func (r *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	return r.store.List(ctx, image.MatchImage(label, field))
 }
 
 // Watch begins watching for new, changed, or deleted images.
-func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	if !field.Empty() {
 		return nil, errors.New("field selectors are not supported on images")
 	}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
@@ -16,7 +17,7 @@ type ProjectInterface interface {
 	Create(p *projectapi.Project) (*projectapi.Project, error)
 	Delete(name string) error
 	Get(name string) (*projectapi.Project, error)
-	List(label, field labels.Selector) (*projectapi.ProjectList, error)
+	List(label labels.Selector, field fields.Selector) (*projectapi.ProjectList, error)
 }
 
 type projects struct {
@@ -38,7 +39,7 @@ func (c *projects) Get(name string) (result *projectapi.Project, err error) {
 }
 
 // List returns all projects matching the label selector
-func (c *projects) List(label, field labels.Selector) (result *projectapi.ProjectList, err error) {
+func (c *projects) List(label labels.Selector, field fields.Selector) (result *projectapi.ProjectList, err error) {
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
 		Resource("projects").

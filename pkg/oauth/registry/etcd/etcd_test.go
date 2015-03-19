@@ -8,6 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -408,7 +409,7 @@ func TestListClientAuthorizationsEmpty(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.ExpectNotFoundGet(key)
 	registry := NewTestEtcdRegistry(fakeClient)
-	clientAuths, err := registry.ListClientAuthorizations(labels.Everything(), labels.Everything())
+	clientAuths, err := registry.ListClientAuthorizations(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 		return
@@ -434,7 +435,7 @@ func TestListClientAuthorizations(t *testing.T) {
 	}
 
 	registry := NewTestEtcdRegistry(fakeClient)
-	clientAuths, err := registry.ListClientAuthorizations(labels.Everything(), labels.Everything())
+	clientAuths, err := registry.ListClientAuthorizations(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 		return

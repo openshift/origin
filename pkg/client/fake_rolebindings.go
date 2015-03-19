@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -10,7 +11,7 @@ type FakeRoleBindings struct {
 	Fake *Fake
 }
 
-func (c *FakeRoleBindings) List(label, field labels.Selector) (*authorizationapi.RoleBindingList, error) {
+func (c *FakeRoleBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleBindingList, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-roleBinding"})
 	return &authorizationapi.RoleBindingList{}, nil
 }

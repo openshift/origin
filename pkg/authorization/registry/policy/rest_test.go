@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
@@ -54,7 +55,7 @@ func TestListError(t *testing.T) {
 	storage := REST{registry: &registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	_, err := storage.List(ctx, labels.Everything(), labels.Everything())
+	_, err := storage.List(ctx, labels.Everything(), fields.Everything())
 	if err == nil {
 		t.Errorf("expected error")
 		return
@@ -70,7 +71,7 @@ func TestListEmpty(t *testing.T) {
 	storage := REST{registry: registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	policies, err := storage.List(ctx, labels.Everything(), labels.Everything())
+	policies, err := storage.List(ctx, labels.Everything(), fields.Everything())
 	if err != registry.Err {
 		t.Errorf("got unexpected error: %v", err)
 		return
@@ -92,7 +93,7 @@ func TestList(t *testing.T) {
 	storage := REST{registry: registry}
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	policies, err := storage.List(ctx, labels.Everything(), labels.Everything())
+	policies, err := storage.List(ctx, labels.Everything(), fields.Everything())
 	if err != registry.Err {
 		t.Errorf("got unexpected error: %v", err)
 		return

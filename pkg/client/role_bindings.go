@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -13,7 +14,7 @@ type RoleBindingsNamespacer interface {
 
 // RoleBindingInterface exposes methods on RoleBinding resources.
 type RoleBindingInterface interface {
-	List(label, field labels.Selector) (*authorizationapi.RoleBindingList, error)
+	List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleBindingList, error)
 	Get(name string) (*authorizationapi.RoleBinding, error)
 	Create(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
 	Update(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
@@ -35,7 +36,7 @@ func newRoleBindings(c *Client, namespace string) *roleBindings {
 }
 
 // List returns a list of roleBindings that match the label and field selectors.
-func (c *roleBindings) List(label, field labels.Selector) (result *authorizationapi.RoleBindingList, err error) {
+func (c *roleBindings) List(label labels.Selector, field fields.Selector) (result *authorizationapi.RoleBindingList, err error) {
 	result = &authorizationapi.RoleBindingList{}
 	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").SelectorParam("labels", label).SelectorParam("fields", field).Do().Into(result)
 	return

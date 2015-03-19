@@ -3,6 +3,7 @@ package image
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -20,7 +21,7 @@ type Registry interface {
 	// DeleteImage deletes an image.
 	DeleteImage(ctx kapi.Context, id string) error
 	// WatchImages watches for new or deleted images.
-	WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	WatchImages(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -45,7 +46,7 @@ func NewRegistry(s Storage) Registry {
 }
 
 func (s *storage) ListImages(ctx kapi.Context, label labels.Selector) (*api.ImageList, error) {
-	obj, err := s.List(ctx, label, labels.Everything())
+	obj, err := s.List(ctx, label, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +71,6 @@ func (s *storage) DeleteImage(ctx kapi.Context, imageID string) error {
 	return err
 }
 
-func (s *storage) WatchImages(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (s *storage) WatchImages(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return s.Watch(ctx, label, field, resourceVersion)
 }

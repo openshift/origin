@@ -11,6 +11,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
@@ -189,7 +190,7 @@ func (o *LoginOptions) GatherProjectInfo() error {
 		return err
 	}
 
-	projects, err := oClient.Projects().List(labels.Everything(), labels.Everything())
+	projects, err := oClient.Projects().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}

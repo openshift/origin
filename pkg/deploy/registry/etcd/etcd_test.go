@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -68,7 +69,7 @@ func TestEtcdListEmptyDeployments(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -88,7 +89,7 @@ func TestEtcdListErrorDeployments(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -117,7 +118,7 @@ func TestEtcdListEverythingDeployments(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	deployments, err := registry.ListDeployments(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -170,7 +171,7 @@ func TestEtcdListFilteredDeployments(t *testing.T) {
 	testCase := selectorTest{
 		{labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything(), []string{"bar"}},
 		{labels.SelectorFromSet(labels.Set{"env": "stg"}), labels.Everything(), []string{"baz"}},
-		{labels.Everything(), labels.Everything(), []string{"foo", "bar", "baz"}},
+		{labels.Everything(), fields.Everything(), []string{"foo", "bar", "baz"}},
 		{labels.Everything(), labels.SelectorFromSet(labels.Set{"name": "baz"}), []string{"baz"}},
 		{labels.Everything(), labels.SelectorFromSet(labels.Set{"status": string(api.DeploymentStatusRunning)}), []string{"bar", "baz"}},
 	}
@@ -330,7 +331,7 @@ func TestEtcdListEmptyDeploymentConfig(t *testing.T) {
 		E: nil,
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -350,7 +351,7 @@ func TestEtcdListErrorDeploymentConfig(t *testing.T) {
 		E: fmt.Errorf("some error"),
 	}
 	registry := NewTestEtcd(fakeClient)
-	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	deploymentConfigs, err := registry.ListDeploymentConfigs(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err == nil {
 		t.Error("unexpected nil error")
 	}
@@ -394,7 +395,7 @@ func TestEtcdListFilteredDeploymentConfigs(t *testing.T) {
 	testCase := selectorTest{
 		{labels.SelectorFromSet(labels.Set{"env": "dev"}), labels.Everything(), []string{"bar"}},
 		{labels.SelectorFromSet(labels.Set{"env": "prod"}), labels.Everything(), []string{"foo"}},
-		{labels.Everything(), labels.Everything(), []string{"foo", "bar"}},
+		{labels.Everything(), fields.Everything(), []string{"foo", "bar"}},
 		{labels.Everything(), labels.SelectorFromSet(labels.Set{"name": "bar"}), []string{"bar"}},
 	}
 
@@ -604,7 +605,7 @@ func TestEtcdListDeploymentsInDifferentNamespaces(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 
-	deploymentsAlfa, err := registry.ListDeployments(namespaceAlfa, labels.Everything(), labels.Everything())
+	deploymentsAlfa, err := registry.ListDeployments(namespaceAlfa, labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -612,7 +613,7 @@ func TestEtcdListDeploymentsInDifferentNamespaces(t *testing.T) {
 		t.Errorf("Unexpected deployments list: %#v", deploymentsAlfa)
 	}
 
-	deploymentsBravo, err := registry.ListDeployments(namespaceBravo, labels.Everything(), labels.Everything())
+	deploymentsBravo, err := registry.ListDeployments(namespaceBravo, labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -654,7 +655,7 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 	}
 	registry := NewTestEtcd(fakeClient)
 
-	deploymentConfigsAlfa, err := registry.ListDeploymentConfigs(namespaceAlfa, labels.Everything(), labels.Everything())
+	deploymentConfigsAlfa, err := registry.ListDeploymentConfigs(namespaceAlfa, labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -662,7 +663,7 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 		t.Errorf("Unexpected deployments list: %#v", deploymentConfigsAlfa)
 	}
 
-	deploymentConfigsBravo, err := registry.ListDeploymentConfigs(namespaceBravo, labels.Everything(), labels.Everything())
+	deploymentConfigsBravo, err := registry.ListDeploymentConfigs(namespaceBravo, labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

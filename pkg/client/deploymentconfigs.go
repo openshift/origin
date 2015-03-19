@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,12 +15,12 @@ type DeploymentConfigsNamespacer interface {
 
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
-	List(label, field labels.Selector) (*deployapi.DeploymentConfigList, error)
+	List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentConfigList, error)
 	Get(name string) (*deployapi.DeploymentConfig, error)
 	Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 }
@@ -39,7 +40,7 @@ func newDeploymentConfigs(c *Client, namespace string) *deploymentConfigs {
 }
 
 // List takes a label and field selectors, and returns the list of deploymentConfigs that match that selectors
-func (c *deploymentConfigs) List(label, field labels.Selector) (result *deployapi.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(label labels.Selector, field fields.Selector) (result *deployapi.DeploymentConfigList, err error) {
 	result = &deployapi.DeploymentConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -78,7 +79,7 @@ func (c *deploymentConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

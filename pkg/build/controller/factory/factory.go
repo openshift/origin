@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -233,12 +234,12 @@ type buildLW struct {
 
 // List lists all Builds.
 func (lw *buildLW) List() (runtime.Object, error) {
-	return lw.client.Builds(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+	return lw.client.Builds(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 }
 
 // Watch watches all Builds.
 func (lw *buildLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+	return lw.client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 }
 
 // buildConfigLW is a ListWatcher implementation for BuildConfigs.
@@ -248,12 +249,12 @@ type buildConfigLW struct {
 
 // List lists all BuildConfigs.
 func (lw *buildConfigLW) List() (runtime.Object, error) {
-	return lw.client.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+	return lw.client.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 }
 
 // Watch watches all BuildConfigs.
 func (lw *buildConfigLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.BuildConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+	return lw.client.BuildConfigs(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 }
 
 // imageRepositoryLW is a ListWatcher for ImageRepositories.
@@ -263,12 +264,12 @@ type imageRepositoryLW struct {
 
 // List lists all ImageRepositories.
 func (lw *imageRepositoryLW) List() (runtime.Object, error) {
-	return lw.client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+	return lw.client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 }
 
 // Watch watches all ImageRepositories.
 func (lw *imageRepositoryLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+	return lw.client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 }
 
 // ControllerClient implements the common interfaces needed for build controllers

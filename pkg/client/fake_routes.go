@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,7 +15,7 @@ type FakeRoutes struct {
 	Namespace string
 }
 
-func (c *FakeRoutes) List(label, field labels.Selector) (*routeapi.RouteList, error) {
+func (c *FakeRoutes) List(label labels.Selector, field fields.Selector) (*routeapi.RouteList, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-routes"})
 	return &routeapi.RouteList{}, nil
 }
@@ -39,7 +40,7 @@ func (c *FakeRoutes) Delete(name string) error {
 	return nil
 }
 
-func (c *FakeRoutes) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *FakeRoutes) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-routes"})
 	return nil, nil
 }

@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -387,7 +388,7 @@ func TestEtcdWatchRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 
-	watching, err := registry.WatchRoutes(kapi.NewDefaultContext(), labels.Everything(), labels.Everything(), "1")
+	watching, err := registry.WatchRoutes(kapi.NewDefaultContext(), labels.Everything(), fields.Everything(), "1")
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

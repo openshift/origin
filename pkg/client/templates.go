@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,12 +15,12 @@ type TemplatesNamespacer interface {
 
 // TemplateInterface exposes methods on Template resources.
 type TemplateInterface interface {
-	List(label, field labels.Selector) (*templateapi.TemplateList, error)
+	List(label labels.Selector, field fields.Selector) (*templateapi.TemplateList, error)
 	Get(name string) (*templateapi.Template, error)
 	Create(template *templateapi.Template) (*templateapi.Template, error)
 	Update(template *templateapi.Template) (*templateapi.Template, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // templates implements TemplatesNamespacer interface
@@ -37,7 +38,7 @@ func newTemplates(c *Client, namespace string) *templates {
 }
 
 // List returns a list of templates that match the label and field selectors.
-func (c *templates) List(label, field labels.Selector) (result *templateapi.TemplateList, err error) {
+func (c *templates) List(label labels.Selector, field fields.Selector) (result *templateapi.TemplateList, err error) {
 	result = &templateapi.TemplateList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -77,7 +78,7 @@ func (c *templates) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested templates
-func (c *templates) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *templates) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

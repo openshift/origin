@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/project/api"
 )
@@ -43,7 +44,7 @@ func TestListProjects(t *testing.T) {
 		Groups: []string{"test-groups"},
 	}
 	ctx := kapi.WithUser(kapi.NewContext(), user)
-	response, err := storage.List(ctx, labels.Everything(), labels.Everything())
+	response, err := storage.List(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("%#v should be nil.", err)
 	}

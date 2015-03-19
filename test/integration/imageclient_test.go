@@ -14,6 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -40,7 +41,7 @@ func TestImageRepositoryList(t *testing.T) {
 	openshift := NewTestImageOpenShift(t)
 	defer openshift.Close()
 
-	builds, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	builds, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -79,7 +80,7 @@ func TestImageRepositoryCreate(t *testing.T) {
 		t.Errorf("unexpected object: %s", util.ObjectDiff(expected, actual))
 	}
 
-	repos, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	repos, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}

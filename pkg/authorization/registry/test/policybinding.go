@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -28,7 +29,7 @@ func NewPolicyBindingRegistry(bindings []authorizationapi.PolicyBinding, err err
 }
 
 // ListPolicies obtains list of ListPolicyBinding that match a selector.
-func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, labels, fields klabels.Selector) (*authorizationapi.PolicyBindingList, error) {
+func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -134,7 +135,7 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, errors.New("unsupported")
 }
 

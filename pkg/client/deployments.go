@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,12 +15,12 @@ type DeploymentsNamespacer interface {
 
 // DeploymentInterface contains methods for working with Deployments
 type DeploymentInterface interface {
-	List(label, field labels.Selector) (*deployapi.DeploymentList, error)
+	List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentList, error)
 	Get(name string) (*deployapi.Deployment, error)
 	Create(deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	Update(deployment *deployapi.Deployment) (*deployapi.Deployment, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // deployments implements DeploymentsNamespacer interface
@@ -37,7 +38,7 @@ func newDeployments(c *Client, namespace string) *deployments {
 }
 
 // List takes a label and field selector, and returns the list of deployments that match that selectors
-func (c *deployments) List(label, field labels.Selector) (result *deployapi.DeploymentList, err error) {
+func (c *deployments) List(label labels.Selector, field fields.Selector) (result *deployapi.DeploymentList, err error) {
 	result = &deployapi.DeploymentList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -76,7 +77,7 @@ func (c *deployments) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested deployments.
-func (c *deployments) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *deployments) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

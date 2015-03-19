@@ -6,6 +6,7 @@ import (
 	"path"
 
 	etcderrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -165,7 +166,7 @@ func (r *Etcd) GetClientAuthorization(name string) (client *api.OAuthClientAutho
 	return
 }
 
-func (r *Etcd) ListClientAuthorizations(label, field labels.Selector) (*api.OAuthClientAuthorizationList, error) {
+func (r *Etcd) ListClientAuthorizations(label labels.Selector, field fields.Selector) (*api.OAuthClientAuthorizationList, error) {
 	list := api.OAuthClientAuthorizationList{}
 	err := r.ExtractToList(OAuthClientAuthorizationPath, &list)
 	if err != nil && !tools.IsEtcdNotFound(err) {

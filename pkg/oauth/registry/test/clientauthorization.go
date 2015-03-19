@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -21,7 +22,7 @@ func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientNa
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
-func (r *ClientAuthorizationRegistry) ListClientAuthorizations(label, field labels.Selector) (*api.OAuthClientAuthorizationList, error) {
+func (r *ClientAuthorizationRegistry) ListClientAuthorizations(label labels.Selector, field fields.Selector) (*api.OAuthClientAuthorizationList, error) {
 	return r.ClientAuthorizations, r.Err
 }
 

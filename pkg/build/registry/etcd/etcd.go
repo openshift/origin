@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -59,7 +60,7 @@ func (r *Etcd) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.Buil
 }
 
 // WatchBuilds begins watching for new, changed, or deleted Builds.
-func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := tools.ParseWatchResourceVersion(resourceVersion, "build")
 	if err != nil {
 		return nil, err
@@ -194,7 +195,7 @@ func (r *Etcd) DeleteBuildConfig(ctx kapi.Context, id string) error {
 }
 
 // WatchBuildConfigs begins watching for new, changed, or deleted BuildConfigs.
-func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := tools.ParseWatchResourceVersion(resourceVersion, "buildConfig")
 	if err != nil {
 		return nil, err

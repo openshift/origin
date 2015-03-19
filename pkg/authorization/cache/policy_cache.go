@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -79,10 +80,10 @@ func (c *PolicyCache) configureReflectors() (*cache.Reflector, *cache.Reflector)
 	policyBindingReflector := cache.NewReflector(
 		&listWatch{
 			listFunc: func() (runtime.Object, error) {
-				return c.bindingRegistry.ListPolicyBindings(ctx, labels.Everything(), labels.Everything())
+				return c.bindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
 			},
 			watchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return c.bindingRegistry.WatchPolicyBindings(ctx, labels.Everything(), labels.Everything(), resourceVersion)
+				return c.bindingRegistry.WatchPolicyBindings(ctx, labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
 		&authorizationapi.PolicyBinding{},
@@ -92,10 +93,10 @@ func (c *PolicyCache) configureReflectors() (*cache.Reflector, *cache.Reflector)
 	policyReflector := cache.NewReflector(
 		&listWatch{
 			listFunc: func() (runtime.Object, error) {
-				return c.policyRegistry.ListPolicies(ctx, labels.Everything(), labels.Everything())
+				return c.policyRegistry.ListPolicies(ctx, labels.Everything(), fields.Everything())
 			},
 			watchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return c.policyRegistry.WatchPolicies(ctx, labels.Everything(), labels.Everything(), resourceVersion)
+				return c.policyRegistry.WatchPolicies(ctx, labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
 		&authorizationapi.Policy{},
@@ -127,7 +128,7 @@ func (c *PolicyCache) GetPolicy(ctx kapi.Context, name string) (*authorizationap
 }
 
 // ListPolicyBindings obtains list of policyBindings that match a selector.  It conforms to rulevalidation.BindingLister
-func (c *PolicyCache) ListPolicyBindings(ctx kapi.Context, labels, fields labels.Selector) (*authorizationapi.PolicyBindingList, error) {
+func (c *PolicyCache) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
 	namespace, exists := kapi.NamespaceFrom(ctx)
 	if !exists {
 		return nil, errors.New("no namespace found")

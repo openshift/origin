@@ -3,6 +3,7 @@ package imagechange
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -26,10 +27,10 @@ type ImageChangeControllerFactory struct {
 func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
 	imageRepositoryLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
-			return factory.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+			return factory.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+			return factory.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
@@ -37,10 +38,10 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 
 	deploymentConfigLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)

@@ -5,6 +5,7 @@ import (
 	"io"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/spf13/cobra"
@@ -74,7 +75,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 				selector := labels.SelectorFromSet(set)
 
 				// Add a watcher for the build about to start
-				watcher, err := client.Builds(namespace).Watch(selector, labels.Everything(), newBuild.ResourceVersion)
+				watcher, err := client.Builds(namespace).Watch(selector, fields.Everything(), newBuild.ResourceVersion)
 				checkErr(err)
 				defer watcher.Stop()
 

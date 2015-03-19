@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/client"
@@ -126,7 +127,7 @@ func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
 		// confirm that we can actually query from the api server
 
 		if client, err := GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err == nil {
+			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil {
 				break
 			}
 		}
@@ -181,7 +182,7 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 			if err != nil {
 				return
 			}
-			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err == nil {
+			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil {
 				close(stopChannel)
 			}
 		}, 100*time.Millisecond, stopChannel)

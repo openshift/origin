@@ -8,6 +8,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -51,17 +52,17 @@ func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
 
 	openshiftSharedResourcesNamespace := "openshift"
 
-	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(labels.Everything(), labels.Everything()); err != nil {
+	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(labels.Everything(), labels.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageRepositories(openshiftSharedResourcesNamespace).List(labels.Everything(), labels.Everything()); err != nil {
+	if _, err := valerieOpenshiftClient.ImageRepositories(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageRepositories(kapi.NamespaceDefault).List(labels.Everything(), labels.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+	if _, err := valerieOpenshiftClient.ImageRepositories(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -88,7 +89,7 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -101,7 +102,7 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), labels.Everything()); err != nil {
+	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
@@ -43,7 +44,11 @@ func TestListBuilds(t *testing.T) {
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
+<<<<<<< HEAD
 	builds, err := openshift.Client.Builds(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+=======
+	builds, err := openshift.Client.Builds(util.Namespace()).List(labels.Everything(), fields.Everything())
+>>>>>>> 3bfc5e9... Refactor 1
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -67,7 +72,11 @@ func TestCreateBuild(t *testing.T) {
 		t.Errorf("Unexpected empty build Name %v", expected)
 	}
 
+<<<<<<< HEAD
 	builds, err := openshift.Client.Builds(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+=======
+	builds, err := openshift.Client.Builds(util.Namespace()).List(labels.Everything(), fields.Everything())
+>>>>>>> 3bfc5e9... Refactor 1
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -97,7 +106,11 @@ func TestWatchBuilds(t *testing.T) {
 	defer openshift.Close()
 	build := mockBuild()
 
+<<<<<<< HEAD
 	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+=======
+	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+>>>>>>> 3bfc5e9... Refactor 1
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
