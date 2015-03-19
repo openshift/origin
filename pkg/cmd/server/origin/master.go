@@ -282,8 +282,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		Mapper: latest.RESTMapper,
 
-		Creater: api.Scheme,
-		Typer:   api.Scheme,
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
 		Linker:  latest.SelfLinker,
 
 		Admit:   admissionControl,

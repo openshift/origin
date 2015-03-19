@@ -413,7 +413,25 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		"buildConfigs":              buildconfigregistry.NewREST(buildEtcd),
 	}
 
-	apiserver.NewAPIGroupVersion(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	version := &apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
+
+		Storage: storage,
+		Codec:   latest.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  interfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
 
 	dccFactory := deployconfigcontroller.DeploymentConfigControllerFactory{
 		Client:     osClient,

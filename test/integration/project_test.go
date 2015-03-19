@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace"
+	namespaceetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -38,13 +39,37 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	// create a kube and its client
 	kubeInterfaces, _ := klatest.InterfacesFor(klatest.Version)
-	namespaceRegistry := namespace.NewEtcdRegistry(etcdHelper)
+	namespaceStorage := namespaceetcd.NewREST(etcdHelper)
 	kubeStorage := map[string]apiserver.RESTStorage{
-		"namespaces": namespace.NewREST(namespaceRegistry),
+		"namespaces": namespaceStorage,
 	}
-	kubeServer := httptest.NewServer(apiserver.Handle(kubeStorage, kv1beta1.Codec, "/api", "v1beta1", kubeInterfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), klatest.RESTMapper))
-	defer kubeServer.Close()
-	kubeClient, err := kclient.New(&kclient.Config{Host: kubeServer.URL})
+
+	osMux := http.NewServeMux()
+	server := httptest.NewServer(osMux)
+	defer server.Close()
+	handlerContainer := master.NewHandlerContainer(osMux)
+
+	version := &apiserver.APIGroupVersion{
+		Root:    "/api",
+		Version: "v1beta1",
+
+		Storage: kubeStorage,
+		Codec:   kv1beta1.Codec,
+
+		Mapper: klatest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  kubeInterfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
+
+	kubeClient, err := kclient.New(&kclient.Config{Host: server.URL})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -54,9 +79,27 @@ func TestProjectIsNamespace(t *testing.T) {
 	originStorage := map[string]apiserver.RESTStorage{
 		"projects": projectregistry.NewREST(kubeClient.Namespaces(), nil),
 	}
-	originServer := httptest.NewServer(apiserver.Handle(originStorage, v1beta1.Codec, "/osapi", "v1beta1", originInterfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper))
-	defer originServer.Close()
-	originClient, err := client.New(&kclient.Config{Host: originServer.URL})
+	osVersion := &apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
+
+		Storage: originStorage,
+		Codec:   v1beta1.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  originInterfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := osVersion.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
+
+	originClient, err := client.New(&kclient.Config{Host: server.URL})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

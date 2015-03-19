@@ -215,7 +215,25 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		"imageRepositories/status": imageRepositoryStatus,
 	}
 
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	version := &apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
+
+		Storage: storage,
+		Codec:   latest.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  interfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
 
 	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,

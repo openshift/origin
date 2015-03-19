@@ -102,7 +102,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 					ok   bool
 					data []byte
 				)
-				mapping, _, _, data, err := cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
+				mapping, _, _, data, err = cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
 				checkErr(err)
 				obj, err := mapping.Codec.Decode(data)
 				checkErr(err)
