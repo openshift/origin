@@ -1,12 +1,53 @@
 package start
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
+
+func TestMasterURLNoPathAllowed(t *testing.T) {
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set("http://example.com:9012/")
+	err := masterArgs.Validate()
+
+	if err == nil || !strings.Contains(err.Error(), "may not include a path") {
+		t.Errorf("expected %v, got %v", "may not include a path", err)
+	}
+}
+
+func TestMasterPublicURLNoPathAllowed(t *testing.T) {
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterPublicAddr.Set("http://example.com:9012/")
+	err := masterArgs.Validate()
+
+	if err == nil || !strings.Contains(err.Error(), "may not include a path") {
+		t.Errorf("expected %v, got %v", "may not include a path", err)
+	}
+}
+
+func TestKubePublicURLNoPathAllowed(t *testing.T) {
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.KubernetesPublicAddr.Set("http://example.com:9012/")
+	err := masterArgs.Validate()
+
+	if err == nil || !strings.Contains(err.Error(), "may not include a path") {
+		t.Errorf("expected %v, got %v", "may not include a path", err)
+	}
+}
+
+func TestKubeURLNoPathAllowed(t *testing.T) {
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.KubeConnectionArgs.KubernetesAddr.Set("http://example.com:9012/")
+	err := masterArgs.Validate()
+
+	if err == nil || !strings.Contains(err.Error(), "may not include a path") {
+		t.Errorf("expected %v, got %v", "may not include a path", err)
+	}
+}
 
 func TestMasterPublicAddressDefaulting(t *testing.T) {
 	expected := "http://example.com:9012"

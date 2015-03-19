@@ -122,6 +122,10 @@ func (o MasterOptions) Validate(args []string) error {
 		}
 	}
 
+	if err := o.MasterArgs.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
