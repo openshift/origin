@@ -33,7 +33,7 @@ func (m *VirtualRegistry) ListRoles(ctx kapi.Context, label labels.Selector, fie
 
 	for _, policy := range policyList.Items {
 		for _, role := range policy.Roles {
-			if labels.Matches(labels.Set(role.Labels)) {
+			if label.Matches(labels.Set(role.Labels)) {
 				roleList.Items = append(roleList.Items, role)
 			}
 		}

@@ -81,7 +81,7 @@ func (r *Etcd) GetPolicy(ctx kapi.Context, name string) (policy *authorizationap
 }
 
 func (r *Etcd) ListPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
-	result, err := r.policyRegistry.List(ctx, &generic.SelectionPredicate{label, field, getAttrs})
+	result, err := r.policyRegistry.ListPredicate(ctx, &generic.SelectionPredicate{label, field, getAttrs})
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (r *Etcd) DeletePolicy(ctx kapi.Context, name string) error {
 }
 
 func (r *Etcd) WatchPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return r.policyRegistry.Watch(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
+	return r.policyRegistry.WatchPredicate(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
 }
 
 func makePolicyBindingListKey(ctx kapi.Context) string {
@@ -132,7 +132,7 @@ func (r *Etcd) GetPolicyBinding(ctx kapi.Context, name string) (policyBinding *a
 }
 
 func (r *Etcd) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
-	result, err := r.policyBindingRegistry.List(ctx, &generic.SelectionPredicate{label, field, getAttrs})
+	result, err := r.policyBindingRegistry.ListPredicate(ctx, &generic.SelectionPredicate{label, field, getAttrs})
 	if err != nil {
 		return nil, err
 	}
@@ -158,5 +158,5 @@ func (r *Etcd) DeletePolicyBinding(ctx kapi.Context, name string) error {
 }
 
 func (r *Etcd) WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return r.policyBindingRegistry.Watch(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
+	return r.policyBindingRegistry.WatchPredicate(ctx, &generic.SelectionPredicate{label, field, getAttrs}, resourceVersion)
 }

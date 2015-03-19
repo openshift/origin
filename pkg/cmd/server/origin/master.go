@@ -780,7 +780,7 @@ func NewEtcdHelper(version string, client *etcdclient.Client) (helper tools.Etcd
 	if err != nil {
 		return helper, err
 	}
-	return tools.EtcdHelper{client, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, nil
+	return tools.NewEtcdHelper(client, interfaces.Codec), nil
 }
 
 // env returns an environment variable, or the defaultValue if it is not set.

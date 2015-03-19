@@ -18,7 +18,7 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
+	return New(tools.NewEtcdHelper(client, latest.Codec))
 }
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we

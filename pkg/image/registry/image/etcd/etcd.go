@@ -59,7 +59,7 @@ func (r *REST) NewList() runtime.Object {
 
 // List obtains a list of images with labels that match selector.
 func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	return r.store.List(ctx, image.MatchImage(label, field))
+	return r.store.ListPredicate(ctx, image.MatchImage(label, field))
 }
 
 // Watch begins watching for new, changed, or deleted images.
@@ -67,7 +67,7 @@ func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selec
 	if !field.Empty() {
 		return nil, errors.New("field selectors are not supported on images")
 	}
-	return r.store.Watch(ctx, image.MatchImage(label, field), resourceVersion)
+	return r.store.WatchPredicate(ctx, image.MatchImage(label, field), resourceVersion)
 }
 
 // Get gets a specific image specified by its ID.

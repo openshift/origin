@@ -18,7 +18,7 @@ import (
 )
 
 func NewTestEtcdRegistry(client tools.EtcdGetSet) *Etcd {
-	return New(tools.EtcdHelper{client, v1beta1.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
+	return New(tools.NewEtcdHelper(client, v1beta1.Codec))
 }
 
 func TestGetAccessTokenNotFound(t *testing.T) {

@@ -77,7 +77,7 @@ func (registry *Etcd) CreateRoute(ctx kapi.Context, route *api.Route) error {
 	if err != nil {
 		return err
 	}
-	err = registry.CreateObj(key, route, 0)
+	err = registry.CreateObj(key, route, nil, 0)
 	return etcderr.InterpretCreateError(err, "route", route.Name)
 }
 
@@ -87,7 +87,7 @@ func (registry *Etcd) UpdateRoute(ctx kapi.Context, route *api.Route) error {
 	if err != nil {
 		return err
 	}
-	err = registry.SetObj(key, route, 0)
+	err = registry.SetObj(key, route, nil, 0)
 	return etcderr.InterpretUpdateError(err, "route", route.Name)
 }
 

@@ -40,7 +40,7 @@ func (m *VirtualRegistry) ListRoleBindings(ctx kapi.Context, label labels.Select
 
 	for _, policyBinding := range policyBindingList.Items {
 		for _, roleBinding := range policyBinding.RoleBindings {
-			if labels.Matches(labels.Set(roleBinding.Labels)) {
+			if label.Matches(labels.Set(roleBinding.Labels)) {
 				roleBindingList.Items = append(roleBindingList.Items, roleBinding)
 			}
 		}

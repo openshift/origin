@@ -40,7 +40,7 @@ func makeTestDefaultRouteListKey() string {
 }
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
+	return New(tools.NewEtcdHelper(client, latest.Codec))
 }
 
 func TestEtcdListEmptyRoutes(t *testing.T) {

@@ -86,7 +86,7 @@ func (r *Etcd) CreateDeployment(ctx kapi.Context, deployment *api.Deployment) er
 	if err != nil {
 		return err
 	}
-	err = r.CreateObj(key, deployment, 0)
+	err = r.CreateObj(key, deployment, nil, 0)
 	return etcderr.InterpretCreateError(err, "deployment", deployment.Name)
 }
 
@@ -96,7 +96,7 @@ func (r *Etcd) UpdateDeployment(ctx kapi.Context, deployment *api.Deployment) er
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, deployment, 0)
+	err = r.SetObj(key, deployment, nil, 0)
 	return etcderr.InterpretUpdateError(err, "deployment", deployment.Name)
 }
 
@@ -202,7 +202,7 @@ func (r *Etcd) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.De
 		return err
 	}
 
-	err = r.CreateObj(key, deploymentConfig, 0)
+	err = r.CreateObj(key, deploymentConfig, nil, 0)
 	return etcderr.InterpretCreateError(err, "deploymentConfig", deploymentConfig.Name)
 }
 
@@ -213,7 +213,7 @@ func (r *Etcd) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.De
 		return err
 	}
 
-	err = r.SetObj(key, deploymentConfig, 0)
+	err = r.SetObj(key, deploymentConfig, nil, 0)
 	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.Name)
 }
 

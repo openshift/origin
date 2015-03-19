@@ -55,5 +55,5 @@ func (r *REST) NewList() runtime.Object {
 
 // List obtains a list of templates with labels that match selector.
 func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	return r.Etcd.List(ctx, registry.MatchTemplate(label, field))
+	return r.Etcd.ListPredicate(ctx, registry.MatchTemplate(label, field))
 }

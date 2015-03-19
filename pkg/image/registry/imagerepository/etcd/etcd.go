@@ -62,12 +62,12 @@ func (r *REST) NewList() runtime.Object {
 
 // List obtains a list of image repositories with labels that match selector.
 func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	return r.store.List(ctx, imagerepository.MatchImageRepository(label, field))
+	return r.store.ListPredicate(ctx, imagerepository.MatchImageRepository(label, field))
 }
 
 // Watch begins watching for new, changed, or deleted image repositories.
 func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return r.store.Watch(ctx, imagerepository.MatchImageRepository(label, field), resourceVersion)
+	return r.store.WatchPredicate(ctx, imagerepository.MatchImageRepository(label, field), resourceVersion)
 }
 
 // Get gets a specific image repository specified by its ID.

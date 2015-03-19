@@ -75,7 +75,7 @@ func (r *Etcd) ListAccessTokens(selector labels.Selector) (*api.OAuthAccessToken
 }
 
 func (r *Etcd) CreateAccessToken(token *api.OAuthAccessToken) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeAccessTokenKey(token.Name), token, 0), OAuthAccessTokenType, token.Name)
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeAccessTokenKey(token.Name), token, nil, 0), OAuthAccessTokenType, token.Name)
 	return err
 }
 
@@ -105,7 +105,7 @@ func (r *Etcd) ListAuthorizeTokens(selector labels.Selector) (*api.OAuthAuthoriz
 }
 
 func (r *Etcd) CreateAuthorizeToken(token *api.OAuthAuthorizeToken) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeAuthorizeTokenKey(token.Name), token, 0), OAuthAuthorizeTokenType, token.Name)
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeAuthorizeTokenKey(token.Name), token, nil, 0), OAuthAuthorizeTokenType, token.Name)
 	return err
 }
 
@@ -142,7 +142,7 @@ func (r *Etcd) ListClients(selector labels.Selector) (*api.OAuthClientList, erro
 }
 
 func (r *Etcd) CreateClient(client *api.OAuthClient) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientKey(client.Name), client, 0), OAuthClientType, client.Name)
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientKey(client.Name), client, nil, 0), OAuthClientType, client.Name)
 	return err
 }
 
@@ -176,12 +176,12 @@ func (r *Etcd) ListClientAuthorizations(label labels.Selector, field fields.Sele
 }
 
 func (r *Etcd) CreateClientAuthorization(client *api.OAuthClientAuthorization) error {
-	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientAuthorizationKey(client.Name), client, 0), OAuthClientAuthorizationType, client.Name)
+	err := etcderrs.InterpretCreateError(r.CreateObj(makeClientAuthorizationKey(client.Name), client, nil, 0), OAuthClientAuthorizationType, client.Name)
 	return err
 }
 
 func (r *Etcd) UpdateClientAuthorization(client *api.OAuthClientAuthorization) error {
-	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.Name), client, 0), OAuthClientAuthorizationType, client.Name)
+	err := etcderrs.InterpretUpdateError(r.SetObj(makeClientAuthorizationKey(client.Name), client, nil, 0), OAuthClientAuthorizationType, client.Name)
 	return err
 }
 
