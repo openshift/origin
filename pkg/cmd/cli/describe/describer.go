@@ -147,9 +147,13 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		if build.StartTimestamp != nil && build.CompletionTimestamp != nil {
 			// time a build ran from pod creation to build finish or cancel
 			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.StartTimestamp.Rfc3339Copy().Time))
-		} else if build.CompletionTimestamp != nil {
+		} else if build.CompletionTimestamp != nil && build.Status == buildapi.BuildStatusCancelled {
 			// time a build waited for its pod before ultimately being canceled before that pod was created
 			formatString(out, "Duration", fmt.Sprintf("waited for %s", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
+		} else if build.CompletionTimestamp != nil && build.Status != buildapi.BuildStatusCancelled {
+			// for some reason we never saw the pod enter the running state, so we don't know when it
+			// "started", so instead print out the time from creation to completion.
+			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 		} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {
 			// time a new build has been waiting for its pod to be created so it can run
 			formatString(out, "Duration", fmt.Sprintf("waiting for %s", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
