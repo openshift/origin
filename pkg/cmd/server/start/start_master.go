@@ -239,22 +239,6 @@ func (o MasterOptions) CreateBootstrapPolicy() error {
 }
 
 func (o MasterOptions) CreateCerts() error {
-	signerName := admin.DefaultSignerName()
-	hostnames, err := o.MasterArgs.GetServerCertHostnames()
-	if err != nil {
-		return err
-	}
-	mintAllCertsOptions := admin.CreateAllCertsOptions{
-		CertDir:    o.MasterArgs.CertArgs.CertDir,
-		SignerName: signerName,
-		Hostnames:  hostnames.List(),
-		NodeList:   o.MasterArgs.NodeList,
-	}
-	if err := mintAllCertsOptions.CreateAllCerts(); err != nil {
-		return err
-	}
-
-	rootCAFile := admin.DefaultRootCAFile(o.MasterArgs.CertArgs.CertDir)
 	masterAddr, err := o.MasterArgs.GetMasterAddress()
 	if err != nil {
 		return err
@@ -263,6 +247,25 @@ func (o MasterOptions) CreateCerts() error {
 	if err != nil {
 		return err
 	}
+
+	signerName := admin.DefaultSignerName()
+	hostnames, err := o.MasterArgs.GetServerCertHostnames()
+	if err != nil {
+		return err
+	}
+	mintAllCertsOptions := admin.CreateAllCertsOptions{
+		CertDir:            o.MasterArgs.CertArgs.CertDir,
+		SignerName:         signerName,
+		Hostnames:          hostnames.List(),
+		NodeList:           o.MasterArgs.NodeList,
+		APIServerURL:       masterAddr.String(),
+		PublicAPIServerURL: publicMasterAddr.String(),
+	}
+	if err := mintAllCertsOptions.CreateAllCerts(); err != nil {
+		return err
+	}
+
+	rootCAFile := admin.DefaultRootCAFile(o.MasterArgs.CertArgs.CertDir)
 	for _, clientCertInfo := range admin.DefaultClientCerts(o.MasterArgs.CertArgs.CertDir) {
 		createKubeConfigOptions := admin.CreateKubeConfigOptions{
 			APIServerURL:       masterAddr.String(),
