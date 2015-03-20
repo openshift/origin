@@ -42,7 +42,7 @@ func TestStorage(t *testing.T) {
 	storage := NewREST(helper)
 	var _ apiserver.RESTCreater = storage
 	var _ apiserver.RESTLister = storage
-	var _ apiserver.RESTDeleter = storage
+	var _ apiserver.RESTGracefulDeleter = storage
 	var _ apiserver.RESTUpdater = storage
 	var _ apiserver.RESTGetter = storage
 }

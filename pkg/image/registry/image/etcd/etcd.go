@@ -81,6 +81,6 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // Delete deletes an existing image specified by its ID.
-func (r *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Delete(ctx, name)
+func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+	return r.store.Delete(ctx, name, options)
 }

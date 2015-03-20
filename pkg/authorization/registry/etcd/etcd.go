@@ -102,7 +102,7 @@ func (r *Etcd) UpdatePolicy(ctx kapi.Context, newPolicy *authorizationapi.Policy
 }
 
 func (r *Etcd) DeletePolicy(ctx kapi.Context, name string) error {
-	_, err := r.policyRegistry.Delete(ctx, name)
+	_, err := r.policyRegistry.Delete(ctx, name, nil)
 	return err
 }
 
@@ -153,7 +153,7 @@ func (r *Etcd) UpdatePolicyBinding(ctx kapi.Context, newPolicyBinding *authoriza
 }
 
 func (r *Etcd) DeletePolicyBinding(ctx kapi.Context, name string) error {
-	_, err := r.policyBindingRegistry.Delete(ctx, name)
+	_, err := r.policyBindingRegistry.Delete(ctx, name, nil)
 	return err
 }
 

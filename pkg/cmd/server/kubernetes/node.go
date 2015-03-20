@@ -131,6 +131,11 @@ func (c *NodeConfig) RunKubelet() {
 		MaxPerPodContainer: 5,
 		MaxContainers:      100,
 	}
+	imageGCPolicy := kubelet.ImageGCPolicy{
+		HighThresholdPercent: 90,
+		LowThresholdPercent:  80,
+	}
+
 	k, err := kubelet.NewMainKubelet(
 		c.NodeHost,
 		c.DockerClient,
@@ -146,10 +151,15 @@ func (c *NodeConfig) RunKubelet() {
 		clusterDNS,
 		kapi.NamespaceDefault,
 		app.ProbeVolumePlugins(),
+		app.ProbeNetworkPlugins(),
+		c.NetworkPluginName,
 		5*time.Minute,
 		recorder,
 		cadvisorInterface,
-		10*time.Second)
+		20*time.Second,
+		2*time.Minute,
+		imageGCPolicy,
+	)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
 	}

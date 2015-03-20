@@ -86,8 +86,8 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 }
 
 // Delete deletes an existing image repository specified by its ID.
-func (r *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Delete(ctx, name)
+func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+	return r.store.Delete(ctx, name, options)
 }
 
 // StatusREST implements the REST endpoint for changing the status of an image repository.

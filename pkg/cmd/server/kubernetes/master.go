@@ -54,7 +54,6 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		ReadWritePort: c.MasterPort,
 		ReadOnlyPort:  c.MasterPort,
 
-		Client:     c.KubeClient,
 		EtcdHelper: c.EtcdHelper,
 
 		EventTTL: 2 * time.Hour,
