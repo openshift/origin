@@ -291,10 +291,12 @@ echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 # Remote command execution
+echo "[INFO] Validating exec"
 registry_pod=$(osc get pod | grep docker-registry | awk '{print $1}')
 osc exec -p ${registry_pod} whoami | grep root
 
 # Port forwarding
+echo "[INFO] Validating port-forward"
 osc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:5001/" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
