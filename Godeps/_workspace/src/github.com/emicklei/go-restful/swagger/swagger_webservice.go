@@ -2,6 +2,7 @@ package swagger
 
 import (
 	"fmt"
+
 	"github.com/emicklei/go-restful"
 	// "github.com/emicklei/hopwatch"
 	"log"
@@ -128,7 +129,7 @@ func enableCORS(req *restful.Request, resp *restful.Response, chain *restful.Fil
 }
 
 func (sws SwaggerService) getListing(req *restful.Request, resp *restful.Response) {
-	listing := ResourceListing{SwaggerVersion: swaggerVersion}
+	listing := ResourceListing{SwaggerVersion: swaggerVersion, ApiVersion: sws.config.ApiVersion}
 	for k, v := range sws.apiDeclarationMap {
 		ref := Resource{Path: k}
 		if len(v.Apis) > 0 { // use description of first (could still be empty)
@@ -136,6 +137,7 @@ func (sws SwaggerService) getListing(req *restful.Request, resp *restful.Respons
 		}
 		listing.Apis = append(listing.Apis, ref)
 	}
+	sort.Sort(ResourceSorter(listing.Apis))
 	resp.WriteAsJson(listing)
 }
 
@@ -145,7 +147,21 @@ func (sws SwaggerService) getDeclarations(req *restful.Request, resp *restful.Re
 	if len(sws.config.WebServicesUrl) == 0 {
 		// update base path from the actual request
 		// TODO how to detect https? assume http for now
-		(&decl).BasePath = fmt.Sprintf("http://%s", req.Request.Host)
+		var host string
+		// X-Forwarded-Host or Host or Request.Host
+		hostvalues, ok := req.Request.Header["X-Forwarded-Host"] // apache specific?
+		if !ok || len(hostvalues) == 0 {
+			forwarded, ok := req.Request.Header["Host"] // without reverse-proxy
+			if !ok || len(forwarded) == 0 {
+				// fallback to Host field
+				host = req.Request.Host
+			} else {
+				host = forwarded[0]
+			}
+		} else {
+			host = hostvalues[0]
+		}
+		(&decl).BasePath = fmt.Sprintf("http://%s", host)
 	}
 	resp.WriteAsJson(decl)
 }
@@ -164,19 +180,19 @@ func (sws SwaggerService) composeDeclaration(ws *restful.WebService, pathPrefix 
 		rootParams = append(rootParams, asSwaggerParameter(param.Data()))
 	}
 	// aggregate by path
-	pathToRoutes := map[string][]restful.Route{}
+	pathToRoutes := newOrderedRouteMap()
 	for _, other := range ws.Routes() {
 		if strings.HasPrefix(other.Path, pathPrefix) {
-			routes := pathToRoutes[other.Path]
-			pathToRoutes[other.Path] = append(routes, other)
+			pathToRoutes.Add(other.Path, other)
 		}
 	}
-	for path, routes := range pathToRoutes {
+	pathToRoutes.Do(func(path string, routes []restful.Route) {
 		api := Api{Path: strings.TrimSuffix(path, "/"), Description: ws.Documentation()}
 		for _, route := range routes {
 			operation := Operation{
 				Method:           route.Method,
 				Summary:          route.Doc,
+				Notes:            route.Notes,
 				Type:             asDataType(route.WriteSample),
 				Parameters:       []Parameter{},
 				Nickname:         route.Operation,
@@ -200,7 +216,7 @@ func (sws SwaggerService) composeDeclaration(ws *restful.WebService, pathPrefix 
 			api.Operations = append(api.Operations, operation)
 		}
 		decl.Apis = append(decl.Apis, api)
-	}
+	})
 	return decl
 }
 

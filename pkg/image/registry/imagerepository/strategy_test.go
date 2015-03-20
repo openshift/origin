@@ -1,6 +1,7 @@
 package imagerepository
 
 import (
+	"fmt"
 	"reflect"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -71,7 +72,7 @@ func TestDockerImageRepository(t *testing.T) {
 	}
 }
 
-func TestUpdateTagHistory(t *testing.T) {
+func TestTagsChanged(t *testing.T) {
 	tests := map[string]struct {
 		tags               map[string]string
 		existingTagHistory map[string]api.TagEventList
@@ -137,15 +138,18 @@ func TestUpdateTagHistory(t *testing.T) {
 				}},
 				"t2": {Items: []api.TagEvent{
 					{
-						DockerImageReference: "registry:5000/ns/repo@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+						//TODO use the line below when we're on Docker 1.6 with true pull by digest
+						//DockerImageReference: "registry:5000/ns/repo@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+						DockerImageReference: "registry:5000/ns/repo:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						Image:                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
 				}},
 			},
 		},
 		"no-op": {
-			repo: "registry:5000/ns/repo",
-			tags: map[string]string{"t1": "v1image1", "t2": "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+			repo:     "registry:5000/ns/repo",
+			previous: map[string]string{"t1": "v1image1", "t2": "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+			tags:     map[string]string{"t1": "v1image1", "t2": "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
 			existingTagHistory: map[string]api.TagEventList{
 				"t1": {Items: []api.TagEvent{
 					{
@@ -177,7 +181,7 @@ func TestUpdateTagHistory(t *testing.T) {
 		},
 		"new tag copies existing history": {
 			repo:     "registry:5000/ns/repo",
-			previous: map[string]string{"t1": "t1"},
+			previous: map[string]string{"t1": "t1", "t3": "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
 			tags:     map[string]string{"t1": "t1", "t2": "t1", "t3": "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
 			existingTagHistory: map[string]api.TagEventList{
 				"t1": {Items: []api.TagEvent{
@@ -218,6 +222,7 @@ func TestUpdateTagHistory(t *testing.T) {
 	}
 
 	for testName, test := range tests {
+		fmt.Println(testName)
 		repo := &api.ImageRepository{
 			Tags: test.tags,
 			Status: api.ImageRepositoryStatus{

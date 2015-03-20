@@ -29,6 +29,8 @@ type NodeConfig struct {
 
 	// The image used as the Kubelet network namespace and volume container.
 	NetworkContainerImage string
+	// The name of the network plugin to activate
+	NetworkPluginName string
 
 	// If true, the Kubelet will ignore errors from Docker
 	AllowDisabledDocker bool

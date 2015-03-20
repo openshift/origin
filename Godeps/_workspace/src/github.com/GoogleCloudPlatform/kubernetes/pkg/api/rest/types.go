@@ -44,34 +44,6 @@ func AllFuncs(fns ...ObjectFunc) ObjectFunc {
 	}
 }
 
-// rcStrategy implements behavior for Replication Controllers.
-// TODO: move to a replicationcontroller specific package.
-type rcStrategy struct {
-	runtime.ObjectTyper
-	api.NameGenerator
-}
-
-// ReplicationControllers is the default logic that applies when creating and updating Replication Controller
-// objects.
-var ReplicationControllers RESTCreateStrategy = rcStrategy{api.Scheme, api.SimpleNameGenerator}
-
-// NamespaceScoped is true for replication controllers.
-func (rcStrategy) NamespaceScoped() bool {
-	return true
-}
-
-// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
-func (rcStrategy) ResetBeforeCreate(obj runtime.Object) {
-	controller := obj.(*api.ReplicationController)
-	controller.Status = api.ReplicationControllerStatus{}
-}
-
-// Validate validates a new replication controller.
-func (rcStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
-	controller := obj.(*api.ReplicationController)
-	return validation.ValidateReplicationController(controller)
-}
-
 // svcStrategy implements behavior for Services
 // TODO: move to a service specific package.
 type svcStrategy struct {
@@ -81,7 +53,7 @@ type svcStrategy struct {
 
 // Services is the default logic that applies when creating and updating Service
 // objects.
-var Services RESTCreateStrategy = svcStrategy{api.Scheme, api.SimpleNameGenerator}
+var Services = svcStrategy{api.Scheme, api.SimpleNameGenerator}
 
 // NamespaceScoped is true for services.
 func (svcStrategy) NamespaceScoped() bool {
@@ -98,6 +70,14 @@ func (svcStrategy) ResetBeforeCreate(obj runtime.Object) {
 func (svcStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
 	service := obj.(*api.Service)
 	return validation.ValidateService(service)
+}
+
+func (svcStrategy) AllowCreateOnUpdate() bool {
+	return true
+}
+
+func (svcStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+	return validation.ValidateServiceUpdate(old.(*api.Service), obj.(*api.Service))
 }
 
 // nodeStrategy implements behavior for nodes
@@ -126,31 +106,4 @@ func (nodeStrategy) ResetBeforeCreate(obj runtime.Object) {
 func (nodeStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
 	node := obj.(*api.Node)
 	return validation.ValidateMinion(node)
-}
-
-// namespaceStrategy implements behavior for nodes
-type namespaceStrategy struct {
-	runtime.ObjectTyper
-	api.NameGenerator
-}
-
-// Namespaces is the default logic that applies when creating and updating Namespace
-// objects.
-var Namespaces RESTCreateStrategy = namespaceStrategy{api.Scheme, api.SimpleNameGenerator}
-
-// NamespaceScoped is false for namespaces.
-func (namespaceStrategy) NamespaceScoped() bool {
-	return false
-}
-
-// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
-func (namespaceStrategy) ResetBeforeCreate(obj runtime.Object) {
-	_ = obj.(*api.Namespace)
-	// Namespace allow *all* fields, including status, to be set.
-}
-
-// Validate validates a new namespace.
-func (namespaceStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
-	namespace := obj.(*api.Namespace)
-	return validation.ValidateNamespace(namespace)
 }

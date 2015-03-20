@@ -26,11 +26,11 @@ import (
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	"github.com/openshift/origin/pkg/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireEtcd()
+	testutil.RequireEtcd()
 }
 
 var (
@@ -42,10 +42,10 @@ var (
 )
 
 func TestFrontProxyOnAuthorize(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 
 	// setup
-	etcdClient := util.NewEtcdClient()
+	etcdClient := testutil.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 	oauthEtcd := oauthetcd.New(etcdHelper)
 	userRegistry := useretcd.New(etcdHelper, user.NewDefaultUserInitStrategy())

@@ -144,6 +144,10 @@ func (o AllInOneOptions) Validate(args []string) error {
 		}
 	}
 
+	if err := o.MasterArgs.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -180,6 +184,9 @@ func (o AllInOneOptions) StartAllInOne() error {
 			Name:       admin.DefaultSignerName(),
 		}
 
+		if err := signerOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := signerOptions.CreateSignerCert(); err != nil {
 			return err
 		}

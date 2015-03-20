@@ -58,7 +58,7 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 	var found *api.UserIdentityMapping
 	var created bool
 
-	err := r.AtomicUpdate(key, &api.UserIdentityMapping{}, true, func(in runtime.Object) (runtime.Object, error) {
+	err := r.AtomicUpdate(key, &api.UserIdentityMapping{}, true, func(in runtime.Object) (runtime.Object, uint64, error) {
 		existing := *in.(*api.UserIdentityMapping)
 
 		// did not previously exist
@@ -82,7 +82,7 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 			existing.User.CreationTimestamp = now
 
 			if err := r.initializer.InitializeUser(&existing.Identity, &existing.User); err != nil {
-				return in, err
+				return in, 0, err
 			}
 
 			// set these again to prevent bad initialization from messing up data
@@ -95,16 +95,16 @@ func (r *Etcd) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMappin
 
 			found = &existing
 			created = true
-			return &existing, nil
+			return &existing, 0, nil
 		}
 
 		if existing.User.Name != name {
-			return in, fmt.Errorf("the provided user name does not match the existing mapping %s", existing.User.Name)
+			return in, 0, fmt.Errorf("the provided user name does not match the existing mapping %s", existing.User.Name)
 		}
 		found = &existing
 
 		// TODO: should update identity based on new info as well.
-		return in, errExists
+		return in, 0, errExists
 	})
 
 	if err != nil && err != errExists {

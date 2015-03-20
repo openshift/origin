@@ -37,12 +37,12 @@ func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
-		api.BuildStatusComplete: fmt.Sprintf("%s://foo-host:%d/containerLogs/%s/runningPod/foo-container",
-			kubernetes.NodeScheme, kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusFailed: fmt.Sprintf("%s://foo-host:%d/containerLogs/%s/runningPod/foo-container",
-			kubernetes.NodeScheme, kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusRunning: fmt.Sprintf("%s://foo-host:%d/containerLogs/%s/runningPod/foo-container?follow=1",
-			kubernetes.NodeScheme, kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusComplete: fmt.Sprintf("foo-host:%d/containerLogs/%s/runningPod/foo-container",
+			kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusFailed: fmt.Sprintf("foo-host:%d/containerLogs/%s/runningPod/foo-container",
+			kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusRunning: fmt.Sprintf("foo-host:%d/containerLogs/%s/runningPod/foo-container?follow=1",
+			kubernetes.NodePort, kapi.NamespaceDefault),
 		api.BuildStatusNew:       "",
 		api.BuildStatusPending:   "",
 		api.BuildStatusError:     "",

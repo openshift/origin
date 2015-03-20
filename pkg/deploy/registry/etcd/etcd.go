@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -35,7 +36,7 @@ func New(helper tools.EtcdHelper) *Etcd {
 }
 
 // ListDeployments obtains a list of Deployments.
-func (r *Etcd) ListDeployments(ctx kapi.Context, label, field labels.Selector) (*api.DeploymentList, error) {
+func (r *Etcd) ListDeployments(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.DeploymentList, error) {
 	deployments := api.DeploymentList{}
 	err := r.ExtractToList(makeDeploymentListKey(ctx), &deployments)
 	if err != nil {
@@ -85,7 +86,7 @@ func (r *Etcd) CreateDeployment(ctx kapi.Context, deployment *api.Deployment) er
 	if err != nil {
 		return err
 	}
-	err = r.CreateObj(key, deployment, 0)
+	err = r.CreateObj(key, deployment, nil, 0)
 	return etcderr.InterpretCreateError(err, "deployment", deployment.Name)
 }
 
@@ -95,7 +96,7 @@ func (r *Etcd) UpdateDeployment(ctx kapi.Context, deployment *api.Deployment) er
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, deployment, 0)
+	err = r.SetObj(key, deployment, nil, 0)
 	return etcderr.InterpretUpdateError(err, "deployment", deployment.Name)
 }
 
@@ -110,7 +111,7 @@ func (r *Etcd) DeleteDeployment(ctx kapi.Context, id string) error {
 }
 
 // WatchDeployments begins watching for new, changed, or deleted Deployments.
-func (r *Etcd) WatchDeployments(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchDeployments(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := tools.ParseWatchResourceVersion(resourceVersion, "deployment")
 	if err != nil {
 		return nil, err
@@ -131,7 +132,7 @@ func (r *Etcd) WatchDeployments(ctx kapi.Context, label, field labels.Selector, 
 }
 
 // ListDeploymentConfigs obtains a list of DeploymentConfigs.
-func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selector) (*api.DeploymentConfigList, error) {
+func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.DeploymentConfigList, error) {
 	deploymentConfigs := api.DeploymentConfigList{}
 	err := r.ExtractToList(makeDeploymentConfigListKey(ctx), &deploymentConfigs)
 	if err != nil {
@@ -152,7 +153,7 @@ func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selec
 }
 
 // WatchDeploymentConfigs begins watching for new, changed, or deleted DeploymentConfigs.
-func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := tools.ParseWatchResourceVersion(resourceVersion, "deploymentConfig")
 	if err != nil {
 		return nil, err
@@ -201,7 +202,7 @@ func (r *Etcd) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.De
 		return err
 	}
 
-	err = r.CreateObj(key, deploymentConfig, 0)
+	err = r.CreateObj(key, deploymentConfig, nil, 0)
 	return etcderr.InterpretCreateError(err, "deploymentConfig", deploymentConfig.Name)
 }
 
@@ -212,7 +213,7 @@ func (r *Etcd) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.De
 		return err
 	}
 
-	err = r.SetObj(key, deploymentConfig, 0)
+	err = r.SetObj(key, deploymentConfig, nil, 0)
 	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.Name)
 }
 

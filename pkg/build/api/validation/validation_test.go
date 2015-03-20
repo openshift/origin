@@ -316,18 +316,18 @@ func TestValidateTrigger(t *testing.T) {
 	}{
 		"trigger without type": {
 			trigger:  buildapi.BuildTriggerPolicy{},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("type", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("type")},
 		},
 		"github type with no github webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GithubWebHookBuildTriggerType},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("github", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("github")},
 		},
 		"github trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:          buildapi.GithubWebHookBuildTriggerType,
 				GithubWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("github.secret", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("github.secret")},
 		},
 		"github trigger with generic webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -340,14 +340,14 @@ func TestValidateTrigger(t *testing.T) {
 		},
 		"generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("generic", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("generic")},
 		},
 		"generic trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:           buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("generic.secret", "")},
+			expected: []*errs.ValidationError{errs.NewFieldRequired("generic.secret")},
 		},
 		"generic trigger with github webhook": {
 			trigger: buildapi.BuildTriggerPolicy{

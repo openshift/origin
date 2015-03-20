@@ -17,7 +17,7 @@ const dockerSocketPath = "/var/run/docker.sock"
 func setupDockerSocket(podSpec *kapi.Pod) {
 	dockerSocketVolume := kapi.Volume{
 		Name: "docker-socket",
-		Source: kapi.VolumeSource{
+		VolumeSource: kapi.VolumeSource{
 			HostPath: &kapi.HostPathVolumeSource{
 				Path: dockerSocketPath,
 			},
@@ -44,7 +44,7 @@ func setupDockerConfig(podSpec *kapi.Pod) {
 	}
 	dockerConfigVolume := kapi.Volume{
 		Name: "docker-cfg",
-		Source: kapi.VolumeSource{
+		VolumeSource: kapi.VolumeSource{
 			HostPath: &kapi.HostPathVolumeSource{
 				Path: dockerConfig,
 			},

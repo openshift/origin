@@ -39,6 +39,7 @@ cp -f "${imagedir}/openshift" images/router/haproxy/bin
 # Copy image binaries to the appropriate locations.
 cp -f "${imagedir}/pod" images/pod/bin
 cp -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
+cp -f "${imagedir}/dockerregistry" images/dockerregistry/bin
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
@@ -52,6 +53,7 @@ image openshift/origin-pod                   images/pod
 # images that depend on openshift/origin-base
 image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
+image openshift/origin-docker-registry       images/dockerregistry
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder

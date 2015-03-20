@@ -44,6 +44,22 @@ check:
 	hack/test-go.sh $(WHAT) $(TESTS)
 .PHONY: check
 
+# Build and run unit and integration tests that don't require Docker.
+#
+# Args:
+#   GOFLAGS: Extra flags to pass to 'go' when building.
+#
+# Example:
+#   make check-test
+check-test: export KUBE_COVER= -cover -covermode=atomic
+check-test: export KUBE_RACE=  -race
+check-test: build check
+check-test:
+	hack/verify-gofmt.sh
+	hack/test-cmd.sh $(GOFLAGS)
+	KUBE_RACE=" " hack/test-integration.sh $(GOFLAGS)
+.PHONY: check-test
+
 # Build and run the complete test-suite.
 #
 # Args:
@@ -64,6 +80,9 @@ test:
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh $(GOFLAGS)
 	hack/test-end-to-end.sh
+ifeq ($(EXTENDED),true)
+	hack/test-extended.sh
+endif
 .PHONY: test
 
 # Run All-in-one OpenShift server.

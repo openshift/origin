@@ -40,7 +40,7 @@ func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 			}
 
 			var err error
-			if options.Client, _, err = f.Clients(cmd); err != nil {
+			if options.Client, _, err = f.Clients(); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
 			if err := options.Run(); err != nil {

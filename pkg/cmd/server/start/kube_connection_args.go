@@ -28,7 +28,7 @@ type KubeConnectionArgs struct {
 
 func BindKubeConnectionArgs(args *KubeConnectionArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.KubernetesAddr, prefix+"kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified, no Kubernetes components will be started.")
-	flags.StringVar(&args.ClientConfigLoadingRules.CommandLinePath, prefix+"kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API.")
+	flags.StringVar(&args.ClientConfigLoadingRules.ExplicitPath, prefix+"kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API.")
 }
 
 func NewDefaultKubeConnectionArgs() *KubeConnectionArgs {
@@ -42,7 +42,7 @@ func NewDefaultKubeConnectionArgs() *KubeConnectionArgs {
 }
 
 func (args KubeConnectionArgs) GetExternalKubernetesClientConfig() (*client.Config, bool, error) {
-	if len(args.ClientConfigLoadingRules.CommandLinePath) == 0 || args.ClientConfig == nil {
+	if len(args.ClientConfigLoadingRules.ExplicitPath) == 0 || args.ClientConfig == nil {
 		return nil, false, nil
 	}
 	clientConfig, err := args.ClientConfig.ClientConfig()

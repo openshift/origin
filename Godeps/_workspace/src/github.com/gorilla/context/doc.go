@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package gorilla/context stores values shared during a request lifetime.
+Package context stores values shared during a request lifetime.
 
 For example, a router can set variables extracted from the URL and later
 application handlers can access those values, or it can be used to store
@@ -37,8 +37,10 @@ The application can later access the variable using the same key you provided:
 
 	func MyHandler(w http.ResponseWriter, r *http.Request) {
 		// val is "bar".
-		val = context.Get(r, foo.MyKey)
+		val := context.Get(r, foo.MyKey)
 
+		// returns ("bar", true)
+		val, ok := context.GetOk(r, foo.MyKey)
 		// ...
 	}
 

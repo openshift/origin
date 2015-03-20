@@ -88,6 +88,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 		Name:       o.SignerName,
 		Overwrite:  o.Overwrite,
 	}
+	if err := signerCertOptions.Validate(nil); err != nil {
+		return err
+	}
 	if _, err := signerCertOptions.CreateSignerCert(); err != nil {
 		return err
 	}
@@ -109,6 +112,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 			Groups:    util.StringList(clientCertInfo.Groups.List()),
 			Overwrite: o.Overwrite,
 		}
+		if err := clientCertOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := clientCertOptions.CreateClientCert(); err != nil {
 			return err
 		}
@@ -124,6 +130,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 			UserNick: clientCertInfo.SubDir,
 
 			KubeConfigFile: path.Join(filepath.Dir(clientCertOptions.CertFile), ".kubeconfig"),
+		}
+		if err := createKubeConfigOptions.Validate(nil); err != nil {
+			return err
 		}
 		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 			return err
@@ -142,6 +151,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 			Overwrite: o.Overwrite,
 		}
 
+		if err := nodeServerCertOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
 			return err
 		}
@@ -156,6 +168,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 
 			NodeName:  nodeName,
 			Overwrite: o.Overwrite,
+		}
+		if err := nodeCertOptions.Validate(nil); err != nil {
+			return err
 		}
 		if _, err := nodeCertOptions.CreateNodeClientCert(); err != nil {
 			return err
@@ -173,6 +188,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 
 			KubeConfigFile: DefaultNodeKubeConfigFile(o.CertDir, nodeName),
 		}
+		if err := createKubeConfigOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 			return err
 		}
@@ -189,6 +207,9 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 			Overwrite: o.Overwrite,
 		}
 
+		if err := serverCertOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := serverCertOptions.CreateServerCert(); err != nil {
 			return err
 		}

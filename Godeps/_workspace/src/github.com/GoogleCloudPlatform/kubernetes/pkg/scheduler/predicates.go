@@ -22,7 +22,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/golang/glog"
 )
 
 type NodeInfo interface {
@@ -51,15 +50,15 @@ func (nodes ClientNodeInfo) GetNodeInfo(nodeID string) (*api.Node, error) {
 }
 
 func isVolumeConflict(volume api.Volume, pod *api.Pod) bool {
-	if volume.Source.GCEPersistentDisk == nil {
+	if volume.GCEPersistentDisk == nil {
 		return false
 	}
-	pdName := volume.Source.GCEPersistentDisk.PDName
+	pdName := volume.GCEPersistentDisk.PDName
 
 	manifest := &(pod.Spec)
 	for ix := range manifest.Volumes {
-		if manifest.Volumes[ix].Source.GCEPersistentDisk != nil &&
-			manifest.Volumes[ix].Source.GCEPersistentDisk.PDName == pdName {
+		if manifest.Volumes[ix].GCEPersistentDisk != nil &&
+			manifest.Volumes[ix].GCEPersistentDisk.PDName == pdName {
 			return true
 		}
 	}
@@ -102,6 +101,28 @@ func getResourceRequest(pod *api.Pod) resourceRequest {
 	return result
 }
 
+func GetPodsExceedingCapacity(pods []api.Pod, capacity api.ResourceList) []api.Pod {
+	exceedingPods := []api.Pod{}
+	totalMilliCPU := capacity.Cpu().MilliValue()
+	totalMemory := capacity.Memory().Value()
+	milliCPURequested := int64(0)
+	memoryRequested := int64(0)
+	for ix := range pods {
+		podRequest := getResourceRequest(&pods[ix])
+		fitsCPU := totalMilliCPU == 0 || (totalMilliCPU-milliCPURequested) >= podRequest.milliCPU
+		fitsMemory := totalMemory == 0 || (totalMemory-memoryRequested) >= podRequest.memory
+		if !fitsCPU || !fitsMemory {
+			// the pod doesn't fit
+			exceedingPods = append(exceedingPods, pods[ix])
+		} else {
+			// the pod fits
+			milliCPURequested += podRequest.milliCPU
+			memoryRequested += podRequest.memory
+		}
+	}
+	return exceedingPods
+}
+
 // PodFitsResources calculates fit based on requested, rather than used resources
 func (r *ResourceFit) PodFitsResources(pod api.Pod, existingPods []api.Pod, node string) (bool, error) {
 	podRequest := getResourceRequest(&pod)
@@ -113,22 +134,13 @@ func (r *ResourceFit) PodFitsResources(pod api.Pod, existingPods []api.Pod, node
 	if err != nil {
 		return false, err
 	}
-	milliCPURequested := int64(0)
-	memoryRequested := int64(0)
-	for ix := range existingPods {
-		existingRequest := getResourceRequest(&existingPods[ix])
-		milliCPURequested += existingRequest.milliCPU
-		memoryRequested += existingRequest.memory
+	pods := []api.Pod{}
+	copy(pods, existingPods)
+	pods = append(existingPods, pod)
+	if len(GetPodsExceedingCapacity(pods, info.Spec.Capacity)) > 0 {
+		return false, nil
 	}
-
-	totalMilliCPU := info.Spec.Capacity.Cpu().MilliValue()
-	totalMemory := info.Spec.Capacity.Memory().Value()
-
-	fitsCPU := totalMilliCPU == 0 || (totalMilliCPU-milliCPURequested) >= podRequest.milliCPU
-	fitsMemory := totalMemory == 0 || (totalMemory-memoryRequested) >= podRequest.memory
-	glog.V(3).Infof("Calculated fit: cpu: %v, memory %v", fitsCPU, fitsMemory)
-
-	return fitsCPU && fitsMemory, nil
+	return true, nil
 }
 
 func NewResourceFitPredicate(info NodeInfo) FitPredicate {
@@ -264,9 +276,16 @@ func (s *ServiceAffinity) CheckServiceAffinity(pod api.Pod, existingPods []api.P
 			if err != nil {
 				return false, err
 			}
-			if len(servicePods) > 0 {
+			// consider only the pods that belong to the same namespace
+			nsServicePods := []api.Pod{}
+			for _, nsPod := range servicePods {
+				if nsPod.Namespace == pod.Namespace {
+					nsServicePods = append(nsServicePods, nsPod)
+				}
+			}
+			if len(nsServicePods) > 0 {
 				// consider any service pod and fetch the minion its hosted on
-				otherMinion, err := s.nodeInfo.GetNodeInfo(servicePods[0].Status.Host)
+				otherMinion, err := s.nodeInfo.GetNodeInfo(nsServicePods[0].Status.Host)
 				if err != nil {
 					return false, err
 				}
@@ -335,6 +354,15 @@ func MapPodsToMachines(lister PodLister) (map[string][]api.Pod, error) {
 		return map[string][]api.Pod{}, err
 	}
 	for _, scheduledPod := range pods {
+		// TODO: switch to Spec.Host! There was some confusion previously
+		//       about whether components should judge a pod's location
+		//       based on spec.Host or status.Host. It has been decided that
+		//       spec.Host is the canonical location of the pod. Status.Host
+		//       will either be removed, be a copy, or in theory it could be
+		//       used as a signal that kubelet has agreed to run the pod.
+		//
+		//       This could be fixed now, but just requires someone to try it
+		//       and verify that e2e still passes.
 		host := scheduledPod.Status.Host
 		machineToPods[host] = append(machineToPods[host], scheduledPod)
 	}

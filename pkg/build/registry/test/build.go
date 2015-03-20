@@ -2,6 +2,7 @@ package test
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -36,6 +37,6 @@ func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, r.Err
 }

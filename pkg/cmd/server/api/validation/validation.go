@@ -15,7 +15,7 @@ func ValidateBindAddress(bindAddress string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
 	if len(bindAddress) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("bindAddress", bindAddress))
+		allErrs = append(allErrs, errs.NewFieldRequired("bindAddress"))
 	} else if _, _, err := net.SplitHostPort(bindAddress); err != nil {
 		allErrs = append(allErrs, errs.NewFieldInvalid("bindAddress", bindAddress, "must be a host:port"))
 	}
@@ -34,7 +34,7 @@ func ValidateServingInfo(info api.ServingInfo) errs.ValidationErrorList {
 		}
 
 		if len(info.ServerCert.KeyFile) == 0 {
-			allErrs = append(allErrs, errs.NewFieldRequired("keyFile", info.ServerCert.KeyFile))
+			allErrs = append(allErrs, errs.NewFieldRequired("keyFile"))
 		} else if _, err := os.Stat(info.ServerCert.KeyFile); err != nil {
 			allErrs = append(allErrs, errs.NewFieldInvalid("keyFile", info.ServerCert.KeyFile, "could not read file"))
 		}
@@ -135,7 +135,7 @@ func ValidateNamespace(namespace, field string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
 	if len(namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired(field, namespace))
+		allErrs = append(allErrs, errs.NewFieldRequired(field))
 	} else if ok, _ := kvalidation.ValidateNamespaceName(namespace, false); !ok {
 		allErrs = append(allErrs, errs.NewFieldInvalid(field, namespace, "must be a valid namespace"))
 	}
@@ -147,7 +147,7 @@ func ValidateNodeConfig(config *api.NodeConfig) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
 	if len(config.NodeName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("nodeName", config.NodeName))
+		allErrs = append(allErrs, errs.NewFieldRequired("nodeName"))
 	}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
@@ -158,7 +158,7 @@ func ValidateNodeConfig(config *api.NodeConfig) errs.ValidationErrorList {
 	}
 
 	if len(config.NetworkContainerImage) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("networkContainerImage", config.NetworkContainerImage))
+		allErrs = append(allErrs, errs.NewFieldRequired("networkContainerImage"))
 	}
 
 	return allErrs
@@ -168,7 +168,7 @@ func ValidateFile(path string, field string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
 	if len(path) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired(field, path))
+		allErrs = append(allErrs, errs.NewFieldRequired(field))
 	} else if _, err := os.Stat(path); err != nil {
 		allErrs = append(allErrs, errs.NewFieldInvalid(field, path, "could not read file"))
 	}

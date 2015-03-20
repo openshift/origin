@@ -28,7 +28,7 @@ func newImageRepositoryMappings(c *Client, namespace string) *imageRepositoryMap
 	}
 }
 
-// Create create a new imagerepository mapping on the server. Returns error if one occurs.
+// Create creates a new imagerepository mapping on the server. Returns error if one occurs.
 func (c *imageRepositoryMappings) Create(mapping *imageapi.ImageRepositoryMapping) error {
 	return c.r.Post().Namespace(c.ns).Resource("imageRepositoryMappings").Body(mapping).Do().Error()
 }

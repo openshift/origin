@@ -7,18 +7,18 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/util"
+
+	"github.com/spf13/pflag"
 )
 
 // NewFactory creates a default Factory for commands that should share identical server
@@ -29,50 +29,34 @@ func New(flags *pflag.FlagSet) *Factory {
 	// DefaultCluster should not be a global
 	// A call to ClientConfig() should always return the best clientCfg possible
 	// even if an error was returned, and let the caller decide what to do
-	clientcmd.DefaultCluster.Server = ""
+	kclientcmd.DefaultCluster.Server = ""
 
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-	clientConfig := DefaultClientConfig(flags)
+	clientConfig := util.DefaultClientConfig(flags)
 	f := NewFactory(clientConfig)
 	f.BindFlags(flags)
 
 	return f
 }
 
-// Copy of kubectl/cmd/DefaultClientConfig, using NewNonInteractiveDeferredLoadingClientConfig
-func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
-	loadingRules := config.NewOpenShiftClientConfigLoadingRules()
-
-	flags.StringVar(&loadingRules.CommandLinePath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
-
-	overrides := &clientcmd.ConfigOverrides{}
-	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
-	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
-	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
-
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-
-	return clientConfig
-}
-
 // Factory provides common options for OpenShift commands
 type Factory struct {
 	*kubecmd.Factory
-	OpenShiftClientConfig clientcmd.ClientConfig
+	OpenShiftClientConfig kclientcmd.ClientConfig
 }
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
-func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
+func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	mapper := ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
 
 	w := &Factory{kubecmd.NewFactory(clientConfig), clientConfig}
 
-	w.Object = func(cmd *cobra.Command) (meta.RESTMapper, runtime.ObjectTyper) {
+	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
 		return mapper, api.Scheme
 	}
 
-	w.RESTClient = func(cmd *cobra.Command, mapping *meta.RESTMapping) (resource.RESTClient, error) {
-		oClient, kClient, err := w.Clients(cmd)
+	w.RESTClient = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+		oClient, kClient, err := w.Clients()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
 		}
@@ -84,8 +68,8 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 		}
 	}
 
-	w.Describer = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
-		oClient, kClient, err := w.Clients(cmd)
+	w.Describer = func(mapping *meta.RESTMapping) (kubectl.Describer, error) {
+		oClient, kClient, err := w.Clients()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
 		}
@@ -102,14 +86,14 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 			}
 			return describer, nil
 		}
-		return w.Factory.Describer(cmd, mapping)
+		return w.Factory.Describer(mapping)
 	}
 
-	w.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
 		return describe.NewHumanReadablePrinter(noHeaders), nil
 	}
 
-	w.DefaultNamespace = func(cmd *cobra.Command) (string, error) {
+	w.DefaultNamespace = func() (string, error) {
 		return w.OpenShiftClientConfig.Namespace()
 	}
 
@@ -117,7 +101,7 @@ func NewFactory(clientConfig clientcmd.ClientConfig) *Factory {
 }
 
 // Clients returns an OpenShift and Kubernetes client.
-func (f *Factory) Clients(cmd *cobra.Command) (*client.Client, *kclient.Client, error) {
+func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 	cfg, err := f.OpenShiftClientConfig.ClientConfig()
 	if err != nil {
 		return nil, nil, err

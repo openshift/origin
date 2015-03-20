@@ -13,12 +13,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	oapauth "github.com/openshift/origin/pkg/auth/authenticator/password/oauthpassword/registry"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/user"
@@ -27,25 +27,47 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireEtcd()
+	testutil.RequireEtcd()
 }
 
 func TestUserInitialization(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	etcdClient := util.NewEtcdClient()
+	testutil.DeleteAllEtcdKeys()
+	etcdClient := testutil.NewEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, user.NewDefaultUserInitStrategy())
+	userRegistry := etcd.New(tools.NewEtcdHelper(etcdClient, interfaces.Codec), user.NewDefaultUserInitStrategy())
 	storage := map[string]apiserver.RESTStorage{
 		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	server := httptest.NewServer(apiserver.Handle(storage, v1beta1.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper))
+	osMux := http.NewServeMux()
+	server := httptest.NewServer(osMux)
 	defer server.Close()
+	handlerContainer := master.NewHandlerContainer(osMux)
+
+	version := &apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
+
+		Storage: storage,
+		Codec:   latest.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  interfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
 
 	mapping := api.UserIdentityMapping{
 		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
@@ -151,10 +173,10 @@ func (s *testTokenSource) AuthenticatePassword(username, password string) (strin
 }
 
 func TestUserLookup(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	etcdClient := util.NewEtcdClient()
+	testutil.DeleteAllEtcdKeys()
+	etcdClient := testutil.NewEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, user.NewDefaultUserInitStrategy())
+	userRegistry := etcd.New(tools.NewEtcdHelper(etcdClient, interfaces.Codec), user.NewDefaultUserInitStrategy())
 	userInfo := &kuser.DefaultInfo{
 		Name: ":test",
 	}
@@ -165,7 +187,28 @@ func TestUserLookup(t *testing.T) {
 		"users":                userregistry.NewREST(userRegistry),
 	}
 
-	apihandler := apiserver.Handle(storage, interfaces.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), contextMapper, latest.RESTMapper)
+	osMux := http.NewServeMux()
+	handlerContainer := master.NewHandlerContainer(osMux)
+
+	version := &apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
+
+		Storage: storage,
+		Codec:   latest.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  interfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: contextMapper,
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
 
 	// Wrap with authenticator
 	authenticatedHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -178,7 +221,7 @@ func TestUserLookup(t *testing.T) {
 			t.Fatalf("Could not set user on request")
 			return
 		}
-		apihandler.ServeHTTP(w, req)
+		osMux.ServeHTTP(w, req)
 	})
 
 	// Wrap with contextmapper

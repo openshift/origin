@@ -77,5 +77,5 @@ func NewOpenShiftEtcdHelper(etcdURL string) (helper tools.EtcdHelper, err error)
 	if err != nil {
 		return helper, err
 	}
-	return tools.EtcdHelper{client, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, nil
+	return tools.NewEtcdHelper(client, interfaces.Codec), nil
 }

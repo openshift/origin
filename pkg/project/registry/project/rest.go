@@ -7,6 +7,7 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -65,8 +66,8 @@ func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
 	return projects
 }
 
-// List retrieves a list of Projects that match selector.
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
+// List retrieves a list of Projects that match label.
+func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("Unable to list projects without a user on the context"))

@@ -52,6 +52,8 @@ const (
 	// values which would be accepted by some api instances, but which would invoke behavior
 	// not permitted by this api instance (such as due to stricter security policy).
 	ValidationErrorTypeForbidden ValidationErrorType = "FieldValueForbidden"
+	// ValidationErrorTypeTooLong is used to report that given value is too long.
+	ValidationErrorTypeTooLong ValidationErrorType = "FieldValueTooLong"
 )
 
 // String converts a ValidationErrorType into its corresponding error message.
@@ -69,6 +71,8 @@ func (t ValidationErrorType) String() string {
 		return "unsupported value"
 	case ValidationErrorTypeForbidden:
 		return "forbidden"
+	case ValidationErrorTypeTooLong:
+		return "too long"
 	default:
 		glog.Errorf("unrecognized validation type: %#v", t)
 		return ""
@@ -100,9 +104,8 @@ func (v *ValidationError) Error() string {
 }
 
 // NewFieldRequired returns a *ValidationError indicating "value required"
-// TODO: remove "value"
-func NewFieldRequired(field string, value interface{}) *ValidationError {
-	return &ValidationError{ValidationErrorTypeRequired, field, value, ""}
+func NewFieldRequired(field string) *ValidationError {
+	return &ValidationError{ValidationErrorTypeRequired, field, "", ""}
 }
 
 // NewFieldInvalid returns a *ValidationError indicating "invalid value"
@@ -128,6 +131,10 @@ func NewFieldDuplicate(field string, value interface{}) *ValidationError {
 // NewFieldNotFound returns a *ValidationError indicating "value not found"
 func NewFieldNotFound(field string, value interface{}) *ValidationError {
 	return &ValidationError{ValidationErrorTypeNotFound, field, value, ""}
+}
+
+func NewFieldTooLong(field string, value interface{}) *ValidationError {
+	return &ValidationError{ValidationErrorTypeTooLong, field, value, ""}
 }
 
 type ValidationErrorList []error

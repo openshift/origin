@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	testutil "github.com/openshift/origin/test/util"
@@ -43,13 +44,13 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	_, err = haroldClient.Deployments("hammer-project").List(labels.Everything(), labels.Everything())
+	_, err = haroldClient.Deployments("hammer-project").List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	// TODO make kube and origin authorization failures cause a kapierror.Forbidden
-	_, err = markClient.Deployments("hammer-project").List(labels.Everything(), labels.Everything())
+	_, err = markClient.Deployments("hammer-project").List(labels.Everything(), fields.Everything())
 	if (err == nil) || (!strings.Contains(err.Error(), "Forbidden")) {
 		t.Errorf("expected forbidden error, but didn't get one")
 	}
@@ -70,7 +71,7 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 	// wait for the project authorization cache to catch the change.  It is on a one second period
 	// time.Sleep(5 * time.Second)
 
-	// haroldProjects, err := haroldClient.Projects().List(labels.Everything(), labels.Everything())
+	// haroldProjects, err := haroldClient.Projects().List(labels.Everything(), fields.Everything())
 	// if err != nil {
 	// 	t.Errorf("unexpected error: %v", err)
 	// }
@@ -78,7 +79,7 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 	// 	t.Errorf("expected hammer-project, got %#v", haroldProjects.Items)
 	// }
 
-	// markProjects, err := markClient.Projects().List(labels.Everything(), labels.Everything())
+	// markProjects, err := markClient.Projects().List(labels.Everything(), fields.Everything())
 	// if err != nil {
 	// 	t.Errorf("unexpected error: %v", err)
 	// }

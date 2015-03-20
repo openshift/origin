@@ -85,12 +85,26 @@ func NewCmdGenerate(f *clientcmd.Factory, parentName, name string, out io.Writer
 		Run: func(c *cobra.Command, args []string) {
 			var err error
 
+			osClient, _, err := f.Clients()
+			if err != nil {
+				glog.V(4).Infof("Error getting OpenShift client: %v", err)
+			}
+
+			ns, err := f.DefaultNamespace()
+			if err != nil {
+				glog.V(4).Infof("Error getting default namespace: %v", err)
+			}
+			dockerClient, _, err := dockerHelper.GetClient()
+			if err != nil {
+				glog.V(4).Infof("Error getting docker client: %v", err)
+			}
+
 			// Determine which source to use
 			input.sourceDir, input.sourceURL, err = getSource(input.sourceURL, args, os.Getwd)
 			checkErr(err)
 
 			// Create an image resolver
-			resolver := getResolver(getNamespace(f, c), getOSClient(f, c), getDockerClient(dockerHelper))
+			resolver := getResolver(ns, osClient, dockerClient)
 			checkErr(err)
 
 			// Get environment variables
@@ -170,34 +184,6 @@ func setDefaultPrinter(c *cobra.Command) {
 	if len(flag.Value.String()) == 0 {
 		flag.Value.Set("json")
 	}
-}
-
-func getOSClient(f *clientcmd.Factory, c *cobra.Command) osclient.Interface {
-	osClient, _, err := f.Clients(c)
-	if err != nil {
-		glog.V(4).Infof("Error getting OpenShift client: %v", err)
-		return nil
-	}
-	return osClient
-
-}
-
-func getNamespace(f *clientcmd.Factory, c *cobra.Command) string {
-	ns, err := f.DefaultNamespace(c)
-	if err != nil {
-		glog.V(4).Infof("Error getting default namespace: %v", err)
-		return ""
-	}
-	return ns
-}
-
-func getDockerClient(dh *dh.Helper) *docker.Client {
-	dockerClient, _, err := dh.GetClient()
-	if err != nil {
-		glog.V(4).Infof("Error getting docker client: %v", err)
-		return nil
-	}
-	return dockerClient
 }
 
 func getResolver(namespace string, osClient osclient.Interface, dockerClient *docker.Client) genapp.Resolver {

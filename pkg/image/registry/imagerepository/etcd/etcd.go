@@ -2,6 +2,7 @@ package etcd
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -60,13 +61,13 @@ func (r *REST) NewList() runtime.Object {
 }
 
 // List obtains a list of image repositories with labels that match selector.
-func (r *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
-	return r.store.List(ctx, imagerepository.MatchImageRepository(label, field))
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	return r.store.ListPredicate(ctx, imagerepository.MatchImageRepository(label, field))
 }
 
 // Watch begins watching for new, changed, or deleted image repositories.
-func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return r.store.Watch(ctx, imagerepository.MatchImageRepository(label, field), resourceVersion)
+func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.store.WatchPredicate(ctx, imagerepository.MatchImageRepository(label, field), resourceVersion)
 }
 
 // Get gets a specific image repository specified by its ID.
@@ -85,8 +86,8 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 }
 
 // Delete deletes an existing image repository specified by its ID.
-func (r *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Delete(ctx, name)
+func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+	return r.store.Delete(ctx, name, options)
 }
 
 // StatusREST implements the REST endpoint for changing the status of an image repository.

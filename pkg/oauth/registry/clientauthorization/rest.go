@@ -7,6 +7,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -43,8 +44,8 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 }
 
 // List retrieves a list of ClientAuthorizations that match selector.
-func (s *REST) List(ctx kapi.Context, label, fields labels.Selector) (runtime.Object, error) {
-	return s.registry.ListClientAuthorizations(label, labels.Everything())
+func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	return s.registry.ListClientAuthorizations(label, field)
 }
 
 // Create registers the given ClientAuthorization.

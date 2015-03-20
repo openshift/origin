@@ -1,10 +1,12 @@
 package spdystream
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -322,8 +324,6 @@ func TestUnexpectedRemoteConnectionClosed(t *testing.T) {
 			if e == nil || e != io.EOF {
 				t.Fatalf("(%d) Expected to get an EOF stream error", tix)
 			}
-		case <-time.After(500 * time.Millisecond):
-			t.Fatalf("(%d) Timeout waiting for stream closure", tix)
 		}
 
 		closeErr = conn.Close()
@@ -381,8 +381,6 @@ func TestCloseNotification(t *testing.T) {
 	var serverConn net.Conn
 	select {
 	case serverConn = <-serverConnChan:
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("Timed out waiting for connection closed notification")
 	}
 
 	err = serverConn.Close()
@@ -394,6 +392,49 @@ func TestCloseNotification(t *testing.T) {
 	if listenErr != nil {
 		t.Fatalf("Error closing listener: %s", listenErr)
 	}
+}
+
+func TestIdleShutdownRace(t *testing.T) {
+	var wg sync.WaitGroup
+	server, listen, serverErr := runServer(&wg)
+	if serverErr != nil {
+		t.Fatalf("Error initializing server: %s", serverErr)
+	}
+
+	conn, dialErr := net.Dial("tcp", listen)
+	if dialErr != nil {
+		t.Fatalf("Error dialing server: %s", dialErr)
+	}
+
+	spdyConn, spdyErr := NewConnection(conn, false)
+	if spdyErr != nil {
+		t.Fatalf("Error creating spdy connection: %s", spdyErr)
+	}
+	go spdyConn.Serve(NoOpStreamHandler)
+
+	authenticated = true
+	stream, err := spdyConn.CreateStream(http.Header{}, nil, false)
+	if err != nil {
+		t.Fatalf("Error creating stream: %v", err)
+	}
+
+	spdyConn.SetIdleTimeout(5 * time.Millisecond)
+	go func() {
+		time.Sleep(5 * time.Millisecond)
+		stream.Reset()
+	}()
+
+	select {
+	case <-spdyConn.CloseChan():
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("Timed out waiting for idle connection closure")
+	}
+
+	closeErr := server.Close()
+	if closeErr != nil {
+		t.Fatalf("Error shutting down server: %s", closeErr)
+	}
+	wg.Wait()
 }
 
 func TestIdleNoTimeoutSet(t *testing.T) {
@@ -479,11 +520,7 @@ func TestIdleNoData(t *testing.T) {
 	go spdyConn.Serve(NoOpStreamHandler)
 
 	spdyConn.SetIdleTimeout(10 * time.Millisecond)
-	select {
-	case <-spdyConn.CloseChan():
-	case <-time.After(20 * time.Millisecond):
-		t.Fatal("Timed out waiting for idle connection closure")
-	}
+	<-spdyConn.CloseChan()
 
 	closeErr := server.Close()
 	if closeErr != nil {
@@ -534,8 +571,6 @@ func TestIdleWithData(t *testing.T) {
 
 	writesFinished := false
 
-	expired := time.NewTimer(200 * time.Millisecond)
-
 Loop:
 	for {
 		select {
@@ -546,10 +581,46 @@ Loop:
 				t.Fatal("Connection closed before all writes finished")
 			}
 			break Loop
-		case <-expired.C:
-			t.Fatal("Timed out waiting for idle connection closure")
 		}
 	}
+
+	closeErr := server.Close()
+	if closeErr != nil {
+		t.Fatalf("Error shutting down server: %s", closeErr)
+	}
+	wg.Wait()
+}
+
+func TestIdleRace(t *testing.T) {
+	var wg sync.WaitGroup
+	server, listen, serverErr := runServer(&wg)
+	if serverErr != nil {
+		t.Fatalf("Error initializing server: %s", serverErr)
+	}
+
+	conn, dialErr := net.Dial("tcp", listen)
+	if dialErr != nil {
+		t.Fatalf("Error dialing server: %s", dialErr)
+	}
+
+	spdyConn, spdyErr := NewConnection(conn, false)
+	if spdyErr != nil {
+		t.Fatalf("Error creating spdy connection: %s", spdyErr)
+	}
+	go spdyConn.Serve(NoOpStreamHandler)
+
+	spdyConn.SetIdleTimeout(10 * time.Millisecond)
+
+	authenticated = true
+
+	for i := 0; i < 10; i++ {
+		_, err := spdyConn.CreateStream(http.Header{}, nil, false)
+		if err != nil {
+			t.Fatalf("Error creating stream: %v", err)
+		}
+	}
+
+	<-spdyConn.CloseChan()
 
 	closeErr := server.Close()
 	if closeErr != nil {
@@ -701,6 +772,109 @@ func TestStreamResetWithDataRemaining(t *testing.T) {
 		t.Fatalf("Error shutting down server: %s", closeErr)
 	}
 	wg.Wait()
+}
+
+type roundTripper struct {
+	conn net.Conn
+}
+
+func (s *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := *req
+	req = &r
+
+	conn, err := net.Dial("tcp", req.URL.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	err = req.Write(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.conn = conn
+
+	return resp, nil
+}
+
+// see https://github.com/GoogleCloudPlatform/kubernetes/issues/4882
+func TestFramingAfterRemoteConnectionClosed(t *testing.T) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		streamCh := make(chan *Stream)
+
+		w.WriteHeader(http.StatusSwitchingProtocols)
+
+		netconn, _, _ := w.(http.Hijacker).Hijack()
+		conn, _ := NewConnection(netconn, true)
+		go conn.Serve(func(s *Stream) {
+			s.SendReply(http.Header{}, false)
+			streamCh <- s
+		})
+
+		stream := <-streamCh
+		io.Copy(stream, stream)
+
+		closeChan := make(chan struct{})
+		go func() {
+			stream.Reset()
+			conn.Close()
+			close(closeChan)
+		}()
+
+		<-closeChan
+	}))
+
+	server.Start()
+	defer server.Close()
+
+	req, err := http.NewRequest("GET", server.URL, nil)
+	if err != nil {
+		t.Fatalf("Error creating request: %s", err)
+	}
+
+	rt := &roundTripper{}
+	client := &http.Client{Transport: rt}
+
+	_, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("unexpected error from client.Do: %s", err)
+	}
+
+	conn, err := NewConnection(rt.conn, false)
+	go conn.Serve(NoOpStreamHandler)
+
+	stream, err := conn.CreateStream(http.Header{}, nil, false)
+	if err != nil {
+		t.Fatalf("error creating client stream: %s", err)
+	}
+
+	n, err := stream.Write([]byte("hello"))
+	if err != nil {
+		t.Fatalf("error writing to stream: %s", err)
+	}
+	if n != 5 {
+		t.Fatalf("Expected to write 5 bytes, but actually wrote %d", n)
+	}
+
+	b := make([]byte, 5)
+	n, err = stream.Read(b)
+	if err != nil {
+		t.Fatalf("error reading from stream: %s", err)
+	}
+	if n != 5 {
+		t.Fatalf("Expected to read 5 bytes, but actually read %d", n)
+	}
+	if e, a := "hello", string(b[0:n]); e != a {
+		t.Fatalf("expected '%s', got '%s'", e, a)
+	}
+
+	stream.Reset()
+	conn.Close()
 }
 
 var authenticated bool

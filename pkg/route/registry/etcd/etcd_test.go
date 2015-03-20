@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -39,7 +40,7 @@ func makeTestDefaultRouteListKey() string {
 }
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.EtcdHelper{client, latest.Codec, tools.RuntimeVersionAdapter{latest.ResourceVersioner}})
+	return New(tools.NewEtcdHelper(client, latest.Codec))
 }
 
 func TestEtcdListEmptyRoutes(t *testing.T) {
@@ -282,6 +283,7 @@ func TestEtcdDeleteOkRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 	key := makeTestDefaultRouteListKey() + "/foo"
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Route{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	err := registry.DeleteRoute(kapi.NewDefaultContext(), "foo")
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
@@ -387,7 +389,7 @@ func TestEtcdWatchRoutes(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
 
-	watching, err := registry.WatchRoutes(kapi.NewDefaultContext(), labels.Everything(), labels.Everything(), "1")
+	watching, err := registry.WatchRoutes(kapi.NewDefaultContext(), labels.Everything(), fields.Everything(), "1")
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

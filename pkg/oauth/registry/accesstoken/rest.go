@@ -6,6 +6,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -41,9 +42,9 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return token, nil
 }
 
-// List retrieves a list of AccessTokens that match selector.
-func (s *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	tokens, err := s.registry.ListAccessTokens(selector)
+// List retrieves a list of AccessTokens that match label.
+func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	tokens, err := s.registry.ListAccessTokens(label)
 	if err != nil {
 		return nil, err
 	}

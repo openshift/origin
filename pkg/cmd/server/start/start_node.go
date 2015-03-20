@@ -14,7 +14,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -209,6 +208,9 @@ func (o NodeOptions) CreateCerts() error {
 		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
 		Name:       admin.DefaultSignerName(),
 	}
+	if err := signerOptions.Validate(nil); err != nil {
+		return err
+	}
 	if _, err := signerOptions.CreateSignerCert(); err != nil {
 		return err
 	}
@@ -228,6 +230,9 @@ func (o NodeOptions) CreateCerts() error {
 		Hostnames: []string{o.NodeArgs.NodeName},
 	}
 
+	if err := nodeServerCertOptions.Validate(nil); err != nil {
+		return err
+	}
 	if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
 		return err
 	}
@@ -238,6 +243,9 @@ func (o NodeOptions) CreateCerts() error {
 		CertFile:             clientCertInfo.CertFile,
 		KeyFile:              clientCertInfo.KeyFile,
 		NodeName:             o.NodeArgs.NodeName,
+	}
+	if err := mintNodeClientCert.Validate(nil); err != nil {
+		return err
 	}
 	if _, err := mintNodeClientCert.CreateNodeClientCert(); err != nil {
 		return err
@@ -258,6 +266,9 @@ func (o NodeOptions) CreateCerts() error {
 		UserNick: o.NodeArgs.NodeName,
 
 		KubeConfigFile: admin.DefaultNodeKubeConfigFile(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName),
+	}
+	if err := createKubeConfigOptions.Validate(nil); err != nil {
+		return err
 	}
 	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 		return err
@@ -290,19 +301,14 @@ func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
 }
 
 func StartNode(config configapi.NodeConfig) error {
-	if config.RecordEvents {
-		kubeClient, _, err := configapi.GetKubeClient(config.MasterKubeConfig)
-		if err != nil {
-			return err
-		}
-
-		// TODO: recording should occur in individual components
-		record.StartRecording(kubeClient.Events(""), kapi.EventSource{Component: "node"})
-	}
-
 	nodeConfig, err := kubernetes.BuildKubernetesNodeConfig(config)
 	if err != nil {
 		return err
+	}
+
+	// TODO: recording should occur in individual components
+	if config.RecordEvents {
+		record.StartRecording(nodeConfig.Client.Events(""))
 	}
 
 	nodeConfig.EnsureVolumeDir()

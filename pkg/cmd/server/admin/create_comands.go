@@ -21,6 +21,7 @@ func NewCommandAdmin() *cobra.Command {
 	cmd.AddCommand(NewCommandCreateNodeClientCert())
 	cmd.AddCommand(NewCommandCreateServerCert())
 	cmd.AddCommand(NewCommandCreateSignerCert())
+	cmd.AddCommand(NewCommandCreateClient())
 
 	return cmd
 }

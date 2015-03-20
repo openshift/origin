@@ -14,6 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -40,7 +41,7 @@ func TestImageRepositoryList(t *testing.T) {
 	openshift := NewTestImageOpenShift(t)
 	defer openshift.Close()
 
-	builds, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	builds, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -79,7 +80,7 @@ func TestImageRepositoryCreate(t *testing.T) {
 		t.Errorf("unexpected object: %s", util.ObjectDiff(expected, actual))
 	}
 
-	repos, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	repos, err := openshift.Client.ImageRepositories(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -272,7 +273,6 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 		t.Logf("got %s %s", req.Method, req.URL.String())
 	}))
 
-	kubeClient := client.NewOrDie(&client.Config{Host: openshift.server.URL, Version: klatest.Version})
 	osClient := osclient.NewOrDie(&client.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
@@ -285,7 +285,6 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		Client:           kubeClient,
 		EtcdHelper:       etcdHelper,
 		KubeletClient:    kubeletClient,
 		APIPrefix:        "/api",
@@ -308,7 +307,24 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 		"imageRepositoryTags":      imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry),
 	}
 
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	version := &apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
 
+		Storage: storage,
+		Codec:   latest.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  interfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
 	return openshift
 }

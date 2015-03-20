@@ -6,33 +6,40 @@ import (
 	"os"
 	"testing"
 
+	"github.com/spf13/pflag"
+
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/config"
 	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/test/util"
-	"github.com/spf13/pflag"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireEtcd()
+	testutil.RequireEtcd()
 }
 
 func TestLogin(t *testing.T) {
-	_, clusterAdminKubeConfig, err := util.StartTestMaster()
+	clientcmd.DefaultCluster = clientcmdapi.Cluster{Server: ""}
+
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, err := util.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClientConfig, err := util.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -113,7 +120,6 @@ func TestLogin(t *testing.T) {
 
 func newLoginOptions(server string, username string, password string, context string, insecure bool) *cmd.LoginOptions {
 	flagset := pflag.NewFlagSet("test-flags", pflag.ContinueOnError)
-	factory := clientcmd.New(flagset)
 
 	flags := []string{}
 
@@ -127,14 +133,14 @@ func newLoginOptions(server string, username string, password string, context st
 		flags = append(flags, "--insecure-skip-tls-verify")
 	}
 
-	flagset.Parse(flags)
-
 	loginOptions := &cmd.LoginOptions{
-		ClientConfig: factory.OpenShiftClientConfig,
+		ClientConfig: defaultClientConfig(flagset),
 		Reader:       os.Stdin,
 		Username:     username,
 		Password:     password,
 	}
+
+	flagset.Parse(flags)
 
 	return loginOptions
 }
@@ -151,4 +157,19 @@ func whoami(clientCfg *kclient.Config) (*api.User, error) {
 	}
 
 	return me, nil
+}
+
+func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
+	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: ""}
+
+	flags.StringVar(&loadingRules.ExplicitPath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
+
+	overrides := &clientcmd.ConfigOverrides{}
+	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
+	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
+	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
+
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+
+	return clientConfig
 }

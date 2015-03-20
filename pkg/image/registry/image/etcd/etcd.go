@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -57,16 +58,16 @@ func (r *REST) NewList() runtime.Object {
 }
 
 // List obtains a list of images with labels that match selector.
-func (r *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
-	return r.store.List(ctx, image.MatchImage(label, field))
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	return r.store.ListPredicate(ctx, image.MatchImage(label, field))
 }
 
 // Watch begins watching for new, changed, or deleted images.
-func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	if !field.Empty() {
 		return nil, errors.New("field selectors are not supported on images")
 	}
-	return r.store.Watch(ctx, image.MatchImage(label, field), resourceVersion)
+	return r.store.WatchPredicate(ctx, image.MatchImage(label, field), resourceVersion)
 }
 
 // Get gets a specific image specified by its ID.
@@ -80,6 +81,6 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // Delete deletes an existing image specified by its ID.
-func (r *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Delete(ctx, name)
+func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
+	return r.store.Delete(ctx, name, options)
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
@@ -120,6 +119,10 @@ func (o MasterOptions) Validate(args []string) error {
 		if len(o.ConfigFile) == 0 {
 			return errors.New("--config is required if --write-config is true")
 		}
+	}
+
+	if err := o.MasterArgs.Validate(); err != nil {
+		return err
 	}
 
 	return nil
@@ -236,22 +239,6 @@ func (o MasterOptions) CreateBootstrapPolicy() error {
 }
 
 func (o MasterOptions) CreateCerts() error {
-	signerName := admin.DefaultSignerName()
-	hostnames, err := o.MasterArgs.GetServerCertHostnames()
-	if err != nil {
-		return err
-	}
-	mintAllCertsOptions := admin.CreateAllCertsOptions{
-		CertDir:    o.MasterArgs.CertArgs.CertDir,
-		SignerName: signerName,
-		Hostnames:  hostnames.List(),
-		NodeList:   o.MasterArgs.NodeList,
-	}
-	if err := mintAllCertsOptions.CreateAllCerts(); err != nil {
-		return err
-	}
-
-	rootCAFile := admin.DefaultRootCAFile(o.MasterArgs.CertArgs.CertDir)
 	masterAddr, err := o.MasterArgs.GetMasterAddress()
 	if err != nil {
 		return err
@@ -260,6 +247,28 @@ func (o MasterOptions) CreateCerts() error {
 	if err != nil {
 		return err
 	}
+
+	signerName := admin.DefaultSignerName()
+	hostnames, err := o.MasterArgs.GetServerCertHostnames()
+	if err != nil {
+		return err
+	}
+	mintAllCertsOptions := admin.CreateAllCertsOptions{
+		CertDir:            o.MasterArgs.CertArgs.CertDir,
+		SignerName:         signerName,
+		Hostnames:          hostnames.List(),
+		NodeList:           o.MasterArgs.NodeList,
+		APIServerURL:       masterAddr.String(),
+		PublicAPIServerURL: publicMasterAddr.String(),
+	}
+	if err := mintAllCertsOptions.Validate(nil); err != nil {
+		return err
+	}
+	if err := mintAllCertsOptions.CreateAllCerts(); err != nil {
+		return err
+	}
+
+	rootCAFile := admin.DefaultRootCAFile(o.MasterArgs.CertArgs.CertDir)
 	for _, clientCertInfo := range admin.DefaultClientCerts(o.MasterArgs.CertArgs.CertDir) {
 		createKubeConfigOptions := admin.CreateKubeConfigOptions{
 			APIServerURL:       masterAddr.String(),
@@ -274,6 +283,9 @@ func (o MasterOptions) CreateCerts() error {
 			KubeConfigFile: admin.DefaultKubeConfigFilename(o.MasterArgs.CertArgs.CertDir, clientCertInfo.SubDir),
 		}
 
+		if err := createKubeConfigOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 			return err
 		}
@@ -378,7 +390,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}
 
 	// TODO: recording should occur in individual components
-	record.StartRecording(openshiftConfig.KubeClient().Events(""), kapi.EventSource{Component: "master"})
+	record.StartRecording(openshiftConfig.KubeClient().Events(""))
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 

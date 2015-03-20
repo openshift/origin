@@ -19,9 +19,12 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/spf13/cobra"
 )
 
@@ -37,39 +40,63 @@ $ kubectl resize --replicas=3 replicationcontrollers foo
 
 // If the replication controller named foo's current size is 2, resize foo to 3.
 $ kubectl resize --current-replicas=2 --replicas=3 replicationcontrollers foo`
+
+	retryFrequency = controller.DefaultSyncPeriod / 100
+	retryTimeout   = 10 * time.Second
 )
 
 func (f *Factory) NewCmdResize(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "resize [--resource-version=<version>] [--current-replicas=<count>] --replicas=<count> <resource> <id>",
+		Use:     "resize [--resource-version=version] [--current-replicas=count] --replicas=COUNT RESOURCE ID",
 		Short:   "Set a new size for a Replication Controller.",
 		Long:    resize_long,
 		Example: resize_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			count := util.GetFlagInt(cmd, "replicas")
-			if len(args) != 2 || count < 0 {
-				usageError(cmd, "--replicas=<count> <resource> <id>")
-			}
-
-			cmdNamespace, err := f.DefaultNamespace(cmd)
-			checkErr(err)
-
-			mapper, _ := f.Object(cmd)
-			// TODO: use resource.Builder instead
-			mapping, namespace, name := util.ResourceFromArgs(cmd, args, mapper, cmdNamespace)
-
-			resizer, err := f.Resizer(cmd, mapping)
-			checkErr(err)
-
-			resourceVersion := util.GetFlagString(cmd, "resource-version")
-			currentSize := util.GetFlagInt(cmd, "current-replicas")
-			s, err := resizer.Resize(namespace, name, &kubectl.ResizePrecondition{currentSize, resourceVersion}, uint(count))
-			checkErr(err)
-			fmt.Fprintf(out, "%s\n", s)
+			err := RunResize(f, out, cmd, args)
+			util.CheckErr(err)
 		},
 	}
 	cmd.Flags().String("resource-version", "", "Precondition for resource version. Requires that the current resource version match this value in order to resize.")
 	cmd.Flags().Int("current-replicas", -1, "Precondition for current size. Requires that the current size of the replication controller match this value in order to resize.")
 	cmd.Flags().Int("replicas", -1, "The new desired number of replicas. Required.")
 	return cmd
+}
+
+func RunResize(f *Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	count := util.GetFlagInt(cmd, "replicas")
+	if len(args) != 2 || count < 0 {
+		return util.UsageError(cmd, "--replicas=COUNT RESOURCE ID")
+	}
+
+	cmdNamespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	mapper, _ := f.Object()
+	// TODO: use resource.Builder instead
+	mapping, namespace, name, err := util.ResourceFromArgs(cmd, args, mapper, cmdNamespace)
+	if err != nil {
+		return err
+	}
+
+	resizer, err := f.Resizer(mapping)
+	if err != nil {
+		return err
+	}
+
+	resourceVersion := util.GetFlagString(cmd, "resource-version")
+	currentSize := util.GetFlagInt(cmd, "current-replicas")
+	precondition := &kubectl.ResizePrecondition{currentSize, resourceVersion}
+	cond := kubectl.ResizeCondition(resizer, precondition, namespace, name, uint(count))
+
+	msg := "resized"
+	if err = wait.Poll(retryFrequency, retryTimeout, cond); err != nil {
+		msg = fmt.Sprintf("Failed to resize controller in spite of retrying for %s", retryTimeout)
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Fprintf(out, "%s\n", msg)
+	return nil
 }

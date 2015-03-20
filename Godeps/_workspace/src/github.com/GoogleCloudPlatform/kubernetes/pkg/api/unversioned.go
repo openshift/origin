@@ -16,6 +16,10 @@ limitations under the License.
 
 package api
 
+import (
+	"strings"
+)
+
 // This file contains API types that are unversioned.
 
 // APIVersions lists the api versions that are available, to allow
@@ -29,4 +33,32 @@ type APIVersions struct {
 // For example: "/healthz", "/api".
 type RootPaths struct {
 	Paths []string `json:"paths"`
+}
+
+// preV1Beta3 returns true if the provided API version is an API introduced before v1beta3.
+func PreV1Beta3(version string) bool {
+	return version == "v1beta1" || version == "v1beta2"
+}
+
+func LabelSelectorQueryParam(version string) string {
+	if PreV1Beta3(version) {
+		return "labels"
+	}
+	return "label-selector"
+}
+
+func FieldSelectorQueryParam(version string) string {
+	if PreV1Beta3(version) {
+		return "fields"
+	}
+	return "field-selector"
+}
+
+// String returns available api versions as a human-friendly version string.
+func (apiVersions APIVersions) String() string {
+	return strings.Join(apiVersions.Versions, ",")
+}
+
+func (apiVersions APIVersions) GoString() string {
+	return apiVersions.String()
 }

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,12 +15,12 @@ type BuildsNamespacer interface {
 
 // BuildInterface exposes methods on Build resources.
 type BuildInterface interface {
-	List(label, field labels.Selector) (*buildapi.BuildList, error)
+	List(label labels.Selector, field fields.Selector) (*buildapi.BuildList, error)
 	Get(name string) (*buildapi.Build, error)
 	Create(build *buildapi.Build) (*buildapi.Build, error)
 	Update(build *buildapi.Build) (*buildapi.Build, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // builds implements BuildsNamespacer interface
@@ -37,13 +38,13 @@ func newBuilds(c *Client, namespace string) *builds {
 }
 
 // List returns a list of builds that match the label and field selectors.
-func (c *builds) List(label, field labels.Selector) (result *buildapi.BuildList, err error) {
+func (c *builds) List(label labels.Selector, field fields.Selector) (result *buildapi.BuildList, err error) {
 	result = &buildapi.BuildList{}
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("builds").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Do().
 		Into(result)
 	return
@@ -77,13 +78,13 @@ func (c *builds) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested builds
-func (c *builds) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *builds) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("builds").
 		Param("resourceVersion", resourceVersion).
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Watch()
 }

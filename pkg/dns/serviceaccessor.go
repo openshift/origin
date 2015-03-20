@@ -2,11 +2,13 @@ package dns
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
@@ -31,12 +33,12 @@ var _ ServiceAccessor = &cachedServiceAccessor{}
 // NewCachedServiceAccessor returns a service accessor that can answer queries about services.
 // It uses a backing cache to make PortalIP lookups efficient.
 func NewCachedServiceAccessor(client *client.Client, stopCh <-chan struct{}) ServiceAccessor {
-	lw := cache.NewListWatchFromClient(client, "services", api.NamespaceAll, labels.Everything())
+	lw := cache.NewListWatchFromClient(client, "services", api.NamespaceAll, fields.Everything())
 	store := cache.NewIndexer(cache.MetaNamespaceKeyFunc, map[string]cache.IndexFunc{
 		"portalIP":  indexServiceByPortalIP, // for reverse lookups
 		"namespace": cache.MetaNamespaceIndexFunc,
 	})
-	reflector := cache.NewReflector(lw, &api.Service{}, store)
+	reflector := cache.NewReflector(lw, &api.Service{}, store, 2*time.Minute)
 	if stopCh != nil {
 		reflector.RunUntil(stopCh)
 	} else {
@@ -117,6 +119,6 @@ func (a cachedServiceNamespacer) Update(srv *api.Service) (*api.Service, error) 
 func (a cachedServiceNamespacer) Delete(name string) error {
 	return fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (a cachedServiceNamespacer) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
 }

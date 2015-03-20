@@ -132,7 +132,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		}
 	}
 	var kubernetesMasterConfig *configapi.KubernetesMasterConfig
-	if !args.KubeConnectionArgs.KubernetesAddr.Provided && len(args.KubeConnectionArgs.ClientConfigLoadingRules.CommandLinePath) == 0 {
+	if !args.KubeConnectionArgs.KubernetesAddr.Provided && len(args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) == 0 {
 		kubernetesMasterConfig, err = args.BuildSerializeableKubeMasterConfig()
 		if err != nil {
 			return nil, err
@@ -249,6 +249,35 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 	}
 
 	return config, nil
+}
+
+func (args MasterArgs) Validate() error {
+	masterAddr, err := args.GetMasterAddress()
+	if addr, err := masterAddr, err; err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("master url may not include a path: '%v'", addr.Path)
+	}
+
+	if addr, err := args.GetMasterPublicAddress(); err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("master public url may not include a path: '%v'", addr.Path)
+	}
+
+	if addr, err := args.KubeConnectionArgs.GetKubernetesAddress(masterAddr); err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("kubernetes url may not include a path: '%v'", addr.Path)
+	}
+
+	if addr, err := args.GetKubernetesPublicAddress(); err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("kubernetes public url may not include a path: '%v'", addr.Path)
+	}
+
+	return nil
 }
 
 // GetServerCertHostnames returns the set of hostnames that any serving certificate for master needs to be valid for.

@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -76,7 +77,7 @@ func (registry *Etcd) CreateRoute(ctx kapi.Context, route *api.Route) error {
 	if err != nil {
 		return err
 	}
-	err = registry.CreateObj(key, route, 0)
+	err = registry.CreateObj(key, route, nil, 0)
 	return etcderr.InterpretCreateError(err, "route", route.Name)
 }
 
@@ -86,7 +87,7 @@ func (registry *Etcd) UpdateRoute(ctx kapi.Context, route *api.Route) error {
 	if err != nil {
 		return err
 	}
-	err = registry.SetObj(key, route, 0)
+	err = registry.SetObj(key, route, nil, 0)
 	return etcderr.InterpretUpdateError(err, "route", route.Name)
 }
 
@@ -96,12 +97,12 @@ func (registry *Etcd) DeleteRoute(ctx kapi.Context, routeID string) error {
 	if err != nil {
 		return err
 	}
-	err = registry.Delete(key, true)
+	err = registry.Delete(key, false)
 	return etcderr.InterpretDeleteError(err, "route", routeID)
 }
 
 // WatchRoutes begins watching for new, changed, or deleted route configurations.
-func (registry *Etcd) WatchRoutes(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (registry *Etcd) WatchRoutes(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	if !label.Empty() {
 		return nil, fmt.Errorf("label selectors are not supported on routes yet")
 	}

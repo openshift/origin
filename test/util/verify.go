@@ -11,8 +11,10 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+type ValidateFunc func(string) error
+
 // VerifyImage verifies if the latest image in given ImageRepository is valid
-func VerifyImage(repo *imageapi.ImageRepository, ns string, validateFunc func(addr string) error) error {
+func VerifyImage(repo *imageapi.ImageRepository, ns string, validator ValidateFunc) error {
 	pod := CreatePodFromImage(repo, ns)
 	if pod == nil {
 		return fmt.Errorf("Unable to create Pod for %+v", repo.Status.DockerImageRepository)
@@ -29,7 +31,7 @@ func VerifyImage(repo *imageapi.ImageRepository, ns string, validateFunc func(ad
 		return fmt.Errorf("Failed to obtain address: %v", err)
 	}
 
-	return validateFunc(address)
+	return validator(address)
 }
 
 // WaitForAddress waits for the Pod to be running and then for the Service to
@@ -114,9 +116,7 @@ func CreatePodFromImage(repo *imageapi.ImageRepository, ns string) *kapi.Pod {
 					Image: repo.Status.DockerImageRepository,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicy{
-				Never: &kapi.RestartPolicyNever{},
-			},
+			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
 	if pod, err := client.Pods(ns).Create(pod); err != nil {

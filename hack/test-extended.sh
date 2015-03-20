@@ -82,7 +82,7 @@ start_server() {
 
 start_docker_registry() {
   mkdir -p ${BASETMPDIR}/.registry
-  echo "[INFO] Creating default Router"
+  echo "[INFO] Creating Router"
   openshift ex router --create --credentials="${KUBECONFIG}" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 
@@ -119,6 +119,14 @@ REGISTRY_ADDR=$(osc get --output-version=v1beta1 --template="{{ .portalIP }}:{{.
   service docker-registry)
 echo "[INFO] Verifying the docker-registry is up at ${REGISTRY_ADDR}"
 wait_for_url_timed "http://${REGISTRY_ADDR}" "" $((2*TIME_MIN))
+
+# TODO: We need to pre-push the images that we use for builds to avoid getting
+#       "409 - Image already exists" during the 'push' when the Build finishes.
+#       This is because Docker Registry cannot handle parallel pushes.
+#       See: https://github.com/docker/docker-registry/issues/537
+echo "[INFO] Pushing openshift/ruby-20-centos7 image to ${REGISTRY_ADDR}"
+docker tag openshift/ruby-20-centos7 ${REGISTRY_ADDR}/openshift/ruby-20-centos7
+docker push ${REGISTRY_ADDR}/openshift/ruby-20-centos7 &>/dev/null
 
 # Run all extended tests cases
 echo "[INFO] Starting extended tests"

@@ -6,7 +6,8 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -35,8 +36,8 @@ func (r *REST) NewList() runtime.Object {
 }
 
 // List obtains a list of PolicyBindings that match selector.
-func (r *REST) List(ctx kapi.Context, selector, fields klabels.Selector) (runtime.Object, error) {
-	policyBindings, err := r.registry.ListPolicyBindings(ctx, selector, fields)
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	policyBindings, err := r.registry.ListPolicyBindings(ctx, label, field)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +83,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // Watch begins watching for new, changed, or deleted PolicyBindings.
-func (r *REST) Watch(ctx kapi.Context, label, field klabels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return r.registry.WatchPolicyBindings(ctx, label, field, resourceVersion)
 }
 

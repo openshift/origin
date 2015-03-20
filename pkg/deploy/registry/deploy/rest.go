@@ -7,6 +7,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -38,7 +39,7 @@ func (*REST) NewList() runtime.Object {
 }
 
 // List obtains a list of Deployments that match selector.
-func (s *REST) List(ctx kapi.Context, label, field labels.Selector) (runtime.Object, error) {
+func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	deployments, err := s.registry.ListDeployments(ctx, label, field)
 	if err != nil {
 		return nil, err
@@ -111,6 +112,6 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 	return deployment, false, nil
 }
 
-func (s *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (s *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return s.registry.WatchDeployments(ctx, label, field, resourceVersion)
 }

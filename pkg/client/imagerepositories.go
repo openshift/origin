@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,12 +15,12 @@ type ImageRepositoriesNamespacer interface {
 
 // ImageRepositoryInterface exposes methods on ImageRepository resources.
 type ImageRepositoryInterface interface {
-	List(label, field labels.Selector) (*imageapi.ImageRepositoryList, error)
+	List(label labels.Selector, field fields.Selector) (*imageapi.ImageRepositoryList, error)
 	Get(name string) (*imageapi.ImageRepository, error)
 	Create(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 	Update(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // ImageRepositoryNamespaceGetter exposes methods to get ImageRepositories by Namespace
@@ -42,13 +43,13 @@ func newImageRepositories(c *Client, namespace string) *imageRepositories {
 }
 
 // List returns a list of imagerepositories that match the label and field selectors.
-func (c *imageRepositories) List(label, field labels.Selector) (result *imageapi.ImageRepositoryList, err error) {
+func (c *imageRepositories) List(label labels.Selector, field fields.Selector) (result *imageapi.ImageRepositoryList, err error) {
 	result = &imageapi.ImageRepositoryList{}
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("imageRepositories").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Do().
 		Into(result)
 	return
@@ -89,13 +90,13 @@ func (c *imageRepositories) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested imagerepositories.
-func (c *imageRepositories) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *imageRepositories) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("imageRepositories").
 		Param("resourceVersion", resourceVersion).
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Watch()
 }

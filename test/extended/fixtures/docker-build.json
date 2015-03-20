@@ -8,6 +8,11 @@
     }
   },
   "parameters": {
+    "output": {
+      "to": {
+        "name": "samplerepository"
+      }
+    },
     "source": {
       "type": "Git",
       "git": {

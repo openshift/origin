@@ -73,7 +73,14 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 		return errors.New("user must be provided")
 	}
 
-	return o.GetSignerCertOptions.Validate()
+	if o.GetSignerCertOptions == nil {
+		return errors.New("signer options are required")
+	}
+	if err := o.GetSignerCertOptions.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfig, error) {

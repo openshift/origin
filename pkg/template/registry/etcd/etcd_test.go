@@ -15,7 +15,7 @@ import (
 func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.EtcdHelper{Client: fakeEtcdClient, Codec: latest.Codec, ResourceVersioner: tools.RuntimeVersionAdapter{latest.ResourceVersioner}}
+	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
 	return fakeEtcdClient, helper
 }
 
@@ -42,7 +42,7 @@ func TestStorage(t *testing.T) {
 	storage := NewREST(helper)
 	var _ apiserver.RESTCreater = storage
 	var _ apiserver.RESTLister = storage
-	var _ apiserver.RESTDeleter = storage
+	var _ apiserver.RESTGracefulDeleter = storage
 	var _ apiserver.RESTUpdater = storage
 	var _ apiserver.RESTGetter = storage
 }

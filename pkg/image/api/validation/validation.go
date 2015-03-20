@@ -13,10 +13,10 @@ func ValidateImage(image *api.Image) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
 
 	if len(image.Name) == 0 {
-		result = append(result, errors.NewFieldRequired("name", image.Name))
+		result = append(result, errors.NewFieldRequired("name"))
 	}
 	if len(image.DockerImageReference) == 0 {
-		result = append(result, errors.NewFieldRequired("dockerImageReference", image.DockerImageReference))
+		result = append(result, errors.NewFieldRequired("dockerImageReference"))
 	} else {
 		if _, err := api.ParseDockerImageReference(image.DockerImageReference); err != nil {
 			result = append(result, errors.NewFieldInvalid("dockerImageReference", image.DockerImageReference, err.Error()))
@@ -34,9 +34,9 @@ func ValidateImageRepository(repo *api.ImageRepository) errors.ValidationErrorLi
 		repo.Tags = make(map[string]string)
 	}
 	if len(repo.Name) == 0 {
-		result = append(result, errors.NewFieldRequired("name", repo.Name))
+		result = append(result, errors.NewFieldRequired("name"))
 	}
-	if !util.IsDNSSubdomain(repo.Namespace) {
+	if !util.IsDNS1123Subdomain(repo.Namespace) {
 		result = append(result, errors.NewFieldInvalid("namespace", repo.Namespace, ""))
 	}
 	if len(repo.DockerImageRepository) != 0 {
@@ -78,15 +78,15 @@ func ValidateImageRepositoryMapping(mapping *api.ImageRepositoryMapping) errors.
 		}
 	case hasName:
 	default:
-		result = append(result, errors.NewFieldRequired("name", ""))
-		result = append(result, errors.NewFieldRequired("dockerImageRepository", ""))
+		result = append(result, errors.NewFieldRequired("name"))
+		result = append(result, errors.NewFieldRequired("dockerImageRepository"))
 	}
 
-	if !util.IsDNSSubdomain(mapping.Namespace) {
+	if !util.IsDNS1123Subdomain(mapping.Namespace) {
 		result = append(result, errors.NewFieldInvalid("namespace", mapping.Namespace, ""))
 	}
 	if len(mapping.Tag) == 0 {
-		result = append(result, errors.NewFieldRequired("tag", mapping.Tag))
+		result = append(result, errors.NewFieldRequired("tag"))
 	}
 	if errs := ValidateImage(&mapping.Image).Prefix("image"); len(errs) != 0 {
 		result = append(result, errs...)

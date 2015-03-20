@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -59,7 +60,7 @@ func (r *Etcd) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.Buil
 }
 
 // WatchBuilds begins watching for new, changed, or deleted Builds.
-func (r *Etcd) WatchBuilds(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := tools.ParseWatchResourceVersion(resourceVersion, "build")
 	if err != nil {
 		return nil, err
@@ -100,7 +101,7 @@ func (r *Etcd) CreateBuild(ctx kapi.Context, build *api.Build) error {
 	if err != nil {
 		return err
 	}
-	err = r.CreateObj(key, build, 0)
+	err = r.CreateObj(key, build, nil, 0)
 	return etcderr.InterpretCreateError(err, "build", build.Name)
 }
 
@@ -110,7 +111,7 @@ func (r *Etcd) UpdateBuild(ctx kapi.Context, build *api.Build) error {
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, build, 0)
+	err = r.SetObj(key, build, nil, 0)
 	return etcderr.InterpretUpdateError(err, "build", build.Name)
 }
 
@@ -169,7 +170,7 @@ func (r *Etcd) CreateBuildConfig(ctx kapi.Context, config *api.BuildConfig) erro
 	if err != nil {
 		return err
 	}
-	err = r.CreateObj(key, config, 0)
+	err = r.CreateObj(key, config, nil, 0)
 	return etcderr.InterpretCreateError(err, "buildConfig", config.Name)
 }
 
@@ -179,7 +180,7 @@ func (r *Etcd) UpdateBuildConfig(ctx kapi.Context, config *api.BuildConfig) erro
 	if err != nil {
 		return err
 	}
-	err = r.SetObj(key, config, 0)
+	err = r.SetObj(key, config, nil, 0)
 	return etcderr.InterpretUpdateError(err, "buildConfig", config.Name)
 }
 
@@ -194,7 +195,7 @@ func (r *Etcd) DeleteBuildConfig(ctx kapi.Context, id string) error {
 }
 
 // WatchBuildConfigs begins watching for new, changed, or deleted BuildConfigs.
-func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	version, err := tools.ParseWatchResourceVersion(resourceVersion, "buildConfig")
 	if err != nil {
 		return nil, err

@@ -19,7 +19,7 @@ func ValidateRoute(route *routeapi.Route) errs.ValidationErrorList {
 
 	//host is not required but if it is set ensure it meets DNS requirements
 	if len(route.Host) > 0 {
-		if !util.IsDNSSubdomain(route.Host) {
+		if !util.IsDNS1123Subdomain(route.Host) {
 			result = append(result, errs.NewFieldInvalid("host", route.Host, "Host must conform to DNS 952 subdomain conventions"))
 		}
 	}
@@ -29,7 +29,7 @@ func ValidateRoute(route *routeapi.Route) errs.ValidationErrorList {
 	}
 
 	if len(route.ServiceName) == 0 {
-		result = append(result, errs.NewFieldRequired("serviceName", ""))
+		result = append(result, errs.NewFieldRequired("serviceName"))
 	}
 
 	if errs := validateTLS(route.TLS); len(errs) != 0 {
@@ -52,19 +52,19 @@ func validateTLS(tls *routeapi.TLSConfig) errs.ValidationErrorList {
 	//reencrypt must specify cert, key, cacert, and destination ca cert
 	if tls.Termination == routeapi.TLSTerminationReencrypt {
 		if len(tls.Certificate) == 0 {
-			result = append(result, errs.NewFieldRequired("certificate", tls.Certificate))
+			result = append(result, errs.NewFieldRequired("certificate"))
 		}
 
 		if len(tls.Key) == 0 {
-			result = append(result, errs.NewFieldRequired("key", tls.Key))
+			result = append(result, errs.NewFieldRequired("key"))
 		}
 
 		if len(tls.CACertificate) == 0 {
-			result = append(result, errs.NewFieldRequired("caCertificate", tls.CACertificate))
+			result = append(result, errs.NewFieldRequired("caCertificate"))
 		}
 
 		if len(tls.DestinationCACertificate) == 0 {
-			result = append(result, errs.NewFieldRequired("destinationCACertificate", tls.DestinationCACertificate))
+			result = append(result, errs.NewFieldRequired("destinationCACertificate"))
 		}
 	}
 
@@ -90,15 +90,15 @@ func validateTLS(tls *routeapi.TLSConfig) errs.ValidationErrorList {
 	//edge cert should specify cert, key, and cacert
 	if tls.Termination == routeapi.TLSTerminationEdge {
 		if len(tls.Certificate) == 0 {
-			result = append(result, errs.NewFieldRequired("certificate", tls.Certificate))
+			result = append(result, errs.NewFieldRequired("certificate"))
 		}
 
 		if len(tls.Key) == 0 {
-			result = append(result, errs.NewFieldRequired("key", tls.Key))
+			result = append(result, errs.NewFieldRequired("key"))
 		}
 
 		if len(tls.CACertificate) == 0 {
-			result = append(result, errs.NewFieldRequired("caCertificate", tls.CACertificate))
+			result = append(result, errs.NewFieldRequired("caCertificate"))
 		}
 
 		if len(tls.DestinationCACertificate) > 0 {

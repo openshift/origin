@@ -6,6 +6,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -33,9 +34,9 @@ func (*REST) NewList() runtime.Object {
 	return &authorizationapi.RoleBindingList{}
 }
 
-// List obtains a list of rolebindings that match selector.
-func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	roleBindings, err := r.registry.ListRoleBindings(ctx, selector, fields)
+// List obtains a list of rolebindings that match label.
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	roleBindings, err := r.registry.ListRoleBindings(ctx, label, field)
 	if err != nil {
 		return nil, err
 	}

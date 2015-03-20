@@ -136,11 +136,11 @@ type Packet struct {
 	Logger    string    `json:"logger"`
 
 	// Optional
-	Release    string                 `json:"release,omitempty"`
 	Platform   string                 `json:"platform,omitempty"`
 	Culprit    string                 `json:"culprit,omitempty"`
-	Tags       Tags                   `json:"tags,omitempty"`
 	ServerName string                 `json:"server_name,omitempty"`
+	Release    string                 `json:"release,omitempty"`
+	Tags       Tags                   `json:"tags,omitempty"`
 	Modules    []map[string]string    `json:"modules,omitempty"`
 	Extra      map[string]interface{} `json:"extra,omitempty"`
 
@@ -267,8 +267,8 @@ type Client struct {
 	mu         sync.RWMutex
 	url        string
 	projectID  string
-	release    string
 	authHeader string
+	release    string
 	queue      chan *outgoingPacket
 }
 
@@ -423,6 +423,13 @@ func (client *Client) Close() {
 	close(client.queue)
 }
 
+func (client *Client) URL() string {
+	client.mu.RLock()
+	defer client.mu.RUnlock()
+
+	return client.url
+}
+
 func (client *Client) ProjectID() string {
 	client.mu.RLock()
 	defer client.mu.RUnlock()
@@ -435,13 +442,6 @@ func (client *Client) Release() string {
 	defer client.mu.RUnlock()
 
 	return client.release
-}
-
-func (client *Client) URL() string {
-	client.mu.RLock()
-	defer client.mu.RUnlock()
-
-	return client.url
 }
 
 // HTTPTransport is the default transport, delivering packets to Sentry via the
