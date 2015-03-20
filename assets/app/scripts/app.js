@@ -169,12 +169,17 @@ angular
       HawtioNav.add(tabs[i]);
     }
   }])
-  .run(function($interval, dateRelativeFilter) {
+  .run(function($interval, dateRelativeFilter, durationFilter) {
     $interval(function() {
       $('.timestamp[data-timestamp]').text(function(i, existing) {
         return dateRelativeFilter($(this).attr("data-timestamp")) || existing;
       });
     }, 30000);
+    $interval(function() {
+      $('.duration[data-timestamp]').text(function(i, existing) {
+        return durationFilter($(this).attr("data-timestamp")) || existing;
+      });      
+    }, 1000);
   });
 
 hawtioPluginLoader.addModule('openshiftConsole');
