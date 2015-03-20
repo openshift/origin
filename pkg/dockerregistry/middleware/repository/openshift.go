@@ -47,7 +47,7 @@ func newRepository(repo distribution.Repository, options map[string]interface{})
 		return nil, errors.New("REGISTRY_URL is required")
 	}
 
-	insecure := len(os.Getenv("OPENSHIFT_INSECURE")) > 0
+	insecure := os.Getenv("OPENSHIFT_INSECURE") == "true"
 	var tlsClientConfig kclient.TLSClientConfig
 	if !insecure {
 		caData := os.Getenv("OPENSHIFT_CA_DATA")
