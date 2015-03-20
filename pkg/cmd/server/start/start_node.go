@@ -7,6 +7,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -220,35 +221,9 @@ func (o NodeOptions) CreateCerts() error {
 		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
 	}
 
-	serverCertInfo := admin.DefaultNodeServingCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
-	nodeServerCertOptions := admin.CreateServerCertOptions{
-		GetSignerCertOptions: getSignerOptions,
-
-		CertFile: serverCertInfo.CertFile,
-		KeyFile:  serverCertInfo.KeyFile,
-
-		Hostnames: []string{o.NodeArgs.NodeName},
-	}
-
-	if err := nodeServerCertOptions.Validate(nil); err != nil {
-		return err
-	}
-	if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
-		return err
-	}
-
-	clientCertInfo := admin.DefaultNodeClientCertInfo(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName)
-	mintNodeClientCert := admin.CreateNodeClientCertOptions{
-		GetSignerCertOptions: getSignerOptions,
-		CertFile:             clientCertInfo.CertFile,
-		KeyFile:              clientCertInfo.KeyFile,
-		NodeName:             o.NodeArgs.NodeName,
-	}
-	if err := mintNodeClientCert.Validate(nil); err != nil {
-		return err
-	}
-	if _, err := mintNodeClientCert.CreateNodeClientCert(); err != nil {
-		return err
+	var dnsIP string
+	if len(o.NodeArgs.ClusterDNS) > 0 {
+		dnsIP = o.NodeArgs.ClusterDNS.String()
 	}
 
 	masterAddr, err := o.NodeArgs.KubeConnectionArgs.GetKubernetesAddress(&o.NodeArgs.DefaultKubernetesURL)
@@ -256,21 +231,29 @@ func (o NodeOptions) CreateCerts() error {
 		return err
 	}
 
-	createKubeConfigOptions := admin.CreateKubeConfigOptions{
+	nodeConfigDir := path.Join(o.NodeArgs.CertArgs.CertDir, admin.DefaultNodeDir(o.NodeArgs.NodeName))
+	createNodeConfigOptions := admin.CreateNodeConfigOptions{
+		GetSignerCertOptions: getSignerOptions,
+
+		NodeConfigDir: nodeConfigDir,
+
+		NodeName:              o.NodeArgs.NodeName,
+		Hostnames:             []string{o.NodeArgs.NodeName},
+		VolumeDir:             o.NodeArgs.VolumeDir,
+		NetworkContainerImage: o.NodeArgs.ImageFormatArgs.ImageTemplate.ExpandOrDie("pod"),
+		AllowDisabledDocker:   o.NodeArgs.AllowDisabledDocker,
+		DNSDomain:             o.NodeArgs.ClusterDomain,
+		DNSIP:                 dnsIP,
+		ListenAddr:            o.NodeArgs.ListenArg.ListenAddr,
+
 		APIServerURL:    masterAddr.String(),
 		APIServerCAFile: getSignerOptions.CertFile,
-		ServerNick:      "master",
-
-		CertFile: mintNodeClientCert.CertFile,
-		KeyFile:  mintNodeClientCert.KeyFile,
-		UserNick: o.NodeArgs.NodeName,
-
-		KubeConfigFile: admin.DefaultNodeKubeConfigFile(o.NodeArgs.CertArgs.CertDir, o.NodeArgs.NodeName),
 	}
-	if err := createKubeConfigOptions.Validate(nil); err != nil {
+
+	if err := createNodeConfigOptions.Validate(nil); err != nil {
 		return err
 	}
-	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
+	if err := createNodeConfigOptions.CreateNodeFolder(); err != nil {
 		return err
 	}
 

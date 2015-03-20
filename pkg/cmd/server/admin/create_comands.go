@@ -15,6 +15,7 @@ func NewCommandAdmin() *cobra.Command {
 
 	cmd.AddCommand(NewCommandOverwriteBootstrapPolicy())
 	cmd.AddCommand(NewCommandCreateBootstrapPolicyFile())
+	cmd.AddCommand(NewCommandNodeConfig())
 	cmd.AddCommand(NewCommandCreateKubeConfig())
 	cmd.AddCommand(NewCommandCreateAllCerts())
 	cmd.AddCommand(NewCommandCreateClientCert())

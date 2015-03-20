@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"path"
 
+	"github.com/ghodss/yaml"
+
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -29,4 +31,17 @@ func ReadAndResolveMasterConfig(filename string) (*configapi.MasterConfig, error
 
 	configapi.ResolveMasterConfigPaths(masterConfig, path.Dir(filename))
 	return masterConfig, nil
+}
+
+// WriteNode serializes the config to yaml.
+func WriteNode(config *configapi.NodeConfig) ([]byte, error) {
+	json, err := Codec.Encode(config)
+	if err != nil {
+		return nil, err
+	}
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, nil
 }
