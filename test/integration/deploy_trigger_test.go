@@ -44,33 +44,33 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireEtcd()
+	testutil.RequireEtcd()
 }
 
 func TestSuccessfulManualDeployment(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
 	config := manualDeploymentConfig()
 	var err error
 
-	dc, err := openshift.Client.DeploymentConfigs(util.Namespace()).Create(config)
+	dc, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	watch, err := openshift.KubeClient.ReplicationControllers(util.Namespace()).Watch(labels.Everything(), labels.Everything(), dc.ResourceVersion)
+	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), dc.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
 	defer watch.Stop()
 
-	config, err = openshift.Client.DeploymentConfigs(util.Namespace()).Generate(config.Name)
+	config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name)
 	if err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	}
 	glog.Infof("config(1): %#v", config)
 
-	new, err := openshift.Client.DeploymentConfigs(util.Namespace()).Update(config)
+	new, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config)
 	if err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v %#v", err, config)
 	}
@@ -100,7 +100,7 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 }
 
 func TestSimpleImageChangeTrigger(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
@@ -115,25 +115,25 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	config := imageChangeDeploymentConfig()
 	var err error
 
-	watch, err := openshift.KubeClient.ReplicationControllers(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
 	defer watch.Stop()
 
-	if imageRepo, err = openshift.Client.ImageRepositories(util.Namespace()).Create(imageRepo); err != nil {
+	if imageRepo, err = openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(util.Namespace()).Create(config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	if config, err = openshift.Client.DeploymentConfigs(util.Namespace()).Generate(config.Name); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(util.Namespace()).Update(config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 
 	imageRepo.Tags["latest"] = "ref-2"
 
-	if _, err = openshift.Client.ImageRepositories(util.Namespace()).Update(imageRepo); err != nil {
+	if _, err = openshift.Client.ImageRepositories(testutil.Namespace()).Update(imageRepo); err != nil {
 		t.Fatalf("Error updating imageRepo: %v", err)
 	}
 
@@ -165,7 +165,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 }
 
 func TestSimpleImageChangeTriggerFrom(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
@@ -183,25 +183,25 @@ func TestSimpleImageChangeTriggerFrom(t *testing.T) {
 	}
 	var err error
 
-	watch, err := openshift.KubeClient.ReplicationControllers(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
 	defer watch.Stop()
 
-	if imageRepo, err = openshift.Client.ImageRepositories(util.Namespace()).Create(imageRepo); err != nil {
+	if imageRepo, err = openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(util.Namespace()).Create(config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	if config, err = openshift.Client.DeploymentConfigs(util.Namespace()).Generate(config.Name); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(util.Namespace()).Update(config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
 	}
 
@@ -217,7 +217,7 @@ func TestSimpleImageChangeTriggerFrom(t *testing.T) {
 
 	imageRepo.Tags["latest"] = "ref-2"
 
-	if _, err = openshift.Client.ImageRepositories(util.Namespace()).Update(imageRepo); err != nil {
+	if _, err = openshift.Client.ImageRepositories(testutil.Namespace()).Update(imageRepo); err != nil {
 		t.Fatalf("Error updating imageRepo: %v", err)
 	}
 
@@ -236,21 +236,21 @@ func TestSimpleImageChangeTriggerFrom(t *testing.T) {
 }
 
 func TestSimpleConfigChangeTrigger(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
 	config := changeDeploymentConfig()
 	var err error
 
-	watch, err := openshift.KubeClient.ReplicationControllers(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
 	defer watch.Stop()
 
 	// submit the initial deployment config
-	if _, err := openshift.Client.DeploymentConfigs(util.Namespace()).Create(config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
@@ -269,13 +269,13 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	assertEnvVarEquals("ENV_TEST", "ENV_VALUE1", deployment, t)
 
 	// submit a new config with an updated environment variable
-	if config, err = openshift.Client.DeploymentConfigs(util.Namespace()).Generate(config.Name); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
 	config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
 
-	if _, err := openshift.Client.DeploymentConfigs(util.Namespace()).Update(config); err != nil {
+	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
 	}
 
@@ -327,7 +327,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		stop: make(chan struct{}),
 	}
 
-	etcdClient := util.NewEtcdClient()
+	etcdClient := testutil.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 
 	osMux := http.NewServeMux()

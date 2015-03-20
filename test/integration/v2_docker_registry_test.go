@@ -19,11 +19,11 @@ import (
 	"github.com/docker/libtrust"
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireEtcd()
+	testutil.RequireEtcd()
 }
 
 func signedManifest() ([]byte, digest.Digest, error) {
@@ -73,7 +73,7 @@ func signedManifest() ([]byte, digest.Digest, error) {
 }
 
 func TestV2RegistryGetTags(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
@@ -96,11 +96,11 @@ middleware:
 
 	repo := imageapi.ImageRepository{
 		ObjectMeta: kapi.ObjectMeta{
-			Namespace: util.Namespace(),
+			Namespace: testutil.Namespace(),
 			Name:      "test",
 		},
 	}
-	if _, err := openshift.Client.ImageRepositories(util.Namespace()).Create(&repo); err != nil {
+	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(&repo); err != nil {
 		t.Fatalf("error creating image repository: %s", err)
 	}
 
@@ -112,7 +112,7 @@ middleware:
 		t.Fatalf("expected 0 tags, got: %#v", tags)
 	}
 
-	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", util.Namespace(), repo.Name, "latest")
+	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), repo.Name, "latest")
 	signedManifest, dgst, err := signedManifest()
 	if err != nil {
 		t.Fatal(err)
@@ -142,7 +142,7 @@ middleware:
 		t.Fatalf("expected latest, got %q", tags[0])
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", util.Namespace(), repo.Name, dgst.String())
+	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), repo.Name, dgst.String())
 	resp, err = http.Get(url)
 	if err != nil {
 		t.Fatalf("error retrieving manifest from registry: %s", err)
@@ -163,14 +163,14 @@ middleware:
 		t.Fatalf("unexpected manifest tag: %s", retrievedManifest.Tag)
 	}
 
-	image, err := openshift.Client.ImageStreamImages(util.Namespace()).Get(repo.Name, dgst.String())
+	image, err := openshift.Client.ImageStreamImages(testutil.Namespace()).Get(repo.Name, dgst.String())
 	if err != nil {
 		t.Fatalf("error getting imageStreamImage: %s", err)
 	}
 	if e, a := dgst.String(), image.Name; e != a {
 		t.Errorf("image name: expected %q, got %q", e, a)
 	}
-	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", util.Namespace(), repo.Name, dgst.String()), image.DockerImageReference; e != a {
+	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), repo.Name, dgst.String()), image.DockerImageReference; e != a {
 		t.Errorf("image dockerImageReference: expected %q, got %q", e, a)
 	}
 	if e, a := "foo", image.DockerImageMetadata.ID; e != a {
@@ -179,7 +179,7 @@ middleware:
 }
 
 func getTags(repoName string) ([]string, error) {
-	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/tags/list", util.Namespace(), repoName)
+	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/tags/list", testutil.Namespace(), repoName)
 	resp, err := http.Get(url)
 	if err != nil {
 		return []string{}, fmt.Errorf("error retrieving tags from registry: %s", err)

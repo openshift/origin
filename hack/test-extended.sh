@@ -82,7 +82,7 @@ start_server() {
 
 start_docker_registry() {
   mkdir -p ${BASETMPDIR}/.registry
-  echo "[INFO] Creating default Router"
+  echo "[INFO] Creating Router"
   openshift ex router --create --credentials="${KUBECONFIG}" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 

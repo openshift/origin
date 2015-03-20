@@ -27,16 +27,16 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireEtcd()
+	testutil.RequireEtcd()
 }
 
 func TestUserInitialization(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	etcdClient := util.NewEtcdClient()
+	testutil.DeleteAllEtcdKeys()
+	etcdClient := testutil.NewEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, user.NewDefaultUserInitStrategy())
 	storage := map[string]apiserver.RESTStorage{
@@ -151,8 +151,8 @@ func (s *testTokenSource) AuthenticatePassword(username, password string) (strin
 }
 
 func TestUserLookup(t *testing.T) {
-	util.DeleteAllEtcdKeys()
-	etcdClient := util.NewEtcdClient()
+	testutil.DeleteAllEtcdKeys()
+	etcdClient := testutil.NewEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	userRegistry := etcd.New(tools.EtcdHelper{etcdClient, interfaces.Codec, tools.RuntimeVersionAdapter{interfaces.MetadataAccessor}}, user.NewDefaultUserInitStrategy())
 	userInfo := &kuser.DefaultInfo{
