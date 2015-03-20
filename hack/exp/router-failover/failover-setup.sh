@@ -58,9 +58,7 @@ function _generate_global_config() {
 
 function _generate_script_config() {
   echo "vrrp_script $CHECK_SCRIPT_NAME {"
-  #  TODO(ramr): for testing, using hello-openshift
-  # echo "   script \"pidof $OPENSHIFT_ROUTER\""
-  echo "   script \"pidof /hello-openshift\""
+  echo "   script \"pidof $OPENSHIFT_ROUTER\""
   echo "   interval $CHECK_INTERVAL_SECS"
   echo "}"
 
