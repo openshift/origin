@@ -261,6 +261,9 @@ func (o MasterOptions) CreateCerts() error {
 		APIServerURL:       masterAddr.String(),
 		PublicAPIServerURL: publicMasterAddr.String(),
 	}
+	if err := mintAllCertsOptions.Validate(nil); err != nil {
+		return err
+	}
 	if err := mintAllCertsOptions.CreateAllCerts(); err != nil {
 		return err
 	}
@@ -280,6 +283,9 @@ func (o MasterOptions) CreateCerts() error {
 			KubeConfigFile: admin.DefaultKubeConfigFilename(o.MasterArgs.CertArgs.CertDir, clientCertInfo.SubDir),
 		}
 
+		if err := createKubeConfigOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 			return err
 		}

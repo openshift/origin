@@ -69,7 +69,14 @@ func (o CreateNodeClientCertOptions) Validate(args []string) error {
 		return errors.New("node-name must be provided")
 	}
 
-	return o.GetSignerCertOptions.Validate()
+	if o.GetSignerCertOptions == nil {
+		return errors.New("signer options are required")
+	}
+	if err := o.GetSignerCertOptions.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (o CreateNodeClientCertOptions) CreateNodeClientCert() (*crypto.TLSCertificateConfig, error) {
@@ -84,6 +91,10 @@ func (o CreateNodeClientCertOptions) CreateNodeClientCert() (*crypto.TLSCertific
 		User:      "system:node-" + o.NodeName,
 		Groups:    util.StringList([]string{bootstrappolicy.NodesGroup}),
 		Overwrite: o.Overwrite,
+	}
+
+	if err := nodeCertOptions.Validate(nil); err != nil {
+		return nil, err
 	}
 
 	return nodeCertOptions.CreateClientCert()

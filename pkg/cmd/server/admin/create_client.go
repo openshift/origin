@@ -77,6 +77,13 @@ func (o CreateClientOptions) Validate(args []string) error {
 		return errors.New("certificate-authority must be provided")
 	}
 
+	if o.GetSignerCertOptions == nil {
+		return errors.New("signer options are required")
+	}
+	if err := o.GetSignerCertOptions.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

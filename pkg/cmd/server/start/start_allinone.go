@@ -184,6 +184,9 @@ func (o AllInOneOptions) StartAllInOne() error {
 			Name:       admin.DefaultSignerName(),
 		}
 
+		if err := signerOptions.Validate(nil); err != nil {
+			return err
+		}
 		if _, err := signerOptions.CreateSignerCert(); err != nil {
 			return err
 		}
