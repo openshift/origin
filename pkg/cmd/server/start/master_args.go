@@ -251,6 +251,35 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 	return config, nil
 }
 
+func (args MasterArgs) Validate() error {
+	masterAddr, err := args.GetMasterAddress()
+	if addr, err := masterAddr, err; err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("master url may not include a path: '%v'", addr.Path)
+	}
+
+	if addr, err := args.GetMasterPublicAddress(); err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("master public url may not include a path: '%v'", addr.Path)
+	}
+
+	if addr, err := args.KubeConnectionArgs.GetKubernetesAddress(masterAddr); err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("kubernetes url may not include a path: '%v'", addr.Path)
+	}
+
+	if addr, err := args.GetKubernetesPublicAddress(); err != nil {
+		return err
+	} else if len(addr.Path) != 0 {
+		return fmt.Errorf("kubernetes public url may not include a path: '%v'", addr.Path)
+	}
+
+	return nil
+}
+
 // GetServerCertHostnames returns the set of hostnames that any serving certificate for master needs to be valid for.
 func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 	masterAddr, err := args.GetMasterAddress()

@@ -144,6 +144,10 @@ func (o AllInOneOptions) Validate(args []string) error {
 		}
 	}
 
+	if err := o.MasterArgs.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
