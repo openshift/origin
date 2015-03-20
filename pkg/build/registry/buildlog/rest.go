@@ -2,10 +2,13 @@ package buildlog
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -13,13 +16,13 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 )
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
-	BuildRegistry build.Registry
-	PodControl    PodControlInterface
+	BuildRegistry  build.Registry
+	PodControl     PodControlInterface
+	ConnectionInfo kclient.ConnectionInfoGetter
 }
 
 type PodControlInterface interface {
@@ -37,12 +40,15 @@ func (r RealPodControl) getPod(namespace, name string) (*kapi.Pod, error) {
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get necessary attributes to assemble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(b build.Registry, pn kclient.PodsNamespacer) *REST {
+func NewREST(b build.Registry, pn kclient.PodsNamespacer, connectionInfo kclient.ConnectionInfoGetter) *REST {
 	return &REST{
-		BuildRegistry: b,
-		PodControl:    RealPodControl{pn},
+		BuildRegistry:  b,
+		PodControl:     RealPodControl{pn},
+		ConnectionInfo: connectionInfo,
 	}
 }
+
+var _ = rest.Redirector(&REST{})
 
 // Redirector implementation
 func (r *REST) ResourceLocation(ctx kapi.Context, id string) (*url.URL, http.RoundTripper, error) {
@@ -63,7 +69,17 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (*url.URL, http.Rou
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
 	buildContainerName := pod.Spec.Containers[0].Name
-	location := fmt.Sprintf("%s:%d/containerLogs/%s/%s/%s", buildPodHost, kubernetes.NodePort, buildPodNamespace, buildPodName, buildContainerName)
+
+	scheme, port, transport, err := r.ConnectionInfo.GetConnectionInfo(buildPodHost)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	location := &url.URL{
+		Scheme: scheme,
+		Host:   net.JoinHostPort(buildPodHost, strconv.FormatUint(uint64(port), 10)),
+		Path:   fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodName, buildContainerName),
+	}
 
 	// Pod in which build take place can't be in the Pending or Unknown phase,
 	// cause no containers are present in the Pod in those phases.
@@ -73,16 +89,14 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (*url.URL, http.Rou
 
 	switch build.Status {
 	case api.BuildStatusRunning:
-		location += "?follow=1"
+		location.RawQuery = "follow=1"
 	case api.BuildStatusComplete, api.BuildStatusFailed:
 		// Do not follow the Complete and Failed logs as the streaming already finished.
 	default:
 		return nil, nil, fielderrors.NewFieldInvalid("build.Status", build.Status, "must be Running, Complete or Failed")
 	}
 
-	return &url.URL{
-		Host: location,
-	}, nil, nil
+	return location, transport, nil
 }
 
 func (r *REST) New() runtime.Object {

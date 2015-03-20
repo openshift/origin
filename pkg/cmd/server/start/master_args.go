@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -19,7 +20,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -185,7 +185,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		KubeletClientInfo: configapi.KubeletConnectionInfo{
-			Port: kubernetes.NodePort,
+			Port: ports.KubeletPort,
 		},
 
 		PolicyConfig: configapi.PolicyConfig{

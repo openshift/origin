@@ -35,9 +35,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 			c, _, err := f.Clients()
 			checkErr(err)
 
-			request := c.BuildLogs(namespace).Redirect(args[0])
-
-			readCloser, err := request.Stream()
+			readCloser, err := c.BuildLogs(namespace).Get(args[0]).Stream()
 			checkErr(err)
 			defer readCloser.Close()
 
