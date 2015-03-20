@@ -16,7 +16,14 @@ import (
 type okImageRepositoryNamespaceGetter struct{}
 
 func (m *okImageRepositoryNamespaceGetter) GetByNamespace(namespace, name string) (*imageapi.ImageRepository, error) {
-	return nil, nil
+	return &imageapi.ImageRepository{
+		Status: imageapi.ImageRepositoryStatus{
+			DockerImageRepository: "repository/image",
+		},
+		Tags: map[string]string{
+			"latest": "latest",
+		},
+	}, nil
 }
 
 type okBuildConfigGetter struct{}
@@ -38,8 +45,16 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 					URI: "git://github.com/my/repo.git",
 				},
 			},
+			Strategy: mockBuildStrategy,
 		},
 	}, nil
+}
+
+var mockBuildStrategy api.BuildStrategy = api.BuildStrategy{
+	Type: "STI",
+	STIStrategy: &api.STIBuildStrategy{
+		Image: "repository/image",
+	},
 }
 
 type okBuildCreator struct{}
@@ -207,6 +222,7 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 						URI: "git://github.com/my/repo.git",
 					},
 				},
+				Strategy: mockBuildStrategy,
 			},
 		},
 		path: "/foobar",

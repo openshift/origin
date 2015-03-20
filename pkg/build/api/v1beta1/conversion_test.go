@@ -26,6 +26,15 @@ func TestSTIBuildStrategyConversion(t *testing.T) {
 	if actual.Image != oldVersion.BuilderImage {
 		t.Errorf("expected %v, actual %v", oldVersion.BuilderImage, actual.Image)
 	}
+	if actual.From.Name != oldVersion.From.Name {
+		t.Errorf("expected %v, actual %v", oldVersion.From.Name, actual.From.Name)
+	}
+	if actual.From.Namespace != oldVersion.From.Namespace {
+		t.Errorf("expected %v, actual %v", oldVersion.From.Namespace, actual.From.Namespace)
+	}
+	if actual.Tag != oldVersion.Tag {
+		t.Errorf("expected %v, actual %v", oldVersion.Tag, actual.Tag)
+	}
 	if actual.Incremental == oldVersion.Clean {
 		t.Errorf("expected %v, actual %v", oldVersion.Clean, actual.Incremental)
 	}

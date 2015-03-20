@@ -177,18 +177,25 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 8. Confirm the registry is accessible (you may need to run this more than once):
 
-        $ curl `osc get service docker-registry --template="{{ .portalIP}}:{{ .port }}"`
+        $ export DOCKER_REGISTRY=`osc get service docker-registry --template="{{ .portalIP}}:{{ .port }}"`
+		$ curl $DOCKER_REGISTRY
 
     You should see:
 
         "docker-registry server (dev) (v0.9.0)"
 
 
-9. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
+9. Push builder image to private docker-registry:
+
+		$ docker pull openshift/ruby-20-centos7:latest
+		$ docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
+		$ docker push ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
+
+10. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
         $ openshift ex new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3" --admin=anypassword:test-admin
 
-10. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`.  Login using the user `test-admin` and any password.
+11. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`.  Login using the user `test-admin` and any password.
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift
@@ -199,7 +206,7 @@ This section covers how to perform all the steps of building, deploying, and upd
       and run builds.
 
 
-11. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+12. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
     to an OpenShift-visible git account that you control, preferably
     somewhere that can also reach your OpenShift server with a webhook.
     A github.com account is an obvious place for this, but an in-house
@@ -212,7 +219,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     Without your own fork, you can still run the initial build from
     OpenShift's public repository, just not a changed build.
 
-12. *Optional:* Add the following webhook under the settings in your new GitHub repository:
+13. *Optional:* Add the following webhook under the settings in your new GitHub repository:
 
         $ https://<host>:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
 
@@ -223,12 +230,12 @@ This section covers how to perform all the steps of building, deploying, and upd
     instance as the certificate chain generated is not publicly verified.
 
 	
-13. Edit application-template-stibuild.json which will define the sample application
+14. Edit application-template-stibuild.json which will define the sample application
 
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
 
-14. Submit the application template for processing (generating shared parameters requested in the template)
+15. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
         $ osc process -n test -f application-template-stibuild.json | osc create -n test -f -
@@ -247,13 +254,13 @@ This section covers how to perform all the steps of building, deploying, and upd
     Note that no build has actually occurred yet, so at this time there
     is no image to deploy and no application to visit.
 
-15. Trigger an initial build of your application
+16. Trigger an initial build of your application
  * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository.
  * Otherwise you can request a new build by running:
 
             $ osc start-build -n test ruby-sample-build
 
-16. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
+17. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
         $ osc get -n test builds
 
@@ -283,7 +290,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     automatically trigger a deployment of the application, creating a
     pod each for the frontend (your Ruby code) and backend.
 
-17. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
+18. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
 
         $ osc get -n test pods
 
@@ -294,7 +301,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
         4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.30.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
 
-18. Determine the IP for the frontend service:
+19. Determine the IP for the frontend service:
 
         $ osc get -n test services
 
@@ -310,7 +317,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     *Note:* you can also get this information from the web console.
 
-19. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
+20. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
 
 	- - -
 	**VAGRANT USERS:**
@@ -323,14 +330,14 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
-20. Make a change to your ruby sample main.html file, commit, and push it via git.
+21. Make a change to your ruby sample main.html file, commit, and push it via git.
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ osc start-build -n test ruby-sample-build
 
 
-21. Repeat step 16 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
+22. Repeat step 17 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.
 
