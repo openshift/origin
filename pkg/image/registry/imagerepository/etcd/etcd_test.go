@@ -259,7 +259,7 @@ func TestDeleteImageRepository(t *testing.T) {
 	}
 	storage, _ := NewREST(helper, noDefaultRegistry)
 
-	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo")
+	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}

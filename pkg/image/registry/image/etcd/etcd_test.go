@@ -352,7 +352,7 @@ func TestDelete(t *testing.T) {
 	}
 	storage := NewREST(helper)
 
-	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo")
+	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 
 	if obj == nil {
 		t.Error("Unexpected nil obj")
@@ -379,7 +379,7 @@ func TestDeleteNotFound(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = tools.EtcdErrorNotFound
 	storage := NewREST(helper)
-	_, err := storage.Delete(kapi.NewDefaultContext(), "foo")
+	_, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}
@@ -392,7 +392,7 @@ func TestDeleteImageError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("Some error")
 	storage := NewREST(helper)
-	_, err := storage.Delete(kapi.NewDefaultContext(), "foo")
+	_, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if err == nil {
 		t.Error("Unexpected non-error")
 	}

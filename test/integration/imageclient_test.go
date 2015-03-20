@@ -273,7 +273,6 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 		t.Logf("got %s %s", req.Method, req.URL.String())
 	}))
 
-	kubeClient := client.NewOrDie(&client.Config{Host: openshift.server.URL, Version: klatest.Version})
 	osClient := osclient.NewOrDie(&client.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
@@ -286,7 +285,6 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		Client:           kubeClient,
 		EtcdHelper:       etcdHelper,
 		KubeletClient:    kubeletClient,
 		APIPrefix:        "/api",

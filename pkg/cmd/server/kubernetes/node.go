@@ -157,7 +157,7 @@ func (c *NodeConfig) RunKubelet() {
 		recorder,
 		cadvisorInterface,
 		20*time.Second,
-		2*time.Minute,
+		1*time.Minute,
 		imageGCPolicy,
 	)
 	if err != nil {
