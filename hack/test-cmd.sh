@@ -38,6 +38,8 @@ ETCD_PORT=${ETCD_PORT:-4001}
 API_SCHEME=${API_SCHEME:-https}
 API_PORT=${API_PORT:-8443}
 API_HOST=${API_HOST:-127.0.0.1}
+MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
+PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 KUBELET_SCHEME=${KUBELET_SCHEME:-http}
 KUBELET_PORT=${KUBELET_PORT:-10250}
 
@@ -70,6 +72,18 @@ echo openshift: $out
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
+# Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
+echo "[INFO] Create certificates for the OpenShift server"
+# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
+ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
+SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
+while read -r IP_ADDRESS
+do
+    SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
+done <<< "${ALL_IP_ADDRESSES}"
+
+openshift admin create-all-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --nodes="${API_HOST}" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start --master="${API_SCHEME}://${API_HOST}:${API_PORT}" --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" --hostname="${API_HOST}" --volume-dir="${VOLUME_DIR}" --cert-dir="${CERT_DIR}" --etcd-dir="${ETCD_DATA_DIR}" 1>&2 &
 OS_PID=$!
@@ -79,6 +93,10 @@ if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CERT="${CERT_DIR}/admin/cert.crt"
     export CURL_KEY="${CERT_DIR}/admin/key.key"
 fi
+
+# set the home directory so we don't pick up the users .config
+export HOME="${CERT_DIR}/admin"
+unset KUBECONFIG
 
 wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -92,7 +110,6 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 #
 
 # test client not configured
-unset KUBECONFIG
 [ "$(osc get services 2>&1 | grep 'no server found')" ]
 
 # Set KUBERNETES_MASTER for osc from now on
