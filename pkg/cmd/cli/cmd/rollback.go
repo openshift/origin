@@ -64,10 +64,10 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 			outputTemplate := cmdutil.GetFlagString(cmd, "template")
 			dryRun := cmdutil.GetFlagBool(cmd, "dry-run")
 
-			osClient, _, err := f.Clients(cmd)
+			osClient, _, err := f.Clients()
 			checkErr(err)
 
-			namespace, err := f.DefaultNamespace(cmd)
+			namespace, err := f.DefaultNamespace()
 			checkErr(err)
 
 			// Generate the rollback config

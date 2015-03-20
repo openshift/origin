@@ -33,7 +33,7 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 			clientCfg, err := f.OpenShiftClientConfig.ClientConfig()
 			checkErr(err)
 
-			oClient, _, err := f.Clients(cmd)
+			oClient, _, err := f.Clients()
 			checkErr(err)
 
 			if argsLength == 0 {

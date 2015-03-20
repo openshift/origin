@@ -27,6 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -82,18 +83,18 @@ func (e *exists) Admit(a admission.Attributes) (err error) {
 
 func NewExists(c client.Interface) admission.Interface {
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	// TODO: look into a list/watch that can work with client.Interface, maybe pass it a ListFunc and a WatchFunc
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
 			ListFunc: func() (runtime.Object, error) {
 				return c.Namespaces().List(labels.Everything())
 			},
 			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return c.Namespaces().Watch(labels.Everything(), labels.Everything(), resourceVersion)
+				return c.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
 		&api.Namespace{},
 		store,
+		0,
 	)
 	reflector.Run()
 	return &exists{

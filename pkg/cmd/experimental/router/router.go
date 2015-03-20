@@ -117,7 +117,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 			if err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			_, kClient, err := f.Clients(cmd)
+			_, kClient, err := f.Clients()
 			if err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
@@ -227,7 +227,6 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 				bulk := configcmd.Bulk{
 					Factory: f.Factory,
-					Command: cmd,
 					After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 				}
 				if errs := bulk.Create(list, namespace); len(errs) != 0 {

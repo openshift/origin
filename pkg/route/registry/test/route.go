@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -85,6 +86,6 @@ func (r *RouteRegistry) DeleteRoute(ctx kapi.Context, id string) error {
 	return nil
 }
 
-func (r *RouteRegistry) WatchRoutes(ctx kapi.Context, labels, fields labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *RouteRegistry) WatchRoutes(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, nil
 }

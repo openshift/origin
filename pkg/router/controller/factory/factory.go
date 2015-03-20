@@ -1,9 +1,12 @@
 package factory
 
 import (
+	"time"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -22,10 +25,10 @@ type RouterControllerFactory struct {
 
 func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&routeLW{factory.OSClient}, &routeapi.Route{}, routeEventQueue).Run()
+	cache.NewReflector(&routeLW{factory.OSClient}, &routeapi.Route{}, routeEventQueue, 2*time.Minute).Run()
 
 	endpointsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&endpointsLW{factory.KClient}, &kapi.Endpoints{}, endpointsEventQueue).Run()
+	cache.NewReflector(&endpointsLW{factory.KClient}, &kapi.Endpoints{}, endpointsEventQueue, 2*time.Minute).Run()
 
 	return &controller.RouterController{
 		Plugin: plugin,
@@ -51,11 +54,11 @@ type routeLW struct {
 }
 
 func (lw *routeLW) List() (runtime.Object, error) {
-	return lw.client.Routes(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+	return lw.client.Routes(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 }
 
 func (lw *routeLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Routes(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+	return lw.client.Routes(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 }
 
 type endpointsLW struct {
@@ -67,5 +70,5 @@ func (lw *endpointsLW) List() (runtime.Object, error) {
 }
 
 func (lw *endpointsLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Endpoints(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+	return lw.client.Endpoints(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 }

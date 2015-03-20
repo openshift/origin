@@ -23,17 +23,12 @@ import (
 
 type DockerCache interface {
 	RunningContainers() (DockerContainers, error)
+	ForceUpdateIfOlder(time.Time) error
 }
 
 func NewDockerCache(client DockerInterface) (DockerCache, error) {
-	containers, err := GetKubeletDockerContainers(client, false)
-	if err != nil {
-		return nil, err
-	}
 	return &dockerCache{
 		client:        client,
-		cacheTime:     time.Now(),
-		containers:    containers,
 		updatingCache: false,
 	}, nil
 }
@@ -55,6 +50,9 @@ type dockerCache struct {
 	updatingThreadStopTime time.Time
 }
 
+// Ensure that dockerCache abides by the DockerCache interface.
+var _ DockerCache = new(dockerCache)
+
 func (d *dockerCache) RunningContainers() (DockerContainers, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -73,6 +71,20 @@ func (d *dockerCache) RunningContainers() (DockerContainers, error) {
 		go d.startUpdatingCache()
 	}
 	return d.containers, nil
+}
+
+func (d *dockerCache) ForceUpdateIfOlder(minExpectedCacheTime time.Time) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	if d.cacheTime.Before(minExpectedCacheTime) {
+		containers, err := GetKubeletDockerContainers(d.client, false)
+		if err != nil {
+			return err
+		}
+		d.containers = containers
+		d.cacheTime = time.Now()
+	}
+	return nil
 }
 
 func (d *dockerCache) startUpdatingCache() {

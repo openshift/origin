@@ -34,7 +34,7 @@ func addService(t *testing.T, s *server, k string, ttl uint64, m *msg.Service) {
 	}
 	path, _ := msg.PathWithWildcard(k)
 	t.Logf("Adding path %s:", path)
-	_, err = s.getter.(*backendetcd.Getter).Client().Create(path, string(b), ttl)
+	_, err = s.backend.(*backendetcd.Backend).Client().Create(path, string(b), ttl)
 	if err != nil {
 		// TODO(miek): allow for existing keys...
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func addService(t *testing.T, s *server, k string, ttl uint64, m *msg.Service) {
 
 func delService(t *testing.T, s *server, k string) {
 	path, _ := msg.PathWithWildcard(k)
-	_, err := s.getter.(*backendetcd.Getter).Client().Delete(path, false)
+	_, err := s.backend.(*backendetcd.Backend).Client().Delete(path, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func newTestServer(t *testing.T, c bool) *server {
 	s.dnsUDPclient = &dns.Client{Net: "udp", ReadTimeout: 2 * s.config.ReadTimeout, WriteTimeout: 2 * s.config.ReadTimeout, SingleInflight: true}
 	s.dnsTCPclient = &dns.Client{Net: "tcp", ReadTimeout: 2 * s.config.ReadTimeout, WriteTimeout: 2 * s.config.ReadTimeout, SingleInflight: true}
 
-	s.getter = backendetcd.NewGetter(client, &backendetcd.Config{
+	s.backend = backendetcd.NewBackend(client, &backendetcd.Config{
 		Ttl:      s.config.Ttl,
 		Priority: s.config.Priority,
 	})

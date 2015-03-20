@@ -74,7 +74,7 @@ func (passthroughLogger) Addf(format string, data ...interface{}) {
 
 // DefaultStacktracePred is the default implementation of StacktracePred.
 func DefaultStacktracePred(status int) bool {
-	return (status < http.StatusOK || status >= http.StatusBadRequest) && status != http.StatusSwitchingProtocols
+	return (status < http.StatusOK || status >= http.StatusInternalServerError) && status != http.StatusSwitchingProtocols
 }
 
 // NewLogged turns a normal response writer into a logged response writer.
@@ -155,7 +155,7 @@ func (rl *respLogger) Addf(format string, data ...interface{}) {
 func (rl *respLogger) Log() {
 	latency := time.Since(rl.startTime)
 	if glog.V(2) {
-		glog.InfoDepth(1, fmt.Sprintf("%s %s: (%v) %v%v%v", rl.req.Method, rl.req.RequestURI, latency, rl.status, rl.statusStack, rl.addedInfo))
+		glog.InfoDepth(1, fmt.Sprintf("%s %s: (%v) %v%v%v [%s %s]", rl.req.Method, rl.req.RequestURI, latency, rl.status, rl.statusStack, rl.addedInfo, rl.req.Header["User-Agent"], rl.req.RemoteAddr))
 	}
 }
 

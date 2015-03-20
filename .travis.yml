@@ -14,7 +14,6 @@ matrix:
       env: TEST_ASSETS=true
 
 install:
-  - ./hack/verify-gofmt.sh
   - ./hack/verify-jsonformat.sh
   - ./hack/install-etcd.sh
   - ./hack/install-std-race.sh
@@ -23,9 +22,7 @@ install:
   - ./hack/install-assets.sh
 
 script:
-  - KUBE_RACE="-race" KUBE_COVER="-cover -covermode=atomic" ./hack/test-go.sh "" -p=4
-  - ./hack/test-cmd.sh
-  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH ./hack/test-integration.sh
+  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH make check-test GOFLAGS="-p=4"
   - ./hack/test-assets.sh
 
 notifications:

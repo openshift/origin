@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -32,18 +33,19 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream/spdy"
-	"github.com/google/cadvisor/info"
+	cadvisorApi "github.com/google/cadvisor/info/v1"
 )
 
 type fakeKubelet struct {
-	podByNameFunc                      func(namespace, name string) (*api.BoundPod, bool)
+	podByNameFunc                      func(namespace, name string) (*api.Pod, bool)
 	statusFunc                         func(name string) (api.PodStatus, error)
-	containerInfoFunc                  func(podFullName string, uid types.UID, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error)
-	rootInfoFunc                       func(query *info.ContainerInfoRequest) (*info.ContainerInfo, error)
-	machineInfoFunc                    func() (*info.MachineInfo, error)
-	boundPodsFunc                      func() ([]api.BoundPod, error)
+	containerInfoFunc                  func(podFullName string, uid types.UID, containerName string, req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error)
+	rootInfoFunc                       func(query *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error)
+	machineInfoFunc                    func() (*cadvisorApi.MachineInfo, error)
+	podsFunc                           func() ([]api.Pod, util.StringSet)
 	logFunc                            func(w http.ResponseWriter, req *http.Request)
 	runFunc                            func(podFullName string, uid types.UID, containerName string, cmd []string) ([]byte, error)
 	dockerVersionFunc                  func() ([]uint, error)
@@ -51,9 +53,10 @@ type fakeKubelet struct {
 	portForwardFunc                    func(name string, uid types.UID, port uint16, stream io.ReadWriteCloser) error
 	containerLogsFunc                  func(podFullName, containerName, tail string, follow bool, stdout, stderr io.Writer) error
 	streamingConnectionIdleTimeoutFunc func() time.Duration
+	hostnameFunc                       func() string
 }
 
-func (fk *fakeKubelet) GetPodByName(namespace, name string) (*api.BoundPod, bool) {
+func (fk *fakeKubelet) GetPodByName(namespace, name string) (*api.Pod, bool) {
 	return fk.podByNameFunc(namespace, name)
 }
 
@@ -61,11 +64,11 @@ func (fk *fakeKubelet) GetPodStatus(name string, uid types.UID) (api.PodStatus, 
 	return fk.statusFunc(name)
 }
 
-func (fk *fakeKubelet) GetContainerInfo(podFullName string, uid types.UID, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+func (fk *fakeKubelet) GetContainerInfo(podFullName string, uid types.UID, containerName string, req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error) {
 	return fk.containerInfoFunc(podFullName, uid, containerName, req)
 }
 
-func (fk *fakeKubelet) GetRootInfo(req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+func (fk *fakeKubelet) GetRootInfo(req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error) {
 	return fk.rootInfoFunc(req)
 }
 
@@ -73,12 +76,12 @@ func (fk *fakeKubelet) GetDockerVersion() ([]uint, error) {
 	return fk.dockerVersionFunc()
 }
 
-func (fk *fakeKubelet) GetMachineInfo() (*info.MachineInfo, error) {
+func (fk *fakeKubelet) GetCachedMachineInfo() (*cadvisorApi.MachineInfo, error) {
 	return fk.machineInfoFunc()
 }
 
-func (fk *fakeKubelet) GetBoundPods() ([]api.BoundPod, error) {
-	return fk.boundPodsFunc()
+func (fk *fakeKubelet) GetPods() ([]api.Pod, util.StringSet) {
+	return fk.podsFunc()
 }
 
 func (fk *fakeKubelet) ServeLogs(w http.ResponseWriter, req *http.Request) {
@@ -87,6 +90,10 @@ func (fk *fakeKubelet) ServeLogs(w http.ResponseWriter, req *http.Request) {
 
 func (fk *fakeKubelet) GetKubeletContainerLogs(podFullName, containerName, tail string, follow bool, stdout, stderr io.Writer) error {
 	return fk.containerLogsFunc(podFullName, containerName, tail, follow, stdout, stderr)
+}
+
+func (fk *fakeKubelet) GetHostname() string {
+	return fk.hostnameFunc()
 }
 
 func (fk *fakeKubelet) RunInContainer(podFullName string, uid types.UID, containerName string, cmd []string) ([]byte, error) {
@@ -119,14 +126,11 @@ func newServerTest() *serverTestFramework {
 	}
 	fw.updateReader = startReading(fw.updateChan)
 	fw.fakeKubelet = &fakeKubelet{
-		podByNameFunc: func(namespace, name string) (*api.BoundPod, bool) {
-			return &api.BoundPod{
+		podByNameFunc: func(namespace, name string) (*api.Pod, bool) {
+			return &api.Pod{
 				ObjectMeta: api.ObjectMeta{
 					Namespace: namespace,
 					Name:      name,
-					Annotations: map[string]string{
-						ConfigSourceAnnotationKey: "etcd",
-					},
 				},
 			}, true
 		},
@@ -152,6 +156,14 @@ func readResp(resp *http.Response) (string, error) {
 	return string(body), err
 }
 
+// A helper function to return the correct pod name.
+func getPodName(name, namespace string) string {
+	if namespace == "" {
+		namespace = NamespaceDefault
+	}
+	return name + "_" + namespace
+}
+
 func TestPodStatus(t *testing.T) {
 	fw := newServerTest()
 	expected := api.PodStatus{
@@ -160,7 +172,7 @@ func TestPodStatus(t *testing.T) {
 		},
 	}
 	fw.fakeKubelet.statusFunc = func(name string) (api.PodStatus, error) {
-		if name == "goodpod.default.etcd" {
+		if name == "goodpod_default" {
 			return expected, nil
 		}
 		return api.PodStatus{}, fmt.Errorf("bad pod %s", name)
@@ -184,11 +196,11 @@ func TestPodStatus(t *testing.T) {
 
 func TestContainerInfo(t *testing.T) {
 	fw := newServerTest()
-	expectedInfo := &info.ContainerInfo{}
+	expectedInfo := &cadvisorApi.ContainerInfo{}
 	podID := "somepod"
-	expectedPodID := "somepod" + ".default.etcd"
+	expectedPodID := getPodName(podID, "")
 	expectedContainerName := "goodcontainer"
-	fw.fakeKubelet.containerInfoFunc = func(podID string, uid types.UID, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	fw.fakeKubelet.containerInfoFunc = func(podID string, uid types.UID, containerName string, req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error) {
 		if podID != expectedPodID || containerName != expectedContainerName {
 			return nil, fmt.Errorf("bad podID or containerName: podID=%v; containerName=%v", podID, containerName)
 		}
@@ -200,25 +212,25 @@ func TestContainerInfo(t *testing.T) {
 		t.Fatalf("Got error GETing: %v", err)
 	}
 	defer resp.Body.Close()
-	var receivedInfo info.ContainerInfo
+	var receivedInfo cadvisorApi.ContainerInfo
 	err = json.NewDecoder(resp.Body).Decode(&receivedInfo)
 	if err != nil {
 		t.Fatalf("received invalid json data: %v", err)
 	}
-	if !reflect.DeepEqual(&receivedInfo, expectedInfo) {
+	if !receivedInfo.Eq(expectedInfo) {
 		t.Errorf("received wrong data: %#v", receivedInfo)
 	}
 }
 
 func TestContainerInfoWithUidNamespace(t *testing.T) {
 	fw := newServerTest()
-	expectedInfo := &info.ContainerInfo{}
+	expectedInfo := &cadvisorApi.ContainerInfo{}
 	podID := "somepod"
 	expectedNamespace := "custom"
-	expectedPodID := "somepod" + "." + expectedNamespace + ".etcd"
+	expectedPodID := getPodName(podID, expectedNamespace)
 	expectedContainerName := "goodcontainer"
 	expectedUid := "9b01b80f-8fb4-11e4-95ab-4200af06647"
-	fw.fakeKubelet.containerInfoFunc = func(podID string, uid types.UID, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	fw.fakeKubelet.containerInfoFunc = func(podID string, uid types.UID, containerName string, req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error) {
 		if podID != expectedPodID || string(uid) != expectedUid || containerName != expectedContainerName {
 			return nil, fmt.Errorf("bad podID or uid or containerName: podID=%v; uid=%v; containerName=%v", podID, uid, containerName)
 		}
@@ -230,12 +242,12 @@ func TestContainerInfoWithUidNamespace(t *testing.T) {
 		t.Fatalf("Got error GETing: %v", err)
 	}
 	defer resp.Body.Close()
-	var receivedInfo info.ContainerInfo
+	var receivedInfo cadvisorApi.ContainerInfo
 	err = json.NewDecoder(resp.Body).Decode(&receivedInfo)
 	if err != nil {
 		t.Fatalf("received invalid json data: %v", err)
 	}
-	if !reflect.DeepEqual(&receivedInfo, expectedInfo) {
+	if !receivedInfo.Eq(expectedInfo) {
 		t.Errorf("received wrong data: %#v", receivedInfo)
 	}
 }
@@ -246,7 +258,7 @@ func TestContainerNotFound(t *testing.T) {
 	expectedNamespace := "custom"
 	expectedContainerName := "slowstartcontainer"
 	expectedUid := "9b01b80f-8fb4-11e4-95ab-4200af06647"
-	fw.fakeKubelet.containerInfoFunc = func(podID string, uid types.UID, containerName string, req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	fw.fakeKubelet.containerInfoFunc = func(podID string, uid types.UID, containerName string, req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error) {
 		return nil, ErrContainerNotFound
 	}
 	resp, err := http.Get(fw.testHTTPServer.URL + fmt.Sprintf("/stats/%v/%v/%v/%v", expectedNamespace, podID, expectedUid, expectedContainerName))
@@ -261,8 +273,8 @@ func TestContainerNotFound(t *testing.T) {
 
 func TestRootInfo(t *testing.T) {
 	fw := newServerTest()
-	expectedInfo := &info.ContainerInfo{}
-	fw.fakeKubelet.rootInfoFunc = func(req *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	expectedInfo := &cadvisorApi.ContainerInfo{}
+	fw.fakeKubelet.rootInfoFunc = func(req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error) {
 		return expectedInfo, nil
 	}
 
@@ -271,23 +283,23 @@ func TestRootInfo(t *testing.T) {
 		t.Fatalf("Got error GETing: %v", err)
 	}
 	defer resp.Body.Close()
-	var receivedInfo info.ContainerInfo
+	var receivedInfo cadvisorApi.ContainerInfo
 	err = json.NewDecoder(resp.Body).Decode(&receivedInfo)
 	if err != nil {
 		t.Fatalf("received invalid json data: %v", err)
 	}
-	if !reflect.DeepEqual(&receivedInfo, expectedInfo) {
+	if !receivedInfo.Eq(expectedInfo) {
 		t.Errorf("received wrong data: %#v", receivedInfo)
 	}
 }
 
 func TestMachineInfo(t *testing.T) {
 	fw := newServerTest()
-	expectedInfo := &info.MachineInfo{
+	expectedInfo := &cadvisorApi.MachineInfo{
 		NumCores:       4,
 		MemoryCapacity: 1024,
 	}
-	fw.fakeKubelet.machineInfoFunc = func() (*info.MachineInfo, error) {
+	fw.fakeKubelet.machineInfoFunc = func() (*cadvisorApi.MachineInfo, error) {
 		return expectedInfo, nil
 	}
 
@@ -296,7 +308,7 @@ func TestMachineInfo(t *testing.T) {
 		t.Fatalf("Got error GETing: %v", err)
 	}
 	defer resp.Body.Close()
-	var receivedInfo info.MachineInfo
+	var receivedInfo cadvisorApi.MachineInfo
 	err = json.NewDecoder(resp.Body).Decode(&receivedInfo)
 	if err != nil {
 		t.Fatalf("received invalid json data: %v", err)
@@ -339,7 +351,7 @@ func TestServeRunInContainer(t *testing.T) {
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
-	expectedPodName := podName + "." + podNamespace + ".etcd"
+	expectedPodName := getPodName(podName, podNamespace)
 	expectedContainerName := "baz"
 	expectedCommand := "ls -a"
 	fw.fakeKubelet.runFunc = func(podFullName string, uid types.UID, containerName string, cmd []string) ([]byte, error) {
@@ -379,7 +391,7 @@ func TestServeRunInContainerWithUID(t *testing.T) {
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
-	expectedPodName := podName + "." + podNamespace + ".etcd"
+	expectedPodName := getPodName(podName, podNamespace)
 	expectedUID := "7e00838d_-_3523_-_11e4_-_8421_-_42010af0a720"
 	expectedContainerName := "baz"
 	expectedCommand := "ls -a"
@@ -441,15 +453,69 @@ func TestPodsInfo(t *testing.T) {
 	}
 }
 
+func TestHealthCheck(t *testing.T) {
+	fw := newServerTest()
+	fw.fakeKubelet.dockerVersionFunc = func() ([]uint, error) {
+		return []uint{1, 15}, nil
+	}
+	fw.fakeKubelet.hostnameFunc = func() string {
+		return "127.0.0.1"
+	}
+
+	// Test with correct hostname, Docker version
+	resp, err := http.Get(fw.testHTTPServer.URL + "/healthz")
+	if err != nil {
+		t.Fatalf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		// copying the response body did not work
+		t.Fatalf("Cannot copy resp: %#v", err)
+	}
+	result := string(body)
+	if !strings.Contains(result, "ok") {
+		t.Errorf("expected body contains %s, got %d", "ok", result)
+	}
+
+	//Test with incorrect hostname
+	fw.fakeKubelet.hostnameFunc = func() string {
+		return "fake"
+	}
+	resp, err = http.Get(fw.testHTTPServer.URL + "/healthz")
+	if err != nil {
+		t.Fatalf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+
+	//Test with old docker version
+	fw.fakeKubelet.dockerVersionFunc = func() ([]uint, error) {
+		return []uint{1, 1}, nil
+	}
+
+	resp, err = http.Get(fw.testHTTPServer.URL + "/healthz")
+	if err != nil {
+		t.Fatalf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected status code %d, got %d", http.StatusInternalServerError, resp.StatusCode)
+	}
+
+}
+
 func setPodByNameFunc(fw *serverTestFramework, namespace, pod, container string) {
-	fw.fakeKubelet.podByNameFunc = func(namespace, name string) (*api.BoundPod, bool) {
-		return &api.BoundPod{
+	fw.fakeKubelet.podByNameFunc = func(namespace, name string) (*api.Pod, bool) {
+		return &api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				Namespace: namespace,
 				Name:      pod,
-				Annotations: map[string]string{
-					ConfigSourceAnnotationKey: "etcd",
-				},
 			},
 			Spec: api.PodSpec{
 				Containers: []api.Container{
@@ -486,7 +552,7 @@ func TestContainerLogs(t *testing.T) {
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
-	expectedPodName := podName + ".other.etcd"
+	expectedPodName := getPodName(podName, podNamespace)
 	expectedContainerName := "baz"
 	expectedTail := ""
 	expectedFollow := false
@@ -513,7 +579,7 @@ func TestContainerLogsWithTail(t *testing.T) {
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
-	expectedPodName := podName + ".other.etcd"
+	expectedPodName := getPodName(podName, podNamespace)
 	expectedContainerName := "baz"
 	expectedTail := "5"
 	expectedFollow := false
@@ -540,7 +606,7 @@ func TestContainerLogsWithFollow(t *testing.T) {
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
-	expectedPodName := podName + ".other.etcd"
+	expectedPodName := getPodName(podName, podNamespace)
 	expectedContainerName := "baz"
 	expectedTail := ""
 	expectedFollow := true
@@ -575,7 +641,7 @@ func TestServeExecInContainerIdleTimeout(t *testing.T) {
 
 	url := fw.testHTTPServer.URL + "/exec/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?c=ls&c=-a&" + api.ExecStdinParam + "=1"
 
-	upgradeRoundTripper := spdy.NewRoundTripper(nil)
+	upgradeRoundTripper := spdy.NewSpdyRoundTripper(nil)
 	c := &http.Client{Transport: upgradeRoundTripper}
 
 	resp, err := c.Get(url)
@@ -584,6 +650,10 @@ func TestServeExecInContainerIdleTimeout(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
+	upgradeRoundTripper.Dialer = &net.Dialer{
+		Deadline: time.Now().Add(60 * time.Second),
+		Timeout:  60 * time.Second,
+	}
 	conn, err := upgradeRoundTripper.NewConnection(resp)
 	if err != nil {
 		t.Fatalf("Unexpected error creating streaming connection: %s", err)
@@ -631,7 +701,7 @@ func TestServeExecInContainer(t *testing.T) {
 
 		podNamespace := "other"
 		podName := "foo"
-		expectedPodName := podName + "." + podNamespace + ".etcd"
+		expectedPodName := getPodName(podName, podNamespace)
 		expectedUid := "9b01b80f-8fb4-11e4-95ab-4200af06647"
 		expectedContainerName := "baz"
 		expectedCommand := "ls -a"
@@ -893,7 +963,7 @@ func TestServePortForward(t *testing.T) {
 
 	podNamespace := "other"
 	podName := "foo"
-	expectedPodName := podName + "." + podNamespace + ".etcd"
+	expectedPodName := getPodName(podName, podNamespace)
 	expectedUid := "9b01b80f-8fb4-11e4-95ab-4200af06647"
 
 	for i, test := range tests {

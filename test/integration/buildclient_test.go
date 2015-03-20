@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
@@ -43,7 +44,7 @@ func TestListBuilds(t *testing.T) {
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
-	builds, err := openshift.Client.Builds(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	builds, err := openshift.Client.Builds(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -67,7 +68,7 @@ func TestCreateBuild(t *testing.T) {
 		t.Errorf("Unexpected empty build Name %v", expected)
 	}
 
-	builds, err := openshift.Client.Builds(testutil.Namespace()).List(labels.Everything(), labels.Everything())
+	builds, err := openshift.Client.Builds(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -97,7 +98,7 @@ func TestWatchBuilds(t *testing.T) {
 	defer openshift.Close()
 	build := mockBuild()
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -177,7 +178,6 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		Client:           kubeClient,
 		EtcdHelper:       etcdHelper,
 		KubeletClient:    kubeletClient,
 		APIPrefix:        "/api",
@@ -202,7 +202,25 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		"imageRepositories/status": imageRepositoryStatus,
 	}
 
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	version := &apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
+
+		Storage: storage,
+		Codec:   latest.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  interfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unable to install REST: %v", err)
+	}
 
 	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,

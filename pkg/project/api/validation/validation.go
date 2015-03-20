@@ -12,8 +12,8 @@ import (
 func ValidateProject(project *api.Project) errors.ValidationErrorList {
 	result := errors.ValidationErrorList{}
 	if len(project.Name) == 0 {
-		result = append(result, errors.NewFieldRequired("name", project.Name))
-	} else if !util.IsDNSSubdomain(project.Name) {
+		result = append(result, errors.NewFieldRequired("name"))
+	} else if !util.IsDNS1123Subdomain(project.Name) {
 		result = append(result, errors.NewFieldInvalid("name", project.Name, "does not conform to lower-cased dns1123"))
 	}
 	if len(project.Namespace) > 0 {

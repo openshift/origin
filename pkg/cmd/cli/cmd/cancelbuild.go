@@ -45,10 +45,10 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 			}
 
 			buildName := args[0]
-			namespace, err := f.DefaultNamespace(cmd)
+			namespace, err := f.DefaultNamespace()
 			checkErr(err)
 
-			client, _, err := f.Clients(cmd)
+			client, _, err := f.Clients()
 			checkErr(err)
 			buildClient := client.Builds(namespace)
 			build, err := buildClient.Get(buildName)

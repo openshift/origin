@@ -19,22 +19,15 @@ package config
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
-	"hash/adler32"
 	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 )
 
@@ -75,7 +68,7 @@ func (s *sourceURL) extractFromURL() error {
 	}
 	if len(data) == 0 {
 		// Emit an update with an empty PodList to allow HTTPSource to be marked as seen
-		s.updates <- kubelet.PodUpdate{[]api.BoundPod{}, kubelet.SET, kubelet.HTTPSource}
+		s.updates <- kubelet.PodUpdate{[]api.Pod{}, kubelet.SET, kubelet.HTTPSource}
 		return fmt.Errorf("zero-length data received from %v", s.url)
 	}
 	// Short circuit if the manifest has not changed since the last time it was read.
@@ -85,20 +78,22 @@ func (s *sourceURL) extractFromURL() error {
 	s.data = data
 
 	// First try as if it's a single manifest
-	parsed, manifest, pod, singleErr := tryDecodeSingle(data)
+	parsed, manifest, pod, singleErr := tryDecodeSingleManifest(data)
 	if parsed {
 		if singleErr != nil {
 			// It parsed but could not be used.
 			return singleErr
 		}
 		// It parsed!
-		applyDefaults(&pod, s.url)
-		s.updates <- kubelet.PodUpdate{[]api.BoundPod{pod}, kubelet.SET, kubelet.HTTPSource}
+		if err = applyDefaults(&pod, s.url, false); err != nil {
+			return err
+		}
+		s.updates <- kubelet.PodUpdate{[]api.Pod{pod}, kubelet.SET, kubelet.HTTPSource}
 		return nil
 	}
 
 	// That didn't work, so try an array of manifests.
-	parsed, manifests, pods, multiErr := tryDecodeList(data)
+	parsed, manifests, pods, multiErr := tryDecodeManifestList(data)
 	if parsed {
 		if multiErr != nil {
 			// It parsed but could not be used.
@@ -114,90 +109,42 @@ func (s *sourceURL) extractFromURL() error {
 		// Assume it parsed.
 		for i := range pods.Items {
 			pod := &pods.Items[i]
-			applyDefaults(pod, s.url)
+			if err = applyDefaults(pod, s.url, false); err != nil {
+				return err
+			}
 		}
 		s.updates <- kubelet.PodUpdate{pods.Items, kubelet.SET, kubelet.HTTPSource}
 		return nil
 	}
 
-	return fmt.Errorf("%v: received '%v', but couldn't parse as a "+
-		"single manifest (%v: %+v) or as multiple manifests (%v: %+v).\n",
-		s.url, string(data), singleErr, manifest, multiErr, manifests)
-}
+	// Parsing it as ContainerManifest(s) failed.
+	// Try to parse it as Pod(s).
 
-func tryDecodeSingle(data []byte) (parsed bool, manifest v1beta1.ContainerManifest, pod api.BoundPod, err error) {
-	// TODO: should be api.Scheme.Decode
-	// This is awful.  DecodeInto() expects to find an APIObject, which
-	// Manifest is not.  We keep reading manifest for now for compat, but
-	// we will eventually change it to read Pod (at which point this all
-	// becomes nicer).  Until then, we assert that the ContainerManifest
-	// structure on disk is always v1beta1.  Read that, convert it to a
-	// "current" ContainerManifest (should be ~identical), then convert
-	// that to a BoundPod (which is a well-understood conversion).  This
-	// avoids writing a v1beta1.ContainerManifest -> api.BoundPod
-	// conversion which would be identical to the api.ContainerManifest ->
-	// api.BoundPod conversion.
-	if err = yaml.Unmarshal(data, &manifest); err != nil {
-		return false, manifest, pod, err
-	}
-	newManifest := api.ContainerManifest{}
-	if err = api.Scheme.Convert(&manifest, &newManifest); err != nil {
-		return false, manifest, pod, err
-	}
-	if errs := validation.ValidateManifest(&newManifest); len(errs) > 0 {
-		err = fmt.Errorf("invalid manifest: %v", errs)
-		return false, manifest, pod, err
-	}
-	if err = api.Scheme.Convert(&newManifest, &pod); err != nil {
-		return true, manifest, pod, err
-	}
-	// Success.
-	return true, manifest, pod, nil
-}
-
-func tryDecodeList(data []byte) (parsed bool, manifests []v1beta1.ContainerManifest, pods api.BoundPods, err error) {
-	// TODO: should be api.Scheme.Decode
-	// See the comment in tryDecodeSingle().
-	if err = yaml.Unmarshal(data, &manifests); err != nil {
-		return false, manifests, pods, err
-	}
-	newManifests := []api.ContainerManifest{}
-	if err = api.Scheme.Convert(&manifests, &newManifests); err != nil {
-		return false, manifests, pods, err
-	}
-	for i := range newManifests {
-		manifest := &newManifests[i]
-		if errs := validation.ValidateManifest(manifest); len(errs) > 0 {
-			err = fmt.Errorf("invalid manifest: %v", errs)
-			return false, manifests, pods, err
+	// First try as it is a single pod.
+	parsed, pod, singlePodErr := tryDecodeSinglePod(data, s.url, false)
+	if parsed {
+		if singlePodErr != nil {
+			// It parsed but could not be used.
+			return singlePodErr
 		}
+		s.updates <- kubelet.PodUpdate{[]api.Pod{pod}, kubelet.SET, kubelet.HTTPSource}
+		return nil
 	}
-	list := api.ContainerManifestList{Items: newManifests}
-	if err = api.Scheme.Convert(&list, &pods); err != nil {
-		return true, manifests, pods, err
-	}
-	// Success.
-	return true, manifests, pods, nil
-}
 
-func applyDefaults(pod *api.BoundPod, url string) {
-	if len(pod.UID) == 0 {
-		hasher := md5.New()
-		fmt.Fprintf(hasher, "url:%s", url)
-		util.DeepHashObject(hasher, pod)
-		pod.UID = types.UID(hex.EncodeToString(hasher.Sum(nil)[0:]))
-		glog.V(5).Infof("Generated UID %q for pod %q from URL %s", pod.UID, pod.Name, url)
+	// That didn't work, so try a list of pods.
+	parsed, pods, multiPodErr := tryDecodePodList(data, s.url, false)
+	if parsed {
+		if multiPodErr != nil {
+			// It parsed but could not be used.
+			return multiPodErr
+		}
+		s.updates <- kubelet.PodUpdate{pods.Items, kubelet.SET, kubelet.HTTPSource}
+		return nil
 	}
-	// This is required for backward compatibility, and should be removed once we
-	// completely deprecate ContainerManifest.
-	if len(pod.Name) == 0 {
-		pod.Name = string(pod.UID)
-		glog.V(5).Infof("Generate Name %q from UID %q from URL %s", pod.Name, pod.UID, url)
-	}
-	if len(pod.Namespace) == 0 {
-		hasher := adler32.New()
-		fmt.Fprint(hasher, url)
-		pod.Namespace = fmt.Sprintf("url-%08x", hasher.Sum32())
-		glog.V(5).Infof("Generated namespace %q for pod %q from URL %s", pod.Namespace, pod.Name, url)
-	}
+
+	return fmt.Errorf("%v: received '%v', but couldn't parse as neither "+
+		"single (%v: %+v) or multiple manifests (%v: %+v) nor "+
+		"single (%v) or multiple pods (%v).\n",
+		s.url, string(data), singleErr, manifest, multiErr, manifests,
+		singlePodErr, multiPodErr)
 }

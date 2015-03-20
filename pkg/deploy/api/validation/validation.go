@@ -15,13 +15,13 @@ import (
 func ValidateDeployment(deployment *deployapi.Deployment) errors.ValidationErrorList {
 	errs := validateDeploymentStrategy(&deployment.Strategy).Prefix("strategy")
 	if len(deployment.Name) == 0 {
-		errs = append(errs, errors.NewFieldRequired("name", deployment.Name))
-	} else if !util.IsDNSSubdomain(deployment.Name) {
+		errs = append(errs, errors.NewFieldRequired("name"))
+	} else if !util.IsDNS1123Subdomain(deployment.Name) {
 		errs = append(errs, errors.NewFieldInvalid("name", deployment.Name, "name must be a valid subdomain"))
 	}
 	if len(deployment.Namespace) == 0 {
-		errs = append(errs, errors.NewFieldRequired("namespace", deployment.Namespace))
-	} else if !util.IsDNSSubdomain(deployment.Namespace) {
+		errs = append(errs, errors.NewFieldRequired("namespace"))
+	} else if !util.IsDNS1123Subdomain(deployment.Namespace) {
 		errs = append(errs, errors.NewFieldInvalid("namespace", deployment.Namespace, "namespace must be a valid subdomain"))
 	}
 	errs = append(errs, validation.ValidateLabels(deployment.Labels, "labels")...)
@@ -32,13 +32,13 @@ func ValidateDeployment(deployment *deployapi.Deployment) errors.ValidationError
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) errors.ValidationErrorList {
 	errs := errors.ValidationErrorList{}
 	if len(config.Name) == 0 {
-		errs = append(errs, errors.NewFieldRequired("name", config.Name))
-	} else if !util.IsDNSSubdomain(config.Name) {
+		errs = append(errs, errors.NewFieldRequired("name"))
+	} else if !util.IsDNS1123Subdomain(config.Name) {
 		errs = append(errs, errors.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
 	}
 	if len(config.Namespace) == 0 {
-		errs = append(errs, errors.NewFieldRequired("namespace", config.Namespace))
-	} else if !util.IsDNSSubdomain(config.Namespace) {
+		errs = append(errs, errors.NewFieldRequired("namespace"))
+	} else if !util.IsDNS1123Subdomain(config.Namespace) {
 		errs = append(errs, errors.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
 	}
 	errs = append(errs, validation.ValidateLabels(config.Labels, "labels")...)
@@ -55,7 +55,7 @@ func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollba
 	result := errors.ValidationErrorList{}
 
 	if len(rollback.Spec.From.Name) == 0 {
-		result = append(result, errors.NewFieldRequired("spec.from.name", ""))
+		result = append(result, errors.NewFieldRequired("spec.from.name"))
 	}
 
 	if len(rollback.Spec.From.Kind) == 0 {
@@ -73,13 +73,13 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) errors.V
 	errs := errors.ValidationErrorList{}
 
 	if len(strategy.Type) == 0 {
-		errs = append(errs, errors.NewFieldRequired("type", ""))
+		errs = append(errs, errors.NewFieldRequired("type"))
 	}
 
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
-			errs = append(errs, errors.NewFieldRequired("customParams", ""))
+			errs = append(errs, errors.NewFieldRequired("customParams"))
 		} else {
 			errs = append(errs, validateCustomParams(strategy.CustomParams).Prefix("customParams")...)
 		}
@@ -92,7 +92,7 @@ func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams) erro
 	errs := errors.ValidationErrorList{}
 
 	if len(params.Image) == 0 {
-		errs = append(errs, errors.NewFieldRequired("image", ""))
+		errs = append(errs, errors.NewFieldRequired("image"))
 	}
 
 	return errs
@@ -102,12 +102,12 @@ func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) errors.Validati
 	errs := errors.ValidationErrorList{}
 
 	if len(trigger.Type) == 0 {
-		errs = append(errs, errors.NewFieldRequired("type", ""))
+		errs = append(errs, errors.NewFieldRequired("type"))
 	}
 
 	if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
 		if trigger.ImageChangeParams == nil {
-			errs = append(errs, errors.NewFieldRequired("imageChangeParams", nil))
+			errs = append(errs, errors.NewFieldRequired("imageChangeParams"))
 		} else {
 			errs = append(errs, validateImageChangeParams(trigger.ImageChangeParams).Prefix("imageChangeParams")...)
 		}
@@ -127,10 +127,10 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 			errs = append(errs, errors.NewFieldInvalid("from.kind", params.From.Kind, "only 'ImageRepository' is allowed"))
 		}
 
-		if !util.IsDNSSubdomain(params.From.Name) {
+		if !util.IsDNS1123Subdomain(params.From.Name) {
 			errs = append(errs, errors.NewFieldInvalid("from.name", params.From.Name, "name must be a valid subdomain"))
 		}
-		if len(params.From.Namespace) != 0 && !util.IsDNSSubdomain(params.From.Namespace) {
+		if len(params.From.Namespace) != 0 && !util.IsDNS1123Subdomain(params.From.Namespace) {
 			errs = append(errs, errors.NewFieldInvalid("from.namespace", params.From.Namespace, "namespace must be a valid subdomain"))
 		}
 
@@ -139,12 +139,12 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 		}
 	} else {
 		if len(params.RepositoryName) == 0 {
-			errs = append(errs, errors.NewFieldRequired("from", ""))
+			errs = append(errs, errors.NewFieldRequired("from"))
 		}
 	}
 
 	if len(params.ContainerNames) == 0 {
-		errs = append(errs, errors.NewFieldRequired("containerNames", ""))
+		errs = append(errs, errors.NewFieldRequired("containerNames"))
 	}
 
 	return errs

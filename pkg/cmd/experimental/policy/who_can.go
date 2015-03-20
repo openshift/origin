@@ -32,10 +32,10 @@ func NewCmdWhoCan(f *clientcmd.Factory) *cobra.Command {
 			}
 
 			var err error
-			if options.client, _, err = f.Clients(cmd); err != nil {
+			if options.client, _, err = f.Clients(); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if options.bindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+			if options.bindingNamespace, err = f.DefaultNamespace(); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
 			if err := options.run(); err != nil {

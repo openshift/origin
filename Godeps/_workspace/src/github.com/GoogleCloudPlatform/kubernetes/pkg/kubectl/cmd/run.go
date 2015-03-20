@@ -44,50 +44,13 @@ $ kubectl run-container nginx --image=dockerfile/nginx --overrides='{ "apiVersio
 
 func (f *Factory) NewCmdRunContainer(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "run-container <name> --image=<image> [--port=<port>] [--replicas=replicas] [--dry-run=<bool>] [--overrides=<inline-json>]",
+		Use:     "run-container NAME --image=image [--port=port] [--replicas=replicas] [--dry-run=bool] [--overrides=inline-json]",
 		Short:   "Run a particular image on the cluster.",
 		Long:    run_long,
 		Example: run_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 1 {
-				usageError(cmd, "<name> is required for run-container")
-			}
-
-			namespace, err := f.DefaultNamespace(cmd)
-			checkErr(err)
-
-			client, err := f.Client(cmd)
-			checkErr(err)
-
-			generatorName := util.GetFlagString(cmd, "generator")
-			generator, found := kubectl.Generators[generatorName]
-			if !found {
-				usageError(cmd, fmt.Sprintf("Generator: %s not found.", generator))
-			}
-			names := generator.ParamNames()
-			params := kubectl.MakeParams(cmd, names)
-			params["name"] = args[0]
-
-			err = kubectl.ValidateParams(names, params)
-			checkErr(err)
-
-			controller, err := generator.Generate(params)
-			checkErr(err)
-
-			inline := util.GetFlagString(cmd, "overrides")
-			if len(inline) > 0 {
-				controller, err = util.Merge(controller, inline, "ReplicationController")
-				checkErr(err)
-			}
-
-			// TODO: extract this flag to a central location, when such a location exists.
-			if !util.GetFlagBool(cmd, "dry-run") {
-				controller, err = client.ReplicationControllers(namespace).Create(controller.(*api.ReplicationController))
-				checkErr(err)
-			}
-
-			err = f.PrintObject(cmd, controller, out)
-			checkErr(err)
+			err := RunRunContainer(f, out, cmd, args)
+			util.CheckErr(err)
 		},
 	}
 	util.AddPrinterFlags(cmd)
@@ -99,4 +62,57 @@ func (f *Factory) NewCmdRunContainer(out io.Writer) *cobra.Command {
 	cmd.Flags().Int("port", -1, "The port that this container exposes.")
 	cmd.Flags().StringP("labels", "l", "", "Labels to apply to the pod(s) created by this call to run-container.")
 	return cmd
+}
+
+func RunRunContainer(f *Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return util.UsageError(cmd, "NAME is required for run-container")
+	}
+
+	namespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	client, err := f.Client()
+	if err != nil {
+		return err
+	}
+
+	generatorName := util.GetFlagString(cmd, "generator")
+	generator, found := kubectl.Generators[generatorName]
+	if !found {
+		return util.UsageError(cmd, fmt.Sprintf("Generator: %s not found.", generator))
+	}
+	names := generator.ParamNames()
+	params := kubectl.MakeParams(cmd, names)
+	params["name"] = args[0]
+
+	err = kubectl.ValidateParams(names, params)
+	if err != nil {
+		return err
+	}
+
+	controller, err := generator.Generate(params)
+	if err != nil {
+		return err
+	}
+
+	inline := util.GetFlagString(cmd, "overrides")
+	if len(inline) > 0 {
+		controller, err = util.Merge(controller, inline, "ReplicationController")
+		if err != nil {
+			return err
+		}
+	}
+
+	// TODO: extract this flag to a central location, when such a location exists.
+	if !util.GetFlagBool(cmd, "dry-run") {
+		controller, err = client.ReplicationControllers(namespace).Create(controller.(*api.ReplicationController))
+		if err != nil {
+			return err
+		}
+	}
+
+	return f.PrintObject(cmd, controller, out)
 }

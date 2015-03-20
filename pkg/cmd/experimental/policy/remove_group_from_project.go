@@ -4,7 +4,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	labels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -30,10 +31,10 @@ func NewCmdRemoveGroupFromProject(f *clientcmd.Factory) *cobra.Command {
 			}
 
 			var err error
-			if options.client, _, err = f.Clients(cmd); err != nil {
+			if options.client, _, err = f.Clients(); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if options.bindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+			if options.bindingNamespace, err = f.DefaultNamespace(); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
 
@@ -58,7 +59,7 @@ func (o *removeGroupFromProjectOptions) complete(cmd *cobra.Command) bool {
 }
 
 func (o *removeGroupFromProjectOptions) run() error {
-	bindingList, err := o.client.PolicyBindings(o.bindingNamespace).List(labels.Everything(), labels.Everything())
+	bindingList, err := o.client.PolicyBindings(o.bindingNamespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}

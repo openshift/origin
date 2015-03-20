@@ -7,13 +7,11 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/spf13/cobra"
 )
 
 // Bulk provides helpers for iterating over a list of items
 type Bulk struct {
 	Factory *kubecmd.Factory
-	Command *cobra.Command
 	After   func(*resource.Info, error)
 }
 
@@ -31,8 +29,8 @@ func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
 // event a failure occurs. The contents of list will be updated to include the
 // version from the server.
 func (b *Bulk) Create(list *kapi.List, namespace string) []error {
-	mapper, typer := b.Factory.Object(b.Command)
-	resourceMapper := &resource.Mapper{typer, mapper, b.Factory.ClientMapperForCommand(b.Command)}
+	mapper, typer := b.Factory.Object()
+	resourceMapper := &resource.Mapper{typer, mapper, resource.ClientMapperFunc(b.Factory.RESTClient)}
 	after := b.After
 	if after == nil {
 		after = func(*resource.Info, error) {}

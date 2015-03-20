@@ -17,7 +17,11 @@ limitations under the License.
 package util
 
 import (
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"syscall"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -45,10 +49,8 @@ func TestMerge(t *testing.T) {
 					Name: "foo",
 				},
 				Spec: api.PodSpec{
-					RestartPolicy: api.RestartPolicy{
-						Always: &api.RestartPolicyAlways{},
-					},
-					DNSPolicy: api.DNSClusterFirst,
+					RestartPolicy: api.RestartPolicyAlways,
+					DNSPolicy:     api.DNSClusterFirst,
 				},
 			},
 		},
@@ -65,11 +67,9 @@ func TestMerge(t *testing.T) {
 					Name: "baz",
 				},
 				Spec: api.PodSpec{
-					Host: "bar",
-					RestartPolicy: api.RestartPolicy{
-						Always: &api.RestartPolicyAlways{},
-					},
-					DNSPolicy: api.DNSClusterFirst,
+					Host:          "bar",
+					RestartPolicy: api.RestartPolicyAlways,
+					DNSPolicy:     api.DNSClusterFirst,
 				},
 			},
 		},
@@ -88,18 +88,16 @@ func TestMerge(t *testing.T) {
 				Spec: api.PodSpec{
 					Volumes: []api.Volume{
 						{
-							Name:   "v1",
-							Source: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}},
+							Name:         "v1",
+							VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}},
 						},
 						{
-							Name:   "v2",
-							Source: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}},
+							Name:         "v2",
+							VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}},
 						},
 					},
-					RestartPolicy: api.RestartPolicy{
-						Always: &api.RestartPolicyAlways{},
-					},
-					DNSPolicy: api.DNSClusterFirst,
+					RestartPolicy: api.RestartPolicyAlways,
+					DNSPolicy:     api.DNSClusterFirst,
 				},
 			},
 		},
@@ -123,12 +121,16 @@ func TestMerge(t *testing.T) {
 					Name: "",
 				},
 				Spec: api.PodSpec{
-					RestartPolicy: api.RestartPolicy{
-						Always: &api.RestartPolicyAlways{},
-					},
-					DNSPolicy: api.DNSClusterFirst,
+					RestartPolicy: api.RestartPolicyAlways,
+					DNSPolicy:     api.DNSClusterFirst,
 				},
 			},
+		},
+		{
+			kind:      "Service",
+			obj:       &api.Service{},
+			fragment:  `{ "apiVersion": "badVersion" }`,
+			expectErr: true,
 		},
 		{
 			kind: "Service",
@@ -181,5 +183,75 @@ func TestMerge(t *testing.T) {
 			t.Errorf("testcase[%d], unexpected non-error", i)
 		}
 	}
+}
 
+type fileHandler struct {
+	data []byte
+}
+
+func (f *fileHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	if req.URL.Path == "/error" {
+		res.WriteHeader(http.StatusNotFound)
+		return
+	}
+	res.WriteHeader(http.StatusOK)
+	res.Write(f.data)
+}
+
+func TestReadConfigData(t *testing.T) {
+	httpData := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	server := httptest.NewServer(&fileHandler{data: httpData})
+
+	fileData := []byte{11, 12, 13, 14, 15, 16, 17, 18, 19}
+	f, err := ioutil.TempFile("", "config")
+	if err != nil {
+		t.Errorf("unexpected error setting up config file")
+		t.Fail()
+	}
+	defer syscall.Unlink(f.Name())
+	ioutil.WriteFile(f.Name(), fileData, 0644)
+	// TODO: test TLS here, requires making it possible to inject the HTTP client.
+
+	tests := []struct {
+		config    string
+		data      []byte
+		expectErr bool
+	}{
+		{
+			config: server.URL,
+			data:   httpData,
+		},
+		{
+			config:    server.URL + "/error",
+			expectErr: true,
+		},
+		{
+			config:    "http://some.non.existent.foobar",
+			expectErr: true,
+		},
+		{
+			config: f.Name(),
+			data:   fileData,
+		},
+		{
+			config:    "some-non-existent-file",
+			expectErr: true,
+		},
+		{
+			config:    "",
+			expectErr: true,
+		},
+	}
+	for _, test := range tests {
+		dataOut, err := ReadConfigData(test.config)
+		if err != nil && !test.expectErr {
+			t.Errorf("unexpected err: %v for %s", err, test.config)
+		}
+		if err == nil && test.expectErr {
+			t.Errorf("unexpected non-error for %s", test.config)
+		}
+		if !test.expectErr && !reflect.DeepEqual(test.data, dataOut) {
+			t.Errorf("unexpected data: %v, expected %v", dataOut, test.data)
+		}
+	}
 }

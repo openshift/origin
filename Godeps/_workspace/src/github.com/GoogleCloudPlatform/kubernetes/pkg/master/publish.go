@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 
 	"github.com/golang/glog"
@@ -80,7 +81,7 @@ func (m *Master) roServiceWriterLoop(stop chan struct{}) {
 // createMasterNamespaceIfNeeded will create the namespace that contains the master services if it doesn't already exist
 func (m *Master) createMasterNamespaceIfNeeded(ns string) error {
 	ctx := api.NewContext()
-	if _, err := m.namespaceRegistry.Get(ctx, api.NamespaceDefault); err == nil {
+	if _, err := m.namespaceRegistry.GetNamespace(ctx, api.NamespaceDefault); err == nil {
 		// the namespace already exists
 		return nil
 	}
@@ -91,6 +92,9 @@ func (m *Master) createMasterNamespaceIfNeeded(ns string) error {
 		},
 	}
 	_, err := m.storage["namespaces"].(apiserver.RESTCreater).Create(ctx, namespace)
+	if err != nil && errors.IsAlreadyExists(err) {
+		err = nil
+	}
 	return err
 }
 
@@ -118,6 +122,9 @@ func (m *Master) createMasterServiceIfNeeded(serviceName string, serviceIP net.I
 		},
 	}
 	_, err := m.storage["services"].(apiserver.RESTCreater).Create(ctx, svc)
+	if err != nil && errors.IsAlreadyExists(err) {
+		err = nil
+	}
 	return err
 }
 
@@ -147,14 +154,13 @@ func (m *Master) ensureEndpointsContain(serviceName string, ip net.IP, port int)
 	}
 	if !found {
 		e.Endpoints = append(e.Endpoints, api.Endpoint{IP: ip.String(), Port: port})
+		if len(e.Endpoints) > m.masterCount {
+			// We append to the end and remove from the beginning, so this should
+			// converge rapidly with all masters performing this operation.
+			e.Endpoints = e.Endpoints[len(e.Endpoints)-m.masterCount:]
+		}
+		return m.endpointRegistry.UpdateEndpoints(ctx, e)
 	}
-	if len(e.Endpoints) > m.masterCount {
-		// We append to the end and remove from the beginning, so this should
-		// converge rapidly with all masters performing this operation.
-		e.Endpoints = e.Endpoints[len(e.Endpoints)-m.masterCount:]
-	} else if found {
-		// We didn't make any changes, no need to actually call update.
-		return nil
-	}
-	return m.endpointRegistry.UpdateEndpoints(ctx, e)
+	// We didn't make any changes, no need to actually call update.
+	return nil
 }

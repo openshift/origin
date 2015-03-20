@@ -29,7 +29,7 @@ func NewSimpleAllocationPlugin(suffix string) (*SimpleAllocationPlugin, error) {
 	glog.V(4).Infof("Route plugin initialized with suffix=%s", suffix)
 
 	// Check that the DNS suffix is valid.
-	if !util.IsDNSSubdomain(suffix) {
+	if !util.IsDNS1123Subdomain(suffix) {
 		return nil, fmt.Errorf("invalid DNS suffix: %s", suffix)
 	}
 

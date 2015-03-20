@@ -17,7 +17,9 @@ limitations under the License.
 package resource
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -60,23 +62,23 @@ func (m *Helper) Get(namespace, name string) (runtime.Object, error) {
 		Get()
 }
 
-func (m *Helper) List(namespace string, selector labels.Selector) (runtime.Object, error) {
+func (m *Helper) List(namespace, apiVersion string, selector labels.Selector) (runtime.Object, error) {
 	return m.RESTClient.Get().
 		NamespaceIfScoped(namespace, m.NamespaceScoped).
 		Resource(m.Resource).
-		SelectorParam("labels", selector).
+		LabelsSelectorParam(api.LabelSelectorQueryParam(apiVersion), selector).
 		Do().
 		Get()
 }
 
-func (m *Helper) Watch(namespace, resourceVersion string, labelSelector, fieldSelector labels.Selector) (watch.Interface, error) {
+func (m *Helper) Watch(namespace, resourceVersion, apiVersion string, labelSelector labels.Selector, fieldSelector fields.Selector) (watch.Interface, error) {
 	return m.RESTClient.Get().
 		Prefix("watch").
 		NamespaceIfScoped(namespace, m.NamespaceScoped).
 		Resource(m.Resource).
 		Param("resourceVersion", resourceVersion).
-		SelectorParam("labels", labelSelector).
-		SelectorParam("fields", fieldSelector).
+		LabelsSelectorParam(api.LabelSelectorQueryParam(apiVersion), labelSelector).
+		FieldsSelectorParam(api.FieldSelectorQueryParam(apiVersion), fieldSelector).
 		Watch()
 }
 

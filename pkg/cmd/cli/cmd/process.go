@@ -70,12 +70,12 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 				usageError(cmd, "Must pass a filename or name of stored template")
 			}
 
-			namespace, err := f.DefaultNamespace(cmd)
+			namespace, err := f.DefaultNamespace()
 			checkErr(err)
 
-			mapper, typer := f.Object(cmd)
+			mapper, typer := f.Object()
 
-			client, _, err := f.Clients(cmd)
+			client, _, err := f.Clients()
 			checkErr(err)
 
 			var (
@@ -94,15 +94,16 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 					checkErr(err)
 				}
 			} else {
-				schema, err := f.Validator(cmd)
+				schema, err := f.Validator()
 				checkErr(err)
-				cfg, err := f.ClientConfig(cmd)
+				cfg, err := f.ClientConfig()
 				checkErr(err)
 				var (
 					ok   bool
 					data []byte
 				)
-				mapping, _, _, data = cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
+				mapping, _, _, data, err = cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
+				checkErr(err)
 				obj, err := mapping.Codec.Decode(data)
 				checkErr(err)
 				templateObj, ok = obj.(*api.Template)

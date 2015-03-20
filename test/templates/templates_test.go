@@ -59,7 +59,25 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	handlerContainer := master.NewHandlerContainer(osMux)
-	apiserver.NewAPIGroupVersion(storage, latest.Codec, "/osapi", "v1beta1", interfaces.MetadataAccessor, admit.NewAlwaysAdmit(), kapi.NewRequestContextMapper(), latest.RESTMapper).InstallREST(handlerContainer, "/osapi", "v1beta1")
+	version := apiserver.APIGroupVersion{
+		Root:    "/osapi",
+		Version: "v1beta1",
+
+		Mapper: latest.RESTMapper,
+
+		Storage: storage,
+		Codec:   interfaces.Codec,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  interfaces.MetadataAccessor,
+
+		Admit:   admit.NewAlwaysAdmit(),
+		Context: kapi.NewRequestContextMapper(),
+	}
+	if err := version.InstallREST(handlerContainer); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	walkJSONFiles("fixtures", func(name, path string, _ []byte) {
 		config := &config.Config{}

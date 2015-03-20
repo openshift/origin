@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -20,7 +21,7 @@ func NewDeploymentConfigRegistry() *DeploymentConfigRegistry {
 	return &DeploymentConfigRegistry{}
 }
 
-func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx kapi.Context, label, field labels.Selector) (*api.DeploymentConfigList, error) {
+func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.DeploymentConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -57,6 +58,6 @@ func (r *DeploymentConfigRegistry) DeleteDeploymentConfig(ctx kapi.Context, id s
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *DeploymentConfigRegistry) WatchDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, r.Err
 }

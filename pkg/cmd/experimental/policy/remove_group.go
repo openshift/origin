@@ -33,10 +33,10 @@ func NewCmdRemoveGroup(f *clientcmd.Factory) *cobra.Command {
 			}
 
 			var err error
-			if options.Client, _, err = f.Clients(cmd); err != nil {
+			if options.Client, _, err = f.Clients(); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			if options.BindingNamespace, err = f.DefaultNamespace(cmd); err != nil {
+			if options.BindingNamespace, err = f.DefaultNamespace(); err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
 			if err := options.Run(); err != nil {

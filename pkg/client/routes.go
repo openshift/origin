@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -14,12 +15,12 @@ type RoutesNamespacer interface {
 
 // RouteInterface exposes methods on Route resources
 type RouteInterface interface {
-	List(label, field labels.Selector) (*routeapi.RouteList, error)
+	List(label labels.Selector, field fields.Selector) (*routeapi.RouteList, error)
 	Get(name string) (*routeapi.Route, error)
 	Create(route *routeapi.Route) (*routeapi.Route, error)
 	Update(route *routeapi.Route) (*routeapi.Route, error)
 	Delete(name string) error
-	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // routes implements RouteInterface interface
@@ -37,13 +38,13 @@ func newRoutes(c *Client, namespace string) *routes {
 }
 
 // List takes a label and field selector, and returns the list of routes that match that selectors
-func (c *routes) List(label, field labels.Selector) (result *routeapi.RouteList, err error) {
+func (c *routes) List(label labels.Selector, field fields.Selector) (result *routeapi.RouteList, err error) {
 	result = &routeapi.RouteList{}
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("routes").
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Do().
 		Into(result)
 	return
@@ -76,13 +77,13 @@ func (c *routes) Update(route *routeapi.Route) (result *routeapi.Route, err erro
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *routes) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *routes) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("routes").
 		Param("resourceVersion", resourceVersion).
-		SelectorParam("labels", label).
-		SelectorParam("fields", field).
+		LabelsSelectorParam("labels", label).
+		FieldsSelectorParam("fields", field).
 		Watch()
 }

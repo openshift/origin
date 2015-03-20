@@ -207,7 +207,7 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 fi
 
-wait_for_url "${KUBELET_SCHEME}://${API_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+wait_for_url "${KUBELET_SCHEME}://127.0.0.1:${KUBELET_PORT}/healthz" "kubelet: " 0.5 60
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.0.1" "apiserver(minions): " 0.25 80
 
@@ -291,10 +291,12 @@ echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 # Remote command execution
+echo "[INFO] Validating exec"
 registry_pod=$(osc get pod | grep docker-registry | awk '{print $1}')
 osc exec -p ${registry_pod} whoami | grep root
 
 # Port forwarding
+echo "[INFO] Validating port-forward"
 osc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:5001/" "[INFO] Docker registry says: " $((10*TIME_SEC))
 

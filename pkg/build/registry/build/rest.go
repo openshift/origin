@@ -7,6 +7,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -34,9 +35,9 @@ func (*REST) NewList() runtime.Object {
 	return &api.Build{}
 }
 
-// List obtains a list of Builds that match selector.
-func (r *REST) List(ctx kapi.Context, selector, fields labels.Selector) (runtime.Object, error) {
-	builds, err := r.registry.ListBuilds(ctx, selector)
+// List obtains a list of Builds that match label.
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	builds, err := r.registry.ListBuilds(ctx, label)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +112,6 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 }
 
 // Watch begins watching for new, changed, or deleted Builds.
-func (r *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return r.registry.WatchBuilds(ctx, label, field, resourceVersion)
 }

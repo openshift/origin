@@ -25,8 +25,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -36,35 +34,39 @@ type viewOptions struct {
 	merge       util.BoolFlag
 }
 
+const (
+	view_long = `displays merged .kubeconfig settings or a specified .kubeconfig file.
+
+You can use --output=template --template=TEMPLATE to extract specific values.`
+	view_example = `// Show merged .kubeconfig settings.
+$ kubectl config view
+
+// Show only local ./.kubeconfig settings
+$ kubectl config view --local
+
+// Get the password for the e2e user
+$ kubectl config view -o template --template='{{ index . "users" "e2e" "password" }}'`
+)
+
 func NewCmdConfigView(out io.Writer, pathOptions *pathOptions) *cobra.Command {
 	options := &viewOptions{pathOptions: pathOptions}
 
 	cmd := &cobra.Command{
-		Use:   "view",
-		Short: "displays merged .kubeconfig settings or a specified .kubeconfig file.",
-		Long:  "displays merged .kubeconfig settings or a specified .kubeconfig file.",
-		Example: `// Show merged .kubeconfig settings.
-$ kubectl config view
-
-// Show only local ./.kubeconfig settings
-$ kubectl config view --local`,
+		Use:     "view",
+		Short:   "displays merged .kubeconfig settings or a specified .kubeconfig file.",
+		Long:    view_long,
+		Example: view_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			options.complete()
 
-			printer, generic, err := cmdutil.PrinterForCommand(cmd)
+			printer, _, err := cmdutil.PrinterForCommand(cmd)
 			if err != nil {
 				glog.FatalDepth(1, err)
 			}
-			if generic {
-				version := cmdutil.OutputVersion(cmd, latest.Version)
-				printer = kubectl.NewVersionedPrinter(printer, clientcmdapi.Scheme, version)
-			}
-
 			config, err := options.loadConfig()
 			if err != nil {
 				glog.FatalDepth(1, err)
 			}
-
 			err = printer.PrintObj(config, out)
 			if err != nil {
 				glog.FatalDepth(1, err)

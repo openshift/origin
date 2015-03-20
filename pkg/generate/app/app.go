@@ -286,7 +286,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to parse port %q: %v", p.Port(), err)
 			}
-			container.Ports = append(container.Ports, kapi.Port{
+			container.Ports = append(container.Ports, kapi.ContainerPort{
 				Name:          strings.Join([]string{name, p.Proto(), p.Port()}, "-"),
 				ContainerPort: port,
 				Protocol:      kapi.Protocol(strings.ToUpper(p.Proto())),
@@ -416,8 +416,8 @@ func generateSecret(n int) string {
 
 // ContainerPortsFromString extracts sets of port specifications from a comma-delimited string. Each segment
 // must be a single port number (container port) or a colon delimited pair of ports (container port and host port).
-func ContainerPortsFromString(portString string) ([]kapi.Port, error) {
-	ports := []kapi.Port{}
+func ContainerPortsFromString(portString string) ([]kapi.ContainerPort, error) {
+	ports := []kapi.ContainerPort{}
 	for _, s := range strings.Split(portString, ",") {
 		port, ok := checkPortSpecSegment(s)
 		if !ok {
@@ -428,7 +428,7 @@ func ContainerPortsFromString(portString string) ([]kapi.Port, error) {
 	return ports, nil
 }
 
-func checkPortSpecSegment(s string) (port kapi.Port, ok bool) {
+func checkPortSpecSegment(s string) (port kapi.ContainerPort, ok bool) {
 	if strings.Contains(s, ":") {
 		pair := strings.Split(s, ":")
 		if len(pair) != 2 {
@@ -442,14 +442,14 @@ func checkPortSpecSegment(s string) (port kapi.Port, ok bool) {
 		if err != nil {
 			return
 		}
-		return kapi.Port{ContainerPort: container, HostPort: host}, true
+		return kapi.ContainerPort{ContainerPort: container, HostPort: host}, true
 	}
 
 	container, err := strconv.Atoi(s)
 	if err != nil {
 		return
 	}
-	return kapi.Port{ContainerPort: container}, true
+	return kapi.ContainerPort{ContainerPort: container}, true
 }
 
 // LabelsFromSpec turns a set of specs NAME=VALUE or NAME- into a map of labels,

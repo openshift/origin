@@ -92,6 +92,7 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 #
 
 # test client not configured
+unset KUBECONFIG
 [ "$(osc get services 2>&1 | grep 'no server found')" ]
 
 # Set KUBERNETES_MASTER for osc from now on

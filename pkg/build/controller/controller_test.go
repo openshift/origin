@@ -447,7 +447,7 @@ func TestHandlePod(t *testing.T) {
 		if tc.startTimestamp != nil && build.StartTimestamp == nil {
 			t.Errorf("(%d) nil start timestamp!", i)
 		}
-		if tc.startTimestamp != nil && !tc.startTimestamp.Before(build.StartTimestamp.Time) && tc.startTimestamp.Time != build.StartTimestamp.Time {
+		if tc.startTimestamp != nil && !tc.startTimestamp.Before(*build.StartTimestamp) && tc.startTimestamp.Time != build.StartTimestamp.Time {
 			t.Errorf("(%d) Expected build start timestamp %v to be equal to or later than %v!", i, build.StartTimestamp, tc.startTimestamp)
 		}
 
@@ -457,7 +457,7 @@ func TestHandlePod(t *testing.T) {
 		if tc.completionTimestamp != nil && build.CompletionTimestamp == nil {
 			t.Errorf("(%d) nil completion timestamp!", i)
 		}
-		if tc.completionTimestamp != nil && !tc.completionTimestamp.Before(build.CompletionTimestamp.Time) && tc.completionTimestamp.Time != build.CompletionTimestamp.Time {
+		if tc.completionTimestamp != nil && !tc.completionTimestamp.Before(*build.CompletionTimestamp) && tc.completionTimestamp.Time != build.CompletionTimestamp.Time {
 			t.Errorf("(%d) Expected build completion timestamp %v to be equal to or later than %v!", i, build.CompletionTimestamp, tc.completionTimestamp)
 		}
 	}
@@ -570,7 +570,7 @@ func TestCancelBuild(t *testing.T) {
 		if tc.startTimestamp != nil && build.StartTimestamp == nil {
 			t.Errorf("(%d) nil start timestamp!", i)
 		}
-		if tc.startTimestamp != nil && !tc.startTimestamp.Before(build.StartTimestamp.Time) && tc.startTimestamp.Time != build.StartTimestamp.Time {
+		if tc.startTimestamp != nil && !tc.startTimestamp.Before(*build.StartTimestamp) && tc.startTimestamp.Time != build.StartTimestamp.Time {
 			t.Errorf("(%d) Expected build start timestamp %v to be equal to or later than %v!", i, build.StartTimestamp, tc.startTimestamp)
 		}
 
@@ -580,7 +580,7 @@ func TestCancelBuild(t *testing.T) {
 		if tc.completionTimestamp != nil && build.CompletionTimestamp == nil {
 			t.Errorf("(%d) nil start timestamp!", i)
 		}
-		if tc.completionTimestamp != nil && !tc.completionTimestamp.Before(build.CompletionTimestamp.Time) && tc.completionTimestamp.Time != build.CompletionTimestamp.Time {
+		if tc.completionTimestamp != nil && !tc.completionTimestamp.Before(*build.CompletionTimestamp) && tc.completionTimestamp.Time != build.CompletionTimestamp.Time {
 			t.Errorf("(%d) Expected build completion timestamp %v to be equal to or later than %v!", i, build.CompletionTimestamp, tc.completionTimestamp)
 		}
 

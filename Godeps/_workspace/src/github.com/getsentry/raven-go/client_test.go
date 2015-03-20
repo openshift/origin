@@ -16,6 +16,10 @@ func TestPacketJSON(t *testing.T) {
 	packet := &Packet{
 		Project:    "1",
 		EventID:    "2",
+		Platform:   "linux",
+		Culprit:    "caused_by",
+		ServerName: "host1",
+		Release:    "721e41770371db95eee98ca2707686226b993eda",
 		Message:    "test",
 		Timestamp:  Timestamp(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC)),
 		Level:      ERROR,
@@ -26,7 +30,7 @@ func TestPacketJSON(t *testing.T) {
 
 	packet.AddTags(map[string]string{"foo": "foo", "baz": "buzz"})
 
-	expected := `{"message":"test","event_id":"2","project":"1","timestamp":"2000-01-01T00:00:00","level":"error","logger":"com.getsentry.raven-go.logger-test-packet-json","tags":[["foo","bar"],["foo","foo"],["baz","buzz"]],"sentry.interfaces.Message":{"message":"foo"}}`
+	expected := `{"message":"test","event_id":"2","project":"1","timestamp":"2000-01-01T00:00:00","level":"error","logger":"com.getsentry.raven-go.logger-test-packet-json","platform":"linux","culprit":"caused_by","server_name":"host1","release":"721e41770371db95eee98ca2707686226b993eda","tags":[["foo","bar"],["foo","foo"],["baz","buzz"]],"sentry.interfaces.Message":{"message":"foo"}}`
 	actual := string(packet.JSON())
 
 	if actual != expected {

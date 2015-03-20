@@ -20,10 +20,15 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/cadvisor"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/network"
 	docker "github.com/fsouza/go-dockerclient"
+	cadvisorApi "github.com/google/cadvisor/info/v1"
 )
 
 type listContainersResult struct {
@@ -66,15 +71,22 @@ func (d *testDocker) InspectContainer(id string) (*docker.Container, error) {
 }
 
 func TestRunOnce(t *testing.T) {
+	cadvisor := &cadvisor.Mock{}
+	cadvisor.On("MachineInfo").Return(&cadvisorApi.MachineInfo{}, nil)
 	kb := &Kubelet{
 		rootDirectory: "/tmp/kubelet",
+		recorder:      &record.FakeRecorder{},
+		cadvisor:      cadvisor,
+		podStatuses:   make(map[string]api.PodStatus),
 	}
+
+	kb.networkPlugin, _ = network.InitNetworkPlugin([]network.NetworkPlugin{}, "", network.NewFakeHost(nil))
 	if err := kb.setupDataDirs(); err != nil {
 		t.Errorf("Failed to init data dirs: %v", err)
 	}
 	podContainers := []docker.APIContainers{
 		{
-			Names:  []string{"/k8s_bar." + strconv.FormatUint(dockertools.HashContainer(&api.Container{Name: "bar"}), 16) + "_foo.new.test_12345678_42"},
+			Names:  []string{"/k8s_bar." + strconv.FormatUint(dockertools.HashContainer(&api.Container{Name: "bar"}), 16) + "_foo_new_12345678_42"},
 			ID:     "1234",
 			Status: "running",
 		},
@@ -125,13 +137,12 @@ func TestRunOnce(t *testing.T) {
 		t: t,
 	}
 	kb.dockerPuller = &dockertools.FakeDockerPuller{}
-	results, err := kb.runOnce([]api.BoundPod{
+	results, err := kb.runOnce([]api.Pod{
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID:         "12345678",
-				Name:        "foo",
-				Namespace:   "new",
-				Annotations: map[string]string{ConfigSourceAnnotationKey: "test"},
+				UID:       "12345678",
+				Name:      "foo",
+				Namespace: "new",
 			},
 			Spec: api.PodSpec{
 				Containers: []api.Container{
@@ -139,7 +150,7 @@ func TestRunOnce(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, time.Millisecond)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

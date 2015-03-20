@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -151,7 +152,7 @@ func (StatusStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationE
 }
 
 // MatchImageRepository returns a generic matcher for a given label and field selector.
-func MatchImageRepository(label, field labels.Selector) generic.Matcher {
+func MatchImageRepository(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
 		ir, ok := obj.(*api.ImageRepository)
 		if !ok {

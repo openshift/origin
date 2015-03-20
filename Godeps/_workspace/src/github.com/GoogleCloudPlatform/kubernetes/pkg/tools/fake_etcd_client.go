@@ -47,6 +47,7 @@ type FakeEtcdClient struct {
 	expectNotFoundGetSet map[string]struct{}
 	sync.Mutex
 	Err         error
+	CasErr      error
 	t           TestLogger
 	Ix          int
 	TestIndex   bool
@@ -225,6 +226,10 @@ func (f *FakeEtcdClient) CompareAndSwap(key, value string, ttl uint64, prevValue
 		f.t.Logf("c&s: returning err %v", f.Err)
 		return nil, f.Err
 	}
+	if f.CasErr != nil {
+		f.t.Logf("c&s: returning err %v", f.CasErr)
+		return nil, f.CasErr
+	}
 
 	if !f.TestIndex {
 		f.t.Errorf("Enable TestIndex for test involving CompareAndSwap")
@@ -278,7 +283,17 @@ func (f *FakeEtcdClient) Delete(key string, recursive bool) (*etcd.Response, err
 
 	f.Mutex.Lock()
 	defer f.Mutex.Unlock()
-	existing := f.Data[key]
+	existing, ok := f.Data[key]
+	if !ok {
+		return &etcd.Response{}, &etcd.EtcdError{
+			ErrorCode: EtcdErrorCodeNotFound,
+			Index:     f.ChangeIndex,
+		}
+	}
+	if IsEtcdNotFound(existing.E) {
+		f.DeletedKeys = append(f.DeletedKeys, key)
+		return existing.R, existing.E
+	}
 	index := f.generateIndex()
 	f.Data[key] = EtcdResponseWithError{
 		R: &etcd.Response{},

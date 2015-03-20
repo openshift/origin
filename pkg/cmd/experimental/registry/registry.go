@@ -127,7 +127,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 			if err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
-			_, kClient, err := f.Clients(cmd)
+			_, kClient, err := f.Clients()
 			if err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
@@ -202,16 +202,16 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 						},
 						Volumes: []kapi.Volume{
 							{
-								Name:   "registry-storage",
-								Source: kapi.VolumeSource{},
+								Name:         "registry-storage",
+								VolumeSource: kapi.VolumeSource{},
 							},
 						},
 					},
 				}
 				if mountHost {
-					podTemplate.Spec.Volumes[0].Source.HostPath = &kapi.HostPathVolumeSource{Path: cfg.HostMount}
+					podTemplate.Spec.Volumes[0].HostPath = &kapi.HostPathVolumeSource{Path: cfg.HostMount}
 				} else {
-					podTemplate.Spec.Volumes[0].Source.EmptyDir = &kapi.EmptyDirVolumeSource{}
+					podTemplate.Spec.Volumes[0].EmptyDir = &kapi.EmptyDirVolumeSource{}
 				}
 
 				objects := []runtime.Object{
@@ -248,7 +248,6 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 
 				bulk := configcmd.Bulk{
 					Factory: f.Factory,
-					Command: cmd,
 					After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 				}
 				if errs := bulk.Create(list, namespace); len(errs) != 0 {

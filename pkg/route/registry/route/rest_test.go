@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/route/api"
@@ -26,7 +27,7 @@ func TestListRoutesEmptyList(t *testing.T) {
 		allocator: mockAllocator,
 	}
 
-	routes, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	routes, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
@@ -59,7 +60,7 @@ func TestListRoutesPopulatedList(t *testing.T) {
 		allocator: mockAllocator,
 	}
 
-	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), labels.Everything())
+	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}

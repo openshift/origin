@@ -60,7 +60,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		Long:  fmt.Sprintf(newAppLongDesc, fullName),
 
 		Run: func(c *cobra.Command, args []string) {
-			namespace, err := f.DefaultNamespace(c)
+			namespace, err := f.DefaultNamespace()
 			checkErr(err)
 
 			if dockerClient, _, err := helper.GetClient(); err == nil {
@@ -71,7 +71,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 				}
 			}
 
-			osclient, _, err := f.Clients(c)
+			osclient, _, err := f.Clients()
 			if err != nil {
 				glog.Fatalf("Error getting client: %v", err)
 			}
@@ -108,7 +108,6 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 			bulk := configcmd.Bulk{
 				Factory: f.Factory,
-				Command: c,
 				After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 			}
 			if errs := bulk.Create(result.List, namespace); len(errs) != 0 {

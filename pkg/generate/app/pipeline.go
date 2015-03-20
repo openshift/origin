@@ -165,7 +165,7 @@ func makeValidServiceName(name string) (string, string) {
 	return name, ""
 }
 
-type sortablePorts []kapi.Port
+type sortablePorts []kapi.ContainerPort
 
 func (s sortablePorts) Len() int           { return len(s) }
 func (s sortablePorts) Less(i, j int) bool { return s[i].ContainerPort < s[j].ContainerPort }

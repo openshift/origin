@@ -5,6 +5,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -30,7 +31,7 @@ func TestPolicyGet(t *testing.T) {
 		ctx := kapi.WithNamespace(kapi.NewContext(), "mallet")
 		policy, policyErr := policyCache.GetPolicy(ctx, authorizationapi.PolicyName)
 
-		bindings, bindingErr := policyCache.ListPolicyBindings(ctx, labels.Everything(), labels.Everything())
+		bindings, bindingErr := policyCache.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
 		if (policyErr == nil) && (bindingErr == nil) && (policy != nil) && (len(bindings.Items) == 1) {
 			close(testStop)
 		}

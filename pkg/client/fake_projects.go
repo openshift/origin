@@ -1,13 +1,16 @@
 package client
 
-import "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+)
 import projectapi "github.com/openshift/origin/pkg/project/api"
 
 type FakeProjects struct {
 	Fake *Fake
 }
 
-func (c *FakeProjects) List(label, field labels.Selector) (*projectapi.ProjectList, error) {
+func (c *FakeProjects) List(label labels.Selector, field fields.Selector) (*projectapi.ProjectList, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-projects"})
 	return &projectapi.ProjectList{}, nil
 }

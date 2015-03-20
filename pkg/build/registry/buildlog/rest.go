@@ -2,7 +2,6 @@ package buildlog
 
 import (
 	"fmt"
-	"net/url"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -53,7 +52,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	// TODO: these must be status errors, not field errors
 	// TODO: choose a more appropriate "try again later" status code, like 202
 	if len(build.PodName) == 0 {
-		return "", errors.NewFieldRequired("Build.PodName", build.PodName)
+		return "", errors.NewFieldRequired("Build.PodName")
 	}
 
 	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
@@ -66,11 +65,8 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
 	buildContainerName := pod.Spec.Containers[0].Name
-	location := &url.URL{
-		Scheme: kubernetes.NodeScheme,
-		Host:   fmt.Sprintf("%s:%d", buildPodHost, kubernetes.NodePort),
-		Path:   fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodID, buildContainerName),
-	}
+
+	location := fmt.Sprintf("%s:%d/containerLogs/%s/%s/%s", buildPodHost, kubernetes.NodePort, buildPodNamespace, buildPodID, buildContainerName)
 
 	// Pod in which build take place can't be in the Pending or Unknown phase,
 	// cause no containers are present in the Pod in those phases.
@@ -80,14 +76,14 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 
 	switch build.Status {
 	case api.BuildStatusRunning:
-		location.RawQuery = url.Values{"follow": []string{"1"}}.Encode()
+		location += "?follow=1"
 	case api.BuildStatusComplete, api.BuildStatusFailed:
 		// Do not follow the Complete and Failed logs as the streaming already finished.
 	default:
 		return "", errors.NewFieldInvalid("build.Status", build.Status, "must be Running, Complete or Failed")
 	}
 
-	return location.String(), nil
+	return location, nil
 }
 
 func (r *REST) New() runtime.Object {

@@ -59,8 +59,6 @@ func (s *Stream) WriteData(data []byte, fin bool) error {
 		Data:     data,
 	}
 
-	s.conn.writeLock.Lock()
-	defer s.conn.writeLock.Unlock()
 	debugMessage("(%p) (%d) Writing data frame", s, s.streamId)
 	return s.conn.framer.WriteFrame(dataFrame)
 }
@@ -168,7 +166,10 @@ func (s *Stream) Close() error {
 // Reset sends a reset frame, putting the stream into the fully closed state.
 func (s *Stream) Reset() error {
 	s.conn.removeStream(s)
+	return s.resetStream()
+}
 
+func (s *Stream) resetStream() error {
 	s.finishLock.Lock()
 	if s.finished {
 		s.finishLock.Unlock()
@@ -183,8 +184,6 @@ func (s *Stream) Reset() error {
 		StreamId: s.streamId,
 		Status:   spdy.Cancel,
 	}
-	s.conn.writeLock.Lock()
-	defer s.conn.writeLock.Unlock()
 	return s.conn.framer.WriteFrame(resetFrame)
 }
 

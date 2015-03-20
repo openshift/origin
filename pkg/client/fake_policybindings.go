@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -11,7 +12,7 @@ type FakePolicyBindings struct {
 	Fake *Fake
 }
 
-func (c *FakePolicyBindings) List(label, field labels.Selector) (*authorizationapi.PolicyBindingList, error) {
+func (c *FakePolicyBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-policyBindings"})
 	return &authorizationapi.PolicyBindingList{}, nil
 }
@@ -31,7 +32,7 @@ func (c *FakePolicyBindings) Delete(name string) error {
 	return nil
 }
 
-func (c *FakePolicyBindings) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *FakePolicyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-policyBinding"})
 	return nil, nil
 }

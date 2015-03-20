@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	klabels "github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
@@ -81,7 +82,7 @@ func getExistingRoleBindingsForRole(roleNamespace, role string, bindingInterface
 }
 
 func getExistingRoleBindingNames(bindingInterface client.PolicyBindingInterface) (*util.StringSet, error) {
-	policyBindings, err := bindingInterface.List(klabels.Everything(), klabels.Everything())
+	policyBindings, err := bindingInterface.List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}

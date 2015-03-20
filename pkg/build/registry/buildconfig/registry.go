@@ -2,6 +2,7 @@ package buildconfig
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/build/api"
@@ -20,5 +21,5 @@ type Registry interface {
 	// DeleteBuildConfig deletes a buildConfig.
 	DeleteBuildConfig(ctx kapi.Context, id string) error
 	// WatchBuildConfigs watches buildConfigs.
-	WatchBuildConfigs(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error)
+	WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }

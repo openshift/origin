@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"github.com/golang/glog"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -25,16 +26,14 @@ type ImportControllerFactory struct {
 func (f *ImportControllerFactory) Create() controller.RunnableController {
 	lw := &cache.ListWatch{
 		ListFunc: func() (runtime.Object, error) {
-			glog.Infof("about to list IRs")
-			return f.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), labels.Everything())
+			return f.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			glog.Infof("about to watch IRs: %s", resourceVersion)
-			return f.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
+			return f.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
 	q := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(lw, &api.ImageRepository{}, q).Run()
+	cache.NewReflector(lw, &api.ImageRepository{}, q, 2*time.Minute).Run()
 
 	c := &ImportController{
 		client:       dockerregistry.NewClient(),

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -38,13 +39,13 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), created.ResourceVersion)
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
-	watch2, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), created.ResourceVersion)
+	watch2, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}

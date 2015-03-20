@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
 )
@@ -140,6 +141,23 @@ func (p *PodCache) clearNodeStatus() {
 	p.currentNodes = map[objKey]api.NodeStatus{}
 }
 
+func (p *PodCache) getHostAddress(addresses []api.NodeAddress) string {
+	addressMap := make(map[api.NodeAddressType][]api.NodeAddress)
+	for i := range addresses {
+		addressMap[addresses[i].Type] = append(addressMap[addresses[i].Type], addresses[i])
+	}
+	if addresses, ok := addressMap[api.NodeLegacyHostIP]; ok {
+		return addresses[0].Address
+	}
+	if addresses, ok := addressMap[api.NodeInternalIP]; ok {
+		return addresses[0].Address
+	}
+	if addresses, ok := addressMap[api.NodeExternalIP]; ok {
+		return addresses[0].Address
+	}
+	return ""
+}
+
 // TODO: once Host gets moved to spec, this can take a podSpec + metadata instead of an
 // entire pod?
 func (p *PodCache) updatePodStatus(pod *api.Pod) error {
@@ -180,7 +198,7 @@ func (p *PodCache) computePodStatus(pod *api.Pod) (api.PodStatus, error) {
 
 	// Assigned to an unhealthy node.
 	for _, condition := range nodeStatus.Conditions {
-		if (condition.Kind == api.NodeReady || condition.Kind == api.NodeReachable) && condition.Status == api.ConditionNone {
+		if (condition.Type == api.NodeReady || condition.Type == api.NodeReachable) && condition.Status == api.ConditionNone {
 			glog.V(5).Infof("node status: %v, setting pod %q status to unknown", condition, pod.Name)
 			newStatus.Phase = api.PodUnknown
 			newStatus.Conditions = append(newStatus.Conditions, pod.Status.Conditions...)
@@ -193,19 +211,11 @@ func (p *PodCache) computePodStatus(pod *api.Pod) (api.PodStatus, error) {
 	if err != nil {
 		glog.V(5).Infof("error getting pod %s status: %v, retry later", pod.Name, err)
 	} else {
-		newStatus.HostIP = nodeStatus.HostIP
+		newStatus.HostIP = p.getHostAddress(nodeStatus.Addresses)
 		newStatus.Info = result.Status.Info
 		newStatus.PodIP = result.Status.PodIP
-		if newStatus.Info == nil {
-			// There is a small race window that kubelet couldn't
-			// propulated the status yet. This should go away once
-			// we removed boundPods
-			newStatus.Phase = api.PodPending
-			newStatus.Conditions = append(newStatus.Conditions, pod.Status.Conditions...)
-		} else {
-			newStatus.Phase = result.Status.Phase
-			newStatus.Conditions = result.Status.Conditions
-		}
+		newStatus.Phase = result.Status.Phase
+		newStatus.Conditions = result.Status.Conditions
 	}
 	return newStatus, err
 }
@@ -214,6 +224,7 @@ func (p *PodCache) GarbageCollectPodStatus() {
 	pods, err := p.pods.ListPods(api.NewContext(), labels.Everything())
 	if err != nil {
 		glog.Errorf("Error getting pod list: %v", err)
+		return
 	}
 	keys := map[objKey]bool{}
 	for _, pod := range pods.Items {
@@ -254,6 +265,7 @@ func (p *PodCache) UpdateAllContainers() {
 		pod := &pods.Items[i]
 		wg.Add(1)
 		go func() {
+			defer util.HandleCrash()
 			defer wg.Done()
 			err := p.updatePodStatus(pod)
 			if err != nil && err != client.ErrPodInfoNotAvailable {

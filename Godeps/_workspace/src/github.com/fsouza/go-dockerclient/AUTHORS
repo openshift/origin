@@ -1,10 +1,12 @@
 # This is the official list of go-dockerclient authors for copyright purposes.
 
+Adam Bell-Hanssen <adamb@aller.no>
 Aldrin Leal <aldrin@leal.eng.br>
 Andreas Jaekle <andreas@jaekle.net>
 Andrews Medina <andrewsmedina@gmail.com>
 Artem Sidorenko <artem@2realities.com>
 Andy Goldstein <andy.goldstein@redhat.com>
+Ben Marini <ben@remind101.com>
 Ben McCann <benmccann.com>
 Brian Lalor <blalor@bravo5.org>
 Burke Libbey <burke@libbey.me>
@@ -14,12 +16,13 @@ Cheah Chu Yeow <chuyeow@gmail.com>
 cheneydeng <cheneydeng@qq.com>
 CMGS <ilskdw@gmail.com>
 Daniel, Dao Quang Minh <dqminh89@gmail.com>
+Darren Shepherd <darren@rancher.com>
 David Huie <dahuie@gmail.com>
 Dawn Chen <dawnchen@google.com>
 Ed <edrocksit@gmail.com>
 Eric Anderson <anderson@copperegg.com>
 Fabio Rehm <fgrehm@gmail.com>
- Fatih Arslan <ftharsln@gmail.com>
+Fatih Arslan <ftharsln@gmail.com>
 Flavia Missi <flaviamissi@gmail.com>
 Francisco Souza <f@souza.cc>
 Jari Kolehmainen <jari.kolehmainen@digia.com>
@@ -33,12 +36,14 @@ Kamil Domanski <kamil@domanski.co>
 Karan Misra <kidoman@gmail.com>
 Kim, Hirokuni <hirokuni.kim@kvh.co.jp>
 Lucas Clemente <lucas@clemente.io>
+Lucas Weiblen <lucasweiblen@gmail.com>
 Mantas Matelis <mmatelis@coursera.org>
 Martin Sweeney <martin@sweeney.io>
 Máximo Cuadros Ortiz <mcuadros@gmail.com>
 Michal Fojtik <mfojtik@redhat.com>
 Mike Dillon <mike.dillon@synctree.com>
 Mrunal Patel <mrunalp@gmail.com>
+Nick Ethier <ncethier@gmail.com>
 Omeid Matten <public@omeid.me>
 Paul Morie <pmorie@gmail.com>
 Peter Jihoon Kim <raingrove@gmail.com>
@@ -55,5 +60,7 @@ Sridhar Ratnakumar <sridharr@activestate.com>
 Summer Mousa <smousa@zenoss.com>
 Tarsis Azevedo <tarsis@corp.globo.com>
 Tim Schindler <tim@catalyst-zero.com>
+Vincenzo Prignano <vincenzo.prignano@gmail.com>
 Wiliam Souza <wiliamsouza83@gmail.com>
 Ye Yin <eyniy@qq.com>
+Yuriy Bogdanov <chinsay@gmail.com>

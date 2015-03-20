@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/test"
@@ -126,7 +127,7 @@ func TestListError(t *testing.T) {
 		registry: &registry,
 	}
 	ctx := api.NewContext()
-	_, err := storage.List(ctx, labels.Everything(), labels.Everything())
+	_, err := storage.List(ctx, labels.Everything(), fields.Everything())
 	if err == nil {
 		t.Errorf("expected error")
 		return
@@ -145,7 +146,7 @@ func TestListEmpty(t *testing.T) {
 		registry: &registry,
 	}
 	ctx := api.NewContext()
-	tokens, err := storage.List(ctx, labels.Everything(), labels.Everything())
+	tokens, err := storage.List(ctx, labels.Everything(), fields.Everything())
 	if err != registry.Err {
 		t.Errorf("got unexpected error: %v", err)
 		return
@@ -174,7 +175,7 @@ func TestList(t *testing.T) {
 		registry: &registry,
 	}
 	ctx := api.NewContext()
-	tokens, err := storage.List(ctx, labels.Everything(), labels.Everything())
+	tokens, err := storage.List(ctx, labels.Everything(), fields.Everything())
 	if err != registry.Err {
 		t.Errorf("got unexpected error: %v", err)
 		return

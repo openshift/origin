@@ -127,7 +127,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		if len(name) <= 0 {
 			t.Errorf("Test case %s got %d length name.", tc.name, len(name))
 		}
-		if !util.IsDNSSubdomain(name) {
+		if !util.IsDNS1123Subdomain(name) {
 			t.Errorf("Test case %s got %s - invalid DNS name.", tc.name, name)
 		}
 	}
@@ -191,7 +191,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		if len(name) <= 0 {
 			t.Errorf("Test case %s got %d length name", tc.name, len(name))
 		}
-		if !util.IsDNSSubdomain(name) {
+		if !util.IsDNS1123Subdomain(name) {
 			t.Errorf("Test case %s got %s - invalid DNS name.", tc.name, name)
 		}
 	}

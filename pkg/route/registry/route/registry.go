@@ -2,6 +2,7 @@ package route
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -21,5 +22,5 @@ type Registry interface {
 	// DeleteRoute deletes a route.
 	DeleteRoute(ctx kapi.Context, routeID string) error
 	// WatchRoutes watches for new/modified/deleted routes.
-	WatchRoutes(ctx kapi.Context, labels, fields labels.Selector, resourceVersion string) (watch.Interface, error)
+	WatchRoutes(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }

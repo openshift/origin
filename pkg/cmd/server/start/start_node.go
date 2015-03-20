@@ -14,7 +14,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -290,19 +289,14 @@ func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
 }
 
 func StartNode(config configapi.NodeConfig) error {
-	if config.RecordEvents {
-		kubeClient, _, err := configapi.GetKubeClient(config.MasterKubeConfig)
-		if err != nil {
-			return err
-		}
-
-		// TODO: recording should occur in individual components
-		record.StartRecording(kubeClient.Events(""), kapi.EventSource{Component: "node"})
-	}
-
 	nodeConfig, err := kubernetes.BuildKubernetesNodeConfig(config)
 	if err != nil {
 		return err
+	}
+
+	// TODO: recording should occur in individual components
+	if config.RecordEvents {
+		record.StartRecording(nodeConfig.Client.Events(""))
 	}
 
 	nodeConfig.EnsureVolumeDir()
