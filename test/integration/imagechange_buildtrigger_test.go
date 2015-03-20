@@ -39,21 +39,13 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-<<<<<<< HEAD
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), created.ResourceVersion)
-=======
-	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
->>>>>>> 3bfc5e9... Refactor 1
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
-<<<<<<< HEAD
-	watch2, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), created.ResourceVersion)
-=======
-	watch2, err := openshift.Client.BuildConfigs(util.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
->>>>>>> 3bfc5e9... Refactor 1
+	watch2, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
