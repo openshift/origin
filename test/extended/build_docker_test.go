@@ -11,25 +11,25 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireServer()
+	testutil.RequireServer()
 }
 
 func TestDockerStrategyBuild(t *testing.T) {
-	namespace := util.RandomNamespace("docker")
+	namespace := testutil.RandomNamespace("docker")
 	fmt.Printf("Using '%s' namespace\n", namespace)
 
-	build := util.GetBuildFixture("fixtures/docker-build.json")
-	client, _ := util.GetClusterAdminClient(util.KubeConfigPath())
+	build := testutil.GetBuildFixture("fixtures/docker-build.json")
+	client, _ := testutil.GetClusterAdminClient(testutil.KubeConfigPath())
 
-	repo := util.CreateSampleImageRepository(namespace)
+	repo := testutil.CreateSampleImageRepository(namespace)
 	if repo == nil {
 		t.Fatal("Failed to create ImageRepository")
 	}
-	defer util.DeleteSampleImageRepository(repo, namespace)
+	defer testutil.DeleteSampleImageRepository(repo, namespace)
 
 	// TODO: Tweak the selector to match the build name
 	watcher, err := client.Builds(namespace).Watch(labels.Everything(), labels.Everything(), "0")

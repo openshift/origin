@@ -17,25 +17,25 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireServer()
+	testutil.RequireServer()
 }
 
 func TestSTIContextDirBuild(t *testing.T) {
-	namespace := util.RandomNamespace("contextdir")
+	namespace := testutil.RandomNamespace("contextdir")
 	fmt.Printf("Using '%s' namespace\n", namespace)
 
-	build := util.GetBuildFixture("fixtures/contextdir-build.json")
-	client, _ := util.GetClusterAdminClient(util.KubeConfigPath())
+	build := testutil.GetBuildFixture("fixtures/contextdir-build.json")
+	client, _ := testutil.GetClusterAdminClient(testutil.KubeConfigPath())
 
-	repo := util.CreateSampleImageRepository(namespace)
+	repo := testutil.CreateSampleImageRepository(namespace)
 	if repo == nil {
 		t.Fatal("Failed to create ImageRepository")
 	}
-	defer util.DeleteSampleImageRepository(repo, namespace)
+	defer testutil.DeleteSampleImageRepository(repo, namespace)
 
 	// TODO: Tweak the selector to match the build name
 	watcher, err := client.Builds(namespace).Watch(labels.Everything(), labels.Everything(), "0")
@@ -63,7 +63,7 @@ func TestSTIContextDirBuild(t *testing.T) {
 			case buildapi.BuildStatusFailed, buildapi.BuildStatusError:
 				t.Fatalf("Unexpected build status: ", buildapi.BuildStatusFailed)
 			case buildapi.BuildStatusComplete:
-				err := util.VerifyImage(repo, namespace, func(addr string) error {
+				err := testutil.VerifyImage(repo, namespace, func(addr string) error {
 					resp, err := http.Get("http://" + addr)
 					if err != nil {
 						return err

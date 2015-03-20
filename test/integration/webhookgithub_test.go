@@ -14,32 +14,32 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func init() {
-	util.RequireEtcd()
+	testutil.RequireEtcd()
 }
 
 func TestWebhookGithubPush(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
 	// create buildconfig
 	buildConfig := mockBuildConfigParms("image", "repo", "tag")
-	if _, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig); err != nil {
+	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+util.Namespace(), http.StatusOK, t)
+	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -50,7 +50,7 @@ func TestWebhookGithubPush(t *testing.T) {
 }
 
 func TestWebhookGithubPushWithImageTag(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
@@ -59,25 +59,25 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "imageRepo"},
 		Tags:       map[string]string{"validTag": "success"},
 	}
-	if _, err := openshift.Client.ImageRepositories(util.Namespace()).Create(imageRepo); err != nil {
+	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
 	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "validTag")
 
-	if _, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig); err != nil {
+	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+util.Namespace(), http.StatusOK, t)
+	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -92,7 +92,7 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 }
 
 func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
@@ -101,24 +101,24 @@ func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "imageRepo"},
 		Tags:       map[string]string{"validTag": "success"},
 	}
-	if _, err := openshift.Client.ImageRepositories(util.Namespace()).Create(imageRepo); err != nil {
+	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
 	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "invalidTag")
-	if _, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig); err != nil {
+	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+util.Namespace(), http.StatusOK, t)
+	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -133,7 +133,7 @@ func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 }
 
 func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
@@ -149,18 +149,18 @@ func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
 	// create buildconfig
 	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "validTag")
 
-	if _, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig); err != nil {
+	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+util.Namespace(), http.StatusOK, t)
+	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -175,24 +175,24 @@ func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
 }
 
 func TestWebhookGithubPing(t *testing.T) {
-	util.DeleteAllEtcdKeys()
+	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
 
 	// create buildconfig
 	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "validTag")
-	if _, err := openshift.Client.BuildConfigs(util.Namespace()).Create(buildConfig); err != nil {
+	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(util.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), labels.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+util.Namespace(), http.StatusOK, t)
+	postFile("ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	// TODO: improve negative testing
 	timer := time.NewTimer(time.Second / 2)

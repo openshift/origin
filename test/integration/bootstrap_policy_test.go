@@ -15,16 +15,16 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
-	"github.com/openshift/origin/test/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
-	_, clusterAdminKubeConfig, err := util.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClientConfig, err := util.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -74,12 +74,12 @@ func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
 }
 
 func TestOverwritePolicyCommand(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := util.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	client, err := util.GetClusterAdminClient(clusterAdminKubeConfig)
+	client, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
