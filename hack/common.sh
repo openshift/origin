@@ -30,6 +30,7 @@ readonly OS_IMAGE_COMPILE_PLATFORMS=(
 readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
   examples/hello-openshift
+  cmd/dockerregistry
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
 

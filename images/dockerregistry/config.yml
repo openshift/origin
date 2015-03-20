@@ -1,0 +1,10 @@
+version: 0.1
+loglevel: debug
+http:
+  addr: :5000
+storage:
+  filesystem:
+    rootdirectory: /registry
+middleware:
+  repository:
+    - name: openshift

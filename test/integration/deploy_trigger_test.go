@@ -42,6 +42,8 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
+	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	"github.com/openshift/origin/test/util"
 )
 
@@ -360,6 +362,9 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return "registry:3000", true }))
 	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
+	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
 
 	deployEtcd := deployetcd.New(etcdHelper)
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
@@ -374,10 +379,16 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	buildEtcd := buildetcd.New(etcdHelper)
 
 	storage := map[string]apiserver.RESTStorage{
-		"images":                    imageStorage,
-		"imageRepositories":         imageRepositoryStorage,
-		"imageRepositories/status":  imageRepositoryStatus,
-		"imageRepositoryMappings":   imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry),
+		"images":                   imageStorage,
+		"imageStreams":             imageRepositoryStorage,
+		"imageStreamImages":        imageStreamImageStorage,
+		"imageStreamMappings":      imageRepositoryMappingStorage,
+		"imageStreamTags":          imageRepositoryTagStorage,
+		"imageRepositories":        imageRepositoryStorage,
+		"imageRepositories/status": imageRepositoryStatus,
+		"imageRepositoryMappings":  imageRepositoryMappingStorage,
+		"imageRepositoryTags":      imageRepositoryTagStorage,
+
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
