@@ -3,6 +3,7 @@ package describe
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"text/tabwriter"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -52,6 +53,24 @@ func convertEnv(env []api.EnvVar) map[string]string {
 
 func formatString(out *tabwriter.Writer, label string, v interface{}) {
 	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s\n", label, toString(v)))
+}
+
+func formatImageRepositoryTags(out *tabwriter.Writer, label string, tags map[string]string) {
+	fmt.Fprint(out, label)
+	if len(tags) == 0 {
+		fmt.Fprintf(out, "\t<none>\n")
+		return
+	}
+
+	sortedTags := []string{}
+	for k := range tags {
+		sortedTags = append(sortedTags, k)
+	}
+	sort.Strings(sortedTags)
+	for _, tag := range sortedTags {
+		image := tags[tag]
+		fmt.Fprintf(out, "\t%s=%s\n", tag, image)
+	}
 }
 
 func formatLabels(labelMap map[string]string) string {

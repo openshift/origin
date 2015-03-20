@@ -253,9 +253,15 @@ func (d *ImageRepositoryDescriber) Describe(namespace, name string) (string, err
 		return "", err
 	}
 
+	statusTags := make(map[string]string, len(imageRepository.Status.Tags))
+	for tag, history := range imageRepository.Status.Tags {
+		statusTags[tag] = history.Items[0].Image
+	}
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageRepository.ObjectMeta)
-		formatString(out, "Tags", formatLabels(imageRepository.Tags))
+		formatImageRepositoryTags(out, "Tags", imageRepository.Tags)
+		formatImageRepositoryTags(out, "Images", statusTags)
 		formatString(out, "Registry", imageRepository.Status.DockerImageRepository)
 		return nil
 	})
