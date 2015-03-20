@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -490,7 +489,7 @@ func TestImageWithMetadata(t *testing.T) {
 		if test.expectError {
 			continue
 		}
-		if e, a := test.expectedImage, *imageWithMetadata; !reflect.DeepEqual(e, a) {
+		if e, a := test.expectedImage, *imageWithMetadata; !kapi.Semantic.DeepEqual(e, a) {
 			stringE := fmt.Sprintf("%#v", e)
 			stringA := fmt.Sprintf("%#v", a)
 			t.Errorf("%s: image: %s", name, util.StringDiff(stringE, stringA))
