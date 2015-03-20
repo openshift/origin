@@ -9,16 +9,16 @@ import (
 func ValidateAccessToken(accessToken *api.OAuthAccessToken) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(accessToken.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", accessToken.Name))
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
 	}
 	if len(accessToken.ClientName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("clientname", accessToken.ClientName))
+		allErrs = append(allErrs, errs.NewFieldRequired("clientname"))
 	}
 	if len(accessToken.UserName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("username", accessToken.UserName))
+		allErrs = append(allErrs, errs.NewFieldRequired("username"))
 	}
 	if len(accessToken.UserUID) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("useruid", accessToken.UserUID))
+		allErrs = append(allErrs, errs.NewFieldRequired("useruid"))
 	}
 	if len(accessToken.Namespace) != 0 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", accessToken.Namespace, "namespace must be empty"))
@@ -30,16 +30,16 @@ func ValidateAccessToken(accessToken *api.OAuthAccessToken) errs.ValidationError
 func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(authorizeToken.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", authorizeToken.Name))
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
 	}
 	if len(authorizeToken.ClientName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("clientname", authorizeToken.ClientName))
+		allErrs = append(allErrs, errs.NewFieldRequired("clientname"))
 	}
 	if len(authorizeToken.UserName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("username", authorizeToken.UserName))
+		allErrs = append(allErrs, errs.NewFieldRequired("username"))
 	}
 	if len(authorizeToken.UserUID) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("useruid", authorizeToken.UserUID))
+		allErrs = append(allErrs, errs.NewFieldRequired("useruid"))
 	}
 	if len(authorizeToken.Namespace) != 0 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", authorizeToken.Namespace, "namespace must be empty"))
@@ -51,7 +51,7 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) errs.Valida
 func ValidateClient(client *api.OAuthClient) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(client.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", client.Name))
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
 	}
 	if len(client.Namespace) != 0 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", client.Namespace, "namespace must be empty"))
@@ -63,16 +63,16 @@ func ValidateClient(client *api.OAuthClient) errs.ValidationErrorList {
 func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorization) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(clientAuthorization.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", clientAuthorization.Name))
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
 	}
 	if len(clientAuthorization.ClientName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("clientname", clientAuthorization.ClientName))
+		allErrs = append(allErrs, errs.NewFieldRequired("clientname"))
 	}
 	if len(clientAuthorization.UserName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("username", clientAuthorization.UserName))
+		allErrs = append(allErrs, errs.NewFieldRequired("username"))
 	}
 	if len(clientAuthorization.UserUID) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("useruid", clientAuthorization.UserUID))
+		allErrs = append(allErrs, errs.NewFieldRequired("useruid"))
 	}
 	if len(clientAuthorization.Namespace) != 0 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", clientAuthorization.Namespace, "namespace must be empty"))

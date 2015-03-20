@@ -29,10 +29,10 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 				usageError(cmd, "<build> is a required argument")
 			}
 
-			namespace, err := f.DefaultNamespace(cmd)
+			namespace, err := f.DefaultNamespace()
 			checkErr(err)
 
-			c, _, err := f.Clients(cmd)
+			c, _, err := f.Clients()
 			checkErr(err)
 
 			request := c.BuildLogs(namespace).Redirect(args[0])

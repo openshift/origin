@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
@@ -52,12 +51,12 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 
 	w := &Factory{kubecmd.NewFactory(clientConfig), clientConfig}
 
-	w.Object = func(cmd *cobra.Command) (meta.RESTMapper, runtime.ObjectTyper) {
+	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
 		return mapper, api.Scheme
 	}
 
-	w.RESTClient = func(cmd *cobra.Command, mapping *meta.RESTMapping) (resource.RESTClient, error) {
-		oClient, kClient, err := w.Clients(cmd)
+	w.RESTClient = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+		oClient, kClient, err := w.Clients()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
 		}
@@ -69,8 +68,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 	}
 
-	w.Describer = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
-		oClient, kClient, err := w.Clients(cmd)
+	w.Describer = func(mapping *meta.RESTMapping) (kubectl.Describer, error) {
+		oClient, kClient, err := w.Clients()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
 		}
@@ -87,14 +86,14 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			}
 			return describer, nil
 		}
-		return w.Factory.Describer(cmd, mapping)
+		return w.Factory.Describer(mapping)
 	}
 
-	w.Printer = func(cmd *cobra.Command, mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
 		return describe.NewHumanReadablePrinter(noHeaders), nil
 	}
 
-	w.DefaultNamespace = func(cmd *cobra.Command) (string, error) {
+	w.DefaultNamespace = func() (string, error) {
 		return w.OpenShiftClientConfig.Namespace()
 	}
 
@@ -102,7 +101,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 }
 
 // Clients returns an OpenShift and Kubernetes client.
-func (f *Factory) Clients(cmd *cobra.Command) (*client.Client, *kclient.Client, error) {
+func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 	cfg, err := f.OpenShiftClientConfig.ClientConfig()
 	if err != nil {
 		return nil, nil, err

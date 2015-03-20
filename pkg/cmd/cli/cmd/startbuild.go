@@ -45,10 +45,10 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 				usageError(cmd, "Must pass a name of buildConfig or specify build name with '--from-build' flag")
 			}
 
-			client, _, err := f.Clients(cmd)
+			client, _, err := f.Clients()
 			checkErr(err)
 
-			namespace, err := f.DefaultNamespace(cmd)
+			namespace, err := f.DefaultNamespace()
 			checkErr(err)
 
 			var newBuild *buildapi.Build

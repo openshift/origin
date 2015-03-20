@@ -53,7 +53,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	// TODO: these must be status errors, not field errors
 	// TODO: choose a more appropriate "try again later" status code, like 202
 	if len(build.PodName) == 0 {
-		return "", errors.NewFieldRequired("Build.PodName", build.PodName)
+		return "", errors.NewFieldRequired("Build.PodName")
 	}
 
 	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)

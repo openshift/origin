@@ -15,13 +15,13 @@ import (
 func ValidateBuild(build *buildapi.Build) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(build.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", build.Name))
-	} else if !util.IsDNSSubdomain(build.Name) {
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
+	} else if !util.IsDNS1123Subdomain(build.Name) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("name", build.Name, "name must be a valid subdomain"))
 	}
 	if len(build.Namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("namespace", build.Namespace))
-	} else if !util.IsDNSSubdomain(build.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldRequired("namespace"))
+	} else if !util.IsDNS1123Subdomain(build.Namespace) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", build.Namespace, "namespace must be a valid subdomain"))
 	}
 	allErrs = append(allErrs, validation.ValidateLabels(build.Labels, "labels")...)
@@ -33,13 +33,13 @@ func ValidateBuild(build *buildapi.Build) errs.ValidationErrorList {
 func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(config.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", config.Name))
-	} else if !util.IsDNSSubdomain(config.Name) {
+		allErrs = append(allErrs, errs.NewFieldRequired("name"))
+	} else if !util.IsDNS1123Subdomain(config.Name) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
 	}
 	if len(config.Namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("namespace", config.Namespace))
-	} else if !util.IsDNSSubdomain(config.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldRequired("namespace"))
+	} else if !util.IsDNS1123Subdomain(config.Namespace) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
 	}
 	allErrs = append(allErrs, validation.ValidateLabels(config.Labels, "labels")...)
@@ -73,10 +73,10 @@ func validateBuildParameters(params *buildapi.BuildParameters) errs.ValidationEr
 func validateSource(input *buildapi.BuildSource) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if input.Type != buildapi.BuildSourceGit {
-		allErrs = append(allErrs, errs.NewFieldRequired("type", buildapi.BuildSourceGit))
+		allErrs = append(allErrs, errs.NewFieldRequired("type"))
 	}
 	if input.Git == nil {
-		allErrs = append(allErrs, errs.NewFieldRequired("git", input.Git))
+		allErrs = append(allErrs, errs.NewFieldRequired("git"))
 	} else {
 		allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
 	}
@@ -86,7 +86,7 @@ func validateSource(input *buildapi.BuildSource) errs.ValidationErrorList {
 func validateGitSource(git *buildapi.GitBuildSource) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(git.URI) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("uri", git.URI))
+		allErrs = append(allErrs, errs.NewFieldRequired("uri"))
 	} else if !isValidURL(git.URI) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("uri", git.URI, "uri is not a valid url"))
 	}
@@ -96,7 +96,7 @@ func validateGitSource(git *buildapi.GitBuildSource) errs.ValidationErrorList {
 func validateRevision(revision *buildapi.SourceRevision) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(revision.Type) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("type", revision.Type))
+		allErrs = append(allErrs, errs.NewFieldRequired("type"))
 	}
 	// TODO: validate other stuff
 	return allErrs
@@ -116,11 +116,11 @@ func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
 			allErrs = append(allErrs, errs.NewFieldInvalid("to.kind", kind, "the target of build output must be 'ImageRepository'"))
 		}
 		if len(name) == 0 {
-			allErrs = append(allErrs, errs.NewFieldRequired("to.name", name))
-		} else if !util.IsDNSSubdomain(name) {
+			allErrs = append(allErrs, errs.NewFieldRequired("to.name"))
+		} else if !util.IsDNS1123Subdomain(name) {
 			allErrs = append(allErrs, errs.NewFieldInvalid("to.name", name, "name must be a valid subdomain"))
 		}
-		if len(namespace) != 0 && !util.IsDNSSubdomain(namespace) {
+		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
 			allErrs = append(allErrs, errs.NewFieldInvalid("to.namespace", namespace, "namespace must be a valid subdomain"))
 		}
 	}
@@ -145,13 +145,13 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 	allErrs := errs.ValidationErrorList{}
 
 	if len(strategy.Type) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("type", strategy.Type))
+		allErrs = append(allErrs, errs.NewFieldRequired("type"))
 	}
 
 	switch strategy.Type {
 	case buildapi.STIBuildStrategyType:
 		if strategy.STIStrategy == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("stiStrategy", strategy.STIStrategy))
+			allErrs = append(allErrs, errs.NewFieldRequired("stiStrategy"))
 		} else {
 			allErrs = append(allErrs, validateSTIStrategy(strategy.STIStrategy).Prefix("stiStrategy")...)
 		}
@@ -162,11 +162,11 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 		}
 	case buildapi.CustomBuildStrategyType:
 		if strategy.CustomStrategy == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("customStrategy", strategy.CustomStrategy))
+			allErrs = append(allErrs, errs.NewFieldRequired("customStrategy"))
 		} else {
 			// CustomBuildStrategy requires 'image' to be specified in JSON
 			if len(strategy.CustomStrategy.Image) == 0 {
-				allErrs = append(allErrs, errs.NewFieldRequired("image", strategy.CustomStrategy.Image))
+				allErrs = append(allErrs, errs.NewFieldRequired("image"))
 			}
 		}
 	default:
@@ -179,7 +179,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(strategy.Image) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("image", strategy.Image))
+		allErrs = append(allErrs, errs.NewFieldRequired("image"))
 	}
 	return allErrs
 }
@@ -187,7 +187,7 @@ func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErr
 func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(trigger.Type) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("type", ""))
+		allErrs = append(allErrs, errs.NewFieldRequired("type"))
 		return allErrs
 	}
 
@@ -202,19 +202,19 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ValidationErrorL
 	switch trigger.Type {
 	case buildapi.GithubWebHookBuildTriggerType:
 		if trigger.GithubWebHook == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("github", nil))
+			allErrs = append(allErrs, errs.NewFieldRequired("github"))
 		} else {
 			allErrs = append(allErrs, validateWebHook(trigger.GithubWebHook).Prefix("github")...)
 		}
 	case buildapi.GenericWebHookBuildTriggerType:
 		if trigger.GenericWebHook == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("generic", nil))
+			allErrs = append(allErrs, errs.NewFieldRequired("generic"))
 		} else {
 			allErrs = append(allErrs, validateWebHook(trigger.GenericWebHook).Prefix("generic")...)
 		}
 	case buildapi.ImageChangeBuildTriggerType:
 		if trigger.ImageChange == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("imageChange", nil))
+			allErrs = append(allErrs, errs.NewFieldRequired("imageChange"))
 		} else {
 			allErrs = append(allErrs, validateImageChange(trigger.ImageChange).Prefix("imageChange")...)
 		}
@@ -235,12 +235,12 @@ func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t builda
 func validateImageChange(imageChange *buildapi.ImageChangeTrigger) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(imageChange.Image) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("image", ""))
+		allErrs = append(allErrs, errs.NewFieldRequired("image"))
 	}
 	if len(imageChange.From.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("from", ""))
+		allErrs = append(allErrs, errs.NewFieldRequired("from"))
 	} else if len(imageChange.From.Name) == 0 {
-		allErrs = append(allErrs, errs.ValidationErrorList{errs.NewFieldRequired("name", "")}.Prefix("from")...)
+		allErrs = append(allErrs, errs.ValidationErrorList{errs.NewFieldRequired("name")}.Prefix("from")...)
 	}
 	return allErrs
 }
@@ -248,7 +248,7 @@ func validateImageChange(imageChange *buildapi.ImageChangeTrigger) errs.Validati
 func validateWebHook(webHook *buildapi.WebHookTrigger) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	if len(webHook.Secret) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("secret", ""))
+		allErrs = append(allErrs, errs.NewFieldRequired("secret"))
 	}
 	return allErrs
 }
