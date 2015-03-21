@@ -12,6 +12,7 @@ OUT_DIR = _output
 OUT_PKG_DIR = Godeps/_workspace/pkg
 
 export GOFLAGS
+export TESTFLAGS
 
 # Build code.
 #
@@ -20,6 +21,7 @@ export GOFLAGS
 #     package, the build will produce executable files under $(OUT_DIR)/go/bin.
 #     If not specified, "everything" will be built.
 #   GOFLAGS: Extra flags to pass to 'go' when building.
+#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
 #
 # Example:
 #   make
@@ -36,18 +38,20 @@ all build:
 #     directories will be run.  If not specified, "everything" will be tested.
 #   TESTS: Same as WHAT.
 #   GOFLAGS: Extra flags to pass to 'go' when building.
+#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
 #
 # Example:
 #   make check
 #   make check WHAT=pkg/build GOFLAGS=-v
 check:
-	hack/test-go.sh $(WHAT) $(TESTS)
+	hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
 .PHONY: check
 
 # Build and run unit and integration tests that don't require Docker.
 #
 # Args:
 #   GOFLAGS: Extra flags to pass to 'go' when building.
+#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
 #
 # Example:
 #   make check-test
@@ -56,14 +60,15 @@ check-test: export KUBE_RACE=  -race
 check-test: build check
 check-test:
 	hack/verify-gofmt.sh
-	hack/test-cmd.sh $(GOFLAGS)
-	KUBE_RACE=" " hack/test-integration.sh $(GOFLAGS)
+	hack/test-cmd.sh
+	KUBE_RACE=" " hack/test-integration.sh
 .PHONY: check-test
 
 # Build and run the complete test-suite.
 #
 # Args:
 #   GOFLAGS: Extra flags to pass to 'go' when building.
+#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
 #
 # Example:
 #   make test
@@ -78,7 +83,7 @@ test: build check
 endif
 test:
 	hack/test-cmd.sh
-	KUBE_RACE=" " hack/test-integration-docker.sh $(GOFLAGS)
+	KUBE_RACE=" " hack/test-integration-docker.sh
 	hack/test-end-to-end.sh
 ifeq ($(EXTENDED),true)
 	hack/test-extended.sh
