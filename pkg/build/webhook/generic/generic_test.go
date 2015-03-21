@@ -32,7 +32,7 @@ func TestVerifyRequestForMethod(t *testing.T) {
 	req := GivenRequest("GET")
 	err := verifyRequest(req)
 	if err == nil || !strings.Contains(err.Error(), "method") {
-		t.Errorf("Expected anything but POST to be an invalid method %s")
+		t.Errorf("Expected anything but POST to be an invalid method %v", err)
 	}
 }
 
@@ -40,19 +40,19 @@ func TestVerifyRequestForUserAgent(t *testing.T) {
 	req := GivenRequest("POST")
 	err := verifyRequest(req)
 	if err == nil || !strings.Contains(err.Error(), "User-Agent") {
-		t.Errorf("Exp. User-Agent to be required %s", err)
+		t.Errorf("Exp. User-Agent to be required %v", err)
 	}
 
 	req.Header.Add("User-Agent", "")
 	err = verifyRequest(req)
 	if err == nil || !strings.Contains(err.Error(), "User-Agent") {
-		t.Errorf("Exp. User-Agent to not empty %s", err)
+		t.Errorf("Exp. User-Agent to not empty %v", err)
 	}
 
 	req.Header.Set("User-Agent", "foobar")
 	err = verifyRequest(req)
 	if err != nil && strings.Contains(err.Error(), "User-Agent") {
-		t.Errorf("Exp. non-empty User-Agent to be valid %s", err)
+		t.Errorf("Exp. non-empty User-Agent to be valid %v", err)
 	}
 
 }
@@ -70,19 +70,19 @@ func TestVerifyRequestForContentType(t *testing.T) {
 	req.Header.Add("Content-Length", "1")
 	err = verifyRequest(req)
 	if err == nil || !strings.Contains(err.Error(), "Content-Type") {
-		t.Errorf("Exp. ContentType to be required if a payload is posted %s", err)
+		t.Errorf("Exp. ContentType to be required if a payload is posted %v", err)
 	}
 
 	req.Header.Add("Content-Type", "X-Whatever")
 	err = verifyRequest(req)
 	if err == nil || !strings.Contains(err.Error(), "Unsupported Content-Type") {
-		t.Errorf("Exp. to only support json payloads %s", err)
+		t.Errorf("Exp. to only support json payloads %v", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	err = verifyRequest(req)
 	if err != nil && !strings.Contains(err.Error(), "Unsupported Content-Type") {
-		t.Errorf("Exp. to allow json payloads %s", err)
+		t.Errorf("Exp. to allow json payloads %v", err)
 	}
 }
 
@@ -112,7 +112,7 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 	plugin := New()
 	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	if err != nil {
-		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
 	}
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
@@ -147,7 +147,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 	build, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
-		t.Errorf("Unexpected error when triggering build: %s", err)
+		t.Errorf("Unexpected error when triggering build: %v", err)
 	}
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false' for unmatched refs")
@@ -183,7 +183,7 @@ func TestExtractWithGitPayload(t *testing.T) {
 	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
-		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
 	}
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
@@ -217,7 +217,7 @@ func TestExtractWithUnmarshalError(t *testing.T) {
 	plugin := New()
 	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 	if err != nil {
-		t.Errorf("Expected to be able to trigger a build without a payload error: %s", err)
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
 	}
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")

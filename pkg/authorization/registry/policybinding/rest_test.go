@@ -212,6 +212,6 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	if binding, _ := registry.GetPolicyBinding(ctx, "foo"); binding != nil {
-		t.Error("Unexpected binding found: %v", binding)
+		t.Errorf("Unexpected binding found: %v", binding)
 	}
 }

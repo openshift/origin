@@ -122,7 +122,7 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
 			return nil
 		}
-		return fmt.Errorf("failed to create pod for build %s/%s: s", build.Namespace, build.Name, err)
+		return fmt.Errorf("failed to create pod for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
 	glog.V(4).Infof("Created pod for build: %#v", podSpec)

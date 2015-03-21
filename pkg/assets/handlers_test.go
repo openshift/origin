@@ -109,7 +109,7 @@ func TestWithGzipReal(t *testing.T) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if string(body) != raw {
-		t.Fatalf(`did not find expected "%s" but got "%s" instead`, raw, resp)
+		t.Fatalf(`did not find expected "%s" but got "%s" instead`, raw, string(body))
 	}
 	vary := resp.Header["Vary"]
 	if !reflect.DeepEqual(vary, []string{"Accept-Encoding"}) {
@@ -132,7 +132,7 @@ func TestWithGzipRealAndMultipleVaryHeaders(t *testing.T) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if string(body) != raw {
-		t.Fatalf(`did not find expected "%s" but got "%s" instead`, raw, resp)
+		t.Fatalf(`did not find expected "%s" but got "%s" instead`, raw, string(body))
 	}
 	vary := resp.Header["Vary"]
 	if !reflect.DeepEqual(vary, []string{"Accept-Encoding", "Foo"}) {

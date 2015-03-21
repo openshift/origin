@@ -34,7 +34,7 @@ func NewDefaultImageTemplate() ImageTemplate {
 func (t *ImageTemplate) ExpandOrDie(component string) string {
 	value, err := t.Expand(component)
 	if err != nil {
-		glog.Fatalf("Unable to find an image for %q due to an error processing the format: %v", err)
+		glog.Fatalf("Unable to find an image for %q due to an error processing the format: %v", component, err)
 	}
 	return value
 }

@@ -227,11 +227,11 @@ type DeploymentConfigRollbackSpec struct {
 	// From points to a ReplicationController which is a deployment.
 	From kapi.ObjectReference `json:"from"`
 	// IncludeTriggers specifies whether to include config Triggers.
-	IncludeTriggers bool `json:"includeTriggers`
+	IncludeTriggers bool `json:"includeTriggers"`
 	// IncludeTemplate specifies whether to include the PodTemplateSpec.
-	IncludeTemplate bool `json:"includeTemplate`
+	IncludeTemplate bool `json:"includeTemplate"`
 	// IncludeReplicationMeta specifies whether to include the replica count and selector.
-	IncludeReplicationMeta bool `json:"includeReplicationMeta`
+	IncludeReplicationMeta bool `json:"includeReplicationMeta"`
 	// IncludeStrategy specifies whether to include the deployment Strategy.
-	IncludeStrategy bool `json:"includeStrategy`
+	IncludeStrategy bool `json:"includeStrategy"`
 }

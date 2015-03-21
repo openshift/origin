@@ -236,7 +236,7 @@ func TestExtractForAPingEvent(t *testing.T) {
 		t.Errorf("Error while extracting build info: %s", err)
 	}
 	if proceed {
-		t.Errorf("The 'proceed' return value should equal 'false' %s", proceed)
+		t.Errorf("The 'proceed' return value should equal 'false' %t", proceed)
 	}
 }
 
@@ -252,7 +252,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 		t.Errorf("Error while extracting build info: %s", err)
 	}
 	if !proceed {
-		t.Errorf("The 'proceed' return value should equal 'true' %s", proceed)
+		t.Errorf("The 'proceed' return value should equal 'true' %t", proceed)
 	}
 	if revision == nil {
 		t.Error("Expecting the revision to not be nil")
@@ -276,7 +276,7 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 		t.Errorf("Error while extracting build info: %s", err)
 	}
 	if !proceed {
-		t.Errorf("The 'proceed' return value should equal 'true' %s", proceed)
+		t.Errorf("The 'proceed' return value should equal 'true' %t", proceed)
 	}
 	if revision == nil {
 		t.Error("Expecting the revision to not be nil")

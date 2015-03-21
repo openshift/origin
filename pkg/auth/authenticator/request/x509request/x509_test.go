@@ -634,7 +634,7 @@ func TestX509Verifier(t *testing.T) {
 
 		if testCase.ExpectOK {
 			if !authCall {
-				t.Errorf("%s: Expected inner auth called, wasn't")
+				t.Errorf("%s: Expected inner auth called, wasn't", k)
 				continue
 			}
 			if "innerauth" != user.GetName() {
@@ -643,7 +643,7 @@ func TestX509Verifier(t *testing.T) {
 			}
 		} else {
 			if authCall {
-				t.Errorf("%s: Expected inner auth not to be called, was")
+				t.Errorf("%s: Expected inner auth not to be called, was", k)
 				continue
 			}
 		}
