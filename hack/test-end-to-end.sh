@@ -188,7 +188,7 @@ openshift admin create-all-certs --overwrite=false --cert-dir="${CERT_DIR}" --ho
 
 
 echo "[INFO] Starting OpenShift server"
-sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start \
+sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
      --listen="${API_SCHEME}://0.0.0.0:${API_PORT}"  --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
      --hostname="127.0.0.1" --volume-dir="${VOLUME_DIR}" \
      --etcd-dir="${ETCD_DATA_DIR}" --cert-dir="${CERT_DIR}" --loglevel=4 \
