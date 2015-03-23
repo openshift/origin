@@ -73,7 +73,7 @@ func TestRequestHeader(t *testing.T) {
 		}
 		if testcase.ExpectedUsername != "" {
 			if err != nil {
-				t.Errorf("%s: Expected user, got error: ", k, err)
+				t.Errorf("%s: Expected user, got error: %v", k, err)
 				continue
 			}
 			if !ok {

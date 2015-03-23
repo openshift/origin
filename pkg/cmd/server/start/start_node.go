@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +60,8 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 				c.Help()
 				return
 			}
+
+			startProfiler()
 
 			if err := options.StartNode(); err != nil {
 				glog.Fatal(err)
@@ -186,13 +186,6 @@ func (o NodeOptions) RunNode() error {
 		return err
 	}
 	glog.Infof("Starting an OpenShift node, connecting to %s", kubeClientConfig.Host)
-
-	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
-		go func() {
-			glog.Infof("Starting profiling endpoint at http://127.0.0.1:6060/debug/pprof/")
-			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
-		}()
-	}
 
 	if err := StartNode(*nodeConfig); err != nil {
 		return err

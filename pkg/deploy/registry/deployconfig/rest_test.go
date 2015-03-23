@@ -168,7 +168,7 @@ func TestGetDeploymentConfigOK(t *testing.T) {
 		t.Error("Unexpected nil deploymentConfig")
 	}
 	if err != nil {
-		t.Errorf("Unexpected non-nil error", err)
+		t.Errorf("Unexpected non-nil error: %v", err)
 	}
 	if deploymentConfig.(*api.DeploymentConfig).Name != "foo" {
 		t.Errorf("Unexpected deploymentConfig: %#v", deploymentConfig)

@@ -145,6 +145,6 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	if policy, _ := registry.GetPolicy(ctx, authorizationapi.PolicyName); policy != nil {
-		t.Error("Unexpected policy found: %v", policy)
+		t.Errorf("Unexpected policy found: %v", policy)
 	}
 }

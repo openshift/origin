@@ -77,8 +77,8 @@ func getDockercfgFile(path string) string {
 // authEntry is a single entry for a given server in a
 // .dockercfg file
 type authEntry struct {
-	Auth  string `json:auth`
-	Email string `json:email`
+	Auth  string `json:"auth"`
+	Email string `json:"email"`
 }
 
 // dockercfg represents the contents of a .dockercfg file

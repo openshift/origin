@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,6 +83,8 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 				c.Help()
 				return
 			}
+
+			startProfiler()
 
 			if err := options.StartMaster(); err != nil {
 				glog.Fatal(err)
@@ -330,13 +330,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		}
 
 		etcdConfig.Run()
-	}
-
-	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
-		go func() {
-			glog.Infof("Starting profiling endpoint at http://127.0.0.1:6060/debug/pprof/")
-			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
-		}()
 	}
 
 	// Allow privileged containers

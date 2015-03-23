@@ -85,7 +85,7 @@ func start(cfg *clientcmd.Config, plugin router.Plugin) error {
 
 	proc.StartReaper()
 
-	factory := controllerfactory.RouterControllerFactory{kubeClient, osClient}
+	factory := controllerfactory.RouterControllerFactory{KClient: kubeClient, OSClient: osClient}
 	controller := factory.Create(plugin)
 	controller.Run()
 

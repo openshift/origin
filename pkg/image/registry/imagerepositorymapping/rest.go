@@ -1,6 +1,8 @@
 package imagerepositorymapping
 
 import (
+	"strings"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
@@ -60,6 +62,19 @@ func (s imageRepositoryMappingStrategy) Validate(obj runtime.Object) errors.Vali
 	return validation.ValidateImageRepositoryMapping(mapping)
 }
 
+// applyRepoAnnotationsToImage looks for annotations of the form <tag>.<...> on
+// the ImageRepository and copies them to the Image. For example, if the
+// ImageRepository has the annotations latest.color=blue and other.color=red,
+// and the value of `tag` is latest, the image will receive the annotation
+// color=blue.
+func applyRepoAnnotationsToImage(repo *api.ImageRepository, image *api.Image, tag string) {
+	for key, value := range repo.Annotations {
+		if strings.Index(key, tag+".") == 0 {
+			image.Annotations[key[len(tag)+1:]] = value
+		}
+	}
+}
+
 // Create registers a new image (if it doesn't exist) and updates the specified ImageRepository's tags.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
@@ -79,6 +94,8 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		// TODO: redirect this to the stable tag
 		tag = "latest"
 	}
+
+	applyRepoAnnotationsToImage(repo, &image, tag)
 
 	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
 		return nil, err

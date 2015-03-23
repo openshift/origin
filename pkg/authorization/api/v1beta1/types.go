@@ -20,7 +20,7 @@ type PolicyRule struct {
 	Verbs []string `json:"verbs"`
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	AttributeRestrictions kruntime.RawExtension `json:"attributeRestrictions"`
+	AttributeRestrictions kruntime.RawExtension `json:"attributeRestrictions,omitempty"`
 	// ResourceKinds is a list of resources this rule applies to.  ResourceAll represents all resources.
 	// DEPRECATED
 	ResourceKinds []string `json:"resourceKinds,omitempty"`
@@ -31,6 +31,11 @@ type PolicyRule struct {
 	// NonResourceURLsSlice is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
 	// This name is intentionally different than the internal type so that the DefaultConvert works nicely and because the ordering may be different.
 	NonResourceURLsSlice []string `json:"nonResourceURLs,omitempty"`
+}
+
+// IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
+type IsPersonalSubjectAccessReview struct {
+	kapi.TypeMeta `json:",inline"`
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.

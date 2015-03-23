@@ -48,7 +48,7 @@ func TestImplicit(t *testing.T) {
 		ExpectThen       string
 	}{
 		"display confirm form": {
-			CSRF:     &csrf.FakeCSRF{"test", nil},
+			CSRF:     &csrf.FakeCSRF{Token: "test", Err: nil},
 			Implicit: &testImplicit{Success: true, User: &user.DefaultInfo{Name: "user"}},
 			Path:     "/login",
 			ExpectContains: []string{
@@ -57,35 +57,35 @@ func TestImplicit(t *testing.T) {
 			},
 		},
 		"successful POST redirects": {
-			CSRF:       &csrf.FakeCSRF{"test", nil},
+			CSRF:       &csrf.FakeCSRF{Token: "test", Err: nil},
 			Implicit:   &testImplicit{Success: true, User: &user.DefaultInfo{Name: "user"}},
 			Path:       "/login?then=%2Ffoo",
 			PostValues: url.Values{"csrf": []string{"test"}},
 			ExpectThen: "/foo",
 		},
 		"redirect when POST fails CSRF": {
-			CSRF:           &csrf.FakeCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{Token: "test", Err: nil},
 			Implicit:       &testImplicit{Success: true, User: &user.DefaultInfo{Name: "user"}},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"wrong"}},
 			ExpectRedirect: "/login?reason=token+expired",
 		},
 		"redirect when not authenticated": {
-			CSRF:           &csrf.FakeCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{Token: "test", Err: nil},
 			Implicit:       &testImplicit{Success: false},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"test"}},
 			ExpectRedirect: "/login?reason=access+denied",
 		},
 		"redirect on auth failure": {
-			CSRF:           &csrf.FakeCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{Token: "test", Err: nil},
 			Implicit:       &testImplicit{Err: errors.New("failed")},
 			Path:           "/login",
 			PostValues:     url.Values{"csrf": []string{"test"}},
 			ExpectRedirect: "/login?reason=access+denied",
 		},
 		"expect GET error": {
-			CSRF:           &csrf.FakeCSRF{"test", nil},
+			CSRF:           &csrf.FakeCSRF{Token: "test", Err: nil},
 			Implicit:       &testImplicit{Err: errors.New("failed")},
 			ExpectContains: []string{`"message">An unknown error has occurred. Contact your administrator`},
 		},

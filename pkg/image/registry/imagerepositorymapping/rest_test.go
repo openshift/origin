@@ -533,3 +533,63 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		t.Errorf("unexpected repo: %#v", repo)
 	}
 }
+
+func TestApplyRepoAnnotationsToImage(t *testing.T) {
+	tests := map[string]struct {
+		repoAnnotations  map[string]string
+		imageAnnotations map[string]string
+		tag              string
+		expected         map[string]string
+	}{
+		"no annotations anywhere": {
+			tag:              "latest",
+			repoAnnotations:  map[string]string{},
+			imageAnnotations: map[string]string{},
+			expected:         map[string]string{},
+		},
+		"no annotations for tag": {
+			tag:              "latest",
+			repoAnnotations:  map[string]string{"other.key": "bar"},
+			imageAnnotations: map[string]string{"abc": "def"},
+			expected:         map[string]string{"abc": "def"},
+		},
+		"add to image with no previous annotations": {
+			tag:              "latest",
+			repoAnnotations:  map[string]string{"latest.key": "bar"},
+			imageAnnotations: map[string]string{},
+			expected:         map[string]string{"key": "bar"},
+		},
+		"add to image without overlap": {
+			tag:              "latest",
+			repoAnnotations:  map[string]string{"latest.key1": "bar1", "latest.key2": "bar2"},
+			imageAnnotations: map[string]string{"abc": "def"},
+			expected:         map[string]string{"abc": "def", "key1": "bar1", "key2": "bar2"},
+		},
+		"add to image, overwrite existing": {
+			tag:              "latest",
+			repoAnnotations:  map[string]string{"latest.key": "bar"},
+			imageAnnotations: map[string]string{"key": "def"},
+			expected:         map[string]string{"key": "bar"},
+		},
+	}
+
+	for testName, test := range tests {
+		repo := api.ImageRepository{
+			ObjectMeta: kapi.ObjectMeta{
+				Annotations: test.repoAnnotations,
+			},
+		}
+
+		image := api.Image{
+			ObjectMeta: kapi.ObjectMeta{
+				Annotations: test.imageAnnotations,
+			},
+		}
+
+		applyRepoAnnotationsToImage(&repo, &image, test.tag)
+
+		if e, a := test.expected, image.Annotations; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: expected %v, got %v", testName, e, a)
+		}
+	}
+}

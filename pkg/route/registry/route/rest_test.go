@@ -151,7 +151,7 @@ func TestGetRouteOK(t *testing.T) {
 		t.Error("Unexpected nil route")
 	}
 	if err != nil {
-		t.Errorf("Unexpected non-nil error", err)
+		t.Errorf("Unexpected non-nil error: %v", err)
 	}
 	if route.(*api.Route).Name != "foo" {
 		t.Errorf("Unexpected route: %#v", route)

@@ -28,6 +28,16 @@ type Image struct {
 	DockerImageManifest string `json:"rawManifest,omitempty"`
 }
 
+// ImageRepositoryTag exists to allow calls to `osc get imageRepositoryTag ...` to function.
+type ImageRepositoryTag struct {
+	Image
+}
+
+// ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.
+type ImageStreamImage struct {
+	Image
+}
+
 // ImageRepositoryList is a list of ImageRepository objects.
 type ImageRepositoryList struct {
 	kapi.TypeMeta `json:",inline"`

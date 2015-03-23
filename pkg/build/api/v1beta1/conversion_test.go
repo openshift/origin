@@ -78,7 +78,7 @@ func TestImageChangeTriggerFromRename(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if actual.From.Name != "bar" {
-		t.Error("expected %#v, actual %#v", old, actual)
+		t.Errorf("expected %#v, actual %#v", old, actual)
 	}
 
 	old = current.ImageChangeTrigger{
@@ -91,7 +91,7 @@ func TestImageChangeTriggerFromRename(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if actual.From.Name != "foo" {
-		t.Error("expected %#v, actual %#v", old, actual)
+		t.Errorf("expected %#v, actual %#v", old, actual)
 	}
 
 	old = current.ImageChangeTrigger{

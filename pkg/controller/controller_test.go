@@ -132,7 +132,7 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 		RetryManager: NewQueueRetryManager(fifo, keyFunc, func(_ interface{}, _ error, _ int) bool { return true }),
 		Handle: func(obj interface{}) error {
 			if e, a := 1, obj.(testObj).value; e != a {
-				t.Fatalf("expected to handle test value %d, got %d")
+				t.Fatalf("expected to handle test value %d, got %d", e, a)
 			}
 
 			go func() {

@@ -14,6 +14,8 @@ func init() {
 		&ImageRepository{},
 		&ImageRepositoryList{},
 		&ImageRepositoryMapping{},
+		&ImageRepositoryTag{},
+		&ImageStreamImage{},
 	)
 }
 

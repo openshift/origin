@@ -71,8 +71,8 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 
 	switch build.Parameters.Source.Type {
 	case buildapi.BuildSourceGit:
-		vars = append(vars, kapi.EnvVar{"SOURCE_URI", build.Parameters.Source.Git.URI})
-		vars = append(vars, kapi.EnvVar{"SOURCE_REF", build.Parameters.Source.Git.Ref})
+		vars = append(vars, kapi.EnvVar{Name: "SOURCE_URI", Value: build.Parameters.Source.Git.URI})
+		vars = append(vars, kapi.EnvVar{Name: "SOURCE_REF", Value: build.Parameters.Source.Git.Ref})
 	default:
 		// Do nothing for unknown source types
 	}
@@ -81,9 +81,9 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 	if err != nil {
 		return err
 	}
-	vars = append(vars, kapi.EnvVar{"OUTPUT_REGISTRY", ref.Registry})
+	vars = append(vars, kapi.EnvVar{Name: "OUTPUT_REGISTRY", Value: ref.Registry})
 	ref.Registry = ""
-	vars = append(vars, kapi.EnvVar{"OUTPUT_IMAGE", ref.String()})
+	vars = append(vars, kapi.EnvVar{Name: "OUTPUT_IMAGE", Value: ref.String()})
 
 	if len(pod.Spec.Containers) > 0 {
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, vars...)

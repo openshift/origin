@@ -48,7 +48,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		_, _, err := c.generateDeployment(config)
 		if err != nil {
 			if kerrors.IsConflict(err) {
-				return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger", labelFor(config), err))
+				return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", labelFor(config), err))
 			}
 			return fmt.Errorf("couldn't create initial deployment for config %s: %v", labelFor(config), err)
 		}

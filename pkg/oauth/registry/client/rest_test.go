@@ -219,6 +219,6 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	if registry.DeletedClientName != "foo" {
-		t.Error("Unexpected client deleted: %s", registry.DeletedClientName)
+		t.Errorf("Unexpected client deleted: %s", registry.DeletedClientName)
 	}
 }

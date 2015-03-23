@@ -260,7 +260,7 @@ func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 	}
 
 	if e, a := "ReplicationController", rollback.Spec.From.Kind; e != a {
-		t.Errorf("expected kind %s, got %s")
+		t.Errorf("expected kind %s, got %s", e, a)
 	}
 }
 

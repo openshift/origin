@@ -83,6 +83,11 @@ type PolicyRule struct {
 	NonResourceURLs kutil.StringSet
 }
 
+// IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
+type IsPersonalSubjectAccessReview struct {
+	kapi.TypeMeta
+}
+
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
 	kapi.TypeMeta
