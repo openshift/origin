@@ -74,7 +74,8 @@ Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
 
 	optionsHelpTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
 
-{{.AllPersistentFlags.FlagUsages}}{{end}}`
+{{.AllPersistentFlags.FlagUsages}}{{end}}
+`
 
 	optionsUsageTemplate = ``
 )
