@@ -79,6 +79,10 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) errs.Val
 		}
 	}
 
+	if len(config.SchedulerConfigFile) > 0 {
+		allErrs = append(allErrs, ValidateFile(config.SchedulerConfigFile, "schedulerConfigFile")...)
+	}
+
 	return allErrs
 }
 

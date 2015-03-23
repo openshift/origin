@@ -158,9 +158,10 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
-	MasterIP        string
-	ServicesSubnet  string
-	StaticNodeNames []string
+	MasterIP            string
+	ServicesSubnet      string
+	StaticNodeNames     []string
+	SchedulerConfigFile string
 }
 
 type CertInfo struct {
