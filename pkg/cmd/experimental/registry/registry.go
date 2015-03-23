@@ -256,7 +256,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 				return
 			}
 
-			fmt.Fprintf(out, "Docker registry %q service exists", name)
+			fmt.Fprintf(out, "Docker registry %q service exists\n", name)
 		},
 	}
 
