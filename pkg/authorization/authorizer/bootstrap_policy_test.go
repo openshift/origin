@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -12,6 +13,40 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
+func TestInvalidRole(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Brad"}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "get",
+			Resource: "buildConfigs",
+		},
+		expectedAllowed: false,
+		expectedError:   "unable to interpret:",
+	}
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newInvalidExtensionPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newInvalidExtensionBindings()...)
+
+	test.test(t)
+}
+func TestInvalidRoleButRuleNotUsed(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Brad"}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "update",
+			Resource: "buildConfigs",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in mallet",
+	}
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newInvalidExtensionPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newInvalidExtensionBindings()...)
+
+	test.test(t)
+}
 func TestViewerGetAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Victor"}),
@@ -413,6 +448,57 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 					},
 					Users: util.NewStringSet("Edgar"),
+				},
+			},
+		},
+	}
+}
+func newInvalidExtensionPolicies() []authorizationapi.Policy {
+	return []authorizationapi.Policy{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      authorizationapi.PolicyName,
+				Namespace: "mallet",
+			},
+			Roles: map[string]authorizationapi.Role{
+				"badExtension": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "failure",
+						Namespace: "mallet",
+					},
+					Rules: []authorizationapi.PolicyRule{
+						{
+							Verbs:                 util.NewStringSet("watch", "list", "get"),
+							Resources:             util.NewStringSet("buildConfigs"),
+							AttributeRestrictions: runtime.EmbeddedObject{&authorizationapi.Role{}},
+						},
+						{
+							Verbs:     util.NewStringSet("update"),
+							Resources: util.NewStringSet("buildConfigs"),
+						},
+					},
+				},
+			},
+		}}
+}
+func newInvalidExtensionBindings() []authorizationapi.PolicyBinding {
+	return []authorizationapi.PolicyBinding{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "mallet",
+				Namespace: "mallet",
+			},
+			RoleBindings: map[string]authorizationapi.RoleBinding{
+				"borked": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "borked",
+						Namespace: "mallet",
+					},
+					RoleRef: kapi.ObjectReference{
+						Name:      "badExtension",
+						Namespace: "mallet",
+					},
+					Users: util.NewStringSet("Brad"),
 				},
 			},
 		},

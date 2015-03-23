@@ -40,7 +40,7 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		Verb:              requestInfo.Verb,
 		Resource:          requestInfo.Resource,
 		ResourceName:      requestInfo.Name,
-		RequestAttributes: nil,
+		RequestAttributes: req,
 		NonResourceURL:    false,
 		URL:               req.URL.Path,
 	}, nil
