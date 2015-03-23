@@ -2,7 +2,9 @@
 Description=OpenShift SDN Master
 Documentation=https://github.com/openshift/openshift-sdn
 After=openshift-master.service
-Requires=openshift-master.service
+Wants=openshift-master.service
+Before=openshift-sdn-node.service
+Before=openshift-node.service
 
 [Service]
 Type=simple
