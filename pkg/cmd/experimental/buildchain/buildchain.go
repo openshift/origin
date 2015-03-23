@@ -114,6 +114,10 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 					namespaces = append(namespaces, ns.Name)
 				}
 			case false:
+				if len(namespace) == 0 {
+					namespace, err = f.DefaultNamespace()
+					checkErr(err)
+				}
 				namespaces = append(namespaces, namespace)
 			}
 
