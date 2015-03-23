@@ -5,6 +5,7 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
+	"golang.org/x/net/context"
 )
 
 // ManifestListener describes a set of methods for listening to events related to manifests.
@@ -67,8 +68,8 @@ type manifestServiceListener struct {
 	parent *repositoryListener
 }
 
-func (msl *manifestServiceListener) Get(dgst digest.Digest) (*manifest.SignedManifest, error) {
-	sm, err := msl.ManifestService.Get(dgst)
+func (msl *manifestServiceListener) Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error) {
+	sm, err := msl.ManifestService.Get(ctx, dgst)
 	if err == nil {
 		if err := msl.parent.listener.ManifestPulled(msl.parent.Repository, sm); err != nil {
 			logrus.Errorf("error dispatching manifest pull to listener: %v", err)
@@ -78,8 +79,8 @@ func (msl *manifestServiceListener) Get(dgst digest.Digest) (*manifest.SignedMan
 	return sm, err
 }
 
-func (msl *manifestServiceListener) Put(sm *manifest.SignedManifest) error {
-	err := msl.ManifestService.Put(sm)
+func (msl *manifestServiceListener) Put(ctx context.Context, sm *manifest.SignedManifest) error {
+	err := msl.ManifestService.Put(ctx, sm)
 
 	if err == nil {
 		if err := msl.parent.listener.ManifestPushed(msl.parent.Repository, sm); err != nil {
@@ -90,8 +91,8 @@ func (msl *manifestServiceListener) Put(sm *manifest.SignedManifest) error {
 	return err
 }
 
-func (msl *manifestServiceListener) GetByTag(tag string) (*manifest.SignedManifest, error) {
-	sm, err := msl.ManifestService.GetByTag(tag)
+func (msl *manifestServiceListener) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
+	sm, err := msl.ManifestService.GetByTag(ctx, tag)
 	if err == nil {
 		if err := msl.parent.listener.ManifestPulled(msl.parent.Repository, sm); err != nil {
 			logrus.Errorf("error dispatching manifest pull to listener: %v", err)
