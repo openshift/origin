@@ -104,6 +104,7 @@ func init() {
 				return err
 			}
 			out.Tag = in.Tag
+			out.PushSecretName = in.PushSecretName
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
 				ref, err := image.ParseDockerImageReference(in.DockerImageReference)
@@ -121,6 +122,7 @@ func init() {
 				return err
 			}
 			out.Tag = in.Tag
+			out.PushSecretName = in.PushSecretName
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
 				return nil

@@ -246,6 +246,11 @@ type BuildOutput struct {
 	// a Docker image repository to push to.
 	To *kapi.ObjectReference `json:"to,omitempty"`
 
+	// pushSecretName is the name of a Secret that would be used for setting
+	// up the authentication for executing the Docker push to authentication
+	// enabled Docker Registry (or Docker Hub).
+	PushSecretName string `json:"pushSecretName,omitempty"`
+
 	// Tag is the "version" that will be set on the remote server when the image is created. This
 	// field is only used if the To field is set, and is ignored when DockerImageReference is used.
 	// This value represents a consistent name for a set of related changes (v1, 5.x, 5.5, dev, stable)

@@ -1,17 +1,20 @@
 package strategy
 
 import (
-	"os"
-	"path"
+	"path/filepath"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // dockerSocketPath is the default path for the Docker socket inside the builder
 // container
-const dockerSocketPath = "/var/run/docker.sock"
+const (
+	dockerSocketPath      = "/var/run/docker.sock"
+	dockerSecretMountPath = "/var/run/secrets"
+)
 
 // setupDockerSocket configures the pod to support the host's Docker socket
 func setupDockerSocket(podSpec *kapi.Pod) {
@@ -34,34 +37,6 @@ func setupDockerSocket(podSpec *kapi.Pod) {
 	podSpec.Spec.Containers[0].VolumeMounts =
 		append(podSpec.Spec.Containers[0].VolumeMounts,
 			dockerSocketVolumeMount)
-}
-
-// setupDockerConfig configures the path to .dockercfg which contains registry credentials
-func setupDockerConfig(podSpec *kapi.Pod) {
-	dockerConfig := path.Join(os.Getenv("HOME"), ".dockercfg")
-	if _, err := os.Stat(dockerConfig); os.IsNotExist(err) {
-		return
-	}
-	dockerConfigVolume := kapi.Volume{
-		Name: "docker-cfg",
-		VolumeSource: kapi.VolumeSource{
-			HostPath: &kapi.HostPathVolumeSource{
-				Path: dockerConfig,
-			},
-		},
-	}
-
-	dockerConfigVolumeMount := kapi.VolumeMount{
-		Name:      "docker-cfg",
-		ReadOnly:  true,
-		MountPath: "/root/.dockercfg",
-	}
-
-	podSpec.Spec.Volumes = append(podSpec.Spec.Volumes,
-		dockerConfigVolume)
-	podSpec.Spec.Containers[0].VolumeMounts =
-		append(podSpec.Spec.Containers[0].VolumeMounts,
-			dockerConfigVolumeMount)
 }
 
 // setupBuildEnv injects human-friendly environment variables which provides
@@ -89,4 +64,46 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, vars...)
 	}
 	return nil
+}
+
+// setupDockerSecrets mounts Docker Registry secrets into Pod running the build,
+// allowing Docker to authenticate against private registries or Docker Hub.
+func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
+	if len(pushSecret) == 0 {
+		return
+	}
+
+	volume := kapi.Volume{
+		Name: pushSecret,
+		VolumeSource: kapi.VolumeSource{
+			Secret: &kapi.SecretVolumeSource{
+				Target: kapi.ObjectReference{
+					Kind: "Secret",
+					Name: pushSecret,
+					// TODO: The namespace should not be required here.
+					//       See: https://github.com/GoogleCloudPlatform/kubernetes/pull/5807
+					Namespace: pod.Namespace,
+				},
+			},
+		},
+	}
+	volumeMount := kapi.VolumeMount{
+		Name:      pushSecret,
+		MountPath: filepath.Join(dockerSecretMountPath, "push"),
+		ReadOnly:  true,
+	}
+
+	glog.V(3).Infof("Adding %s secret to build Pod %s", pushSecret, pod.Name)
+	pod.Spec.Volumes = append(pod.Spec.Volumes, volume)
+	pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, volumeMount)
+
+	// TODO: The push && pull secrets are now the same, but the pull secret should
+	//       be delivered by Service Account in future.
+	// TODO: The Secret.Name must match with one of the Secret.Data[] keys in
+	//       in order to provide the full path to dockercfg. If it does not, then
+	//       the builder fail to find the dockercfg
+	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
+		{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(volumeMount.MountPath, pushSecret)},
+		{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(volumeMount.MountPath, pushSecret)},
+	}...)
 }
