@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -13,6 +15,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
@@ -72,6 +75,8 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 				c.Help()
 				return
 			}
+
+			startProfiler()
 
 			if err := options.StartAllInOne(); err != nil {
 				glog.Fatal(err)
@@ -227,4 +232,13 @@ func (o AllInOneOptions) StartAllInOne() error {
 	select {}
 
 	return nil
+}
+
+func startProfiler() {
+	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
+		go func() {
+			glog.Infof("Starting profiling endpoint at http://127.0.0.1:6060/debug/pprof/")
+			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
+		}()
+	}
 }
