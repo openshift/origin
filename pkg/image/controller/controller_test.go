@@ -101,7 +101,7 @@ func TestControllerRepoHandled(t *testing.T) {
 		t.Errorf("did not set annotation: %#v", repo)
 	}
 	if len(fake.Actions) != 1 {
-		t.Error("expected an update action: %#v", fake.Actions)
+		t.Errorf("expected an update action: %#v", fake.Actions)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestControllerRepoTagsAlreadySet(t *testing.T) {
 		t.Errorf("did not set annotation: %#v", repo)
 	}
 	if len(fake.Actions) != 1 {
-		t.Error("expected an update action: %#v", fake.Actions)
+		t.Errorf("expected an update action: %#v", fake.Actions)
 	}
 }
 
@@ -160,7 +160,7 @@ func TestControllerImageNotFoundError(t *testing.T) {
 		t.Errorf("did not set annotation: %#v", repo)
 	}
 	if len(fake.Actions) != 1 {
-		t.Error("expected an update action: %#v", fake.Actions)
+		t.Errorf("expected an update action: %#v", fake.Actions)
 	}
 }
 
@@ -186,7 +186,7 @@ func TestControllerImageWithGenericError(t *testing.T) {
 		t.Errorf("did not expect annotation: %#v", repo)
 	}
 	if len(fake.Actions) != 0 {
-		t.Error("expected no update action: %#v", fake.Actions)
+		t.Errorf("expected no update action: %#v", fake.Actions)
 	}
 }
 
@@ -215,7 +215,7 @@ func TestControllerWithImage(t *testing.T) {
 		t.Fatalf("did not set annotation: %#v", repo)
 	}
 	if len(fake.Actions) != 2 {
-		t.Error("expected an update action: %#v", fake.Actions)
+		t.Errorf("expected an update action: %#v", fake.Actions)
 	}
 }
 
@@ -247,7 +247,7 @@ func TestControllerWithEmptyTag(t *testing.T) {
 		t.Fatalf("did not set annotation: %#v", repo)
 	}
 	if len(fake.Actions) != 2 {
-		t.Error("expected an update action: %#v", fake.Actions)
+		t.Errorf("expected an update action: %#v", fake.Actions)
 	}
 }
 

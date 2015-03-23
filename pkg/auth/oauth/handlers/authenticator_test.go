@@ -37,7 +37,7 @@ func TestAuthenticator(t *testing.T) {
 			t.Fatalf("%s: Unexpected error: %s", requestType, err)
 		}
 		if req.Authorized != testCase.ExpectedAuthorized {
-			t.Fatalf("%s: Expected Authorized=%b, got Authorized=%b", requestType, testCase.ExpectedAuthorized, req.Authorized)
+			t.Fatalf("%s: Expected Authorized=%t, got Authorized=%t", requestType, testCase.ExpectedAuthorized, req.Authorized)
 		}
 	}
 }

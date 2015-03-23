@@ -379,7 +379,7 @@ func TestValidateTrigger(t *testing.T) {
 		errors := validateTrigger(&test.trigger)
 		if len(test.expected) == 0 {
 			if len(errors) != 0 {
-				t.Errorf("%s: Got unexpected validation errors: %#v", errors)
+				t.Errorf("%s: Got unexpected validation errors: %#v", desc, errors)
 			}
 			continue
 		}

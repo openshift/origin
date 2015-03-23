@@ -135,7 +135,7 @@ func TestGetProjectOK(t *testing.T) {
 		t.Error("Unexpected nil project")
 	}
 	if err != nil {
-		t.Errorf("Unexpected non-nil error", err)
+		t.Errorf("Unexpected non-nil error: %v", err)
 	}
 	if project.(*api.Project).Name != "foo" {
 		t.Errorf("Unexpected project: %#v", project)

@@ -75,7 +75,7 @@ func TestCookieGenerate(t *testing.T) {
 		setCookie := w.Header().Get("Set-Cookie")
 		if testCase.ExpectSetCookie {
 			if len(setCookie) == 0 {
-				t.Errorf("%s: Expected set-cookie header")
+				t.Errorf("%s: Expected set-cookie header", k)
 				continue
 			}
 

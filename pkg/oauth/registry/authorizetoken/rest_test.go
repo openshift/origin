@@ -228,6 +228,6 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	if registry.DeletedAuthorizeTokenName != "foo" {
-		t.Error("Unexpected access token deleted: %s", registry.DeletedAuthorizeTokenName)
+		t.Errorf("Unexpected access token deleted: %s", registry.DeletedAuthorizeTokenName)
 	}
 }

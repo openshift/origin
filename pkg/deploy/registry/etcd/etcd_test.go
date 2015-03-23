@@ -276,7 +276,7 @@ func TestEtcdUpdateOkDeployments(t *testing.T) {
 	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateDeployment(kapi.NewDefaultContext(), &api.Deployment{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != nil {
-		t.Error("Unexpected error: %#v", err)
+		t.Errorf("Unexpected error: %#v", err)
 	}
 }
 
@@ -507,7 +507,7 @@ func TestEtcdUpdateOkDeploymentConfig(t *testing.T) {
 	registry := NewTestEtcd(fakeClient)
 	err := registry.UpdateDeploymentConfig(kapi.NewDefaultContext(), &api.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	if err != nil {
-		t.Error("Unexpected error %#v", err)
+		t.Errorf("Unexpected error %#v", err)
 	}
 }
 

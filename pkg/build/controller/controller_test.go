@@ -327,7 +327,7 @@ func TestHandleBuild(t *testing.T) {
 		}
 
 		if err != nil {
-			t.Errorf("(%d) Unexpected error %v", err)
+			t.Errorf("(%d) Unexpected error %v", i, err)
 		}
 		if build.Status != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)

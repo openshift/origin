@@ -258,7 +258,7 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 		t.Error("Expected not found error")
 	}
 	if userInfo != nil {
-		t.Error("Unexpected user: %v", userInfo)
+		t.Errorf("Unexpected user: %v", userInfo)
 	}
 }
 func TestAuthenticateTokenOtherGetError(t *testing.T) {
@@ -273,10 +273,10 @@ func TestAuthenticateTokenOtherGetError(t *testing.T) {
 		t.Error("Expected error is missing!")
 	}
 	if err.Error() != tokenRegistry.Err.Error() {
-		t.Error("Expected error %v, but got error %v", tokenRegistry.Err, err)
+		t.Errorf("Expected error %v, but got error %v", tokenRegistry.Err, err)
 	}
 	if userInfo != nil {
-		t.Error("Unexpected user: %v", userInfo)
+		t.Errorf("Unexpected user: %v", userInfo)
 	}
 }
 func TestAuthenticateTokenExpired(t *testing.T) {
@@ -294,10 +294,10 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 		t.Error("Found token, but it should be missing!")
 	}
 	if err != ErrExpired {
-		t.Error("Unexpected error: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 	if userInfo != nil {
-		t.Error("Unexpected user: %v", userInfo)
+		t.Errorf("Unexpected user: %v", userInfo)
 	}
 }
 func TestAuthenticateTokenValidated(t *testing.T) {
@@ -315,7 +315,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 		t.Error("Did not find a token!")
 	}
 	if err != nil {
-		t.Error("Unexpected error: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 	if userInfo == nil {
 		t.Error("Did not get a user!")
