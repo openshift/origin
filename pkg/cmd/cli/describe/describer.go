@@ -12,10 +12,12 @@ import (
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/docker/docker/pkg/parsers"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -35,6 +37,10 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &ImageDescriber{c}, true
 	case "ImageRepository":
 		return &ImageRepositoryDescriber{c}, true
+	case "ImageRepositoryTag":
+		return &ImageRepositoryTagDescriber{c}, true
+	case "ImageStreamImage":
+		return &ImageStreamImageDescriber{c}, true
 	case "Route":
 		return &RouteDescriber{c}, true
 	case "Project":
@@ -234,11 +240,51 @@ func (d *ImageDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
+	return describeImage(image)
+}
+
+func describeImage(image *imageapi.Image) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, image.ObjectMeta)
 		formatString(out, "Docker Image", image.DockerImageReference)
 		return nil
 	})
+}
+
+// ImageRepositoryTagDescriber generates information about a ImageRepositoryTag (Image).
+type ImageRepositoryTagDescriber struct {
+	client.Interface
+}
+
+func (d *ImageRepositoryTagDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ImageRepositoryTags(namespace)
+	repo, tag := parsers.ParseRepositoryTag(name)
+	if tag == "" {
+		// TODO use repo's preferred default, when that's coded
+		tag = "latest"
+	}
+	image, err := c.Get(repo, tag)
+	if err != nil {
+		return "", err
+	}
+
+	return describeImage(image)
+}
+
+// ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
+type ImageStreamImageDescriber struct {
+	client.Interface
+}
+
+func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ImageStreamImages(namespace)
+	repo, id := parsers.ParseRepositoryTag(name)
+	image, err := c.Get(repo, id)
+	if err != nil {
+		return "", err
+	}
+
+	return describeImage(image)
 }
 
 // ImageRepositoryDescriber generates information about a ImageRepository
