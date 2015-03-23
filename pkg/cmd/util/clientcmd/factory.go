@@ -68,6 +68,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 	}
 
+	// Save original Describer function
+	kDescriberFunc := w.Factory.Describer
 	w.Describer = func(mapping *meta.RESTMapping) (kubectl.Describer, error) {
 		oClient, kClient, err := w.Clients()
 		if err != nil {
@@ -86,7 +88,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			}
 			return describer, nil
 		}
-		return w.Factory.Describer(mapping)
+		return kDescriberFunc(mapping)
 	}
 
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
