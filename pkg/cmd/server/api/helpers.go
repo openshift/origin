@@ -7,6 +7,7 @@ import (
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -40,7 +41,21 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	}
 
 	if config.OAuthConfig != nil {
-		refs = append(refs, &config.OAuthConfig.ProxyCA)
+		for _, identityProvider := range config.OAuthConfig.IdentityProviders {
+			switch provider := identityProvider.Provider.Object.(type) {
+			case (*RequestHeaderIdentityProvider):
+				refs = append(refs, &provider.ClientCA)
+
+			case (*HTPasswdPasswordIdentityProvider):
+				refs = append(refs, &provider.File)
+
+			case (*BasicAuthPasswordIdentityProvider):
+				refs = append(refs, &provider.RemoteConnectionInfo.CA)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
+
+			}
+		}
 	}
 
 	if config.AssetConfig != nil {
@@ -182,19 +197,31 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 		return nil, nil
 	}
 
-	caFile := options.OAuthConfig.ProxyCA
-	if len(caFile) == 0 {
-		return nil, nil
+	allCerts := []*x509.Certificate{}
+
+	if options.OAuthConfig != nil {
+		for _, identityProvider := range options.OAuthConfig.IdentityProviders {
+
+			switch provider := identityProvider.Provider.Object.(type) {
+			case (*RequestHeaderIdentityProvider):
+				caFile := provider.ClientCA
+				if len(caFile) == 0 {
+					return nil, nil
+				}
+				caPEMBlock, err := ioutil.ReadFile(caFile)
+				if err != nil {
+					return nil, err
+				}
+				certs, err := crypto.CertsFromPEM(caPEMBlock)
+				if err != nil {
+					return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
+				}
+				allCerts = append(allCerts, certs...)
+			}
+		}
 	}
-	caPEMBlock, err := ioutil.ReadFile(caFile)
-	if err != nil {
-		return nil, err
-	}
-	certs, err := crypto.CertsFromPEM(caPEMBlock)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
-	}
-	return certs, nil
+
+	return allCerts, nil
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
@@ -208,4 +235,49 @@ func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	}
 
 	return apiClientCertCAs.Roots, nil
+}
+
+func IsPasswordAuthenticator(provider IdentityProvider) bool {
+	return IsPasswordAuthenticatorProviderType(provider.Provider)
+}
+func IsPasswordAuthenticatorProviderType(provider runtime.EmbeddedObject) bool {
+	switch provider.Object.(type) {
+	case
+		(*BasicAuthPasswordIdentityProvider),
+		(*AllowAllPasswordIdentityProvider),
+		(*DenyAllPasswordIdentityProvider),
+		(*HTPasswdPasswordIdentityProvider):
+
+		return true
+	}
+
+	return false
+}
+
+func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
+	switch provider.Object.(type) {
+	case
+		(*RequestHeaderIdentityProvider),
+		(*OAuthRedirectingIdentityProvider),
+		(*BasicAuthPasswordIdentityProvider),
+		(*AllowAllPasswordIdentityProvider),
+		(*DenyAllPasswordIdentityProvider),
+		(*HTPasswdPasswordIdentityProvider):
+
+		return true
+	}
+
+	return false
+}
+
+func IsOAuthProviderType(provider runtime.EmbeddedObject) bool {
+	switch provider.Object.(type) {
+	case
+		(*GoogleOAuthProvider),
+		(*GitHubOAuthProvider):
+
+		return true
+	}
+
+	return false
 }

@@ -2,6 +2,7 @@ package v1
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 // NodeConfig is the fully specified config starting an OpenShift node
@@ -126,18 +127,15 @@ type AssetConfig struct {
 	// If not specified, the built-in logout page is shown.
 	LogoutURI string `json:"logoutURI"`
 
-	// MasterPublicURL is how the web console can access the OpenShift api server
+	// MasterPublicURL is how the web console can access the OpenShift v1beta3 server
 	MasterPublicURL string `json:"masterPublicURL"`
 
 	// TODO: we probably don't need this since we have a proxy
-	// KubernetesPublicURL is how the web console can access the Kubernetes api server
+	// KubernetesPublicURL is how the web console can access the Kubernetes v1beta3 server
 	KubernetesPublicURL string `json:"kubernetesPublicURL"`
 }
 
 type OAuthConfig struct {
-	// ProxyCA is the certificate bundle for confirming the identity of front proxy forwards to the oauth server
-	ProxyCA string `json:"proxyCA"`
-
 	// MasterURL is used for building valid client redirect URLs for external access
 	MasterURL string `json:"masterURL"`
 
@@ -147,8 +145,102 @@ type OAuthConfig struct {
 	// AssetPublicURL is used for building valid client redirect URLs for external access
 	AssetPublicURL string `json:"assetPublicURL"`
 
-	// all the handlers here
+	IdentityProviders []IdentityProvider `json:"identityProviders"`
+
+	GrantConfig GrantConfig `json:"grantConfig"`
+
+	SessionConfig *SessionConfig `json:"sessionConfig"`
+
+	TokenConfig TokenConfig `json:"tokenConfig"`
 }
+
+type TokenConfig struct {
+	// Max age of authorize tokens
+	AuthorizeTokenMaxAgeSeconds int32 `json:"authorizeTokenMaxAgeSeconds"`
+	// Max age of access tokens
+	AccessTokenMaxAgeSeconds int32 `json:"accessTokenMaxAgeSeconds"`
+}
+
+type SessionConfig struct {
+	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
+	SessionSecrets []string `json:"sessionSecrets"`
+	// SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
+	SessionMaxAgeSeconds int32 `json:"sessionMaxAgeSeconds"`
+	// SessionName is the cookie name used to store the session
+	SessionName string `json:"sessionName"`
+}
+
+type IdentityProviderUsage struct {
+	ProviderName string `json:"providerName"`
+
+	UseAsChallenger bool `json:"challenge"`
+	UseAsLogin      bool `json:"login"`
+}
+
+type IdentityProvider struct {
+	Usage IdentityProviderUsage `json:"usage"`
+
+	Provider runtime.RawExtension `json:"provider"`
+}
+
+type BasicAuthPasswordIdentityProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+
+	RemoteConnectionInfo `json:",inline"`
+}
+
+type AllowAllPasswordIdentityProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+}
+
+type DenyAllPasswordIdentityProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+}
+
+type HTPasswdPasswordIdentityProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+
+	File string `json:"file"`
+}
+
+type RequestHeaderIdentityProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+
+	ClientCA     string   `json:"clientCA"`
+	HeadersSlice []string `json:"headers"`
+}
+
+type OAuthRedirectingIdentityProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"clientSecret"`
+
+	Provider runtime.RawExtension `json:"provider"`
+}
+
+type GoogleOAuthProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+}
+type GitHubOAuthProvider struct {
+	v1beta3.TypeMeta `json:",inline"`
+}
+
+type GrantConfig struct {
+	// Method: allow, deny, prompt
+	Method GrantHandlerType `json:"method"`
+}
+
+type GrantHandlerType string
+
+const (
+	// GrantHandlerAuto auto-approves client authorization grant requests
+	GrantHandlerAuto GrantHandlerType = "auto"
+	// GrantHandlerPrompt prompts the user to approve new client authorization grant requests
+	GrantHandlerPrompt GrantHandlerType = "prompt"
+	// GrantHandlerDeny auto-denies client authorization grant requests
+	GrantHandlerDeny GrantHandlerType = "deny"
+)
 
 type EtcdConfig struct {
 	ServingInfo ServingInfo `json:"servingInfo"`
