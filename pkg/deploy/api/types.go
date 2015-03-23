@@ -52,6 +52,8 @@ type DeploymentStrategy struct {
 	Type DeploymentStrategyType `json:"type,omitempty"`
 	// CustomParams are the input to the Custom deployment strategy.
 	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty"`
+	// Lifecycle provides optional hooks into the deployment process.
+	Lifecycle *Lifecycle `json:"lifecycle,omitempty"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
@@ -73,6 +75,64 @@ type CustomDeploymentStrategyParams struct {
 	// Command is optional and overrides CMD in the container Image.
 	Command []string `json:"command,omitempty"`
 }
+
+// Lifecycle describes actions the system should take in response to
+// deployment lifecycle events. The deployment process blocks while executing
+// lifecycle handlers. A HandleFailurePolicy determines what action is taken
+// in response to a failed handler.
+type Lifecycle struct {
+	// Pre is called immediately before the deployment strategy executes.
+	Pre *Handler `json:"pre,omitempty"`
+	// Post is called immediately after the deployment strategy executes.
+	// NOTE: AbortHandlerFailurePolicy is not supported for Post.
+	Post *Handler `json:"post,omitempty"`
+}
+
+// Handler defines a specific deployment lifecycle action.
+type Handler struct {
+	// FailurePolicy specifies what action to take if the handler fails.
+	FailurePolicy HandlerFailurePolicy `json:"failurePolicy"`
+	// ExecNewPod specifies the action to take.
+	ExecNewPod *ExecNewPodAction `json:"execNewPod,omitempty"`
+}
+
+// HandlerFailurePolicy describes the action to take if a handler fails.
+type HandlerFailurePolicy string
+
+const (
+	// RetryHandlerFailurePolicy means retry the handler until it succeeds.
+	RetryHandlerFailurePolicy HandlerFailurePolicy = "Retry"
+	// AbortHandlerFailurePolicy means abort the deployment (if possible).
+	AbortHandlerFailurePolicy HandlerFailurePolicy = "Abort"
+	// IgnoreHandlerFailurePolicy means ignore failure and continue the deployment.
+	IgnoreHandlerFailurePolicy HandlerFailurePolicy = "Ignore"
+)
+
+// ExecNewPodAction runs a command in a new pod based on the specified
+// container which is assumed to be part of the deployment template.
+type ExecNewPodAction struct {
+	// Command is the action command and its arguments.
+	Command []string `json:"command"`
+	// Env is a set of environment variables to supply to the action's container.
+	Env []kapi.EnvVar `json:"env,omitempty"`
+	// ContainerName is the name of a container in the deployment pod
+	// template whose Docker image will be used for the action's container.
+	ContainerName string `json:"containerName"`
+}
+
+// These annotations are used to track pods for ExecNewPodAction.
+const (
+	// PreExecNewPodActionPodAnnotation is the name of a pre-deployment pod.
+	PreExecNewPodActionPodAnnotation = "openshift.io/deployment.lifecycle.pre.execnewpod.pod"
+	// PreExecNewPodActionPodPhaseAnnotation is the phase of a pre-deployment
+	// pod and is used to track its status and outcome.
+	PreExecNewPodActionPodPhaseAnnotation = "openshift.io/deployment.lifecycle.pre.execnewpod.phase"
+	// PostExecNewPodActionPodAnnotation is the name of a post-deployment pod.
+	PostExecNewPodActionPodAnnotation = "openshift.io/deployment.lifecycle.post.execnewpod.pod"
+	// PostDeploymentHookPodPhaseAnnotation is the phase of a post-deployment
+	// pod and is used to track its status and outcome.
+	PostExecNewPodActionPodPhaseAnnotation = "openshift.io/deployment.lifecycle.post.execnewpod.phase"
+)
 
 // A DeploymentList is a collection of deployments.
 // DEPRECATED: Like Deployment, this is no longer used.

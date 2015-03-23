@@ -9,6 +9,7 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	lifecycle "github.com/openshift/origin/pkg/deploy/controller/lifecycle"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -32,6 +33,8 @@ type DeploymentController struct {
 	makeContainer func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error)
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
+	// todo
+	lifecycleManager lifecycle.Interface
 }
 
 // fatalError is an error which can't be retried.
@@ -45,8 +48,36 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	currentStatus := statusFor(deployment)
 	nextStatus := currentStatus
 
+statusSwitch:
 	switch currentStatus {
 	case deployapi.DeploymentStatusNew:
+		// Before kicking off the strategy, handle any pre action and ensure the
+		// action has reached a terminal status. A failed pre action may cause the
+		// deployment to fail.
+		preStatus, err := c.lifecycleManager.Status(lifecycle.Pre, deployment)
+		if err != nil {
+			return fatalError(fmt.Sprintf("couldn't determine pre hook status for %s: %s", labelForDeployment(deployment), err))
+		}
+
+		switch preStatus {
+		case lifecycle.Pending:
+			err := c.lifecycleManager.Execute(lifecycle.Pre, deployment)
+			if err != nil {
+				return fatalError(fmt.Sprintf("couldn't execute pre hook for %s: %v", labelForDeployment(deployment), err))
+			}
+			// block the deployment
+			break statusSwitch
+		case lifecycle.Running:
+			// block the deployment
+			break statusSwitch
+		case lifecycle.Failed:
+			// fail the deployment
+			nextStatus = deployapi.DeploymentStatusFailed
+			break statusSwitch
+		case lifecycle.Complete:
+			// continue the deployment
+		}
+
 		podTemplate, err := c.makeDeployerPod(deployment)
 		if err != nil {
 			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", labelForDeployment(deployment), err))

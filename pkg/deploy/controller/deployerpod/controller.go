@@ -8,6 +8,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	lifecycle "github.com/openshift/origin/pkg/deploy/controller/lifecycle"
 )
 
 // DeployerPodController keeps a deployment's status in sync with the deployer pod
@@ -17,6 +18,7 @@ import (
 type DeployerPodController struct {
 	// deploymentClient provides access to deployments.
 	deploymentClient deploymentClient
+	lifecycleManager lifecycle.Interface
 }
 
 // Handle syncs pod's status with any associated deployment.
@@ -36,10 +38,33 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	currentStatus := statusFor(deployment)
 	nextStatus := currentStatus
 
+statusSwitch:
 	switch pod.Status.Phase {
 	case kapi.PodRunning:
 		nextStatus = deployapi.DeploymentStatusRunning
 	case kapi.PodSucceeded, kapi.PodFailed:
+		// Before finalizing the status of the deployment, let any post action
+		// execute. The post action can't cause the deployment to be failed at
+		// this point.
+		postStatus, err := c.lifecycleManager.Status(lifecycle.Post, deployment)
+		if err != nil {
+			return fmt.Errorf("couldn't determine post hook status for %s: %s", labelForDeployment(deployment), err)
+		}
+		switch postStatus {
+		case lifecycle.Pending:
+			err := c.lifecycleManager.Execute(lifecycle.Post, deployment)
+			if err != nil {
+				return fmt.Errorf("couldn't execute post hook for %s: %v", labelForDeployment(deployment), err)
+			}
+			// block the deployment
+			break statusSwitch
+		case lifecycle.Running:
+			// block the deployment
+			break statusSwitch
+		case lifecycle.Failed, lifecycle.Complete:
+			// continue the deployment
+		}
+
 		nextStatus = deployapi.DeploymentStatusComplete
 		// Detect failure based on the container state
 		for _, info := range pod.Status.ContainerStatuses {
