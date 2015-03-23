@@ -88,7 +88,7 @@ middleware:
     - name: openshift
 `
 
-	os.Setenv("OPENSHIFT_INSECURE", "1")
+	os.Setenv("OPENSHIFT_INSECURE", "true")
 	os.Setenv("OPENSHIFT_MASTER", openshift.Server.URL)
 	os.Setenv("REGISTRY_URL", "127.0.0.1:5000")
 
