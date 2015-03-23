@@ -51,7 +51,7 @@ func TestManifestStorage(t *testing.T) {
 	env := newManifestStoreTestEnv(t, "foo/bar", "thetag")
 	ms := env.repository.Manifests()
 
-	exists, err := ms.ExistsByTag(env.tag)
+	exists, err := ms.ExistsByTag(env.ctx, env.tag)
 	if err != nil {
 		t.Fatalf("unexpected error checking manifest existence: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("manifest should not exist")
 	}
 
-	if _, err := ms.GetByTag(env.tag); true {
+	if _, err := ms.GetByTag(env.ctx, env.tag); true {
 		switch err.(type) {
 		case distribution.ErrManifestUnknown:
 			break
@@ -103,7 +103,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("error signing manifest: %v", err)
 	}
 
-	err = ms.Put(sm)
+	err = ms.Put(env.ctx, sm)
 	if err == nil {
 		t.Fatalf("expected errors putting manifest")
 	}
@@ -126,11 +126,11 @@ func TestManifestStorage(t *testing.T) {
 		}
 	}
 
-	if err = ms.Put(sm); err != nil {
+	if err = ms.Put(env.ctx, sm); err != nil {
 		t.Fatalf("unexpected error putting manifest: %v", err)
 	}
 
-	exists, err = ms.ExistsByTag(env.tag)
+	exists, err = ms.ExistsByTag(env.ctx, env.tag)
 	if err != nil {
 		t.Fatalf("unexpected error checking manifest existence: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("manifest should exist")
 	}
 
-	fetchedManifest, err := ms.GetByTag(env.tag)
+	fetchedManifest, err := ms.GetByTag(env.ctx, env.tag)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("error getting manifest digest: %v", err)
 	}
 
-	exists, err = ms.Exists(dgst)
+	exists, err = ms.Exists(env.ctx, dgst)
 	if err != nil {
 		t.Fatalf("error checking manifest existence by digest: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("manifest %s should exist", dgst)
 	}
 
-	fetchedByDigest, err := ms.Get(dgst)
+	fetchedByDigest, err := ms.Get(env.ctx, dgst)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest by digest: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestManifestStorage(t *testing.T) {
 	}
 
 	// Grabs the tags and check that this tagged manifest is present
-	tags, err := ms.Tags()
+	tags, err := ms.Tags(env.ctx)
 	if err != nil {
 		t.Fatalf("unexpected error fetching tags: %v", err)
 	}
@@ -231,11 +231,11 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("unexpected number of signatures: %d != %d", len(sigs2), 1)
 	}
 
-	if err = ms.Put(sm2); err != nil {
+	if err = ms.Put(env.ctx, sm2); err != nil {
 		t.Fatalf("unexpected error putting manifest: %v", err)
 	}
 
-	fetched, err := ms.GetByTag(env.tag)
+	fetched, err := ms.GetByTag(env.ctx, env.tag)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
@@ -284,7 +284,7 @@ func TestManifestStorage(t *testing.T) {
 	// complexity around managing tag indexes. We'll add this support back in
 	// when the manifest format has settled. For now, we expect an error for
 	// all deletes.
-	if err := ms.Delete(dgst); err == nil {
+	if err := ms.Delete(env.ctx, dgst); err == nil {
 		t.Fatalf("unexpected an error deleting manifest by digest: %v", err)
 	}
 }

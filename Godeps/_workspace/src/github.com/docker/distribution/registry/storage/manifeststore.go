@@ -8,6 +8,7 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/libtrust"
+	"golang.org/x/net/context"
 )
 
 type manifestStore struct {
@@ -19,17 +20,17 @@ type manifestStore struct {
 
 var _ distribution.ManifestService = &manifestStore{}
 
-func (ms *manifestStore) Exists(dgst digest.Digest) (bool, error) {
+func (ms *manifestStore) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Exists")
 	return ms.revisionStore.exists(dgst)
 }
 
-func (ms *manifestStore) Get(dgst digest.Digest) (*manifest.SignedManifest, error) {
+func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error) {
 	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Get")
 	return ms.revisionStore.get(dgst)
 }
 
-func (ms *manifestStore) Put(manifest *manifest.SignedManifest) error {
+func (ms *manifestStore) Put(ctx context.Context, manifest *manifest.SignedManifest) error {
 	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Put")
 
 	// TODO(stevvooe): Add check here to see if the revision is already
@@ -53,22 +54,22 @@ func (ms *manifestStore) Put(manifest *manifest.SignedManifest) error {
 }
 
 // Delete removes the revision of the specified manfiest.
-func (ms *manifestStore) Delete(dgst digest.Digest) error {
+func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Delete - unsupported")
 	return fmt.Errorf("deletion of manifests not supported")
 }
 
-func (ms *manifestStore) Tags() ([]string, error) {
+func (ms *manifestStore) Tags(ctx context.Context) ([]string, error) {
 	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Tags")
 	return ms.tagStore.tags()
 }
 
-func (ms *manifestStore) ExistsByTag(tag string) (bool, error) {
+func (ms *manifestStore) ExistsByTag(ctx context.Context, tag string) (bool, error) {
 	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).ExistsByTag")
 	return ms.tagStore.exists(tag)
 }
 
-func (ms *manifestStore) GetByTag(tag string) (*manifest.SignedManifest, error) {
+func (ms *manifestStore) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
 	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).GetByTag")
 	dgst, err := ms.tagStore.resolve(tag)
 	if err != nil {
