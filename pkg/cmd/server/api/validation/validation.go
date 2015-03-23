@@ -2,6 +2,7 @@ package validation
 
 import (
 	"net"
+	"net/url"
 	"os"
 	"strings"
 
@@ -99,13 +100,47 @@ func ValidateSpecifiedIP(ipString string, field string) errs.ValidationErrorList
 	return allErrs
 }
 
+func ValidateURL(urlString string, field string) (*url.URL, errs.ValidationErrorList) {
+	allErrs := errs.ValidationErrorList{}
+
+	urlObj, err := url.Parse(urlString)
+	if err != nil {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, urlString, "must be a valid URL"))
+		return nil, allErrs
+	}
+	if len(urlObj.Scheme) == 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, urlString, "must contain a scheme (e.g. http://)"))
+	}
+	if len(urlObj.Host) == 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid(field, urlString, "must contain a host"))
+	}
+	return urlObj, allErrs
+}
+
+func ValidateAssetConfig(config *api.AssetConfig) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+
+	urlObj, urlErrs := ValidateURL(config.PublicURL, "publicURL")
+	if len(urlErrs) > 0 {
+		allErrs = append(allErrs, urlErrs...)
+	}
+	// TODO: remove once this is configurable
+	if urlObj != nil && urlObj.Path != "/console" {
+		allErrs = append(allErrs, errs.NewFieldInvalid("publicURL", config.PublicURL, "must be located at the /console path"))
+	}
+
+	return allErrs
+}
+
 func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
 	if config.AssetConfig != nil {
-		allErrs = append(allErrs, ValidateServingInfo(config.AssetConfig.ServingInfo).Prefix("assetConfig.servingInfo")...)
+		allErrs = append(allErrs, ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
 	}
 
 	if config.DNSConfig != nil {

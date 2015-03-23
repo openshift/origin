@@ -345,9 +345,26 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	//	 must start policy caching immediately
 	openshiftConfig.RunPolicyCache()
 
+	unprotectedInstallers := []origin.APIInstaller{}
+
 	authConfig, err := origin.BuildAuthConfig(*openshiftMasterConfig)
 	if err != nil {
 		return err
+	}
+	unprotectedInstallers = append(unprotectedInstallers, authConfig)
+
+	var assetConfig *origin.AssetConfig
+	var assetColocated = false
+	if openshiftMasterConfig.AssetConfig != nil {
+		assetConfig, err := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
+		if err != nil {
+			return err
+		}
+
+		if openshiftMasterConfig.AssetConfig.ServingInfo.BindAddress == openshiftMasterConfig.ServingInfo.BindAddress {
+			assetColocated = true
+			unprotectedInstallers = append(unprotectedInstallers, assetConfig)
+		}
 	}
 
 	if openshiftMasterConfig.KubernetesMasterConfig != nil {
@@ -359,7 +376,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		}
 		kubeConfig.EnsurePortalFlags()
 
-		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, []origin.APIInstaller{authConfig})
+		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, unprotectedInstallers)
 		go daemon.SdNotify("READY=1")
 
 		kubeConfig.RunScheduler()
@@ -378,7 +395,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 			ClientConfig: kubeConfig,
 		}
 
-		openshiftConfig.Run([]origin.APIInstaller{proxy}, []origin.APIInstaller{authConfig})
+		openshiftConfig.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
 		go daemon.SdNotify("READY=1")
 	}
 
@@ -387,11 +404,11 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 
+	if assetConfig != nil && !assetColocated {
+		assetConfig.Run()
+	}
 	if openshiftMasterConfig.DNSConfig != nil {
 		openshiftConfig.RunDNSServer()
-	}
-	if openshiftMasterConfig.AssetConfig != nil {
-		openshiftConfig.RunAssetServer()
 	}
 	openshiftConfig.RunBuildController()
 	openshiftConfig.RunBuildPodController()
