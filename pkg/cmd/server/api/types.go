@@ -62,8 +62,10 @@ type MasterConfig struct {
 	// MasterClients holds all the client connection information for controllers and other system components
 	MasterClients MasterClients
 
+	// ImageConfig holds options that describe how to build image names for system components
 	ImageConfig ImageConfig
 
+	// PolicyConfig holds information about where to locate critical pieces of bootstrapping policy
 	PolicyConfig PolicyConfig
 }
 
@@ -78,7 +80,9 @@ type PolicyConfig struct {
 }
 
 type ImageConfig struct {
+	// Format describes how to determine image names for system components
 	Format string
+	// Latest indicates whether to attempt to use the latest system component images as opposed to latest release
 	Latest bool
 }
 
@@ -154,17 +158,24 @@ type EtcdConfig struct {
 
 	PeerAddress   string
 	MasterAddress string
-	StorageDir    string
+	// StorageDir indicates where to save the etcd data
+	StorageDir string
 }
 
 type KubernetesMasterConfig struct {
-	MasterIP            string
-	ServicesSubnet      string
-	StaticNodeNames     []string
+	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
+	MasterIP string
+	// ServicesSubnet is the subnet to use for assigning service IPs
+	ServicesSubnet string
+	// StaticNodeNames is the list of nodes that are statically known
+	StaticNodeNames []string
+	// SchedulerConfigFile points to a file that describes how to set up the scheduler.  If empty, you get the default scheduling rules.
 	SchedulerConfigFile string
 }
 
 type CertInfo struct {
+	// CertFile is a file containing a PEM-encoded certificate
 	CertFile string
-	KeyFile  string
+	// KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile
+	KeyFile string
 }
