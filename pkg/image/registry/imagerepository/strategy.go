@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
@@ -43,7 +43,7 @@ func (s Strategy) ResetBeforeCreate(obj runtime.Object) {
 }
 
 // Validate validates a new image repository.
-func (s Strategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (s Strategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	ir := obj.(*api.ImageRepository)
 	return validation.ValidateImageRepository(ir)
 }
@@ -117,7 +117,7 @@ func tagsChanged(old, repo *api.ImageRepository) {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (s Strategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (s Strategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	repo := obj.(*api.ImageRepository)
 	oldRepo := old.(*api.ImageRepository)
 
@@ -146,7 +146,7 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 	return StatusStrategy{strategy}
 }
 
-func (StatusStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (StatusStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	// TODO: merge valid fields after update
 	return validation.ValidateImageRepositoryStatusUpdate(obj.(*api.ImageRepository), old.(*api.ImageRepository))
 }

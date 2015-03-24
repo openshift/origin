@@ -6,7 +6,6 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -45,7 +44,7 @@ func (c Client) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *dep
 }
 
 // NewREST safely creates a new REST.
-func NewREST(generator GeneratorClient, codec runtime.Codec) apiserver.RESTStorage {
+func NewREST(generator GeneratorClient, codec runtime.Codec) *REST {
 	return &REST{
 		generator: generator,
 		codec:     codec,

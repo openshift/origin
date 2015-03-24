@@ -2,7 +2,7 @@ package image
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -26,10 +26,10 @@ type Registry interface {
 
 // Storage is an interface for a standard REST Storage backend
 type Storage interface {
-	apiserver.RESTGracefulDeleter
-	apiserver.RESTLister
-	apiserver.RESTGetter
-	apiserver.ResourceWatcher
+	rest.GracefulDeleter
+	rest.Lister
+	rest.Getter
+	rest.Watcher
 
 	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
 }

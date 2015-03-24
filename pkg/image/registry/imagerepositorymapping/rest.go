@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -57,7 +58,7 @@ func (s imageRepositoryMappingStrategy) ResetBeforeCreate(obj runtime.Object) {
 }
 
 // Validate validates a new ImageRepositoryMapping.
-func (s imageRepositoryMappingStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (s imageRepositoryMappingStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	mapping := obj.(*api.ImageRepositoryMapping)
 	return validation.ValidateImageRepositoryMapping(mapping)
 }
@@ -130,8 +131,8 @@ func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepo
 				return &list.Items[i], nil
 			}
 		}
-		return nil, errors.NewInvalid("imageRepositoryMapping", "", errors.ValidationErrorList{
-			errors.NewFieldNotFound("dockerImageRepository", mapping.DockerImageRepository),
+		return nil, errors.NewInvalid("imageRepositoryMapping", "", fielderrors.ValidationErrorList{
+				fielderrors.NewFieldNotFound("dockerImageRepository", mapping.DockerImageRepository),
 		})
 	}
 	return nil, errors.NewNotFound("ImageRepository", "")

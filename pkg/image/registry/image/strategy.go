@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
@@ -34,7 +34,7 @@ func (imageStrategy) ResetBeforeCreate(obj runtime.Object) {
 }
 
 // Validate validates a new image.
-func (imageStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (imageStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	image := obj.(*api.Image)
 	return validation.ValidateImage(image)
 }

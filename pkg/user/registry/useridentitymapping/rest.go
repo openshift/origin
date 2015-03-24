@@ -5,7 +5,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -18,7 +17,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(registry Registry) apiserver.RESTStorage {
+func NewREST(registry Registry) *REST {
 	return &REST{registry}
 }
 
