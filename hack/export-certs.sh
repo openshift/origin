@@ -22,8 +22,8 @@ if [[ -z "${CERT_DIR}" ]]; then
     exit 1
 fi
 
-export CURL_CA_BUNDLE="${CERT_DIR}/root.crt"
 export CURL_CERT="${CERT_DIR}/cert.crt"
 export CURL_KEY="${CERT_DIR}/key.key"
+export CURL_CA_BUNDLE="${CERT_DIR}/../ca/cert.crt"
 
 set_curl_args

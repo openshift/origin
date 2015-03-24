@@ -114,8 +114,10 @@ function wait_for_url {
   set_curl_args $wait $times
 
   set +e
+  cmd="env -i CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-} $(which curl) ${clientcert_args} -fs ${url}"
+  #echo "run: ${cmd}"
   for i in $(seq 1 $times); do
-    out=$(curl ${clientcert_args} -fs $url 2>/dev/null)
+    out=$(${cmd})
     if [ $? -eq 0 ]; then
       set -e
       echo ${prefix}${out}
@@ -123,8 +125,8 @@ function wait_for_url {
     fi
     sleep $wait
   done
-  echo "ERROR: gave up waiting for $url"
-  curl ${CURL_ARGS} $url
+  echo "ERROR: gave up waiting for ${url}"
+  echo $(${cmd})
   set -e
   return 1
 }
