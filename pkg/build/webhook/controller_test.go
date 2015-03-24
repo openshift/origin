@@ -15,28 +15,13 @@ import (
 type okImageRepositoryNamespaceGetter struct{}
 
 func (m *okImageRepositoryNamespaceGetter) GetByNamespace(namespace, name string) (*imageapi.ImageRepository, error) {
-	return &imageapi.ImageRepository{
-		Status: imageapi.ImageRepositoryStatus{
-			DockerImageRepository: "repository/image",
-		},
-		Tags: map[string]string{
-			"latest": "latest",
-		},
-	}, nil
+	return nil, nil
 }
 
 type okBuildConfigGetter struct{}
 
 func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
-		Parameters: api.BuildParameters{
-			Strategy: api.BuildStrategy{
-				Type: "STI",
-				STIStrategy: &api.STIBuildStrategy{
-					Image: "repository/builder-image",
-				},
-			},
-		},
 		Triggers: []api.BuildTriggerPolicy{
 			{
 				Type: api.GithubWebHookBuildTriggerType,
@@ -249,14 +234,7 @@ func (i *testBuildConfigInterface) Get(namespace, name string) (*api.BuildConfig
 func TestInvokeWebhookOk(t *testing.T) {
 	var buildRequest *api.Build
 	buildConfig := &api.BuildConfig{
-		Parameters: api.BuildParameters{
-			Strategy: api.BuildStrategy{
-				Type: "STI",
-				STIStrategy: &api.STIBuildStrategy{
-					Image: "repository/builder-image",
-				},
-			},
-		},
+		Parameters: api.BuildParameters{},
 	}
 
 	server := httptest.NewServer(NewController(

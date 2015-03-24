@@ -78,54 +78,7 @@ func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u bui
 	}
 }
 
-func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Builds(namespace)
-	build, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, build.ObjectMeta)
-		formatString(out, "Status", bold(build.Status))
-		if build.StartTimestamp != nil {
-			formatString(out, "Started", build.StartTimestamp.Time)
-		}
-		if build.CompletionTimestamp != nil {
-			formatString(out, "Finished", build.CompletionTimestamp.Time)
-		}
-		// Create the time object with second-level precision so we don't get
-		// output like "duration: 1.2724395728934s"
-		t := util.Now().Rfc3339Copy()
-		if build.StartTimestamp != nil && build.CompletionTimestamp != nil {
-			// time a build ran from pod creation to build finish or cancel
-			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.StartTimestamp.Rfc3339Copy().Time))
-		} else if build.CompletionTimestamp != nil && build.Status == buildapi.BuildStatusCancelled {
-			// time a build waited for its pod before ultimately being canceled before that pod was created
-			formatString(out, "Duration", fmt.Sprintf("waited for %s", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
-		} else if build.CompletionTimestamp != nil && build.Status != buildapi.BuildStatusCancelled {
-			// for some reason we never saw the pod enter the running state, so we don't know when it
-			// "started", so instead print out the time from creation to completion.
-			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
-		} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {
-			// time a new build has been waiting for its pod to be created so it can run
-			formatString(out, "Duration", fmt.Sprintf("waiting for %s", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
-		} else if build.CompletionTimestamp == nil {
-			// time a still running build has been running in a pod
-			formatString(out, "Duration", fmt.Sprintf("running for %s", t.Sub(build.StartTimestamp.Rfc3339Copy().Time)))
-		}
-		formatString(out, "Build Pod", build.PodName)
-		describeBuildParameters(build.Parameters, out)
-		return nil
-	})
-}
-
-// BuildConfigDescriber generates information about a buildConfig
-type BuildConfigDescriber struct {
-	client.Interface
-	host string
-}
-
-func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
+func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
 	formatString(out, "Strategy", p.Strategy.Type)
 	switch p.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
@@ -136,7 +89,10 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
 		}
 	case buildapi.STIBuildStrategyType:
-		describeSTIStrategy(p.Strategy.STIStrategy, out)
+		formatString(out, "Image", p.Strategy.STIStrategy.Image)
+		if p.Strategy.STIStrategy.Incremental {
+			formatString(out, "Incremental Build", "yes")
+		}
 	case buildapi.CustomBuildStrategyType:
 		formatString(out, "Image", p.Strategy.CustomStrategy.Image)
 		if p.Strategy.CustomStrategy.ExposeDockerSocket {
@@ -166,36 +122,62 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 
 	formatString(out, "Output Spec", p.Output.DockerImageReference)
 	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
-		buildDescriber := &BuildDescriber{}
-
 		formatString(out, "Git Commit", p.Revision.Git.Commit)
-		buildDescriber.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
-		buildDescriber.DescribeUser(out, "Revision Committer", p.Revision.Git.Committer)
+		d.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
+		d.DescribeUser(out, "Revision Committer", p.Revision.Git.Committer)
 		if len(p.Revision.Git.Message) > 0 {
 			formatString(out, "Revision Message", p.Revision.Git.Message)
 		}
 	}
 }
 
-func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
-	if s.From != nil && s.From.Name != "" {
-		if s.From.Namespace != "" {
-			formatString(out, "Image Repository", fmt.Sprintf("%s/%s", s.From.Name, s.From.Namespace))
-		} else {
-			formatString(out, "Image Repository", s.From.Name)
+func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Builds(namespace)
+	build, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, build.ObjectMeta)
+		formatString(out, "Status", bold(build.Status))
+		if build.StartTimestamp != nil {
+			formatString(out, "Started", build.StartTimestamp.Time)
 		}
-		if s.Tag != "" {
-			formatString(out, "Image Repository Tag", s.Tag)
+		if build.CompletionTimestamp != nil {
+			formatString(out, "Finished", build.CompletionTimestamp.Time)
 		}
-	} else {
-		formatString(out, "Builder Image", s.Image)
-	}
-	if s.Scripts != "" {
-		formatString(out, "Scripts", s.Scripts)
-	}
-	if s.Incremental {
-		formatString(out, "Incremental Build", "yes")
-	}
+		// Create the time object with second-level precision so we don't get
+		// output like "duration: 1.2724395728934s"
+		t := util.Now().Rfc3339Copy()
+		if build.StartTimestamp != nil && build.CompletionTimestamp != nil {
+			// time a build ran from pod creation to build finish or cancel
+			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.StartTimestamp.Rfc3339Copy().Time))
+		} else if build.CompletionTimestamp != nil && build.Status == buildapi.BuildStatusCancelled {
+			// time a build waited for its pod before ultimately being canceled before that pod was created
+			formatString(out, "Duration", fmt.Sprintf("waited for %s", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
+		} else if build.CompletionTimestamp != nil && build.Status != buildapi.BuildStatusCancelled {
+			// for some reason we never saw the pod enter the running state, so we don't know when it
+			// "started", so instead print out the time from creation to completion.
+			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
+		} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {
+			// time a new build has been waiting for its pod to be created so it can run
+			formatString(out, "Duration", fmt.Sprintf("waiting for %s", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
+		} else if build.CompletionTimestamp == nil {
+			// time a still running build has been running in a pod
+			formatString(out, "Duration", fmt.Sprintf("running for %s", t.Sub(build.StartTimestamp.Rfc3339Copy().Time)))
+		}
+
+		formatString(out, "Build Pod", build.PodName)
+		d.DescribeParameters(build.Parameters, out)
+		return nil
+	})
+}
+
+// BuildConfigDescriber generates information about a buildConfig
+type BuildConfigDescriber struct {
+	client.Interface
+	host string
 }
 
 // DescribeTriggers generates information about the triggers associated with a buildconfig
@@ -227,9 +209,11 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
+	buildDescriber := &BuildDescriber{}
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
-		describeBuildParameters(buildConfig.Parameters, out)
+		buildDescriber.DescribeParameters(buildConfig.Parameters, out)
 		d.DescribeTriggers(buildConfig, d.host, out)
 		return nil
 	})

@@ -329,14 +329,12 @@ openshift ex new-project recreated-project --admin="anypassword:createuser2"
 osc describe policybinding master -n recreated-project | grep anypassword:createuser2
 echo "ex new-project: ok"
 
-# Test running a router
 [ ! "$(openshift ex router | grep 'does not exist')"]
 [ "$(openshift ex router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
 openshift ex router --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(openshift ex router | grep 'service exists')" ]
 echo "ex router: ok"
 
-# Test running a registry
 [ ! "$(openshift ex registry | grep 'does not exist')"]
 [ "$(openshift ex registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
 openshift ex registry --create --credentials="${OPENSHIFTCONFIG}"

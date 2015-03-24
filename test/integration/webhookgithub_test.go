@@ -92,48 +92,6 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 	}
 }
 
-func TestWebhookGithubPushWithImageTagRef(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestBuildOpenshift(t)
-	defer openshift.Close()
-
-	// create imagerepo
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageRepo"},
-		Tags:       map[string]string{"validTag": "success"},
-	}
-	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	// create buildconfig
-	buildConfig := mockBuildConfigRefParms("originalImage", "imageRepo", "validTag")
-
-	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
-	if err != nil {
-		t.Fatalf("Couldn't subscribe to builds: %v", err)
-	}
-	defer watch.Stop()
-
-	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
-
-	event := <-watch.ResultChan()
-	actual := event.Object.(*buildapi.Build)
-
-	if actual.Status != buildapi.BuildStatusNew {
-		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
-	}
-
-	if actual.Parameters.Strategy.STIStrategy.Image != "registry:3000/integration/imageRepo:success" {
-		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageRepo:success", actual.Parameters.Strategy.STIStrategy.Image)
-	}
-}
-
 func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
@@ -306,53 +264,6 @@ func mockBuildConfigParms(imageName, imageRepo, imageTag string) *buildapi.Build
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
 					Image: imageName,
-				},
-			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
-			},
-		},
-	}
-}
-
-func mockBuildConfigRefParms(imageName, imageRepo, imageTag string) *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "pushbuild",
-		},
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				Type: buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret101",
-				},
-			},
-			{
-				Type: buildapi.ImageChangeBuildTriggerType,
-				ImageChange: &buildapi.ImageChangeTrigger{
-					Image: imageName,
-					From: kapi.ObjectReference{
-						Name: imageRepo,
-					},
-					Tag: imageTag,
-				},
-			},
-		},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
-				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.STIBuildStrategyType,
-				STIStrategy: &buildapi.STIBuildStrategy{
-					From: &kapi.ObjectReference{
-						Name: imageRepo,
-					},
-					Tag: imageTag,
 				},
 			},
 			Output: buildapi.BuildOutput{

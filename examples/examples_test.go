@@ -87,7 +87,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"test-route":             &routeapi.Route{},
 			"test-service":           &kapi.Service{},
 			"test-buildcli":          &kapi.List{},
-			"test-buildcli-beta2":    &kapi.List{},
 		},
 		"../test/templates/fixtures": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation

@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -38,8 +37,7 @@ type ImageChangeController struct {
 // HandleImageRepo processes the next ImageRepository event.
 func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageRepository) error {
 	glog.V(4).Infof("Build image change controller detected imagerepo change %s", repo.Status.DockerImageRepository)
-	imageSubs := make(map[string]string)
-	repoSubs := make(map[kapi.ObjectReference]string)
+	subs := make(map[string]string)
 
 	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
@@ -75,8 +73,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageRepository) 
 				next = latest.DockerImageReference
 			}
 			if len(last) == 0 || next != last {
-				imageSubs[change.Image] = latest.DockerImageReference
-				repoSubs[change.From] = latest.DockerImageReference
+				subs[change.Image] = latest.DockerImageReference
 				change.LastTriggeredImageID = next
 				shouldBuild = true
 			}
@@ -84,7 +81,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageRepository) 
 
 		if shouldBuild {
 			glog.V(4).Infof("Running build for buildConfig %s in namespace %s", config.Name, config.Namespace)
-			b := buildutil.GenerateBuildFromConfig(config, nil, imageSubs, repoSubs)
+			b := buildutil.GenerateBuildFromConfig(config, nil, subs)
 			if err := c.BuildCreator.Create(config.Namespace, b); err != nil {
 				return fmt.Errorf("error starting build for buildConfig %s: %v", config.Name, err)
 			}
