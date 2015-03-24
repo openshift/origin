@@ -107,3 +107,38 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
 		{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(volumeMount.MountPath, pushSecret)},
 	}...)
 }
+
+// mergeEnvWithoutDuplicates merges two environment lists without having
+// duplicate items in the output list.
+func mergeEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVar) {
+	type sourceMapItem struct {
+		index int
+		value string
+	}
+	// Convert source to Map for faster access
+	sourceMap := make(map[string]sourceMapItem)
+	for i, env := range source {
+		sourceMap[env.Name] = sourceMapItem{i, env.Value}
+	}
+	result := *output
+	for i, env := range result {
+		// If the value exists in output, override it and remove it
+		// from the source list
+		if v, found := sourceMap[env.Name]; found {
+			result[i].Value = v.value
+			source = append(source[:v.index], source[v.index+1:]...)
+		}
+	}
+	*output = append(result, source...)
+}
+
+// getContainerVerbosity returns the defined BUILD_LOGLEVEL value
+func getContainerVerbosity(containerEnv []kapi.EnvVar) (verbosity string) {
+	for _, env := range containerEnv {
+		if env.Name == "BUILD_LOGLEVEL" {
+			verbosity = env.Value
+			break
+		}
+	}
+	return
+}

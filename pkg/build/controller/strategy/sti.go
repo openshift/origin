@@ -1,12 +1,14 @@
 package strategy
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 // STIBuildStrategy creates STI(source to image) builds
@@ -42,11 +44,12 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: string(data)},
 		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 	}
 
 	strategy := build.Parameters.Strategy.STIStrategy
 	if len(strategy.Env) > 0 {
-		containerEnv = append(containerEnv, strategy.Env...)
+		mergeEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
 
 	pod := &kapi.Pod{
@@ -62,6 +65,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,
+					Command:    []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,

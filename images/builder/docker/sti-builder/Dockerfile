@@ -13,4 +13,4 @@
 FROM openshift/origin
 
 ENV HOME /root
-ENTRYPOINT ["/usr/bin/openshift-sti-build", "--loglevel=5"]
+ENTRYPOINT ["/usr/bin/openshift-sti-build"]
