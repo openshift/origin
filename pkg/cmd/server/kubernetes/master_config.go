@@ -34,6 +34,8 @@ type MasterConfig struct {
 
 	Authorizer       authorizer.Authorizer
 	AdmissionControl admission.Interface
+
+	SchedulerConfigFile string
 }
 
 func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client) (*MasterConfig, error) {
@@ -77,6 +79,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		KubeClient:           kubeClient,
 		Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl:     admissionController,
+		SchedulerConfigFile:  options.KubernetesMasterConfig.SchedulerConfigFile,
 	}
 
 	return kmaster, nil

@@ -48,6 +48,8 @@ type MasterArgs struct {
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
 	CertArgs           *CertArgs
+
+	SchedulerConfigFile string
 }
 
 // BindMasterArgs binds the options to the flags with prefix + default flag names
@@ -243,9 +245,10 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 	}
 
 	config := &configapi.KubernetesMasterConfig{
-		MasterIP:        masterIP,
-		ServicesSubnet:  servicesSubnet.String(),
-		StaticNodeNames: args.NodeList,
+		MasterIP:            masterIP,
+		ServicesSubnet:      servicesSubnet.String(),
+		StaticNodeNames:     args.NodeList,
+		SchedulerConfigFile: args.SchedulerConfigFile,
 	}
 
 	return config, nil
