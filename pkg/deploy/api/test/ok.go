@@ -95,8 +95,25 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 			ContainerNames: []string{
 				"container1",
 			},
-			RepositoryName: "registry:8080/repo1",
-			Tag:            "tag1",
+			From: kapi.ObjectReference{
+				Kind: "ImageRepository",
+				Name: "test-image-repo",
+			},
+			Tag: "latest",
+		},
+	}
+}
+
+func OkImageChangeTriggerDeprecated() deployapi.DeploymentTriggerPolicy {
+	return deployapi.DeploymentTriggerPolicy{
+		Type: deployapi.DeploymentTriggerOnImageChange,
+		ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
+			Automatic: true,
+			ContainerNames: []string{
+				"container1",
+			},
+			RepositoryName: "registry:8080/repo1:ref1",
+			Tag:            "latest",
 		},
 	}
 }
@@ -104,8 +121,7 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 func OkDeploymentConfig(version int) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Namespace: kapi.NamespaceDefault,
-			Name:      "config",
+			Name: "config",
 		},
 		LatestVersion: version,
 		Triggers: []deployapi.DeploymentTriggerPolicy{

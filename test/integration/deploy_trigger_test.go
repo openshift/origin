@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,6 +33,7 @@ import (
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
@@ -54,12 +56,19 @@ func init() {
 	testutil.RequireEtcd()
 }
 
-func TestSuccessfulManualDeployment(t *testing.T) {
+func TestTriggers_manual(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
-	config := manualDeploymentConfig()
+	config := deploytest.OkDeploymentConfig(0)
+	config.Namespace = testutil.Namespace()
+	config.Triggers = []deployapi.DeploymentTriggerPolicy{
+		{
+			Type: deployapi.DeploymentTriggerManual,
+		},
+	}
+
 	var err error
 
 	dc, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config)
@@ -102,20 +111,15 @@ func TestSuccessfulManualDeployment(t *testing.T) {
 	}
 }
 
-func TestSimpleImageChangeTrigger(t *testing.T) {
+func TestTriggers_imageChange(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-repo"},
-		DockerImageRepository: "registry:8080/openshift/test-image",
-		Tags: map[string]string{
-			"latest": "ref-1",
-		},
-	}
+	imageRepo := &imageapi.ImageRepository{ObjectMeta: kapi.ObjectMeta{Name: "test-image-repo"}}
 
-	config := imageChangeDeploymentConfig()
+	config := deploytest.OkDeploymentConfig(0)
+	config.Namespace = testutil.Namespace()
 	var err error
 
 	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
@@ -127,6 +131,47 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	if imageRepo, err = openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
+
+	imageWatch, err := openshift.Client.ImageRepositories(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to ImageRepositories: %s", err)
+	}
+	defer imageWatch.Stop()
+
+	// Make a function which can create a new tag event for the image repo and
+	// then wait for the repo status to be asynchronously updated.
+	createTagEvent := func(image string) {
+		mapping := &imageapi.ImageRepositoryMapping{
+			ObjectMeta: kapi.ObjectMeta{Name: imageRepo.Name},
+			Tag:        "latest",
+			Image: imageapi.Image{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: image,
+				},
+				DockerImageReference: fmt.Sprintf("registry:8080/openshift/test-image@%s", image),
+			},
+		}
+		if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(mapping); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		t.Log("Waiting for image repository mapping to be reflected in the IR status...")
+	statusLoop:
+		for {
+			select {
+			case event := <-imageWatch.ResultChan():
+				ir := event.Object.(*imageapi.ImageRepository)
+				if _, ok := ir.Status.Tags["latest"]; ok {
+					t.Logf("ImageRepository now has Status with tags: %#v", ir.Status.Tags)
+					break statusLoop
+				} else {
+					t.Log("Still waiting for latest tag status on imagerepo")
+				}
+			}
+		}
+	}
+
+	createTagEvent("sha256:00000000000000000000000000000001")
 
 	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
@@ -150,11 +195,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
-	imageRepo.Tags["latest"] = "ref-2"
-
-	if _, err = openshift.Client.ImageRepositories(testutil.Namespace()).Update(imageRepo); err != nil {
-		t.Fatalf("Error updating imageRepo: %v", err)
-	}
+	createTagEvent("sha256:00000000000000000000000000000002")
 
 	event = <-watch.ResultChan()
 	if e, a := watchapi.Added, event.Type; e != a {
@@ -167,83 +208,14 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 	}
 }
 
-func TestSimpleImageChangeTriggerFrom(t *testing.T) {
+func TestTriggers_configChange(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestOpenshift(t)
 	defer openshift.Close()
 
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Name: "test-image-repo"},
-		Tags: map[string]string{
-			"latest": "ref-1",
-		},
-	}
-
-	config := imageChangeDeploymentConfig()
-	config.Triggers[0].ImageChangeParams.RepositoryName = ""
-	config.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{
-		Name: "test-image-repo",
-	}
-	var err error
-
-	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
-	if err != nil {
-		t.Fatalf("Couldn't subscribe to Deployments %v", err)
-	}
-	defer watch.Stop()
-
-	if imageRepo, err = openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
-		t.Fatalf("Couldn't create ImageRepository: %v", err)
-	}
-
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
-		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
-	}
-
-	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
-		t.Fatalf("Error generating config: %v", err)
-	}
-
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
-	}
-
-	event := <-watch.ResultChan()
-	if e, a := watchapi.Added, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
-	}
-	deployment := event.Object.(*kapi.ReplicationController)
-
-	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
-		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
-	}
-
-	imageRepo.Tags["latest"] = "ref-2"
-
-	if _, err = openshift.Client.ImageRepositories(testutil.Namespace()).Update(imageRepo); err != nil {
-		t.Fatalf("Error updating imageRepo: %v", err)
-	}
-
-	event = <-watch.ResultChan()
-	if e, a := watchapi.Added, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
-	}
-	newDeployment := event.Object.(*kapi.ReplicationController)
-
-	if newDeployment.Name == deployment.Name {
-		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
-	}
-	if a, e := newDeployment.Spec.Template.Spec.Containers[0].Image, "registry:3000/integration/test-image-repo:ref-2"; e != a {
-		t.Fatalf("new deployment isn't pointing to the right image: %s %s", e, a)
-	}
-}
-
-func TestSimpleConfigChangeTrigger(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestOpenshift(t)
-	defer openshift.Close()
-
-	config := changeDeploymentConfig()
+	config := deploytest.OkDeploymentConfig(0)
+	config.Namespace = testutil.Namespace()
+	config.Triggers[0] = deploytest.OkConfigChangeTrigger()
 	var err error
 
 	watch, err := openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
@@ -269,7 +241,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
-	assertEnvVarEquals("ENV_TEST", "ENV_VALUE1", deployment, t)
+	assertEnvVarEquals("ENV1", "VAL1", deployment, t)
 
 	// submit a new config with an updated environment variable
 	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
@@ -288,7 +260,7 @@ func TestSimpleConfigChangeTrigger(t *testing.T) {
 	}
 	newDeployment := event.Object.(*kapi.ReplicationController)
 
-	assertEnvVarEquals("ENV_TEST", "UPDATED", newDeployment, t)
+	assertEnvVarEquals("ENV1", "UPDATED", newDeployment, t)
 
 	if newDeployment.Name == deployment.Name {
 		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
@@ -366,7 +338,6 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 			IRFn:   imageRepositoryRegistry.GetImageRepository,
 			LIRFn2: imageRepositoryRegistry.ListImageRepositories,
 		},
-		Codec: latest.Codec,
 	}
 
 	buildEtcd := buildetcd.New(etcdHelper)
@@ -480,122 +451,16 @@ func (c *clientDeploymentInterface) GetDeployment(ctx kapi.Context, id string) (
 	return c.KubeClient.ReplicationControllers(kapi.NamespaceValue(ctx)).Get(id)
 }
 
-func imageChangeDeploymentConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "image-deploy-config"},
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
-					Automatic: true,
-					ContainerNames: []string{
-						"container-1",
-					},
-					RepositoryName: "registry:8080/openshift/test-image",
-					Tag:            "latest",
-				},
-			},
-		},
-		Template: deployapi.DeploymentTemplate{
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeRecreate,
-			},
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Replicas: 1,
-				Selector: map[string]string{
-					"name": "test-pod",
-				},
-				Template: &kapi.PodTemplateSpec{
-					ObjectMeta: kapi.ObjectMeta{
-						Labels: map[string]string{
-							"name": "test-pod",
-						},
-					},
-					Spec: kapi.PodSpec{
-						Containers: []kapi.Container{
-							{
-								Name:  "container-1",
-								Image: "registry:8080/openshift/test-image:ref-1",
-							},
-							{
-								Name:  "container-2",
-								Image: "registry:8080/openshift/another-test-image:ref-1",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func manualDeploymentConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "manual-deploy-config"},
-		Template: deployapi.DeploymentTemplate{
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeRecreate,
-			},
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Replicas: 1,
-				Selector: map[string]string{
-					"name": "test-pod",
-				},
-				Template: &kapi.PodTemplateSpec{
-					ObjectMeta: kapi.ObjectMeta{
-						Labels: map[string]string{
-							"name": "test-pod",
-						},
-					},
-					Spec: kapi.PodSpec{
-						Containers: []kapi.Container{
-							{
-								Name:  "container-1",
-								Image: "registry:8080/openshift/test-image:ref-1",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func changeDeploymentConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "change-deploy-config"},
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerOnConfigChange,
-			},
-		},
-		Template: deployapi.DeploymentTemplate{
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeRecreate,
-			},
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Replicas: 1,
-				Selector: map[string]string{
-					"name": "test-pod",
-				},
-				Template: &kapi.PodTemplateSpec{
-					ObjectMeta: kapi.ObjectMeta{
-						Labels: map[string]string{
-							"name": "test-pod",
-						},
-					},
-					Spec: kapi.PodSpec{
-						Containers: []kapi.Container{
-							{
-								Name:  "container-1",
-								Image: "registry:8080/openshift/test-image:ref-1",
-								Env: []kapi.EnvVar{
-									{
-										Name:  "ENV_TEST",
-										Value: "ENV_VALUE1",
-									},
-								},
-							},
+func makeRepo(name, tag, dir, image string) *imageapi.ImageRepository {
+	return &imageapi.ImageRepository{
+		ObjectMeta: kapi.ObjectMeta{Name: name},
+		Status: imageapi.ImageRepositoryStatus{
+			Tags: map[string]imageapi.TagEventList{
+				tag: {
+					Items: []imageapi.TagEvent{
+						{
+							DockerImageReference: dir,
+							Image:                image,
 						},
 					},
 				},

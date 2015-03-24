@@ -183,6 +183,8 @@ type DeploymentTriggerImageChangeParams struct {
 	From kapi.ObjectReference `json:"from"`
 	// Tag is the name of an image repository tag to watch for changes.
 	Tag string `json:"tag,omitempty"`
+	// LastTriggeredImage is the last image to be triggered.
+	LastTriggeredImage string `json:"lastTriggeredImage"`
 }
 
 // DeploymentDetails captures information about the causes of a deployment.
