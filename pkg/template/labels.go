@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -99,11 +99,11 @@ func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 }
 
 // AddConfigLabels adds new label(s) to all resources defined in the given Config.
-func AddConfigLabels(c *configapi.Config, labels labels.Set) errs.ValidationErrorList {
-	itemErrors := errs.ValidationErrorList{}
+func AddConfigLabels(c *configapi.Config, labels labels.Set) fielderrors.ValidationErrorList {
+	itemErrors := fielderrors.ValidationErrorList{}
 	for i, in := range c.Items {
 		if err := AddObjectLabels(in, labels); err != nil {
-			reportError(&itemErrors, i, *errs.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
+			reportError(&itemErrors, i, *fielderrors.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
 		}
 	}
 	return itemErrors.Prefix("Config")

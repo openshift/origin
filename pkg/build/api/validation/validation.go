@@ -3,7 +3,7 @@ package validation
 import (
 	"net/url"
 
-	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -12,17 +12,17 @@ import (
 )
 
 // ValidateBuild tests required fields for a Build.
-func ValidateBuild(build *buildapi.Build) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(build.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
 	} else if !util.IsDNS1123Subdomain(build.Name) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("name", build.Name, "name must be a valid subdomain"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", build.Name, "name must be a valid subdomain"))
 	}
 	if len(build.Namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("namespace"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("namespace"))
 	} else if !util.IsDNS1123Subdomain(build.Namespace) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", build.Namespace, "namespace must be a valid subdomain"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", build.Namespace, "namespace must be a valid subdomain"))
 	}
 	allErrs = append(allErrs, validation.ValidateLabels(build.Labels, "labels")...)
 	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("parameters")...)
@@ -30,17 +30,17 @@ func ValidateBuild(build *buildapi.Build) errs.ValidationErrorList {
 }
 
 // ValidateBuildConfig tests required fields for a Build.
-func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(config.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
 	} else if !util.IsDNS1123Subdomain(config.Name) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
 	}
 	if len(config.Namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("namespace"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("namespace"))
 	} else if !util.IsDNS1123Subdomain(config.Namespace) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
 	}
 	allErrs = append(allErrs, validation.ValidateLabels(config.Labels, "labels")...)
 	for i := range config.Triggers {
@@ -51,8 +51,8 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) errs.ValidationErrorList 
 	return allErrs
 }
 
-func validateBuildParameters(params *buildapi.BuildParameters) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateBuildParameters(params *buildapi.BuildParameters) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	isCustomBuild := params.Strategy.Type == buildapi.CustomBuildStrategyType
 	// Validate 'source' and 'output' for all build types except Custom build
 	// where they are optional and validated only if present.
@@ -70,40 +70,40 @@ func validateBuildParameters(params *buildapi.BuildParameters) errs.ValidationEr
 	return allErrs
 }
 
-func validateSource(input *buildapi.BuildSource) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if input.Type != buildapi.BuildSourceGit {
-		allErrs = append(allErrs, errs.NewFieldRequired("type"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
 	}
 	if input.Git == nil {
-		allErrs = append(allErrs, errs.NewFieldRequired("git"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("git"))
 	} else {
 		allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
 	}
 	return allErrs
 }
 
-func validateGitSource(git *buildapi.GitBuildSource) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateGitSource(git *buildapi.GitBuildSource) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(git.URI) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("uri"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("uri"))
 	} else if !isValidURL(git.URI) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("uri", git.URI, "uri is not a valid url"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("uri", git.URI, "uri is not a valid url"))
 	}
 	return allErrs
 }
 
-func validateRevision(revision *buildapi.SourceRevision) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateRevision(revision *buildapi.SourceRevision) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(revision.Type) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("type"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
 	}
 	// TODO: validate other stuff
 	return allErrs
 }
 
-func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateOutput(output *buildapi.BuildOutput) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	// TODO: make part of a generic ValidateObjectReference method upstream.
 	if output.To != nil {
@@ -113,44 +113,44 @@ func validateOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
 			output.To.Kind = kind
 		}
 		if kind != "ImageRepository" {
-			allErrs = append(allErrs, errs.NewFieldInvalid("to.kind", kind, "the target of build output must be 'ImageRepository'"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("to.kind", kind, "the target of build output must be 'ImageRepository'"))
 		}
 		if len(name) == 0 {
-			allErrs = append(allErrs, errs.NewFieldRequired("to.name"))
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("to.name"))
 		} else if !util.IsDNS1123Subdomain(name) {
-			allErrs = append(allErrs, errs.NewFieldInvalid("to.name", name, "name must be a valid subdomain"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("to.name", name, "name must be a valid subdomain"))
 		}
 		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
-			allErrs = append(allErrs, errs.NewFieldInvalid("to.namespace", namespace, "namespace must be a valid subdomain"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("to.namespace", namespace, "namespace must be a valid subdomain"))
 		}
 	}
 
 	if len(output.DockerImageReference) != 0 {
 		if _, err := imageapi.ParseDockerImageReference(output.DockerImageReference); err != nil {
-			allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
 		}
 	}
 	return allErrs
 }
 
-func validateBuildConfigOutput(output *buildapi.BuildOutput) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateBuildConfigOutput(output *buildapi.BuildOutput) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(output.DockerImageReference) != 0 && output.To != nil {
-		allErrs = append(allErrs, errs.NewFieldInvalid("dockerImageReference", output.DockerImageReference, "only one of 'dockerImageReference' and 'to' may be set"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerImageReference", output.DockerImageReference, "only one of 'dockerImageReference' and 'to' may be set"))
 	}
 	return allErrs
 }
 
-func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	switch {
 	case len(strategy.Type) == 0:
-		allErrs = append(allErrs, errs.NewFieldRequired("type"))
+		allErrs = append(allErrs, fielderrs.NewFieldRequired("type"))
 
 	case strategy.Type == buildapi.STIBuildStrategyType:
 		if strategy.STIStrategy == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("stiStrategy"))
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("stiStrategy"))
 		} else {
 			allErrs = append(allErrs, validateSTIStrategy(strategy.STIStrategy).Prefix("stiStrategy")...)
 		}
@@ -161,35 +161,35 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 		}
 	case strategy.Type == buildapi.CustomBuildStrategyType:
 		if strategy.CustomStrategy == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("customStrategy"))
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("customStrategy"))
 		} else {
 			// CustomBuildStrategy requires 'image' to be specified in JSON
 			if len(strategy.CustomStrategy.Image) == 0 {
-				allErrs = append(allErrs, errs.NewFieldRequired("image"))
+				allErrs = append(allErrs, fielderrors.NewFieldRequired("image"))
 			}
 		}
 	default:
-		allErrs = append(allErrs, errs.NewFieldInvalid("type", strategy.Type, "type is not in the enumerated list"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", strategy.Type, "type is not in the enumerated list"))
 	}
 
 	return allErrs
 }
 
 func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+	allErrs := fielderrors.ValidationErrorList{}
 	if (strategy.From == nil || len(strategy.From.Name) == 0) && len(strategy.Image) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("from"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
 	}
 	if (strategy.From != nil && len(strategy.From.Name) != 0) && len(strategy.Image) != 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("image", strategy.Image, "only one of 'image' and 'from' may be set"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("image", strategy.Image, "only one of 'image' and 'from' may be set"))
 	}
 	return allErrs
 }
 
-func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(trigger.Type) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("type"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
 		return allErrs
 	}
 
@@ -204,19 +204,19 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ValidationErrorL
 	switch trigger.Type {
 	case buildapi.GithubWebHookBuildTriggerType:
 		if trigger.GithubWebHook == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("github"))
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("github"))
 		} else {
 			allErrs = append(allErrs, validateWebHook(trigger.GithubWebHook).Prefix("github")...)
 		}
 	case buildapi.GenericWebHookBuildTriggerType:
 		if trigger.GenericWebHook == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("generic"))
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("generic"))
 		} else {
 			allErrs = append(allErrs, validateWebHook(trigger.GenericWebHook).Prefix("generic")...)
 		}
 	case buildapi.ImageChangeBuildTriggerType:
 		if trigger.ImageChange == nil {
-			allErrs = append(allErrs, errs.NewFieldRequired("imageChange"))
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("imageChange"))
 		} else {
 			allErrs = append(allErrs, validateImageChange(trigger.ImageChange).Prefix("imageChange")...)
 		}
@@ -224,31 +224,31 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) errs.ValidationErrorL
 	return allErrs
 }
 
-func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t buildapi.BuildTriggerType) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t buildapi.BuildTriggerType) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	for triggerType, present := range params {
 		if triggerType != t && present {
-			allErrs = append(allErrs, errs.NewFieldInvalid(string(triggerType), "", "triggerType wasn't found"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(string(triggerType), "", "triggerType wasn't found"))
 		}
 	}
 	return allErrs
 }
 
-func validateImageChange(imageChange *buildapi.ImageChangeTrigger) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateImageChange(imageChange *buildapi.ImageChangeTrigger) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(imageChange.Image) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("image"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("image"))
 	}
 	if len(imageChange.From.Name) == 0 {
-		allErrs = append(allErrs, errs.ValidationErrorList{errs.NewFieldRequired("name")}.Prefix("from")...)
+		allErrs = append(allErrs, fielderrors.ValidationErrorList{errs.NewFieldRequired("name")}.Prefix("from")...)
 	}
 	return allErrs
 }
 
-func validateWebHook(webHook *buildapi.WebHookTrigger) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func validateWebHook(webHook *buildapi.WebHookTrigger) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 	if len(webHook.Secret) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("secret"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("secret"))
 	}
 	return allErrs
 }

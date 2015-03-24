@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -38,7 +39,7 @@ func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		id = user.GetName()
 	}
 	if ok, details := validation.ValidateUserName(id, false); !ok {
-		return nil, kerrs.NewFieldInvalid("metadata.name", id, details)
+		return nil, fielderrors.NewFieldInvalid("metadata.name", id, details)
 	}
 	return s.registry.GetUser(id)
 }

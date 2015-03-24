@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -135,17 +136,17 @@ func findReferences(dc *deployapi.DeploymentConfig) (refs triggersByRef, legacy 
 }
 
 // retrieveReferences loads the repositories referenced by a deployment config
-func retrieveReferences(client GeneratorClient, ctx kapi.Context, refs triggersByRef, legacy triggersByName) errors.ValidationErrorList {
-	errs := errors.ValidationErrorList{}
+func retrieveReferences(client GeneratorClient, ctx kapi.Context, refs triggersByRef, legacy triggersByName) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
 
 	// fetch repositories directly
 	for k, v := range refs {
 		repo, err := client.GetImageRepository(kapi.WithNamespace(ctx, k.namespace), k.name)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				errs = append(errs, errors.NewFieldNotFound(v.field, k.name))
+				errs = append(errs, fielderrors.NewFieldNotFound(v.field, k.name))
 			} else {
-				errs = append(errs, errors.NewFieldInvalid(v.field, k.name, err.Error()))
+				errs = append(errs, fielderrors.NewFieldInvalid(v.field, k.name, err.Error()))
 			}
 			continue
 		}
@@ -172,7 +173,7 @@ func retrieveReferences(client GeneratorClient, ctx kapi.Context, refs triggersB
 		repos, err := client.ListImageRepositories(ctx)
 		if err != nil {
 			for k, ref := range missing {
-				errs = append(errs, errors.NewFieldInvalid(ref.field, k, err.Error()))
+				errs = append(errs, fielderrors.NewFieldInvalid(ref.field, k, err.Error()))
 			}
 			return errs
 		}
@@ -186,7 +187,7 @@ func retrieveReferences(client GeneratorClient, ctx kapi.Context, refs triggersB
 				}
 			}
 			if ref.repo == nil {
-				errs = append(errs, errors.NewFieldNotFound(ref.field, k))
+				errs = append(errs, fielderrors.NewFieldNotFound(ref.field, k))
 			}
 		}
 	}
@@ -210,11 +211,11 @@ func referencesByIndex(refs triggersByRef, legacy triggersByName) reposByIndex {
 	return repos
 }
 
-func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (changed bool, errs errors.ValidationErrorList) {
+func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (changed bool, errs fielderrors.ValidationErrorList) {
 	template := dc.Template.ControllerTemplate.Template
 	for i, repo := range repos {
 		if len(repo.Status.DockerImageRepository) == 0 {
-			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, fmt.Sprintf("image repository %s/%s does not have a Docker image repository reference set and can't be used in a deployment config trigger", repo.Namespace, repo.Name)))
+			errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, fmt.Sprintf("image repository %s/%s does not have a Docker image repository reference set and can't be used in a deployment config trigger", repo.Namespace, repo.Name)))
 			continue
 		}
 		params := dc.Triggers[i].ImageChangeParams
@@ -222,7 +223,7 @@ func replaceReferences(dc *deployapi.DeploymentConfig, repos reposByIndex) (chan
 		// get the image ref from the repo's tag history
 		latest, err := imageapi.LatestTaggedImage(repo, params.Tag)
 		if err != nil {
-			errs = append(errs, errors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, err.Error()))
+			errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("triggers[%d].imageChange.from", i), repo.Name, err.Error()))
 			continue
 		}
 		image := latest.DockerImageReference

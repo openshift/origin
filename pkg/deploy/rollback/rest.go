@@ -5,6 +5,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -98,6 +99,6 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 func newInvalidDeploymentError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
-	err := kerrors.NewFieldInvalid("spec.from.name", rollback.Spec.From.Name, reason)
-	return kerrors.NewInvalid("DeploymentConfigRollback", "", kerrors.ValidationErrorList{err})
+	err := fielderrors.NewFieldInvalid("spec.from.name", rollback.Spec.From.Name, reason)
+	return kerrors.NewInvalid("DeploymentConfigRollback", "", fielderrors.ValidationErrorList{err})
 }

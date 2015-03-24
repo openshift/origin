@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
@@ -40,7 +41,7 @@ func (templateStrategy) ResetBeforeCreate(obj runtime.Object) {
 }
 
 // Validate validates a new template.
-func (templateStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (templateStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	template := obj.(*api.Template)
 	return validation.ValidateTemplate(template)
 }
@@ -51,7 +52,7 @@ func (templateStrategy) AllowCreateOnUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (templateStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (templateStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))
 }
 
