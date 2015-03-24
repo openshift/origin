@@ -235,7 +235,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 				return
 			}
 
-			fmt.Fprintf(out, "Router %q service exists", name)
+			fmt.Fprintf(out, "Router %q service exists\n", name)
 		},
 	}
 
