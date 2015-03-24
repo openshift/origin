@@ -78,66 +78,12 @@ func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u bui
 	}
 }
 
-func (d *BuildDescriber) DescribeParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
-	formatString(out, "Strategy", p.Strategy.Type)
-	switch p.Strategy.Type {
-	case buildapi.DockerBuildStrategyType:
-		if p.Strategy.DockerStrategy != nil && p.Strategy.DockerStrategy.NoCache {
-			formatString(out, "No Cache", "yes")
-		}
-		if p.Strategy.DockerStrategy != nil {
-			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
-		}
-	case buildapi.STIBuildStrategyType:
-		formatString(out, "Image", p.Strategy.STIStrategy.Image)
-		if p.Strategy.STIStrategy.Incremental {
-			formatString(out, "Incremental Build", "yes")
-		}
-	case buildapi.CustomBuildStrategyType:
-		formatString(out, "Image", p.Strategy.CustomStrategy.Image)
-		if p.Strategy.CustomStrategy.ExposeDockerSocket {
-			formatString(out, "Expose Docker Socket", "yes")
-		}
-		if len(p.Strategy.CustomStrategy.Env) != 0 {
-			formatString(out, "Environment", formatLabels(convertEnv(p.Strategy.CustomStrategy.Env)))
-		}
-	}
-	formatString(out, "Source Type", p.Source.Type)
-	if p.Source.Git != nil {
-		formatString(out, "URL", p.Source.Git.URI)
-		if len(p.Source.Git.Ref) > 0 {
-			formatString(out, "Ref", p.Source.Git.Ref)
-		}
-		if len(p.Source.ContextDir) > 0 {
-			formatString(out, "ContextDir", p.Source.ContextDir)
-		}
-	}
-	if p.Output.To != nil {
-		if p.Output.To.Namespace != "" {
-			formatString(out, "Output to", fmt.Sprintf("%s/%s", p.Output.To.Namespace, p.Output.To.Name))
-		} else {
-			formatString(out, "Output to", p.Output.To.Name)
-		}
-	}
-
-	formatString(out, "Output Spec", p.Output.DockerImageReference)
-	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
-		formatString(out, "Git Commit", p.Revision.Git.Commit)
-		d.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
-		d.DescribeUser(out, "Revision Committer", p.Revision.Git.Committer)
-		if len(p.Revision.Git.Message) > 0 {
-			formatString(out, "Revision Message", p.Revision.Git.Message)
-		}
-	}
-}
-
 func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Builds(namespace)
 	build, err := c.Get(name)
 	if err != nil {
 		return "", err
 	}
-
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
 		formatString(out, "Status", bold(build.Status))
@@ -167,9 +113,8 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 			// time a still running build has been running in a pod
 			formatString(out, "Duration", fmt.Sprintf("running for %s", t.Sub(build.StartTimestamp.Rfc3339Copy().Time)))
 		}
-
 		formatString(out, "Build Pod", build.PodName)
-		d.DescribeParameters(build.Parameters, out)
+		describeBuildParameters(build.Parameters, out)
 		return nil
 	})
 }
@@ -178,6 +123,79 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 type BuildConfigDescriber struct {
 	client.Interface
 	host string
+}
+
+func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
+	formatString(out, "Strategy", p.Strategy.Type)
+	switch p.Strategy.Type {
+	case buildapi.DockerBuildStrategyType:
+		if p.Strategy.DockerStrategy != nil && p.Strategy.DockerStrategy.NoCache {
+			formatString(out, "No Cache", "yes")
+		}
+		if p.Strategy.DockerStrategy != nil {
+			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
+		}
+	case buildapi.STIBuildStrategyType:
+		describeSTIStrategy(p.Strategy.STIStrategy, out)
+	case buildapi.CustomBuildStrategyType:
+		formatString(out, "Image", p.Strategy.CustomStrategy.Image)
+		if p.Strategy.CustomStrategy.ExposeDockerSocket {
+			formatString(out, "Expose Docker Socket", "yes")
+		}
+		if len(p.Strategy.CustomStrategy.Env) != 0 {
+			formatString(out, "Environment", formatLabels(convertEnv(p.Strategy.CustomStrategy.Env)))
+		}
+	}
+	formatString(out, "Source Type", p.Source.Type)
+	if p.Source.Git != nil {
+		formatString(out, "URL", p.Source.Git.URI)
+		if len(p.Source.Git.Ref) > 0 {
+			formatString(out, "Ref", p.Source.Git.Ref)
+		}
+		if len(p.Source.ContextDir) > 0 {
+			formatString(out, "ContextDir", p.Source.ContextDir)
+		}
+	}
+	if p.Output.To != nil {
+		if p.Output.To.Namespace != "" {
+			formatString(out, "Output to", fmt.Sprintf("%s/%s", p.Output.To.Namespace, p.Output.To.Name))
+		} else {
+			formatString(out, "Output to", p.Output.To.Name)
+		}
+	}
+
+	formatString(out, "Output Spec", p.Output.DockerImageReference)
+	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
+		buildDescriber := &BuildDescriber{}
+
+		formatString(out, "Git Commit", p.Revision.Git.Commit)
+		buildDescriber.DescribeUser(out, "Revision Author", p.Revision.Git.Author)
+		buildDescriber.DescribeUser(out, "Revision Committer", p.Revision.Git.Committer)
+		if len(p.Revision.Git.Message) > 0 {
+			formatString(out, "Revision Message", p.Revision.Git.Message)
+		}
+	}
+}
+
+func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
+	if s.From != nil && s.From.Name != "" {
+		if s.From.Namespace != "" {
+			formatString(out, "Image Repository", fmt.Sprintf("%s/%s", s.From.Name, s.From.Namespace))
+		} else {
+			formatString(out, "Image Repository", s.From.Name)
+		}
+		if s.Tag != "" {
+			formatString(out, "Image Repository Tag", s.Tag)
+		}
+	} else {
+		formatString(out, "Builder Image", s.Image)
+	}
+	if s.Scripts != "" {
+		formatString(out, "Scripts", s.Scripts)
+	}
+	if s.Incremental {
+		formatString(out, "Incremental Build", "yes")
+	}
 }
 
 // DescribeTriggers generates information about the triggers associated with a buildconfig
@@ -209,11 +227,9 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	buildDescriber := &BuildDescriber{}
-
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
-		buildDescriber.DescribeParameters(buildConfig.Parameters, out)
+		describeBuildParameters(buildConfig.Parameters, out)
 		d.DescribeTriggers(buildConfig, d.host, out)
 		return nil
 	})

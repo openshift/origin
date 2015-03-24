@@ -144,23 +144,22 @@ func validateBuildConfigOutput(output *buildapi.BuildOutput) errs.ValidationErro
 func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
-	if len(strategy.Type) == 0 {
+	switch {
+	case len(strategy.Type) == 0:
 		allErrs = append(allErrs, errs.NewFieldRequired("type"))
-	}
 
-	switch strategy.Type {
-	case buildapi.STIBuildStrategyType:
+	case strategy.Type == buildapi.STIBuildStrategyType:
 		if strategy.STIStrategy == nil {
 			allErrs = append(allErrs, errs.NewFieldRequired("stiStrategy"))
 		} else {
 			allErrs = append(allErrs, validateSTIStrategy(strategy.STIStrategy).Prefix("stiStrategy")...)
 		}
-	case buildapi.DockerBuildStrategyType:
+	case strategy.Type == buildapi.DockerBuildStrategyType:
 		// DockerStrategy is currently optional, initialize it to a default state if it's not set.
 		if strategy.DockerStrategy == nil {
 			strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 		}
-	case buildapi.CustomBuildStrategyType:
+	case strategy.Type == buildapi.CustomBuildStrategyType:
 		if strategy.CustomStrategy == nil {
 			allErrs = append(allErrs, errs.NewFieldRequired("customStrategy"))
 		} else {
@@ -178,8 +177,11 @@ func validateStrategy(strategy *buildapi.BuildStrategy) errs.ValidationErrorList
 
 func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if len(strategy.Image) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("image"))
+	if (strategy.From == nil || len(strategy.From.Name) == 0) && len(strategy.Image) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("from"))
+	}
+	if (strategy.From != nil && len(strategy.From.Name) != 0) && len(strategy.Image) != 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("image", strategy.Image, "only one of 'image' and 'from' may be set"))
 	}
 	return allErrs
 }
