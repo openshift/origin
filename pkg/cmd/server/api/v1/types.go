@@ -64,7 +64,7 @@ type MasterConfig struct {
 
 	ImageConfig ImageConfig `json:"imageConfig"`
 
-	PolicyConfig PolicyConfig
+	PolicyConfig PolicyConfig `json:"policyConfig"`
 }
 
 type PolicyConfig struct {
