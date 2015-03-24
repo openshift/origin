@@ -57,8 +57,15 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 
 	// wait for initial build event from the creation of the imagerepo with tag latest
+	// plus update to Pending state.
 	event := <-watch.ResultChan()
-	if e, a := watchapi.Added, event.Type; e != a {
+	if event.Type != watchapi.Modified {
+		// we're expecting an ADD followed by a MODIFIED (create the build, then update the build status),
+		// but they might get collapsed into a single MODIFIED event, so just look for the MODIFIED event
+		// and don't worry about the ADD event if it comes in first.
+		event = <-watch.ResultChan()
+	}
+	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild := event.Object.(*buildapi.Build)
@@ -67,11 +74,6 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		bc, _ := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:latest", newBuild.Parameters.Strategy.DockerStrategy.Image, i, bc.Triggers[0].ImageChange)
 	}
-	event = <-watch.ResultChan()
-	if e, a := watchapi.Modified, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
-	}
-	newBuild = event.Object.(*buildapi.Build)
 	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger:outputtag" {
 		t.Fatalf("Expected build with output image %s, got %s", "registry:8080/openshift/test-image-trigger:outputtag", newBuild.Parameters.Output.DockerImageReference)
 	}
@@ -114,7 +116,13 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		}
 	*/
 	event = <-watch.ResultChan()
-	if e, a := watchapi.Added, event.Type; e != a {
+	if event.Type != watchapi.Modified {
+		// we're expecting an ADD followed by a MODIFIED (create the build, then update the build status),
+		// but they might get collapsed into a single MODIFIED event, so just look for the MODIFIED event
+		// and don't worry about the ADD event if it comes in first.
+		event = <-watch.ResultChan()
+	}
+	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
@@ -123,11 +131,6 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		bc, _ := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2", newBuild.Parameters.Strategy.DockerStrategy.Image, i, bc.Triggers[0].ImageChange)
 	}
-	event = <-watch.ResultChan()
-	if e, a := watchapi.Modified, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
-	}
-	newBuild = event.Object.(*buildapi.Build)
 	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger:outputtag" {
 		t.Fatalf("Expected build with output image %s, got %s", "registry:8080/openshift/test-image-trigger:outputtag", newBuild.Parameters.Output.DockerImageReference)
 	}
