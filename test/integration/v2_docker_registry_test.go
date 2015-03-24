@@ -18,6 +18,7 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
+	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -75,17 +76,24 @@ func signedManifest() ([]byte, digest.Digest, error) {
 func TestV2RegistryGetTags(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("error starting master: %v", err)
 	}
-
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("error getting cluster admin client: %v", err)
 	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("error getting cluster admin client config: %v", err)
+	}
+	adminUser := "admin"
+	adminClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), adminUser)
+	if err != nil {
+		t.Fatalf("error creating project: %v", err)
+	}
+	token, err := tokencmd.RequestToken(clusterAdminClientConfig, nil, adminUser, "password")
+	if err != nil {
+		t.Fatalf("error requesting token: %v", err)
 	}
 
 	config := `version: 0.1
@@ -94,6 +102,8 @@ http:
   addr: 127.0.0.1:5000
 storage:
   inmemory: {}
+auth:
+  openshift:
 middleware:
   repository:
     - name: openshift
@@ -113,11 +123,11 @@ middleware:
 			Name:      "test",
 		},
 	}
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
+	if _, err := adminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
 		t.Fatalf("error creating image stream: %s", err)
 	}
 
-	tags, err := getTags(stream.Name)
+	tags, err := getTags(stream.Name, adminUser, token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,6 +144,7 @@ middleware:
 	if err != nil {
 		t.Fatalf("error creating put request: %s", err)
 	}
+	req.SetBasicAuth(adminUser, token)
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
@@ -144,7 +155,7 @@ middleware:
 		t.Fatalf("unexpected put status code: %d", resp.StatusCode)
 	}
 
-	tags, err = getTags(stream.Name)
+	tags, err = getTags(stream.Name, adminUser, token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +167,12 @@ middleware:
 	}
 
 	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, dgst.String())
-	resp, err = http.Get(url)
+	req, err = http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatalf("error creating request: %v", err)
+	}
+	req.SetBasicAuth(adminUser, token)
+	resp, err = client.Do(req)
 	if err != nil {
 		t.Fatalf("error retrieving manifest from registry: %s", err)
 	}
@@ -176,7 +192,7 @@ middleware:
 		t.Fatalf("unexpected manifest tag: %s", retrievedManifest.Tag)
 	}
 
-	image, err := clusterAdminClient.ImageStreamImages(testutil.Namespace()).Get(stream.Name, dgst.String())
+	image, err := adminClient.ImageStreamImages(testutil.Namespace()).Get(stream.Name, dgst.String())
 	if err != nil {
 		t.Fatalf("error getting imageStreamImage: %s", err)
 	}
@@ -191,9 +207,15 @@ middleware:
 	}
 }
 
-func getTags(repoName string) ([]string, error) {
-	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/tags/list", testutil.Namespace(), repoName)
-	resp, err := http.Get(url)
+func getTags(streamName, adminUser, token string) ([]string, error) {
+	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/tags/list", testutil.Namespace(), streamName)
+	client := http.DefaultClient
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return []string{}, fmt.Errorf("error creating request: %v", err)
+	}
+	req.SetBasicAuth(adminUser, token)
+	resp, err := client.Do(req)
 	if err != nil {
 		return []string{}, fmt.Errorf("error retrieving tags from registry: %s", err)
 	}
