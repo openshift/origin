@@ -213,6 +213,7 @@ echo "templates: ok"
 
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
+osc describe pod hello-openshift
 osc delete pods hello-openshift
 echo "pods: ok"
 
