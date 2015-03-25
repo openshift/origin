@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/ghodss/yaml"
 	"github.com/spf13/pflag"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -444,9 +443,5 @@ func WriteMaster(config *configapi.MasterConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	content, err := yaml.JSONToYAML(json)
-	if err != nil {
-		return nil, err
-	}
-	return content, nil
+	return json, err
 }
