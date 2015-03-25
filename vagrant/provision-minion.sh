@@ -4,6 +4,7 @@ source $(dirname $0)/provision-config.sh
 
 MINION_IP=$4
 OPENSHIFT_SDN=$6
+MINION_INDEX=$5
 
 # Setup hosts file to support ping by hostname to master
 if [ ! "$(cat /etc/hosts | grep $MASTER_NAME)" ]; then
@@ -44,6 +45,8 @@ cp -r /vagrant/openshift.local.certificates /
 chown -R vagrant.vagrant /openshift.local.certificates
 sed -ie "s/10.0.2.15/${MASTER_IP}/g" /openshift.local.certificates/admin/.kubeconfig
 
+# get the minion name, index is 1-based
+minion_name=${MINION_NAMES[$MINION_INDEX-1]}
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-node.service
 [Unit]
@@ -52,7 +55,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/admin/.kubeconfig
+ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/node-${minion_name}/.kubeconfig
 Restart=on-failure
 RestartSec=10s
 
@@ -66,8 +69,8 @@ systemctl enable openshift-node.service
 systemctl start openshift-node.service
 
 # Set up the KUBECONFIG environment variable for use by the client
-echo 'export KUBECONFIG=/openshift.local.certificates/admin/.kubeconfig' >> /root/.bash_profile
-echo 'export KUBECONFIG=/openshift.local.certificates/admin/.kubeconfig' >> /home/vagrant/.bash_profile
+echo 'export KUBECONFIG=/openshift.local.certificates/node-${minion_name}/.kubeconfig' >> /root/.bash_profile
+echo 'export KUBECONFIG=/openshift.local.certificates/node-${minion_name}/.kubeconfig' >> /home/vagrant/.bash_profile
 
 # Register with the master
 #curl -X POST -H 'Accept: application/json' -d "{\"kind\":\"Minion\", \"id\":"${MINION_IP}", \"apiVersion\":\"v1beta1\", \"hostIP\":"${MINION_IP}" }" http://${MASTER_IP}:8080/api/v1beta1/minions
