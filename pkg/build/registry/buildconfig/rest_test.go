@@ -255,6 +255,37 @@ func mockBuildConfig() *api.BuildConfig {
 	}
 }
 
+func mockBuildConfigImageRef() *api.BuildConfig {
+	return &api.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "data-build",
+			Namespace: kapi.NamespaceDefault,
+			Labels: map[string]string{
+				"name": "data-build",
+			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					URI: "http://my.build.com/the/build/Dockerfile",
+				},
+			},
+			Strategy: api.BuildStrategy{
+				Type: api.STIBuildStrategyType,
+				STIStrategy: &api.STIBuildStrategy{
+					From: &kapi.ObjectReference{
+						Name: "builder/image",
+					},
+				},
+			},
+			Output: api.BuildOutput{
+				DockerImageReference: "repository/data-build",
+			},
+		},
+	}
+}
+
 func TestUpdateBuildConfig(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
@@ -290,69 +321,143 @@ func TestUpdateBuildConfigError(t *testing.T) {
 func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
-	failureCases := map[string]api.BuildConfig{
+	failureCases := map[string]struct {
+		expectSuccess bool
+		data          api.BuildConfig
+	}{
 		"blank sourceURI": {
-			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "",
+			false,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "abc"},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "",
+						},
 					},
-				},
-				Strategy: api.BuildStrategy{
-					Type: api.STIBuildStrategyType,
-					STIStrategy: &api.STIBuildStrategy{
-						Image: "builder/image",
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							From: &kapi.ObjectReference{
+								Name: "builder/image",
+							},
+						},
 					},
-				},
-				Output: api.BuildOutput{
-					DockerImageReference: "data/image",
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
+					},
 				},
 			},
 		},
 		"blank DockerImageReference": {
-			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "http://github.com/test/source",
+			true,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "abc"},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
 					},
-				},
-				Output: api.BuildOutput{
-					DockerImageReference: "",
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							From: &kapi.ObjectReference{
+								Name: "builder/image",
+							},
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "",
+					},
 				},
 			},
 		},
-		"blank Image": {
-			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "http://github.com/test/source",
+		"blank From.Name and blank Image": {
+			false,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "abc"},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Strategy: api.BuildStrategy{
+						Type:        api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
 					},
 				},
-				Strategy: api.BuildStrategy{
-					Type: api.STIBuildStrategyType,
-					STIStrategy: &api.STIBuildStrategy{
-						Image: "",
+			},
+		},
+		"blank From.Name and Image present": {
+			true,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "abc"},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							Image: "builder/image",
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
 					},
 				},
-				Output: api.BuildOutput{
-					DockerImageReference: "data/image",
+			},
+		},
+		"blank Image and From.Name present": {
+			true,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "abc"},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							From: &kapi.ObjectReference{
+								Name: "builder/image",
+							},
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
+					},
 				},
 			},
 		},
 	}
-	for desc, failureCase := range failureCases {
-		c, err := storage.Create(kapi.NewDefaultContext(), &failureCase)
-		if c != nil {
-			t.Errorf("%s: Expected nil object", desc)
-		}
-		if !errors.IsInvalid(err) {
-			t.Errorf("%s: Expected to get an invalid resource error, got %v", desc, err)
+	for desc, testCase := range failureCases {
+		c, err := storage.Create(kapi.NewDefaultContext(), &testCase.data)
+		if testCase.expectSuccess {
+			if c == nil {
+				t.Errorf("%s: Expected success, got error: %s", desc, err)
+			}
+		} else {
+			if c != nil {
+				t.Errorf("%s: Expected nil object", desc)
+			}
+			if !errors.IsInvalid(err) {
+				t.Errorf("%s: Expected to get an invalid resource error, got %v", desc, err)
+			}
 		}
 	}
 }
@@ -360,83 +465,175 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 func TestBuildRESTValidatesUpdate(t *testing.T) {
 	mockRegistry := test.BuildConfigRegistry{}
 	storage := REST{&mockRegistry}
-	failureCases := map[string]api.BuildConfig{
+	failureCases := map[string]struct {
+		expectSuccess bool
+		data          api.BuildConfig
+	}{
 		"empty ID": {
-			ObjectMeta: kapi.ObjectMeta{Name: ""},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "http://github.com/test/source",
-					},
+			false,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "",
+					Namespace: kapi.NamespaceDefault,
 				},
-				Output: api.BuildOutput{
-					DockerImageReference: "data/image",
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
+					},
 				},
 			},
 		},
 		"blank sourceURI": {
-			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "",
-					},
+			false,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "abc",
+					Namespace: kapi.NamespaceDefault,
 				},
-				Strategy: api.BuildStrategy{
-					Type: api.STIBuildStrategyType,
-					STIStrategy: &api.STIBuildStrategy{
-						Image: "builder/image",
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "",
+						},
 					},
-				},
-				Output: api.BuildOutput{
-					DockerImageReference: "data/image",
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							From: &kapi.ObjectReference{
+								Name: "builder/image",
+							},
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
+					},
 				},
 			},
 		},
 		"blank DockerImageReference": {
-			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "http://github.com/test/source",
-					},
+			false,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "abc",
+					Namespace: kapi.NamespaceDefault,
 				},
-				Output: api.BuildOutput{
-					DockerImageReference: "",
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "",
+					},
 				},
 			},
 		},
-		"blank Image on STIBuildType": {
-			ObjectMeta: kapi.ObjectMeta{Name: "abc"},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "http://github.com/test/source",
+		"blank From.Name and blank Image": {
+			false,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "abc",
+					Namespace: kapi.NamespaceDefault,
+				},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							From: &kapi.ObjectReference{
+								Name: "",
+							},
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
 					},
 				},
-				Strategy: api.BuildStrategy{
-					Type: api.STIBuildStrategyType,
-					STIStrategy: &api.STIBuildStrategy{
-						Image: "",
+			},
+		},
+		"blank From.Name and Image present": {
+			true,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "abc",
+					Namespace: kapi.NamespaceDefault,
+				},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							Image: "builder/image",
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
 					},
 				},
-				Output: api.BuildOutput{
-					DockerImageReference: "data/image",
+			},
+		},
+		"blank Image and From.Name present": {
+			true,
+			api.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "abc",
+					Namespace: kapi.NamespaceDefault,
+				},
+				Parameters: api.BuildParameters{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/test/source",
+						},
+					},
+					Strategy: api.BuildStrategy{
+						Type: api.STIBuildStrategyType,
+						STIStrategy: &api.STIBuildStrategy{
+							From: &kapi.ObjectReference{
+								Name: "imagerepo",
+							},
+						},
+					},
+					Output: api.BuildOutput{
+						DockerImageReference: "data/image",
+					},
 				},
 			},
 		},
 	}
-	for desc, failureCase := range failureCases {
-		c, created, err := storage.Update(kapi.NewDefaultContext(), &failureCase)
-		if c != nil || created {
-			t.Errorf("%s: Expected nil object", desc)
-		}
-		if !errors.IsInvalid(err) {
-			t.Errorf("%s: Expected to get an invalid resource error, got %v", desc, err)
+
+	for desc, testCase := range failureCases {
+		c, created, err := storage.Update(kapi.NewDefaultContext(), &testCase.data)
+		if testCase.expectSuccess {
+			if c == nil {
+				t.Errorf("%s: Expected success, error: %s", desc, err)
+			}
+		} else {
+			if c != nil || created {
+				t.Errorf("%s: Expected nil object", desc)
+			}
+			if !errors.IsInvalid(err) {
+				t.Errorf("%s: Expected to get an invalid resource error, got %v", desc, err)
+			}
 		}
 	}
 }
@@ -485,5 +682,4 @@ func checkExpectedNamespaceError(t *testing.T, err error) {
 			t.Errorf("Expected '"+expectedError+"' error, got '%v'", err.Error())
 		}
 	}
-
 }
