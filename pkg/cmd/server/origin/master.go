@@ -1,7 +1,10 @@
 package origin
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,6 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -429,8 +433,28 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 
 // forbidden renders a simple forbidden error
 func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
+	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).
+	// We don't have direct access to kind or name (not that those apply either in the general case)
+	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
+	// that makes sense when a human reads it.
+	forbiddenError, _ := kapierror.NewForbidden("", "", errors.New("")).(*kapierror.StatusError)
+	forbiddenError.ErrStatus.Message = fmt.Sprintf("%q is forbidden because %s", req.RequestURI, reason)
+
+	// TODO: this serialization is broken in the general case.  It chooses the latest, but
+	// it should choose the serialization based on the codec for the uri requested.  What is coded here
+	// is better than not returning a status object at all, but needs to be fixed once authorization is
+	// tied into the APIInstaller itself.  Then we'll only have the wrong codec for non-resource requests
+	formatted := &bytes.Buffer{}
+	output, err := klatest.Codec.Encode(&forbiddenError.ErrStatus)
+	if err != nil {
+		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
+	} else {
+		_ = json.Indent(formatted, output, "", "  ")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
-	fmt.Fprintf(w, "Forbidden: %q %s", req.RequestURI, reason)
+	w.Write(formatted.Bytes())
 }
 
 // RunProjectAuthorizationCache starts the project authorization cache
