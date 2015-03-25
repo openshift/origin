@@ -52,7 +52,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/admin/.kubeconfig --master=https://${MASTER_IP}:8443
+ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/admin/.kubeconfig
 Restart=on-failure
 RestartSec=10s
 
