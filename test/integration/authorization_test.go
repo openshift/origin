@@ -49,9 +49,8 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	// TODO make kube and origin authorization failures cause a kapierror.Forbidden
 	_, err = markClient.Deployments("hammer-project").List(labels.Everything(), fields.Everything())
-	if (err == nil) || (!strings.Contains(err.Error(), "Forbidden")) {
+	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden error, but didn't get one")
 	}
 
@@ -61,9 +60,8 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	// TODO make kube and origin authorization failures cause a kapierror.Forbidden
 	_, err = markClient.Projects().Get("hammer-project")
-	if (err == nil) || (!strings.Contains(err.Error(), "Forbidden")) {
+	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden error, but didn't get one")
 	}
 
@@ -245,7 +243,7 @@ func TestResourceAccessReview(t *testing.T) {
 		test := resourceAccessReviewTest{
 			clientInterface: markClient.RootResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
-			err:             "Forbidden",
+			err:             "forbidden",
 		}
 		test.run(t)
 	}
@@ -372,7 +370,7 @@ func TestSubjectAccessReview(t *testing.T) {
 	subjectAccessReviewTest{
 		clientInterface: haroldClient.SubjectAccessReviews("mallet-project"),
 		review:          askCanEdgarDeletePods,
-		err:             "Forbidden",
+		err:             "forbidden",
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.SubjectAccessReview{User: "anypassword:harold", Verb: "update", Resource: "projects"}
@@ -399,7 +397,7 @@ func TestSubjectAccessReview(t *testing.T) {
 	subjectAccessReviewTest{
 		clientInterface: haroldClient.RootSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,
-		err:             "Forbidden",
+		err:             "forbidden",
 	}.run(t)
 
 	askCanICreatePods := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "projects"}
