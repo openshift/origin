@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"io"
 	"path"
 	"path/filepath"
 
@@ -12,12 +13,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-type CreateAllCertsOptions struct {
+const CreateMasterCertsCommandName = "create-master-certs"
+
+type CreateMasterCertsOptions struct {
 	CertDir    string
 	SignerName string
 
 	Hostnames util.StringList
-	NodeList  util.StringList
 
 	APIServerURL       string
 	PublicAPIServerURL string
@@ -25,24 +27,25 @@ type CreateAllCertsOptions struct {
 	Overwrite bool
 }
 
-func NewCommandCreateAllCerts() *cobra.Command {
-	options := &CreateAllCertsOptions{}
+func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Writer) *cobra.Command {
+	options := &CreateMasterCertsOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "create-all-certs",
-		Short: "Create all certificates for OpenShift All-In-One",
+		Use:   commandName,
+		Short: "Create all certificates for an OpenShift master.  To create node certificates, try openshift admin create-node-config",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
 
-			if err := options.CreateAllCerts(); err != nil {
+			if err := options.CreateMasterCerts(); err != nil {
 				glog.Fatal(err)
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -52,13 +55,12 @@ func NewCommandCreateAllCerts() *cobra.Command {
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
-	flags.Var(&options.NodeList, "nodes", "The names of all static nodes you'd like to generate certificates for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
 	return cmd
 }
 
-func (o CreateAllCertsOptions) Validate(args []string) error {
+func (o CreateMasterCertsOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported")
 	}
@@ -78,7 +80,7 @@ func (o CreateAllCertsOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o CreateAllCertsOptions) CreateAllCerts() error {
+func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	glog.V(2).Infof("Creating all certs with: %#v", o)
 
 	signerCertOptions := CreateSignerCertOptions{
@@ -130,63 +132,6 @@ func (o CreateAllCertsOptions) CreateAllCerts() error {
 			UserNick: clientCertInfo.SubDir,
 
 			KubeConfigFile: path.Join(filepath.Dir(clientCertOptions.CertFile), ".kubeconfig"),
-		}
-		if err := createKubeConfigOptions.Validate(nil); err != nil {
-			return err
-		}
-		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
-			return err
-		}
-	}
-
-	for _, nodeName := range o.NodeList {
-		serverCertInfo := DefaultNodeServingCertInfo(o.CertDir, nodeName)
-		nodeServerCertOptions := CreateServerCertOptions{
-			GetSignerCertOptions: &getSignerCertOptions,
-
-			CertFile: serverCertInfo.CertFile,
-			KeyFile:  serverCertInfo.KeyFile,
-
-			Hostnames: []string{nodeName},
-			Overwrite: o.Overwrite,
-		}
-
-		if err := nodeServerCertOptions.Validate(nil); err != nil {
-			return err
-		}
-		if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
-			return err
-		}
-
-		clientCertInfo := DefaultNodeClientCertInfo(o.CertDir, nodeName)
-
-		nodeCertOptions := CreateNodeClientCertOptions{
-			GetSignerCertOptions: &getSignerCertOptions,
-
-			CertFile: clientCertInfo.CertFile,
-			KeyFile:  clientCertInfo.KeyFile,
-
-			NodeName:  nodeName,
-			Overwrite: o.Overwrite,
-		}
-		if err := nodeCertOptions.Validate(nil); err != nil {
-			return err
-		}
-		if _, err := nodeCertOptions.CreateNodeClientCert(); err != nil {
-			return err
-		}
-
-		createKubeConfigOptions := CreateKubeConfigOptions{
-			APIServerURL:       o.APIServerURL,
-			PublicAPIServerURL: o.PublicAPIServerURL,
-			APIServerCAFile:    getSignerCertOptions.CertFile,
-			ServerNick:         "master",
-
-			CertFile: nodeCertOptions.CertFile,
-			KeyFile:  nodeCertOptions.KeyFile,
-			UserNick: nodeName,
-
-			KubeConfigFile: DefaultNodeKubeConfigFile(o.CertDir, nodeName),
 		}
 		if err := createKubeConfigOptions.Validate(nil); err != nil {
 			return err
