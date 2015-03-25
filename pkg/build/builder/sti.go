@@ -3,10 +3,12 @@ package builder
 import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	image "github.com/openshift/origin/pkg/image/api"
 	stiapi "github.com/openshift/source-to-image/pkg/api"
 	sti "github.com/openshift/source-to-image/pkg/build/strategies"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 )
 
 // STIBuilder performs an STI build given the build object
@@ -59,6 +61,19 @@ func (s *STIBuilder) Build() error {
 		return err
 	}
 	if len(s.build.Parameters.Output.DockerImageReference) != 0 {
+		ref, err := image.ParseDockerImageReference(s.build.Parameters.Output.DockerImageReference)
+		if err != nil {
+			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+		}
+		// Get the Docker push authentication
+		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
+			ref.Registry,
+			dockercfg.PushAuthType,
+		)
+		if authPresent {
+			glog.Infof("Using provided Docker push secrets (%s)", pushAuthConfig.Email)
+			s.auth = pushAuthConfig
+		}
 		return pushImage(s.dockerClient, tag, s.auth)
 	}
 	return nil

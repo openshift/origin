@@ -44,13 +44,15 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
 	}
 
-	if strategy := build.Parameters.Strategy.STIStrategy; len(strategy.Env) > 0 {
+	strategy := build.Parameters.Strategy.STIStrategy
+	if len(strategy.Env) > 0 {
 		containerEnv = append(containerEnv, strategy.Env...)
 	}
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: build.PodName,
+			Name:      build.PodName,
+			Namespace: build.Namespace,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
@@ -69,6 +71,6 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	setupDockerSocket(pod)
-	setupDockerConfig(pod)
+	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
 	return pod, nil
 }

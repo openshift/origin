@@ -165,6 +165,10 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 	}
 
 	formatString(out, "Output Spec", p.Output.DockerImageReference)
+	if len(p.Output.PushSecretName) > 0 {
+		formatString(out, "Push Secret", p.Output.PushSecretName)
+	}
+
 	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
 		buildDescriber := &BuildDescriber{}
 

@@ -36,7 +36,6 @@ func run(builderFactory factoryFunc) {
 	if err := latest.Codec.DecodeInto([]byte(buildStr), &build); err != nil {
 		glog.Fatalf("Unable to parse build: %v", err)
 	}
-
 	var (
 		authcfg     docker.AuthConfiguration
 		authPresent bool
@@ -53,7 +52,10 @@ func run(builderFactory factoryFunc) {
 		if err != nil {
 			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
 		}
-		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(ref.Registry)
+		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(
+			ref.Registry,
+			dockercfg.PullAuthType,
+		)
 	}
 	b := builderFactory(client, endpoint, authcfg, authPresent, &build)
 	if err = b.Build(); err != nil {
