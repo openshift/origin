@@ -36,7 +36,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	if len(container.Env) != 1 {
-		t.Fatalf("Expected 1 elements in Env table, got %d", len(container.Env))
+		t.Fatalf("Expected 1 element in Env table, got %d", len(container.Env))
 	}
 	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{

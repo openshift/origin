@@ -99,3 +99,26 @@ func TestSetupBuildEnvFails(t *testing.T) {
 		t.Errorf("unexpected non-error: %v", err)
 	}
 }
+
+func TestMergeEnvWithoutDuplicates(t *testing.T) {
+	input := []kapi.EnvVar{
+		{Name: "foo", Value: "bar"},
+		{Name: "input", Value: "inputVal"},
+	}
+	output := []kapi.EnvVar{
+		{Name: "foo", Value: "test"},
+	}
+
+	mergeEnvWithoutDuplicates(input, &output)
+
+	if len(output) != 2 {
+		t.Errorf("Expected output to contain input items len!=2 (%d)", len(output))
+	}
+
+	if output[0].Name != "foo" {
+		t.Errorf("Expected output to have env 'foo', got %+v", output[0])
+	}
+	if output[0].Value != "bar" {
+		t.Errorf("Expected output env 'foo' to have value 'bar', got %+v", output[0])
+	}
+}

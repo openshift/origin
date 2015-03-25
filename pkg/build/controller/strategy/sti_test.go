@@ -41,8 +41,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 3 {
-		t.Fatalf("Expected 3 elements in Env table, got %d", len(container.Env))
+	if len(container.Env) != 4 {
+		t.Fatalf("Expected 4 elements in Env table, got %d", len(container.Env))
 	}
 	found := false
 	for _, v := range container.Env {
