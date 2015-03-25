@@ -25,12 +25,12 @@ func NewCmdAddUser(f *clientcmd.Factory) *cobra.Command {
 	options := &AddUserOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "add-user <role> <user> [user]...",
-		Short: "add user to role",
-		Long:  `add user to role`,
+		Use:   "add-role-to-user",
+		Short: "add users to a role",
+		Long:  `add users to a role`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd) {
-				return
+			if !options.complete(cmd, args) {
+				glog.Fatalf("You must specify two arguments")
 			}
 
 			var err error
@@ -51,10 +51,8 @@ func NewCmdAddUser(f *clientcmd.Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *AddUserOptions) complete(cmd *cobra.Command) bool {
-	args := cmd.Flags().Args()
+func (o *AddUserOptions) complete(cmd *cobra.Command, args []string) bool {
 	if len(args) < 2 {
-		cmd.Help()
 		return false
 	}
 

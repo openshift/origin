@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
@@ -19,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -27,7 +27,7 @@ import (
 )
 
 const longDescription = `
-OpenShift for Admins
+OpenShift Application Platform
 
 OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
 
@@ -56,6 +56,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "osc":
 		cmd = cli.NewCommandCLI(basename, basename)
+	case "osadm":
+		cmd = admin.NewCommandAdmin(basename, basename)
 	default:
 		cmd = NewCommandOpenShift()
 	}
@@ -81,7 +83,7 @@ func NewCommandOpenShift() *cobra.Command {
 
 	startAllInOne, _ := start.NewCommandStartAllInOne()
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin())
+	root.AddCommand(admin.NewCommandAdmin("admin", "openshift admin"))
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
 	root.AddCommand(newExperimentalCommand("openshift", "ex"))

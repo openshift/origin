@@ -24,7 +24,7 @@ func NewCmdRemoveUser(f *clientcmd.Factory) *cobra.Command {
 	options := &removeUserOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "remove-user <role> <user> [user]...",
+		Use:   "remove-role-from-user <role> <user> [user]...",
 		Short: "remove user from role",
 		Long:  `remove user from role`,
 		Run: func(cmd *cobra.Command, args []string) {

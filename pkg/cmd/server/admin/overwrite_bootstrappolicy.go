@@ -29,14 +29,16 @@ import (
 type OverwriteBootstrapPolicyOptions struct {
 	File             string
 	MasterConfigFile string
+	Force            bool
+	Out              io.Writer
 }
 
-func NewCommandOverwriteBootstrapPolicy() *cobra.Command {
-	options := &OverwriteBootstrapPolicyOptions{}
+func NewCommandOverwriteBootstrapPolicy(out io.Writer) *cobra.Command {
+	options := &OverwriteBootstrapPolicyOptions{Out: out}
 
 	cmd := &cobra.Command{
 		Use:   "overwrite-policy",
-		Short: "Overwrite policy for OpenShift.  DANGER: THIS BYPASSES ALL ACCESS CONTROL CHECKS AND WRITES DIRECTLY TO ETCD!",
+		Short: "Reset the policy to the default values",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				fmt.Println(err.Error())
