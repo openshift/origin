@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -93,7 +94,8 @@ import (
 )
 
 const (
-	OpenShiftAPIPrefix        = "/osapi"
+	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
+	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
 	OpenShiftRouteSubdomain   = "router.default.local"
@@ -269,6 +271,55 @@ func initAPIVersionRoute(root *restful.WebService, version string) {
 		Consumes(restful.MIME_JSON))
 }
 
+// If we know the location of the asset server, redirect to it when / is requested
+// and the Accept header supports text/html
+func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		accept := req.Header.Get("Accept")
+		if req.URL.Path == "/" && strings.Contains(accept, "text/html") {
+			http.Redirect(w, req, assetPublicURL, http.StatusFound)
+		} else {
+			// Dispatch to the next handler
+			handler.ServeHTTP(w, req)
+		}
+	})
+}
+
+// TODO We would like to use the IndexHandler from k8s but we do not yet have a
+// MuxHelper to track all registered paths
+func indexAPIPaths(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/" {
+			// TODO once we have a MuxHelper we will not need to hardcode this list of paths
+			object := api.RootPaths{Paths: []string{
+				"/api",
+				"/api/v1beta1",
+				"/api/v1beta2",
+				"/api/v1beta3",
+				"/healthz",
+				"/healthz/ping",
+				"/logs/",
+				"/metrics",
+				"/osapi",
+				"/osapi/v1beta1",
+				"/swaggerapi/",
+			}}
+			// TODO it would be nice if apiserver.writeRawJSON was not private
+			output, err := json.MarshalIndent(object, "", "  ")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(output)
+		} else {
+			// Dispatch to the next handler
+			handler.ServeHTTP(w, req)
+		}
+	})
+}
+
 // Run launches the OpenShift master. It takes optional installers that may install additional endpoints into the server.
 // All endpoints get configured CORS behavior
 // Protected installers' endpoints are protected by API authentication and authorization.
@@ -293,6 +344,9 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	for _, i := range unprotected {
 		extra = append(extra, i.InstallAPI(open)...)
 	}
+
+	handler = indexAPIPaths(handler)
+
 	open.Handle("/", handler)
 
 	// install swagger
@@ -308,6 +362,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// add CORS support
 	if origins := c.ensureCORSAllowedOrigins(); len(origins) != 0 {
 		handler = apiserver.CORS(handler, origins, nil, nil, "true")
+	}
+
+	if c.Options.AssetConfig != nil {
+		handler = assetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 	}
 
 	// Make the outermost filter the requestContextMapper to ensure all components share the same context

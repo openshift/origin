@@ -82,27 +82,10 @@ func TestMasterPublicAddressExplicit(t *testing.T) {
 
 func TestAssetPublicAddressDefaulting(t *testing.T) {
 	master := "http://example.com:9011"
-	expected := "http://example.com:9012"
+	expected := "http://example.com:9011/console/"
 
 	masterArgs := NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(master)
-
-	actual, err := masterArgs.GetAssetPublicAddress()
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if expected != actual.String() {
-		t.Errorf("expected %v, got %v", expected, actual)
-	}
-}
-
-func TestAssetPublicAddressExplicit(t *testing.T) {
-	master := "http://example.com:9011"
-	expected := "https://example.com:9014"
-
-	masterArgs := NewDefaultMasterArgs()
-	masterArgs.MasterAddr.Set(master)
-	masterArgs.AssetPublicAddr.Set(expected)
 
 	actual, err := masterArgs.GetAssetPublicAddress()
 	if err != nil {
@@ -115,24 +98,10 @@ func TestAssetPublicAddressExplicit(t *testing.T) {
 
 func TestAssetBindAddressDefaulting(t *testing.T) {
 	bind := "1.2.3.4:9011"
-	expected := "1.2.3.4:9012"
+	expected := "1.2.3.4:9011"
 
 	masterArgs := NewDefaultMasterArgs()
 	masterArgs.ListenArg.ListenAddr.Set(bind)
-
-	actual := masterArgs.GetAssetBindAddress()
-	if expected != actual {
-		t.Errorf("expected %v, got %v", expected, actual)
-	}
-}
-
-func TestAssetBindAddressExplicit(t *testing.T) {
-	bind := "1.2.3.4:9011"
-	expected := "2.3.4.5:1234"
-
-	masterArgs := NewDefaultMasterArgs()
-	masterArgs.ListenArg.ListenAddr.Set(bind)
-	masterArgs.AssetBindAddr.Set(expected)
 
 	actual := masterArgs.GetAssetBindAddress()
 	if expected != actual {

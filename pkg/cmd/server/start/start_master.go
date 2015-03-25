@@ -353,17 +353,17 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}
 	unprotectedInstallers = append(unprotectedInstallers, authConfig)
 
-	var assetConfig *origin.AssetConfig
-	var assetColocated = false
+	var standaloneAssetConfig *origin.AssetConfig
 	if openshiftMasterConfig.AssetConfig != nil {
-		assetConfig, err := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
+		config, err := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
 		if err != nil {
 			return err
 		}
 
 		if openshiftMasterConfig.AssetConfig.ServingInfo.BindAddress == openshiftMasterConfig.ServingInfo.BindAddress {
-			assetColocated = true
-			unprotectedInstallers = append(unprotectedInstallers, assetConfig)
+			unprotectedInstallers = append(unprotectedInstallers, config)
+		} else {
+			standaloneAssetConfig = config
 		}
 	}
 
@@ -404,8 +404,8 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 
-	if assetConfig != nil && !assetColocated {
-		assetConfig.Run()
+	if standaloneAssetConfig != nil {
+		standaloneAssetConfig.Run()
 	}
 	if openshiftMasterConfig.DNSConfig != nil {
 		openshiftConfig.RunDNSServer()

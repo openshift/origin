@@ -42,10 +42,10 @@ angular
         if (injector) {
           var routeParams = injector.get("$routeParams");
           if (routeParams.project) {
-            return "/project/" + encodeURIComponent(routeParams.project) + "/" + path;
+            return "project/" + encodeURIComponent(routeParams.project) + "/" + path;
           }
         }
-        return "/project/:project/" + path;
+        return "project/:project/" + path;
       }
     };
 

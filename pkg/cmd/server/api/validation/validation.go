@@ -126,9 +126,10 @@ func ValidateAssetConfig(config *api.AssetConfig) errs.ValidationErrorList {
 	if len(urlErrs) > 0 {
 		allErrs = append(allErrs, urlErrs...)
 	}
-	// TODO: remove once this is configurable
-	if urlObj != nil && urlObj.Path != "/console" {
-		allErrs = append(allErrs, errs.NewFieldInvalid("publicURL", config.PublicURL, "must be located at the /console path"))
+	if urlObj != nil {
+		if !strings.HasSuffix(urlObj.Path, "/") {
+			allErrs = append(allErrs, errs.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
+		}
 	}
 
 	return allErrs
@@ -141,6 +142,23 @@ func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 
 	if config.AssetConfig != nil {
 		allErrs = append(allErrs, ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
+		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress
+		if colocated {
+			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
+			if publicURL.Path == "/" {
+				allErrs = append(allErrs, errs.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
+			}
+		}
+
+		if config.OAuthConfig != nil && config.OAuthConfig.AssetPublicURL != config.AssetConfig.PublicURL {
+			allErrs = append(allErrs,
+				errs.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
+				errs.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
+			)
+		}
+
+		// TODO warn when the CORS list does not include the assetConfig.publicURL host:port
+		// only warn cause they could handle CORS headers themselves in a proxy
 	}
 
 	if config.DNSConfig != nil {

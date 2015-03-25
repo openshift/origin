@@ -13,14 +13,12 @@ TIME_MIN=$((60 * $TIME_SEC))
 
 # TODO: Randomize these ports
 export OS_MASTER_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
-export OS_ASSETS_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
 export OS_DNS_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
 export ETCD_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
 
 DEFAULT_SERVER_IP=$(ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | awk '{print $2}')
 
 export OS_MASTER_ADDR=${DEFAULT_SERVER_IP}:${OS_MASTER_PORT}
-export OS_ASSETS_ADDR=${DEFAULT_SERVER_IP}:${OS_ASSETS_PORT}
 export OS_DNS_ADDR=${DEFAULT_SERVER_IP}:${OS_DNS_PORT}
 export KUBERNETES_MASTER="https://${OS_MASTER_ADDR}"
 
