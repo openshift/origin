@@ -12,16 +12,16 @@ import (
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const longDescription = `Logs in to the OpenShift server and save the session information to a config file that 
-will be used by every subsequent command.
+const longDescription = `Logs in to the OpenShift server and saves a config file that
+will be used by subsequent commands.
 
 First-time users of the OpenShift client must run this command to configure the server,
-establish a session against it and save it to a configuration file, usually in the
-user's home directory.
+establish a session against it, and save it to a configuration file. The default
+configuration will be in your home directory under ".config/openshift/.config".
 
-The information required to login, like username and password or a session token, and 
+The information required to login, like username and password, a session token, or
 the server details, can be provided through flags. If not provided, the command will
-prompt for user input if needed.
+prompt for user input as needed.
 `
 
 func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
@@ -44,7 +44,7 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 			checkErr(err)
 
 			if newFileCreated {
-				fmt.Println("Welcome to OpenShift v3! Use 'osc --help' for a list of commands available.")
+				fmt.Println("Welcome to OpenShift! See 'osc help' for to get started.")
 			}
 		},
 	}
