@@ -51,8 +51,6 @@ import (
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	"github.com/openshift/origin/pkg/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 )
 
 const (
@@ -378,17 +376,19 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	switch authHandlerType {
 	case AuthHandlerGithub, AuthHandlerGoogle:
 		callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, string(authHandlerType))
-		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authHandlerType) /*for now*/, userRegistry)
+		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
 
 		var oauthProvider external.Provider
 		if authHandlerType == AuthHandlerGoogle {
-			oauthProvider = google.NewProvider(c.GoogleClientID, c.GoogleClientSecret)
+			// TODO: use configured providerName
+			oauthProvider = google.NewProvider("google", c.GoogleClientID, c.GoogleClientSecret)
 		} else if authHandlerType == AuthHandlerGithub {
-			oauthProvider = github.NewProvider(c.GithubClientID, c.GithubClientSecret)
+			// TODO: use configured providerName
+			oauthProvider = github.NewProvider("github", c.GithubClientID, c.GithubClientSecret)
 		}
 
 		state := external.DefaultState()
+		// TODO: use configured providerName
 		oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.MasterPublicAddr+callbackPath, successHandler, errorHandler, identityMapper)
 		if err != nil {
 			return nil, fmt.Errorf("unexpected error: %v", err)
@@ -421,8 +421,7 @@ func (c *AuthConfig) getPasswordAuthenticator() (authenticator.Password, error) 
 	// TODO presumably we'll want either a list of what we've got or a way to describe a registry of these
 	// hard-coded strings as a stand-in until it gets sorted out
 	passwordAuthType := c.PasswordAuth
-	userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(passwordAuthType) /*for now*/, userRegistry)
+	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
 
 	var passwordAuth authenticator.Password
 	switch passwordAuthType {
@@ -431,10 +430,12 @@ func (c *AuthConfig) getPasswordAuthenticator() (authenticator.Password, error) 
 		if len(basicAuthURL) == 0 {
 			return nil, fmt.Errorf("BasicAuthURL is required to support basic password auth")
 		}
-		passwordAuth = basicauthpassword.New(basicAuthURL, identityMapper)
+		// TODO: use configured providerName
+		passwordAuth = basicauthpassword.New("basicauthurl", basicAuthURL, identityMapper)
 	case PasswordAuthAnyPassword:
 		// Accepts any username and password
-		passwordAuth = allowanypassword.New(identityMapper)
+		// TODO: use configured providerName
+		passwordAuth = allowanypassword.New("anypassword", identityMapper)
 	case PasswordAuthDeny:
 		// Deny any username and password
 		passwordAuth = denypassword.New()
@@ -443,7 +444,8 @@ func (c *AuthConfig) getPasswordAuthenticator() (authenticator.Password, error) 
 		if len(htpasswdFile) == 0 {
 			return nil, fmt.Errorf("HTPasswdFile is required to support htpasswd auth")
 		}
-		if htpasswordAuth, err := htpasswd.New(htpasswdFile, identityMapper); err != nil {
+		// TODO: use configured providerName
+		if htpasswordAuth, err := htpasswd.New("htpasswd", htpasswdFile, identityMapper); err != nil {
 			return nil, fmt.Errorf("Error loading htpasswd file %s: %v", htpasswdFile, err)
 		} else {
 			passwordAuth = htpasswordAuth
@@ -500,12 +502,12 @@ func (c *AuthConfig) getAuthenticationRequestHandlerFromType(authRequestHandlerT
 			return nil, fmt.Errorf("Unknown TokenStore %s. Must be oauth or file.  The oauth server cannot start!", c.TokenStore)
 		}
 	case AuthRequestHandlerRequestHeader:
-		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authRequestHandlerType) /*for now*/, userRegistry)
+		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
 		authRequestConfig := &headerrequest.Config{
 			UserNameHeaders: c.RequestHeaders,
 		}
-		authRequestHandler = headerrequest.NewAuthenticator(authRequestConfig, identityMapper)
+		// TODO: use configured providerName
+		authRequestHandler = headerrequest.NewAuthenticator("requestheader", authRequestConfig, identityMapper)
 
 		// Wrap with an x509 verifier
 		if len(c.RequestHeaderCAFile) > 0 {

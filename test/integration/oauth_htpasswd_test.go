@@ -72,7 +72,7 @@ func TestHTPasswd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if user.Name != "htpasswd:username" {
-		t.Fatalf("Expected htpasswd:username as the user, got %v", user)
+	if user.Name != "username" {
+		t.Fatalf("Expected username as the user, got %v", user)
 	}
 }

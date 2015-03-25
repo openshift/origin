@@ -12,7 +12,10 @@ type UserIdentityMappingsInterface interface {
 
 // UserIdentityMappingInterface exposes methods on UserIdentityMapping resources.
 type UserIdentityMappingInterface interface {
-	CreateOrUpdate(*userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, bool, error)
+	Get(string) (*userapi.UserIdentityMapping, error)
+	Create(*userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error)
+	Update(*userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error)
+	Delete(string) error
 }
 
 // userIdentityMappings implements UserIdentityMappingsNamespacer interface
@@ -27,11 +30,29 @@ func newUserIdentityMappings(c *Client) *userIdentityMappings {
 	}
 }
 
-// CreateOrUpdate attempts to get or create a binding between a user and an identity. If user information
-// is provided, the server will check whether it matches the expected value. At this time the server will only allow creation
-// when the identity is new - future APIs may allow clients to bind additional identities to an account.
-func (c *userIdentityMappings) CreateOrUpdate(mapping *userapi.UserIdentityMapping) (result *userapi.UserIdentityMapping, created bool, err error) {
+// Get returns information about a particular mapping or an error
+func (c *userIdentityMappings) Get(name string) (result *userapi.UserIdentityMapping, err error) {
 	result = &userapi.UserIdentityMapping{}
-	err = c.r.Put().Resource("userIdentityMappings").Name(mapping.Name).Body(mapping).Do().WasCreated(&created).Into(result)
+	err = c.r.Get().Resource("userIdentityMappings").Name(name).Do().Into(result)
+	return
+}
+
+// Create creates a new mapping. Returns the server's representation of the mapping and error if one occurs.
+func (c *userIdentityMappings) Create(mapping *userapi.UserIdentityMapping) (result *userapi.UserIdentityMapping, err error) {
+	result = &userapi.UserIdentityMapping{}
+	err = c.r.Post().Resource("userIdentityMappings").Body(mapping).Do().Into(result)
+	return
+}
+
+// Update updates the mapping on server. Returns the server's representation of the mapping and error if one occurs.
+func (c *userIdentityMappings) Update(mapping *userapi.UserIdentityMapping) (result *userapi.UserIdentityMapping, err error) {
+	result = &userapi.UserIdentityMapping{}
+	err = c.r.Put().Resource("userIdentityMappings").Name(mapping.Name).Body(mapping).Do().Into(result)
+	return
+}
+
+// Delete deletes the mapping on server.
+func (c *userIdentityMappings) Delete(name string) (err error) {
+	err = c.r.Delete().Resource("userIdentityMappings").Name(name).Do().Error()
 	return
 }

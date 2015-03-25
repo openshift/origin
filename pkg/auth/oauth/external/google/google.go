@@ -21,11 +21,11 @@ const (
 )
 
 type provider struct {
-	clientID, clientSecret string
+	providerName, clientID, clientSecret string
 }
 
-func NewProvider(clientID, clientSecret string) external.Provider {
-	return provider{clientID, clientSecret}
+func NewProvider(providerName, clientID, clientSecret string) external.Provider {
+	return provider{providerName, clientID, clientSecret}
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
@@ -60,19 +60,19 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		return nil, false, err
 	}
 
-	id, _ := userdata["id"].(string)
-	email, _ := userdata["email"].(string)
-	if id == "" || email == "" {
+	subject, _ := userdata["sub"].(string)
+	if subject == "" {
 		return nil, false, errors.New("Could not retrieve Google id")
 	}
 
-	identity := &authapi.DefaultUserIdentityInfo{
-		UserName: id,
-		Extra: map[string]string{
-			"name":  email,
-			"email": email,
-		},
+	email, _ := userdata["email"].(string)
+	if email == "" {
+		return nil, false, errors.New("Could not retrieve Google email")
 	}
+
+	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, subject)
+	identity.Extra[authapi.IdentityLoginKey] = email
+	identity.Extra[authapi.IdentityEmailKey] = email
 	glog.V(4).Infof("identity=%v", identity)
 
 	return identity, true, nil

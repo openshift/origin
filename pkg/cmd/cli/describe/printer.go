@@ -42,8 +42,9 @@ var (
 	oauthAccessTokenColumns         = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
 	oauthAuthorizeTokenColumns      = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
 
-	userColumns                = []string{"NAME", "UID", "FULL NAME"}
-	userIdentityMappingColumns = []string{"NAME", "IDENTITY PROVIDER", "IDENTITY USERNAME", "USER NAME"}
+	userColumns                = []string{"NAME", "UID", "FULL NAME", "IDENTITIES"}
+	identityColumns            = []string{"NAME", "IDP NAME", "IDP USER NAME", "USER NAME", "USER UID"}
+	userIdentityMappingColumns = []string{"NAME", "IDENTITY", "USER NAME", "USER UID"}
 )
 
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
@@ -85,6 +86,9 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(oauthAuthorizeTokenColumns, printOAuthAuthorizeTokenList)
 
 	p.Handler(userColumns, printUser)
+	p.Handler(userColumns, printUserList)
+	p.Handler(identityColumns, printIdentity)
+	p.Handler(identityColumns, printIdentityList)
 	p.Handler(userIdentityMappingColumns, printUserIdentityMapping)
 	return p
 }
@@ -419,11 +423,32 @@ func printOAuthAuthorizeTokenList(list *oauthapi.OAuthAuthorizeTokenList, w io.W
 }
 
 func printUser(user *userapi.User, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", user.Name, user.UID, user.FullName)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", user.Name, user.UID, user.FullName, strings.Join(user.Identities, ", "))
 	return err
+}
+func printUserList(list *userapi.UserList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printUser(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printIdentity(identity *userapi.Identity, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", identity.Name, identity.ProviderName, identity.ProviderUserName, identity.User.Name, identity.User.UID)
+	return err
+}
+func printIdentityList(list *userapi.IdentityList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printIdentity(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func printUserIdentityMapping(mapping *userapi.UserIdentityMapping, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", mapping.Name, mapping.Identity.Provider, mapping.Identity.UserName, mapping.User.Name)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", mapping.Name, mapping.Identity.Name, mapping.User.Name, mapping.User.UID)
 	return err
 }

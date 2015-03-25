@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"strings"
 
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -8,37 +9,154 @@ import (
 	"github.com/openshift/origin/pkg/user/api"
 )
 
-func ValidateUserName(name string, prefix bool) (bool, string) {
+func ValidateUserName(name string, _ bool) (bool, string) {
 	if strings.Contains(name, "%") {
-		return false, `Usernames may not contain "%"`
+		return false, `may not contain "%"`
 	}
 	if strings.Contains(name, "/") {
-		return false, `Usernames may not contain "/"`
+		return false, `may not contain "/"`
+	}
+	if strings.Contains(name, ":") {
+		return false, `may not contain ":"`
 	}
 	if name == ".." {
-		return false, `Usernames may not equal ".."`
+		return false, `may not equal ".."`
 	}
 	if name == "." {
-		return false, `Usernames may not equal "."`
+		return false, `may not equal "."`
 	}
 	return true, ""
+}
+
+func ValidateIdentityName(name string, _ bool) (bool, string) {
+	if strings.Contains(name, "%") {
+		return false, `may not contain "%"`
+	}
+	if strings.Contains(name, "/") {
+		return false, `may not contain "/"`
+	}
+	if name == ".." {
+		return false, `may not equal ".."`
+	}
+	if name == "." {
+		return false, `may not equal "."`
+	}
+	parts := strings.Split(name, ":")
+	if len(parts) != 2 {
+		return false, `must be in the format <providerName>:<providerUserName>`
+	}
+	if len(parts[0]) == 0 {
+		return false, `must be in the format <providerName>:<providerUserName> with a non-empty providerName`
+	}
+	if len(parts[1]) == 0 {
+		return false, `must be in the format <providerName>:<providerUserName> with a non-empty providerUserName`
+	}
+	return true, ""
+}
+
+func ValidateIdentityProviderName(name string) (bool, string) {
+	if strings.Contains(name, "%") {
+		return false, `may not contain "%"`
+	}
+	if strings.Contains(name, "/") {
+		return false, `may not contain "/"`
+	}
+	if strings.Contains(name, ":") {
+		return false, `may not contain ":"`
+	}
+	return true, ""
+}
+
+func ValidateIdentityProviderUserName(name string) (bool, string) {
+	// Any provider user name must be a valid user name
+	return ValidateUserName(name, false)
 }
 
 func ValidateUser(user *api.User) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&user.ObjectMeta, false, ValidateUserName).Prefix("metadata")...)
+	for index, identity := range user.Identities {
+		if ok, msg := ValidateIdentityName(identity, false); !ok {
+			allErrs = append(allErrs, errs.NewFieldInvalid(fmt.Sprintf("identities[%d]", index), identity, msg))
+		}
+	}
+	return allErrs
+}
+
+func ValidateUserUpdate(user *api.User, old *api.User) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &user.ObjectMeta).Prefix("metadata")...)
 	return allErrs
 }
 
 func ValidateIdentity(identity *api.Identity) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&identity.ObjectMeta, false, ValidateIdentityName).Prefix("metadata")...)
+
+	if len(identity.ProviderName) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("providerName"))
+	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderName); !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid("providerName", identity.ProviderName, msg))
+	}
+
+	if len(identity.ProviderUserName) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("providerUserName"))
+	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderUserName); !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid("providerUserName", identity.ProviderUserName, msg))
+	}
+
+	if len(identity.ProviderName) > 0 && len(identity.ProviderUserName) > 0 {
+		expectedIdentityName := identity.ProviderName + ":" + identity.ProviderUserName
+		if identity.Name != expectedIdentityName {
+			allErrs = append(allErrs, errs.NewFieldInvalid("user.name", identity.User.Name, fmt.Sprintf("must be %s", expectedIdentityName)))
+		}
+	}
+
+	if ok, msg := ValidateUserName(identity.User.Name, false); !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid("user.name", identity.User.Name, msg))
+	}
+	if len(identity.User.Name) == 0 && len(identity.User.UID) != 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("user.uid", identity.User.UID, "may not be set if user.name is empty"))
+	}
+	if len(identity.User.Name) != 0 && len(identity.User.UID) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("user.uid"))
+	}
+	return allErrs
+}
+
+func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &identity.ObjectMeta).Prefix("metadata")...)
+
+	if identity.ProviderName != old.ProviderName {
+		allErrs = append(allErrs, errs.NewFieldInvalid("providerName", identity.ProviderName, "may not change providerName"))
+	}
+	if identity.ProviderUserName != old.ProviderUserName {
+		allErrs = append(allErrs, errs.NewFieldInvalid("providerUserName", identity.ProviderUserName, "may not change providerUserName"))
+	}
+
 	return allErrs
 }
 
 func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&mapping.ObjectMeta, false, ValidateUserName).Prefix("metadata")...)
-	allErrs = append(allErrs, ValidateIdentity(&mapping.Identity).Prefix("identity")...)
-	allErrs = append(allErrs, ValidateUser(&mapping.User).Prefix("user")...)
+	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&mapping.ObjectMeta, false, ValidateIdentityName).Prefix("metadata")...)
+	if len(mapping.Identity.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("identity.name"))
+	}
+	if mapping.Identity.Name != mapping.Name {
+		allErrs = append(allErrs, errs.NewFieldInvalid("identity.name", mapping.Identity.Name, "must match metadata.name"))
+	}
+	if len(mapping.User.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("user.name"))
+	}
+	return allErrs
+}
+
+func ValidateUserIdentityMappingUpdate(mapping *api.UserIdentityMapping, old *api.UserIdentityMapping) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &mapping.ObjectMeta).Prefix("metadata")...)
 	return allErrs
 }

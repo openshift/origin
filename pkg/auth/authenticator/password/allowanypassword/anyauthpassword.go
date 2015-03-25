@@ -12,12 +12,13 @@ import (
 
 // alwaysAcceptPasswordAuthenticator approves any login attempt with non-blank username and password
 type alwaysAcceptPasswordAuthenticator struct {
+	providerName   string
 	identityMapper authapi.UserIdentityMapper
 }
 
 // New creates a new password authenticator that approves any login attempt with non-blank username and password
-func New(identityMapper authapi.UserIdentityMapper) authenticator.Password {
-	return &alwaysAcceptPasswordAuthenticator{identityMapper}
+func New(providerName string, identityMapper authapi.UserIdentityMapper) authenticator.Password {
+	return &alwaysAcceptPasswordAuthenticator{providerName, identityMapper}
 }
 
 // AuthenticatePassword approves any login attempt with non-blank username and password
@@ -26,9 +27,7 @@ func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, passwo
 		return nil, false, nil
 	}
 
-	identity := &authapi.DefaultUserIdentityInfo{
-		UserName: username,
-	}
+	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.identityMapper.UserFor(identity)
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {

@@ -26,6 +26,7 @@ type Interface interface {
 	DeploymentsNamespacer
 	DeploymentConfigsNamespacer
 	RoutesNamespacer
+	IdentitiesInterface
 	UsersInterface
 	UserIdentityMappingsInterface
 	ProjectsInterface
@@ -97,6 +98,11 @@ func (c *Client) Routes(namespace string) RouteInterface {
 // Users provides a REST client for User
 func (c *Client) Users() UserInterface {
 	return newUsers(c)
+}
+
+// Identities provides a REST client for Identity
+func (c *Client) Identities() IdentityInterface {
+	return newIdentities(c)
 }
 
 // UserIdentityMappings provides a REST client for UserIdentityMapping

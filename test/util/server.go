@@ -185,13 +185,12 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
 func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Config, projectName, adminUser string) (*client.Client, error) {
-	qualifiedUser := "anypassword:" + adminUser
 	newProjectOptions := &newproject.NewProjectOptions{
 		Client:                clusterAdminClient,
 		ProjectName:           projectName,
 		AdminRole:             bootstrappolicy.AdminRoleName,
 		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		AdminUser:             qualifiedUser,
+		AdminUser:             adminUser,
 	}
 
 	if err := newProjectOptions.Run(); err != nil {

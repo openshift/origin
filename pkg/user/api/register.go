@@ -7,7 +7,9 @@ import (
 func init() {
 	api.Scheme.AddKnownTypes("",
 		&User{},
+		&UserList{},
 		&Identity{},
+		&IdentityList{},
 		&UserIdentityMapping{},
 	)
 }

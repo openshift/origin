@@ -4,13 +4,24 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 )
 
+const (
+	// IdentityDisplayNameKey is the key for an optional display name in an identity's Extra map
+	IdentityDisplayNameKey = "name"
+	// IdentityEmailKey is the key for an optional email address in an identity's Extra map
+	IdentityEmailKey = "email"
+	// IdentityLoginKey is the key for an optional login in an identity's Extra map.
+	// This is useful when the immutable providerUserName is different than the login used to authenticate
+	// If present, this extra value is used as the preferred username
+	IdentityLoginKey = "login"
+)
+
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of
 // some kind (like oauth for example) describes an identity.  Our system controls the users mapped to this identity.
 type UserIdentityInfo interface {
-	// GetUserName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
-	GetUserName() string
 	// GetProviderName returns the name of the provider of this identity.
 	GetProviderName() string
+	// GetProviderUserName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
+	GetProviderUserName() string
 	// GetExtra is a map to allow providers to add additional fields that they understand
 	GetExtra() map[string]string
 }
@@ -37,25 +48,26 @@ type Grant struct {
 }
 
 type DefaultUserIdentityInfo struct {
-	UserName     string
-	ProviderName string
-	Extra        map[string]string
+	ProviderName     string
+	ProviderUserName string
+	Extra            map[string]string
 }
 
-// NewDefaultUserIdentityInfo returns a DefaultUserIdentity info with a non-nil Extra component
-func NewDefaultUserIdentityInfo(username string) DefaultUserIdentityInfo {
-	return DefaultUserIdentityInfo{
-		UserName: username,
-		Extra:    make(map[string]string),
+// NewDefaultUserIdentityInfo returns a DefaultUserIdentityInfo with a non-nil Extra component
+func NewDefaultUserIdentityInfo(providerName, providerUserName string) *DefaultUserIdentityInfo {
+	return &DefaultUserIdentityInfo{
+		ProviderName:     providerName,
+		ProviderUserName: providerUserName,
+		Extra:            map[string]string{},
 	}
-}
-
-func (i *DefaultUserIdentityInfo) GetUserName() string {
-	return i.UserName
 }
 
 func (i *DefaultUserIdentityInfo) GetProviderName() string {
 	return i.ProviderName
+}
+
+func (i *DefaultUserIdentityInfo) GetProviderUserName() string {
+	return i.ProviderUserName
 }
 
 func (i *DefaultUserIdentityInfo) GetExtra() map[string]string {
