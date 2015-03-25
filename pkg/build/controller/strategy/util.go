@@ -12,8 +12,11 @@ import (
 // dockerSocketPath is the default path for the Docker socket inside the builder
 // container
 const (
-	dockerSocketPath      = "/var/run/docker.sock"
-	dockerSecretMountPath = "/var/run/secrets"
+	dockerSocketPath          = "/var/run/docker.sock"
+	dockerPushSecretMountPath = "/var/run/secrets/push"
+	// TODO: The pull secrets is the same as push secret for now.
+	//       This will be replaced using Service Account.
+	dockerPullSecretMountPath = dockerPushSecretMountPath
 )
 
 // setupDockerSocket configures the pod to support the host's Docker socket
@@ -80,8 +83,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
 				Target: kapi.ObjectReference{
 					Kind: "Secret",
 					Name: pushSecret,
-					// TODO: The namespace should not be required here.
-					//       See: https://github.com/GoogleCloudPlatform/kubernetes/pull/5807
+					// TODO: Remove the namespace once it gets fixed upstream
 					Namespace: pod.Namespace,
 				},
 			},
@@ -89,21 +91,15 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
 	}
 	volumeMount := kapi.VolumeMount{
 		Name:      pushSecret,
-		MountPath: filepath.Join(dockerSecretMountPath, "push"),
+		MountPath: dockerPushSecretMountPath,
 		ReadOnly:  true,
 	}
 
-	glog.V(3).Infof("Adding %s secret to build Pod %s", pushSecret, pod.Name)
+	glog.V(3).Infof("Installed %s as docker push secret in Pod %s", volumeMount.MountPath, pod.Name)
 	pod.Spec.Volumes = append(pod.Spec.Volumes, volume)
 	pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, volumeMount)
-
-	// TODO: The push && pull secrets are now the same, but the pull secret should
-	//       be delivered by Service Account in future.
-	// TODO: The Secret.Name must match with one of the Secret.Data[] keys in
-	//       in order to provide the full path to dockercfg. If it does not, then
-	//       the builder fail to find the dockercfg
 	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-		{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(volumeMount.MountPath, pushSecret)},
-		{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(volumeMount.MountPath, pushSecret)},
+		{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(dockerPushSecretMountPath, "dockercfg")},
+		{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(dockerPullSecretMountPath, "dockercfg")},
 	}...)
 }
