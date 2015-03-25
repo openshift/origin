@@ -292,7 +292,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeRequired) + "strategy.type",
+			string(fielderrors.ValidationErrorTypeRequired) + "strategy.type",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -309,7 +309,7 @@ func TestValidateBuildParameters(t *testing.T) {
 		// invalid because both image and from are specified in the
 		// sti strategy definition
 		{
-			string(errs.ValidationErrorTypeInvalid) + "strategy.stiStrategy.image",
+			string(fielderrors.ValidationErrorTypeInvalid) + "strategy.stiStrategy.image",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -334,7 +334,7 @@ func TestValidateBuildParameters(t *testing.T) {
 		// invalid because neither image nor from are specified in the
 		// sti strategy definition
 		{
-			string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.from",
+			string(fielderrors.ValidationErrorTypeRequired) + "strategy.stiStrategy.from",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,

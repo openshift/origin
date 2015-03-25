@@ -146,7 +146,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 
 	switch {
 	case len(strategy.Type) == 0:
-		allErrs = append(allErrs, fielderrs.NewFieldRequired("type"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
 
 	case strategy.Type == buildapi.STIBuildStrategyType:
 		if strategy.STIStrategy == nil {
@@ -175,7 +175,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 	return allErrs
 }
 
-func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) errs.ValidationErrorList {
+func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if (strategy.From == nil || len(strategy.From.Name) == 0) && len(strategy.Image) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
