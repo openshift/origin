@@ -25,7 +25,7 @@ var (
 	buildColumns            = []string{"NAME", "TYPE", "STATUS", "POD"}
 	buildConfigColumns      = []string{"NAME", "TYPE", "SOURCE"}
 	imageColumns            = []string{"NAME", "DOCKER REF"}
-	imageRepositoryColumns  = []string{"NAME", "DOCKER REPO", "TAGS"}
+	imageRepositoryColumns  = []string{"NAME", "DOCKER REPO", "SPEC TAGS", "STATUS TAGS"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
@@ -197,15 +197,24 @@ func printImageList(images *imageapi.ImageList, w io.Writer) error {
 }
 
 func printImageRepository(repo *imageapi.ImageRepository, w io.Writer) error {
-	tags := ""
+	specTags := ""
 	if len(repo.Tags) > 0 {
 		var t []string
 		for tag := range repo.Tags {
 			t = append(t, tag)
 		}
-		tags = strings.Join(t, ",")
+		specTags = strings.Join(t, ",")
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", repo.Name, repo.Status.DockerImageRepository, tags)
+
+	statusTags := ""
+	if len(repo.Status.Tags) > 0 {
+		var t []string
+		for tag := range repo.Status.Tags {
+			t = append(t, tag)
+		}
+		statusTags = strings.Join(t, ",")
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", repo.Name, repo.Status.DockerImageRepository, specTags, statusTags)
 	return err
 }
 
