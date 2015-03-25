@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -19,6 +20,7 @@ import (
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
+	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -54,6 +56,7 @@ func NewCommandOverwriteBootstrapPolicy(out io.Writer) *cobra.Command {
 
 	flags := cmd.Flags()
 
+	flags.BoolVarP(&options.Force, "force", "f", false, "You must confirm you really want to reset your policy. This will delete any custom settings you may have.")
 	flags.StringVar(&options.File, "filename", "", "The policy template file containing roles and bindings.  One can be created with '"+CreateBootstrapPolicyFileFullCommand+"'.")
 	flags.StringVar(&options.MasterConfigFile, "master-config", "master.yaml", "Location of the master configuration file to run from in order to connect to etcd and directly modify the policy.")
 
@@ -88,10 +91,13 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return err
 	}
 
-	return OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, o.File)
+	return OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, o.File, o.Force, o.Out)
 }
 
-func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, policyFile string) error {
+func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, policyFile string, change bool, out io.Writer) error {
+	if !change {
+		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
+	}
 	mapper := cmdclientcmd.ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
 	typer := api.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
@@ -118,26 +124,41 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 		}
 
 		for _, item := range template.Objects {
-			switch castObject := item.(type) {
+			switch t := item.(type) {
 			case *authorizationapi.Role:
-				ctx := api.WithNamespace(api.NewContext(), castObject.Namespace)
-				roleRegistry.DeleteRole(ctx, castObject.Name)
-				if err := roleRegistry.CreateRole(ctx, castObject); err != nil {
-					return err
+				ctx := api.WithNamespace(api.NewContext(), t.Namespace)
+				if change {
+					roleRegistry.DeleteRole(ctx, t.Name)
+					if err := roleRegistry.CreateRole(ctx, t); err != nil {
+						return err
+					}
+				} else {
+					fmt.Fprintf(out, "Overwrite role %s/%s\n", t.Namespace, t.Name)
+					if s, err := describe.DescribeRole(t); err == nil {
+						fmt.Fprintf(out, "%s\n", s)
+					}
 				}
-
 			case *authorizationapi.RoleBinding:
-				ctx := api.WithNamespace(api.NewContext(), castObject.Namespace)
-				roleBindingRegistry.DeleteRoleBinding(ctx, castObject.Name)
-				if err := roleBindingRegistry.CreateRoleBinding(ctx, castObject, true); err != nil {
-					return err
+				ctx := api.WithNamespace(api.NewContext(), t.Namespace)
+				if change {
+					roleBindingRegistry.DeleteRoleBinding(ctx, t.Name)
+					if err := roleBindingRegistry.CreateRoleBinding(ctx, t, true); err != nil {
+						return err
+					}
+				} else {
+					fmt.Fprintf(out, "Overwrite role binding %s/%s\n", t.Namespace, t.Name)
+					if s, err := describe.DescribeRoleBinding(t, nil, nil); err == nil {
+						fmt.Fprintf(out, "%s\n", s)
+					}
 				}
 
 			default:
 				return errors.New("only roles and rolebindings may be created in this mode")
 			}
 		}
-
+		if !change {
+			fmt.Fprintf(out, "To make the changes described above, pass --force\n")
+		}
 		return nil
 	})
 }
