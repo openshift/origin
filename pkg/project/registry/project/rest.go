@@ -42,6 +42,10 @@ func convertNamespace(namespace *kapi.Namespace) *api.Project {
 	return &api.Project{
 		ObjectMeta:  namespace.ObjectMeta,
 		DisplayName: displayName,
+		Spec:        api.ProjectSpec{},
+		Status: api.ProjectStatus{
+			Phase: namespace.Status.Phase,
+		},
 	}
 }
 

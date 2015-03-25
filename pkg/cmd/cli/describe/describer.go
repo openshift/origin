@@ -359,6 +359,7 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
 		formatString(out, "Display Name", project.DisplayName)
+		formatString(out, "Status", project.Status.Phase)
 		return nil
 	})
 }
